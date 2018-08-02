@@ -19,25 +19,28 @@ import java.io.StringReader;
 public class PyCodeUtil{
 
     private static final String NAME = "py$procedure";
-    private static final String SETUP = "def execute(*args):\n" +
-            "    run(*args)\n" +
-            // Setup the wrapper method
-            "from com.ziclix.python.sql import zxJDBC\n" +
+
+    // Does the necessary import and make the connection and make the connection
+    private static final String CONNECT = "from com.ziclix.python.sql import zxJDBC\n" +
             "jdbc_url = \"jdbc:default:connection\"\n" +
             "driver = \"com.splicemachine.db.jdbc.ClientDriver\"\n" +
             "global conn\n" +
-            "conn = zxJDBC.connect(jdbc_url, None, None, driver)\n" +
-            // Does the necessary import and make the connection
+            "conn = zxJDBC.connect(jdbc_url, None, None, driver)\n";
+
+    // Setup the wrapper method
+    private static final String SETUP = "def execute(*args):\n" +
+            "    run(*args)\n" +
             "factory = None\n" +
             "def setFactory(*args):\n" +
             "    global factory\n" +
             "    factory = args[0]\n";
             // Construct function to set the gloabal facotry for type conversion
 
-    public static byte[] compile(String code) throws Exception{
+    public static byte[] compile(String code, boolean sqlAllowed) throws Exception{
         byte[] compiledCode;
 
-        String decoratedCode = SETUP + code;
+	// Only make connection if the PyStored procedure is going to use the connection
+        String decoratedCode = sqlAllowed?(CONNECT + SETUP + code):(SETUP + code);
 
         StringReader codeReader = new StringReader(decoratedCode);
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();

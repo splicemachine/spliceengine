@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.impl.sql.compile.StaticMethodCallNode;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
@@ -236,7 +237,8 @@ public class ClassInspector
 			return null;
 
 		// Resolve java wrapper method for Python relevant routine using its name
-		if(methodName.equals("DEMO")){
+		if(methodName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME)&&
+				receiverClass.getName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_CLASS_NAME)){
 			try{
 				Method resultMethod = receiverClass.getMethod(methodName, Object[].class);
 				return resultMethod;

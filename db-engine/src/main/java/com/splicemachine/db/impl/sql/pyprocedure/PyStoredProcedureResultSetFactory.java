@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.pyprocedure;
+package com.splicemachine.db.impl.sql.pyprocedure;
 
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -11,10 +11,11 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
-import com.splicemachine.derby.utils.BaseAdminProcedures;
-import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.jdbc.InternalDriver;
 import org.python.core.PyList;
 import org.python.core.PyTuple;
 
@@ -26,14 +27,21 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.splicemachine.derby.utils.BaseAdminProcedures.getDefaultConn;
-
 public class PyStoredProcedureResultSetFactory{
 
     public static EmbedResultSet create(PyList resultTuple)
-            throws SQLException, Throwable {
+            throws Throwable {
         try {
-            EmbedConnection conn = (EmbedConnection) getDefaultConn();
+            EmbedConnection conn = null;
+            // The connection code is taken from com.splicemachine.derby.utils.BaseAdminProcedures.getDefaultConn()
+            InternalDriver id = InternalDriver.activeDriver();
+            if (id != null) {
+                conn = (EmbedConnection) id.connect("jdbc:default:connection", null);
+                if (conn  == null){
+                    throw Util.noCurrentConnection();
+                }
+            }
+
             Activation lastActivation = conn.getLanguageConnection().getLastActivation();
 
             // Each PyTuple contained in description describes the data type of a column
@@ -73,7 +81,7 @@ public class PyStoredProcedureResultSetFactory{
                 descriptors[idx] = new GenericColumnDescriptor(colName, descriptor);
             }
 
-            ExecRow template = BaseAdminProcedures.buildExecRow(descriptors);
+            ExecRow template = buildExecRow(descriptors);
             List<ExecRow> rows = new ArrayList<>();
             if(resultRows.size() > 0){
                 // construct MethodHandle Array
@@ -103,9 +111,23 @@ public class PyStoredProcedureResultSetFactory{
             return result;
         } catch (StandardException se){
             throw PublicAPI.wrapStandardException(se);
-        } catch (Exception e){
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
+    }
+
+    // Helper Function to build ExecRow, which is taken from
+    //com.splicemachine.derby.utils.BaseAdminProcedures.buildExecRow(ResultColumnDescriptor[] columns)
+    protected static ExecRow buildExecRow(ResultColumnDescriptor[] columns) throws SQLException {
+        ExecRow template = new ValueRow(columns.length);
+        try {
+            DataValueDescriptor[] rowArray = new DataValueDescriptor[columns.length];
+            for(int i=0;i<columns.length;i++){
+                rowArray[i] = columns[i].getType().getNull();
+            }
+            template.setRowArray(rowArray);
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+        return template;
     }
 
 }

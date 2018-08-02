@@ -37,12 +37,6 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     static final String USER = "splice";
     static final String PASSWORD = "admin";
     // Sql Command
-    static final String INSTALL_JAR = "CALL SQLJ.INSTALL_JAR('%s', 'SPLICE.TXN_IT_PROCS_JAR', 0)";
-    static final String REMOVE_JAR = "CALL SQLJ.REMOVE_JAR('SPLICE.TXN_IT_PROCS_JAR', 0)";
-    static final String CALL_SET_CLASSPATH_FOR_DEMO = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', 'SPLICE.TXN_IT_PROCS_JAR')";
-    static final String CALL_SET_CLASSPATH_FOR_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)";
-    static final String CREATE_DEMO_PROC = String.format("CREATE PROCEDURE %s.DEMO() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.DEMO'", SCHEMA_NAME);
-    static final String DROP_DEMO_PROC = String.format("DROP PROCEDURE %s.DEMO",SCHEMA_NAME);
     static final String DROP_TEST_TABLE_IF_EXIST ="DROP TABLE TEST_TABLE IF EXISTS";
     static final String CREATE_TEST_TABLE = "CREATE TABLE TEST_TABLE(\n" +
             "BIGINT_COL BIGINT NOT NULL,\n" +
@@ -93,7 +87,7 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     static final String CALL_PYPROC = String.format("CALL %s.PYPROC_TYPE_UNIT_TEST()",SCHEMA_NAME);
     static final String DROP_PYPROC = String.format("DROP PROCEDURE %s.PYPROC_TYPE_UNIT_TEST",SCHEMA_NAME);
 
-    static final String CREATE_JPROC = String.format("CREATE PROCEDURE %s.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.JPROC_TYPE_UNIT_TEST'",SCHEMA_NAME);
+    static final String CREATE_JPROC = String.format("CREATE PROCEDURE %s.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'com.splicemachine.derby.impl.sql.pyprocedure.PyStoredProcedureResultSetFactoryIT.JPROC_TYPE_UNIT_TEST'",SCHEMA_NAME);
     static final String DROP_JPROC = String.format("DROP PROCEDURE %s.JPROC_TYPE_UNIT_TEST",SCHEMA_NAME);
     static final String CALL_JPROC = String.format("CALL %s.JPROC_TYPE_UNIT_TEST()",SCHEMA_NAME);
 
@@ -106,16 +100,6 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     @BeforeClass
     public static void setUpClass() throws Exception
     {
-
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir").replaceFirst("splice_machine","hbase_sql")+"/target/txn-it/txn-it.jar";//getJarFileForClass(TxnTestProcs.class);
-        assertTrue("Cannot find procedures jar file: "+STORED_PROCS_JAR_FILE, STORED_PROCS_JAR_FILE != null &&
-                STORED_PROCS_JAR_FILE.endsWith("jar"));
-
-
-        // Install and create the Wrapper Proc (DEMO) for Python Stored Procedure
-        spliceClassWatcher.executeUpdate(String.format(INSTALL_JAR, STORED_PROCS_JAR_FILE));
-        spliceClassWatcher.executeUpdate(CALL_SET_CLASSPATH_FOR_DEMO);
-        spliceClassWatcher.executeUpdate(CREATE_DEMO_PROC);
         // Create the TEST_TABLE and populate it
         spliceClassWatcher.executeUpdate(DROP_TEST_TABLE_IF_EXIST);
         spliceClassWatcher.executeUpdate(CREATE_TEST_TABLE);
@@ -128,10 +112,7 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     @AfterClass
     public static void tearDownClass() throws Exception
     {
-        spliceClassWatcher.executeUpdate(DROP_DEMO_PROC);
         spliceClassWatcher.executeUpdate(DROP_TEST_TABLE_IF_EXIST);
-        spliceClassWatcher.executeUpdate(CALL_SET_CLASSPATH_FOR_DEFAULT);
-        spliceClassWatcher.executeUpdate(REMOVE_JAR);
         spliceClassWatcher.executeUpdate(DROP_JPROC);
         spliceClassWatcher.executeUpdate(DROP_PYPROC);
     }
@@ -206,5 +187,20 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
             Assert.assertEquals(pyRow[15], javaTextStr);
         }
         javaResultSet.close();
+    }
+
+
+    /**
+     * Used in PyStoredProcedureResultSetFacotryIT
+     */
+    public static void JPROC_TYPE_UNIT_TEST(ResultSet[] rs)
+            throws Exception{
+        //-- Declare and execute the procedure in ij.
+        //CREATE PROCEDURE SPLICE.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'com.splicemachine.derby.impl.sql.pyprocedure.PyStoredProcedureResultSetFactoryIT.JPROC_TYPE_UNIT_TEST';
+        //CALL SPLICE.JPROC_TYPE_UNIT_TEST();
+        Connection conn = DriverManager.getConnection("jdbc:default:connection");
+        Statement stmt = conn.createStatement();
+        rs[0] = stmt.executeQuery("SELECT * FROM TEST_TABLE {limit 1}");
+        conn.close();
     }
 }

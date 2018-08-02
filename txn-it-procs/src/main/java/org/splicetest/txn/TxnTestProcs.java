@@ -22,7 +22,7 @@ import com.splicemachine.db.impl.sql.pyprocedure.PyInterpreterPool;
 import com.splicemachine.pipeline.Exceptions;
 import org.python.util.PythonInterpreter;
 import org.python.core.*;
-import com.splicemachine.derby.impl.sql.pyprocedure.PyStoredProcedureResultSetFactory;
+import com.splicemachine.db.impl.sql.pyprocedure.PyStoredProcedureResultSetFactory;
 
 /**
  * Stored procedures to test the transactional correctness of the Splice Machine stored procedure execution framework.
@@ -43,92 +43,6 @@ public class TxnTestProcs {
 	-- Replace the JAR file.
 	CALL SQLJ.REPLACE_JAR('/Users/dwinters/Documents/workspace3/txn-it-procs/target/txn-it-procs-1.0-SNAPSHOT.jar', 'SPLICE.TXN_IT_PROCS_JAR');
 	 */
-
-	/**
-	 * A wrapper static method for Python Stored Procedure
-	 *
-	 * @param args if the registered stored procedure has n parameters, the args[0] to args[n-1] are these parameters.
-	 * The args[n] must be a String which contains the Python script. The rest of elements in the args are ResultSet[].
-	 * In the current test version only allows one ResultSet[]
-	 */
-	public static void DEMO(Object... args)
-			throws SQLException
-	{
-		/*
-		-- Declare and execute the procedure in ij.
-		CREATE PROCEDURE SPLICE.DEMO() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.DEMO';
-		CALL SPLICE.DEMO();
-		 */
-		PyInterpreterPool pool = null;
-		PythonInterpreter interpreter = null;
-		String setFacFuncName = "setFactory";
-		String funcName = "execute";
-
-		try {
-			int pyScriptIdx;
-			byte[] compiledCode;
-			int nargs = args.length;
-			Integer rsDelim = null;
-
-
-			for(int i = 0; i < nargs; ++i){
-				if(args[i] instanceof ResultSet[]){
-					rsDelim = i;
-					break;
-				}
-			}
-
-			// set pyScript
-			if(rsDelim == null){
-				if(nargs == 0 || !(args[nargs-1] instanceof String)){
-					// raise exception
-				}
-				pyScriptIdx = nargs - 1;
-			}
-			else{
-				if(rsDelim-1 < 0 ||!(args[rsDelim - 1] instanceof String)){
-					//faise exception
-				}
-				pyScriptIdx = rsDelim - 1;
-			}
-			compiledCode = (byte[]) args[pyScriptIdx];
-
-			// set the Object[] to pass into Jython code
-			int j = 0;
-			Object[] pyArgs;
-			if(nargs - 1 ==0){
-				pyArgs = null;
-			}
-			else{
-				pyArgs = new Object[nargs - 1];
-			}
-			for(int i = 0; i < nargs; ++i){
-				if(i != pyScriptIdx){
-					pyArgs[j] = args[i];
-					j++;
-				}
-			}
-
-			pool = PyInterpreterPool.getInstance();
-			interpreter = pool.acquire();
-			PyCodeUtil.exec(compiledCode, interpreter);
-			// add global variable factory, so that the user can use it to construct JDBC ResultSet
-			Object[] factoryArg = {new PyStoredProcedureResultSetFactory()};
-			PyFunction addFacFunc = interpreter.get(setFacFuncName, PyFunction.class);
-			addFacFunc._jcall(factoryArg);
-
-			// execute the user defined function, the user needs to fill the ResultSet himself,
-			// just like the original Java Stored Procedure
-			PyFunction userFunc = interpreter.get(funcName, PyFunction.class);
-			userFunc._jcall(pyArgs);
-		}catch (Exception e){
-			throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-		}finally{
-			if(pool != null && interpreter != null){
-				pool.release(interpreter);
-			}
-		}
-	}
 
 	/*
 	 * ============================================================================================
@@ -626,20 +540,6 @@ public class TxnTestProcs {
 	private static ResultSet getEmployeeLastNames(Connection conn, String tableName) throws SQLException {
 		PreparedStatement pstmt = conn.prepareStatement("select LNAME from " + tableName);
 		return pstmt.executeQuery();
-	}
-
-	/**
-	 * Used in PyStoredProcedureResultSetFacotryIT
-	 */
-	public static void JPROC_TYPE_UNIT_TEST(ResultSet[] rs)
-			throws Exception{
-		//-- Declare and execute the procedure in ij.
-		//CREATE PROCEDURE SPLICE.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.JPROC_TYPE_UNIT_TEST';
-		//CALL SPLICE.JPROC_TYPE_UNIT_TEST();
-		Connection conn = DriverManager.getConnection("jdbc:default:connection");
-		Statement stmt = conn.createStatement();
-		rs[0] = stmt.executeQuery("SELECT * FROM TEST_TABLE {limit 1}");
-		conn.close();
 	}
 
 	public static void MULTIPLE_RESULTSETS_PROC(ResultSet[] rs1, ResultSet[] rs2, ResultSet[] rs3)
