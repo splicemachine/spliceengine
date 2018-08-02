@@ -772,6 +772,32 @@ public class ProjectionPruningIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testDB7160() throws Exception {
+        setProjectionPruningProperty(projectionPruningDisabled);
+
+        String sqlText = "SELECT count(*) FROM t3 z1 WHERE EXISTS\n" +
+                "( SELECT 1 FROM ( SELECT b3 FROM t3 z2 WHERE EXISTS ( SELECT b3 FROM t3 z3 WHERE EXISTS\n" +
+                "(select 1 from --splice-properties joinOrder=fixed\n" +
+                "          t3 y1 --splice-properties joinStrategy=SORTMERGE\n" +
+                "          inner join t3 y2 --splice-properties joinStrategy=SORTMERGE\n" +
+                "          on y1.a3=y2.a3 inner join t3 y3 --splice-properties joinStrategy=SORTMERGE\n" +
+                "          on y2.b3 = y3.b3 inner join t3 y4 on y2.c3 = y4.c3)))mytab)\n";
+
+        String expected = "1 |\n" +
+                "----\n" +
+                " 6 |";
+
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        } catch (Exception e) {
+            Assert.fail("DB-7160 Unit test failed with exception.\n");
+        }
+    }
+
+    @Test
     public void testInsertSelect() throws Exception {
         setProjectionPruningProperty(projectionPruningDisabled);
 
