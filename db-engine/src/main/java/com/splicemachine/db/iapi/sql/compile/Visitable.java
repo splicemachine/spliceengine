@@ -58,7 +58,7 @@ public interface Visitable {
 
     public List<QueryTreeNode> collectReferencedColumns() throws StandardException;
 
-    public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException;
+    public Visitable projectionListPruning(boolean considerAllRCs, boolean firstPass) throws StandardException;
 
     public void markReferencedResultColumns(List<QueryTreeNode> list) throws StandardException;
 }

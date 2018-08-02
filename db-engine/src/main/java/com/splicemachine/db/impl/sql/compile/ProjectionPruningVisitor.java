@@ -41,23 +41,33 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
  */
 public class ProjectionPruningVisitor implements Visitor {
     boolean isTopSelect=true;
+    boolean firstPass=true;
 
     @Override
     public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         if (parent != null && (parent instanceof SubqueryNode) && (node instanceof SelectNode || node instanceof SetOperatorNode)) {
             isTopSelect = true;
-            node = node.projectionListPruning(isTopSelect);
+            node = node.projectionListPruning(isTopSelect, firstPass);
             if (isTopSelect)
                 isTopSelect = false;
         } else if (node instanceof SelectNode || node instanceof SetOperatorNode) {
-            node = node.projectionListPruning(isTopSelect);
+            node = node.projectionListPruning(isTopSelect, firstPass);
             if (isTopSelect)
                 isTopSelect = false;
         } else
-            node = node.projectionListPruning(false);
+            node = node.projectionListPruning(false, firstPass);
 
 
         return node;
+    }
+
+    public boolean isFirstPass() {
+        return firstPass;
+    }
+
+    public void startSecondPass() {
+        isTopSelect = true;
+        firstPass = false;
     }
 
     /**

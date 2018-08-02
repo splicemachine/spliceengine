@@ -2057,16 +2057,18 @@ public class JoinNode extends TableOperatorNode{
     /**
      * prune the unreferenced result columns of FromSubquery node and FromBaseTable node
      */
-    public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
-        // collect referenced columns.
-        List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
+    public Visitable projectionListPruning(boolean considerAllRCs, boolean firstPass) throws StandardException {
 
-        // clear the referenced fields for both source tables
-        leftResultSet.resultColumns.setColumnReferences(false, true);
-        rightResultSet.resultColumns.setColumnReferences(false, true);
-
-        markReferencedResultColumns(refedcolmnList);
-
+        if (firstPass) {
+            // clear the referenced fields for both source tables
+            leftResultSet.resultColumns.setColumnReferences(false, true);
+            rightResultSet.resultColumns.setColumnReferences(false, true);
+        }
+        else {
+            // collect referenced columns.
+            List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
+            markReferencedResultColumns(refedcolmnList);
+        }
         return this;
     }
 

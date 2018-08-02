@@ -2617,22 +2617,24 @@ public class SelectNode extends ResultSetNode{
     /**
      * prune the unreferenced result columns of FromSubquery node and FromBaseTable node
      */
-    public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
-        // mark all result columns as referenced
-        if (considerAllRCs || isDistinct)
-            resultColumns.setColumnReferences(true, true);
+    public Visitable projectionListPruning(boolean considerAllRCs, boolean firstPass) throws StandardException {
+        if (!firstPass) {
+            // mark all result columns as referenced
+            if (considerAllRCs || isDistinct)
+                resultColumns.setColumnReferences(true, true);
 
-        // clear the referenced fields for all tables
-        for (int i=0; i<fromList.size(); i++) {
-            FromTable fromTable = (FromTable) fromList.elementAt(i);
+            // clear the referenced fields for all tables
+            for (int i = 0; i < fromList.size(); i++) {
+                FromTable fromTable = (FromTable) fromList.elementAt(i);
 
-            ResultColumnList rcl = fromTable.getResultColumns();
-            rcl.setColumnReferences(false, true);
+                ResultColumnList rcl = fromTable.getResultColumns();
+                rcl.setColumnReferences(false, true);
+            }
+
+            List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
+
+            markReferencedResultColumns(refedcolmnList);
         }
-
-        List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
-
-        markReferencedResultColumns(refedcolmnList);
 
         return this;
     }

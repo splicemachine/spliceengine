@@ -835,16 +835,17 @@ public class FromSubquery extends FromTable
 		return cnVisitor.getCollected();
 	}
 
-	public Visitable projectionListPruning(boolean considerAllRCs) throws StandardException {
-		// collect referenced columns.
-		List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
+	public Visitable projectionListPruning(boolean considerAllRCs, boolean firstPass) throws StandardException {
+		if (!firstPass) {
+			// collect referenced columns.
+			List<QueryTreeNode> refedcolmnList = collectReferencedColumns();
 
-		ResultColumnList rcl = subquery.getResultColumns();
-		// clear the referenced fields for both source tables
-		rcl.setColumnReferences(false, true);
+			ResultColumnList rcl = subquery.getResultColumns();
+			// clear the referenced fields for both source tables
+			rcl.setColumnReferences(false, true);
 
-		markReferencedResultColumns(refedcolmnList);
-
+			markReferencedResultColumns(refedcolmnList);
+		}
 		return this;
 	}
 }
