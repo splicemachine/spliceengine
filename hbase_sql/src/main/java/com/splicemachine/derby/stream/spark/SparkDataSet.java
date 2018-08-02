@@ -800,12 +800,12 @@ public class SparkDataSet<V> implements DataSet<V> {
 
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
+                partitionByCols.add(dataSchema.fields()[partitionBy[i]].name());
             }
             if (partitionBy.length > 0) {
                 List<Column> repartitionCols = new ArrayList();
                 for (int i = 0; i < partitionBy.length; i++) {
-                    repartitionCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                    repartitionCols.add(new Column(dataSchema.fields()[partitionBy[i]].name()));
                 }
                 insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
             }
