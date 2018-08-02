@@ -83,23 +83,24 @@ Follow the steps to install splicemachine server.
 
 <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
-3. Choose the master machine. It need to be the same machine with HBase master.
+3. Choose the master machine. It needs to be the same machine as the HBase master.
 
-4. Choose hosts needed to install splice machine,only choose hosts that have hbase region server 
+4. Choose hosts needed to install splice machine. Only choose hosts that have hbase region server 
 installed.Then click next.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-5. On the page of custom services,no properties need to customize by hand unless you would like to
- add Apache Ranger Support.
+5. On the page of custom services, no properties need to customized by hand unless you would 
+like to add Apache Ranger Support.
 
 <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
-6. Please review all the configuration change made by ambari and click OK to continue.
+6. Please review all the configuration changes made by Ambari and click OK to continue.
 
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-**Note**: Ambari will not show all the recommend values in some situations. Make sure these important configurations are set properly by click "recommend" button next to the configs:
+**Note**: Ambari will not show all the recommended values in some situations. Make sure these 
+important configurations are set properly by clicking "recommend" button next to the configs:
 
 (1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes `com.splicemachine.hbase.SpliceMasterObserver`.
 
@@ -107,15 +108,16 @@ installed.Then click next.
 
 (3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`. If the property is not found, you can add the property in "Custom hbase-site".
 
-(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific Informatio" are in the configurations.
+(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific 
+Information" are in the configurations.
 
 
-7. Please click next all the way down to this page ,then click 'deploy',after that finishes,splice
- machine is installed.
+7. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
+ Machine is installed.
 
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-8. Restart all the services affected to start splice machine!
+8. Restart all the services affected to start Splice Machine!
 
 
 
@@ -211,13 +213,13 @@ Unable to decrypt password due to error.
 Input length must be multiple of 8 when decrypting with padded cipher. 
 ```
 
-It is because of a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640?attachmentOrder=asc).
+It is because of a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640).
 You can ignore the error and test if autocomplete is working later.
 
 #### Config Ranger Policies
 
 Once you save the service then click on the service name you just created.
-You should see a several policies for the splice user.
+You should see several policies for the splice user.
 The following policy is required so SYSIBM routines can support database connectivity.
 
 | Required Policy Name | Logic | Users |
