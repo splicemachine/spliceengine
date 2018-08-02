@@ -625,6 +625,13 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             }
         }
 
+        if (getCompilerContext().isProjectionPruningEnabled()) {
+            /* after building the optimized tree bottom-up, we know which fields are not referenced
+             * and can be pruned
+             */
+            resultColumns.doProjection(false);
+        }
+
         if((restrictionList!=null) && !alreadyPushed){
             restrictionList.pushUsefulPredicates((Optimizable)childResult);
         }
