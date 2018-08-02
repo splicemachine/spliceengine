@@ -247,6 +247,10 @@ public interface SConfiguration {
 
     int getPartitionserverJmxPort();
 
+    String getPartitionserverJmxUser();
+
+    String getPartitionserverJmxPassword();
+
     int getPartitionserverPort();
 
     long getBroadcastRegionMbThreshold();
