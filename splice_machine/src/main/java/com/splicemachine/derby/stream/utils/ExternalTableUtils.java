@@ -34,6 +34,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -158,10 +159,12 @@ public class ExternalTableUtils {
                                      String location, String storeAs, boolean mergeSchema) throws StandardException {
         StructType dataSchema =dsp.getExternalFileSchema(storeAs, location, mergeSchema);
         tableSchema =  ExternalTableUtils.supportAvroDateType(tableSchema, storeAs);
-        ExternalTableUtils.checkSchema(tableSchema, dataSchema, partitionColumnMap, location);
+        if (dataSchema != null) {
+            ExternalTableUtils.checkSchema(tableSchema, dataSchema, partitionColumnMap, location);
 
-        // set partition column datatype, because the inferred type is not always correct
-        setPartitionColumnTypes(dataSchema, partitionColumnMap, tableSchema);
+            // set partition column datatype, because the inferred type is not always correct
+            setPartitionColumnTypes(dataSchema, partitionColumnMap, tableSchema);
+        }
         return dataSchema;
     }
 
@@ -185,17 +188,45 @@ public class ExternalTableUtils {
         return dataSchema;
     }
 
-    private static void setPartitionColumnTypes(StructType dataSchema, int[] baseColumnMap, StructType tableSchema) {
+    public static void setPartitionColumnTypes (StructType dataSchema,int[] baseColumnMap, StructType tableSchema){
 
-        int ncolumns = dataSchema.fields().length;
-        int nPartitions = baseColumnMap.length;
-        for (int i = 0; i < baseColumnMap.length; ++i) {
-            String name = dataSchema.fields()[ncolumns-i-1].name();
-            org.apache.spark.sql.types.DataType type = tableSchema.fields()[baseColumnMap[nPartitions-i-1]].dataType();
-            boolean nullable = tableSchema.fields()[baseColumnMap[nPartitions-i-1]].nullable();
-            Metadata metadata = tableSchema.fields()[baseColumnMap[nPartitions-i-1]].metadata();
-            StructField field = new StructField(name, type, nullable, metadata);
-            dataSchema.fields()[ncolumns-i-1] = field;
+            int ncolumns = dataSchema.fields().length;
+            int nPartitions = baseColumnMap.length;
+            for (int i = 0; i < baseColumnMap.length; ++i) {
+                String name = dataSchema.fields()[ncolumns - i - 1].name();
+                org.apache.spark.sql.types.DataType type = tableSchema.fields()[baseColumnMap[nPartitions - i - 1]].dataType();
+                boolean nullable = tableSchema.fields()[baseColumnMap[nPartitions - i - 1]].nullable();
+                Metadata metadata = tableSchema.fields()[baseColumnMap[nPartitions - i - 1]].metadata();
+                StructField field = new StructField(name, type, nullable, metadata);
+                dataSchema.fields()[ncolumns - i - 1] = field;
+            }
+        }
+
+    /*
+     if the external table is partitioned, its partitioned columns will be placed after all non-partitioned columns in StructField[] schema
+     sort the columns so that partitioned columns are in their correct place
+     */
+
+    public static void sortColumns(StructField[] schema, int[] partitionColumnMap) {
+        if (partitionColumnMap.length > 0) {
+            // get the partitioned columns and map them to their correct indexes
+            HashMap<Integer, StructField> partitions = new HashMap<>();
+            int schemaColumnIndex = schema.length - 1;
+            for (int i = partitionColumnMap.length - 1; i >= 0; i--) {
+                partitions.put(partitionColumnMap[i], schema[schemaColumnIndex]);
+                schemaColumnIndex--;
+            }
+
+            // sort the partitioned columns back into their correct respective indexes in schema
+            StructField[] schemaCopy = schema.clone();
+            int schemaCopyIndex = 0;
+            for (int i = 0; i < schema.length; i++) {
+                if (partitions.containsKey(i)) {
+                    schema[i] = partitions.get(i);
+                } else {
+                    schema[i] = schemaCopy[schemaCopyIndex++];
+                }
+            }
         }
     }
 }
