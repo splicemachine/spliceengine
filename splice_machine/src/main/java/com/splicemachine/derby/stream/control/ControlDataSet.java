@@ -31,10 +31,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
@@ -461,14 +458,14 @@ public class ControlDataSet<V> implements DataSet<V> {
      *
      * Not Supported
      *
-     * @param baseColumnMap
+     * @param dsp
      * @param partitionBy
      * @param location
      * @param context
      * @return
      */
     @Override
-    public DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
+    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write parquet files");
     }
 
@@ -476,14 +473,14 @@ public class ControlDataSet<V> implements DataSet<V> {
      *
      * Not Supported
      *
-     * @param baseColumnMap
+     * @param dsp
      * @param partitionBy
      * @param location
      * @param context
      * @return
      */
     @Override
-    public DataSet<ExecRow> writeAvroFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
+    public DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write avro files");
     }
 

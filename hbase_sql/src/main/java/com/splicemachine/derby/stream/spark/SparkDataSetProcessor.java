@@ -322,7 +322,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         .schema(dataSchema)
                         .parquet(location);
 
-                sortColumns(table.schema().fields(), partitionColumnMap);
+                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
@@ -366,7 +366,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 // Creates a DataFrame from a specified file
                 table = spark.read().schema(dataSchema).format("com.databricks.spark.avro").load(location);
 
-                sortColumns(table.schema().fields(), partitionColumnMap);
+                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
 
             } catch (Exception e) {
@@ -460,8 +460,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         dataset = SpliceSpark.getSession()
                                 .read()
                                 .orc(location);
-                    }
-                    if (storedAs.toLowerCase().equals("t")) {
+                    } else if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
                         schema = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location).schema();
                     }
@@ -677,6 +676,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
                 table = SpliceSpark.getSession().read().options(options).csv(location);
 
+                if (table.schema().fields().length == 0)
+                    return getEmpty();
+
                 if (op == null) {
                     // stats collection scan
                     for(int index = 0; index < execRow.schema().fields().length; index++) {
@@ -793,33 +795,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         }
         return andCols;
-    }
-
-    /*
-     if the external table is partitioned, its partitioned columns will be placed after all non-partitioned columns in StructField[] schema
-     sort the columns so that partitioned columns are in their correct place
-     */
-    public void sortColumns(StructField[] schema, int[] partitionColumnMap){
-        if (partitionColumnMap.length > 0) {
-            // get the partitioned columns and map them to their correct indexes
-            HashMap<Integer, StructField> partitions = new HashMap<>();
-            int schemaColumnIndex = schema.length - 1;
-            for (int i = partitionColumnMap.length - 1; i >= 0; i--) {
-                partitions.put(partitionColumnMap[i], schema[schemaColumnIndex]);
-                schemaColumnIndex--;
-            }
-
-            // sort the partitioned columns back into their correct respective indexes in schema
-            StructField[] schemaCopy = schema.clone();
-            int schemaCopyIndex = 0;
-            for (int i = 0; i < schema.length; i++){
-                if (partitions.containsKey(i)){
-                    schema[i] = partitions.get(i);
-                } else {
-                    schema[i] = schemaCopy[schemaCopyIndex++];
-                }
-            }
-        }
     }
 
 

@@ -1464,4 +1464,35 @@ public class ExternalTablePartitionIT {
         return count;
     }
 
+    @Test
+    public void testInsertionToHiveParquetData() throws Exception {
+        methodWatcher.executeUpdate(
+                String.format("create external table pt_parquet(col1 varchar(10), col2 int, col3 char(2)) partitioned by (col3) stored as parquet location '%s'",
+                        SpliceUnitTest.getResourceDirectory() + "pt_parquet"));
+        methodWatcher.execute("insert into pt_parquet values ('Kate', 19, 'HI')");
+        ResultSet rs = methodWatcher.executeQuery("select * from pt_parquet order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected = "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                "Kate | 19  | HI  |\n" +
+                " Sam | 20  | CA  |\n" +
+                " Tom | 21  | NY  |";
+        assertEquals(actual, expected, actual);
+    }
+
+    @Test
+    public void testInsertionToHiveAvroData() throws Exception {
+        methodWatcher.executeUpdate(
+                String.format("create external table pt_avro(col1 varchar(10), col2 int, col3 char(2)) partitioned by (col3) stored as avro location '%s'",
+                        SpliceUnitTest.getResourceDirectory() + "pt_avro"));
+        methodWatcher.execute("insert into pt_avro values ('Kate', 19, 'HI')");
+        ResultSet rs = methodWatcher.executeQuery("select * from pt_avro order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected = "COL1 |COL2 |COL3 |\n" +
+                "------------------\n" +
+                "Kate | 19  | HI  |\n" +
+                " Sam | 20  | CA  |\n" +
+                " Tom | 21  | NY  |";
+        assertEquals(actual, expected, actual);
+    }
 }
