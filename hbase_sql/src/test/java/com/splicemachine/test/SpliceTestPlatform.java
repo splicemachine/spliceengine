@@ -81,12 +81,11 @@ public class SpliceTestPlatform {
             UserGroupInformation ugi;
             if (secure) {
                 ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI("hbase/example.com@EXAMPLE.COM", keytab);
+                UserGroupInformation.setLoginUser(ugi);
             } else {
-                ugi = UserGroupInformation.createRemoteUser("hbase");
+                ugi = UserGroupInformation.getCurrentUser();
             }
-            UserGroupInformation.setLoginUser(ugi);
             ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
-
             ugi.doAs(new PrivilegedExceptionAction<Void>() {
                 @Override
                 public Void run() throws Exception {

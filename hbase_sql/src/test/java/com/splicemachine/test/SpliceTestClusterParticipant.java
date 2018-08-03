@@ -86,10 +86,10 @@ public class SpliceTestClusterParticipant {
         UserGroupInformation ugi;
         if (secure) {
             ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI("hbase/example.com@EXAMPLE.COM", keytab);
+            UserGroupInformation.setLoginUser(ugi);
         } else {
-            ugi = UserGroupInformation.createRemoteUser("hbase");
+            ugi = UserGroupInformation.getCurrentUser();
         }
-        UserGroupInformation.setLoginUser(ugi);
 
         ugi.doAs(new PrivilegedExceptionAction<Void>() {
             @Override
