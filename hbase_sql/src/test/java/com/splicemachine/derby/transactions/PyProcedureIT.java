@@ -60,7 +60,7 @@ public class PyProcedureIT extends SpliceUnitTest {
     private static final String EMPLOYEE_TABLE_NAME_BASE = SCHEMA_NAME + ".EMPLOYEE";
 
     // SQL statements to create and drop stored procedures.
-    private static final String CREATE_PROC_CREATE_EMPLOYEE_TABLE = String.format("CREATE PROCEDURE %s.CREATE_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(tableName):\n" +
+    private static final String CREATE_PROC_CREATE_EMPLOYEE_TABLE = String.format("CREATE PROCEDURE %s.CREATE_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 AS 'def run(tableName):\n" +
             "    c = conn.cursor()\n" +
             "    c.execute(\"create table \" + tableName + \" (ID int, FNAME varchar(20), LNAME varchar(30))\")\n" +
             "    conn.commit()\n" +
@@ -68,7 +68,7 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    conn.close()'", SCHEMA_NAME);
     private static final String DROP_PROC_CREATE_EMPLOYEE_TABLE = String.format("DROP PROCEDURE %s.CREATE_EMPLOYEE_TABLE", SCHEMA_NAME);
 
-    private static final String CREATE_PROC_DROP_EMPLOYEE_TABLE = String.format("CREATE PROCEDURE %s.DROP_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(tableName):\n" +
+    private static final String CREATE_PROC_DROP_EMPLOYEE_TABLE = String.format("CREATE PROCEDURE %s.DROP_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 AS 'def run(tableName):\n" +
             "    c = conn.cursor()\n" +
             "    c.execute(\"drop table \" + tableName)\n" +
             "    conn.commit()\n" +
@@ -76,7 +76,7 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    conn.close()'", SCHEMA_NAME);
     private static final String DROP_PROC_DROP_EMPLOYEE_TABLE = String.format("DROP PROCEDURE %s.DROP_EMPLOYEE_TABLE", SCHEMA_NAME);
 
-    private static final String CREATE_PROC_INSERT_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(tableName, empId, fname, lname):\n" +
+    private static final String CREATE_PROC_INSERT_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 AS 'def run(tableName, empId, fname, lname):\n" +
             "    c = conn.cursor()\n" +
             "    stmt = \"insert into \" + tableName + \" values(?, ?, ?)\"\n" +
             "    c.execute(stmt, [empId, fname, lname])\n" +
@@ -85,7 +85,7 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    conn.close()'", SCHEMA_NAME);
     private static final String DROP_PROC_INSERT_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_EMPLOYEE", SCHEMA_NAME);
 
-    private static final String CREATE_PROC_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, rs):\n" +
+    private static final String CREATE_PROC_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 AS 'def run(tableName, empId, rs):\n" +
             "    c = conn.cursor()\n" +
             "    stmt = \"select * from \" + tableName + \" where ID = ?\"\n" +
             "    c.execute(stmt,[empId])\n" +
@@ -97,7 +97,7 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    conn.close()'", SCHEMA_NAME);
     private static final String DROP_PROC_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.GET_EMPLOYEE", SCHEMA_NAME);
 
-    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, fname, lname, rs):\n" +
+    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 AS 'def run(tableName, empId, fname, lname, rs):\n" +
             "    c = conn.cursor()\n" +
             "    insertStmt = \"insert into \" + tableName + \" values(?, ?, ?)\"\n" +
             "    c.execute(insertStmt,[empId, fname, lname])\n" +
@@ -111,7 +111,7 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    conn.close()'", SCHEMA_NAME);
     private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE", SCHEMA_NAME);
 
-    private static final String CREATE_PROC_CREATE_INSERT_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.CREATE_INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, fname, lname, rs):\n" +
+    private static final String CREATE_PROC_CREATE_INSERT_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.CREATE_INSERT_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 AS 'def run(tableName, empId, fname, lname, rs):\n" +
             "    c = conn.cursor()\n" +
             "    createStmt = \"create table \" + tableName + \" (ID int, FNAME varchar(20), LNAME varchar(30))\"\n" +
             "    c.execute(createStmt)\n" +
@@ -131,7 +131,7 @@ public class PyProcedureIT extends SpliceUnitTest {
     private static final String DROP_PROC_CREATE_INSERT_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.CREATE_INSERT_AND_GET_EMPLOYEE", SCHEMA_NAME);
 
     // For zxJDBC autocommit is turned off by default. Also, in nested conneciton, the auto commit cannot be turned on.
-    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, fname, lname, rs):\n" +
+    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 AS 'def run(tableName, empId, fname, lname, rs):\n" +
             "    c = conn.cursor()\n" +
             "    insertStmt = \"insert into \" + tableName + \" values(?, ?, ?)\"\n" +
             "    c.execute(insertStmt, [empId, fname, lname])\n" +
@@ -146,7 +146,7 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    conn.close()'", SCHEMA_NAME);
     private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN", SCHEMA_NAME);
 
-    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, fname, lname, rs):\n" +
+    private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 AS 'def run(tableName, empId, fname, lname, rs):\n" +
             "    c = conn.cursor()\n" +
             "    insertStmt = \"insert into \" + tableName + \" values(?, ?, ?)\"\n" +
             "    c.execute(insertStmt, [empId, fname, lname])\n" +
@@ -164,7 +164,7 @@ public class PyProcedureIT extends SpliceUnitTest {
     private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_TXN", SCHEMA_NAME);
 
     private static final String CREATE_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS = String.format("CREATE PROCEDURE %s.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(IN tableName VARCHAR(40), IN id INT, OUT errorCode VARCHAR(100), OUT errorMessage VARCHAR(100)) " +
-            "PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(tableName, empId, customizedMessage1, customizedMessage2, rs):\n" +
+            "PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 AS 'def run(tableName, empId, customizedMessage1, customizedMessage2, rs):\n" +
             "    c = conn.cursor()\n" +
             "    customizedMessage1[0] = \"The first message\"\n" +
             "    customizedMessage2[0] = \"The second message\"\n" +
@@ -461,9 +461,9 @@ public class PyProcedureIT extends SpliceUnitTest {
      */
     final static String CREATE_SIMPLE_TABLE = "CREATE TABLE SIMPLE_TABLE (id INT)";
     final static String DROP_SIMPLE_TABLE_IF_EXISTS = "DROP TABLE SIMPLE_TABLE IF EXISTS";
-//    PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME
+
     final static String CREATE_PROC_RETRIEVE_DYNAMIC_RESULTS = String.format("CREATE PROCEDURE %s.RETRIEVE_DYNAMIC_RESULTS(IN number INT) " +
-        "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 4 EXTERNAL NAME 'def run(number, rs1, rs2, rs3, rs4):\n" +
+        "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 4 AS 'def run(number, rs1, rs2, rs3, rs4):\n" +
             "    if (number > 0):\n" +
             "        c1 = conn.cursor()\n" +
             "        c1.execute(\"VALUES(1)\")\n" +
@@ -488,7 +488,7 @@ public class PyProcedureIT extends SpliceUnitTest {
     final static String DROP_PROC_RETRIEVE_DYNAMIC_RESULTS = String.format("DROP PROCEDURE %s.RETRIEVE_DYNAMIC_RESULTS", SCHEMA_NAME);
 
     final static String CREATE_PROC_RETRIEVE_CLOSED_RESULT = String.format("CREATE PROCEDURE %s.RETRIEVE_CLOSED_RESULT() " +
-            "LANGUAGE PYTHON DYNAMIC RESULT SETS 1 PARAMETER STYLE JAVA EXTERNAL NAME 'def run(closedRs):\n" +
+            "LANGUAGE PYTHON DYNAMIC RESULT SETS 1 PARAMETER STYLE JAVA AS 'def run(closedRs):\n" +
             "    c = conn.cursor()\n" +
             "    c.execute(\"VALUES(1)\");\n" +
             "    closedRs = factory.create([c.description,c.fetchall()])\n" +
@@ -497,7 +497,7 @@ public class PyProcedureIT extends SpliceUnitTest {
     final static String DROP_PROC_RETRIEVE_CLOSED_RESULT = String.format("DROP PROCEDURE %s.RETRIEVE_CLOSED_RESULT", SCHEMA_NAME);
 
     final static String CREATE_PROC_RETRIEVE_EXTERNAL_RESULT = String.format("CREATE PROCEDURE %s.RETRIEVE_EXTERNAL_RESULT(IN DBNAME VARCHAR(128), IN DBUSER VARCHAR(128), IN DBPWD VARCHAR(128)) " +
-            "LANGUAGE PYTHON DYNAMIC RESULT SETS 1 PARAMETER STYLE JAVA EXTERNAL NAME 'def run(dbName, user, password, externalRs):\n" +
+            "LANGUAGE PYTHON DYNAMIC RESULT SETS 1 PARAMETER STYLE JAVA AS 'def run(dbName, user, password, externalRs):\n" +
             "    global conn\n" +
             "    conn.close()\n" +  // Close the defualt connection
             "    url = \"jdbc:splice:localhost:1527/\" + dbName;\n" +
@@ -509,7 +509,7 @@ public class PyProcedureIT extends SpliceUnitTest {
             "    conn.close()'",SCHEMA_NAME);
     final static String DROP_PROC_RETRIEVE_EXTERNAL_RESULT = String.format("DROP PROCEDURE %s.RETRIEVE_EXTERNAL_RESULT", SCHEMA_NAME);
 
-    final static String CREATE_PROC_PRIM_OUT = String.format("CREATE PROCEDURE %s.PRIM_OUT(OUT outByte TINYINT, OUT outShort SMALLINT, OUT outLong BIGINT, OUT outBoolean BOOLEAN, OUT outDouble DOUBLE, OUT outFloat REAL, OUT outInt INTEGER) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(outByte, outShort, outLong, outBoolean, outDouble, outFloat, outInt):\n" +
+    final static String CREATE_PROC_PRIM_OUT = String.format("CREATE PROCEDURE %s.PRIM_OUT(OUT outByte TINYINT, OUT outShort SMALLINT, OUT outLong BIGINT, OUT outBoolean BOOLEAN, OUT outDouble DOUBLE, OUT outFloat REAL, OUT outInt INTEGER) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 AS 'def run(outByte, outShort, outLong, outBoolean, outDouble, outFloat, outInt):\n" +
             "    outByte[0] = 1\n" +
             "    outShort[0] = 32767\n" +
             "    outLong[0] = 9223372036854775807\n" +
@@ -520,7 +520,7 @@ public class PyProcedureIT extends SpliceUnitTest {
     final static String DROP_PROC_PRIM_OUT = String.format("DROP PROCEDURE %s.PRIM_OUT", SCHEMA_NAME);
 
     final static String CREATE_PROC_INT_OUT = String.format("CREATE PROCEDURE %s.INT_OUT(OUT outInt INT) " +
-            "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 EXTERNAL NAME 'def run(out):\n" +
+            "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 0 AS 'def run(out):\n" +
             "    out[0] = 42'",SCHEMA_NAME);
     final static String DROP_PROC_INT_OUT = String.format("DROP PROCEDURE %s.INT_OUT", SCHEMA_NAME);
 

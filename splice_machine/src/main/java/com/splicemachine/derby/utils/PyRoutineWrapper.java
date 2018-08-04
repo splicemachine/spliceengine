@@ -16,7 +16,7 @@ public class PyRoutineWrapper {
      * The args[n] must be a String which contains the Python script. The rest of elements in the args are ResultSet[].
      * In the current test version only allows one ResultSet[]
      */
-    public static void PyProcedureWrapper(Object... args)
+    public static void pyProcedureWrapper(Object... args)
             throws Exception
     {
         PyInterpreterPool pool = null;

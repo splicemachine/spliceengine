@@ -74,7 +74,7 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
             "    'This is clob col',\n" +               // CLOB
             "    'this is text col')";                  // TEXT
 
-    static final String CREATE_PYPROC = String.format("CREATE PROCEDURE %s.PYPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 EXTERNAL NAME 'def run(rs):\n" +
+    static final String CREATE_PYPROC = String.format("CREATE PROCEDURE %s.PYPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 AS 'def run(rs):\n" +
             "    c = conn.cursor()\n" +
             "    stmt = \"select * from TEST_TABLE {limit 1}\"\n" +
             "    c.execute(stmt)\n" +

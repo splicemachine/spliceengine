@@ -36,6 +36,7 @@ import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -118,7 +119,7 @@ import java.lang.reflect.Modifier;
  */
 public class StaticMethodCallNode extends MethodCallNode {
 	public static final String PYPROCEDURE_WRAPPER_CLASS_NAME = "com.splicemachine.derby.utils.PyRoutineWrapper";
-	public static final String PYPROCEDURE_WRAPPER_METHOD_NAME = "PyProcedureWrapper";
+	public static final String PYPROCEDURE_WRAPPER_METHOD_NAME = "pyProcedureWrapper";
 
 	private TableName procedureName;
 
@@ -693,7 +694,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 			}
 
 			// If the resolved StaticMethodCallNode has the LANGUAGE PYTHON,
-			// it will resolves in calling method PyProcedureWrapper
+			// it will resolves in calling method pyProcedureWrapper
 			// The parameters, and retruen type for these two Stored Procedures are the same
 			if(this.routineInfo!=null && this.routineInfo.getLanguage().equals("PYTHON"))
 			{
@@ -717,8 +718,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 				updatedParmModes[origParmCnt] = 1; // States the input script is an IN parameter
 				// Here Need to use a unique name
 				updatedParmNames[origParmCnt] = "PYCODE";
-				// I am not sure whether the format Id is correct or not
-				updatedParmTypes[origParmCnt] = new TypeDescriptorImpl(new BaseTypeIdImpl(442),
+				updatedParmTypes[origParmCnt] = new TypeDescriptorImpl(new BaseTypeIdImpl(StoredFormatIds.BLOB_TYPE_ID_IMPL),
 						true,
 						compiledPyCode.length);
 
@@ -752,6 +752,8 @@ public class StaticMethodCallNode extends MethodCallNode {
 				// Update signature by adding in the script String's corresponding JSQLType
 				JSQLType pyCodeType = new JSQLType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(TypeId.BLOB_NAME));
 				JSQLType[] updatedSigs = new JSQLType[signature.length+1];
+				// Adding the Pycode parameter right before the first occurance of the ResultSet[]
+				// If no ResultSet[] exists, appending Pycode at the end of all the existing parameters
 				int j = 0;
 				for(int i = 0; i < signature.length+1; i++){
 					if(i<signature.length && signature[i].getSQLType().getTypeId().getCorrespondingJavaTypeName().equals("java.sql.ResultSet[]")){

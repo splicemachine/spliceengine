@@ -169,6 +169,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.ModifiableBoolean;
 
 import java.sql.Types;
 import java.util.List;
@@ -12258,11 +12259,16 @@ procedureDefinition() throws StandardException :
 {
 	TableName procedureName;
 	Object[] procedureElements = new Object[CreateAliasNode.ROUTINE_ELEMENT_COUNT];
+    // These two instances are used to make sure for Python routine
+    // The user uses <AS> token to set <EXTERNAL> <NAME> rahter than
+    // using <EXTERNAL> <NAME> directly.
+	ModifiableBoolean isPyRoutine = new ModifiableBoolean(false);
+	ModifiableBoolean hasExternalName = new ModifiableBoolean(false);
 }
 {
 		<PROCEDURE> procedureName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		procedureElements[0] = procedureParameterList()
-		( routineElement(true, false, procedureElements) ) +
+		( routineElement(true, false, procedureElements, isPyRoutine, hasExternalName) ) +
 		{
 		    checkRequiredRoutineClause(JAVA_ROUTINE_CLAUSES, procedureElements);
 
@@ -12275,7 +12281,7 @@ procedureDefinition() throws StandardException :
 		}
 }
 
-void routineElement(boolean isProcedure, boolean isTableFunction, Object[] routineElements) throws StandardException :
+void routineElement(boolean isProcedure, boolean isTableFunction, Object[] routineElements, ModifiableBoolean isPyRoutine, ModifiableBoolean hasExternalName) throws StandardException :
 {
 	int drs;
 	int clausePosition = -1;
@@ -12293,10 +12299,18 @@ void routineElement(boolean isProcedure, boolean isTableFunction, Object[] routi
 			clauseValue = ReuseFactory.getInteger(drs); clausePosition = CreateAliasNode.DYNAMIC_RESULT_SET_COUNT;
 		}
 	|
-    <LANGUAGE>
-        (<JAVA> { clauseValue = "JAVA"; clausePosition = CreateAliasNode.LANGUAGE; }
-        |
-        <PYTHON> {clauseValue = "PYTHON"; clausePosition = CreateAliasNode.LANGUAGE;})
+        <LANGUAGE>
+            (<JAVA> { clauseValue = "JAVA"; clausePosition = CreateAliasNode.LANGUAGE;}
+            |
+            <PYTHON>
+                {
+                    if(hasExternalName.get())
+                    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "PYTHON ROUTINE DOES NOT USE EXTERNAL NAME");
+                    clauseValue = "PYTHON";
+                    clausePosition = CreateAliasNode.LANGUAGE;
+                    isPyRoutine.set(true);
+                }
+            )
 	|
 		<DETERMINISTIC>
         {
@@ -12314,7 +12328,12 @@ void routineElement(boolean isProcedure, boolean isTableFunction, Object[] routi
 	|
         <EXTERNAL>
         ( <NAME> clauseValue = string()
-            { clausePosition = CreateAliasNode.EXTERNAL_NAME; }
+            {
+            if(isPyRoutine.get())
+            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "PYTHON ROUTINE DOES NOT USE EXTERNAL NAME");
+            clausePosition = CreateAliasNode.EXTERNAL_NAME;
+            hasExternalName.set(true);
+            }
         |
           <SECURITY>
             {   checkVersion(DataDictionary.DD_VERSION_DERBY_10_7,
@@ -12324,6 +12343,8 @@ void routineElement(boolean isProcedure, boolean isTableFunction, Object[] routi
                 clausePosition = CreateAliasNode.ROUTINE_SECURITY_DEFINER;
             }
         )
+	|
+	    <AS> clauseValue = string() {clausePosition = CreateAliasNode.EXTERNAL_NAME; } // Python script is after <AS>
 	|
 		<PARAMETER> <STYLE> clauseValue = parameterStyle( isTableFunction ) { clausePosition = CreateAliasNode.PARAMETER_STYLE; }
 
@@ -12490,12 +12511,17 @@ functionDefinition() throws StandardException :
 	TableName functionName;
 	TypeDescriptor  returnType;
 	Object[] functionElements = new Object[CreateAliasNode.ROUTINE_ELEMENT_COUNT];
+    // These two instances are used to make sure for Python routine
+    // The user uses <AS> token to set <EXTERNAL> <NAME> rahter than
+    // using <EXTERNAL> <NAME> directly.
+    ModifiableBoolean isPyRoutine = new ModifiableBoolean(false);
+    ModifiableBoolean hasExternalName = new ModifiableBoolean(false);
 }
 {
 		<FUNCTION> functionName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		functionElements[0] = functionParameterList()
 		<RETURNS> returnType = functionReturnDataType() 
-		( routineElement(false, returnType.isRowMultiSet(), functionElements) ) +
+		( routineElement(false, returnType.isRowMultiSet(), functionElements, isPyRoutine, hasExternalName) ) +
 		{
 		    functionElements[CreateAliasNode.RETURN_TYPE] = returnType;
 		    checkRequiredRoutineClause(JAVA_ROUTINE_CLAUSES, functionElements);
