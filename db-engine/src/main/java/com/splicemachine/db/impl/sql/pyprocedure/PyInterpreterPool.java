@@ -1,11 +1,16 @@
 package com.splicemachine.db.impl.sql.pyprocedure;
 
+import org.python.core.PyObject;
 import org.python.util.PythonInterpreter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class PyInterpreterPool {
+    // The maximum pool size is hard coded as 2.
+    // In the future may make it configurable
     public static int POOL_MAX_SIZE = 2;
     private static volatile PyInterpreterPool INSTANCE;
     private ArrayBlockingQueue<PythonInterpreter> pool;
@@ -13,6 +18,8 @@ public class PyInterpreterPool {
     private int maxSize = 0;
     private int size;
     private boolean full = false;
+    private static String NAME_VAR_STR = "__name__";
+    private static String DOC_VAR_STR = "__doc__";
 
     private PyInterpreterPool(int maxSize) {
         if(INSTANCE != null){
@@ -65,6 +72,16 @@ public class PyInterpreterPool {
      * the threads that are waiting to acquire an interpreter might wait forever.
      */
     public void release(PythonInterpreter interpreter){
+        // Clean the interpreter by setting the user defined instances to null
+        PyObject locals = interpreter.getLocals();
+        List<String> interpreterVars = new ArrayList<String>();
+        for (PyObject item : locals.__iter__().asIterable()) {
+            interpreterVars.add(item.toString());
+        }
+        for (String varName : interpreterVars) {
+            if(varName.equals(NAME_VAR_STR) || varName.equals(DOC_VAR_STR)) continue;
+            interpreter.set(varName, null);
+        }
         pool.add(interpreter);
     }
 

@@ -319,7 +319,10 @@ public class RoutineAliasInfo extends MethodAliasInfo
 		sqlOptions = in.readShort();
 		returnType = getStoredType(in.readObject());
 		calledOnNullInput = in.readBoolean();
-		expansionNum = in.readInt(); // future expansion.
+		// expansionNum is used for adding more fields in the future.
+		// It is an indicator for whether extra fields exist and need
+		// to be written
+		expansionNum = in.readInt();
 
 		if (parameterCount != 0) {
 			parameterNames = new String[parameterCount];
@@ -379,14 +382,18 @@ public class RoutineAliasInfo extends MethodAliasInfo
 		out.writeShort(sqlOptions);
 		out.writeObject(returnType);
 		out.writeBoolean(calledOnNullInput);
-		out.writeInt(1); // future expansion
+		// expansionNum is used for adding more fields in the future.
+		// It is an indicator for whether extra fields exist
+		out.writeInt(expansionNum);
 		if (parameterCount != 0) {
 			ArrayUtil.writeArrayItems(out, parameterNames);
 			ArrayUtil.writeArrayItems(out, parameterTypes);
 			ArrayUtil.writeIntArray(out, parameterModes);
 		}
-		out.writeObject(language);
-		out.writeObject(compiledPyCode);
+		if(expansionNum==1){
+			out.writeObject(language);
+			out.writeObject(compiledPyCode);
+		}
 	}
  
 	/**
