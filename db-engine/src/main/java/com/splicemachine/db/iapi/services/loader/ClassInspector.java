@@ -237,8 +237,9 @@ public class ClassInspector
 			return null;
 
 		// Resolve java wrapper method for Python relevant routine using its name
-		if(methodName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME)&&
-				receiverClass.getName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_CLASS_NAME)){
+		if(receiverClass.getName().equals(StaticMethodCallNode.PYROUTINE_WRAPPER_CLASS_NAME)&&
+				(methodName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME)||
+				methodName.equals(StaticMethodCallNode.PYFUNCTION_WRAPPER_METHOD_NAME))){
 			try{
 				Method resultMethod = receiverClass.getMethod(methodName, Object[].class);
 				return resultMethod;
