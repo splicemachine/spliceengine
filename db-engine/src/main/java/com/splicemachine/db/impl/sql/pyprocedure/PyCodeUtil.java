@@ -29,7 +29,7 @@ public class PyCodeUtil{
 
     // Setup the wrapper method
     private static final String SETUP = "def execute(*args):\n" +
-            "    run(*args)\n" +
+            "    return run(*args)\n" +
             "factory = None\n" +
             "def setFactory(*args):\n" +
             "    global factory\n" +

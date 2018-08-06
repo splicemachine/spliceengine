@@ -157,20 +157,20 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
 
         ResultSet javaResultSet = methodWatcher.executeQuery(CALL_JPROC);
         while(javaResultSet.next()){
-            Assert.assertEquals(pyRow[0],javaResultSet.getLong(1));         // BIGINT
-            Assert.assertEquals(pyRow[1],javaResultSet.getBoolean(2));      // BOOLEAN
-            Assert.assertEquals(pyRow[2],javaResultSet.getString(3));       // CHAR
-            Assert.assertEquals(pyRow[3],javaResultSet.getDate(4));         // DATE
-            Assert.assertEquals(pyRow[4],javaResultSet.getBigDecimal(5));   // DECIMAL
-            Assert.assertEquals(pyRow[5],javaResultSet.getDouble(6));       // DOUBLE
-            Assert.assertEquals(pyRow[6],javaResultSet.getDouble(7));       // FLOAT
-            Assert.assertEquals(pyRow[7],javaResultSet.getInt(8));          // INTEGER
-            Assert.assertEquals(pyRow[8],javaResultSet.getBigDecimal(9));   // NUMERIC
-            Assert.assertEquals(pyRow[9],javaResultSet.getFloat(10));       // REAL
-            Assert.assertEquals(pyRow[10],javaResultSet.getShort(11));      // SMALLINT
-            Assert.assertEquals(pyRow[11],javaResultSet.getTime(12));       // TIME
-            Assert.assertEquals(pyRow[12],javaResultSet.getTimestamp(13));  // TIME_STAMP
-            Assert.assertEquals(pyRow[13],javaResultSet.getString(14));     // VARCHAR
+            Assert.assertEquals(javaResultSet.getLong(1),pyRow[0]);         // BIGINT
+            Assert.assertEquals(javaResultSet.getBoolean(2),pyRow[1]);      // BOOLEAN
+            Assert.assertEquals(javaResultSet.getString(3),pyRow[2]);       // CHAR
+            Assert.assertEquals(javaResultSet.getDate(4),pyRow[3]);         // DATE
+            Assert.assertEquals(javaResultSet.getBigDecimal(5),pyRow[4]);   // DECIMAL
+            Assert.assertEquals(javaResultSet.getDouble(6),pyRow[5]);       // DOUBLE
+            Assert.assertEquals(javaResultSet.getDouble(7),pyRow[6]);       // FLOAT
+            Assert.assertEquals(javaResultSet.getInt(8),pyRow[7]);          // INTEGER
+            Assert.assertEquals(javaResultSet.getBigDecimal(9),pyRow[8]);   // NUMERIC
+            Assert.assertEquals(javaResultSet.getFloat(10),pyRow[9]);       // REAL
+            Assert.assertEquals(javaResultSet.getShort(11),pyRow[10]);      // SMALLINT
+            Assert.assertEquals(javaResultSet.getTime(12),pyRow[11]);       // TIME
+            Assert.assertEquals(javaResultSet.getTimestamp(13),pyRow[12]);  // TIME_STAMP
+            Assert.assertEquals(javaResultSet.getString(14),pyRow[13]);     // VARCHAR
 
             in = javaResultSet.getClob(15).getAsciiStream();
             w = new StringWriter();
