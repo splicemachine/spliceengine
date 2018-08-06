@@ -65,6 +65,7 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 
+import java.sql.Types;
 import java.util.List;
 import java.lang.reflect.Modifier;
 
@@ -118,13 +119,14 @@ import java.lang.reflect.Modifier;
  *
  */
 public class StaticMethodCallNode extends MethodCallNode {
-	public static final String PYPROCEDURE_WRAPPER_CLASS_NAME = "com.splicemachine.derby.utils.PyRoutineWrapper";
+	public static final String PYROUTINE_WRAPPER_CLASS_NAME = "com.splicemachine.derby.utils.PyRoutineWrapper";
 	public static final String PYPROCEDURE_WRAPPER_METHOD_NAME = "pyProcedureWrapper";
+	public static final String PYFUNCTION_WRAPPER_METHOD_NAME = "pyFunctionWrapper";
 
 	private TableName procedureName;
 
 	private LocalField[] outParamArrays;
-	private int[]		 applicationParameterNumbers; 
+	private int[]		 applicationParameterNumbers;
 
 	private boolean		isSystemCode;
 	private boolean		alreadyBound;
@@ -144,7 +146,6 @@ public class StaticMethodCallNode extends MethodCallNode {
     private String routineDefiner = null;
 
 	AliasDescriptor	ad;
-	boolean resolvePyProc = false;
 
 	private AggregateNode   resolvedAggregate;
 	private boolean appearsInGroupBy = false;
@@ -169,7 +170,7 @@ public class StaticMethodCallNode extends MethodCallNode {
      * Get the aggregate, if any, which this method call resolves to.
      */
     public  AggregateNode   getResolvedAggregate() { return resolvedAggregate; }
-    
+
     /** Flag that this function invocation appears in a GROUP BY clause */
     public  void    setAppearsInGroupBy() { appearsInGroupBy = true; }
 
@@ -197,7 +198,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 		bindParameters(fromList, subqueryList, aggregateVector);
 
-		
+
 		/* If javaClassName is null then we assume that the current methodName
 		 * is an alias and we must go to sysmethods to
 		 * get the real method and java class names for this alias.
@@ -209,7 +210,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 			// look for a routine
 
 			String schemaName = procedureName.getSchemaName();
-								
+
 			boolean noSchema = schemaName == null;
 
 			SchemaDescriptor sd = getSchemaDescriptor(schemaName, schemaName != null);
@@ -217,7 +218,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             // The field methodName is used by resolveRoutine and
             // is set to the name of the routine (procedureName.getTableName()).
 			resolveRoutine(fromList, subqueryList, aggregateVector, sd);
-			
+
 			// (Splice)	This logic, to implicitly check for routine using SYSFUN schema,
 			// was moved here from a few lines down, so that it has a chance to find
 			// aggregate functions in SYSFUN catalog too, such that it will get
@@ -243,7 +244,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 			                         (
 				                     C_NodeTypes.AGGREGATE_NODE,
 				                     ((SQLToJavaValueNode) methodParms[ 0 ]).getSQLValueNode(),
-				                     new UserAggregateDefinition( ad ), 
+				                     new UserAggregateDefinition( ad ),
 				                     Boolean.FALSE,
 				                     ad.getJavaClassName(),
 				                     getContextManager()
@@ -254,17 +255,17 @@ public class StaticMethodCallNode extends MethodCallNode {
 			                    {
 			                        throw StandardException.newException(SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
 			                    }
-			                   
+
 			    return this;
 			}
-				
+
 			/* Throw exception if no routine found */
 			if (ad == null)
 			{
 				throw StandardException.newException(
                         SQLState.LANG_NO_SUCH_METHOD_ALIAS, procedureName);
 			}
-	
+
             if ( !routineInfo.isDeterministic() )
             {
                 checkReliability( getMethodName(), CompilerContext.NON_DETERMINISTIC_ILLEGAL );
@@ -273,7 +274,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             {
                 checkReliability( getMethodName(), CompilerContext.SQL_IN_ROUTINES_ILLEGAL );
             }
-			
+
 
 
                 cc.createDependency(ad);
@@ -281,7 +282,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 			methodName = ad.getAliasInfo().getMethodName();
 			javaClassName = ad.getJavaClassName();
-            
+
             // DERBY-2330 Do not allow a routine to resolve to
             // a Java method that is part of the Derby runtime code base.
             // This is a security measure to stop user-defined routines
@@ -313,9 +314,9 @@ public class StaticMethodCallNode extends MethodCallNode {
 		// return type, then we need to push a CAST node.
 		if (routineInfo != null)
 		{
-			if (methodParms != null) 
+			if (methodParms != null)
 				optimizeDomainValueConversion();
-			
+
 			TypeDescriptor returnType = routineInfo.getReturnType();
 
             // create type dependency if return type is an ANSI UDT
@@ -338,19 +339,19 @@ public class StaticMethodCallNode extends MethodCallNode {
 								returnType.isNullable(),
 								returnType.getMaximumWidth()
 							);
-							
+
 
 					ValueNode returnValueToSQL = (ValueNode) getNodeFactory().getNode(
 								C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-								this, 
+								this,
 								getContextManager());
 
 					ValueNode returnValueCastNode = (ValueNode) getNodeFactory().getNode(
 									C_NodeTypes.CAST_NODE,
-									returnValueToSQL, 
+									returnValueToSQL,
 									returnValueDtd,
 									getContextManager());
-                    
+
                     // DERBY-2972  Match the collation of the RoutineAliasInfo
                     returnValueCastNode.setCollationInfo(
                             returnType.getCollationType(),
@@ -359,7 +360,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 					JavaValueNode returnValueToJava = (JavaValueNode) getNodeFactory().getNode(
 										C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
-										returnValueCastNode, 
+										returnValueCastNode,
 										getContextManager());
 					returnValueToJava.setCollationType(returnType.getCollationType());
 					return returnValueToJava.bindExpression(fromList, subqueryList, aggregateVector);
@@ -388,7 +389,7 @@ public class StaticMethodCallNode extends MethodCallNode {
         default:    return false;
         }
     }
-    
+
 	/**
 	 * If this SQL function has parameters which are SQLToJavaValueNode over
 	 * JavaToSQLValueNode and the java value node underneath is a SQL function
@@ -413,7 +414,7 @@ public class StaticMethodCallNode extends MethodCallNode {
         // comment above.
         //
         if ( !routineInfo.calledOnNullInput() ) { return; }
-        
+
 		int		count = methodParms.length;
 		for (int parm = 0; parm < count; parm++)
 		{
@@ -422,7 +423,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             // a runtime check to make sure that the argument is not null. See DERBY-4459.
             //
             if ( (methodParms != null) && methodParms[ parm ].mustCastToPrimitive() ) { continue; }
-            
+
 			if (methodParms[parm] instanceof SQLToJavaValueNode &&
 				((SQLToJavaValueNode)methodParms[parm]).getSQLValueNode() instanceof
 				JavaToSQLValueNode)
@@ -699,7 +700,9 @@ public class StaticMethodCallNode extends MethodCallNode {
 			if(this.routineInfo!=null && this.routineInfo.getLanguage().equals("PYTHON"))
 			{
 
-				this.resolvePyProc = true;
+				// determine whether the routine is for a procedure or function
+				boolean isFunction = !forCallStatement;
+				this.methodName = isFunction?PYFUNCTION_WRAPPER_METHOD_NAME:PYPROCEDURE_WRAPPER_METHOD_NAME;
 				// need to add compiled Python code bytes into signature and methodParms
 				byte[] compiledPyCode = this.routineInfo.getCompiledPyCode();
 
@@ -723,7 +726,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 						compiledPyCode.length);
 
 				// update the routineInfo and the AliasDescriptor
-				this.routineInfo = new RoutineAliasInfo(PYPROCEDURE_WRAPPER_METHOD_NAME,
+				this.routineInfo = new RoutineAliasInfo(this.methodName,
 						"JAVA",
 						updatedParmCnt,
 						updatedParmNames,
@@ -742,7 +745,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 						ad.getUUID(),
 						ad.getName(),
 						ad.getSchemaUUID(),
-						PYPROCEDURE_WRAPPER_CLASS_NAME,
+						PYROUTINE_WRAPPER_CLASS_NAME,
 						ad.getAliasType(),
 						ad.getNameSpace(),
 						ad.getSystemAlias(),
@@ -862,7 +865,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 		SQLToJavaValueNode sql2j = null;
 		if (methodParms[parameterNumber] instanceof SQLToJavaValueNode)
 			sql2j = (SQLToJavaValueNode) methodParms[parameterNumber];
-		
+
 		if (routineInfo != null) {
 			parameterMode = routineInfo.getParameterModes()[parameterNumber];
 		} else {
@@ -875,7 +878,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 			if (sql2j != null) {
 				if (sql2j.getSQLValueNode().requiresTypeFromContext()) {
 	  				ParameterNode pn;
-		  			if (sql2j.getSQLValueNode() instanceof UnaryOperatorNode) 
+		  			if (sql2j.getSQLValueNode() instanceof UnaryOperatorNode)
 		  				pn = ((UnaryOperatorNode)sql2j.getSQLValueNode()).getParameterOperand();
 		  			else
 		  				pn = (ParameterNode) (sql2j.getSQLValueNode());
@@ -900,7 +903,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 						constructor.endStatement();
 					}
 				}
-			} 
+			}
 		}
 
 		switch (parameterMode) {
@@ -957,7 +960,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 	/**
 	 * Categorize this predicate.  Initially, this means
 	 * building a bit map of the referenced tables for each predicate.
-	 * If the source of this ColumnReference (at the next underlying level) 
+	 * If the source of this ColumnReference (at the next underlying level)
 	 * is not a ColumnReference or a VirtualColumnNode then this predicate
 	 * will not be pushed down.
 	 *
@@ -1035,8 +1038,10 @@ public class StaticMethodCallNode extends MethodCallNode {
 									throws StandardException
 	{
 		boolean isPy = false;
-		if(routineInfo != null && getMethodName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME)&&
-				getJavaClassName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_CLASS_NAME)){
+		if(routineInfo != null &&
+				(getMethodName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME) ||
+				getMethodName().equals(StaticMethodCallNode.PYFUNCTION_WRAPPER_METHOD_NAME))&&
+				getJavaClassName().equals(StaticMethodCallNode.PYROUTINE_WRAPPER_CLASS_NAME)){
 			isPy = true;
 		}
 
@@ -1074,7 +1079,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 			short sqlAllowed = routineInfo.getSQLAllowed();
 
 			// Before we set up our authorization level, add a check to see if this
-			// method can be called. If the routine is NO SQL or CONTAINS SQL 
+			// method can be called. If the routine is NO SQL or CONTAINS SQL
 			// then there is no need for a check. As follows:
 			//
 			// Current Level = NO_SQL - CALL will be rejected when getting CALL result set
@@ -1083,21 +1088,21 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 			if (sqlAllowed != RoutineAliasInfo.NO_SQL)
 			{
-				
+
 				int sqlOperation;
-				
+
 				if (sqlAllowed == RoutineAliasInfo.READS_SQL_DATA)
 					sqlOperation = Authorizer.SQL_SELECT_OP;
 				else if (sqlAllowed == RoutineAliasInfo.MODIFIES_SQL_DATA)
 					sqlOperation = Authorizer.SQL_WRITE_OP;
 				else
 					sqlOperation = Authorizer.SQL_ARBITARY_OP;
-				
+
 				generateAuthorizeCheck((ActivationClassBuilder) acb, mb, sqlOperation);
 			}
 
 			int statmentContextReferences = isSystemCode ? 2 : 1;
-			
+
 			boolean isFunction = routineInfo.getReturnType() != null;
 
 			if (isFunction)
@@ -1136,7 +1141,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 			// for a function we need to fetch the current SQL control
 			// so that we can reset it once the function is complete.
-			// 
+			//
 			if (isFunction)
 			{
 				functionEntrySQLAllowed = acb.newFieldDeclaration(Modifier.PRIVATE, "short");
@@ -1145,8 +1150,8 @@ public class StaticMethodCallNode extends MethodCallNode {
 				mb.setField(functionEntrySQLAllowed);
 
 			}
-			
-			
+
+
 			// Set up the statement context to reflect the
 			// restricted SQL execution allowed by this routine.
 
@@ -1209,9 +1214,9 @@ public class StaticMethodCallNode extends MethodCallNode {
 							mb.setArrayElement(i+nargs); // Set the Object[] array's element
 						}
 					}
-				} 
+				}
 
-				// complete the method that returns the ResultSet[][] to the 
+				// complete the method that returns the ResultSet[][] to the
 				gdr.methodReturn();
 				gdr.complete();
 
@@ -1245,7 +1250,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 			// for objects is easy.
 			mbnc.pushNull(javaReturnType);
 
-			mbnc.startElseCode();	
+			mbnc.startElseCode();
 
 			if (!actualMethodReturnType.equals(javaReturnType))
 				mbnc.pushNewStart(javaReturnType);
@@ -1260,9 +1265,42 @@ public class StaticMethodCallNode extends MethodCallNode {
 		}
 
 		if(isPy){
-			// The Java wrapper method only takes in one argument
+			// The Python Java wrapper method only takes in one argument
 			mbcm.callMethod(VMOpcode.INVOKESTATIC, method.getDeclaringClass().getName(), methodName,
 					actualMethodReturnType, 1);
+			// for function, casting the result type
+			if(!forCallStatement){
+				DataTypeDescriptor returntd = DataTypeDescriptor.getType(routineInfo.getReturnType());
+				//The actual return type for the wrapper function is Object
+				// Hence need to cast the result to the desired return type upon return
+				int returnJDBCTypeId =  returntd.getJDBCTypeId();
+				switch (returnJDBCTypeId){
+					case(Types.CLOB):
+						mb.cast("java.lang.String");
+						break;
+					case(Types.REAL):
+					case(Types.DOUBLE):
+					case(Types.FLOAT):
+						// Although FLOAT can be mapped to java.lang.Double and java.lang.Float
+						// In the implementation, it is mapped to java.lang.Double, which does not
+						// cause loss of precision. Accordingly, here FLOAT is cast to java.lang.Double
+						mb.cast("java.lang.Double");
+						break;
+					case(Types.INTEGER):
+						mb.cast("java.lang.Integer");
+						break;
+					case(Types.BIGINT):
+						mb.cast("java.lang.Long");
+						break;
+					case(Types.DECIMAL):
+					case(Types.NUMERIC):
+						mb.cast("java.math.BigDecimal");
+						break;
+					default:
+						mb.cast(javaReturnType);
+						break;
+				}
+			}
 		}
 		else{
 			mbcm.callMethod(VMOpcode.INVOKESTATIC, method.getDeclaringClass().getName(), methodName,
