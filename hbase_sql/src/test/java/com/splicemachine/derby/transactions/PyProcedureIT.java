@@ -14,15 +14,12 @@
 
 package com.splicemachine.derby.transactions;
 
-import static org.junit.Assert.assertTrue;
-
 import java.sql.*;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -33,7 +30,6 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.Transactions;
-import scala.Predef;
 
 /**
  * This class is the IT test for Python Stored Procedure. It has two parts.
@@ -50,7 +46,7 @@ import scala.Predef;
 @Category({Transactions.class,SerialTest.class}) //made serial because it loads a jar
 public class PyProcedureIT extends SpliceUnitTest {
 
-    public static final String CLASS_NAME = CallableTransactionIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = PyProcedureIT.class.getSimpleName().toUpperCase();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
