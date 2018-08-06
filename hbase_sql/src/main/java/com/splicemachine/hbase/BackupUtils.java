@@ -184,24 +184,21 @@ public class BackupUtils {
     public static boolean shouldCaptureIncrementalChanges(FileSystem fs,Path rootDir) throws StandardException{
         boolean shouldRegister = false;
         try {
-            boolean enabled = incrementalBackupEnabled();
-            if (enabled) {
-                RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-                String spliceBackupPath = HConfiguration.getConfiguration().getBackupPath();
-                boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
-                if (!isRestoreMode) {
-                    if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
-                        }
-                        shouldRegister = true;
-                    } else if (zooKeeper.exists(spliceBackupPath, false) != null) {
-
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "A backup is running");
-                        }
-                        shouldRegister = true;
+            RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+            String spliceBackupPath = HConfiguration.getConfiguration().getBackupPath();
+            boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
+            if (!isRestoreMode) {
+                if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
                     }
+                    shouldRegister = true;
+                } else if (zooKeeper.exists(spliceBackupPath, false) != null) {
+
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "A backup is running");
+                    }
+                    shouldRegister = true;
                 }
             }
             return shouldRegister;
@@ -342,12 +339,5 @@ public class BackupUtils {
             SpliceLogUtils.info(LOG, "Znode /backup was removed by another thread");
         }
         return timedout;
-    }
-
-    public static boolean incrementalBackupEnabled() {
-
-        Configuration conf = HConfiguration.unwrapDelegate();
-        String fileCleaners = conf.get("hbase.master.hfilecleaner.plugins");
-        return fileCleaners.contains("SpliceHFileCleaner");
     }
 }
