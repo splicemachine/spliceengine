@@ -738,7 +738,7 @@
                                 <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
                             </dependenciesToScan>
                             <includes>
-                                <include>**/NO*IT.java</include>
+                                <include>**/*IT.java</include>
                             </includes>
                             <excludes>
                                 <exclude>com/splicemachine/derby/impl/sql/execute/operations/window/test/framework/**
@@ -768,8 +768,7 @@
                                 <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
                             </dependenciesToScan>
                             <includes>
-                                <include>**/SqlJJarIT</include>
-                                <!--include>**/SplitRegionScannerIT.java</include-->
+                                <include>**/*IT.java</include>
                             </includes>
                             <excludes>
                                 <!-- Skip all unit tests -->
@@ -790,7 +789,7 @@
                             <argLine>-Xmx3g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>
-                                <include>**/NO*RestoreIT.java</include>
+                                <include>**/*RestoreIT.java</include>
                             </includes>
                             <excludes>
                                 <!-- Skip all unit tests -->
