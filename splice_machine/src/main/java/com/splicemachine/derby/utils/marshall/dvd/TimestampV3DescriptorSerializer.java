@@ -41,7 +41,12 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
     };
 
     protected long toLong(Timestamp timestamp) throws StandardException {
-        return timestamp.getTime();
+        long millis = timestamp.getTime();
+        long nanos = timestamp.getNanos();
+        long millistosubtract = nanos/1000000;
+
+        long secs = (millis-millistosubtract) / 1000;
+        return secs;
     }
 
     protected Timestamp toTimestamp(long time, int nanos) {
@@ -49,13 +54,6 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
 
         Timestamp ts = new Timestamp(millis);
         ts.setNanos(nanos);
-        return ts;
-    }
-
-    protected Timestamp toTimestamp(long time) {
-        long millis = time;
-
-        Timestamp ts = new Timestamp(millis);
         return ts;
     }
 
@@ -68,13 +66,13 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
     @Override
     public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
         Timestamp ts = dvd.getTimestamp(null);
-        byte[] millis;
-        byte[] nanos;
-        millis = Encoding.encode(toLong(ts), desc);
-        nanos = Encoding.encode(ts.getNanos(), desc);
-        byte[] bytes = new byte[millis.length + nanos.length];
-        System.arraycopy(millis, 0, bytes, 0, millis.length);
-        System.arraycopy(nanos, 0, bytes, millis.length, nanos.length);
+        byte[] seconds;
+        byte[] micros;
+        seconds = Encoding.encode(toLong(ts), desc);
+        micros = Encoding.encode(ts.getNanos()/1000, desc);
+        byte[] bytes = new byte[seconds.length + micros.length];
+        System.arraycopy(seconds, 0, bytes, 0, seconds.length);
+        System.arraycopy(micros, 0, bytes, seconds.length, micros.length);
         byte[] finalBytes = Encoding.encode(bytes, desc);
         return finalBytes;
     }
@@ -86,10 +84,11 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
         int currentOffset = 0;
         Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
         currentOffset = (int)intValueLength[1];
-        long time = intValueLength[0];
+        long seconds = intValueLength[0];
         Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        int nanos = (int)intValueLength[0];
-        destDvd.setValue(toTimestamp(time, nanos));
+        int micros = (int)intValueLength[0];
+        long time = seconds*1000 + micros/1000;
+        destDvd.setValue(toTimestamp(time, micros*1000));
     }
 
     @Override
@@ -99,11 +98,11 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
         int currentOffset = 0;
         Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
         currentOffset = (int)intValueLength[1];
-        long time = intValueLength[0];
+        long seconds = intValueLength[0];
         Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        int nanos = (int)intValueLength[0];
-
-        dvd.setValue(toTimestamp(time, nanos));
+        int micros = (int)intValueLength[0];
+        long time = seconds*1000 + micros/1000;
+        dvd.setValue(toTimestamp(time, micros*1000));
     }
 
     public static long formatLong(Timestamp timestamp) throws StandardException {

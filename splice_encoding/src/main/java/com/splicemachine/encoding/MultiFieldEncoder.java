@@ -123,10 +123,16 @@ public class MultiFieldEncoder {
     }
 
     public MultiFieldEncoder encodeNext(Timestamp value, boolean desc){
-        byte[] millis = ScalarEncoding.writeLong(value.getTime(),desc);
+        long millis = value.getTime();
+        long nanos = value.getNanos();
+        long millistosubtract = nanos/1000000;
+        long micros = nanos/1000;
 
-        byte[] nanos = ScalarEncoding.writeLong(value.getNanos(),desc);
-        byte[] bytes = ArrayUtils.addAll(millis, nanos);
+        long secs = (millis-millistosubtract) / 1000;
+        byte[] seconds = ScalarEncoding.writeLong(secs,desc);
+
+        byte[] microseconds = ScalarEncoding.writeLong(micros,desc);
+        byte[] bytes = ArrayUtils.addAll(seconds, microseconds);
         encodeNext(bytes,desc);
         return this;
     }
