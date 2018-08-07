@@ -55,7 +55,7 @@ public class TimestampV3DescriptorSerializerTest {
         long currentOffsetNano = currentOffsetMilli * 1000 * 1000;
 //        System.out.println("     curent offset = " + (currentOffsetMilli / 1000 / 3600) + " h");
 
-        long deltaOffset = currentOffsetMilli - CDT_OFFSET_MILLI;
+        long deltaOffset = (currentOffsetMilli - CDT_OFFSET_MILLI);
 //        System.out.println("   offset over CDT = " + deltaOffset + " = " + (deltaOffset / NANOS_IN_HOUR) + " h");
 //        System.out.println();
 
@@ -108,12 +108,12 @@ public class TimestampV3DescriptorSerializerTest {
         //System.out.println("expected timestamp = " + expectedTimestamp);
         //System.out.println("              year = " + year);
 
-        long ts = TimestampV3DescriptorSerializer.formatLong(getTimestamp(year));
+        long ts = getTimestamp(year).getTime();
         //System.out.printTimestampV3DescriptorSerializerTestln("            result = " + ts);
         ts = ts + deltaOffset;
         //System.out.println("    shifted result = " + ts);
 
-        long d = expectedTimestamp - ts;
+        long d = (expectedTimestamp - ts) << 10;
         //System.out.println("             delta = " + d + "   h = " + (d / NANOS_IN_HOUR));
 
         assertEquals(expectedTimestamp, ts);

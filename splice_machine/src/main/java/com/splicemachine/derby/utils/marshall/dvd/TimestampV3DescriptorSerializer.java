@@ -14,21 +14,14 @@
 
 package com.splicemachine.derby.utils.marshall.dvd;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
-
-import java.sql.Timestamp;
 
 /**
  * @author Mark Sirek
  *         Date: 6/6/18
  */
-public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptorSerializer {
-    public static final Factory INSTANCE_FACTORY = new AbstractTimeStampDescriptorSerializer.Factory() {
+public class TimestampV3DescriptorSerializer extends TimestampV2DescriptorSerializer {
+    public static final Factory INSTANCE_FACTORY = new AbstractTimeDescriptorSerializer.Factory() {
         @Override
         public DescriptorSerializer newInstance() {
             return new TimestampV3DescriptorSerializer();
@@ -39,23 +32,43 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
             return typeFormatId == StoredFormatIds.SQL_TIMESTAMP_ID;
         }
     };
+/*
+    // Lower 20 bits reserved for encoding microseconds.
+    protected static final long MICROS_BITMASK = 0x00000000000FFFFF;
 
-    protected long toLong(Timestamp timestamp) throws StandardException {
-        long millis = timestamp.getTime();
-        long nanos = timestamp.getNanos();
-        long millistosubtract = nanos/1000000;
-
-        long secs = (millis-millistosubtract) / 1000;
-        return secs;
-    }
-
-    protected Timestamp toTimestamp(long time, int nanos) {
-        long millis = time;
+    @Override
+    protected Timestamp toTimestamp(long time) {
+        long secs = time >> 20;
+        long micros = time & MICROS_BITMASK;
+        long millis = secs * 1000;
+        int nanos = ((int)(micros)) * 1000;
 
         Timestamp ts = new Timestamp(millis);
         ts.setNanos(nanos);
         return ts;
     }
+
+    @Override
+    protected long toLong(Timestamp timestamp) throws StandardException {
+        return TimestampV3DescriptorSerializer.formatLong(timestamp);
+    }
+
+    public static long formatLong(Timestamp timestamp) throws StandardException {
+        long millis = timestamp.getTime();
+        long micros = timestamp.getNanos() / 1000;
+        //long millistosubtract = nanos/1000000;
+        long millistosubtract = (millis < 0) ?
+        (1000-(millis % 1000)) % 1000 : (millis % 1000);
+        millis -= millistosubtract;
+        long secs = millis / 1000;
+        long retval = (secs << 20) | micros;
+        return retval;
+    }
+*/
+    @Override
+    public boolean isScalarType() { return true; }
+
+/*
 
     @Override
     public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
@@ -66,13 +79,13 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
     @Override
     public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
         Timestamp ts = dvd.getTimestamp(null);
-        byte[] seconds;
-        byte[] micros;
-        seconds = Encoding.encode(toLong(ts), desc);
-        micros = Encoding.encode(ts.getNanos()/1000, desc);
-        byte[] bytes = new byte[seconds.length + micros.length];
-        System.arraycopy(seconds, 0, bytes, 0, seconds.length);
-        System.arraycopy(micros, 0, bytes, seconds.length, micros.length);
+        byte[] millis;
+        byte[] nanos;
+        millis = Encoding.encode(toLong(ts), desc);
+        nanos = Encoding.encode(ts.getNanos(), desc);
+        byte[] bytes = new byte[millis.length + nanos.length];
+        System.arraycopy(millis, 0, bytes, 0, millis.length);
+        System.arraycopy(nanos, 0, bytes, millis.length, nanos.length);
         byte[] finalBytes = Encoding.encode(bytes, desc);
         return finalBytes;
     }
@@ -84,11 +97,10 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
         int currentOffset = 0;
         Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
         currentOffset = (int)intValueLength[1];
-        long seconds = intValueLength[0];
+        long time = intValueLength[0];
         Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        int micros = (int)intValueLength[0];
-        long time = seconds*1000 + micros/1000;
-        destDvd.setValue(toTimestamp(time, micros*1000));
+        int nanos = (int)intValueLength[0];
+        destDvd.setValue(toTimestamp(time, nanos));
     }
 
     @Override
@@ -98,22 +110,11 @@ public class TimestampV3DescriptorSerializer extends AbstractTimeStampDescriptor
         int currentOffset = 0;
         Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
         currentOffset = (int)intValueLength[1];
-        long seconds = intValueLength[0];
+        long time = intValueLength[0];
         Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        int micros = (int)intValueLength[0];
-        long time = seconds*1000 + micros/1000;
-        dvd.setValue(toTimestamp(time, micros*1000));
-    }
+        int nanos = (int)intValueLength[0];
 
-    public static long formatLong(Timestamp timestamp) throws StandardException {
-        return timestamp.getTime();
+        dvd.setValue(toTimestamp(time, nanos));
     }
-
-    public static Timestamp parseTimestamp(long time) {
-        Timestamp ts = new Timestamp(time);
-        return ts;
-    }
-    @Override
-    public boolean isScalarType() { return false; }
-
+    msirek-temp */
 }
