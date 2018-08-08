@@ -16,6 +16,9 @@ package com.splicemachine.procedures.external;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
@@ -51,7 +54,13 @@ public class CreateExternalTableJob implements Callable<Void> {
             return null;
         }
 
-        ExecRow execRow = request.getExecRow();
+        ColumnInfo[] columnInfo = request.getColumnInfo();
+        ExecRow execRow = new ValueRow(columnInfo.length);
+        DataValueDescriptor[] dvds = execRow.getRowArray();
+        for (int i = 0; i < columnInfo.length; ++i) {
+            dvds[i] = columnInfo[i].dataType.getNull();
+        }
+
         int[] execRowTypeFormatIds= WriteReadUtils.getExecRowTypeFormatIds(execRow);
 
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();

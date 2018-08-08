@@ -473,7 +473,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     // need the create the external file if the location provided is empty
                     String pathToParent = location.substring(0, location.lastIndexOf("/"));
                     ImportUtils.validateWritable(pathToParent.toString(), false);
-                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, template));
+                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
 
                 } else if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
                     Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));

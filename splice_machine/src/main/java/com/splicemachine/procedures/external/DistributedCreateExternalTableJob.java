@@ -15,7 +15,7 @@
 package com.splicemachine.procedures.external;
 
 import com.splicemachine.concurrent.Clock;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 
@@ -40,7 +40,7 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
     private String compression;
 
     private String jobGroup;
-    private ExecRow execRow;
+    private ColumnInfo[] columnInfo;
     int[] partitionBy;
 
 
@@ -56,7 +56,7 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
                                              String compression,
                                              int[] partitionBy,
                                              String jobGroup,
-                                             ExecRow execRow) {
+                                             ColumnInfo[] columnInfo) {
         this.delimited = delimited;
         this.escaped = escaped;
         this.lines = lines;
@@ -65,7 +65,7 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
         this.location = location;
         this.partitionBy = partitionBy;
         this.jobGroup = jobGroup;
-        this.execRow =  execRow;
+        this.columnInfo =  columnInfo;
     }
 
     @Override
@@ -111,7 +111,10 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
             out.writeUTF(compression);
 
         out.writeUTF(jobGroup);
-        out.writeObject(execRow);
+        out.writeInt(columnInfo.length);
+        for(int i = 0; i < columnInfo.length; ++i) {
+            out.writeObject(columnInfo[i]);
+        }
     }
 
     @Override
@@ -129,8 +132,11 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
         location    = in.readBoolean()?in.readUTF():null;
         compression    = in.readBoolean()?in.readUTF():null;
         jobGroup    = in.readUTF();
-        execRow     = (ExecRow)in.readObject();
-
+        int n = in.readInt();
+        columnInfo = new ColumnInfo[n];
+        for (int i = 0; i < n; ++i) {
+            columnInfo[i] = (ColumnInfo)in.readObject();
+        }
     }
 
     public String getDelimited() {
@@ -161,8 +167,8 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
         return jobGroup;
     }
 
-    public ExecRow getExecRow() {
-        return execRow;
+    public ColumnInfo[] getColumnInfo() {
+        return columnInfo;
     }
 
     public int[] getPartitionBy() {
