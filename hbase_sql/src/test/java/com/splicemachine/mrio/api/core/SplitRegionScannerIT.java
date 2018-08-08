@@ -35,14 +35,11 @@ import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.junit.Assert;
+import org.junit.*;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.log4j.Logger;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -171,7 +168,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
 	}
 
-    @Test
+    @Test @Ignore("DB-7320")
     public void simpleScanPostFlush() throws SQLException, IOException, InterruptedException {
         Partition partition = driver.getTableFactory()
                 .getTable(sqlUtil.getConglomID(spliceTableWatcherB.toString()));
@@ -197,7 +194,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
 
     }
 
-    @Test
+    @Test @Ignore("DB-7320")
     public void simpleScanPostSplit() throws SQLException, IOException, InterruptedException {
         String tableName = sqlUtil.getConglomID(spliceTableWatcherC.toString());
         Partition partition = driver.getTableFactory()
@@ -219,7 +216,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
     }
 
-    @Test
+    @Test @Ignore("DB-7320")
     public void simpleMergeTest() throws Exception {
         // Test Records at end
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
@@ -250,7 +247,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",2*ITERATIONS+1,i);
     }
 
-    @Test
+    @Test @Ignore("DB-7320")
     public void simpleMergeWithConcurrentSplitTest() throws Exception {
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
                 ,SCHEMA + ".E",SCHEMA + ".A"));
@@ -279,7 +276,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",2*ITERATIONS,i);
     }
 
-    @Test
+    @Test @Ignore("DB-7320")
     public void simpleMergeWithConcurrentFlushTest() throws Exception {
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
                 ,SCHEMA + ".F",SCHEMA + ".A"));
@@ -341,7 +338,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
     }
 
-    @Test
+    @Test @Ignore("DB-7320")
     public void multipleSplits() throws Exception {
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
                 ,SCHEMA + ".G",SCHEMA + ".A"));
@@ -373,7 +370,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",2*ITERATIONS,i);
     }
 
-    @Test
+    @Test @Ignore("DB-7320")
     public void testSplitRegionScannerReinit() throws Exception {
         String tableName = sqlUtil.getConglomID(spliceTableWatcherH.toString());
         Partition partition = driver.getTableFactory()
