@@ -355,7 +355,7 @@ public class ClientDriver implements java.sql.Driver {
         }
     }
 
-    private static java.util.Properties tokenizeURLProperties(String url,
+    public static java.util.Properties tokenizeURLProperties(String url,
                                                               java.util.Properties properties)
             throws SqlException {
         String attributeString = null;
