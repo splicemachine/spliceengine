@@ -121,12 +121,8 @@ public class SpliceClient {
         }
     }
 
-    private static String jdbcPasswordRegex = "password=([a-zA-Z0-9%]*)(;|$|&|\\s)";
-
     static String parseJDBCPassword(String jdbcUrl) throws SqlException {
-
         Properties properties = ClientDriver.tokenizeURLProperties(jdbcUrl, null);
-        System.out.println(properties);
         return properties.getProperty("password");
     }
 
