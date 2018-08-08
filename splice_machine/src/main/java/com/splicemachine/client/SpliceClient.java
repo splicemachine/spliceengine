@@ -1,7 +1,9 @@
 package com.splicemachine.client;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
+import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -11,6 +13,7 @@ import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
 import java.sql.*;
 import java.util.Calendar;
+import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -107,17 +110,6 @@ public class SpliceClient {
             }, cancellationWait, TimeUnit.MILLISECONDS);
 
         } catch (Throwable t) {
-            if (t instanceof SQLException) {
-                SQLException sqlException = (SQLException) t;
-                if (t.getMessage().contains("password")) {
-                    Throwable newT = new SQLException(
-                            maskJDBCPassword(sqlException.getMessage()),
-                            sqlException.getSQLState(),
-                            sqlException.getErrorCode());
-                    newT.setStackTrace(t.getStackTrace());
-                    t = newT;
-                }
-            }
             LOG.error("Error while getting Splice token", t);
 
             service.schedule(new Runnable() {
@@ -129,10 +121,13 @@ public class SpliceClient {
         }
     }
 
-    public static String maskJDBCPassword(String jdbcUrl) {
-        return jdbcUrl.replaceAll(
-                "password=([a-zA-Z0-9%])*(;|$|&|\\s)",
-                "password=[Omitted]$2");
+    private static String jdbcPasswordRegex = "password=([a-zA-Z0-9%]*)(;|$|&|\\s)";
+
+    static String parseJDBCPassword(String jdbcUrl) throws SqlException {
+
+        Properties properties = ClientDriver.tokenizeURLProperties(jdbcUrl, null);
+        System.out.println(properties);
+        return properties.getProperty("password");
     }
 
     private static void cancelToken(byte[] token) {
@@ -154,7 +149,19 @@ public class SpliceClient {
                     pool = new ComboPooledDataSource();
                     try {
                         pool.setDriverClass("com.splicemachine.db.jdbc.Driver40");
+
+                        // parse and mask password in JDBC url in order to make it not logged
+                        String password = parseJDBCPassword(connectionString);
+                        if (password != null) {
+                            connectionString = connectionString.replace(
+                                    "password="+password+";", "");
+                            connectionString = connectionString.replace(
+                                    "password="+password, "");
+                        }
                         pool.setJdbcUrl(connectionString);
+                        if (password != null) {
+                            pool.setPassword(password);
+                        }
 
                         pool.setMinPoolSize(10);
                         pool.setAcquireIncrement(5);
@@ -165,6 +172,8 @@ public class SpliceClient {
                         }
                     } catch (PropertyVetoException e) {
                         e.printStackTrace();
+                    } catch (SqlException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             }
