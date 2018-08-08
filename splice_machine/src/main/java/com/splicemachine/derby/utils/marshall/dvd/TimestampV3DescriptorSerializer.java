@@ -14,7 +14,10 @@
 
 package com.splicemachine.derby.utils.marshall.dvd;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+
+import java.sql.Timestamp;
 
 /**
  * @author Mark Sirek
@@ -32,19 +35,24 @@ public class TimestampV3DescriptorSerializer extends TimestampV2DescriptorSerial
             return typeFormatId == StoredFormatIds.SQL_TIMESTAMP_ID;
         }
     };
-/*
-    // Lower 20 bits reserved for encoding microseconds.
-    protected static final long MICROS_BITMASK = 0x00000000000FFFFF;
+
 
     @Override
     protected Timestamp toTimestamp(long time) {
-        long secs = time >> 20;
-        long micros = time & MICROS_BITMASK;
-        long millis = secs * 1000;
-        int nanos = ((int)(micros)) * 1000;
+        //long secs = time >> 20;
+        long millis = time / 1000;
+        int nanos = (int)(time % 1000000);
+
+        if (nanos < 0) {
+
+            nanos = 1000000 + nanos;
+            millis = (time - nanos)/1000;
+        }
+        nanos *= 1000;
 
         Timestamp ts = new Timestamp(millis);
         ts.setNanos(nanos);
+
         return ts;
     }
 
@@ -54,67 +62,12 @@ public class TimestampV3DescriptorSerializer extends TimestampV2DescriptorSerial
     }
 
     public static long formatLong(Timestamp timestamp) throws StandardException {
-        long millis = timestamp.getTime();
-        long micros = timestamp.getNanos() / 1000;
-        //long millistosubtract = nanos/1000000;
-        long millistosubtract = (millis < 0) ?
-        (1000-(millis % 1000)) % 1000 : (millis % 1000);
-        millis -= millistosubtract;
-        long secs = millis / 1000;
-        long retval = (secs << 20) | micros;
-        return retval;
+        int nanos = timestamp.getNanos();
+        long micros = (timestamp.getTime() - (nanos / 1000000)) * 1000 + (nanos / 1000);
+        return micros;
     }
-*/
+
     @Override
     public boolean isScalarType() { return true; }
 
-/*
-
-    @Override
-    public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-        Timestamp ts = dvd.getTimestamp(null);
-        fieldEncoder.encodeNext(ts,desc);
-    }
-
-    @Override
-    public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-        Timestamp ts = dvd.getTimestamp(null);
-        byte[] millis;
-        byte[] nanos;
-        millis = Encoding.encode(toLong(ts), desc);
-        nanos = Encoding.encode(ts.getNanos(), desc);
-        byte[] bytes = new byte[millis.length + nanos.length];
-        System.arraycopy(millis, 0, bytes, 0, millis.length);
-        System.arraycopy(nanos, 0, bytes, millis.length, nanos.length);
-        byte[] finalBytes = Encoding.encode(bytes, desc);
-        return finalBytes;
-    }
-
-    @Override
-    public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
-        byte[] bytes = fieldDecoder.decodeNextBytes(desc);
-        long [] intValueLength = new long[2];
-        int currentOffset = 0;
-        Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        currentOffset = (int)intValueLength[1];
-        long time = intValueLength[0];
-        Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        int nanos = (int)intValueLength[0];
-        destDvd.setValue(toTimestamp(time, nanos));
-    }
-
-    @Override
-    public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-        byte[] bytes = Encoding.decodeBytes(data, offset, length, desc);
-        long [] intValueLength = new long[2];
-        int currentOffset = 0;
-        Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        currentOffset = (int)intValueLength[1];
-        long time = intValueLength[0];
-        Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        int nanos = (int)intValueLength[0];
-
-        dvd.setValue(toTimestamp(time, nanos));
-    }
-    msirek-temp */
 }

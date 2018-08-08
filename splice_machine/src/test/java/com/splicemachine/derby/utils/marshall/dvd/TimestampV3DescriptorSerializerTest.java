@@ -113,7 +113,7 @@ public class TimestampV3DescriptorSerializerTest {
         ts = ts + deltaOffset;
         //System.out.println("    shifted result = " + ts);
 
-        long d = (expectedTimestamp - ts) << 10;
+        long d = (expectedTimestamp - ts);
         //System.out.println("             delta = " + d + "   h = " + (d / NANOS_IN_HOUR));
 
         assertEquals(expectedTimestamp, ts);
