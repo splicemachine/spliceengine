@@ -2660,4 +2660,19 @@ public class ExternalTableIT extends SpliceUnitTest{
                 " Tom  | 20  |";
         Assert.assertEquals(actual, expected, actual);
     }
+
+    @Test
+    public void testNumericType() throws Exception {
+        methodWatcher.execute(String.format("create external table t_num (col1 NUMERIC(23,2), col2 bigint)" +
+                " STORED AS PARQUET LOCATION '%s'", getResourceDirectory() + "t_num"));
+        methodWatcher.execute("insert into t_num values (100.23456, 1)");
+        ResultSet rs = methodWatcher.executeQuery("select * from t_num order by 1");
+        String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        String expected =
+                "COL1  |COL2 |\n" +
+                "--------------\n" +
+                "100.23 |  1  |";
+
+        Assert.assertEquals(actual, expected, actual);
+    }
 }
