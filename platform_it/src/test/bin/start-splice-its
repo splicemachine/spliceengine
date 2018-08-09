@@ -63,7 +63,6 @@ fi
 
 # Start zookeeper in background.
 echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
-echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
 mvn -B exec:exec -P${PROFILE},spliceZoo > ${ZOOLOG} 2>&1 &
 
 #######################################################################################################
@@ -95,7 +94,7 @@ echo "Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
 mvn -B exec:java -P${PROFILE},spliceYarn > ${YARNLOG} 2>&1 &
 
 # Start Kafka in background.
-echo "Starting SpliceTestYarnPlatform, log file is ${KAFKALOG}"
+echo "Starting TestKafkaCluster, log file is ${KAFKALOG}"
 mvn -B exec:exec -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1 &
 
 # Start SpliceTestPlaform in background.
