@@ -53,7 +53,12 @@ public class PyCodeUtil{
             compiledCode = byteStream.toByteArray();
             return compiledCode;
         } catch (Exception e){
-            throw e;
+            if(e instanceof IllegalArgumentException && e.getMessage() != null && e.getMessage().equals("Cannot create PyString from null!")){
+                throw new Exception("Python script cannot compile. This may due to syntax errors!",e);
+            }
+            else{
+                throw e;
+            }
         } finally {
             codeReader.close();
         }

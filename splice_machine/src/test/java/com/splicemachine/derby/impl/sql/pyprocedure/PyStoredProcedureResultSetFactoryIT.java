@@ -13,6 +13,8 @@ import org.junit.rules.TestRule;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.sql.*;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import static org.junit.Assert.assertTrue;
 
@@ -39,24 +41,24 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     // Sql Command
     static final String DROP_TEST_TABLE_IF_EXIST ="DROP TABLE TEST_TABLE IF EXISTS";
     static final String CREATE_TEST_TABLE = "CREATE TABLE TEST_TABLE(\n" +
-            "BIGINT_COL BIGINT NOT NULL,\n" +
-            "BOOLEAN_COL BOOLEAN NOT NULL,\n" +
-            "CHAR_COL CHAR NOT NULL,\n" +
-            "DATE_COL DATE NOT NULL,\n" +
-            "DECIMAL_COL DECIMAL(5,2) NOT NULL,\n" +
-            "DOUBLE_COL DOUBLE NOT NULL,\n" +
-            "FLOAT_COL FLOAT(52) NOT NULL,\n" +
-            "INTEGER_COL INTEGER NOT NULL,\n" +
-            "NUMERIC_COL NUMERIC(5,2) NOT NULL,\n" +
-            "REAL_COL REAL NOT NULL,\n" +
-            "SMALLINT_COL SMALLINT NOT NULL,\n" +
-            "TIME_COL TIME NOT NULL,\n" +
-            "TIMESTAMP_COL TIMESTAMP NOT NULL,\n" +
-            "VARCHAR_COL VARCHAR(30) NOT NULL,\n" +
-            "CLOB_COL CLOB(30) NOT NULL,\n" +
-            "TEXT_COL TEXT(30) NOT NULL)";
+            "BIGINT_COL BIGINT,\n" +
+            "BOOLEAN_COL BOOLEAN,\n" +
+            "CHAR_COL CHAR,\n" +
+            "DATE_COL DATE,\n" +
+            "DECIMAL_COL DECIMAL(5,2),\n" +
+            "DOUBLE_COL DOUBLE,\n" +
+            "FLOAT_COL FLOAT(52),\n" +
+            "INTEGER_COL INTEGER,\n" +
+            "NUMERIC_COL NUMERIC(5,2),\n" +
+            "REAL_COL REAL,\n" +
+            "SMALLINT_COL SMALLINT,\n" +
+            "TIME_COL TIME,\n" +
+            "TIMESTAMP_COL TIMESTAMP,\n" +
+            "VARCHAR_COL VARCHAR(30),\n" +
+            "CLOB_COL CLOB(30),\n" +
+            "TEXT_COL TEXT(30))";
 
-    static final String INSERT_TEST_TABLE = "INSERT INTO TEST_TABLE VALUES(\n" +
+    static final String INSERT_TEST_TABLE_WITH_VALUE = "INSERT INTO TEST_TABLE VALUES(\n" +
             "    9223372036854775807,\n" +              // BIGINT
             "    true,\n" +                             // BOOLEAN
             "    'a',\n" +                              // CHAR
@@ -74,9 +76,27 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
             "    'This is clob col',\n" +               // CLOB
             "    'this is text col')";                  // TEXT
 
+    static final String INSERT_TEST_TABLE_WITH_NULL = "INSERT INTO TEST_TABLE VALUES(\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL,\n" +
+            "    NULL)";
+
     static final String CREATE_PYPROC = String.format("CREATE PROCEDURE %s.PYPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE PYTHON DYNAMIC RESULT SETS 1 AS 'def run(rs):\n" +
             "    c = conn.cursor()\n" +
-            "    stmt = \"select * from TEST_TABLE {limit 1}\"\n" +
+            "    stmt = \"select * from TEST_TABLE\"\n" +
             "    c.execute(stmt)\n" +
             "    d = c.description\n" +
             "    result = c.fetchall()\n" +
@@ -103,7 +123,8 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
         // Create the TEST_TABLE and populate it
         spliceClassWatcher.executeUpdate(DROP_TEST_TABLE_IF_EXIST);
         spliceClassWatcher.executeUpdate(CREATE_TEST_TABLE);
-        spliceClassWatcher.executeUpdate(INSERT_TEST_TABLE);
+        spliceClassWatcher.executeUpdate(INSERT_TEST_TABLE_WITH_NULL);
+        spliceClassWatcher.executeUpdate(INSERT_TEST_TABLE_WITH_VALUE);
         // Create the Python Stored Procedure
         spliceClassWatcher.executeUpdate(CREATE_PYPROC);
         spliceClassWatcher.executeUpdate(CREATE_JPROC);
@@ -120,12 +141,12 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     @Test
     public void testStoredProcedure() throws Exception
     {
-        StringWriter w;
-        InputStream in;
+
         ResultSet pyResultSet = methodWatcher.executeQuery(CALL_PYPROC);
-        Object[] pyRow = new Object[COL_NUM];
+        Queue<Object[]> pyRows = new LinkedList<>();
 
         while(pyResultSet.next()){
+            Object[] pyRow = new Object[COL_NUM];
             pyRow[0] = pyResultSet.getLong(1);          // BIGINT
             pyRow[1] = pyResultSet.getBoolean(2);       // BOOLEAN
             pyRow[2] = pyResultSet.getString(3);        // CHAR
@@ -141,22 +162,16 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
             pyRow[12] = pyResultSet.getTimestamp(13);   // TIME_STAMP
             pyRow[13] = pyResultSet.getString(14);      // VARCHAR
 
-            in = pyResultSet.getClob(15).getAsciiStream();
-            w = new StringWriter();
-            org.apache.commons.io.IOUtils.copy(in, w);
-            pyRow[14] = w.toString();                               // CLOB
-            w.close();
+            pyRow[14] = getStr(pyResultSet.getClob(15));// CLOB
 
-            in = pyResultSet.getClob(16).getAsciiStream();
-            w = new StringWriter();
-            org.apache.commons.io.IOUtils.copy(in, w);
-            pyRow[15] = w.toString();                               // TEXT
-            w.close();
+            pyRow[15] = getStr(pyResultSet.getClob(16));// TEXT
+            pyRows.add(pyRow);
         }
         pyResultSet.close();
 
         ResultSet javaResultSet = methodWatcher.executeQuery(CALL_JPROC);
         while(javaResultSet.next()){
+            Object[] pyRow = pyRows.poll();
             Assert.assertEquals(pyRow[0],javaResultSet.getLong(1));         // BIGINT
             Assert.assertEquals(pyRow[1],javaResultSet.getBoolean(2));      // BOOLEAN
             Assert.assertEquals(pyRow[2],javaResultSet.getString(3));       // CHAR
@@ -172,23 +187,26 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
             Assert.assertEquals(pyRow[12],javaResultSet.getTimestamp(13));  // TIME_STAMP
             Assert.assertEquals(pyRow[13],javaResultSet.getString(14));     // VARCHAR
 
-            in = javaResultSet.getClob(15).getAsciiStream();
-            w = new StringWriter();
-            org.apache.commons.io.IOUtils.copy(in, w);
-            String javaClobStr = w.toString();                                          // CLOB
-            w.close();
+            String javaClobStr = getStr(javaResultSet.getClob(15));         // CLOB
             Assert.assertEquals(pyRow[14], javaClobStr);
 
-            in = javaResultSet.getClob(16).getAsciiStream();
-            w = new StringWriter();
-            org.apache.commons.io.IOUtils.copy(in, w);
-            String javaTextStr = w.toString();                                          // TEXT
-            w.close();
+            String javaTextStr = getStr(javaResultSet.getClob(16));         // TEXT
             Assert.assertEquals(pyRow[15], javaTextStr);
         }
         javaResultSet.close();
     }
 
+    private String getStr(Clob clob) throws Exception{
+        StringWriter w;
+        InputStream in;
+        if(clob == null) return null;
+        in = clob.getAsciiStream();
+        w = new StringWriter();
+        org.apache.commons.io.IOUtils.copy(in, w);
+        String clobStr = w.toString();                                          // CLOB
+        w.close();
+        return clobStr;
+    }
 
     /**
      * Used in PyStoredProcedureResultSetFacotryIT

@@ -22,12 +22,17 @@ import org.python.core.PyTuple;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PyStoredProcedureResultSetFactory{
+    private static final String LONG_CLASS_NAME = "java.lang.Long";
+    private static final String FLOAT_CLASS_NAME = "java.lang.Float";
+    private static final String CLOB_CLASS_NAME = "java.sql.Clob";
+    private static final String BIGDECIMAL_CLASS_NAME = "java.math.BigDecimal";
 
     public static EmbedResultSet create(PyList resultTuple)
             throws Throwable {
@@ -86,12 +91,30 @@ public class PyStoredProcedureResultSetFactory{
             if(resultRows.size() > 0){
                 // construct MethodHandle Array
                 template.resetRowArray();
-                PyTuple templateRow = (PyTuple) resultRows.get(0); // Use the first row to construct MethodHandle array
                 DataValueDescriptor[] templateDvds = template.getRowArray();
                 MethodHandle[] mhs = new MethodHandle[colNum];
                 for(int i = 0; i < colNum; ++i){
-                    Object templateObj = templateRow.get(i);
-                    MethodType mt = MethodType.methodType(void.class, templateObj.getClass());
+                    String colObjClassTypeName = descriptors[i].getType().getTypeId().getCorrespondingJavaTypeName();
+                    Class colObjClass;
+                    switch (colObjClassTypeName){
+                        // BIGINT's corresponding compile-time Java type is LONG,
+                        // but when converted from Jython, it has compile-time Java type java.math.BigInteger.
+                        // Hence, the colObjClass needs to be set to BigInteger
+                        case LONG_CLASS_NAME:
+                            colObjClass = BigInteger.class;
+                            break;
+                        case FLOAT_CLASS_NAME:
+                        case BIGDECIMAL_CLASS_NAME:
+                            colObjClass = Double.class;
+                            break;
+                        case CLOB_CLASS_NAME:
+                            colObjClass = String.class;
+                            break;
+                        default:
+                            colObjClass = Class.forName(colObjClassTypeName);
+                            break;
+                    }
+                    MethodType mt = MethodType.methodType(void.class, colObjClass);
                     mhs[i] =  MethodHandles.lookup().findVirtual(templateDvds[i].getClass(), "setValue", mt);
                 }
                 // fill each resultRow

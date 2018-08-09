@@ -334,6 +334,10 @@ public final class SQLInteger
 
 	/* This is constructor used fo PyStoredProcedureResultSetFactory */
 	public void setValue(Integer theValue){
+		if(theValue==null){
+			restoreToNull();
+			return;
+		}
 		value = theValue.intValue();
 		isNull = false;
 	}

@@ -448,6 +448,10 @@ public final class SQLSmallint
 
 	/* This is constructor used fo PyStoredProcedureResultSetFactory */
 	public void setValue(Integer theValue) throws StandardException{
+		if(theValue==null){
+			restoreToNull();
+			return;
+		}
 		setValue(theValue.intValue());
 	}
 

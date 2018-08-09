@@ -421,7 +421,11 @@ public final class SQLLongint extends NumberDataType {
 
 	/* This is setter used fo PyStoredProcedureResultSetFactory */
 	public void setValue(BigInteger theValue) throws StandardException{
-		setValue(theValue.doubleValue());
+		if(theValue==null){
+			restoreToNull();
+			return;
+		}
+		setValue(theValue.longValue());
 	}
 
 	/**
