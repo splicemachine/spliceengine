@@ -43,7 +43,7 @@ while getopts ":chp:b:" flag ; do
         ;;
         p)
         # the hbase profile
-            PROFILE=$(echo "$OPTARG" | tr -d [[:space:]])
+            PROFILE=insecure,$(echo "$OPTARG" | tr -d [[:space:]])
         ;;
         ?)
             usage "Unknown option (ignored): ${OPTARG}"
