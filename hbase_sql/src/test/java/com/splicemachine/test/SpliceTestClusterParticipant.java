@@ -16,9 +16,12 @@ package com.splicemachine.test;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
+
+import java.security.PrivilegedExceptionAction;
 
 /**
  * Add an additional member to the cluster started with SpliceTestPlatform.
@@ -37,6 +40,7 @@ public class SpliceTestClusterParticipant {
 
     private final String hbaseTargetDirectory;
     private final int memberNumber;
+    private final boolean secure;
 
     /**
      * MAIN:
@@ -46,8 +50,8 @@ public class SpliceTestClusterParticipant {
      */
     public static void main(String[] args) throws Exception {
         SpliceTestClusterParticipant spliceTestPlatform;
-        if (args.length == 2) {
-            spliceTestPlatform = new SpliceTestClusterParticipant(args[0], Integer.parseInt(args[1]));
+        if (args.length == 3) {
+            spliceTestPlatform = new SpliceTestClusterParticipant(args[0], Integer.parseInt(args[1]), Boolean.parseBoolean(args[2]));
             spliceTestPlatform.start();
         } else {
             System.out.println("usage: SpliceTestClusterParticipant [hbase dir] [member number]");
@@ -55,9 +59,10 @@ public class SpliceTestClusterParticipant {
         }
     }
 
-    public SpliceTestClusterParticipant(String hbaseTargetDirectory, int memberNumber) {
+    public SpliceTestClusterParticipant(String hbaseTargetDirectory, int memberNumber, boolean secure) {
         this.hbaseTargetDirectory = hbaseTargetDirectory;
         this.memberNumber = memberNumber;
+        this.secure = secure;
     }
 
     private void start() throws Exception {
@@ -73,11 +78,28 @@ public class SpliceTestClusterParticipant {
                 regionServerInfoPort,
                 derbyPort,
                 false,
-                null
+                null,
+                secure
         );
 
-        MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 0, 1);
-        miniHBaseCluster.startRegionServer();
+        String keytab = hbaseTargetDirectory+"/splice.keytab";
+        UserGroupInformation ugi;
+        if (secure) {
+            ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI("hbase/example.com@EXAMPLE.COM", keytab);
+            UserGroupInformation.setLoginUser(ugi);
+        } else {
+            ugi = UserGroupInformation.getCurrentUser();
+        }
+
+        ugi.doAs(new PrivilegedExceptionAction<Void>() {
+            @Override
+            public Void run() throws Exception {
+                MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 0, 1);
+                miniHBaseCluster.startRegionServer();
+                return null;
+            }
+
+        });
     }
 
 }
