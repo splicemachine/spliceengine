@@ -150,6 +150,7 @@ public class PyRoutineWrapper {
                 // sql type should be BigInt.
                 javaResult = ((BigInteger) javaResult).longValue();
             }
+            return javaResult;
         }
         catch (Exception e){
             throw StandardException.plainWrapException(e);
@@ -158,8 +159,6 @@ public class PyRoutineWrapper {
             if(pool != null && interpreter != null){
                 pool.release(interpreter);
             }
-
-            return javaResult;
         }
     }
 }
