@@ -533,6 +533,11 @@ abstract class MethodCallNode extends JavaValueNode
 											MethodBuilder mb)
 			throws StandardException
 	{
+		// Determine whether the method is the Java wrapper method for Python procedure call
+		boolean isPy = javaClassName.equals(StaticMethodCallNode.PYROUTINE_WRAPPER_CLASS_NAME) &&
+				(method.getName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME) ||
+						method.getName().equals(StaticMethodCallNode.PYFUNCTION_WRAPPER_METHOD_NAME));
+
 		int				param;
 
 		String[] expectedTypes = methodParameterTypes;
@@ -544,6 +549,10 @@ abstract class MethodCallNode extends JavaValueNode
 		 */
 		for (param = 0; param < methodParms.length; param++)
 		{
+			if(isPy){
+				mb.dup();
+			}
+
 			generateOneParameter( acb, mb, param );
 
 			// type from the SQL-J expression
@@ -564,6 +573,9 @@ abstract class MethodCallNode extends JavaValueNode
 
 					// for a prodcedure
 					if (routineInfo != null) {
+						if(isPy){
+							mb.setArrayElement(param); // Before Continue add the parameter into the Object[]
+						}
 						continue; // probably should be only for INOUT/OUT parameters.
 					}
 
@@ -581,6 +593,9 @@ abstract class MethodCallNode extends JavaValueNode
 				}
 			}
 
+			if(isPy){
+				mb.setArrayElement(param); // put the element into the array
+			}
 		}
 
 		return methodParms.length;
@@ -743,97 +758,123 @@ abstract class MethodCallNode extends JavaValueNode
 			throwNoMethodFound(javaClassName, parmTypeNames, primParmTypeNames);
 		}
 
+		boolean isPyFunction = methodName.equals(StaticMethodCallNode.PYFUNCTION_WRAPPER_METHOD_NAME) &&
+				javaClassName.equals(StaticMethodCallNode.PYROUTINE_WRAPPER_CLASS_NAME);
 		String	typeName = classInspector.getType(method);
 		actualMethodReturnType = typeName;
-
-		if (routineInfo == null) {
-
-			/* void methods are only okay for CALL Statements */
-			if (typeName.equals("void"))
-			{
-				if (!forCallStatement)
-					throw StandardException.newException(SQLState.LANG_VOID_METHOD_CALL);
-			}
-		}
-		else
-		{
-			String promoteName = null;
+		if(isPyFunction){
+			// For Python function, the actual return type is unknown until runtime.
+			// Therefore skip the following process and directly set the returnType according
+			// to what user declares upon the creation of the function.
+			// If the type is incorrect, the user will get Exception thrown at the runtime.
 			TypeDescriptorImpl returnType = (TypeDescriptorImpl) routineInfo.getReturnType();
-			String requiredType;
-			if (returnType == null)
-			{
-				// must have a void method for a procedure call.
-				requiredType = "void";
-			}
-			else
-			{
-				TypeId returnTypeId = TypeId.getBuiltInTypeId(returnType.getJDBCTypeId());
+			typeName = TypeId.getBuiltInTypeId(returnType.getJDBCTypeId()).getCorrespondingJavaTypeName();
+		}
+		else {
+			actualMethodReturnType = typeName;
 
-				if (
-				    returnType.isRowMultiSet() &&
-				    ( routineInfo.getParameterStyle() == RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET )
-				)
-				{
-				    requiredType = FromVTI.DATASET_PROVIDER;
+			if (routineInfo == null) {
+
+				/* void methods are only okay for CALL Statements */
+				if (typeName.equals("void")) {
+					if (!forCallStatement)
+						throw StandardException.newException(SQLState.LANG_VOID_METHOD_CALL);
 				}
-                else if ( returnType.getTypeId().userType() )
-                {
-                    requiredType = ((UserDefinedTypeIdImpl) returnType.getTypeId()).getClassName();
-                }
-				else
-				{
-			 		requiredType = returnTypeId.getCorrespondingJavaTypeName();
+			} else {
+				String promoteName = null;
+				TypeDescriptorImpl returnType = (TypeDescriptorImpl) routineInfo.getReturnType();
+				String requiredType;
+				if (returnType == null) {
+					// must have a void method for a procedure call.
+					requiredType = "void";
+				} else {
+					TypeId returnTypeId = TypeId.getBuiltInTypeId(returnType.getJDBCTypeId());
 
-					if (!requiredType.equals(typeName)) {
-						switch (returnType.getJDBCTypeId()) {
-						case java.sql.Types.BOOLEAN:
-						case java.sql.Types.SMALLINT:
-						case java.sql.Types.INTEGER:
-						case java.sql.Types.BIGINT:
-						case java.sql.Types.REAL:
-						case java.sql.Types.DOUBLE:
-							TypeCompiler tc = getTypeCompiler(returnTypeId);
-							requiredType = tc.getCorrespondingPrimitiveTypeName();
-							if (!routineInfo.calledOnNullInput() && routineInfo.getParameterCount() != 0)
-							{
-								promoteName = returnTypeId.getCorrespondingJavaTypeName();
+					if (
+							returnType.isRowMultiSet() &&
+									(routineInfo.getParameterStyle() == RoutineAliasInfo.PS_SPLICE_JDBC_RESULT_SET)
+							) {
+						requiredType = FromVTI.DATASET_PROVIDER;
+					} else if (returnType.getTypeId().userType()) {
+						requiredType = ((UserDefinedTypeIdImpl) returnType.getTypeId()).getClassName();
+					} else {
+						requiredType = returnTypeId.getCorrespondingJavaTypeName();
+
+						if (!requiredType.equals(typeName)) {
+							switch (returnType.getJDBCTypeId()) {
+								case java.sql.Types.BOOLEAN:
+								case java.sql.Types.SMALLINT:
+								case java.sql.Types.INTEGER:
+								case java.sql.Types.BIGINT:
+								case java.sql.Types.REAL:
+								case java.sql.Types.DOUBLE:
+									TypeCompiler tc = getTypeCompiler(returnTypeId);
+									requiredType = tc.getCorrespondingPrimitiveTypeName();
+									if (!routineInfo.calledOnNullInput() && routineInfo.getParameterCount() != 0) {
+										promoteName = returnTypeId.getCorrespondingJavaTypeName();
+									}
+									break;
 							}
-							break;
 						}
 					}
 				}
+
+				boolean foundCorrectType;
+				if (ResultSet.class.getName().equals(requiredType)) {
+					// allow subtypes of ResultSet too
+					try {
+						Class actualType = classInspector.getClass(typeName);
+
+						foundCorrectType = ResultSet.class.isAssignableFrom(actualType);
+					} catch (ClassNotFoundException cnfe) {
+						foundCorrectType = false;
+					}
+				} else {
+					foundCorrectType = requiredType.equals(typeName);
+				}
+
+				if (!foundCorrectType) {
+					throwNoMethodFound(requiredType + " " + javaClassName, parmTypeNames, primParmTypeNames);
+				}
+
+				// for a returns null on null input with a primitive
+				// type we need to promote to an object so we can return null.
+				if (promoteName != null)
+					typeName = promoteName;
+				//propogate collation type from RoutineAliasInfo to
+				// MethodCallNode DERBY-2972
+				if (routineInfo.getReturnType() != null)
+					setCollationType(routineInfo.getReturnType().getCollationType());
 			}
-
-            boolean foundCorrectType;
-            if ( ResultSet.class.getName().equals( requiredType )  )
-            {
-                // allow subtypes of ResultSet too
-                try {
-                    Class actualType = classInspector.getClass( typeName );
-
-                    foundCorrectType = ResultSet.class.isAssignableFrom( actualType );
-                }
-                catch (ClassNotFoundException cnfe) { foundCorrectType = false; }
-            }
-            else{ foundCorrectType = requiredType.equals(typeName); }
-
-			if (!foundCorrectType)
-			{
-				throwNoMethodFound(requiredType + " " + javaClassName, parmTypeNames, primParmTypeNames);
-			}
-
-			// for a returns null on null input with a primitive
-			// type we need to promote to an object so we can return null.
-			if (promoteName != null)
-				typeName = promoteName;
-			//propogate collation type from RoutineAliasInfo to
-			// MethodCallNode DERBY-2972
-                        if (routineInfo.getReturnType() != null)
-                            setCollationType(routineInfo.getReturnType().getCollationType());     
-                }
+		}
 	 	setJavaTypeName( typeName );
-                
-		methodParameterTypes = classInspector.getParameterTypes(method);
+
+		if(javaClassName.equals(StaticMethodCallNode.PYROUTINE_WRAPPER_CLASS_NAME) &&
+				(methodName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME) ||
+				methodName.equals(StaticMethodCallNode.PYFUNCTION_WRAPPER_METHOD_NAME))){
+			// Added for PYTHON stored procedure
+			// Since the actual method gets called fo Python Stored Procedure takes Object.. args
+			// as its arguments. The method ParameterTypes cannot be directly derived
+			// via reflection. Hence it will be manually set.
+			int parameterTypesLen = signature.length;
+			int maxDynamicResultSets = this.routineInfo.getMaxDynamicResultSets();
+			if(maxDynamicResultSets > 1){
+				parameterTypesLen += (maxDynamicResultSets - 1);
+			}
+
+			methodParameterTypes = new String[parameterTypesLen];
+			for(int i = 0; i < this.signature.length; ++i){
+				// methodParameterTypes = convert JSQLTYPE to corresponding Java Type
+				methodParameterTypes[i] = signature[i].getSQLType().getTypeId().getCorrespondingJavaWrapperTypeName();
+			}
+
+			// Add the remaining ResultSet to the parameterTypes array.
+			for(int i = this.signature.length; i < parameterTypesLen; ++i){
+				methodParameterTypes[i] = signature[this.signature.length-1].getSQLType().getTypeId().getCorrespondingJavaWrapperTypeName();
+			}
+		}else{
+			methodParameterTypes = classInspector.getParameterTypes(method);
+		}
 
 		for (int i = 0; i < methodParameterTypes.length; i++)
 		{
@@ -1318,4 +1359,37 @@ abstract class MethodCallNode extends JavaValueNode
         }
 	}
 
+	/**
+	 * Add the one single parameter
+	 *
+	 * @param newParm		The new parameter to be appended to methodParms
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public void addOneParm(QueryTreeNode newParm) throws StandardException
+	{
+		JavaValueNode[] newMethodParms = new JavaValueNode[methodParms.length + 1];
+
+		QueryTreeNode qt = (QueryTreeNode) newParm;
+
+		/*
+		 ** Since we need the parameter to be in Java domain format, put a
+		 ** SQLToJavaValueNode on top of the parameter node if it is a
+		 ** SQLValueNode. But if the parameter is already in Java domain
+		 ** format, then we don't need to do anything.
+		 */
+		if ( ! (qt instanceof JavaValueNode))
+		{
+			qt = (QueryTreeNode) getNodeFactory().getNode(
+					C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
+					qt,
+					getContextManager());
+		}
+		for(int i = 0; i < methodParms.length; ++i){
+			newMethodParms[i] = methodParms[i];
+		}
+
+		newMethodParms[methodParms.length] = (JavaValueNode) qt;
+		methodParms = newMethodParms;
+	}
 }

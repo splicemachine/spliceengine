@@ -191,6 +191,9 @@ public final class JarLoader extends SecureClassLoader {
 				&& !className.startsWith("com.splicemachine.db.iapi.sql.")        // ExecRow, ResultColumnDescriptor
 				&& !className.startsWith("com.splicemachine.db.impl.jdbc.")       // EmbedResultSetMetaData
 				&& !className.startsWith("com.splicemachine.db.impl.sql.execute.")// ValueRow
+				&& !className.startsWith("com.splicemachine.db.impl.sql.GenericColumnDescriptor") //GenericColumnDescriptor used by Python Stored Procedure
+				&& !className.startsWith("com.splicemachine.db.impl.sql.pyprocedure.") // PyCodeUtil and PyInterpreterPool
+				&& !className.startsWith("com.splicemachine.derby.impl.sql.pyprocedure.") // PyProcedureResultSetFactory
                 )
 
         {

@@ -14,13 +14,15 @@
 
 package org.splicetest.txn;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Savepoint;
-import java.sql.Statement;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import java.sql.*;
+
+import com.splicemachine.db.impl.sql.pyprocedure.PyCodeUtil;
+import com.splicemachine.db.impl.sql.pyprocedure.PyInterpreterPool;
+import com.splicemachine.pipeline.Exceptions;
+import org.python.util.PythonInterpreter;
+import org.python.core.*;
+import com.splicemachine.db.impl.sql.pyprocedure.PyStoredProcedureResultSetFactory;
 
 /**
  * Stored procedures to test the transactional correctness of the Splice Machine stored procedure execution framework.
@@ -45,6 +47,7 @@ public class TxnTestProcs {
 	/*
 	 * ============================================================================================
 	 * The following test the transactional correctness of Splice stored procedures.
+	 * These are the Original Testing Procs
 	 * ============================================================================================
 	 */
 
@@ -73,7 +76,7 @@ public class TxnTestProcs {
 		/*
 		-- Declare and execute the procedure in ij.
 		CREATE PROCEDURE SPLICE.DROP_EMPLOYEE_TABLE(IN tableName VARCHAR(40)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.DROP_EMPLOYEE_TABLE';
-		CALL SPLICE.CREATE_EMPLOYEE_TABLE('EMPLOYEE');
+		CALL SPLICE.DROP_EMPLOYEE_TABLE('EMPLOYEE');
 		 */
 		Connection conn = DriverManager.getConnection("jdbc:default:connection");
 		dropEmployeeTable(conn, tableName);
@@ -381,6 +384,10 @@ public class TxnTestProcs {
         String[] errorCode /* OUT parameter */,
         String[] errorMessage, /* OUT parameter */
         ResultSet[] rs) throws SQLException {
+    	/*
+    	 -- Declare and executet the procedure in ij.
+    	 CREATE PROCEDURE SPLICE.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(IN tableName VARCHAR(40), IN id INT, OUT errorCode VARCHAR(100), OUT errorMessage VARCHAR(100)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS'
+    	 */
 
         String responseErrorCode = "0";
         String responseErrorMessage = "Success";
@@ -396,6 +403,34 @@ public class TxnTestProcs {
             errorMessage[0] = responseErrorMessage;
         }
     }
+
+    // Added test for testing multiple ResultSets
+	public static void INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(Integer id,
+																   String tableName,
+																   String fname,
+																   String lname,
+																   String fname2,
+																   String lname2,
+																   Integer id2,
+																   ResultSet[] rs1,
+																   ResultSet[] rs2,
+																   ResultSet[] rs3)
+			throws SQLException
+	{
+		/*
+		-- Declare and execute the procedure in ij.
+		CREATE PROCEDURE SPLICE.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(IN id INT, IN tableName VARCHAR(40), IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30), IN id2 INT) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 3 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE';
+		CALL SPLICE.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE('EMPLOYEE', 2, 'Barney', 'Rubble', 'Wilma', 'Flintsone', 3);
+		 */
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		insertEmployee(conn, tableName, id, fname, lname);
+		updateEmployeeNameById(conn, tableName, id, fname2, lname2);
+		rs1[0] = getEmployeeFirstNames(conn, tableName);
+		rs2[0] = getEmployeeLastNames(conn, tableName);
+		deleteEmployee(conn, tableName, id2);
+		rs3[0] = getEmployeeById(conn, tableName, id);
+		conn.close();
+	}
 
 	/*
 	 * ============================================================================================
@@ -505,5 +540,32 @@ public class TxnTestProcs {
 	private static ResultSet getEmployeeLastNames(Connection conn, String tableName) throws SQLException {
 		PreparedStatement pstmt = conn.prepareStatement("select LNAME from " + tableName);
 		return pstmt.executeQuery();
+	}
+
+	public static void MULTIPLE_RESULTSETS_PROC(ResultSet[] rs1, ResultSet[] rs2, ResultSet[] rs3)
+			throws SQLException
+	{
+		//-- Declare and execute the procedure in ij.
+		//CREATE PROCEDURE SPLICE.MULTIPLE_RESULTSETS_PROC() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 3 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.MULTIPLE_RESULTSETS_PROC';
+		//CALL SPLICE.MULTIPLE_RESULTSETS_PROC();
+		Connection c = DriverManager.getConnection("jdbc:default:connection");
+		Statement stmt = c.createStatement();
+		rs1[0] = c.createStatement().executeQuery("VALUES(1)");
+		rs2[0] = c.createStatement().executeQuery("VALUES(2)");
+		rs3[0] = c.createStatement().executeQuery("VALUES(3)");
+		c.close();
+
+	}
+
+	/*
+	 * @param out output parameter which is an integer
+	 *
+	 */
+	public static void OUTPUT_PARAMETER_NO_RESULTSET(Integer[] out)
+		throws SQLException{
+		//-- Declare and execute the procedure in ij.
+		//CREATE PROCEDURE SPLICE.OUTPUT_PARAMETER_NO_RESULTSET(OUT outInt INT) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.OUTPUT_PARAMETER_NO_RESULTSET';
+		out[0] = 1;
+		return;
 	}
 }

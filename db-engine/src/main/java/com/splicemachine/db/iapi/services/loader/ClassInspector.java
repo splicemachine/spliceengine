@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.impl.sql.compile.StaticMethodCallNode;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
@@ -234,6 +235,21 @@ public class ClassInspector
 		Class receiverClass = getClass(receiverType);
 		if (receiverClass == null)
 			return null;
+
+		// Resolve java wrapper method for Python relevant routine using its name
+		if(receiverClass.getName().equals(StaticMethodCallNode.PYROUTINE_WRAPPER_CLASS_NAME)&&
+				(methodName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME)||
+				methodName.equals(StaticMethodCallNode.PYFUNCTION_WRAPPER_METHOD_NAME))){
+			try{
+				Method resultMethod = receiverClass.getMethod(methodName, Object[].class);
+				return resultMethod;
+			}
+			catch (NoSuchMethodException e){
+				return null;
+			}
+
+		}
+
 
 		// primitives don't have methods
 		// note that arrays do since they are objects they have
