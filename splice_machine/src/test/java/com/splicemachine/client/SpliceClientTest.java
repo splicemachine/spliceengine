@@ -10,12 +10,10 @@ public class SpliceClientTest {
     @Test
     public void testParseJDBCPassword() throws SqlException {
         String password = "Abd98*@80EFg";
-        String raw = "No suitable driver found for jdbc:splice://dwbdtest1r1w3.wellpoint" +
-                ".com:1527/splicedb;user=af29891;password=" + password;
+        String raw = "jdbc:splice://localhost.com:1527/splicedb;user=af29891;password=" + password;
         assertEquals(password, SpliceClient.parseJDBCPassword(raw));
 
-        raw = "No suitable driver found for jdbc:splice://dwbdtest1r1w3.wellpoint" +
-                ".com:1527/splicedb;password=" + password + ";user=af29891";
+        raw = "jdbc:splice://localhost:1527/splicedb;password=" + password + ";user=af29891";
         assertEquals(password, SpliceClient.parseJDBCPassword(raw));
     }
 }
