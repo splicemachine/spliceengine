@@ -14,7 +14,6 @@
 
 package com.splicemachine.management;
 
-import com.google.common.net.HostAndPort;
 import com.splicemachine.access.api.DatabaseVersion;
 
 import java.sql.SQLException;
@@ -42,7 +41,7 @@ public interface DatabaseAdministrator{
 
     Map<String,Integer> getWritePoolMaxThreadCount() throws SQLException;
 
-    Map<String,String> getGlobalDatabaseProperty(String key) throws SQLException;
+    String getDatabaseProperty(String key) throws SQLException;
 
     void setGlobalDatabaseProperty(String key, String value) throws SQLException;
 

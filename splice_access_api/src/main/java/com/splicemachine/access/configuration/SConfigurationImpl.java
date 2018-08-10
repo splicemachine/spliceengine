@@ -172,6 +172,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int kryoPoolSize;
     private final  int networkBindPort;
     private final  int partitionserverJmxPort;
+    private final  String partitionserverJmxUser;
+    private final  String partitionserverJmxPassword;
     private final  int partitionserverPort;
     private final  long broadcastRegionMbThreshold;
     private final  long broadcastRegionRowThreshold;
@@ -637,6 +639,13 @@ public final class SConfigurationImpl implements SConfiguration {
         return partitionserverJmxPort;
     }
     @Override
+    public String getPartitionserverJmxUser() {
+        return partitionserverJmxUser;
+    }    @Override
+    public String getPartitionserverJmxPassword() {
+        return partitionserverJmxPassword;
+    }
+    @Override
     public int getPartitionserverPort() {
         return partitionserverPort;
     }
@@ -835,6 +844,8 @@ public final class SConfigurationImpl implements SConfiguration {
         kryoPoolSize = builder.kryoPoolSize;
         networkBindPort = builder.networkBindPort;
         partitionserverJmxPort = builder.partitionserverJmxPort;
+        partitionserverJmxUser = builder.partitionserverJmxUser;
+        partitionserverJmxPassword = builder.partitionserverJmxPassword;
         partitionserverPort = builder.partitionserverPort;
         broadcastRegionMbThreshold = builder.broadcastRegionMbThreshold;
         broadcastRegionRowThreshold = builder.broadcastRegionRowThreshold;
