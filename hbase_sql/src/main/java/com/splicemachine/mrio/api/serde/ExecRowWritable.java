@@ -53,8 +53,7 @@ public class ExecRowWritable implements Writable{
 			return null;
 		if(serializers == null) {
 			throw StandardException.newException(
-			SQLState.AMBIGIOUS_PROTOCOL);  // msirek-temp
-			//serializers = VersionedSerializers.latestVersion(true).getSerializers(row);
+			SQLState.AMBIGIOUS_PROTOCOL);
 		}
 		if(encoder == null){
 			encoder = MultiFieldEncoder.create(fields.length);
@@ -83,8 +82,7 @@ public class ExecRowWritable implements Writable{
 		DataValueDescriptor[] fields = execRow.getRowArray();
 		if(serializers == null) {
 			throw StandardException.newException(
-			SQLState.AMBIGIOUS_PROTOCOL);  // msirek-temp
-			//serializers = VersionedSerializers.latestVersion(true).getSerializers(fields);
+			SQLState.AMBIGIOUS_PROTOCOL);
 		}
 		decoder.set(row);
 		
