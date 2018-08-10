@@ -696,7 +696,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 			// If the resolved StaticMethodCallNode has the LANGUAGE PYTHON,
 			// it will resolves in calling method pyProcedureWrapper
 			// The parameters, and retruen type for these two Stored Procedures are the same
-			if(this.routineInfo!=null && this.routineInfo.getLanguage().equals("PYTHON"))
+			if(this.routineInfo!=null && this.routineInfo.getLanguage() != null &&this.routineInfo.getLanguage().equals("PYTHON"))
 			{
 
 				this.resolvePyProc = true;
