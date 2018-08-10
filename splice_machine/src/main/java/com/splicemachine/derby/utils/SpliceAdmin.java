@@ -1153,7 +1153,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     ps.setString(1, key);
                     try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            ExecRow row = new ValueRow(1);
+                            ExecRow row = new ValueRow(2);
                             row.setColumn(1, new SQLVarchar(server.toString()));
                             row.setColumn(2, new SQLVarchar(rs.getString(1)));
                             rows.add(row);
