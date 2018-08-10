@@ -14,7 +14,9 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -58,7 +60,9 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 	// SQL statements to create and drop stored procedures.
 	private static final String CREATE_PROC_SIMPLE_ONE_ARG = String.format("CREATE PROCEDURE %s.SIMPLE_ONE_ARG_PROC(IN name VARCHAR(30)) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.SIMPLE_ONE_ARG_PROC'", SCHEMA_NAME);
+	private static final String CREATE_PROC_THROW_EXCEPTION = String.format("CREATE PROCEDURE %s.THROW_RUNTIME_EXCEPTION(IN throwException BOOLEAN) PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.THROW_RUNTIME_EXCEPTION'", SCHEMA_NAME);
 	private static final String DROP_PROC_SIMPLE_ONE_ARG = String.format("DROP PROCEDURE %s.SIMPLE_ONE_ARG_PROC", SCHEMA_NAME);
+	private static final String DROP_PROC_THROW_EXCEPTION = String.format("DROP PROCEDURE %s.THROW_RUNTIME_EXCEPTION", SCHEMA_NAME);
 
 	// SQL statements to call stored procedures.
 	private static final String CALL_INSTALL_JAR_FORMAT_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
@@ -67,6 +71,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 	private static final String CALL_SET_CLASSPATH_FORMAT_STRING = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')";
 	private static final String CALL_SET_CLASSPATH_TO_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)";
 	private static final String CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".SIMPLE_ONE_ARG_PROC('%s')";
+	private static final String CALL_SIMPLE_THROW_EXCEPTION = "CALL " + SCHEMA_NAME + ".THROW_RUNTIME_EXCEPTION(true)";
 	private static final String CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING = "CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')";
 	private static final String CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', NULL)";
 	private static final String CALL_GET_GLOBAL_CLASSPATH = "CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath')";
@@ -141,6 +146,10 @@ public class SqlJJarIT extends SpliceUnitTest {
 		rc = methodWatcher.executeUpdate(CREATE_PROC_SIMPLE_ONE_ARG);
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
+		// Create the user-defined stored procedure.
+		rc = methodWatcher.executeUpdate(CREATE_PROC_THROW_EXCEPTION);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
 		// Call the user-defined stored procedure.
 		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
 		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
@@ -209,8 +218,22 @@ public class SqlJJarIT extends SpliceUnitTest {
 		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
 		assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
 
+
+		// Call the user-defined stored procedure again.
+		try {
+			rs = methodWatcher.executeQuery(CALL_SIMPLE_THROW_EXCEPTION);
+			fail("Should have raised exception");
+		} catch (Exception sqle) {
+		}
+
+		// The exception shouldn't have closed the connection
+
 		// Drop the user-defined stored procedure.
 		rc = methodWatcher.executeUpdate(DROP_PROC_SIMPLE_ONE_ARG);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Drop the user-defined stored procedure.
+		rc = methodWatcher.executeUpdate(DROP_PROC_THROW_EXCEPTION);
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
 		// Check that the global DB class path is correct.
