@@ -332,6 +332,16 @@ public final class SQLInteger
 		isNull = false;
 	}
 
+	/* This is constructor used fo PyStoredProcedureResultSetFactory */
+	public void setValue(Integer theValue){
+		if(theValue==null){
+			restoreToNull();
+			return;
+		}
+		value = theValue.intValue();
+		isNull = false;
+	}
+
 	/**
 		@exception StandardException thrown on overflow
 	 */

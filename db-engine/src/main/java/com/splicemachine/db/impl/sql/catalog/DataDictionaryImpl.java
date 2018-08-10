@@ -1764,6 +1764,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         TypeDescriptor newReturnType=DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.MAX_CLOB_RETURN_LEN);
         RoutineAliasInfo newRai=new RoutineAliasInfo(
                 oldRai.getMethodName(),
+                oldRai.getLanguage(),
                 oldRai.getParameterCount(),
                 oldRai.getParameterNames(),
                 oldRai.getParameterTypes(),
@@ -1774,7 +1775,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 oldRai.isDeterministic(),
                 oldRai.hasDefinersRights(),
                 oldRai.calledOnNullInput(),
-                newReturnType
+                newReturnType,
+                null
         );
         AliasDescriptor newAD=new AliasDescriptor(
                 this,
@@ -5956,11 +5958,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
                     // details[3] = java method
                     RoutineAliasInfo ai=new RoutineAliasInfo(details[3],
-                            paramCount,paramNames,
+                            "JAVA", paramCount, paramNames,
                             pt,paramModes,0,
                             RoutineAliasInfo.PS_JAVA,RoutineAliasInfo.NO_SQL,isDeterministic,
                             false, /* hasDefinersRights */
-                            false,rt);
+                            false,rt, null);
 
                     // details[2] = class name
                     ad=new AliasDescriptor(this,uuidFactory.createUUID(),name,
@@ -8029,6 +8031,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         RoutineAliasInfo routine_alias_info=
                 new RoutineAliasInfo(
                         routine_name,                       // name of routine
+                        "JAVA",                    // language
                         num_args,                           // number of params
                         arg_names,                          // names of params
                         arg_types,                          // types of params
@@ -8043,7 +8046,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         isDeterministic,             // whether the procedure/function is DETERMINISTIC
                         false,                              // not definer's rights
                         true,                               // true - calledOnNullInput
-                        return_type);
+                        return_type,
+                        null);
 
         UUID routine_uuid=getUUIDFactory().createUUID();
         AliasDescriptor ads=new AliasDescriptor(

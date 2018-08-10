@@ -463,6 +463,14 @@ public final class SQLDouble extends NumberDataType
 		isNull = false;
 	}
 
+	/* This is constructor used fo PyStoredProcedureResultSetFactory */
+	public void setValue(Double theValue) throws StandardException{
+		if(theValue == null){
+			restoreToNull();
+			return;
+		}
+		setValue(theValue.doubleValue());
+	}
 
 	/*
 	 * DataValueDescriptor interface

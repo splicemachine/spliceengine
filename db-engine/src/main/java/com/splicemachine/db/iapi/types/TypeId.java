@@ -1163,6 +1163,39 @@ public class TypeId{
     }
 
     /**
+     * Get the name of the corresponding Java Wrapper Class type.
+     * <p/>
+     * @return The name of the corresponding Java type.
+     */
+    public String getCorrespondingJavaWrapperTypeName(){
+        if(SanityManager.DEBUG){
+            SanityManager.ASSERT(javaTypeName!=null,
+                    "javaTypeName expected to be non-null");
+        }
+
+        switch (javaTypeName){
+            case "byte[]":
+                return "java.lang.Number[]";
+            case "short[]":
+                return "java.lang.Number[]";
+            case "long[]":
+                return "java.lang.Long[]";
+            case "char[]":
+                return "java.lang.Character[]";
+            case "boolean[]":
+                return "java.lang.Boolean[]";
+            case "double[]":
+                return "java.lang.Double[]";
+            case "float[]":
+                return "java.lang.Float[]";
+            case "int[]":
+                return "java.lang.Number[]";
+            default:
+                return javaTypeName;
+        }
+    }
+
+    /**
      * Get the name of the corresponding Java type.
      * <p/>
      * This method is used directly from EmbedResultSetMetaData (jdbc)
