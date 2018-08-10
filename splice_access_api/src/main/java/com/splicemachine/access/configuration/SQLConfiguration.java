@@ -213,6 +213,12 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String PARTITIONSERVER_JMX_PORT = "hbase.regionserver.jmx.port";
     private static final int DEFAULT_PARTITIONSERVER_JMX_PORT = 10102;
 
+    public static final String PARTITIONSERVER_JMX_USER = "hbase.regionserver.jmx.user";
+    private static final String DEFAULT_PARTITIONSERVER_JMX_USER = "user";
+
+    public static final String PARTITIONSERVER_JMX_PASSWORD = "hbase.regionserver.jmx.password";
+    private static final String DEFAULT_PARTITIONSERVER_JMX_PASSWORD = "passwd";
+
     public static final String NESTEDLOOPJOIN_BATCH_SIZE = "splice.nestedLoopJoin.batchSize";
     private static final int DEFAULT_NESTEDLOOPJOIN_BATCH_SIZE = 10;
 
@@ -233,6 +239,8 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.importMaxQuotedColumnLines = configurationSource.getInt(IMPORT_MAX_QUOTED_COLUMN_LINES, DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES);
         builder.batchOnceBatchSize = configurationSource.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
         builder.partitionserverJmxPort = configurationSource.getInt(PARTITIONSERVER_JMX_PORT, DEFAULT_PARTITIONSERVER_JMX_PORT);
+        builder.partitionserverJmxUser = configurationSource.getString(PARTITIONSERVER_JMX_USER, DEFAULT_PARTITIONSERVER_JMX_USER);
+        builder.partitionserverJmxPassword = configurationSource.getString(PARTITIONSERVER_JMX_PASSWORD, DEFAULT_PARTITIONSERVER_JMX_PASSWORD);
         builder.partitionserverPort = configurationSource.getInt(PARTITIONSERVER_PORT, DEFAULT_PARTITIONSERVER_PORT);
         builder.nestedLoopJoinBatchSize = configurationSource.getInt(NESTEDLOOPJOIN_BATCH_SIZE, DEFAULT_NESTEDLOOPJOIN_BATCH_SIZE);
         builder.controlExecutionRowLimit = configurationSource.getLong(CONTROL_EXECUTION_ROWS_LIMIT, DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT);
