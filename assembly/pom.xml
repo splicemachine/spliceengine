@@ -329,7 +329,8 @@
                                         db-shared,
                                         db-drda,
                                         javax.servlet-api,
-                                        javax.ws.rs-api
+                                        javax.ws.rs-api,
+                                        jython-standalone
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
@@ -369,6 +370,7 @@
                                             <exclude>com.splicemachine:db-shared</exclude>
                                             <exclude>com.splicemachine:db-drda</exclude>
                                             <exclude>org.apache.kafka:*</exclude>
+                                            <exclude>org.python:jython-standalone</exclude>
                                         </excludes>
                                     </artifactSet>
 
