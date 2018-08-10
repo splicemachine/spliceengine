@@ -14,12 +14,9 @@
 
 package com.splicemachine.encoding;
 
-import com.splicemachine.utils.ByteSlice;
-import org.apache.commons.lang3.ArrayUtils;
 import org.spark_project.guava.base.Preconditions;
-
+import com.splicemachine.utils.ByteSlice;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 
 /**
  * Encode multiple fields into a single byte array.  Encode(X) methods delegate to our XEncoding classes.
@@ -121,22 +118,6 @@ public class MultiFieldEncoder {
         currentPos++;
         return this;
     }
-
-    public MultiFieldEncoder encodeNext(Timestamp value, boolean desc){
-        long millis = value.getTime();
-        long nanos = value.getNanos();
-        long millistosubtract = nanos/1000000;
-        long micros = nanos/1000;
-
-        long secs = (millis-millistosubtract) / 1000;
-        byte[] seconds = ScalarEncoding.writeLong(secs,desc);
-
-        byte[] microseconds = ScalarEncoding.writeLong(micros,desc);
-        byte[] bytes = ArrayUtils.addAll(seconds, microseconds);
-        encodeNext(bytes,desc);
-        return this;
-    }
-
 
     public MultiFieldEncoder encodeNext(float value){
         return encodeNext(value,false);

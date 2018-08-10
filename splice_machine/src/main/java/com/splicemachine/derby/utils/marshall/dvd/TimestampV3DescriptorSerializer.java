@@ -39,17 +39,25 @@ public class TimestampV3DescriptorSerializer extends TimestampV2DescriptorSerial
 
     @Override
     protected Timestamp toTimestamp(long time) {
-        //long secs = time >> 20;
         long millis = time / 1000;
+        // nanos start of being set to the number of microseconds.
         int nanos = (int)(time % 1000000);
 
         if (nanos < 0) {
 
+            // Something like -1900000 microseconds is the same as -2 seconds + 100000 microseconds,
+            // setNanos takes the number of nanoseconds greater than the previous time in seconds,
+            // so we need to convert the negative offset to a positive offset.
             nanos = 1000000 + nanos;
+
+            // For proper resolution of number of seconds, we need to always round down.
+            // For positive values, dividing by 1000 is sufficient, but for negatives
+            // the following adjustment is required.
+            // Both "time" and "nanos" both currently have units of microseconds.
             millis = (time - nanos)/1000;
         }
+        // We encode with microseconds precision, but setNanos needs nanoseconds.
         nanos *= 1000;
-
         Timestamp ts = new Timestamp(millis);
         ts.setNanos(nanos);
 
@@ -63,11 +71,11 @@ public class TimestampV3DescriptorSerializer extends TimestampV2DescriptorSerial
 
     public static long formatLong(Timestamp timestamp) throws StandardException {
         int nanos = timestamp.getNanos();
+        // 1. Round milliseconds down to the nearest second, e.g. -1001 ms becomes -2000 ms.
+        // 2. Shift 3 decimal places to the left, so there's a total of 6 zeroes in the rightmost digits.
+        // 3. Divide nanoseconds by 1000 to produce microseconds, and add that to the final value.
         long micros = (timestamp.getTime() - (nanos / 1000000)) * 1000 + (nanos / 1000);
         return micros;
     }
-
-    @Override
-    public boolean isScalarType() { return true; }
 
 }

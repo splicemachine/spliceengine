@@ -17,7 +17,6 @@ package com.splicemachine.encoding;
 import com.splicemachine.primitives.Bytes;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 
 /**
  * Utilities for encoding various values using a sort-order preserving encoding
@@ -389,26 +388,6 @@ public final class Encoding {
      */
     public static byte[] encode(long value,boolean desc){
         return ScalarEncoding.writeLong(value,desc);
-    }
-
-    /**
-     * Encode a Timestamp into an order-preserving byte representation. {@code desc} is used
-     * to determine whether that order is ascending or descending.
-     *
-     * WARNING: Encoding and decoding <em>must</em> be done with the same {@code desc} flag,
-     * or else incorrect answers may be returned.
-     *
-     * @param value the Timestamp to encode
-     * @param desc {@code true} if descending order is needed, {@code false} otherwise.
-     * @return an order-preserving encoding of {@code value}
-     */
-    public static byte[] encode(Timestamp value,boolean desc){
-        byte[] millis = ScalarEncoding.writeLong(value.getTime(),desc);
-        byte[] nanos = ScalarEncoding.writeLong(value.getNanos(),desc);
-        byte[] bytes = new byte[millis.length + nanos.length];
-        System.arraycopy(millis, 0, bytes, 0, millis.length);
-        System.arraycopy(nanos, 0, bytes, millis.length, nanos.length);
-        return bytes;
     }
 
     /**

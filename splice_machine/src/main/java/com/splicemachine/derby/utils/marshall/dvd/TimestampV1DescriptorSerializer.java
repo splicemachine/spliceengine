@@ -29,7 +29,7 @@ import java.sql.Timestamp;
  * @author Scott Fines
  * Date: 4/2/14
  */
-class TimestampV1DescriptorSerializer extends AbstractTimeDescriptorSerializer {
+public class TimestampV1DescriptorSerializer extends AbstractTimeDescriptorSerializer {
 		public static final Factory INSTANCE_FACTORY = new AbstractTimeDescriptorSerializer.Factory() {
 				@Override public DescriptorSerializer newInstance() { return new TimestampV1DescriptorSerializer(); }
 				@Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_TIMESTAMP_ID; }
