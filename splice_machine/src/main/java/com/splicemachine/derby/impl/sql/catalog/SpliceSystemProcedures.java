@@ -235,9 +235,9 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getRegionServerConfig);
 
-        			/*
-        			 * Procedure get Splice Machine manifest info
-        			 */
+                    /*
+                     * Procedure get Splice Machine manifest info
+                     */
                     Procedure getVersionInfo = Procedure.newBuilder().name("SYSCS_GET_VERSION_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
@@ -245,6 +245,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getVersionInfo);
+
+                    Procedure getVersionInfoLocal = Procedure.newBuilder().name("SYSCS_GET_VERSION_INFO_LOCAL")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getVersionInfoLocal);
 
         			/*
         			 * Procedure get write pipeline intake info
@@ -725,6 +733,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getLoggerLevel);
 
+                    Procedure getLoggerLevelLocal = Procedure.newBuilder().name("SYSCS_GET_LOGGER_LEVEL_LOCAL")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("loggerName", 128)
+                            .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getLoggerLevelLocal);
+
         			/*
         			 * Procedure to set the log level for the given logger
         			 */
@@ -738,6 +755,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(setLoggerLevel);
 
+                    Procedure setLoggerLevelLocal = Procedure.newBuilder().name("SYSCS_SET_LOGGER_LEVEL_LOCAL")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .varchar("loggerName", 128)
+                            .varchar("loggerLevel", 128)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(setLoggerLevelLocal);
+
         			/*
         			 * Procedure to get all the splice logger names in the system
         			 */
@@ -747,6 +774,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getLoggers);
+
+                    Procedure getLoggersLocal = Procedure.newBuilder().name("SYSCS_GET_LOGGERS_LOCAL")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getLoggersLocal);
 
         			/*
         			 * Procedure get table info in all schema
@@ -950,11 +984,11 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                      * which only operates on a single node.
                      */
                     procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE")
-                    		.numOutputParams(0)
-                    		.numResultSets(0)
-                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
-                    		.sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
-                    		.build());
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
+                            .build());
 
                     procedures.add(Procedure.newBuilder().name("GET_ACTIVATION")
                             .numOutputParams(0)
