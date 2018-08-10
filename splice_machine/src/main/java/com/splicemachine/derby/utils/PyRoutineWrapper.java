@@ -11,8 +11,11 @@ import org.python.util.PythonInterpreter;
 
 import java.math.BigInteger;
 import java.sql.ResultSet;
+import java.util.Set;
 
 public class PyRoutineWrapper {
+    private static final String SET_FAC_FUNC = "setFactory";
+    private static final String EXEC_FNC = "execute";
     /**
      * A wrapper static method for Python Stored Procedure
      *
@@ -25,8 +28,6 @@ public class PyRoutineWrapper {
     {
         PyInterpreterPool pool = null;
         PythonInterpreter interpreter = null;
-        String setFacFuncName = "setFactory";
-        String funcName = "execute";
 
         try {
             int pyScriptIdx;
@@ -72,12 +73,12 @@ public class PyRoutineWrapper {
             PyCodeUtil.exec(compiledCode, interpreter);
             // add global variable factory, so that the user can use it to construct JDBC ResultSet
             Object[] factoryArg = {new PyStoredProcedureResultSetFactory()};
-            PyFunction addFacFunc = interpreter.get(setFacFuncName, PyFunction.class);
+            PyFunction addFacFunc = interpreter.get(SET_FAC_FUNC, PyFunction.class);
             addFacFunc._jcall(factoryArg);
 
             // execute the user defined function, the user needs to fill the ResultSet himself,
             // just like the original Java Stored Procedure
-            PyFunction userFunc = interpreter.get(funcName, PyFunction.class);
+            PyFunction userFunc = interpreter.get(EXEC_FNC, PyFunction.class);
             if(pyArgs == null){
                 userFunc.__call__();
             }else{
@@ -105,8 +106,7 @@ public class PyRoutineWrapper {
     {
         PyInterpreterPool pool = null;
         PythonInterpreter interpreter = null;
-        String setFacFuncName = "setFactory";
-        String funcName = "execute";
+
         PyObject pyResult = null;
         Object javaResult = null;
 
@@ -133,12 +133,12 @@ public class PyRoutineWrapper {
             PyCodeUtil.exec(compiledCode, interpreter);
             // add global variable factory, so that the user can use it to construct JDBC ResultSet
             Object[] factoryArg = {new PyStoredProcedureResultSetFactory()};
-            PyFunction addFacFunc = interpreter.get(setFacFuncName, PyFunction.class);
+            PyFunction addFacFunc = interpreter.get(SET_FAC_FUNC, PyFunction.class);
             addFacFunc._jcall(factoryArg);
 
             // execute the user defined function, the user needs to fill the ResultSet himself,
             // just like the original Java Stored Procedure
-            PyFunction userFunc = interpreter.get(funcName, PyFunction.class);
+            PyFunction userFunc = interpreter.get(EXEC_FNC, PyFunction.class);
             if(pyArgs == null){
                 pyResult = userFunc.__call__();
             }else{
