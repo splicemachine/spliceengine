@@ -551,10 +551,14 @@ public class SparkDataSet<V> implements DataSet<V> {
             Path file = getDefaultWorkFile(taskAttemptContext, extension);
             FileSystem fs = file.getFileSystem(conf);
 
+            FsPermission permission = FsPermission.getFileDefault().applyUMask(
+                    FsPermission.getUMask(fs.getConf()));
+
+            EnumSet<CreateFlag> flags = EnumSet.of(CreateFlag.LAZY_PERSIST);
             int bufferSize = fs.getConf().getInt("io.file.buffer.size", 4096);
             long blockSize = fs.getDefaultBlockSize(file);
 
-            OutputStream fileOut = fs.create(file, false , bufferSize, replication, blockSize);
+            OutputStream fileOut = fs.create(file, permission, flags, bufferSize, replication, blockSize, null);
             if (isCompressed) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
