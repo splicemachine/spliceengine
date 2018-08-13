@@ -182,7 +182,8 @@ public class SplitRegionScanner implements RegionScanner {
     @Override
     public void close() throws IOException {
         String lastRow = lastCell != null ? CellUtil.getCellKeyAsString(lastCell) : null;
-        LOG.info(String.format("close split scanner with table [%s], scan [%s] with rowCount=%d, reinitCount=%d, scannerExceptionCount=%d, lastRows=%s",htable.getName().toString(),initialScan,totalScannerCount,reInitCount,scanExceptionCount,lastRow), new RuntimeException());
+        if (LOG.isDebugEnabled())
+            LOG.debug(String.format("close split scanner with table [%s], scan [%s] with rowCount=%d, reinitCount=%d, scannerExceptionCount=%d, lastRows=%s",htable.getName().toString(),initialScan,totalScannerCount,reInitCount,scanExceptionCount,lastRow));
         closed = true;
         for (RegionScanner rs : regionScanners) {
             rs.close();
