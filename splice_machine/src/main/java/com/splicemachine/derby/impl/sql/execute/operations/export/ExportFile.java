@@ -58,7 +58,7 @@ public class ExportFile {
 
         // OutputStream
         OutputStream rawOutputStream =fileSystem.newOutputStream(fullyQualifiedExportFilePath,
-                new DistributedFileOpenOption(exportParams.getReplicationCount(),StandardOpenOption.CREATE_NEW));
+                new DistributedFileOpenOption(exportParams.getReplicationCount(),StandardOpenOption.CREATE_NEW, true));
 
         return exportParams.isCompression() ? new GZIPOutputStream(rawOutputStream) : rawOutputStream;
     }

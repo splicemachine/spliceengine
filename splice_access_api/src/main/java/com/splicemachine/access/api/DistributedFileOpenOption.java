@@ -25,10 +25,12 @@ import java.nio.file.StandardOpenOption;
 public class DistributedFileOpenOption implements OpenOption{
     private final int replication;
     private final StandardOpenOption standardOpenOption;
+    private final boolean lazy;
 
-    public DistributedFileOpenOption(int replication,StandardOpenOption standardOpenOption){
+    public DistributedFileOpenOption(int replication, StandardOpenOption standardOpenOption, boolean lazy){
         this.replication=replication;
         this.standardOpenOption = standardOpenOption;
+        this.lazy = lazy;
     }
 
     public int getReplication(){
@@ -37,5 +39,9 @@ public class DistributedFileOpenOption implements OpenOption{
 
     public StandardOpenOption standardOption(){
         return standardOpenOption;
+    }
+
+    public boolean isLazy() {
+        return lazy;
     }
 }

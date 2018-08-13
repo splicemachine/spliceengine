@@ -14,15 +14,18 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.permission.AclStatus;
 import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.protocol.AclException;
 import org.apache.log4j.Logger;
 
@@ -36,8 +39,11 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.FileAttributeView;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 /**
  * @author Scott Fines
@@ -129,7 +135,45 @@ public class HNIOFileSystem extends DistributedFileSystem{
     @Override
     public OutputStream newOutputStream(String fullPath,OpenOption... options) throws IOException{
         org.apache.hadoop.fs.Path path=new org.apache.hadoop.fs.Path(fullPath);
-        return fs.create(path);
+
+        AtomicBoolean checkExistence = new AtomicBoolean(false);
+        FsPermission permission = FsPermission.getFileDefault().applyUMask(
+                FsPermission.getUMask(fs.getConf()));
+        EnumSet<CreateFlag> flags = EnumSet.noneOf(CreateFlag.class);
+        int bufferSize = fs.getConf().getInt("io.file.buffer.size", 4096);
+        short replication = fs.getDefaultReplication(path);
+        long blockSize = fs.getDefaultBlockSize(path);
+
+        Function<StandardOpenOption, Void> parseOption = (StandardOpenOption op) -> {
+            switch (op) {
+                case CREATE_NEW:
+                    checkExistence.set(true);
+                    break;
+                case APPEND:
+                    flags.add(CreateFlag.APPEND);
+                    break;
+                case TRUNCATE_EXISTING:
+                    flags.add(CreateFlag.OVERWRITE);
+                    break;
+            }
+            return null;
+        };
+        
+        for (OpenOption option : options) {
+            if (option instanceof StandardOpenOption) {
+                parseOption.apply((StandardOpenOption) option);
+            }
+            if (option instanceof DistributedFileOpenOption) {
+                DistributedFileOpenOption dfoo = (DistributedFileOpenOption) option;
+                replication = (short) dfoo.getReplication();
+                parseOption.apply(dfoo.standardOption());
+                if (dfoo.isLazy()) {
+                    flags.add(CreateFlag.LAZY_PERSIST);
+                }
+            }
+        }
+
+        return fs.create(path, permission, flags, bufferSize, replication, blockSize, null);
     }
 
     @Override
