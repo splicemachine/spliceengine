@@ -554,7 +554,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             FsPermission permission = FsPermission.getFileDefault().applyUMask(
                     FsPermission.getUMask(fs.getConf()));
 
-            EnumSet<CreateFlag> flags = EnumSet.of(CreateFlag.LAZY_PERSIST);
+            EnumSet<CreateFlag> flags = EnumSet.of(CreateFlag.CREATE, CreateFlag.LAZY_PERSIST);
             int bufferSize = fs.getConf().getInt("io.file.buffer.size", 4096);
             long blockSize = fs.getDefaultBlockSize(file);
 
