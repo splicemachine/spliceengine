@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.access.api.DistributedFileOpenOption;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -35,8 +36,10 @@ import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
@@ -57,8 +60,11 @@ import org.apache.spark.sql.types.DataType;
 import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.OpenOption;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.zip.GZIPOutputStream;
 
 import static org.apache.spark.sql.functions.broadcast;
@@ -539,9 +545,16 @@ public class SparkDataSet<V> implements DataSet<V> {
                 extension += ".gz";
             }
 
+
+            short replication = op.getExportParams().getReplicationCount();
+
             Path file = getDefaultWorkFile(taskAttemptContext, extension);
             FileSystem fs = file.getFileSystem(conf);
-            OutputStream fileOut = fs.create(file, false);
+
+            int bufferSize = fs.getConf().getInt("io.file.buffer.size", 4096);
+            long blockSize = fs.getDefaultBlockSize(file);
+
+            OutputStream fileOut = fs.create(file, false , bufferSize, replication, blockSize);
             if (isCompressed) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
