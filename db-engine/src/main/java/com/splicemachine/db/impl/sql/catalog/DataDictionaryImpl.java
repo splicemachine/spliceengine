@@ -1158,7 +1158,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ExecRow row=ti.getCatalogRowFactory().makeRow(td,parent);
 
-        if (buildVersion2Descriptor)
+        if (buildVersion2Descriptor && catalogNumber == DataDictionary.SYSTABLES_CATALOG_NUM)
         {
             row.setColumn(SYSTABLESRowFactory.SYSTABLES_VERSION,new SQLVarchar("2.0"));
         }
