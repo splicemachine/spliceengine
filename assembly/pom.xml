@@ -108,6 +108,13 @@
                     <value>parcel</value>
                 </property>
             </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_sentry-${envClassifier}</artifactId>
+                    <version>2.5.0.1833-SNAPSHOT</version>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
@@ -149,6 +156,7 @@
                                         hbase_sql-${envClassifier},
                                         splice_ee-${envClassifier},
                                         splice_backup-${envClassifier},
+                                        splice_sentry-${envClassifier},
                                         splice_auth,
                                         splice_colperms,
                                         splice_encryption,
