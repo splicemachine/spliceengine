@@ -2014,10 +2014,6 @@ public enum ErrorState{
                 return state;
         }
 
-        //check generic IOExceptions only if we haven't found something else better first.
-
-        if(COMMUNICATION_ERROR.accepts(t))
-            return COMMUNICATION_ERROR;
         //something unexpected happened, that's probably not good.
         return SPLICE_UNEXPECTED_EXCEPTION;
     }

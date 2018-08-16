@@ -460,6 +460,15 @@ public final class SQLReal
 		isNull = false;
 	}
 
+	/* This is constructor used fo PyStoredProcedureResultSetFactory */
+	public void setValue(Double theValue) throws StandardException{
+		if (objectNull(theValue)){
+			restoreToNull();
+			return;
+		}
+		setValue(theValue.doubleValue());
+	}
+
 	/**
 	 * Set the value from a correctly typed Float object.
 	 * @throws StandardException 

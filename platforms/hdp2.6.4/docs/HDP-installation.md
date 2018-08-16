@@ -1,4 +1,3 @@
-(to be updated with new PRM packaging info)
 
 # Installing and Configuring Splice Machine for Hortonworks HDP
 
@@ -24,6 +23,7 @@ your cluster contains the prerequisite software components:
 * HDFS installed
 * YARN installed
 * ZooKeeper installed
+* Spark 2 installed
 * Ensure that Phoenix services are **NOT** installed on your cluster, as
   they interfere with Splice Machine HBase settings.
 
@@ -35,19 +35,12 @@ operating environment, and are called out in detail in the
 
 Setup local yum repo on ambari server node ( or a node that all the nodes in the cluster can access) :
 
-0.make sure there is a http server on the node that your_node_url is accessable.
-
-1.make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
-
-2.put the splicemachine rpm under /var/www/html/ambari-repo/ ( or the path you choose)
-
-3.use 'createrepo /var/www/html/ambari-repo/' to create the repo metadata
-
-4.open the url your_node_url/ambari-repo to confirm it can be accessed by yum
-
-5.put a file named splicemachine.repo under /etc/yums.repo.d/
-
-the content is as below 
+1. Make sure there is a http server on the node that your_node_url is accessable.
+2. Make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
+3. Put the splicemachine rpm under `/var/www/html/ambari-repo/` ( or the path you choose)
+4. Use `createrepo /var/www/html/ambari-repo/` to create the repo metadata.
+5. Open the url `your_node_url/ambari-repo` to confirm it can be accessed by yum.
+6. Put a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content is as below
 
   ````
   [splicemachine]
@@ -56,21 +49,20 @@ the content is as below
   enabled=1
   gpgcheck=0
   ````
-  
-6. rum yum list | grep splicemachine to make sure the custom repo is up and running.  
+7. Run `yum list | grep splicemachine` to make sure the custom repo is up and running.
 
 Perform the following steps **on each node** in your cluster:
 
-1.  install the splicemachine  custom ambari service rpm using following command (take version 2.5.0.1811 for example) :
+Install the Splice Machine custom Ambari service rpm using the following command (take version 2.5.0.1811 for example) :
 
-    ````
-    sudo yum install splicemachine_ambari_service
-    ````
+```
+sudo yum install splicemachine_ambari_service
+```
 
-After install the rpm,restart ambari-server using 'service ambari-server restart'
+After install the rpm, restart ambari-server using `service ambari-server restart`.
 
 
-## install splicemachine using ambari service
+## Install splicemachine using Ambari service
 
 Follow the steps to install splicemachine server.
 
@@ -82,28 +74,41 @@ Follow the steps to install splicemachine server.
 
 <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
-3. Choose the master machine. It need to be the same machine with HBase master.
+3. Choose the master machine. It needs to be the same machine as the HBase master.
 
-4. Choose hosts needed to install splice machine,only choose hosts that have hbase region server 
+4. Choose hosts needed to install splice machine. Only choose hosts that have hbase region server 
 installed.Then click next.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-5. On the page of custom services,no properties need to customize by hand unless you would like to
- add Apache Ranger Support.
+5. On the page of custom services, no properties need to customized by hand unless you would 
+like to add Apache Ranger Support.
 
 <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
-6. Please review all the configuration change made by ambari and click OK to continue.
+6. Please review all the configuration changes made by Ambari and click OK to continue.
 
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-7. Please click next all the way down to this page ,then click 'deploy',after that finishes,splice
- machine is installed.
+**Note**: Ambari will not show all the recommended values in some situations. Make sure these 
+important configurations are set properly by clicking "recommend" button next to the configs:
+
+(1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes `com.splicemachine.hbase.SpliceMasterObserver`.
+
+(2) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.regionserver.classes` includes `com.splicemachine.hbase.RegionServerLifecycleObserver`.
+
+(3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`. If the property is not found, you can add the property in "Custom hbase-site".
+
+(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific 
+Information" are in the configurations.
+
+
+7. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
+ Machine is installed.
 
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-8. Restart all the services affected to start splice machine!
+8. Restart all the services affected to start Splice Machine!
 
 
 
@@ -199,13 +204,13 @@ Unable to decrypt password due to error.
 Input length must be multiple of 8 when decrypting with padded cipher. 
 ```
 
-It is because of a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640?attachmentOrder=asc).
+It is because of a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640).
 You can ignore the error and test if autocomplete is working later.
 
 #### Config Ranger Policies
 
 Once you save the service then click on the service name you just created.
-You should see a several policies for the splice user.
+You should see several policies for the splice user.
 The following policy is required so SYSIBM routines can support database connectivity.
 
 | Required Policy Name | Logic | Users |

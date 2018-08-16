@@ -5,9 +5,7 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -29,17 +27,17 @@ public class PermissionIT {
     private static final String SCHEMA1 = "SCHEMA1";
     private static final String TABLE = "T1";
 
-    protected static final String USER1 = "XIAYI";
-    protected static final String PASSWORD1 = "xiayi";
+    protected static final String USER1 = "TOM";
+    protected static final String PASSWORD1 = "tom";
     protected static final String ROLE1 = "ADMIN_SCHEMA1";
 
     private static SpliceWatcher spliceClassWatcherAdmin = new SpliceWatcher();
     private static SpliceSchemaWatcher spliceSchemaWatcher1 = new SpliceSchemaWatcher(SCHEMA1);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     private static SpliceRoleWatcher spliceRoleWatcher1 = new SpliceRoleWatcher(ROLE1);
-    private static SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE, SCHEMA1,"(a1 int )" );
-    @Rule
-    public TestRule chain =
+    private static SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE, SCHEMA1,"(a1 int, b1 int, c1 int, d1 int)" );
+    @ClassRule
+    public static TestRule chain =
             RuleChain.outerRule(spliceClassWatcherAdmin)
                     .around(spliceUserWatcher1)
                     .around(spliceRoleWatcher1)
@@ -60,12 +58,12 @@ public class PermissionIT {
     private String dropTableQuery = format("drop table %s.t11", SCHEMA1);
     private String dropTableQuery2 = format("drop table %s.t12", SCHEMA1);
 
-    @Before
-    public  void setUpClass() throws Exception {
+    @BeforeClass
+    public static void setUpClass() throws Exception {
         String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true;user=%s;password=%s";
 
         adminConn = spliceClassWatcherAdmin.createConnection();
-        adminConn.execute( format("insert into %s.%s values (1)", SCHEMA1, TABLE ) );
+        adminConn.execute( format("insert into %s.%s values (1,1,1,1)", SCHEMA1, TABLE ) );
 
         // grant role role1 to user1
         adminConn.execute(format("grant %s to %s", ROLE1, USER1));
@@ -75,6 +73,16 @@ public class PermissionIT {
 
         user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
 
+    }
+
+    @AfterClass
+    public static void tearDown() throws Exception {
+        adminConn.close();
+        user1Conn.close();
+        user1Conn2.close();
+
+        spliceClassWatcherAdmin.execute(format("drop role %s", ROLE1));
+        spliceClassWatcherAdmin.execute(format("call syscs_util.syscs_drop_user('%s')", USER1));
     }
 
     @Test
@@ -253,5 +261,53 @@ public class PermissionIT {
 
         adminConn.execute(format("revoke EXECUTE on procedure syscs_util.collect_table_statistics from %s restrict", ROLE1));
         adminConn.execute(format("revoke all privileges on table %s.%s from %s", SCHEMA1, TABLE, ROLE1));
+    }
+
+    @Test
+    public void testPrivilegesOnViews() throws Exception {
+        adminConn.execute(format("revoke all privileges on schema %s from %s", SCHEMA1, ROLE1));
+
+        //create views with nested views
+        adminConn.execute(format("create view %1$s.v1 as select a1, b1, c1 from %1$s.T1", SCHEMA1));
+        adminConn.execute(format("create view %1$s.v2 as select a1, b1 from %1$s.v1", SCHEMA1));
+        adminConn.execute(format("create view %1$s.v3 as select a1 from %1$s.v2", SCHEMA1));
+
+        try {
+            // test select privilege on v1
+            assertFailed(user1Conn, format("select * from %s.v1", SCHEMA1), SQLState.AUTH_NO_COLUMN_PERMISSION);
+            adminConn.execute(format("grant select on %s.v1 to %s", SCHEMA1, ROLE1));
+
+            ResultSet rs = user1Conn.query(format("select * from %s.v1", SCHEMA1));
+            assertEquals("Expected to have SELECT privileges", 1, resultSetSize(rs));
+            rs.close();
+
+            // test select privilege on v2
+            adminConn.execute(format("revoke select on %s.v1 from %s", SCHEMA1, ROLE1));
+
+            assertFailed(user1Conn, format("select * from %s.v2", SCHEMA1), SQLState.AUTH_NO_COLUMN_PERMISSION);
+
+            adminConn.execute(format("grant select on %s.v2 to %s", SCHEMA1, ROLE1));
+            rs = user1Conn.query(format("select * from %s.v2", SCHEMA1));
+            assertEquals("Expected to have SELECT privileges", 1, resultSetSize(rs));
+            rs.close();
+
+            // test select privilege on v3
+            adminConn.execute(format("revoke select on %s.v2 from %s", SCHEMA1, ROLE1));
+            assertFailed(user1Conn, format("select * from %s.v3", SCHEMA1), SQLState.AUTH_NO_COLUMN_PERMISSION);
+
+            adminConn.execute(format("grant select on %s.v3 to %s", SCHEMA1, ROLE1));
+
+            rs = user1Conn.query(format("select * from %s.v3", SCHEMA1));
+            assertEquals("Expected to have SELECT privileges", 1, resultSetSize(rs));
+            rs.close();
+
+            adminConn.execute(format("revoke select on %s.v3 from %s", SCHEMA1, ROLE1));
+        } finally {
+
+            // drop all views
+            adminConn.execute(format("drop view %s.v3", SCHEMA1));
+            adminConn.execute(format("drop view %s.v2", SCHEMA1));
+            adminConn.execute(format("drop view %s.v1", SCHEMA1));
+        }
     }
 }

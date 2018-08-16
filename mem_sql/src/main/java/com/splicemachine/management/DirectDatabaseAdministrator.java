@@ -74,8 +74,8 @@ public class DirectDatabaseAdministrator implements DatabaseAdministrator{
     }
 
     @Override
-    public Map<String, String> getGlobalDatabaseProperty(String key) throws SQLException{
-        return Collections.singletonMap("mem",DatabasePropertyManagementImpl.instance().getDatabaseProperty(key));
+    public String getDatabaseProperty(String key) throws SQLException{
+        return DatabasePropertyManagementImpl.instance().getDatabaseProperty(key);
     }
 
     @Override

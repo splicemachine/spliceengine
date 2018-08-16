@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.sql.pyprocedure.PyCodeUtil;
 
 import java.util.List;
 import java.util.Vector;
@@ -307,8 +308,25 @@ public class CreateAliasNode extends DDLStatementNode{
                     returnType = dtd.getCatalogType();
                 }
 
+                // If routine is a Python routine, compile the Python script, which is stored as
+                // routineElements[EXTERNAL_NAME]
+                byte[] compiledPyCode = null;
+
+                if(routineElements[LANGUAGE].equals("PYTHON")){
+                    try {
+                        // SQL_CONTROL: 0 - MODIFIES SQL DATA, 1 - READS SQL DATA, 2 - CONTAINS SQL, 3- NO SQL
+                        boolean makeConn = (Short) routineElements[SQL_CONTROL] == null||(Short) routineElements[SQL_CONTROL]<3;
+                        compiledPyCode =
+                                PyCodeUtil.compile((String) routineElements[EXTERNAL_NAME], makeConn);
+                    }catch (Exception e){
+                        // Fill in Exception Handling
+                        throw StandardException.plainWrapException(e);
+                    }
+                }
+
                 aliasInfo = new RoutineAliasInfo(
                         this.methodName,
+                        (String) routineElements[LANGUAGE],
                         paramCount,
                         names,
                         types,
@@ -320,7 +338,8 @@ public class CreateAliasNode extends DDLStatementNode{
                         isDeterministic,
                         definersRights,
                         calledOnNullInput,
-                        returnType);
+                        returnType,
+                        compiledPyCode);
 
                 implicitCreateSchema = true;
             }

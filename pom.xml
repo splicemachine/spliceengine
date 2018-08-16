@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>2.8.0.1831-SNAPSHOT</version>
+    <version>2.8.0.1833-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -167,6 +167,11 @@
                 <type>jar</type>
             </dependency>
             <!-- third party dependencies -->
+            <dependency>
+                <groupId>org.python</groupId>
+                <artifactId>jython-standalone</artifactId>
+                <version>2.5.3</version>
+            </dependency>
             <dependency>
                 <groupId>ant-contrib</groupId>
                 <artifactId>ant-contrib</artifactId>
@@ -715,6 +720,25 @@
            </distributionManagement>
         </profile>
         <profile>
+            <id>insecure</id>
+            <properties>
+                <secure>false</secure>
+		<spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
+		<hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
+            </properties>
+        </profile>
+        <profile>
+            <id>secure</id>
+            <properties>
+                <secure>true</secure>
+		<spark.keytab>-Dsplice.spark.yarn.keytab=${project.build.directory}/splice.keytab</spark.keytab>
+		<spark.principal>-Dsplice.spark.yarn.principal=hbase/example.com@EXAMPLE.COM</spark.principal>
+		<spark.warehouse>-Dsplice.spark.sql.warehouse.dir=/user/hbase/spark-warehouse</spark.warehouse>
+		<spark.defaultfs>-Dsplice.spark.hadoop.fs.defaultFS=hdfs://localhost:58878/</spark.defaultfs>
+		<hbase.rootdir>-Dhbase.rootdir=/hbase</hbase.rootdir>
+            </properties>
+        </profile>
+        <profile>
             <!-- When jacoco is disabled,the jacocoAgent property still needs to exist -->
             <id>noJacoco</id>
             <activation>
@@ -848,6 +872,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>coverage</module>
             </modules>
         </profile>
@@ -876,6 +901,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -903,6 +929,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -930,6 +957,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -957,6 +985,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -985,6 +1014,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1013,6 +1043,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1041,6 +1072,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1069,6 +1101,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1097,6 +1130,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1125,6 +1159,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1153,6 +1188,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1182,6 +1218,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1212,6 +1249,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>
@@ -1242,6 +1280,7 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
             </modules>
         </profile>

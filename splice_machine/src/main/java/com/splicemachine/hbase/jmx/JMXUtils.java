@@ -21,10 +21,14 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
 import com.splicemachine.db.impl.sql.catalog.TotalManagedCache;
@@ -59,10 +63,14 @@ public class JMXUtils {
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
         List<Pair<String,JMXConnector>> mbscArray =new ArrayList<>(serverConnections.size());
-        int regionServerJMXPort = EngineDriver.driver().getConfiguration().getPartitionserverJmxPort();
+        SConfiguration conf = EngineDriver.driver().getConfiguration();
+        int regionServerJMXPort = conf.getPartitionserverJmxPort();
+        Map environment = new HashMap();
+        String[] credentials = new String[]{conf.getPartitionserverJmxUser(), conf.getPartitionserverJmxPassword()};
+        environment.put(JMXConnector.CREDENTIALS, credentials);
         for (Pair<String,String> serverConn: serverConnections) {
             JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s:%2$d/jndi/rmi://%1$s:%2$d/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
-            JMXConnector jmxc = JMXConnectorFactory.connect(url, null);
+            JMXConnector jmxc = JMXConnectorFactory.connect(url, environment);
             mbscArray.add(Pair.newPair(serverConn.getSecond(),jmxc));
         }
         return mbscArray;
@@ -172,7 +180,17 @@ public class JMXUtils {
 		return JMX.newMXBeanProxy(mbsc.getMBeanServerConnection(), objectName,type, true);
 	}
 
-	public static ObjectName getDynamicMBean(String mbeanName) throws MalformedObjectNameException {
+    public static <T> T getLocalMBeanProxy(String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
+        ObjectName objectName = new ObjectName(mbeanName);
+        return JMX.newMBeanProxy(ManagementFactory.getPlatformMBeanServer(), objectName,type, true);
+    }
+
+    public static <T> T getLocalMXBeanProxy(String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {
+        ObjectName objectName = new ObjectName(mbeanName);
+        return JMX.newMXBeanProxy(ManagementFactory.getPlatformMBeanServer(), objectName,type, true);
+    }
+
+    public static ObjectName getDynamicMBean(String mbeanName) throws MalformedObjectNameException {
 	    return new ObjectName(mbeanName);
 	}
 
