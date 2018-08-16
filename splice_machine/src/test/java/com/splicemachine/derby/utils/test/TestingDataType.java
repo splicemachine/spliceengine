@@ -380,7 +380,7 @@ public enum TestingDataType {
 
     },
     TIMESTAMP(Types.TIMESTAMP){
-        @Override public boolean isScalarType() { return false; }
+        @Override public boolean isScalarType() { return true; }
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
             return new SQLTimestamp();
