@@ -78,4 +78,8 @@ public class TimestampV3DescriptorSerializer extends TimestampV2DescriptorSerial
         return micros;
     }
 
+    public  Timestamp parseTimestamp(long time) {
+        return toTimestamp(time);
+    }
+
 }

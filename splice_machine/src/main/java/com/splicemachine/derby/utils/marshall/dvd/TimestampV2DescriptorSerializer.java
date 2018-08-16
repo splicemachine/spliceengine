@@ -47,17 +47,6 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
 
     @Override
     protected Timestamp toTimestamp(long time) {
-        return parseTimestamp(time);
-    }
-
-
-    public static long formatLong(Timestamp timestamp) throws StandardException {
-        long millis = SQLTimestamp.checkV2Bounds(timestamp);
-        long micros = timestamp.getNanos() / NANOS_TO_MICROS;
-        return millis * MICROS_TO_SECOND + micros;
-    }
-
-    public static Timestamp parseTimestamp(long time) {
         int micros = (int) (time % MICROS_TO_SECOND);
         long millis;
         if (micros < 0) {
@@ -71,4 +60,12 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
         ts.setNanos(micros * NANOS_TO_MICROS);
         return ts;
     }
+
+
+    public static long formatLong(Timestamp timestamp) throws StandardException {
+        long millis = SQLTimestamp.checkV2Bounds(timestamp);
+        long micros = timestamp.getNanos() / NANOS_TO_MICROS;
+        return millis * MICROS_TO_SECOND + micros;
+    }
+
 }

@@ -18,7 +18,6 @@ import org.spark_project.guava.base.Preconditions;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 
 /**
  * Decodes a single byte[] into multiple field based on terminator elements.
@@ -216,25 +215,6 @@ public class MultiFieldDecoder {
         adjustOffset(-1);
         int length = currentOffset-offset-1;
         return Encoding.decodeBytesUnsortd(data,offset,length);
-    }
-
-    public Timestamp decodeNextTimestamp(boolean desc){
-        byte[] bytes = decodeNextBytes(desc);
-        if (bytes.length == 0)
-            return new Timestamp(0);
-
-        long [] intValueLength = new long[2];
-        int currentOffset = 0;
-        Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        currentOffset = (int)intValueLength[1];
-        long time = intValueLength[0];
-        Encoding.decodeLongWithLength(bytes,currentOffset,desc,intValueLength);
-        int nanos = (int)intValueLength[0];
-
-        Timestamp ts = new Timestamp(time);
-        ts.setNanos(nanos);
-
-        return ts;
     }
 
     /**

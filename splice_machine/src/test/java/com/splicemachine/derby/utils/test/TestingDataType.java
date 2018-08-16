@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.marshall.dvd.TimestampV3DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import org.spark_project.guava.base.Charsets;
@@ -380,6 +381,9 @@ public enum TestingDataType {
 
     },
     TIMESTAMP(Types.TIMESTAMP){
+        @Override public void encode(Object o, MultiFieldEncoder encoder) {
+						encoder.encodeNext((Long)o);
+				}
         @Override public boolean isScalarType() { return true; }
         @Override
         public DataValueDescriptor getDataValueDescriptor() {
@@ -388,10 +392,12 @@ public enum TestingDataType {
 
         @Override
         public void decodeNext(DataValueDescriptor dvd, MultiFieldDecoder decoder) throws StandardException {
-            if (decoder.nextIsNull())
+            TimestampV3DescriptorSerializer serializer =
+             (TimestampV3DescriptorSerializer)TimestampV3DescriptorSerializer.INSTANCE_FACTORY.newInstance();
+            if(decoder.nextIsNull())
                 dvd.setToNull();
-            else {
-                Timestamp timestamp = decoder.decodeNextTimestamp(false);
+            else{
+                Timestamp timestamp = serializer.parseTimestamp(decoder.decodeNextLong());
                 dvd.setValue(timestamp);
             }
         }
