@@ -299,22 +299,7 @@
                     </execution>
                     <execution>
                         <id>############### stop-splice-its ###############</id>
-                        <phase>prepare-package</phase>
-                        <configuration>
-                            <skip>${skipTests}</skip>
-                            <target name="StopSpliceServer" unless="${server.skip.start}">
-                                <exec executable="${shell.command}" dir="${basedir}/../platform_it" spawn="false">
-                                    <arg value="${stop.script}"/>
-                                </exec>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>clean stop-splice-its</id>
-                        <phase>pre-clean</phase>
+                        <phase>post-integration-test</phase>
                         <configuration>
                             <skip>${skipTests}</skip>
                             <target name="StopSpliceServer" unless="${server.skip.start}">
