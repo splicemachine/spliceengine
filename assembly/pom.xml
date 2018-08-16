@@ -128,6 +128,7 @@
                                         hbase_sql-${envClassifier},
                                         splice_ee-${envClassifier},
                                         splice_backup-${envClassifier},
+                                        splice_sentry-${envClassifier},
                                         splice_auth,
                                         splice_colperms,
                                         splice_encryption,
