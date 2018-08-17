@@ -14,12 +14,7 @@
 
 package org.splicetest.sqlj;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 /**
  * Stored procedures to test the SQLJ JAR file loading system procedures (INSTALL_JAR, REPLACE_JAR, and REMOVE_JAR).
@@ -149,5 +144,16 @@ public class SqlJTestProcs {
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public static void JPROC_TYPE_UNIT_TEST(ResultSet[] rs)
+			throws Exception{
+		//-- Declare and execute the procedure in ij.
+		//CREATE PROCEDURE SPLICE.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'com.splicemachine.derby.impl.sql.pyprocedure.PyStoredProcedureResultSetFactoryIT.JPROC_TYPE_UNIT_TEST';
+		//CALL SPLICE.JPROC_TYPE_UNIT_TEST();
+		Connection conn = DriverManager.getConnection("jdbc:default:connection");
+		Statement stmt = conn.createStatement();
+		rs[0] = stmt.executeQuery("SELECT * FROM TEST_TABLE {limit 1}");
+		conn.close();
 	}
 }

@@ -169,7 +169,8 @@
                                         jol-core,
                                         slice,
                                         orc-protobuf,
-                                        spark-avro_2.11
+                                        spark-avro_2.11,
+                                        jython-standalone
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
@@ -608,7 +609,8 @@
                                         splice_ranger_admin-${envClassifier},
                                         splice_ranger_service-${envClassifier},
                                         c3p0,
-                                        mchange-commons-java
+                                        mchange-commons-java,
+                                        jython-standalone
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>

@@ -446,6 +446,15 @@ public final class SQLSmallint
 		isNull = false;
 	}
 
+	/* This is constructor used fo PyStoredProcedureResultSetFactory */
+	public void setValue(Integer theValue) throws StandardException{
+		if(theValue==null){
+			restoreToNull();
+			return;
+		}
+		setValue(theValue.intValue());
+	}
+
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
 
 		setValue(theValue.getShort());

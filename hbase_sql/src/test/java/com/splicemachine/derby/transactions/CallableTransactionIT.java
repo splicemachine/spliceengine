@@ -78,8 +78,8 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	private static final String DROP_PROC_CREATE_INSERT_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.CREATE_INSERT_AND_GET_EMPLOYEE", SCHEMA_NAME);
 	private static final String CREATE_PROC_INSERT_UPDATE_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_UPDATE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_UPDATE_AND_GET_EMPLOYEE'", SCHEMA_NAME);
 	private static final String DROP_PROC_INSERT_UPDATE_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_UPDATE_AND_GET_EMPLOYEE", SCHEMA_NAME);
-	private static final String CREATE_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30), IN id2 INT) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE'", SCHEMA_NAME);
-	private static final String DROP_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE", SCHEMA_NAME);
+//	private static final String CREATE_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE = String.format("CREATE PROCEDURE %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30), IN id2 INT) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE'", SCHEMA_NAME);
+//	private static final String DROP_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE", SCHEMA_NAME);
 	private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN'", SCHEMA_NAME);
 	private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_COMMIT_TXN = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_COMMIT_TXN", SCHEMA_NAME);
 	private static final String CREATE_PROC_INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN = String.format("CREATE PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN(IN tableName VARCHAR(40), IN id INT, IN fname VARCHAR(20), IN lname VARCHAR(30)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_AND_GET_EMPLOYEE_NO_COMMIT_TXN'", SCHEMA_NAME);
@@ -94,7 +94,13 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	private static final String DROP_PROC_INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT = String.format("DROP PROCEDURE %s.INSERT_AND_GET_EMPLOYEE_ROLLBACK_SVPT", SCHEMA_NAME);
     private static final String CREATE_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS = String.format("CREATE PROCEDURE %s.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS(IN tableName VARCHAR(40), IN id INT, OUT errorCode VARCHAR(100), OUT errorMessage VARCHAR(100)) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS'", SCHEMA_NAME);
     private static final String DROP_PROC_GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS = String.format("DROP PROCEDURE %s.GET_EMPLOYEE_MULTIPLE_OUTPUT_PARAMS", SCHEMA_NAME);
-
+    // Testing multiple ResultSets
+	private static final String CREATE_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE =String.format("CREATE PROCEDURE %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(IN id INT, IN tableName VARCHAR(40), IN fname VARCHAR(20), IN lname VARCHAR(30), IN fname2 VARCHAR(20), IN lname2 VARCHAR(30), IN id2 INT) PARAMETER STYLE JAVA MODIFIES SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 3 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE'", SCHEMA_NAME);
+	private static final String DROP_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE = String.format("DROP PROCEDURE %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE",SCHEMA_NAME);
+	// Testing procedure that has output parameter but no ResultSet
+	private static final String CREATE_PROC_OUTPUT_PARAMETER_NO_RESULTSET = String.format("CREATE PROCEDURE %s.OUTPUT_PARAMETER_NO_RESULTSET(OUT outInt INT) " +
+			"PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 0 EXTERNAL NAME 'org.splicetest.txn.TxnTestProcs.OUTPUT_PARAMETER_NO_RESULTSET'",SCHEMA_NAME);
+	private static final String DROP_PROC_OUTPUT_PARAMETER_NO_RESULTSET = String.format("DROP PROCEDURE %s.OUTPUT_PARAMETER_NO_RESULTSET",SCHEMA_NAME);
 	// SQL statements to call stored procedures.
 	private static final String CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".CREATE_EMPLOYEE_TABLE('%s')";
 	private static final String CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".DROP_EMPLOYEE_TABLE('%s')";
@@ -133,7 +139,6 @@ public class CallableTransactionIT extends SpliceUnitTest {
 
 		// Add the jar file into the DB class path.
 		spliceClassWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
-
 		// Recompile the stored statements since the SQLJ and CLASSPATH stored procedures invalidate all of the stored statements.
 		// Recompiling will avoid write-write conflicts between the concurrent IT execution threads.
 //		spliceClassWatcher.executeUpdate("call SYSCS_UTIL.SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS()");
@@ -548,4 +553,64 @@ public class CallableTransactionIT extends SpliceUnitTest {
         rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
         Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
     }
+
+	/**
+	 * Tests ability for stored procedure to return multiple ResultSet
+	 * @throws Exception
+	 */
+    @Test
+    public void testProcedureWithMultipleResulSets() throws Exception{
+		String employeeTableName = EMPLOYEE_TABLE_NAME_BASE + "12";
+		int rc = 0;
+		int rsCnt = 1;
+		// Create the table.
+		rc = methodWatcher.executeUpdate(String.format(CALL_CREATE_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Insert row that will be deleted later by INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE
+		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_EMPLOYEE);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		rc = methodWatcher.executeUpdate(String.format("CALL " + SCHEMA_NAME + ".INSERT_EMPLOYEE('%s', 3, 'ToBe', 'Deleted')",employeeTableName));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		rc = methodWatcher.executeUpdate(CREATE_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		CallableStatement cStmt = methodWatcher.prepareCall(String.format("{CALL %s.INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE(?,?,?,?,?,?,?)}",SCHEMA_NAME));
+		cStmt.setInt(1,2);
+		cStmt.setString(2, employeeTableName);
+		cStmt.setString(3, "Barney");
+		cStmt.setString(4, "Rubble");
+		cStmt.setString(5, "Wilma");
+		cStmt.setString(6, "Filstone");
+		cStmt.setInt(7,3);
+		cStmt.execute();
+		while(cStmt.getMoreResults()){
+			rsCnt ++;
+		}
+		Assert.assertEquals("Incorrect number of result sets returned!", 3, rsCnt);
+
+		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_UPDATE_GETx2_DELETE_AND_GET_EMPLOYEE);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		rc = methodWatcher.executeUpdate(DROP_PROC_INSERT_EMPLOYEE);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+				// Drop the table.
+		rc = methodWatcher.executeUpdate(String.format(CALL_DROP_EMPLOYEE_TABLE_FORMAT_STRING, employeeTableName));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+	}
+
+	@Test
+	public void testGetIntFromOutParameter() throws Exception{
+		methodWatcher.executeUpdate(CREATE_PROC_OUTPUT_PARAMETER_NO_RESULTSET);
+		CallableStatement cs = methodWatcher.prepareCall(String.format("call %s.OUTPUT_PARAMETER_NO_RESULTSET(?)",SCHEMA_NAME));
+		cs.registerOutParameter(1, Types.INTEGER);
+		cs.execute();
+		int outVal = cs.getInt(1);
+		Assert.assertEquals(1, outVal);
+		methodWatcher.executeUpdate(DROP_PROC_OUTPUT_PARAMETER_NO_RESULTSET);
+	}
 }

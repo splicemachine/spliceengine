@@ -48,6 +48,7 @@ import java.io.ObjectInput;
 import java.io.IOException;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -416,6 +417,15 @@ public final class SQLLongint extends NumberDataType {
 		value = theValue?1:0;
 		isNull = false;
 
+	}
+
+	/* This is setter used fo PyStoredProcedureResultSetFactory */
+	public void setValue(BigInteger theValue) throws StandardException{
+		if(theValue==null){
+			restoreToNull();
+			return;
+		}
+		setValue(theValue.longValue());
 	}
 
 	/**

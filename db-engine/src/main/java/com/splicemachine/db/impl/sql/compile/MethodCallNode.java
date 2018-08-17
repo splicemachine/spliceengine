@@ -533,6 +533,10 @@ abstract class MethodCallNode extends JavaValueNode
 											MethodBuilder mb)
 			throws StandardException
 	{
+		// Determine whether the method is the Java wrapper method for Python procedure call
+		boolean isPy = method.getName().equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME) &&
+				javaClassName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_CLASS_NAME);
+
 		int				param;
 
 		String[] expectedTypes = methodParameterTypes;
@@ -544,6 +548,10 @@ abstract class MethodCallNode extends JavaValueNode
 		 */
 		for (param = 0; param < methodParms.length; param++)
 		{
+			if(isPy){
+				mb.dup();
+			}
+
 			generateOneParameter( acb, mb, param );
 
 			// type from the SQL-J expression
@@ -564,6 +572,9 @@ abstract class MethodCallNode extends JavaValueNode
 
 					// for a prodcedure
 					if (routineInfo != null) {
+						if(isPy){
+							mb.setArrayElement(param); // Before Continue add the parameter into the Object[]
+						}
 						continue; // probably should be only for INOUT/OUT parameters.
 					}
 
@@ -581,6 +592,9 @@ abstract class MethodCallNode extends JavaValueNode
 				}
 			}
 
+			if(isPy){
+				mb.setArrayElement(param); // put the element into the array
+			}
 		}
 
 		return methodParms.length;
@@ -832,8 +846,32 @@ abstract class MethodCallNode extends JavaValueNode
                             setCollationType(routineInfo.getReturnType().getCollationType());     
                 }
 	 	setJavaTypeName( typeName );
-                
-		methodParameterTypes = classInspector.getParameterTypes(method);
+
+		if(methodName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_METHOD_NAME) &&
+				javaClassName.equals(StaticMethodCallNode.PYPROCEDURE_WRAPPER_CLASS_NAME)){
+			// Added for PYTHON stored procedure
+			// Since the actual method gets called fo Python Stored Procedure takes Object.. args
+			// as its arguments. The method ParameterTypes cannot be directly derived
+			// via reflection. Hence it will be manually set.
+			int parameterTypesLen = signature.length;
+			int maxDynamicResultSets = this.routineInfo.getMaxDynamicResultSets();
+			if(maxDynamicResultSets > 1){
+				parameterTypesLen += (maxDynamicResultSets - 1);
+			}
+
+			methodParameterTypes = new String[parameterTypesLen];
+			for(int i = 0; i < this.signature.length; ++i){
+				// methodParameterTypes = convert JSQLTYPE to corresponding Java Type
+				methodParameterTypes[i] = signature[i].getSQLType().getTypeId().getCorrespondingJavaWrapperTypeName();
+			}
+
+			// Add the remaining ResultSet to the parameterTypes array.
+			for(int i = this.signature.length; i < parameterTypesLen; ++i){
+				methodParameterTypes[i] = signature[this.signature.length-1].getSQLType().getTypeId().getCorrespondingJavaWrapperTypeName();
+			}
+		}else{
+			methodParameterTypes = classInspector.getParameterTypes(method);
+		}
 
 		for (int i = 0; i < methodParameterTypes.length; i++)
 		{
@@ -1318,4 +1356,37 @@ abstract class MethodCallNode extends JavaValueNode
         }
 	}
 
+	/**
+	 * Add the one single parameter
+	 *
+	 * @param newParm		The new parameter to be appended to methodParms
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public void addOneParm(QueryTreeNode newParm) throws StandardException
+	{
+		JavaValueNode[] newMethodParms = new JavaValueNode[methodParms.length + 1];
+
+		QueryTreeNode qt = (QueryTreeNode) newParm;
+
+		/*
+		 ** Since we need the parameter to be in Java domain format, put a
+		 ** SQLToJavaValueNode on top of the parameter node if it is a
+		 ** SQLValueNode. But if the parameter is already in Java domain
+		 ** format, then we don't need to do anything.
+		 */
+		if ( ! (qt instanceof JavaValueNode))
+		{
+			qt = (QueryTreeNode) getNodeFactory().getNode(
+					C_NodeTypes.SQL_TO_JAVA_VALUE_NODE,
+					qt,
+					getContextManager());
+		}
+		for(int i = 0; i < methodParms.length; ++i){
+			newMethodParms[i] = methodParms[i];
+		}
+
+		newMethodParms[methodParms.length] = (JavaValueNode) qt;
+		methodParms = newMethodParms;
+	}
 }

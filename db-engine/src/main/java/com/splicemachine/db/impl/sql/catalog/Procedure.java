@@ -120,10 +120,10 @@ public class Procedure {
             parameterNames[i] = args[i].getName();
             types[i] = args[i].getType();
         }
-        RoutineAliasInfo rai = new RoutineAliasInfo(name,numArgs,
+        RoutineAliasInfo rai = new RoutineAliasInfo(name, "JAVA",numArgs,
                 parameterNames,types,argModes,numResultSets,
                 RoutineAliasInfo.PS_JAVA,routineSqlControl,isDeterministic,
-                false,true,returnType);
+                false,true,returnType, null);
         UUID routineId = dataDictionary.getUUIDFactory().createUUID();
         AliasDescriptor ads = new AliasDescriptor(
                dataDictionary,

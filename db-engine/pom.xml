@@ -39,6 +39,10 @@
     <artifactId>db-engine</artifactId>
     <dependencies>
         <dependency>
+            <groupId>org.python</groupId>
+            <artifactId>jython-standalone</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.yahoo.datasketches</groupId>
             <artifactId>sketches-core</artifactId>
             <version>0.8.4</version>
