@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.pyprocedure;
 
-import com.splicemachine.derby.impl.sql.execute.operations.DropTableIT;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -16,12 +15,10 @@ import java.sql.*;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import static org.junit.Assert.assertTrue;
-
 @Category(SerialTest.class) //serial because it loads a jar
 public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String CLASS_NAME = DropTableIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = PyStoredProcedureResultSetFactoryIT.class.getSimpleName().toUpperCase();
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
     private static final String SCHEMA_NAME = CLASS_NAME;
 
@@ -107,7 +104,11 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     static final String CALL_PYPROC = String.format("CALL %s.PYPROC_TYPE_UNIT_TEST()",SCHEMA_NAME);
     static final String DROP_PYPROC = String.format("DROP PROCEDURE %s.PYPROC_TYPE_UNIT_TEST",SCHEMA_NAME);
 
-    static final String CREATE_JPROC = String.format("CREATE PROCEDURE %s.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'com.splicemachine.derby.impl.sql.pyprocedure.PyStoredProcedureResultSetFactoryIT.JPROC_TYPE_UNIT_TEST'",SCHEMA_NAME);
+    private static String STORED_PROCS_JAR_FILE;
+    private static final String FILE_NAME = "SQLJ_IT_PROCS_JAR";
+    private static final String JAR_FILE_SQL_NAME = SCHEMA_NAME + "." + FILE_NAME;
+
+    static final String CREATE_JPROC = String.format("CREATE PROCEDURE %s.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.JPROC_TYPE_UNIT_TEST'",SCHEMA_NAME);
     static final String DROP_JPROC = String.format("DROP PROCEDURE %s.JPROC_TYPE_UNIT_TEST",SCHEMA_NAME);
     static final String CALL_JPROC = String.format("CALL %s.JPROC_TYPE_UNIT_TEST()",SCHEMA_NAME);
 
@@ -127,7 +128,13 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
         spliceClassWatcher.executeUpdate(INSERT_TEST_TABLE_WITH_VALUE);
         // Create the Python Stored Procedure
         spliceClassWatcher.executeUpdate(CREATE_PYPROC);
+
+        // install jar file and set classpath
+        STORED_PROCS_JAR_FILE = System.getProperty("user.dir")+"/target/sql-it/sql-it.jar";
+        spliceClassWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)",STORED_PROCS_JAR_FILE,JAR_FILE_SQL_NAME));
+        spliceClassWatcher.executeUpdate(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
         spliceClassWatcher.executeUpdate(CREATE_JPROC);
+
     }
 
     @AfterClass
@@ -136,6 +143,8 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
         spliceClassWatcher.executeUpdate(DROP_TEST_TABLE_IF_EXIST);
         spliceClassWatcher.executeUpdate(DROP_JPROC);
         spliceClassWatcher.executeUpdate(DROP_PYPROC);
+        spliceClassWatcher.executeUpdate("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)");
+        spliceClassWatcher.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)", JAR_FILE_SQL_NAME));
     }
 
     @Test
@@ -169,32 +178,31 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
         }
         pyResultSet.close();
 
-// DB-7350 PyStoredProcedureResultSetFactoryIT fails in the mem profile
-//        ResultSet javaResultSet = methodWatcher.executeQuery(CALL_JPROC);
-//        while(javaResultSet.next()){
-//            Object[] pyRow = pyRows.poll();
-//            Assert.assertEquals(pyRow[0],javaResultSet.getLong(1));         // BIGINT
-//            Assert.assertEquals(pyRow[1],javaResultSet.getBoolean(2));      // BOOLEAN
-//            Assert.assertEquals(pyRow[2],javaResultSet.getString(3));       // CHAR
-//            Assert.assertEquals(pyRow[3],javaResultSet.getDate(4));         // DATE
-//            Assert.assertEquals(pyRow[4],javaResultSet.getBigDecimal(5));   // DECIMAL
-//            Assert.assertEquals(pyRow[5],javaResultSet.getDouble(6));       // DOUBLE
-//            Assert.assertEquals(pyRow[6],javaResultSet.getDouble(7));       // FLOAT
-//            Assert.assertEquals(pyRow[7],javaResultSet.getInt(8));          // INTEGER
-//            Assert.assertEquals(pyRow[8],javaResultSet.getBigDecimal(9));   // NUMERIC
-//            Assert.assertEquals(pyRow[9],javaResultSet.getFloat(10));       // REAL
-//            Assert.assertEquals(pyRow[10],javaResultSet.getShort(11));      // SMALLINT
-//            Assert.assertEquals(pyRow[11],javaResultSet.getTime(12));       // TIME
-//            Assert.assertEquals(pyRow[12],javaResultSet.getTimestamp(13));  // TIME_STAMP
-//            Assert.assertEquals(pyRow[13],javaResultSet.getString(14));     // VARCHAR
-//
-//            String javaClobStr = getStr(javaResultSet.getClob(15));         // CLOB
-//            Assert.assertEquals(pyRow[14], javaClobStr);
-//
-//            String javaTextStr = getStr(javaResultSet.getClob(16));         // TEXT
-//            Assert.assertEquals(pyRow[15], javaTextStr);
-//        }
-//        javaResultSet.close();
+        ResultSet javaResultSet = methodWatcher.executeQuery(CALL_JPROC);
+        while(javaResultSet.next()){
+            Object[] pyRow = pyRows.poll();
+            Assert.assertEquals(pyRow[0],javaResultSet.getLong(1));         // BIGINT
+            Assert.assertEquals(pyRow[1],javaResultSet.getBoolean(2));      // BOOLEAN
+            Assert.assertEquals(pyRow[2],javaResultSet.getString(3));       // CHAR
+            Assert.assertEquals(pyRow[3],javaResultSet.getDate(4));         // DATE
+            Assert.assertEquals(pyRow[4],javaResultSet.getBigDecimal(5));   // DECIMAL
+            Assert.assertEquals(pyRow[5],javaResultSet.getDouble(6));       // DOUBLE
+            Assert.assertEquals(pyRow[6],javaResultSet.getDouble(7));       // FLOAT
+            Assert.assertEquals(pyRow[7],javaResultSet.getInt(8));          // INTEGER
+            Assert.assertEquals(pyRow[8],javaResultSet.getBigDecimal(9));   // NUMERIC
+            Assert.assertEquals(pyRow[9],javaResultSet.getFloat(10));       // REAL
+            Assert.assertEquals(pyRow[10],javaResultSet.getShort(11));      // SMALLINT
+            Assert.assertEquals(pyRow[11],javaResultSet.getTime(12));       // TIME
+            Assert.assertEquals(pyRow[12],javaResultSet.getTimestamp(13));  // TIME_STAMP
+            Assert.assertEquals(pyRow[13],javaResultSet.getString(14));     // VARCHAR
+
+            String javaClobStr = getStr(javaResultSet.getClob(15));         // CLOB
+            Assert.assertEquals(pyRow[14], javaClobStr);
+
+            String javaTextStr = getStr(javaResultSet.getClob(16));         // TEXT
+            Assert.assertEquals(pyRow[15], javaTextStr);
+        }
+        javaResultSet.close();
     }
 
     private String getStr(Clob clob) throws Exception{
@@ -207,19 +215,5 @@ public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
         String clobStr = w.toString();                                          // CLOB
         w.close();
         return clobStr;
-    }
-
-    /**
-     * Used in PyStoredProcedureResultSetFacotryIT
-     */
-    public static void JPROC_TYPE_UNIT_TEST(ResultSet[] rs)
-            throws Exception{
-        //-- Declare and execute the procedure in ij.
-        //CREATE PROCEDURE SPLICE.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'com.splicemachine.derby.impl.sql.pyprocedure.PyStoredProcedureResultSetFactoryIT.JPROC_TYPE_UNIT_TEST';
-        //CALL SPLICE.JPROC_TYPE_UNIT_TEST();
-        Connection conn = DriverManager.getConnection("jdbc:default:connection");
-        Statement stmt = conn.createStatement();
-        rs[0] = stmt.executeQuery("SELECT * FROM TEST_TABLE {limit 1}");
-        conn.close();
     }
 }
