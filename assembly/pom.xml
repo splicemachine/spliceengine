@@ -112,7 +112,7 @@
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_sentry-${envClassifier}</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
+                    <version>${project.version}</version>
                 </dependency>
             </dependencies>
             <build>
