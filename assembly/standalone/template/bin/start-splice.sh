@@ -128,11 +128,11 @@ _startZoo "${BASE_DIR}" "${ZOO_LOG}" "${LOG4J_FILE}" "${ZOO_DIR}" "${CP}"
 #######################################################################################################
 COUNT=65
 ZOO_UP=""
-until [ $COUNT -lt 0 ]; do
+until [ $COUNT -eq 0 ]; do
     sleep 1
     ZOO_UP=$(echo 'ruok' | nc localhost 2181)
-    if [ -z "$ZOO_UP" ]; then
-                    break
+    if [ -n "$ZOO_UP" ]; then
+        break
     fi
     let COUNT-=1
 done
