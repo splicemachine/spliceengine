@@ -75,7 +75,7 @@ mvn -B exec:exec -P${PROFILE},spliceZoo > ${ZOOLOG} 2>&1 &
 #######################################################################################################
 COUNT=65
 ZOO_UP=""
-until [ ${COUNT} -eq 0 ] || [ -n "${ZOO_UP}" ]; do
+until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
     sleep 1
     ZOO_UP="$(echo 'ruok' | nc localhost 2181)"
     let COUNT-=1

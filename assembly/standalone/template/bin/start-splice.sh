@@ -128,7 +128,7 @@ _startZoo "${BASE_DIR}" "${ZOO_LOG}" "${LOG4J_FILE}" "${ZOO_DIR}" "${CP}"
 #######################################################################################################
 COUNT=65
 ZOO_UP=""
-until [ ${COUNT} -eq 0 ] || [ -n "${ZOO_UP}" ]; do
+until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
     sleep 1
     ZOO_UP="$(echo 'ruok' | nc localhost 2181)"
     let COUNT-=1
