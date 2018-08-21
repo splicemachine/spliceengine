@@ -75,17 +75,14 @@ mvn -B exec:exec -P${PROFILE},spliceZoo > ${ZOOLOG} 2>&1 &
 #######################################################################################################
 COUNT=65
 ZOO_UP=""
-until [ $COUNT -lt 0 ]; do
+until [ ${COUNT} -eq 0 ] || [ -n "${ZOO_UP}" ]; do
     sleep 1
-    ZOO_UP=$(echo 'ruok' | nc localhost 2181)
-    if [ -z "$ZOO_UP" ]; then
-                    break
-    fi
+    ZOO_UP="$(echo 'ruok' | nc localhost 2181)"
     let COUNT-=1
 done
 
-if [ $COUNT -eq 0 ]; then
-    echo "ZooKeeper did not start up properly, aborting startup. Please check ${RUN_DIR}/zoo.log for more information"
+if [ ${COUNT} -eq 0 ]; then
+    echo "ZooKeeper did not start up properly, aborting startup. Please check ${ZOOLOG} for more information"
     exit 5
 fi
 
