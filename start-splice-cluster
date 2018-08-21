@@ -184,17 +184,14 @@ echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
 #######################################################################################################
 COUNT=65
 ZOO_UP=""
-until [ $COUNT -lt 0 ]; do
+until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
     sleep 1
-    ZOO_UP=$(echo 'ruok' | nc localhost 2181)
-    if [ -z "$ZOO_UP" ]; then
-                    break
-    fi
+    ZOO_UP="$(echo 'ruok' | nc localhost 2181)"
     let COUNT-=1
 done
 
 if [ ${COUNT} -eq 0 ]; then
-    echo "ZooKeeper did not start up properly, aborting startup. Please check ${RUN_DIR}/zoo.log for more information"
+    echo "ZooKeeper did not start up properly, aborting startup. Please check ${ZOO_LOG} for more information"
     exit 5
 fi
 
