@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.si.api.txn.Txn;
@@ -228,5 +229,13 @@ public class ExternalTableUtils {
                 }
             }
         }
+    }
+
+    public static boolean isEmptyDirectory(String location) throws Exception {
+        String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
+        if ((files.length == 0) || (files.length == 1 && files[0].equals("_SUCCESS")))
+            return true;
+        else
+            return false;
     }
 }

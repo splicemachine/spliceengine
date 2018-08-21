@@ -469,10 +469,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
                 FileInfo fileInfo = fileSystem.getInfo(location);
                 String[] files = fileSystem.getExistingFiles(location, "*");
-                if(!fileInfo.exists() || (files.length == 1 && files[0].equals("_SUCCESS"))) {
+                if(!fileInfo.exists() || (files.length == 0) || (files.length == 1 && files[0].equals("_SUCCESS"))) {
                     // need the create the external file if the location provided is empty
                     String pathToParent = location.substring(0, location.lastIndexOf("/"));
-                    ImportUtils.validateWritable(pathToParent.toString(), false);
+                    ImportUtils.validateWritable(pathToParent, false);
                     EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
 
                 } else if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
