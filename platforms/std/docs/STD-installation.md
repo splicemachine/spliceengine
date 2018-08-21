@@ -72,98 +72,77 @@ Machine:
 
 ### Configure Ubuntu Linux for Splice Machine
 
-Follow these steps to prepare your Ubuntu computer to work with Splice
-Machine:
-
-  *NOTE:* Installing on Linux can be a bit tricky, so please use the `pwd` command
-to ensure that you are in the directory in which you need to be.
+Follow these steps to prepare your Ubuntu computer to work with Splice Machine:
 
 1. Install the Java SE Development Kit
 
    Fire up the `Terminal` app and enter the following commands:
 
-   ````
-   $ sudo add-apt-repository ppa:webupd8team/java$ sudo apt-get update$ sudo apt-get install oracle-java8-installer
-   $ sudo apt install oracle-java8-set-default
-   ````
+       $ sudo add-apt-repository ppa:webupd8team/java
+       $ sudo apt-get update
+       $ sudo apt-get install oracle-java8-installer
+       $ sudo apt install oracle-java8-set-default
 
-2. Check that your `$JAVA_HOME` environment variable is set:
+1. Check that your `JAVA_HOME` environment variable is set:
 
-   a. Find the location of Java on your computer by executing this command:
+   1. Find the location of Java on your computer by executing this command:
 
-      ````
-      $ sudo update-alternatives --config java
-      ````
+          $ sudo update-alternatives --config java
 
-   b. Copy the resulting path to the clipboard.
+   1. Copy the resulting path, _excluding_ the `/jre/bin/java` or `/bin/java` suffix, to the clipboard.
 
-   c. Use your favorite text editor to open `/etc/environment`:
+   1. Use your favorite text editor to open `/etc/environment`:
 
-      ````
-      sudo vi /etc/environment
-      ````
+          $ sudo vi /etc/environment
 
-   d. Add the following `export` command at the bottom of the `/etc/environment` file.
+   1. Add the following environment variable at the bottom of the `/etc/environment` file, using the path copied to the clipboard above, if it is different:
 
-      ````
-      JAVA_HOME="/usr/lib/jvm/java-8-oracle"
-      ````
+          JAVA_HOME="/usr/lib/jvm/java-8-oracle"
 
-   e. Run the following command to load the updated profile into your current session:
+   1. Run the following command to load the updated profile into your current session:
 
-      ````
-      source ~/etc/environment
-      ````
+          $ source /etc/environment
 
-   f. Run this command to make sure the setting is correct:
+   1. Run this command to make sure the setting is correct:
 
-      ````
-      $ echo $JAVA_HOME
-      ````
+          $ echo $JAVA_HOME
 
-3. Install Additional Libraries:
+1. Install Additional Libraries:
 
    You need to have the following packages installed for Splice Machine to run:
 
-   * curl
-   * nscd
-   * ntp
-   * openssh
-   * openssh-clients
-   * openssh-server
-   * patch
-   * rlwrap
-   * wget
+   * `curl`
+   * `nscd`
+   * `ntp`
+   * `ssh` (a meta-package that installs `openssh-client` and `openssh-server`)
+   * `patch`
+   * `rlwrap`
+   * `wget`
 
    You can use the `apt-get` package manager to install each of these packages, using a command line like this:
 
-   ````
-   $ sudo apt-get install <packagename>
-   ````
+       $ sudo apt-get install <packagename>
 
-4. Configure Additional Parameters:
+1. Configure Additional Parameters:
 
    You need to complete these steps:
 
-   |Step|Command|
-   |:---|:------|
-   |Create symbolic link for YARN |`sudo ln -s /usr/bin/java /bin/java`
-   |Configure swappiness|`$ echo 'vm.swappiness = 0' &gt;&gt; /etc/sysctl.conf`
-   |Create an alias|`$ rm /bin/sh ; ln -sf /bin/bash /bin/sh`
+   |Step                         |Command|
+   |:----------------------------|:------|
+   |Create symbolic link for YARN|`$ sudo ln -s /usr/bin/java /bin/java`
+   |Configure swappiness         |`$ sudo sh -c "echo 'vm.swappiness = 0' >> /etc/sysctl.conf"`
+   |Create an alias              |`$ sudo rm /bin/sh ; sudo ln -sf /bin/bash /bin/sh`
 
-5. Ensure all necessary services are started:
+1. Ensure all necessary services are started:
 
    You can start all necessary services as follows:
 
-   ````
-   $ sudo service nscd start  && service ntp start  && service ssh start
-   ````
+       $ sudo service nscd start  && sudo service ntp start  && sudo service ssh start
 
    Finally, you can check that the services are running with the following command:
 
-   ````
-   $ service <service_name> status
-   ````
+       $ sudo service <service_name> status
+
 
 ### Configure CentOS/Red Hat Enterprise Linux (RHEL) for Splice Machine
 
