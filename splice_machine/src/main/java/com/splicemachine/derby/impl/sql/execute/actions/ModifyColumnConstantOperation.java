@@ -1368,7 +1368,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      *
      * @exception StandardException		Thrown on failure
      */
-    private int getSemiRowCount(TransactionController tc, TableDescriptor td) throws StandardException {
+    public static int getSemiRowCount(TransactionController tc, TableDescriptor td) throws StandardException {
         int numRows = 0;
 
         ScanController sc = tc.openScan(td.getHeapConglomerateId(),
