@@ -2010,15 +2010,16 @@ public interface SQLState {
 	String ACCESSING_S3_EXCEPTION                                   = "EXT34";
 	String EXISTING_PIN_VIOLATION									= "EXT35";
 	String ROW_FORMAT_NOT_ALLOWED_WITH_AVRO						   	= "EXT36";
-	String NO_GRANT_PERMISSIONS_WITH_RANGER                                = "EXT37";
-	String NO_REVOKE_PERMISSIONS_WITH_RANGER                                = "EXT38";
-	String ACCESS_DENIED_SENTRY                                = "EXT39";
-	String ROLE_ALREADY_EXISTS_SENTRY                                = "EXT40";
+	String NO_GRANT_PERMISSIONS_WITH_RANGER                         = "EXT37";
+	String NO_REVOKE_PERMISSIONS_WITH_RANGER                        = "EXT38";
+	String ACCESS_DENIED_SENTRY                                     = "EXT39";
+	String ROLE_ALREADY_EXISTS_SENTRY                               = "EXT40";
+	String EXTERNAL_TABLES_LOCATION_NOT_EXIST		   			    = "EXT41";
 
 	String SNAPSHOT_EXISTS											= "SNA01";
 	String SNAPSHOT_NOT_EXISTS										= "SNA02";
 	String SNAPSHOT_NAME_ILLEGAL									= "SNA03";
-	String SNAPSHOT_EXTERNAL_TABLE_UNSUPPORTED							= "SNA04";
+	String SNAPSHOT_EXTERNAL_TABLE_UNSUPPORTED					    = "SNA04";
 
     String SPLITKEY_EQUALS_STARTKEY                                 = "TS001";
 	String NO_PRIMARY_KEY											= "TS002";
