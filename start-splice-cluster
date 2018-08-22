@@ -20,10 +20,10 @@ _kill_em_all () {
    local P=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant|OlapServerMaster/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found Splice. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
-   P=$(ps -ef | awk '/spliceYarn|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
-   [[ -n $P ]] && echo "Found Yarn. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+   P=$(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
+   [[ -n $P ]] && echo "Found YARN. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
-   P=$(ps -ef | awk '/zookeeper/ && !/awk/ {print $2}')
+   P=$(ps -ef | awk '/ZooKeeper/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found ZooKeeper. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
    P=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
@@ -215,7 +215,7 @@ echo "Starting YARN. Log file is ${YARN_LOG}"
 
 KAFKALOG="${RUN_DIR}"/kafka.log
 # Start Kafka in background.
-echo "Starting Kafka, log file is ${KAFKALOG}"
+echo "Starting Kafka. Log file is ${KAFKALOG}"
 (${MVN} exec:exec -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
 
 SPLICE_LOG="${RUN_DIR}/splice.log"
