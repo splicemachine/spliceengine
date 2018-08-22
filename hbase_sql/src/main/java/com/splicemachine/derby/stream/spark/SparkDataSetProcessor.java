@@ -59,7 +59,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
@@ -310,6 +309,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
 
             try {
+                if (!ExternalTableUtils.isExisting(location))
+                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+
                 if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                     return getEmpty();
 
@@ -354,6 +356,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
+                if (!ExternalTableUtils.isExisting(location))
+                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+
                 if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                     return getEmpty();
 
@@ -607,6 +612,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
+            if (!ExternalTableUtils.isExisting(location))
+                throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+
             if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                 return getEmpty();
 
