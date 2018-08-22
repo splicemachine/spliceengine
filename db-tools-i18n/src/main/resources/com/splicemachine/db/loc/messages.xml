@@ -3675,6 +3675,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>X0Y60.S</name>
+                <text>Primary Key cannot be added to or dropped from table '{0}' because the table contains at least one row. Primary key can only be added to/dropped from empty tables.</text>
+                <arg>tableName</arg>
+            </msg>
+
+            <msg>
                 <name>X0Y58.S</name>
                 <text>Attempt to add a primary key constraint to table '{0}' failed because the table already has a constraint of that type.  A table can only have a single primary key constraint.</text>
                 <arg>tableName</arg>
