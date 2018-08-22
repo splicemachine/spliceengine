@@ -298,4 +298,20 @@ public class ColumnInfo implements Formatable {
 			return "";
 		}
 	}
+
+	public ColumnInfo clone() {
+		return new ColumnInfo(
+				name,
+				dataType,
+				defaultValue,
+				defaultInfo,
+				providers,
+				newDefaultUUID,
+				oldDefaultUUID,
+				action,
+				autoincStart,
+				autoincInc,
+				autoinc_create_or_modify_Start_Increment,
+				partitionPosition);
+	}
 }

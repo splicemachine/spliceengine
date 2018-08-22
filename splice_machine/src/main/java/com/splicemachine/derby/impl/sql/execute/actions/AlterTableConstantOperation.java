@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
@@ -74,7 +75,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -360,6 +360,13 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         SanityManager.ASSERT(cd != null,tableDescriptor.getSchemaName()+"."+tableName+
                                                   " does not have a Primary Key to drop.");
 
+        // check whether table is empty
+        int numRows = ModifyColumnConstantOperation.getSemiRowCount(tc,tableDescriptor);
+        // Don't allow add of non-nullable column to non-empty table
+        if (numRows > 0) {
+            throw StandardException.newException(SQLState.LANG_MODIFYING_PRIMARY_KEY_ON_NON_EMPTY_TABLE,tableDescriptor.getQualifiedName());
+        }
+
         List<String> constraintColumnNames = Arrays.asList(cd.getColumnDescriptors().getColumnNames());
 
         ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
@@ -424,7 +431,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         /*
          * modify the conglomerate descriptor with the new conglomId
          */
-        updateTableConglomerateDescriptor(tableDescriptor,
+        ConglomerateDescriptor droppedConglomerateDescriptor =
+            updateTableConglomerateDescriptor(tableDescriptor,
                                           newCongNum,
                                           sd,
                                           lcc,
@@ -432,6 +440,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // refresh the activation's TableDescriptor now that we've modified it
         activation.setDDLTableDescriptor(tableDescriptor);
 
+        /* TODO: yxia - logic to handle table with data and concurrent write
         // Start a tentative txn to demarcate the DDL change
         Txn tentativeTransaction;
         try {
@@ -462,6 +471,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
+        */
+
+        // drop the old conglomerate physically
+        tc.dropConglomerate(droppedConglomerateDescriptor.getConglomerateNumber());
     }
 
     private void executeDropConstraint(Activation activation,
@@ -473,26 +486,78 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // try to find constraint descriptor using table's schema first
         SchemaDescriptor sd = tableDescriptor.getSchemaDescriptor();
         ConstraintDescriptor cd = dd.getConstraintDescriptorByName(tableDescriptor, sd,
-                                                             constraint.getConstraintName(), true);
+                constraint.getConstraintName(), true);
         if (cd == null) {
             // give it another shot since constraint may not be in the same schema as the table
             for (ConstraintDescriptor pcd : tableDescriptor.getConstraintDescriptorList()) {
                 if (pcd.getSchemaDescriptor().getSchemaName().equals(constraint.getSchemaName()) &&
-                    pcd.getConstraintName().equals(constraint.getSchemaName())) {
+                        pcd.getConstraintName().equals(constraint.getSchemaName())) {
                     cd = pcd;
                     break;
                 }
             }
         }
-        SanityManager.ASSERT(cd != null,tableDescriptor.getSchemaName()+"."+tableName+
-                                              " does not have a constraint to drop named "+constraint.getConstraintName());
+        SanityManager.ASSERT(cd != null, tableDescriptor.getSchemaName() + "." + tableName +
+                " does not have a constraint to drop named " + constraint.getConstraintName());
 
         // refresh the activation's TableDescriptor now that we've modified it
         activation.setDDLTableDescriptor(tableDescriptor);
 
         // follow thru with remaining constraint actions, create, store, etc.
         constraint.executeConstantAction(activation);
+    }
+
+    private TableDescriptor  updateCandidatePKColumnsToNotNull(Activation activation,
+                                                               TableDescriptor td,
+                                                               CreateConstraintConstantOperation newConstraint,
+                                                               LanguageConnectionContext lcc) throws StandardException {
+        List<String> pkColumnNames = Arrays.asList(newConstraint.columnNames);
+        ColumnInfo[] columnInfo = null;
+        boolean hasColumnUpdate = false;
+
+        for (int i=0; i<pkColumnNames.size(); i++) {
+            boolean needUpdateNullability = false;
+
+            String pkColName = pkColumnNames.get(i);
+            ColumnDescriptor cd = td.getColumnDescriptor(pkColName);
+            DataTypeDescriptor dtd = cd==null? null : cd.getType();
+            if (dtd != null) {
+                if (dtd.isNullable())
+                    needUpdateNullability = true;
+            } else {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, pkColName, pkColName);
+            }
+
+            if (needUpdateNullability) {
+                if (columnInfo == null)
+                    columnInfo = td.getColumnInfo();
+
+
+                // update the pk column to be not null
+                ColumnInfo[] pkColumnInfo = new ColumnInfo[1];
+                pkColumnInfo[0] = columnInfo[cd.getPosition()-1].clone();
+                //set the action to be ColumnInfo.MODIFY_COLUMN_CONSTRAINT_NOT_NULL
+                pkColumnInfo[0].action = ColumnInfo.MODIFY_COLUMN_CONSTRAINT_NOT_NULL;
+
+                ModifyColumnConstantOperation updateNullabilityAction =
+                        new ModifyColumnConstantOperation(td.getSchemaDescriptor(), td.getName(), td.getUUID(),
+                                pkColumnInfo, new ConstantAction[0], new Character('\0'), behavior, null);
+                updateNullabilityAction.executeConstantAction(activation);
+                hasColumnUpdate = true;
+            }
         }
+
+        // column descriptor need to update with new column descriptors if there is a change
+        // of nullability of the columns.
+        TableDescriptor updatedTd = td;
+        if (hasColumnUpdate) {
+            updatedTd = getTableDescriptor(lcc);
+            // update the TableDescriptor in the Activation
+            activation.setDDLTableDescriptor(updatedTd);
+        }
+
+        return updatedTd;
+    }
 
     private void createPrimaryKeyConstraint(Activation activation,
                                   String changeMsg,
@@ -505,6 +570,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         TransactionController tc = lcc.getTransactionExecute();
         TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
+
+        // check whether table is empty
+        int numRows = ModifyColumnConstantOperation.getSemiRowCount(tc,tableDescriptor);
+        // Don't allow add of non-nullable column to non-empty table
+        if (numRows > 0) {
+            throw StandardException.newException(SQLState.LANG_MODIFYING_PRIMARY_KEY_ON_NON_EMPTY_TABLE,tableDescriptor.getQualifiedName());
+        }
+
+        // for empty table, we want to change candidate PK columns to not null if they are originally defined as nullable
+        tableDescriptor = updateCandidatePKColumnsToNotNull(activation, tableDescriptor, newConstraint, lcc);
+
         ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
         int nColumns = columnDescriptorList.size();
 
@@ -522,12 +598,13 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
         ColumnOrdering[] columnSortOrder = new IndexColumnOrder[constraintColumnNames.size()];
-        int j=0;
+        for (int j=0; j< constraintColumnNames.size(); j++) {
+            ColumnDescriptor cd = tableDescriptor.getColumnDescriptor(constraintColumnNames.get(j));
+            columnSortOrder[j] = new IndexColumnOrder(cd.getPosition()-1);
+        }
+
         for (int ix = 0; ix < nColumns; ix++) {
             ColumnDescriptor col_info = columnDescriptorList.get(ix);
-            if (constraintColumnNames.contains(col_info.getColumnName())) {
-                columnSortOrder[j++] = new IndexColumnOrder(ix);
-            }
             // Get a template value for each column
             if (col_info.getDefaultValue() != null) {
             /* If there is a default value, use it, otherwise use null */
@@ -568,7 +645,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         /*
          * modify the conglomerate descriptor with the new conglomId
          */
-        updateTableConglomerateDescriptor(tableDescriptor,
+        ConglomerateDescriptor droppedConglomerateDescriptor =
+            updateTableConglomerateDescriptor(tableDescriptor,
                                           newCongNum,
                                           sd,
                                           lcc,
@@ -579,6 +657,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // follow thru with remaining constraint actions, create, store, etc.
         newConstraint.executeConstantAction(activation);
 
+        /* TODO: yxia - logic to handle table with data and concurrent write
         // Start a tentative txn to demarcate the DDL change
         Txn tentativeTransaction;
         try {
@@ -610,7 +689,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
+        */
 
+        // drop the old conglomerate physically
+        tc.dropConglomerate(droppedConglomerateDescriptor.getConglomerateNumber());
     }
 
     private void createUniqueConstraint(Activation activation,

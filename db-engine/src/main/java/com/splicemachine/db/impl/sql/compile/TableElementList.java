@@ -384,7 +384,9 @@ public class TableElementList extends QueryTreeNodeVector {
                 else
                 {
                     // in ALTER TABLE so raise error if any columns are nullable
-                    checkForNullColumns(cdn, td);
+					// delay the check to exeuction time, so that we can allow PK to be added to empty table
+					// and change the PK columns to not null even if it is originally defined as nullable
+                    // checkForNullColumns(cdn, td);
                 }
 				// Arrays look ok as primary keys.
 				// Add Array Check During Nullability check.
