@@ -14,9 +14,8 @@
 
 package com.splicemachine.hbase.util;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.PeekingIterator;
+import org.spark_project.guava.collect.Iterators;
+import org.spark_project.guava.collect.PeekingIterator;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -85,7 +84,7 @@ public abstract class AbstractIteratorRegionScanner implements RegionScanner{
     public boolean next(List<Cell> results) throws IOException {
         OUTER: while(kvs.hasNext()){
             Set<Cell> next = kvs.next();
-            List<Cell> toAdd = Lists.newArrayListWithCapacity(next.size());
+            List<Cell> toAdd = new ArrayList<>(next.size());
             for(Cell kv:next){
                 if(!containedInScan(kv)) continue; //skip KVs we aren't interested in
                 if(filter!=null){
