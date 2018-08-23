@@ -191,6 +191,62 @@ public class VacuumIT extends SpliceUnitTest{
 
 
     @Test
+    public void testVacuumRemovesTableFromRolledbackTransaction() throws Exception {
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+
+        boolean autoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            connection.createStatement().execute(String.format("create table %s.F(i int)", CLASS_NAME));
+
+            long[] conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "F");
+
+            connection.rollback();
+
+            try (Connection connection2 = spliceClassWatcher.createConnection()) {
+
+                try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                    try (CallableStatement callableStatement = connection2.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                        callableStatement.execute();
+                    }
+
+                    for (long congId : conglomerates) {
+                        // make sure the table has been dropped by VACUUM
+                        assertFalse("Dropped table not in use hasn't been vaccumed", admin.tableExists(TableName.valueOf("splice:" + congId)));
+                    }
+                }
+            }
+
+
+            connection.createStatement().execute(String.format("create table %s.F(i int)", CLASS_NAME));
+
+            conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "F");
+
+            connection.createStatement().execute(String.format("drop table %s.F", CLASS_NAME));
+
+            connection.rollback();
+
+            try (Connection connection2 = spliceClassWatcher.createConnection()) {
+
+                try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                    try (CallableStatement callableStatement = connection2.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                        callableStatement.execute();
+                    }
+
+                    for (long congId : conglomerates) {
+                        // make sure the table has been dropped by VACUUM
+                        assertFalse("Dropped table not in use hasn't been vaccumed", admin.tableExists(TableName.valueOf("splice:" + congId)));
+                    }
+                }
+            }
+        } finally {
+            connection.commit();
+            connection.setAutoCommit(autoCommit);
+        }
+    }
+
+
+    @Test
     public void testVacuumDoesNotBlockOnExistingTransactions() throws Exception {
         Connection connection = spliceClassWatcher.getOrCreateConnection();
         connection.createStatement().execute(String.format("drop table %s.b if exists", CLASS_NAME));
