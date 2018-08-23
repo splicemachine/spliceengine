@@ -469,7 +469,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 // test constraint only if the external file exits
                 DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
                 FileInfo fileInfo = fileSystem.getInfo(location);
-                if(!fileInfo.exists() || ExternalTableUtils.isEmptyDirectory(location)) {
+                if(!fileInfo.exists() || (fileInfo.isDirectory() && ExternalTableUtils.isEmptyDirectory(location))) {
                     // need the create the external file if the location provided is empty
                     String pathToParent = location.substring(0, location.lastIndexOf("/"));
                     ImportUtils.validateWritable(pathToParent, false);
