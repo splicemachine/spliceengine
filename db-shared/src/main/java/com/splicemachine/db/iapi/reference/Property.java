@@ -1331,15 +1331,4 @@ public interface Property {
 	String CONVERT_OUT_OF_RANGE_TIMESTAMPS =
 	        "derby.database.convertOutOfRangeTimeStamps";
 
-	/**
-	 * If true, a CREATE TABLE statement will create the table with a table descriptor
-	 * marked as using a version 2.0 serializer (data encoder), which only supports
-	 * timestamps in the range:
-	 * 1677-09-21-00.12.44.000000 -> 2262-04-11-23.47.16.999999.
-	 * This flag is provided for testing, or as a possible workaround if a problem
-	 * with the version 3.0 serializer is found in the field.
-	 */
-	String CREATE_TABLES_AS_VERSION_2 =
-	"derby.database.createTablesWithVersion2Serializer";
-
 }

@@ -144,7 +144,7 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
          * Therefore, it doesn't look like we are doing much in terms of transaction management
          * here, but in fact we are fully transactional and within a savepoint context.
          */
-        dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, lcc.getTransactionExecute(), false);
+        dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, lcc.getTransactionExecute());
 
         /*
          * Notify the DDL mechanism that a table is being created.

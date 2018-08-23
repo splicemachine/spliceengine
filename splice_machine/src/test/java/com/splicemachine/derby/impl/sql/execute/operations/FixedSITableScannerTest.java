@@ -24,6 +24,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanne
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -311,7 +312,7 @@ public class FixedSITableScannerTest{
         }
                 .scan(scan)
                 .scanner(scanner)
-                .tableVersion("3.0")
+                .tableVersion("2.0")
                 .rowDecodingMap(rowDecodingMap);
         builder = ((TableScannerBuilder)builder)
                 .filterFactory(

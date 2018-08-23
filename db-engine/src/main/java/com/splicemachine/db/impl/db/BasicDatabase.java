@@ -770,7 +770,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 			fid = util.getDataDescriptorGenerator().newFileInfoDescriptor(id, sd, util.getSqlName(), generationId);
 			dd.addDescriptor(fid, sd, DataDictionary.SYSFILES_CATALOG_NUM,
-					false, util.getLanguageConnectionContext().getTransactionExecute(), false);
+					false, util.getLanguageConnectionContext().getTransactionExecute());
 			return generationId;
 		} finally {
 			util.notifyLoader(true);
@@ -858,7 +858,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 					util.getDataDescriptorGenerator().newFileInfoDescriptor(fid.getUUID(),fid.getSchemaDescriptor(),
 							util.getSqlName(),generationId);
 			dd.addDescriptor(fid2, fid.getSchemaDescriptor(),
-					DataDictionary.SYSFILES_CATALOG_NUM, false, util.getLanguageConnectionContext().getTransactionExecute(), false);
+					DataDictionary.SYSFILES_CATALOG_NUM, false, util.getLanguageConnectionContext().getTransactionExecute());
 			return generationId;
 
 		} finally {

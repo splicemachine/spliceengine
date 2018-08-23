@@ -481,7 +481,7 @@ public class SpliceDatabase extends BasicDatabase{
             long generationId = util.setJar(jarExternalName, is, true, 0L);
             fid = util.getDataDescriptorGenerator().newFileInfoDescriptor(id, sd, util.getSqlName(), generationId);
             dd.addDescriptor(fid, sd, DataDictionary.SYSFILES_CATALOG_NUM,
-                    false, util.getLanguageConnectionContext().getTransactionExecute(), false);
+                    false, util.getLanguageConnectionContext().getTransactionExecute());
             return generationId;
         } finally {
         }
@@ -566,7 +566,7 @@ public class SpliceDatabase extends BasicDatabase{
                     util.getDataDescriptorGenerator().newFileInfoDescriptor(fid.getUUID(),fid.getSchemaDescriptor(),
                             util.getSqlName(),generationId);
             dd.addDescriptor(fid2, fid.getSchemaDescriptor(),
-                    DataDictionary.SYSFILES_CATALOG_NUM, false, util.getLanguageConnectionContext().getTransactionExecute(), false);
+                    DataDictionary.SYSFILES_CATALOG_NUM, false, util.getLanguageConnectionContext().getTransactionExecute());
             return generationId;
 
         } finally {

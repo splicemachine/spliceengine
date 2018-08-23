@@ -77,10 +77,10 @@ public class PkDataHash implements DataHash<ExecRow> {
                 DataValueDescriptor dvd = currentRow.getRowArray()[col];
                 DescriptorSerializer serializer = serializers[col];
                 serializer.encode(encoder,dvd,false);
-                DerbyBytesUtil.skip(decoder, kdvds[i++], serializer, tableVersion);
+                DerbyBytesUtil.skip(decoder, kdvds[i++]);
             } else {
                 int offset = decoder.offset();
-                DerbyBytesUtil.skip(decoder,kdvds[i++], null, tableVersion);
+                DerbyBytesUtil.skip(decoder,kdvds[i++]);
                 int limit = decoder.offset()-1-offset;
                 encoder.setRawBytes(decoder.array(),offset,limit);
             }

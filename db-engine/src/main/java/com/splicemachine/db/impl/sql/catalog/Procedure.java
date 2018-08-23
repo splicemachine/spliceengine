@@ -136,7 +136,7 @@ public class Procedure {
                 false,
                 rai,
                 null);
-        dataDictionary.addDescriptor(ads,null,DataDictionary.SYSALIASES_CATALOG_NUM,false,tc,false);
+        dataDictionary.addDescriptor(ads,null,DataDictionary.SYSALIASES_CATALOG_NUM,false,tc);
 
         return ads;
     }

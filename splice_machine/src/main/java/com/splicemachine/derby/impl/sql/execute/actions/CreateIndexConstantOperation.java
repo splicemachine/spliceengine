@@ -546,7 +546,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                         ddg.newConglomerateDescriptor(conglomId, indexName, true,
                                 indexRowGenerator, isConstraint,
                                 conglomerateUUID, td.getUUID(), sd.getUUID() );
-                dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, userTransaction, false);
+                dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, userTransaction);
                 // add newly added conglomerate to the list of conglomerate
                 // descriptors in the td.
                 ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
@@ -735,7 +735,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(conglomId,
                     indexName, true, indexRowGenerator,
                     isConstraint, conglomerateUUID, td.getUUID(), sd.getUUID() );
-            dd.addDescriptor(cgd, sd,DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
+            dd.addDescriptor(cgd, sd,DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
 
             // add newly added conglomerate to the list of conglomerate
             // descriptors in the td.

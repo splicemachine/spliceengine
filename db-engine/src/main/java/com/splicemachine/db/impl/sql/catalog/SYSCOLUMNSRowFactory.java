@@ -31,19 +31,24 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import java.sql.Types;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.UniqueTupleDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
-
-import java.sql.Types;
 
 /**
  * Factory for creating a SYSCOLUMNS row.
@@ -55,7 +60,7 @@ import java.sql.Types;
 public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     static final String		TABLENAME_STRING = "SYSCOLUMNS";
 
-    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 12;
+    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 11;
 	/* Column #s for syscolumns (1 based) */
 
     //TABLEID is an obsolete name, it is better to use

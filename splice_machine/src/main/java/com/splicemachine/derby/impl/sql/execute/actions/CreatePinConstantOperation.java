@@ -140,7 +140,6 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
         ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null,Long.toString(td.getHeapConglomerateId()));
             builder.tableDisplayName(tableName)
                 .transaction(parentTxn)
-                .tableVersion(td.getVersion())
                 .scan(DDLUtils.createFullScan())
                 .keyColumnEncodingOrder(conglomerate.getColumnOrdering())
                 .reuseRowLocation(true)

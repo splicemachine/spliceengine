@@ -175,6 +175,6 @@ class CreateSchemaConstantAction extends DDLConstantAction
 									thisAid,
 									tmpSchemaId);
 
-		dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
+		dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc);
 	}
 }

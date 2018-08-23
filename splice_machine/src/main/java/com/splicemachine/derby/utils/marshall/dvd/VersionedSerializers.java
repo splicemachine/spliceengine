@@ -26,33 +26,29 @@ public class VersionedSerializers {
     }
 
     public static TypeProvider typesForVersion(String version) {
-        if (V3SerializerMap.VERSION.equals(version))
-            return V3SerializerMap.instance(true);
-        else if (V2SerializerMap.VERSION.equals(version))
+        if (V2SerializerMap.VERSION.equals(version))
             return V2SerializerMap.instance(true);
         else if (V1SerializerMap.VERSION.equals(version))
             return V1SerializerMap.instance(true);
         else
-            throw new IllegalArgumentException();
+            return latestTypes();
     }
 
     public static TypeProvider latestTypes() {
-        return V3SerializerMap.instance(true);
+        return V2SerializerMap.instance(true);
     }
 
     public static SerializerMap forVersion(String version, boolean sparse) {
         /*
          * Statically defined version checked versioning
          */
-        if (V3SerializerMap.VERSION.equals(version))
-            return V3SerializerMap.instance(sparse);
-        else if (V2SerializerMap.VERSION.equals(version))
+        if (V2SerializerMap.VERSION.equals(version))
             return V2SerializerMap.instance(sparse);
         else if (V1SerializerMap.VERSION.equals(version))
             return V1SerializerMap.instance(sparse);
 
-        throw new IllegalArgumentException();
-
+        //when in doubt, assume it's the latest version
+        return latestVersion(sparse);
     }
 
     /**
@@ -62,7 +58,7 @@ public class VersionedSerializers {
      * @return a serializer map for the latest encoding version.
      */
     public static SerializerMap latestVersion(boolean sparse) {
-        return V3SerializerMap.instance(sparse);
+        return V2SerializerMap.instance(sparse);
     }
 
 }

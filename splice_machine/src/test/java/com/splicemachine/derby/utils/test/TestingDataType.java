@@ -15,15 +15,14 @@
 package com.splicemachine.derby.utils.test;
 
 import com.carrotsearch.hppc.BitSet;
+import org.spark_project.guava.base.Charsets;
+import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.derby.utils.marshall.dvd.TimestampV3DescriptorSerializer;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
-import org.spark_project.guava.base.Charsets;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -392,14 +391,12 @@ public enum TestingDataType {
 
         @Override
         public void decodeNext(DataValueDescriptor dvd, MultiFieldDecoder decoder) throws StandardException {
-            TimestampV3DescriptorSerializer serializer =
-             (TimestampV3DescriptorSerializer)TimestampV3DescriptorSerializer.INSTANCE_FACTORY.newInstance();
             if(decoder.nextIsNull())
                 dvd.setToNull();
             else{
-                Timestamp timestamp = serializer.parseTimestamp(decoder.decodeNextLong());
-                dvd.setValue(timestamp);
-            }
+								Timestamp timestamp = TimestampV2DescriptorSerializer.parseTimestamp(decoder.decodeNextLong());
+								dvd.setValue(timestamp);
+						}
         }
 
         @Override

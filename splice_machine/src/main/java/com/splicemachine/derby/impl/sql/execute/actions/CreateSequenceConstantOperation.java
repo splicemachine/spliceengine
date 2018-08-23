@@ -120,7 +120,7 @@ public class CreateSequenceConstantOperation extends DDLConstantOperation {
                 null,  // parent
                 DataDictionary.SYSSEQUENCES_CATALOG_NUM,
                 false, // duplicatesAllowed
-                tc, false);
+                tc);
     }
 
     public String toString() {

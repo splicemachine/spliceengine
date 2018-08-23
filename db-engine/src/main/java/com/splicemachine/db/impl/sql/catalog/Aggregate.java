@@ -92,6 +92,6 @@ public class Aggregate {
                         aliasInfo,
                         null);
         dataDictionary.addDescriptor(
-                ads, null, DataDictionary.SYSALIASES_CATALOG_NUM, false, tc, false);
+                ads, null, DataDictionary.SYSALIASES_CATALOG_NUM, false, tc);
     }
 }

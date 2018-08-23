@@ -861,7 +861,7 @@ public abstract class AuthenticationServiceBase
 			UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
 			dd.startWriting(lcc);
 			sd = ddg.newSchemaDescriptor(userName, userName, tmpSchemaId);
-			dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
+			dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc);
 		}
 	}
 }

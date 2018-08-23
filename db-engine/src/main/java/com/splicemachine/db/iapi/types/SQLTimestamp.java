@@ -94,11 +94,9 @@ public final class SQLTimestamp extends DataType
     private static final int MICROS_TO_SECOND = 1000000;
     // edges for our internal Timestamp in microseconds
     // from ~21 Sep 1677 00:12:44 GMT to ~11 Apr 2262 23:47:16 GMT
-	// This is only applicable to version 2.0 tables, that use the
-	// TimestampV2DescriptorSerializer.  Version 3.0 and above supports
-	// the full range of timestamps, year 0001 - 9999.
-    public static final long MAX_V2_TIMESTAMP = Long.MAX_VALUE / MICROS_TO_SECOND - 1;
-    public static final long MIN_V2_TIMESTAMP = Long.MIN_VALUE / MICROS_TO_SECOND + 1;
+    public static final long MAX_TIMESTAMP = Long.MAX_VALUE / MICROS_TO_SECOND - 1;
+    public static final long MIN_TIMESTAMP = Long.MIN_VALUE / MICROS_TO_SECOND + 1;
+
 
 	private static boolean skipDBContext = false;
 
@@ -115,10 +113,9 @@ public final class SQLTimestamp extends DataType
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLTimestamp.class);
 
 
-    // Check for a version 2.0 timestamp out of bounds.
-    public static long checkV2Bounds(Timestamp timestamp) throws StandardException{
+    public static long checkBounds(Timestamp timestamp) throws StandardException{
         long millis = timestamp.getTime();
-        if (millis > MAX_V2_TIMESTAMP || millis < MIN_V2_TIMESTAMP) {
+        if (millis > MAX_TIMESTAMP || millis < MIN_TIMESTAMP) {
             throw StandardException.newException(SQLState.LANG_DATE_TIME_ARITHMETIC_OVERFLOW, timestamp.toString());
         }
 
@@ -141,11 +138,11 @@ public final class SQLTimestamp extends DataType
             return null;
 
         long millis = timestamp.getTime();
-        if (millis > MAX_V2_TIMESTAMP)
-            timestamp = new Timestamp(MAX_V2_TIMESTAMP);
+        if (millis > MAX_TIMESTAMP)
+            timestamp = new Timestamp(MAX_TIMESTAMP);
 
-        if (millis < MIN_V2_TIMESTAMP)
-            timestamp = new Timestamp(MIN_V2_TIMESTAMP);
+        if (millis < MIN_TIMESTAMP)
+            timestamp = new Timestamp(MIN_TIMESTAMP);
 
         return timestamp;
 	}
@@ -1092,6 +1089,8 @@ public final class SQLTimestamp extends DataType
 		}
 		if (value != null)
 		{
+            checkBounds(value);
+
             if( cal == null) {
 				cal = Calendar.getInstance();
 			}
