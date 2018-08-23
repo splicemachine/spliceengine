@@ -59,7 +59,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
@@ -310,8 +309,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
 
             try {
-                String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
-                if (files.length == 1 && files[0].equals("_SUCCESS")) // Handle Empty Directory
+                if (!ExternalTableUtils.isExisting(location))
+                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+
+                if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                     return getEmpty();
 
                 // Infer schema from external files\
@@ -355,8 +356,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> table = null;
             try {
-                String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
-                if (files.length == 1 && files[0].equals("_SUCCESS")) // Handle Empty Directory
+                if (!ExternalTableUtils.isExisting(location))
+                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+
+                if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                     return getEmpty();
 
                 // Infer schema from external files\
@@ -405,8 +408,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         if ((e instanceof AnalysisException || e instanceof FileNotFoundException) && e.getMessage() != null &&
                 (e.getMessage().startsWith("Unable to infer schema") || e.getMessage().startsWith("No Avro files found"))) {
             // Lets check if there are existing files...
-            String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
-            if (files.length == 1 && files[0].equals("_SUCCESS")) // Handle Empty Directory
+           if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                 return getEmpty();
         }
         throw e;
@@ -610,8 +612,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
-            if (files.length == 1 && files[0].equals("_SUCCESS")) // Handle Empty Directory
+            if (!ExternalTableUtils.isExisting(location))
+                throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+
+            if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                 return getEmpty();
 
             SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));

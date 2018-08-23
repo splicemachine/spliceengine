@@ -24,6 +24,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -468,11 +469,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 // test constraint only if the external file exits
                 DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
                 FileInfo fileInfo = fileSystem.getInfo(location);
-                String[] files = fileSystem.getExistingFiles(location, "*");
-                if(!fileInfo.exists() || (files.length == 1 && files[0].equals("_SUCCESS"))) {
+                if(!fileInfo.exists() || (fileInfo.isDirectory() && ExternalTableUtils.isEmptyDirectory(location))) {
                     // need the create the external file if the location provided is empty
                     String pathToParent = location.substring(0, location.lastIndexOf("/"));
-                    ImportUtils.validateWritable(pathToParent.toString(), false);
+                    ImportUtils.validateWritable(pathToParent, false);
                     EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
 
                 } else if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
