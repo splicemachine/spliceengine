@@ -468,7 +468,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                     " STORED AS AVRO LOCATION '%s'", temp.getAbsolutePath()));
             Assert.fail("Exception not thrown");
         } catch (SQLException ee) {
-            Assert.assertEquals("Wrong Exception","XJ001" ,ee.getSQLState());
+            Assert.assertEquals("Wrong Exception","EXT33" ,ee.getSQLState());
         }
     }
 
@@ -481,7 +481,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                     " STORED AS PARQUET LOCATION '%s'",temp.getAbsolutePath()));
             Assert.fail("Exception not thrown");
         } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception","XJ001",e.getSQLState());
+            Assert.assertEquals("Wrong Exception","EXT33",e.getSQLState());
         }
     }
 
