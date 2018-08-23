@@ -118,7 +118,7 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
                          null,  // parent
                          DataDictionary.SYSROLES_CATALOG_NUM,
                          false, // duplicatesAllowed
-                         tc);
+                         tc, false);
     }
 
 

@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
@@ -160,7 +161,16 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             if (operationContext != null && operationContext.getOperation() instanceof VTIOperation) {
                 VTIOperation op = (VTIOperation) operationContext.getOperation();
                 dataTypeDescriptors = op.getResultColumnTypes();
-                convertTimestamps = op.isConvertTimestampsEnabled();
+
+                if (op.isConvertTimestampsEnabled() &&
+                    op.getActivation().getResultSet() != null &&
+                    op.getActivation().getResultSet() instanceof InsertOperation) {
+
+                    InsertOperation insOp = (InsertOperation)op.getActivation().getResultSet();
+                    String tableVersion = insOp.getTableVersion();
+                    if (tableVersion.equals("2.0"))
+                        convertTimestamps = true;
+                }
             }
 
             numofColumnsinTable = returnRow.nColumns();

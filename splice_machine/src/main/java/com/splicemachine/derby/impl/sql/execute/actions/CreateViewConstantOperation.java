@@ -156,7 +156,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 		td = ddg.newTableDescriptor(tableName,sd,tableType,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
 
-		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
 		toid = td.getUUID();
 
 		// for each column, stuff system.column
@@ -204,7 +204,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		//store view's dependency on various privileges in the dependeny system
 		storeViewTriggerDependenciesOnPrivileges(activation, vd);
 
-		dd.addDescriptor(vd, sd, DataDictionary.SYSVIEWS_CATALOG_NUM, true, tc);
+		dd.addDescriptor(vd, sd, DataDictionary.SYSVIEWS_CATALOG_NUM, true, tc, false);
 	}
 
 	public String getScopeName() {

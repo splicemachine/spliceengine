@@ -203,7 +203,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Change the table name of the table descriptor
         tableDescriptor.setColumnSequence(tableDescriptor.getColumnSequence()+1);
         // add the table descriptor with new name
-        dd.addDescriptor(tableDescriptor,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc);
+        dd.addDescriptor(tableDescriptor,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
 
         ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor(colInfo.name);
 
@@ -244,7 +244,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 colInfo.autoincInc,
                 tableDescriptor.getColumnSequence());
 
-        dd.addDescriptor(columnDescriptor, tableDescriptor, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        dd.addDescriptor(columnDescriptor, tableDescriptor, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
 
         // now add the column to the tables column descriptor list.
         tableDescriptor.getColumnDescriptorList().add(columnDescriptor);
@@ -453,7 +453,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Update the ColumnDescriptor with new default info
         dd.dropColumnDescriptor(td.getUUID(), colInfo.name, tc);
         dd.addDescriptor(columnDescriptor, td,
-                DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+                DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
 
     }
 
@@ -481,7 +481,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Update the ColumnDescriptor with new default info
         dd.dropColumnDescriptor(td.getUUID(), columnInfo[ix].name, tc);
-        dd.addDescriptor(newColumnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        dd.addDescriptor(newColumnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
     }
 
     private boolean validateNotNullConstraint (
@@ -601,7 +601,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Update the ColumnDescriptor with new default info
         dd.dropColumnDescriptor(td.getUUID(), colName, tc);
-        dd.addDescriptor(newColumnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        dd.addDescriptor(newColumnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
     }
 
     private long getColumnMax(LanguageConnectionContext lcc,TableDescriptor td, String columnName, long increment) throws StandardException {
@@ -1042,7 +1042,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     }
                     dd.addDescriptor(trd, sd,
                             DataDictionary.SYSTRIGGERS_CATALOG_NUM,
-                            false, tc);
+                            false, tc, false);
                 }
             }
 
@@ -1099,7 +1099,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     }
                     dd.addDescriptor(trd, sd,
                             DataDictionary.SYSTRIGGERS_CATALOG_NUM,
-                            false, tc);
+                            false, tc, false);
                 }
             }
         }
@@ -1274,7 +1274,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          * drop column can affect the column positioning of existing
          * columns in the table. We will save that in the system table.
         */
-        dd.addDescriptor(trd, sd, DataDictionary.SYSTRIGGERS_CATALOG_NUM, false, tc);
+        dd.addDescriptor(trd, sd, DataDictionary.SYSTRIGGERS_CATALOG_NUM, false, tc, false);
     }
 
     /**

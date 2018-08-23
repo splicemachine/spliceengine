@@ -14,16 +14,17 @@
 
 package com.splicemachine.derby.utils.marshall;
 
+import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+
 import java.io.IOException;
-import com.carrotsearch.hppc.BitSet;
 
 /**
  * @author Scott Fines
@@ -86,7 +87,8 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 						int i=0;
 						for(DataValueDescriptor field:fields){
 								if(field==null) continue;
-								if(DerbyBytesUtil.isScalarType(field, null))
+							    DescriptorSerializer serializer = serializers[i];
+								if(serializer.isScalarType())
 										scalarFields.set(i);
 								else if(DerbyBytesUtil.isFloatType(field))
 										floatFields.set(i);

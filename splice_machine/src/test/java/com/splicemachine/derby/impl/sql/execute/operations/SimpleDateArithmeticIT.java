@@ -14,17 +14,10 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.fail;
-
-import java.sql.ResultSet;
-import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -32,10 +25,13 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test_tools.TableCreator;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.fail;
 
 /**
  * @author Jeff Cunningham
@@ -277,14 +273,14 @@ public class SimpleDateArithmeticIT {
     @Test
     public void testMinusTimestampColumn() throws Exception {
         String sqlText =
-            String.format("select t + 1 from  %s", QUALIFIED_TABLE_NAME);
+            String.format("select t - 1 from  %s", QUALIFIED_TABLE_NAME);
 
         ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
 
         String expected =
             "1           |\n" +
                 "-----------------------\n" +
-                "2000-06-08 17:12:30.0 |";
+                "2000-06-06 17:12:30.0 |";
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }

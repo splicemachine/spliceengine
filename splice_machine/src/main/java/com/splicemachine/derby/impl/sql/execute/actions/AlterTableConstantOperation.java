@@ -14,18 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.TimeoutException;
-
-import com.splicemachine.derby.impl.sql.execute.altertable.DistributedAlterTableTransformJob;
-import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
@@ -38,18 +26,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.IndexLister;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -57,6 +34,7 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
@@ -64,9 +42,10 @@ import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.altertable.DistributedAlterTableTransformJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.ErrorState;
@@ -78,6 +57,15 @@ import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 
 /**
  *	This class  describes actions that are ALWAYS performed for an
@@ -879,7 +867,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                                                        null,
                                                                        tableDescriptor.getUUID(),
                                                                        sd.getUUID());
-            dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+            dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
 
             // add the newly crated conglomerate to the table descriptor
             conglomerateList.add(cgd);
@@ -911,7 +899,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                                                                            null,
                                                                            tableDescriptor.getUUID(),
                                                                            sd.getUUID());
-                dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+                dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
 
                 // add the newly crated conglomerate to the table descriptor
                 conglomerateList.add(cgd);
@@ -999,6 +987,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // Create a scanner to scan old conglomerate
         ScanSetBuilder<KVPair> builder = dsp.<SpliceOperation,KVPair>newScanSet(null,Long.toString(baseConglomNumber))
                 .tableDisplayName(this.tableName)
+                .tableVersion(activation.getDDLTableDescriptor().getVersion())
+                .template(activation.getDDLTableDescriptor().getEmptyExecRow())
                 .activation(activation)
                 .scan(DDLUtils.createFullScan())
                 .transaction(childTxn)
