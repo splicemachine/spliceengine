@@ -265,6 +265,9 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         try {
             boolean success = callback.await(timeoutMillis);
             if (!success) {
+                // We timed out, close the channel so that the next request recreates the connection
+                channel.close();
+                
                 doClientErrorThrow(LOG, "Client timed out after %s ms waiting for new timestamp: %s", null, timeoutMillis, callback);
             }
         } catch (InterruptedException e) {
