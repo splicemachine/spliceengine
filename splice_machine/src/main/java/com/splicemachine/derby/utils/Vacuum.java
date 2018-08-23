@@ -37,6 +37,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
@@ -108,9 +109,8 @@ public class Vacuum{
                         }
                         continue; //ignore system tables
                     }
-                    boolean hasTxnId = false;
+                    boolean requiresDroppedId = false;
                     if (table.getTransactionId() != null) {
-                        hasTxnId = true;
                         TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getTransactionId()));
                         if (txn.getEffectiveBeginTimestamp() >= oldestActiveTransaction) {
                             // This conglomerate was created by a "recent" transaction (newer than the oldest active txn)
@@ -121,21 +121,29 @@ public class Vacuum{
                             }
                             continue;
                         }
+                        if (txn.getEffectiveState().equals(Txn.State.ROLLEDBACK)) {
+                            // Transaction is rolled back, we can remove it safely
+                        } else {
+                            // This conglomerate requires a dropped transaction id
+                            requiresDroppedId = true;
+                        }
                     }
-                    if (table.getDroppedTransactionId() != null) {
-                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getDroppedTransactionId()));
-                        if (txn.getEffectiveCommitTimestamp() == -1 || txn.getEffectiveCommitTimestamp() >= oldestActiveTransaction) {
-                            // This conglomerate was dropped by an active, rolled back or "recent" transaction
-                            // (newer than the oldest active txn) ignore it in case it's still in use
+                    if (requiresDroppedId) {
+                        if (table.getDroppedTransactionId() != null) {
+                            TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getDroppedTransactionId()));
+                            if (txn.getEffectiveCommitTimestamp() == -1 || txn.getEffectiveCommitTimestamp() >= oldestActiveTransaction) {
+                                // This conglomerate was dropped by an active, rolled back or "recent" transaction
+                                // (newer than the oldest active txn) ignore it in case it's still in use
 
-                            if (LOG.isInfoEnabled()) {
-                                LOG.info("Ignoring recently dropped table: " + table.getTableName() + " by transaction " + txn.getTxnId());
+                                if (LOG.isInfoEnabled()) {
+                                    LOG.info("Ignoring recently dropped table: " + table.getTableName() + " by transaction " + txn.getTxnId());
+                                }
+                                continue;
                             }
+                        } else {
+                            // This table must have a dropped transaction id before we can process it for vacuum
                             continue;
                         }
-                    } else if (hasTxnId) {
-                        // This table must have a dropped transaction id before we can process it for vacuum
-                        continue;
                     }
                     if(!activeConglomerates.contains(tableConglom)){
                         LOG.info("Deleting inactive table: " + table.getTableName());
