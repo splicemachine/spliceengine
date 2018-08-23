@@ -42,8 +42,7 @@ import java.lang.reflect.Array;
  * of size {@code 1.12*maxSize}, which means that when the cache is completely full,
  * it will have a load factor of ~ 0.9 (with Robin-Hood hashing, this is an effective size).
  *
- * This class is <em>not</em> thread-safe. External synchronization is necessary
- * to ensure that this cache retains correctness in the face of multi-threaded access.
+ * This class is <em>not</em> thread-safe unless setting threadSafe = true on the builder.
  *
  * @author Scott Fines
  * Date: 9/22/14
@@ -68,7 +67,6 @@ public class LongKeyedCache<T> {
     private Counter requestCounter;
     private Counter hitCounter;
     private Counter missCounter;
-
 
     @SuppressWarnings("unchecked")
     private LongKeyedCache(int maxCacheSize,
@@ -341,6 +339,22 @@ public class LongKeyedCache<T> {
         @Override public boolean holds(T value) { return value.equals(ref); }
     }
 
+    private static class ThreadSafeCache<T> extends LongKeyedCache<T> {
+        private ThreadSafeCache(int maxCacheSize, boolean softReferences, Hash32 hashFunction, MetricFactory metricFactory) {
+            super(maxCacheSize, softReferences, hashFunction, metricFactory);
+        }
+
+        @Override
+        public synchronized T get(long key) {
+            return super.get(key);
+        }
+
+        @Override
+        public synchronized boolean put(long key, T value) {
+            return super.put(key, value);
+        }
+    }
+
     public static <T> Builder<T> newBuilder(){
         return new Builder<T>();
     }
@@ -349,6 +363,7 @@ public class LongKeyedCache<T> {
         private boolean softReferences = false;
         private Hash32 baseFunction = HashFunctions.utilHash();
         private int size = -1;
+        private boolean threadSafe = false;
 
         public Builder<T> metricFactory(MetricFactory metricFactory) {
             this.metricFactory = metricFactory;
@@ -375,9 +390,16 @@ public class LongKeyedCache<T> {
             return this;
         }
 
+        public Builder<T> threadSafe(boolean threadSafe) {
+            this.threadSafe = threadSafe;
+            return this;
+        }
+
         public LongKeyedCache<T> build(){
             Preconditions.checkArgument(size>0,"Cannot create a cache with a negative size!");
-            return new LongKeyedCache<T>(size,softReferences,baseFunction,metricFactory);
+            return threadSafe ?
+                    new ThreadSafeCache<T>(size,softReferences,baseFunction,metricFactory) :
+                    new LongKeyedCache<T>(size,softReferences,baseFunction,metricFactory);
         }
     }
 
