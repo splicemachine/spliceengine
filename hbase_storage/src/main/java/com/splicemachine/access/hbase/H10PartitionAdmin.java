@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -168,10 +169,22 @@ public class H10PartitionAdmin implements PartitionAdmin{
                     SpliceLogUtils.warn(LOG, errMsg + ": " + Bytes.toStringBinary(splitPoint));
                     SQLWarning warning =
                             StandardException.newWarning(SQLState.SPLITKEY_EQUALS_STARTKEY, Bytes.toStringBinary(splitPoint));
-                    EmbedConnection connection = (EmbedConnection)InternalDriver.activeDriver()
-                            .connect("jdbc:default:connection", null);
-                    Activation lastActivation=connection.getLanguageConnection().getLastActivation();
-                    lastActivation.addWarning(warning);
+                    try {
+                        InternalDriver internalDriver = InternalDriver.activeDriver();
+                        if (internalDriver != null) {
+                            EmbedConnection connection = (EmbedConnection)internalDriver.connect("jdbc:default:connection", null);
+                            if (connection != null) {
+                                LanguageConnectionContext lcc = connection.getLanguageConnection();
+                                if (lcc != null) {
+                                    Activation lastActivation = lcc.getLastActivation();
+                                    lastActivation.addWarning(warning);
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        // ignore any error when adding a warning to activation, because the warning is written
+                        // to log.
+                    }
                     return;
                 }
                 else
