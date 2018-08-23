@@ -17,8 +17,8 @@
 ##################################################################################
 
 # if server still running, fail - must stop first
-SPID=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}')
-ZPID=$(ps -ef | awk '/zookeeper/ && !/awk/ {print $2}')
+SPID=$(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant|OlapServerMaster/ && !/awk/ {print $2}')
+ZPID=$(ps -ef | awk '/ZooKeeper/ && !/awk/ {print $2}')
 YPID=$(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
 KPID=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
 if [[ -n ${SPID} || -n ${ZPID} ]] || [[ -n ${YPID} || -n ${KPID} ]]; then
@@ -148,7 +148,7 @@ _startYarn "${BASE_DIR}" "${CP}" "${YARN_LOG}"
 
 KAFKALOG="${RUN_DIR}"/kafka.log
 # Start Kafka in background.
-echo "Starting Kafka, Log file is ${KAFKALOG}"
+echo "Starting Kafka. Log file is ${KAFKALOG}"
 
 _startKafka "${BASE_DIR}" "${CP}" "${KAFKALOG}" "${LOG4J_FILE}"
 

@@ -9,9 +9,9 @@ _kill_em_all () {
    [[ -n $P ]] && echo "Found Splice. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
    P=$(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
-   [[ -n $P ]] && echo "Found Yarn. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
+   [[ -n $P ]] && echo "Found YARN. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
-   P=$(ps -ef | awk '/zookeeper/ && !/awk/ {print $2}')
+   P=$(ps -ef | awk '/ZooKeeper/ && !/awk/ {print $2}')
    [[ -n $P ]] && echo "Found ZooKeeper. Stopping it." && for pid in $P; do kill -$SIG `echo $pid`; done
 
    P=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
