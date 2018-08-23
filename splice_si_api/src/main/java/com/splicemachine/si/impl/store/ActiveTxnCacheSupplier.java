@@ -26,67 +26,69 @@ import java.io.IOException;
 /**
  * Represents a Transaction Store which caches active transactions. This is intended for scans,
  * where a transaction may only be cached for a particular operation.
- *
- * This class is <em>not</em> thread-safe--only a single thread may use this at a time without
- * external synchronization. However, as a single transaction should be represented using a single thread
- * anyway, this class doesn't make sense to be thread safe anyway.
+ * <p>
+ * This class is only thread-safe if it's constructed with threadSafe = true
  *
  * @author Scott Fines
  * Date: 6/18/14
  */
 public class ActiveTxnCacheSupplier implements TxnSupplier {
     private final LongKeyedCache<TxnView> cache;
-		private final TxnSupplier delegate;
+    private final TxnSupplier delegate;
 
-		public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize) {
-        this.cache = LongKeyedCache.<TxnView>newBuilder().maxEntries(maxSize)
-                .withHashFunction(HashFunctions.murmur3(0)).build();
-				this.delegate = delegate;
+    public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize) {
+        this(delegate, maxSize, false);
     }
 
-		@Override
-		public TxnView getTransaction(long txnId) throws IOException {
-				return getTransaction(txnId,false);
-		}
+    public ActiveTxnCacheSupplier(TxnSupplier delegate, int maxSize, boolean threadSafe) {
+        this.cache = LongKeyedCache.<TxnView>newBuilder().maxEntries(maxSize)
+                .withHashFunction(HashFunctions.murmur3(0)).threadSafe(threadSafe).build();
+        this.delegate = delegate;
+    }
 
-		@Override
-		public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
+    @Override
+    public TxnView getTransaction(long txnId) throws IOException {
+        return getTransaction(txnId, false);
+    }
+
+    @Override
+    public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
         TxnView txn = this.cache.get(txnId);
-				if(txn!=null) return txn;
-				//bummer, not cached. try delegate
-				txn = delegate.getTransaction(txnId,getDestinationTables);
-				if(txn==null) return null;
+        if (txn != null) return txn;
+        //bummer, not cached. try delegate
+        txn = delegate.getTransaction(txnId, getDestinationTables);
+        if (txn == null) return null;
 
-				if(txn.getEffectiveState()== Txn.State.ACTIVE)
-            this.cache.put(txnId,txn);
-				return txn;
-		}
+        if (txn.getEffectiveState() == Txn.State.ACTIVE)
+            this.cache.put(txnId, txn);
+        return txn;
+    }
 
-		@Override
-		public boolean transactionCached(long txnId) {
-        	return cache.get(txnId) !=null ? true : delegate.transactionCached(txnId);
-		}
+    @Override
+    public boolean transactionCached(long txnId) {
+        return cache.get(txnId) != null ? true : delegate.transactionCached(txnId);
+    }
 
-		@Override
-   		public void cache(TxnView toCache) {
-		    if (toCache.getState() == Txn.State.ACTIVE)
-                cache.put(toCache.getTxnId(),toCache);
-		    else
-		        delegate.cache(toCache);
-        }
+    @Override
+    public void cache(TxnView toCache) {
+        if (toCache.getState() == Txn.State.ACTIVE)
+            cache.put(toCache.getTxnId(), toCache);
+        else
+            delegate.cache(toCache);
+    }
 
-		@Override
-		public TxnView getTransactionFromCache(long txnId) {
-			TxnView tentative = cache.get(txnId);
-			return tentative != null ? tentative : delegate.getTransactionFromCache(txnId);
-		}
+    @Override
+    public TxnView getTransactionFromCache(long txnId) {
+        TxnView tentative = cache.get(txnId);
+        return tentative != null ? tentative : delegate.getTransactionFromCache(txnId);
+    }
 
-	@Override
-	public TaskId getTaskId(long txnId) throws IOException {
-		return delegate.getTaskId(txnId);
-	}
+    @Override
+    public TaskId getTaskId(long txnId) throws IOException {
+        return delegate.getTaskId(txnId);
+    }
 
-	public int getSize(){
+    public int getSize() {
         return cache.size();
     }
 }

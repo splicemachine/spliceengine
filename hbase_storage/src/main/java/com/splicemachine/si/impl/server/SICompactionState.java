@@ -59,7 +59,7 @@ public class SICompactionState {
     private SortedSet<Cell> dataToReturn;
 
     public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context, ExecutorService executorService) {
-        this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize);
+        this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize,true);
         this.dataToReturn  =new TreeSet<>(KeyValue.COMPARATOR);
         this.context = context;
         this.futuresCache = new ConcurrentHashMap<>(1<<19, 0.75f, 64);
