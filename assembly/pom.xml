@@ -108,6 +108,13 @@
                     <value>parcel</value>
                 </property>
             </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_sentry-${envClassifier}</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
             <build>
                 <plugins>
                     <plugin>
