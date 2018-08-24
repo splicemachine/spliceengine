@@ -24,6 +24,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.spark_project.guava.collect.ImmutableMap;
+
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -65,9 +66,10 @@ public class SpliceDateFunctions {
     public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
 
         if (source == null) return null;
+        String microTest = null;
         try {
             if (format != null) {
-                String microTest = format.toUpperCase();
+                microTest = format.toUpperCase();
                 if ((microTest.endsWith("SSSS") || microTest.endsWith("NNNN") || microTest.endsWith("FFFF"))) {
                     // If timestamp format is in microsecond precision, do not parse using Joda DateTimeFormatter
                     return Timestamp.valueOf(source);
@@ -82,7 +84,22 @@ public class SpliceDateFunctions {
             return ts;
         }
 
-        return new Timestamp(parseDateTime(source, format));
+        DateTime dt = stringWithFormatToDateTime(source, format);
+
+        if (microTest != null && microTest.endsWith("Z"))
+            return new Timestamp(dt.getMillis());
+        else{
+            // Fix for incompatible conversion of Joda time, where a timestamp like
+            // 0100-09-02 00:00:00.0 is read in as 0100-09-02 23:52:58.0
+            // This issue does not affect DateTimes with a timezone.
+            return new Timestamp(dt.getYear() - 1900,
+                          dt.getMonthOfYear() - 1,
+                                 dt.getDayOfMonth(),
+                                 dt.getHourOfDay(),
+                                 dt.getMinuteOfHour(),
+                                 dt.getSecondOfMinute(),
+                           dt.getMillisOfSecond()*1000000);
+        }
     }
 
     /**
@@ -116,13 +133,18 @@ public class SpliceDateFunctions {
 
     private static long parseDateTime(String source, String format) throws SQLException {
         // FIXME: Timezone loss for Timestamp - see http://stackoverflow.com/questions/16794772/joda-time-parse-a-date-with-timezone-and-retain-that-timezone
+
+        return stringWithFormatToDateTime(source, format).getMillis();
+    }
+
+    private static DateTime stringWithFormatToDateTime(String source, String format) throws SQLException {
         DateTimeFormatter parser = DEFAULT_DATE_TIME_FORMATTER;
         if (format != null) {
             try {
                 parser = DateTimeFormat.forPattern(format);
             } catch (Exception e) {
                 throw new SQLException("Error creating a datetime parser for pattern: "+format+". Try using an" +
-                                           " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+                " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
             }
         }
         DateTime parsed;
@@ -130,10 +152,11 @@ public class SpliceDateFunctions {
             parsed = parser.withOffsetParsed().parseDateTime(source);
         } catch (Exception e) {
             throw new SQLException("Error parsing datetime "+source+" with pattern: "+format+". Try using an" +
-                                       " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+            " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
         }
-        return parsed.getMillis();
+        return parsed;
     }
+
 
     /**
      * Implements the LAST_DAY function

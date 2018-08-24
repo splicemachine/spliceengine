@@ -14,23 +14,6 @@
 
 package com.splicemachine.mrio.api.core;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import com.splicemachine.derby.stream.output.WriteReadUtils;
-import org.apache.commons.lang.SerializationUtils;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -43,6 +26,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
@@ -54,6 +38,16 @@ import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class SMSQLUtil  {
     static final Logger LOG = Logger.getLogger(SMSQLUtil.class);
@@ -434,7 +428,7 @@ public class SMSQLUtil  {
                 .transaction(txn)
                 .scan(createNewScan())
                 .template(template)
-                .tableVersion("2.0")
+                .tableVersion("3.0")
                 .indexName(null)
                 .keyColumnEncodingOrder(keyColumnEncodingOrder)
                 .keyColumnSortOrder(null)
