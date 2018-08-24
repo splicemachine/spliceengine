@@ -546,18 +546,6 @@
                     <value>installer</value>
                 </property>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_ranger_service-${envClassifier}</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_ranger_admin-${envClassifier}</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-            </dependencies>
             <build>
                 <plugins>
                     <plugin>
