@@ -19,8 +19,8 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
-import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
+import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -28,7 +28,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.Random;
@@ -199,7 +198,7 @@ public class OlapClientTest {
             threads[i] = new Thread() {
                 @Override
                 public void run() {
-                    int sleep = rand.nextInt(2000);
+                    int sleep = rand.nextInt(5000);
                     try {
                         results.set(j, olapClient.execute(new DumbDistributedJob(sleep,j)));
                     } catch (IOException e) {
@@ -464,7 +463,7 @@ public class OlapClientTest {
                 return HostAndPort.fromParts(olapServer.getBoundHost(), olapServer.getBoundPort());
             }
         }, 10);
-        olapClient = new TimedOlapClient(nl,10000);
+        olapClient = new TimedOlapClient(nl,30000);
     }
 
     private static void failAndCreateServer() throws IOException {
