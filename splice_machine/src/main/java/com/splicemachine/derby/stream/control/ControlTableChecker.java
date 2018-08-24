@@ -14,9 +14,8 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
+import org.spark_project.guava.collect.ArrayListMultimap;
+import org.spark_project.guava.collect.ListMultimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.storage.CheckTableJob.IndexFilter;
@@ -29,10 +28,7 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.si.impl.driver.SIDriver;
 import scala.Tuple2;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by jyuan on 2/12/18.
@@ -87,7 +83,7 @@ public class ControlTableChecker implements TableChecker {
         // Pull data into memory
         populateData(filteredTable, index);
 
-        List<String> messages = Lists.newLinkedList();
+        List<String> messages = new LinkedList<>();
         messages.addAll(checkMissingIndexes());
         messages.addAll(checkInvalidIndexes());
         if (indexCount - invalidIndexCount > tableCount - missingIndexCount) {
@@ -128,7 +124,7 @@ public class ControlTableChecker implements TableChecker {
     }
 
     private List<String> checkDuplicateIndexes() throws StandardException {
-        List<String> messages = Lists.newLinkedList();
+        List<String> messages = new LinkedList<>();
         ArrayListMultimap<String, byte[]> result = ArrayListMultimap.create();
         long duplicateIndexCount = 0;
         for (String baseRowId : indexData.keySet()) {
@@ -161,7 +157,7 @@ public class ControlTableChecker implements TableChecker {
 
     private List<String> checkInvalidIndexes() throws StandardException {
         invalidIndexCount = 0;
-        List<String> messages = Lists.newLinkedList();
+        List<String> messages = new LinkedList<>();
         ArrayListMultimap<String, byte[]> result = ArrayListMultimap.create();
         for (String baseRowId : indexData.keySet()) {
             if (!tableData.containsKey(baseRowId)) {
@@ -192,7 +188,7 @@ public class ControlTableChecker implements TableChecker {
     }
 
     private List<String> checkMissingIndexes() throws StandardException {
-        List<String> messages = Lists.newLinkedList();
+        List<String> messages = new LinkedList<>();
         missingIndexCount = 0;
         Map<String, byte[]> result = new HashMap<>();
         for (String rowId : tableData.keySet()) {

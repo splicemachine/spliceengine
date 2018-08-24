@@ -14,10 +14,8 @@
 
 package com.splicemachine.impl;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import org.spark_project.guava.base.Predicate;
+import org.spark_project.guava.collect.Sets;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
@@ -47,7 +45,7 @@ public class MockRegionUtils{
     }
 
     public static HRegion getMockRegion() throws IOException{
-        final Map<byte[], Set<Cell>> rowMap=Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+        final Map<byte[], Set<Cell>> rowMap = new TreeMap(Bytes.BYTES_COMPARATOR);
         HRegion fakeRegion=mock(HRegion.class);
         HRegionInfo fakeInfo=mock(HRegionInfo.class);
         when(fakeInfo.getStartKey()).thenReturn(HConstants.EMPTY_BYTE_ARRAY);
@@ -68,10 +66,10 @@ public class MockRegionUtils{
                             return qualifiers.contains(CellUtil.cloneQualifier(input));
                         }
                     });
-                    List<Cell> kvs=Lists.newArrayList(filtered);
+                    List<Cell> kvs = new ArrayList<>(filtered);
                     return Result.create(kvs);
                 }else if(keyValues!=null){
-                    return Result.create(Lists.newArrayList(keyValues));
+                    return Result.create(new ArrayList<>(keyValues));
                 }else return null;
             }
         });
@@ -82,7 +80,7 @@ public class MockRegionUtils{
                 Put put=(Put)invocationOnMock.getArguments()[0];
                 Set<Cell> keyValues=rowMap.get(put.getRow());
                 if(keyValues==null){
-                    keyValues=Sets.newTreeSet(new KeyValue.KVComparator());
+                    keyValues = new TreeSet<>(new KeyValue.KVComparator());
                     rowMap.put(put.getRow(),keyValues);
                 }
                 Map<byte[], List<Cell>> familyMap=put.getFamilyCellMap();

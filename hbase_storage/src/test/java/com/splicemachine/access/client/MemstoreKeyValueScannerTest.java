@@ -15,7 +15,7 @@
 
 package com.splicemachine.access.client;
 
-import com.google.common.collect.Ordering;
+import org.spark_project.guava.collect.Ordering;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;

@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.google.common.base.Optional;
+import org.spark_project.guava.base.Optional;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
