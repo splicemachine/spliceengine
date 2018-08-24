@@ -35,6 +35,9 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -46,6 +49,16 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLDriver;
+import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
+import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.DataTypes;
@@ -303,7 +316,16 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             td.setUUID(dd.getUUIDFactory().createUUID());
         }
 
-        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+
+        String createAsVersion2String = null;
+        if (lcc != null) {
+            createAsVersion2String =
+            PropertyUtil.getCachedDatabaseProperty(lcc.getTransactionCompile(),
+            Property.CREATE_TABLES_AS_VERSION_2);
+        }
+        boolean createAsVersion2 = createAsVersion2String != null && Boolean.valueOf(createAsVersion2String);
+
+        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, createAsVersion2);
 
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
@@ -387,7 +409,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          *          was provided.
          */
         ConglomerateDescriptor cgd = getTableConglomerateDescriptor(td, conglomId, sd, ddg);
-        dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+        dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
 
         // add the newly added conglomerate to the table descriptor
         ConglomerateDescriptorList conglomList = td.getConglomerateDescriptorList();

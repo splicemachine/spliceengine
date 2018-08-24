@@ -31,51 +31,38 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import java.io.ByteArrayInputStream;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
-
+import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
 import com.splicemachine.db.iapi.jdbc.EngineResultSet;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.CloseFilterInputStream;
+import com.splicemachine.db.iapi.services.io.LimitInputStream;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ParameterValueSet;
+import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.iapi.util.InterruptStatus;
 
-import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.ParameterValueSet;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.ExecCursorTableReference;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.CursorActivation;
-
-import com.splicemachine.db.iapi.sql.ResultDescription;
-
-import com.splicemachine.db.iapi.services.io.LimitInputStream;
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
-import com.splicemachine.db.iapi.reference.SQLState;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.net.URL;
+import java.sql.*;
+import java.util.Arrays;
+import java.util.Calendar;
 
 /* can't import these due to name overlap:
 import java.sql.ResultSet;
 */
-import java.math.BigDecimal;
-import java.sql.*;
-
-import java.io.Reader;
-import java.io.InputStream;
-import java.io.IOException;
-import java.net.URL;
-
-import java.util.Arrays;
-import java.util.Calendar;
-
-import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
-import com.splicemachine.db.iapi.services.io.CloseFilterInputStream;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.iapi.util.InterruptStatus;
 
 /**
  * A EmbedResultSet for results from the EmbedStatement family. 
@@ -556,6 +543,11 @@ public abstract class EmbedResultSet extends ConnectionChild
 		// synchronize out here so the close and the autocommit are
 		// both in the same sync block.
 		synchronized (getConnectionSynchronization()) {
+
+			// Another thread may have closed the connection before the above
+			// synchronization.
+			if (isClosed)
+				return;
 
 			try {
 				setupContextStack(); // make sure there's context

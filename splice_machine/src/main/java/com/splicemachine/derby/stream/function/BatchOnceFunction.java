@@ -14,15 +14,18 @@
 
 package com.splicemachine.derby.stream.function;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.Set;
-
+import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.SQLRef;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -32,16 +35,12 @@ import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Multimap;
 import org.spark_project.guava.collect.Sets;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLRef;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
-import com.splicemachine.derby.stream.iapi.OperationContext;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Queue;
+import java.util.Set;
 
 /**
  *
@@ -186,7 +185,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         for(int i=0;i<keyColumns.length;i++){
             keyColumns[i] = pkCols[i] -1;
         }
-        DescriptorSerializer[] serializers = VersionedSerializers.forVersion("2.0", true).getSerializers(execRowDefinition);
+        DescriptorSerializer[] serializers = VersionedSerializers.forVersion("3.0", true).getSerializers(execRowDefinition);
         dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
         return new KeyEncoder(NoOpPrefix.INSTANCE,dataHash,NoOpPostfix.INSTANCE);
     }

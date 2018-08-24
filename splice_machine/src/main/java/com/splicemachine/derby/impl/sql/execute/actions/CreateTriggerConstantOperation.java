@@ -307,7 +307,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 
         dd.addDescriptor(triggerd, triggerSd,
                 DataDictionary.SYSTRIGGERS_CATALOG_NUM, false,
-                tc);
+                tc, false);
 
 
         /*    

@@ -140,7 +140,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                                      null,  // parent
                                      DataDictionary.SYSROLES_CATALOG_NUM,
                                      false, // no duplicatesAllowed
-                                     tc);
+                                     tc, false);
                 } else if (rgd!= null && (isDefaultRole && !rgd.isDefaultRole() || !isDefaultRole && rgd.isDefaultRole())) {
                     rgd.drop(lcc);
                     rgd.setDefaultRole(isDefaultRole);
@@ -148,7 +148,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                             null,  // parent
                             DataDictionary.SYSROLES_CATALOG_NUM,
                             false, // no duplicatesAllowed
-                            tc);
+                            tc, false);
                     /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed;
                        also we need to invalidate the roleGrant cache
                      */
@@ -178,7 +178,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                         null,  // parent
                         DataDictionary.SYSROLES_CATALOG_NUM,
                         false, // no duplicatesAllowed
-                        tc);
+                        tc, false);
 
                     /* we need to invalidate the defaultRole cache as the grantee's defaultRole list has changed;
                        also we need to invalidate the roleGrant cache

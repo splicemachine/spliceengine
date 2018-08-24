@@ -99,7 +99,7 @@ public class LassenUpgradeScript extends UpgradeScriptBase {
              *
              * Of course, if we get a goofy error that doesn't match up with what we expect, we should report that.
              */
-            sdd.addDescriptor(cd,sysColumns,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
+            sdd.addDescriptor(cd,sysColumns,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc, false);
         }catch(StandardException se){
             if(ErrorState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT.getSqlState().equals(se.getSQLState())){
                 /*

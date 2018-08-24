@@ -31,13 +31,10 @@
 
 package com.splicemachine.db.impl.sql.depend;
 
-import java.io.IOException;
-import java.util.*;
-
-import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -45,22 +42,15 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
-import com.splicemachine.db.iapi.sql.depend.Dependency;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.depend.Dependent;
-import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
-import com.splicemachine.db.iapi.sql.depend.ProviderList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
+import com.splicemachine.db.iapi.sql.depend.*;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.db.impl.sql.compile.CreateViewNode;
+
+import java.io.IOException;
+import java.util.*;
 
 /**
  * The dependency manager tracks needs that dependents have of providers.
@@ -240,7 +230,7 @@ public class BasicDependencyManager implements DependencyManager {
 
         dd.addDescriptor(new DependencyDescriptor(d, p), null,
                          DataDictionary.SYSDEPENDS_CATALOG_NUM, true,
-                         tcToUse);
+                         tcToUse, false);
     }
 
 	/**

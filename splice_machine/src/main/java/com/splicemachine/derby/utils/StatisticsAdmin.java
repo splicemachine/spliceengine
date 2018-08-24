@@ -459,6 +459,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
 
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
+        ssb.tableVersion(table.getVersion());
         ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
         String scope = getScopeName(table);
         // no sample stats support on mem platform

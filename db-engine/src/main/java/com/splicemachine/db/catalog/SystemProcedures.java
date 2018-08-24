@@ -1806,7 +1806,7 @@ public class SystemProcedures{
             */
         dd.startWriting(lcc);
         sd = ddg.newSchemaDescriptor(schemaName, aid, tmpSchemaId);
-        dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc);
+        dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
 
     }
 
@@ -1836,7 +1836,7 @@ public class SystemProcedures{
             */
             dd.startWriting(lcc);
             UserDescriptor userDescriptor=makeUserDescriptor(dd,tc,userName,password);
-            dd.addDescriptor(userDescriptor,null,DataDictionary.SYSUSERS_CATALOG_NUM,false,tc);
+            dd.addDescriptor(userDescriptor,null,DataDictionary.SYSUSERS_CATALOG_NUM,false,tc, false);
 
             // turn on NATIVE::LOCAL authentication
             if(dd.getAuthorizationDatabaseOwner().equals(userName)){

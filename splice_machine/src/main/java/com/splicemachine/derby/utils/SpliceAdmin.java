@@ -1366,7 +1366,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         boolean b = "TRUE".compareToIgnoreCase(enable) == 0;
         td.setPurgeDeletedRows(b);
         dd.dropTableDescriptor(td, sd, tc);
-        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc);
+        dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
     }
 
     /**

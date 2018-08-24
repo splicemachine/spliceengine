@@ -31,14 +31,15 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.db.DatabaseContext;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
+import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
@@ -49,22 +50,17 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
-
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.sql.PreparedStatement;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import org.joda.time.Days;
 import org.joda.time.LocalDate;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.*;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 /**
  * This contains an instance of a SQL Date.
@@ -980,6 +976,9 @@ public final class SQLDate extends DataType
 	 */
 	static int computeEncodedDate(Calendar cal) throws StandardException
 	{
+		if (cal.get(Calendar.ERA) == GregorianCalendar.BC)
+			throw StandardException.newException( SQLState.LANG_DATE_RANGE_EXCEPTION);
+
 		return computeEncodedDate(cal.get(Calendar.YEAR),
                                   cal.get(Calendar.MONTH) + 1,
                                   cal.get(Calendar.DATE));

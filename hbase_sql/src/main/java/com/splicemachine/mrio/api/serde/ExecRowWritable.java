@@ -17,7 +17,11 @@ package com.splicemachine.mrio.api.serde;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.sql.SQLException;
+
+import com.splicemachine.db.client.am.SQLExceptionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.io.Writable;
@@ -47,8 +51,10 @@ public class ExecRowWritable implements Writable{
 		DataValueDescriptor[] fields = row.getRowArray();
 		if(fields.length == 0)
 			return null;
-		if(serializers == null)
-			serializers = VersionedSerializers.latestVersion(true).getSerializers(row);
+		if(serializers == null) {
+			throw StandardException.newException(
+			SQLState.AMBIGIOUS_PROTOCOL);
+		}
 		if(encoder == null){
 			encoder = MultiFieldEncoder.create(fields.length);
 		}
@@ -74,9 +80,10 @@ public class ExecRowWritable implements Writable{
 		if(execRow == null)
 			return null;
 		DataValueDescriptor[] fields = execRow.getRowArray();
-		if(serializers == null)
-			serializers = VersionedSerializers.latestVersion(true).getSerializers(fields);
-		
+		if(serializers == null) {
+			throw StandardException.newException(
+			SQLState.AMBIGIOUS_PROTOCOL);
+		}
 		decoder.set(row);
 		
         for(int i = 0; i < fields.length; i++){

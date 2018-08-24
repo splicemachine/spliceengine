@@ -284,7 +284,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 		td.setTableName(newTableName);
 		// add the table descriptor with new name
 		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM,
-						 false, tc);
+						 false, tc, false);
 	}
 
 	//do necessary work for rename column at execute time.
@@ -341,7 +341,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 		// Drop the column
 		dd.dropColumnDescriptor(td.getUUID(), oldObjectName, tc);
 		columnDescriptor.setColumnName(newObjectName);
-		dd.addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+		dd.addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
 
 		//Need to do following to reload the cache so that table
 		//descriptor now has new column name
@@ -375,7 +375,7 @@ public class RenameConstantOperation extends DDLSingleTableConstantOperation {
 		conglomerateDescriptor.setConglomerateName(newObjectName);
 		// add the index descriptor with new name
 		dd.addDescriptor(conglomerateDescriptor, sd,
-						 DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+						 DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
 	}
 
 	/* Following is used for error handling by repSourceCompilerUtilities

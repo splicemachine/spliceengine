@@ -59,9 +59,10 @@ public class NonPkRowHash extends EntryDataHash {
         BitSet floatFields = new BitSet();
         BitSet doubleFields = new BitSet();
         for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
+            DescriptorSerializer serializer = serializers[keyColumns[i]];
             notNullFields.set(i - 1);
             DataValueDescriptor dvd = currentRow.getRowArray()[keyColumns[i]];
-            if(DerbyBytesUtil.isScalarType(dvd, null)){
+            if(serializer.isScalarType()){
                 scalarFields.set(i-1);
             }else if(DerbyBytesUtil.isFloatType(dvd)){
                 floatFields.set(i-1);
