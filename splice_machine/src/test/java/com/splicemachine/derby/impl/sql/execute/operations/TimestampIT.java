@@ -46,7 +46,6 @@ public class TimestampIT extends SpliceUnitTest {
     private static boolean extendedTimestamps = true;
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
-
     protected static SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     private static File BADDIR;
@@ -55,14 +54,10 @@ public class TimestampIT extends SpliceUnitTest {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(spliceSchemaWatcher)
                                             .around(methodWatcher);
-   // @Rule
-   // public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
-     //    methodWatcher.setAutoCommit(false);
-
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
         params.add(new Object[]{true});
         params.add(new Object[]{false});
         return params;
@@ -75,7 +70,9 @@ public class TimestampIT extends SpliceUnitTest {
     @BeforeClass
     public static void createDataSet() throws Exception {
         methodWatcher.setAutoCommit(false);
+        spliceClassWatcher.setAutoCommit(false);
         createSharedTables(spliceClassWatcher.getOrCreateConnection());
+        spliceClassWatcher.closeAll();
     }
 
     public static void createSharedTables(Connection conn) throws Exception {
@@ -95,6 +92,7 @@ public class TimestampIT extends SpliceUnitTest {
             s.executeUpdate(String.format("create index idx1 on %s ", SCHEMA + ".t3") + "(col1)");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t4") + "(col1 timestamp, col2 timestamp)");
 
+            conn.commit();
             ResultSet rs = s.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.createTablesWithVersion2Serializer')");
             if (rs.next()) {
                 String aStr = rs.getString(2);
@@ -216,6 +214,7 @@ public class TimestampIT extends SpliceUnitTest {
 
             s.executeUpdate(String.format("insert into %s select * from %s", SCHEMA + ".t11", SCHEMA + ".t1"));
 
+            conn.commit();
             rs.close();
         }
 
@@ -237,6 +236,7 @@ public class TimestampIT extends SpliceUnitTest {
                 i++;
             }
             Assert.assertEquals("Incorrect count returned!", 4, i);
+            rs.close();
         }
         catch (SQLException e) {
             if (extendedTimestamps)
@@ -262,6 +262,7 @@ public class TimestampIT extends SpliceUnitTest {
             Assert.assertEquals("Wrong Min", new Timestamp(1677 - 1900 /*year*/, 8 /*month-1*/, 20 /*day*/, 16 /*hour*/, 12/*minute*/, 43 /*second*/, 147000000 /*nano*/), rs.getTimestamp(3));
 
         }
+        rs.close();
 
     }
     @Test
@@ -281,6 +282,7 @@ public class TimestampIT extends SpliceUnitTest {
             Assert.assertEquals("Wrong Max", new Timestamp(1677 - 1900 /*year*/, 8 /*month-1*/, 20 /*day*/, 16 /*hour*/, 12/*minute*/, 43 /*second*/, 147000000 /*nano*/), rs.getTimestamp(2));
             Assert.assertEquals("Wrong Min", new Timestamp(1677 - 1900 /*year*/, 8 /*month-1*/, 20 /*day*/, 16 /*hour*/, 12/*minute*/, 43 /*second*/, 147000000 /*nano*/), rs.getTimestamp(3));
         }
+        rs.close();
     }
 
 
@@ -304,6 +306,7 @@ public class TimestampIT extends SpliceUnitTest {
             Assert.assertEquals("Wrong Max", new Timestamp(5 - 1900 /*year*/, 0 /*month-1*/, 1 /*day*/, 0 /*hour*/, 0/*minute*/, 0 /*second*/, 0 /*nano*/), rs.getTimestamp(2));
             Assert.assertEquals("Wrong Min", new Timestamp(3 - 1900 /*year*/, 0 /*month-1*/, 1 /*day*/, 0 /*hour*/, 0/*minute*/, 0 /*second*/, 0 /*nano*/), rs.getTimestamp(3));
         }
+        rs.close();
     }
 
 
@@ -322,6 +325,7 @@ public class TimestampIT extends SpliceUnitTest {
             Assert.assertEquals(
             "", TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
+        rs.close();
     }
 
 
@@ -525,8 +529,8 @@ public class TimestampIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore  // Temporarily ignore.  Randomly fails on the mem platform.
     public void updateTest() throws Exception {
+        methodWatcher.setAutoCommit(false);
         int updated = methodWatcher.executeUpdate(format("update t1 set col1 = {ts '1999-01-01 00:00:00'}"));
         assertEquals("Incorrect number of records updated", 5, updated);
 
@@ -539,6 +543,8 @@ public class TimestampIT extends SpliceUnitTest {
         "1999-01-01 00:00:00.0 |  4  |\n" +
         "1999-01-01 00:00:00.0 |  5  |",
         TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        rs.close();
 
         // Test batch once update...
         /* Enable this test once SPLICE-2214 is fixed...
@@ -553,16 +559,18 @@ public class TimestampIT extends SpliceUnitTest {
         "1999-01-01 00:00:00.0 |  4  |\n" +
         "1999-01-01 00:00:00.0 |  5  |",
         TestUtils.FormattedResult.ResultFactory.toString(rs));  */
+
         methodWatcher.rollback();
+        methodWatcher.setAutoCommit(false);
 
         String match = extendedTimestamps ?
-         "COL1          |COL2 |\n" +
-         "-----------------------------\n" +
-         "0001-01-01 00:00:00.0 |  1  |\n" +
-         "0002-01-01 00:00:00.0 |  2  |\n" +
-         "0003-01-01 00:00:00.0 |  3  |\n" +
-         "0004-01-01 00:00:00.0 |  4  |\n" +
-         "0005-01-01 00:00:00.0 |  5  |" :
+        "COL1          |COL2 |\n" +
+        "-----------------------------\n" +
+        "0001-01-01 00:00:00.0 |  1  |\n" +
+        "0002-01-01 00:00:00.0 |  2  |\n" +
+        "0003-01-01 00:00:00.0 |  3  |\n" +
+        "0004-01-01 00:00:00.0 |  4  |\n" +
+        "0005-01-01 00:00:00.0 |  5  |" :
         "COL1           |COL2 |\n" +
         "-------------------------------\n" +
         "1677-09-20 16:12:43.147 |  1  |\n" +
@@ -573,6 +581,8 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery("select col1,col2 from t1");
         assertEquals(match, TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        rs.close();
 
         rs = methodWatcher.executeQuery("select col1,col2 from t11");
         assertEquals(match, TestUtils.FormattedResult.ResultFactory.toString(rs));
