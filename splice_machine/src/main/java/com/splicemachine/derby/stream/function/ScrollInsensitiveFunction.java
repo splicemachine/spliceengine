@@ -44,4 +44,8 @@ public class ScrollInsensitiveFunction extends SpliceFunction<SpliceOperation, E
             return execRow;
         }
 
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        return true;
+    }
 }

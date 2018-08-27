@@ -97,9 +97,13 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
-            return qualifiers == null?locatedRows:locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
+            if (hasVariantQualifiers(qualifiers)) {
+                // The predicates have variant qualifiers, we couldn't push them down to the scan, process them here
+                return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
+            }
+            return locatedRows;
         }
-
+        
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(HConfiguration.unwrapDelegate());
         conf.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
@@ -135,6 +139,23 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         } finally {
             SpliceSpark.popScope();
         }
+    }
+
+    private boolean hasVariantQualifiers(Qualifier[][] qualifiers) {
+        if (qualifiers == null) {
+            return false;
+        }
+        for (Qualifier[] qs : qualifiers) {
+            if (qs == null)
+                continue;
+
+            for (Qualifier q : qs) {
+                if (q.getVariantType() == Qualifier.VARIANT) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override

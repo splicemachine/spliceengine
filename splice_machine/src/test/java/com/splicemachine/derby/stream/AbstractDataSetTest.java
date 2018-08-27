@@ -76,7 +76,7 @@ public abstract class AbstractDataSetTest extends BaseStreamTest implements Seri
     public void testIndex() throws Exception {
         DataSet<ExecRow> ds = getTenRowsTwoDuplicateRecordsDataSet();
         PairDataSet<RowLocation,ExecRow> pairDataSet = ds.index(new IndexPairFunction());
-        Iterator < ExecRow > it = pairDataSet.values().toLocalIterator();
+        Iterator < ExecRow > it = pairDataSet.values(null).toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
             i++;

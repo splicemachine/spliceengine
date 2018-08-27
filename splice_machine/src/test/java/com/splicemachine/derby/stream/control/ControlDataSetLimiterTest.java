@@ -108,7 +108,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(20);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.subtractByKey(set2, context).values().toLocalIterator();
+        Iterator<ExecRow> it = set1.subtractByKey(set2, context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -119,7 +119,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(200);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.subtractByKey(set2, context).values().toLocalIterator();
+        Iterator<ExecRow> it = set1.subtractByKey(set2, context).values(null).toLocalIterator();
         int i =0;
         while (it.hasNext()) {
             ExecRow row = it.next();
@@ -144,7 +144,7 @@ public class ControlDataSetLimiterTest {
             public int compare(ExecRow o1, ExecRow o2) {
                 return 0;
             }
-        }, context).values().toLocalIterator();
+        }, context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -159,7 +159,7 @@ public class ControlDataSetLimiterTest {
             public int compare(ExecRow o1, ExecRow o2) {
                 return 0;
             }
-        }, context).values().toLocalIterator();
+        }, context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -169,7 +169,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(99);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<Iterable<ExecRow>> it = set1.groupByKey(context).values().toLocalIterator();
+        Iterator<Iterable<ExecRow>> it = set1.groupByKey(context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -179,7 +179,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(101);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<Iterable<ExecRow>> it = set1.groupByKey(context).values().toLocalIterator();
+        Iterator<Iterable<ExecRow>> it = set1.groupByKey(context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -190,7 +190,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(149);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = set1.cogroup(set2, context).values().toLocalIterator();
+        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = set1.cogroup(set2, context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -201,7 +201,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(151);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = set1.cogroup(set2, context).values().toLocalIterator();
+        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = set1.cogroup(set2, context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -212,7 +212,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(49);   // only right side is materialized
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<Tuple2<ExecRow, ExecRow>> it = set1.hashJoin(set2, context).values().toLocalIterator();
+        Iterator<Tuple2<ExecRow, ExecRow>> it = set1.hashJoin(set2, context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -223,7 +223,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(51);   // only right side is materialized
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<Tuple2<ExecRow, ExecRow>> it = set1.hashJoin(set2, context).values().toLocalIterator();
+        Iterator<Tuple2<ExecRow, ExecRow>> it = set1.hashJoin(set2, context).values(null).toLocalIterator();
         it.next();
     }
 
@@ -234,7 +234,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(99);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.values().union(set2.values(), context).distinct(context).toLocalIterator();
+        Iterator<ExecRow> it = set1.values(null).union(set2.values(null), context).distinct(context).toLocalIterator();
         it.next();
     }
 
@@ -245,7 +245,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(101);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.values().union(set2.values(), context).distinct(context).toLocalIterator();
+        Iterator<ExecRow> it = set1.values(null).union(set2.values(null), context).distinct(context).toLocalIterator();
         it.next();
     }
 
@@ -257,7 +257,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(149);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.values().subtract(set2.values(), context).toLocalIterator();
+        Iterator<ExecRow> it = set1.values(null).subtract(set2.values(null), context).toLocalIterator();
         it.next();
     }
 
@@ -268,7 +268,7 @@ public class ControlDataSetLimiterTest {
         ControlExecutionLimiter limiter = new ControlExecutionLimiterImpl(151);
         OperationContext context = Mockito.mock(OperationContext.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(context.getActivation().getLanguageConnectionContext().getControlExecutionLimiter()).thenReturn(limiter);
-        Iterator<ExecRow> it = set1.values().subtract(set2.values(), context).toLocalIterator();
+        Iterator<ExecRow> it = set1.values(null).subtract(set2.values(null), context).toLocalIterator();
         it.next();
     }
 }

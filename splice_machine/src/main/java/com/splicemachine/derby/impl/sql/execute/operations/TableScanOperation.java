@@ -366,7 +366,8 @@ public class TableScanOperation extends ScanOperation{
                 .partitionByColumns(getPartitionColumnMap())
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
                 .ignoreRecentTransactions(isReadOnly(txn))
-                .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+                .buildDataSet(this)
+                .map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 
     private boolean isReadOnly(TxnView txn) {
