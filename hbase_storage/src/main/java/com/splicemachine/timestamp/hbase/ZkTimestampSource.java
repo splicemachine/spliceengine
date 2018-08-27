@@ -14,6 +14,7 @@
 
 package com.splicemachine.timestamp.hbase;
 
+import com.splicemachine.timestamp.api.TimestampIOException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -80,8 +81,17 @@ public class ZkTimestampSource implements TimestampSource {
 		try {
 			nextTimestamp = client.getNextTimestamp();
 		} catch (Exception e) {
-			LOG.error("Unable to fetch new timestamp", e);
-			throw new RuntimeException("Unable to fetch new timestamp", e);
+            LOG.warn("Unable to fetch new timestamp, will retry", e);
+            
+		    // In case of error we are going to reconnect, so we can retry once more and see if we are lucky...
+            try {
+                Thread.sleep(100);
+                
+                nextTimestamp = client.getNextTimestamp();
+            } catch (Exception e2) {
+                LOG.error("Unable to fetch new timestamp", e2);
+                throw new RuntimeException("Unable to fetch new timestamp", e2);
+            }
 		}
 
 		SpliceLogUtils.debug(LOG, "Next timestamp: %s", nextTimestamp);
