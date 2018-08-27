@@ -18,7 +18,9 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -40,6 +42,7 @@ import static org.junit.Assert.*;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(Parameterized.class)
+@Category(SerialTest.class)
 public class TimestampIT extends SpliceUnitTest {
     private static final String SCHEMA = TimestampIT.class.getSimpleName().toUpperCase();
     private Boolean useSpark;
@@ -83,6 +86,13 @@ public class TimestampIT extends SpliceUnitTest {
             s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
             s.execute("CALL SYSCS_UTIL.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
             s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'true')");
+
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t1"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t11"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t2"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t3"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t3b"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t4"));
 
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t1") + "(col1 timestamp, col2 int, primary key(col1,col2))");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t11") + "(col1 timestamp, col2 int)");
@@ -598,6 +608,14 @@ public class TimestampIT extends SpliceUnitTest {
             s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
             s.execute("CALL SYSCS_UTIL.INVALIDATE_GLOBAL_DICTIONARY_CACHE()");
             s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
+
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t1"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t11"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t2"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t3"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t3b"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t4"));
+            conn.commit();
         }
     }
 
