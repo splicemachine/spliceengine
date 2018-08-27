@@ -367,7 +367,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public ExecRow getExecRowDefinition() throws StandardException{
-        throw new RuntimeException("No ExecRow Definition for this node "+this.getClass());
+        return getSubOperations().get(0).getExecRowDefinition();
     }
 
     @Override

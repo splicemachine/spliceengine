@@ -242,7 +242,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values()
+                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values(operationContext)
                         .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.subtractByKey(rightDataSet, operationContext)
@@ -250,7 +250,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 }
             } else { // Inner Join
                 if (isOneRowRightSide()) {
-                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values()
+                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values(operationContext)
                         .flatMap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 }
                 if (restriction !=null) { // with restriction

@@ -166,6 +166,8 @@ public interface DataSet<V> extends //Iterable<V>,
     DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function);
+
+    <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, OperationContext context);
     
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast);
 
@@ -194,6 +196,8 @@ public interface DataSet<V> extends //Iterable<V>,
     long count();
 
     DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext);
+
+    DataSet<V> orderBy(OperationContext operationContext, int[] keyColumns, boolean[] descColumns, boolean[] nullsOrderedLow);
 
     DataSet<V> parallelProbe(List<ScanSetBuilder<ExecRow>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) throws StandardException;
 

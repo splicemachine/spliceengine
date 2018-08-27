@@ -104,7 +104,7 @@ public class SparkExportDataSetWriter<V> implements DataSetWriter{
         ValueRow valueRow=new ValueRow(2);
         valueRow.setColumn(1,new SQLLongint(countFunction.getCount().value()));
         valueRow.setColumn(2,new SQLLongint(end-start));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+        return new SparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
     }
 
     @Override

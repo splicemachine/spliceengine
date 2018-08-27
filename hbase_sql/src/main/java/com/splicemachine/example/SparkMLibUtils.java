@@ -32,7 +32,8 @@ import com.splicemachine.db.iapi.sql.ResultSet;
 public class SparkMLibUtils {
 
     public static JavaRDD<ExecRow> resultSetToRDD(ResultSet rs) throws StandardException {
-        return ((SparkDataSet) ( (SpliceBaseOperation) rs).getDataSet(EngineDriver.driver().processorFactory().distributedProcessor())).rdd;
+//        return ((SparkDataSet) ( (SpliceBaseOperation) rs).getDataSet(EngineDriver.driver().processorFactory().distributedProcessor())).rdd.rdd(); TODO
+        return null;
     }
 
     public static JavaRDD<Vector> locatedRowRDDToVectorRDD(JavaRDD<ExecRow> locatedRowJavaRDD, int[] fieldsToConvert) throws StandardException {

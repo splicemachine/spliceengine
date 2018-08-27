@@ -106,7 +106,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
 
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+        return new SparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
     }
 
     private void sampleAndSplitIndex() throws StandardException {

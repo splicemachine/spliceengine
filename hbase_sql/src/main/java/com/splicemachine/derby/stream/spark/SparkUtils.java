@@ -31,6 +31,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaRDDLike;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -222,7 +223,7 @@ public class SparkUtils {
         SpliceBaseOperation operation = (SpliceBaseOperation) serverSideResultSet;
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         SparkDataSet<ExecRow> spliceDataSet = (SparkDataSet) operation.getResultDataSet(dsp);
-        JavaRDD<ExecRow> rdd = spliceDataSet.rdd;
+        RDD<Row> rdd = spliceDataSet.rdd.rdd();
         final ResultColumnDescriptor[] columns = serverSideResultSet.getResultDescription().getColumnInfo();
 
         // Generate the schema based on the ResultColumnDescriptors
@@ -231,7 +232,7 @@ public class SparkUtils {
             fields.add(column.getStructField());
         }
         StructType schema = DataTypes.createStructType(fields);
-        return SpliceSpark.getSession().createDataFrame(rdd.map(new LocatedRowToRowFunction()), schema);
+        return SpliceSpark.getSession().createDataFrame(rdd, schema);
     }
 
     /**

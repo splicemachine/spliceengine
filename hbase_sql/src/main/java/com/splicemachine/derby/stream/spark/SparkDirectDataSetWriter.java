@@ -26,6 +26,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
 import scala.util.Either;
 import java.util.Collections;
 
@@ -35,7 +36,7 @@ import java.util.Collections;
  */
 public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
     private final JavaPairRDD<K, Either<Exception, V>> rdd;
-    private final JavaSparkContext context;
+    private final SparkSession context;
     private final OperationContext opContext;
     private final Configuration conf;
     private boolean skipIndex;
@@ -43,7 +44,7 @@ public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
     private TxnView txn;
 
     public SparkDirectDataSetWriter(JavaPairRDD<K, Either<Exception, V>> rdd,
-                                    JavaSparkContext context,
+                                    SparkSession context,
                                     OperationContext opContext,
                                     Configuration conf,
                                     boolean skipIndex,
@@ -63,7 +64,7 @@ public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
         rdd.saveAsNewAPIHadoopDataset(conf);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(0));
-        return new SparkDataSet<>(context.parallelize(Collections.singletonList(valueRow), 1));
+        return new SparkDataSet<>(context.createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
     }
 
     @Override

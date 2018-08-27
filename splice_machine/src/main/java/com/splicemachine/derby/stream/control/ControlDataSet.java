@@ -32,6 +32,11 @@ import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
@@ -109,6 +114,23 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public DataSet<V> orderBy(OperationContext operationContext, int[] keyColumns, boolean[] descColumns, boolean[] nullsOrderedLow) {
+        //operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
+        KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
+        PairDataSet pair=map(new CloneFunction<>(operationContext)).keyBy(f);
+        //operationContext.popScope();
+
+        //operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
+        PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
+                OperationContext.Scope.SORT.displayName(), operationContext);
+        //operationContext.popScope();
+
+        //operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);
+        return sortedByKey.values(OperationContext.Scope.READ_SORTED.displayName(), operationContext);
+        //operationContext.popScope();
+    }
+
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
         return mapPartitions(f);
     }
@@ -159,6 +181,12 @@ public class ControlDataSet<V> implements DataSet<V> {
         }));
     }
 
+
+    @Override
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function, OperationContext context) {
+        return index(function);
+    }
+    
     @Override
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function, boolean isLast) {
         return index(function);

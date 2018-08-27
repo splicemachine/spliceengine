@@ -42,7 +42,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     @Test
     public void testValues() {
         PairDataSet<ExecRow, ExecRow> pairDataSet = getTenRows();
-        Iterator<ExecRow> it = pairDataSet.values().toLocalIterator();
+        Iterator<ExecRow> it = pairDataSet.values(null).toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
             i++;
@@ -69,8 +69,8 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
         PairDataSet<ExecRow, ExecRow> pairDataSet = getTenRows();
         PairDataSet<ExecRow, ExecRow> transformedDS = pairDataSet.reduceByKey(new ReduceByKeyFunction());
         Assert.assertEquals("records not reduced", 2, transformedDS.keys().collect().size());
-        Assert.assertEquals("records not reduced", 2, transformedDS.values().collect().size());
-        Iterator<ExecRow> it = transformedDS.values().toLocalIterator();
+        Assert.assertEquals("records not reduced", 2, transformedDS.values(null).collect().size());
+        Iterator<ExecRow> it = transformedDS.values(null).toLocalIterator();
         int total = 0;
         int items = 0;
         while (it.hasNext()) {
@@ -89,7 +89,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getTenRows();
         PairDataSet<ExecRow, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> returnValues = set1.cogroup(set2, null);
-        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = returnValues.values().toLocalIterator();
+        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = returnValues.values(null).toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
             Tuple2<Iterable<ExecRow>,Iterable<ExecRow>> groupedTuples = it.next();
@@ -147,7 +147,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     public void testHashJoin() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
-        Iterator<Tuple2<ExecRow,ExecRow>> it = set1.hashJoin(set2, null).values().toLocalIterator();
+        Iterator<Tuple2<ExecRow,ExecRow>> it = set1.hashJoin(set2, null).values(null).toLocalIterator();
         int i =0;
         while (it.hasNext()) {
             Tuple2<ExecRow,ExecRow> tuple = it.next();
@@ -166,7 +166,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
     public void testSubtractByKey() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getEvenRows();
-        Iterator<ExecRow> it = set1.subtractByKey(set2, null).values().toLocalIterator();
+        Iterator<ExecRow> it = set1.subtractByKey(set2, null).values(null).toLocalIterator();
         int i =0;
         while (it.hasNext()) {
             ExecRow row = it.next();
@@ -196,7 +196,7 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
         PairDataSet<ExecRow, ExecRow> set1 = getTenRows();
         PairDataSet<ExecRow, ExecRow> set2 = getTenRows();
         PairDataSet<ExecRow, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> returnValues = set1.cogroup(set2, null);
-        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = returnValues.values().toLocalIterator();
+        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = returnValues.values(null).toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
             Tuple2<Iterable<ExecRow>,Iterable<ExecRow>> groupedTuples = it.next();

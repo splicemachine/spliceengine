@@ -196,7 +196,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.READ);
-                DataSet set4 = set3.values();
+                DataSet set4 = set3.values(operationContext);
                 operationContext.popScope();
 
                 set = set4;
@@ -213,7 +213,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.READ);
-                DataSet set4 = set3.values();
+                DataSet set4 = set3.values(operationContext);
                 operationContext.popScope();
 
                 set = set4;
@@ -250,7 +250,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         operationContext.popScope();
         
         operationContext.pushScopeForOp(OperationContext.Scope.READ);
-        DataSet set4 = set3.values(OperationContext.Scope.READ.displayName());
+        DataSet set4 = set3.values(OperationContext.Scope.READ.displayName(), operationContext);
         operationContext.popScope();
 
         //need to stitch the split rows together for multiple aggregates case
@@ -264,7 +264,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             operationContext.popScope();
 
             operationContext.pushScopeForOp(OperationContext.Scope.READ);
-            set4 = set7.values(OperationContext.Scope.READ.displayName());
+            set4 = set7.values(OperationContext.Scope.READ.displayName(), operationContext);
             operationContext.popScope();
         }
         

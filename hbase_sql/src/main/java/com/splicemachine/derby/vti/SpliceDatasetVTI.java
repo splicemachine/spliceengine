@@ -47,7 +47,7 @@ public class SpliceDatasetVTI implements DatasetProvider, VTICosting {
         operationContext = dsp.createOperationContext(op);
         if (datasetThreadLocal.get() == null)
             throw new RuntimeException("dataset is null");
-       return SparkDataSet.toSpliceLocatedRow(datasetThreadLocal.get(),operationContext);
+       return (DataSet<ExecRow>) datasetThreadLocal.get();
     }
 
     @Override

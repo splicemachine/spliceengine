@@ -74,7 +74,7 @@ public class BulkDeleteDataSetWriter extends BulkDataSetWriter implements DataSe
 
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+        return new SparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
     }
 
     @Override

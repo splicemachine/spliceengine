@@ -261,6 +261,6 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             }
         }
 
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+        return new SparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
     }
 }

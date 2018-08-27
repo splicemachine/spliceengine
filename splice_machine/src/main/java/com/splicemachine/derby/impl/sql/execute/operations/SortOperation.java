@@ -201,7 +201,8 @@ public class SortOperation extends SpliceBaseOperation{
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext=dsp.createOperationContext(this);
-        DataSet dataSet=source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
+        DataSet dataSet=source.getDataSet(dsp);
+//                .map(new CloneFunction<>(operationContext));
 
         if (distinct) {
             dataSet = dataSet.distinct(OperationContext.Scope.DISTINCT.displayName(),
@@ -215,23 +216,15 @@ public class SortOperation extends SpliceBaseOperation{
             }
         }
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
-        KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
-        PairDataSet pair=dataSet.keyBy(f);
-        //operationContext.popScope();
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
-        PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
-            OperationContext.Scope.SORT.displayName(), operationContext);
-        //operationContext.popScope();
+        DataSet sortedValues = dataSet.orderBy(operationContext, keyColumns,descColumns,nullsOrderedLow);
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);
-        DataSet sortedValues=sortedByKey.values(OperationContext.Scope.READ_SORTED.displayName());
-        //operationContext.popScope();
+
 
         try{
             //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
-            return sortedValues.map(new SetCurrentLocatedRowFunction(operationContext),true);
+            return sortedValues;
+//                    .map(new SetCurrentLocatedRowFunction(operationContext),true);
         }finally{
           //  operationContext.popScope();
         }
