@@ -22,7 +22,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.5.0.1833-SNAPSHOT</version>
+        <version>2.5.0.1835-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -30,7 +30,6 @@
             <artifactId>hbase_sql-${envClassifier}</artifactId>
             <version>${project.version}</version>
         </dependency>
-
     </dependencies>
     <properties>
         <jenkins.build.number>1</jenkins.build.number>
@@ -75,28 +74,9 @@
             <dependencies>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_ee-${envClassifier}</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_backup-${envClassifier}</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_auth</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_colperms</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_encryption</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
+                    <artifactId>spliceengine-ee-assembly</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                 </dependency>
             </dependencies>
         </profile>
@@ -539,25 +519,6 @@
                     <value>installer</value>
                 </property>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_ranger_service-${envClassifier}</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_ranger_admin-${envClassifier}</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_ranger_admin-${envClassifier}</artifactId>
-                    <version>2.5.0.1833-SNAPSHOT</version>
-                </dependency>
-
-
-            </dependencies>
             <build>
                 <plugins>
                     <plugin>
