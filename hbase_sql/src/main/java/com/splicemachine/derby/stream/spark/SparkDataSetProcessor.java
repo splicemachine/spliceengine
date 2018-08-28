@@ -589,7 +589,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = SpliceSpark.getSession().table("SPLICE_"+conglomerateId);
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 //            return new SparkDataSet(table
-//                    .rdd().toJavaRDD()
+//                    .dataset().toJavaRDD()
 //                    .map(new RowToLocatedRowFunction(context,execRow))); TODO
             return null;
         } catch (Exception e) {

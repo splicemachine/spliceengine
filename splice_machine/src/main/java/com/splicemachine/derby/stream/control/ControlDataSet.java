@@ -234,6 +234,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function, OperationContext context) {
+        return keyBy(function);
+    }
+
+
+    @Override
     public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(
         final SpliceFunction<Op, V, K> function, String name, boolean pushScope, String scopeDetail) {
         return keyBy(function);

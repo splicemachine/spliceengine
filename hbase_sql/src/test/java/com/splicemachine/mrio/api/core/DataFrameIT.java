@@ -344,7 +344,7 @@ public class DataFrameIT extends SpliceUnitTest {
             // Construct Stored Procedure Result
             List<ExecRow> rows = Lists.newArrayList();
             ExecRow row = new ValueRow(1);
-            // System.out.println(resultSetDF.rdd().count());
+            // System.out.println(resultSetDF.dataset().count());
             row.setColumn(1, new SQLLongint(resultSetDF.count()));
             rows.add(row);
             IteratorNoPutResultSet resultsToWrap = wrapResults((EmbedConnection) conn, rows, DATAFRAME_COUNT_STORED_PROCEDURE_COLUMN_DECSRIPTOR);

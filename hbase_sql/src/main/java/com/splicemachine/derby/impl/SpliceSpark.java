@@ -69,10 +69,10 @@ public class SpliceSpark {
     static boolean initialized = false;
     static boolean spliceStaticComponentsSetup = false;
     static Broadcast<SerializableWritable<Credentials>> credentials;
-    private static final String SCOPE_KEY = "spark.rdd.scope";
-    private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
-    private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
-    private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
+    private static final String SCOPE_KEY = "spark.dataset.scope";
+    private static final String SCOPE_OVERRIDE = "spark.dataset.scope.noOverride";
+    private static final String OLD_SCOPE_KEY = "spark.dataset.scope.old";
+    private static final String OLD_SCOPE_OVERRIDE = "spark.dataset.scope.noOverride.old";
 
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
@@ -395,8 +395,8 @@ public class SpliceSpark {
     }
 
     public static void popScope() {
-        SpliceSpark.getContext().setLocalProperty("spark.rdd.scope", null);
-        SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
+        SpliceSpark.getContext().setLocalProperty("spark.dataset.scope", null);
+        SpliceSpark.getContext().setLocalProperty("spark.dataset.scope.noOverride", null);
     }
     
     public synchronized static void setContext(JavaSparkContext sparkContext) {

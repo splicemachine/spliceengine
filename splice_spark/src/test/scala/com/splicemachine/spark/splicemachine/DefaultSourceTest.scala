@@ -146,7 +146,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(newDF.count == 15)
   }
 
-  test("upsert using rdd") {
+  test("upsert using dataset") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(5)) )
       .withColumn("C7_BIGINT", when(col("C7_BIGINT").leq(10), col("C7_BIGINT").plus(5)) )
@@ -197,7 +197,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(newDF.count == 20)
   }
 
-  test("bulkImportHFile using rdd") {
+  test("bulkImportHFile using dataset") {
     val bulkImportOptions = scala.collection.mutable.Map(
       "useSpark" -> "true",
       "skipSampling" -> "true"
@@ -229,7 +229,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assertEquals(5, newDF.filter("c6_int < 10").count())
   }
 
-  test ("deletion using rdd") {
+  test ("deletion using dataset") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
     splicemachineContext.delete(deleteDF.rdd, deleteDF.schema, internalTN)
@@ -250,7 +250,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(thrown.getMessage == "Primary Key Required for the Table to Perform Deletes")
   }
 
-  test ("deletion no primary keys using rdd") {
+  test ("deletion no primary keys using dataset") {
     val conn = JdbcUtils.createConnectionFactory(externalJDBCOptions)()
     if (!splicemachineContext.tableExists(externalTN))
       conn.createStatement().execute("create table "+externalTN + this.allTypesCreateStringWithoutPrimaryKey)
@@ -304,7 +304,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(thrown.getMessage == "Primary Key Required for the Table to Perform Updates")
   }
 
-  test ("update using rdd") {
+  test ("update using dataset") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val updatedDF = df
       .filter("C6_INT < 5")

@@ -363,7 +363,7 @@ public class TableScanOperation extends ScanOperation{
                 .location(location)
                 .partitionByColumns(getPartitionColumnMap())
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
-                .buildDataSet(this);
-//                .map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+                .buildDataSet(this)
+                .map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 }
