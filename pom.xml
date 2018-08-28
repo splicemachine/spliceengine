@@ -723,19 +723,19 @@
             <id>insecure</id>
             <properties>
                 <secure>false</secure>
-		<spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
-		<hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
+                <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
+                <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
             </properties>
         </profile>
         <profile>
             <id>secure</id>
             <properties>
                 <secure>true</secure>
-		<spark.keytab>-Dsplice.spark.yarn.keytab=${project.build.directory}/splice.keytab</spark.keytab>
-		<spark.principal>-Dsplice.spark.yarn.principal=hbase/example.com@EXAMPLE.COM</spark.principal>
-		<spark.warehouse>-Dsplice.spark.sql.warehouse.dir=/user/hbase/spark-warehouse</spark.warehouse>
-		<spark.defaultfs>-Dsplice.spark.hadoop.fs.defaultFS=hdfs://localhost:58878/</spark.defaultfs>
-		<hbase.rootdir>-Dhbase.rootdir=/hbase</hbase.rootdir>
+                <spark.keytab>-Dsplice.spark.yarn.keytab=${project.build.directory}/splice.keytab</spark.keytab>
+                <spark.principal>-Dsplice.spark.yarn.principal=hbase/example.com@EXAMPLE.COM</spark.principal>
+                <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=/user/hbase/spark-warehouse</spark.warehouse>
+                <spark.defaultfs>-Dsplice.spark.hadoop.fs.defaultFS=hdfs://localhost:58878/</spark.defaultfs>
+                <hbase.rootdir>-Dhbase.rootdir=/hbase</hbase.rootdir>
             </properties>
         </profile>
         <profile>
@@ -907,6 +907,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -936,6 +937,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -965,6 +967,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -994,6 +997,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1024,6 +1028,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1054,6 +1059,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1084,6 +1090,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1114,6 +1121,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1144,6 +1152,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1174,6 +1183,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1204,6 +1214,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1235,6 +1246,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1267,6 +1279,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
         <profile>
@@ -1299,53 +1312,23 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>assembly</module>
             </modules>
         </profile>
 
         <profile>
-            <id>assemble</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>assemble</value>
-                </property>
-            </activation>
-            <modules>
-                <module>assembly</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>ee-core</id>
+            <id>ee</id>
             <activation>
                 <property>
                     <name>enterprise</name>
-                    <value>ee-core</value>
+                    <value>ee</value>
                 </property>
             </activation>
             <properties>
                 <enterprise>ee</enterprise>
             </properties>
             <modules>
-                <module>../spliceengine-ee/splice_colperms</module>
-                <module>../spliceengine-ee/splice_encryption</module>
-                <module>../spliceengine-ee/enterprise_it</module>
-                <module>../spliceengine-ee/splice_auth</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>ee-platform</id>
-            <activation>
-                <property>
-                    <name>enterprise</name>
-                    <value>ee-platform</value>
-                </property>
-            </activation>
-            <properties>
-                <enterprise>ee</enterprise>
-            </properties>
-            <modules>
-                <module>../spliceengine-ee/splice_backup</module>
-                <module>../spliceengine-ee/splice_ee</module>
+                <module>../spliceengine-ee</module>
             </modules>
         </profile>
         <profile>
