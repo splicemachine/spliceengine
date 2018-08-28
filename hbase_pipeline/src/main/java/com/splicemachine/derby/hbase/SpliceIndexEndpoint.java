@@ -14,12 +14,6 @@
 
 package com.splicemachine.derby.hbase;
 
-import com.google.common.primitives.Ints;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.AclCheckerService;
-import com.splicemachine.pipeline.security.AclChecker;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -53,14 +47,10 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable

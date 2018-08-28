@@ -13,7 +13,6 @@
  */
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -87,7 +86,7 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
         if (!initialized)
         {
             indexTransformFunctions = new IndexTransformFunction[tentativeIndices.size()];
-            List<Integer> cols = Lists.newArrayList();
+            List<Integer> cols = new ArrayList<>();
             if (colMap != null && colMap.length > 0) {
                 for (int i = 0; i < colMap.length; ++i) {
                     cols.add(colMap[i]);
@@ -97,7 +96,7 @@ public class BulkDeleteRowIndexGenerationFunction extends RowAndIndexGenerator {
                 for (DDLMessage.TentativeIndex index : tentativeIndices) {
                     Long conglom = index.getIndex().getConglomerate();
                     List<Integer> indexColsToMainColMapList = index.getIndex().getIndexColsToMainColMapList();
-                    List<Integer> indexColToScanRowList = Lists.newArrayList();
+                    List<Integer> indexColToScanRowList = new ArrayList<>();
                     for (int i = 0; i < indexColsToMainColMapList.size(); ++i) {
                         indexColToScanRowList.add(i, cols.indexOf(indexColsToMainColMapList.get(i)));
                     }

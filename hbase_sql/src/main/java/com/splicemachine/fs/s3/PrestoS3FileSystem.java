@@ -62,7 +62,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.http.HttpStatus.*;
 import static com.splicemachine.fs.s3.RetryDriver.retry;
 import static java.lang.Math.max;
-import com.splicemachine.orc.HiveS3Config;
 
 public class PrestoS3FileSystem
         extends FileSystem
@@ -137,24 +136,23 @@ public class PrestoS3FileSystem
         this.uri = URI.create(uri.getScheme() + "://" + uri.getAuthority());
         this.workingDirectory = new Path(PATH_SEPARATOR).makeQualified(this.uri, new Path(PATH_SEPARATOR));
 
-        HiveS3Config defaults = new HiveS3Config();
-        this.stagingDirectory = new File(conf.get(S3_STAGING_DIRECTORY, defaults.getS3StagingDirectory().toString()));
-        this.maxAttempts = conf.getInt(S3_MAX_CLIENT_RETRIES, defaults.getS3MaxClientRetries()) + 1;
-        this.maxBackoffTime = Duration.valueOf(conf.get(S3_MAX_BACKOFF_TIME, defaults.getS3MaxBackoffTime().toString()));
-        this.maxRetryTime = Duration.valueOf(conf.get(S3_MAX_RETRY_TIME, defaults.getS3MaxRetryTime().toString()));
-        int maxErrorRetries = conf.getInt(S3_MAX_ERROR_RETRIES, defaults.getS3MaxErrorRetries());
-        boolean sslEnabled = conf.getBoolean(S3_SSL_ENABLED, defaults.isS3SslEnabled());
-        Duration connectTimeout = Duration.valueOf(conf.get(S3_CONNECT_TIMEOUT, defaults.getS3ConnectTimeout().toString()));
-        Duration socketTimeout = Duration.valueOf(conf.get(S3_SOCKET_TIMEOUT, defaults.getS3SocketTimeout().toString()));
-        int maxConnections = conf.getInt(S3_MAX_CONNECTIONS, defaults.getS3MaxConnections());
-        long minFileSize = conf.getLong(S3_MULTIPART_MIN_FILE_SIZE, defaults.getS3MultipartMinFileSize().toBytes());
-        long minPartSize = conf.getLong(S3_MULTIPART_MIN_PART_SIZE, defaults.getS3MultipartMinPartSize().toBytes());
-        this.useInstanceCredentials = conf.getBoolean(S3_USE_INSTANCE_CREDENTIALS, defaults.isS3UseInstanceCredentials());
-        this.pinS3ClientToCurrentRegion = conf.getBoolean(S3_PIN_CLIENT_TO_CURRENT_REGION, defaults.isPinS3ClientToCurrentRegion());
-        this.sseEnabled = conf.getBoolean(S3_SSE_ENABLED, defaults.isS3SseEnabled());
-        this.sseType = PrestoS3SseType.valueOf(conf.get(S3_SSE_TYPE, defaults.getS3SseType().name()));
-        this.sseKmsKeyId = conf.get(S3_SSE_KMS_KEY_ID, defaults.getS3SseKmsKeyId());
-        String userAgentPrefix = conf.get(S3_USER_AGENT_PREFIX, defaults.getS3UserAgentPrefix());
+        this.stagingDirectory = new File(conf.get(S3_STAGING_DIRECTORY, System.getProperty("java.io.tmpdir")));
+        this.maxAttempts = conf.getInt(S3_MAX_CLIENT_RETRIES, 3) + 1;
+        this.maxBackoffTime = Duration.valueOf(conf.get(S3_MAX_BACKOFF_TIME, "10m"));
+        this.maxRetryTime = Duration.valueOf(conf.get(S3_MAX_RETRY_TIME, "10m"));
+        int maxErrorRetries = conf.getInt(S3_MAX_ERROR_RETRIES, 10);
+        boolean sslEnabled = conf.getBoolean(S3_SSL_ENABLED, true);
+        Duration connectTimeout = Duration.valueOf(conf.get(S3_CONNECT_TIMEOUT, "5s"));
+        Duration socketTimeout = Duration.valueOf(conf.get(S3_SOCKET_TIMEOUT, "5s"));
+        int maxConnections = conf.getInt(S3_MAX_CONNECTIONS, 500);
+        long minFileSize = conf.getLong(S3_MULTIPART_MIN_FILE_SIZE, 16l << 20);
+        long minPartSize = conf.getLong(S3_MULTIPART_MIN_PART_SIZE, 5l << 20);
+        this.useInstanceCredentials = conf.getBoolean(S3_USE_INSTANCE_CREDENTIALS, true);
+        this.pinS3ClientToCurrentRegion = conf.getBoolean(S3_PIN_CLIENT_TO_CURRENT_REGION, false);
+        this.sseEnabled = conf.getBoolean(S3_SSE_ENABLED, false);
+        this.sseType = PrestoS3SseType.valueOf(conf.get(S3_SSE_TYPE, PrestoS3SseType.S3.name()));
+        this.sseKmsKeyId = conf.get(S3_SSE_KMS_KEY_ID, null);
+        String userAgentPrefix = conf.get(S3_USER_AGENT_PREFIX, "");
 
         ClientConfiguration configuration = new ClientConfiguration()
                 .withMaxErrorRetry(maxErrorRetries)

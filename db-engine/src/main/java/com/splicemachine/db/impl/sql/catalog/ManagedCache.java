@@ -14,9 +14,7 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 
-import com.google.common.cache.LoadingCache;
-import org.spark_project.guava.cache.CacheBuilder;
-import org.spark_project.guava.cache.CacheLoader;
+import org.spark_project.guava.cache.Cache;
 
 import java.beans.ConstructorProperties;
 
@@ -26,7 +24,7 @@ public class ManagedCache<K, V> implements ManagedCacheMBean, GenericManagedCach
 
 
     @ConstructorProperties({"managedCache"})
-    public ManagedCache(org.spark_project.guava.cache.Cache<K, V> managedCache){
+    public ManagedCache(Cache<K, V> managedCache){
         this.managedCache = managedCache;
     }
     @Override public long getSize(){ return managedCache.size(); }

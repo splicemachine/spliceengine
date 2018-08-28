@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl.server;
 
-import com.google.common.util.concurrent.Futures;
+import org.spark_project.guava.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.readresolve.RollForward;
@@ -59,7 +59,7 @@ public class SICompactionState {
     private SortedSet<Cell> dataToReturn;
 
     public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context, ExecutorService executorService) {
-        this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize);
+        this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize,true);
         this.dataToReturn  =new TreeSet<>(KeyValue.COMPARATOR);
         this.context = context;
         this.futuresCache = new ConcurrentHashMap<>(1<<19, 0.75f, 64);

@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.load;
 
-import com.google.common.io.Files;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -25,6 +24,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
@@ -145,7 +145,7 @@ public class ImportErrorIT extends SpliceUnitTest {
         File destFile = new File(getResourceDirectory()+"test_data/bad_import/db1082.csv");
         if(destFile.exists())
             destFile.delete();
-        Files.copy(badFile,destFile);
+        Files.copy(badFile.toPath(), destFile.toPath());
         Connection conn = methodWatcher.getOrCreateConnection();
         conn.setSchema(schema.schemaName);
         try(Statement s = conn.createStatement()){
@@ -161,7 +161,7 @@ public class ImportErrorIT extends SpliceUnitTest {
 
         destFile.delete();
         File goodFile = new File(getResourceDirectory()+"db1082good.csv");
-        Files.copy(goodFile,destFile);
+        Files.copy(goodFile.toPath() ,destFile.toPath());
         try(Statement s = conn.createStatement()){
             s.execute("drop table DB1082");
             s.execute("create table DB1082(a int, b int)");

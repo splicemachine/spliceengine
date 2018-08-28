@@ -54,7 +54,11 @@ public class Exceptions {
             if (rootCause instanceof StandardException) {
                 return (StandardException) rootCause;
             } else if (rootCause instanceof SqlException) {
-                return StandardException.wrapSqlException((SqlException) rootCause);
+                SqlException sqlException = (SqlException) rootCause;
+                String state = sqlException.getSQLState();
+                String messageID = sqlException.getMessage();
+                Throwable next = sqlException.getNextException();
+                return StandardException.newPreLocalizedException(state, next, messageID);
             } else if (rootCause instanceof SQLException) {
                 return StandardException.plainWrapException(rootCause);
             }

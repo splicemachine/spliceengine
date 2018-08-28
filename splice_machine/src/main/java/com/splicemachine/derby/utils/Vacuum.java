@@ -22,7 +22,7 @@ import java.sql.SQLException;
 
 import com.carrotsearch.hppc.LongHashSet;
 
-import com.google.common.collect.Iterables;
+import org.spark_project.guava.collect.Iterables;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
