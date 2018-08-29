@@ -36,6 +36,7 @@
             <modules>
                 <module>../../../spliceengine-ee/splice_backup</module>
                 <module>../../../spliceengine-ee/splice_ee</module>
+                <module>../../../spliceengine-ee/splice_sentry</module>
                 <module>../../../spliceengine-ee/assembly</module>
             </modules>
         </profile>
