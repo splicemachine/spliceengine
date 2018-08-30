@@ -2027,8 +2027,8 @@ public interface SQLState {
 	String NO_REVOKE_PERMISSIONS_WITH_RANGER                                = "EXT38";
 	String ACCESS_DENIED_SENTRY                                = "EXT39";
 	String ROLE_ALREADY_EXISTS_SENTRY                                = "EXT40";
-	String NO_GRANT_PERMISSIONS_WITH_SENTRY                                = "EXT41";
-	String NO_REVOKE_PERMISSIONS_WITH_SENTRY                               = "EXT42";
+	String NO_GRANT_PERMISSIONS_WITH_SENTRY                                = "EXT42";
+	String NO_REVOKE_PERMISSIONS_WITH_SENTRY                               = "EXT43";
 
 
 
