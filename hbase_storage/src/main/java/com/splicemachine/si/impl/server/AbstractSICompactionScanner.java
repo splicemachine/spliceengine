@@ -16,11 +16,8 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.server.CompactionContext;
-import com.splicemachine.si.impl.server.SICompactionState;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -34,7 +31,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -84,7 +80,8 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             compactionState.mutate(entry.cells, txns, list, purgeDeletedRows);
             if (!more) {
                 timer.cancel();
-                context.close();
+                if (context != null)
+                    context.close();
             }
             return more;
         } catch (Exception e) {
@@ -109,15 +106,18 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             try {
                 result = txn.get(timeout, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                context.recordTimeout();
+                if (context != null)
+                    context.recordTimeout();
             }
             long duration = System.currentTimeMillis() - start;
             if (duration < 0)
                 duration = 0;
             remainingTime.addAndGet(-duration);
-            context.timeBlocked(duration);
+            if (context != null)
+                context.timeBlocked(duration);
             if (result == null) {
-                context.recordUnresolvedTransaction();
+                if (context != null)
+                    context.recordUnresolvedTransaction();
             }
             results.add(result);
             if (result != null) {

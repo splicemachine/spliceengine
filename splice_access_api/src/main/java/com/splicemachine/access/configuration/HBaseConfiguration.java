@@ -39,6 +39,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
      */
     public static final String BACKUP_PATH = "splice.backup_node";
     public static final String DEFAULT_BACKUP_PATH = "/backup";
+    public static final String DEFAULT_BACKUP_LOCK_PATH = "/backup_lock";
     public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(false);
     public static final byte[] BACKUP_DONE = Bytes.toBytes(true);
 
@@ -161,18 +162,20 @@ public class HBaseConfiguration implements ConfigurationDefault {
      */
     public static final String MAX_RESERVED_TIMESTAMP_PATH = "/transactions/maxReservedTimestamp";
     public static final List<String> zookeeperPaths = Collections.unmodifiableList(Arrays.asList(
-        CONGLOMERATE_SCHEMA_PATH,
-        CONGLOMERATE_SCHEMA_PATH+"/__CONGLOM_SEQUENCE",
-        DERBY_PROPERTY_PATH,
-        CONGLOMERATE_SCHEMA_PATH,
-        CONGLOMERATE_SCHEMA_PATH,
-        MINIMUM_ACTIVE_PATH,
-        TRANSACTION_PATH,
-        MAX_RESERVED_TIMESTAMP_PATH,
-        DDL_CHANGE_PATH,
-        DDL_PATH,
-        SNOWFLAKE_PATH,
-        BOOKINGS_PATH
+            CONGLOMERATE_SCHEMA_PATH,
+            CONGLOMERATE_SCHEMA_PATH+"/__CONGLOM_SEQUENCE",
+            DERBY_PROPERTY_PATH,
+            CONGLOMERATE_SCHEMA_PATH,
+            CONGLOMERATE_SCHEMA_PATH,
+            MINIMUM_ACTIVE_PATH,
+            TRANSACTION_PATH,
+            MAX_RESERVED_TIMESTAMP_PATH,
+            DDL_CHANGE_PATH,
+            DDL_PATH,
+            SNOWFLAKE_PATH,
+            BOOKINGS_PATH,
+            DEFAULT_BACKUP_PATH,
+            DEFAULT_BACKUP_LOCK_PATH
     ));
 
     // Splice Internal Tables
