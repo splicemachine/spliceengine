@@ -9274,12 +9274,12 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>role</arg>
            </msg>
            <msg>
-               <name>EXT41</name>
+               <name>EXT42</name>
                <text>Cannot grant permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
            </msg>
 
            <msg>
-               <name>EXT42</name>
+               <name>EXT43</name>
                <text>Cannot revoke permissions when Splice Machine is attached to Sentry.  Please use the Sentry CLI.</text>
            </msg>
 
