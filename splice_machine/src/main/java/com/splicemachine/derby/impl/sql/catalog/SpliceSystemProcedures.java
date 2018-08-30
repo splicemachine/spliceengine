@@ -961,6 +961,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("directory", 32672)
                             .bigint("backupId")
                             .build());
+
+                    procedures.add(Procedure.newBuilder().name("VALIDATE_TABLE_BACKUP")
+                            .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("directory", 32672)
+                            .bigint("backupId")
+                            .build());
                     /*
                      * Procedure to get a database property on all region servers in the cluster.
                      */
@@ -1039,6 +1047,31 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(0)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
+                            .build());
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_BACKUP_TABLE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .varchar("directory", 32672)
+                            .varchar("type", 30)
+                            .returnType(null).isDeterministic(false)
+                            .build());
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_TABLE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .catalog("destSchema")
+                            .catalog("destTable")
+                            .catalog("sourceSchema")
+                            .catalog("sourceTable")
+                            .varchar("directory", 32672)
+                            .bigint("backupId")
+                            .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .returnType(null).isDeterministic(false)
                             .build());
 
                     procedures.add(Procedure.newBuilder().name("SYSCS_SAVE_SOURCECODE")
