@@ -25,15 +25,9 @@
     </parent>
     <dependencies>
         <dependency>
-            <!-- Get all projects transitively -->
+            <!-- Get all projects and required dependencies transitively -->
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql-${envClassifier}</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <!-- Ensure assembly is run after ITs -->
-            <groupId>com.splicemachine</groupId>
-            <artifactId>platform_it-${envClassifier}</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
