@@ -25,6 +25,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
+import org.apache.commons.dbutils.DbUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -36,6 +42,14 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
+import java.sql.CallableStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.fail;
 
 /**
  * @author Jeff Cunningham
@@ -48,24 +62,65 @@ public class SimpleDateArithmeticIT {
         new SpliceSchemaWatcher(SimpleDateArithmeticIT.class.getSimpleName().toUpperCase());
 
     private static final String QUALIFIED_TABLE_NAME = schemaWatcher.schemaName + ".date_add_test";
+    private static final String QUALIFIED_TABLE_NAME2 = schemaWatcher.schemaName + ".old_date_test";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
                                             .around(schemaWatcher);
 
     @BeforeClass
-    public static void createTable() throws Exception {
+    public static void createTables() throws Exception {
         new TableCreator(spliceClassWatcher.getOrCreateConnection())
-            .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp, t2 timestamp)", QUALIFIED_TABLE_NAME))
-            .withInsert(String.format("insert into %s values(?,?,?,?)", QUALIFIED_TABLE_NAME))
-            .withRows(rows(
-                row("2012-05-23", new SimpleDateFormat("yyyy-MM-dd").parse("1988-12-26"), Timestamp.valueOf("2000-06-07 17:12:30"), Timestamp.valueOf("2012-12-13 00:00:00"))))
-            .create();
+        .withCreate(String.format("create table %s (s varchar(15), d date, t timestamp, t2 timestamp)", QUALIFIED_TABLE_NAME))
+        .withInsert(String.format("insert into %s values(?,?,?,?)", QUALIFIED_TABLE_NAME))
+        .withRows(rows(
+        row("2012-05-23", new SimpleDateFormat("yyyy-MM-dd").parse("1988-12-26"), Timestamp.valueOf("2000-06-07 17:12:30"), Timestamp.valueOf("2012-12-13 00:00:00"))))
+        .create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        .withCreate(String.format("create table %s (d date, primary key(d))", QUALIFIED_TABLE_NAME2))
+        .create();
+        spliceClassWatcher.commit();
+
+        String dataDir = SpliceUnitTest.getResourceDirectory() + "date.csv";
+
+        String sqlText = String.format("CALL SYSCS_UTIL.MERGE_DATA_FROM_FILE('" + schemaWatcher.schemaName + "','OLD_DATE_TEST',null,'%s',null,null,'yyyy-MM-dd HH:mm:ss.SSS','yyyy-MM-dd',null,0,'/BAD',false,null)", dataDir);
+        try {
+            CallableStatement cs = spliceClassWatcher.prepareCall(sqlText);
+            ResultSet rs = cs.executeQuery();
+            DbUtils.closeQuietly(rs);
+        }
+        catch (Exception e) {
+            Assert.fail("Failed to merge data to table old_date_test.");
+        }
+        spliceClassWatcher.commit();
+
     }
 
     //=========================================================================================================
     // Date column
     //=========================================================================================================
+
+    @Test
+    public void testOldDates() throws Exception {
+        String sqlText =
+        String.format("select d from %s order by 1", QUALIFIED_TABLE_NAME2);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+        "D     |\n" +
+        "------------\n" +
+        "1453-05-29 |\n" +
+        "1775-04-19 |\n" +
+        "1776-07-04 |\n" +
+        "1783-09-03 |\n" +
+        "1791-12-05 |\n" +
+        "1861-04-12 |\n" +
+        "1865-05-13 |";
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
     @Test
     public void testPlusDateColumn() throws Exception {
