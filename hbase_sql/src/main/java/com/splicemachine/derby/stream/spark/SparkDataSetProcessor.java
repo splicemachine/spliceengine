@@ -318,11 +318,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     return getEmpty();
 
                 // Infer schema from external files\
-                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "p");
+//                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "p");
 
                 table = SpliceSpark.getSession()
                         .read()
-                        .schema(dataSchema)
+                        .schema(tableSchema)
                         .parquet(location);
 
                 ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);

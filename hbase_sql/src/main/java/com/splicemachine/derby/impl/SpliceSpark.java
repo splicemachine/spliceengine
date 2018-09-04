@@ -257,6 +257,7 @@ public class SpliceSpark {
         // Set default warehouse directory, currently spark can get confused.
         // User Supplied splice.spark.sql.warehouse.dir will overwrite it.
         conf.set("spark.sql.warehouse.dir", "/user/splice/spark-warehouse");
+        conf.set("spark.sql.autoBroadcastJoinThreshold", "-1");
 
         String schedulerAllocationFile = System.getProperty("splice.spark.scheduler.allocation.file");
         if (schedulerAllocationFile != null) {

@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.spark.api.java.function.FilterFunction;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -81,7 +82,15 @@ public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOpe
 
     @Override
     public <V> Dataset<V> spark(Dataset<V> input) {
-        return input.filter(new DatasetNullFilter(hashKeys));
+        Column andCols = null;
+        for (int i : hashKeys) {
+            Column col = input.col("c"+i).isNotNull();
+            if (andCols ==null)
+                andCols = col;
+            else
+                andCols = andCols.and(col);
+        }
+        return input.filter(andCols);
     }
 
 }

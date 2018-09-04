@@ -107,23 +107,30 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     private Map<String,String> attributes;
     private ExecRow execRow;
     public NativeSparkDataSet(Dataset<Row> dataset) {
-        this.dataset = dataset;
+        int cols = dataset.columns().length;
+        String[] colNames = new String[cols];
+        for (int i = 0; i<cols; i++) {
+            colNames[i] = "c"+i;
+        }
+        this.dataset = dataset.toDF(colNames);
+        dataset.explain(true);
+//        dataset.toDF().to
     }
 
 
     public NativeSparkDataSet(Dataset<Row> dataset, ExecRow execRow) {
-        this.dataset = dataset;
+        this(dataset);
         this.execRow = execRow;
     }
 
     public NativeSparkDataSet(Dataset<Row> dataset, String rddname) {
-        this.dataset = dataset;
+        this(dataset);
 //        if (dataset != null && rddname != null) this.dataset.(rddname);
     }
 
     public NativeSparkDataSet(JavaRDD<V> rdd, String ignored, OperationContext context) {
+        this(NativeSparkDataSet.<V>toSparkRow(rdd, context));
         try {
-            this.dataset = NativeSparkDataSet.<V>toSparkRow(rdd, context);
             this.execRow = context.getOperation().getExecRowDefinition();
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
@@ -304,7 +311,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
         try {
             OperationContext<Op> context = f.operationContext;
-            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context)).map(f, name, isLast, pushScope, scopeDetail);
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, f.getExecRow(), context)).map(f, name, isLast, pushScope, scopeDetail);
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
@@ -449,6 +456,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 //            if (pushScope) SpliceSpark.popScope();
 //        }
 
+        if (f.hasNativeSparkImplementation()) {
+            return new NativeSparkDataSet<>(f.spark(dataset));
+        }
         try {
             OperationContext<Op> context = f.operationContext;
             return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context)).filter(f, isLast, pushScope, scopeDetail);
@@ -854,13 +864,17 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      * @throws Exception
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    static <V> Dataset<Row> toSparkRow(JavaRDD<V> rdd, OperationContext context) throws Exception{
-        return SpliceSpark.getSession()
-                .createDataFrame(
-                        rdd.map(new LocatedRowToRowFunction()),
-                        context.getOperation()
-                                .getExecRowDefinition()
-                                .schema());
+    static <V> Dataset<Row> toSparkRow(JavaRDD<V> rdd, OperationContext context) {
+        try {
+            return SpliceSpark.getSession()
+                    .createDataFrame(
+                            rdd.map(new LocatedRowToRowFunction()),
+                            context.getOperation()
+                                    .getExecRowDefinition()
+                                    .schema());
+        } catch (Exception e) {
+            throw Exceptions.throwAsRuntime(e);
+        }
     }
 
     /**
@@ -877,6 +891,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     public static <V> JavaRDD<V> toSpliceLocatedRow(Dataset<Row> dataSet, ExecRow execRow, OperationContext context) throws StandardException {
+        dataSet.explain(true);
         if (execRow != null) {
             return (JavaRDD<V>) dataSet.javaRDD().map(new RowToLocatedRowFunction(context, execRow));
         }
