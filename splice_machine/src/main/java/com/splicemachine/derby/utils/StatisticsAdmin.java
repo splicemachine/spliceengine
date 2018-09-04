@@ -600,7 +600,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return outputRow;
     }
 
-    private static List<TableDescriptor> getAllTableDescriptors(SchemaDescriptor sd, EmbedConnection conn) throws
+    public static List<TableDescriptor> getAllTableDescriptors(SchemaDescriptor sd, EmbedConnection conn) throws
         SQLException {
         try (PreparedStatement statement = conn.prepareStatement(TABLEID_FROM_SCHEMA)) {
             statement.setString(1, sd.getUUID().toString());

@@ -631,6 +631,8 @@
                         <excludes>
                             <exclude>**/*log4j.properties</exclude>
                             <exclude>**/splice-site.xml</exclude>
+                            <exclude>**/atlas-application.properties</exclude>
+                            <exclude>**/user-credentials.properties</exclude>
                         </excludes>
                     </configuration>
                     <executions>

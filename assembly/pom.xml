@@ -562,6 +562,7 @@
                                         super-csv,
                                         splice_ranger_admin-${envClassifier},
                                         splice_ranger_service-${envClassifier},
+                                        splice_atlas-${envClassifier},
                                         c3p0,
                                         mchange-commons-java
                                     </includeArtifactIds>
