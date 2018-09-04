@@ -38,18 +38,15 @@ public class MetadataFactoryService {
     public static MetadataFactory newMetadataFactory(){
         ServiceLoader<MetadataFactory> factoryService = ServiceLoader.load(MetadataFactory.class);
         Iterator<MetadataFactory> iter = factoryService.iterator();
-//        int i = 0;
         if(!iter.hasNext())
             throw new IllegalStateException("No Metadatafactory service found!");
         MetadataFactory mf = null;
-        MetadataFactory currentMF = null;
+        MetadataFactory currentMF;
         while (iter.hasNext()) {
-  //          i++;
-            currentMF = (MetadataFactory) iter.next();
+            currentMF = iter.next();
             if (mf == null || mf.getPriority() < currentMF.getPriority())
                 mf = currentMF;
         }
-//        if (i != 2) throw new UnsupportedOperationException("Not Supported");
         return mf;
     }
 }
