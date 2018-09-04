@@ -34,7 +34,11 @@ import com.splicemachine.derby.utils.*;
 import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
 
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  * System procedure generator implementation class that extends
