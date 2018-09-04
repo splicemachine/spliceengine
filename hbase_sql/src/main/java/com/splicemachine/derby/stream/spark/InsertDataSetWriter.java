@@ -100,7 +100,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                     }
                 }
             }
-            return new SparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
+            return new NativeSparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
     }
 
     @Override

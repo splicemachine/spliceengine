@@ -186,7 +186,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
         try {
             OperationContext<Op> context = f.operationContext;
-            return new NativeSparkDataSet<U>(toSparkRow(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context).mapPartitions(new SparkFlatMapFunction<>(f)), context),f.getExecRow());
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context)).mapPartitions(f);
+
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
@@ -298,9 +299,12 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 //        } finally {
 //            if (pushScope) SpliceSpark.popScope();
 //        }
+        if (f.hasNativeSparkImplementation()) {
+            return new NativeSparkDataSet<>(f.spark(dataset));
+        }
         try {
             OperationContext<Op> context = f.operationContext;
-            return new NativeSparkDataSet<U>(toSparkRow(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, execRow, context).map(new SparkSpliceFunctionWrapper<>(f)), context),f.getExecRow());
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context)).map(f, name, isLast, pushScope, scopeDetail);
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
@@ -447,7 +451,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
         try {
             OperationContext<Op> context = f.operationContext;
-            return new NativeSparkDataSet<V>(toSparkRow(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context).filter(new SparkSpliceFunctionWrapper<>(f)), context),execRow);
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context)).filter(f, isLast, pushScope, scopeDetail);
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
@@ -514,12 +518,23 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             Dataset<Row> left = dataset;
 
             //Convert the left operand to a untyped dataset
-            Dataset<Row> right = ((NativeSparkDataSet)dataSet).dataset;
+            Dataset<Row> right;
+            if (dataSet instanceof NativeSparkDataSet) {
+                right = ((NativeSparkDataSet) dataSet).dataset;
+            } else {
+                //Convert the right operand to a untyped dataset
+                right = SpliceSpark.getSession()
+                        .createDataFrame(
+                                ((SparkDataSet)dataSet).rdd
+                                        .map(new LocatedRowToRowFunction()),
+                                context.getOperation()
+                                        .getExecRowDefinition()
+                                        .schema());
+            }
 
             //Do the intesect
             Dataset<Row> result = left.intersect(right);
 
-            //Convert back to RDD<ExecRow>
             return new NativeSparkDataSet<V>(result);
 
         }
@@ -545,7 +560,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             Dataset<Row> left = dataset;
 
             //Convert the right operand to a untyped dataset
-            Dataset<Row> right = ((NativeSparkDataSet)dataSet).dataset;
+            Dataset<Row> right;
+            if (dataSet instanceof NativeSparkDataSet) {
+                right = ((NativeSparkDataSet) dataSet).dataset;
+            } else {
+                right = SpliceSpark.getSession().createDataFrame(
+                        ((SparkDataSet)dataSet).rdd.map(new LocatedRowToRowFunction()),
+                        context.getOperation().getRightOperation().getExecRowDefinition().schema());
+            }
 
             //Do the subtract
             Dataset<Row> result = left.except(right);
@@ -573,7 +595,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 //        return new SparkDataSet<>(dataset.flatMap(new SparkFlatMapFunction<>(f)), f.getSparkName());
         try {
             OperationContext<Op> context = f.operationContext;
-            return new NativeSparkDataSet<U>(toSparkRow(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context).flatMap(new SparkFlatMapFunction<>(f)), context),f.getSparkName());
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context)).flatMap(f);
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
@@ -583,7 +605,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 //        return new SparkDataSet<>(dataset.flatMap(new SparkFlatMapFunction<>(f)), name);
         try {
             OperationContext<Op> context = f.operationContext;
-            return new NativeSparkDataSet<U>(toSparkRow(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context).flatMap(new SparkFlatMapFunction<>(f)), context),f.getSparkName());
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context)).flatMap(f, name);
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
@@ -593,7 +615,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 //        return new SparkDataSet<>(dataset.flatMap(new SparkFlatMapFunction<>(f)), planIfLast(f, isLast));
         try {
             OperationContext<Op> context = f.operationContext;
-            return new NativeSparkDataSet<U>(toSparkRow(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context).flatMap(new SparkFlatMapFunction<>(f)), context),f.getSparkName());
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, context)).flatMap(f, isLast);
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
@@ -791,10 +813,18 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         try {
             JoinOperation op = (JoinOperation) context.getOperation();
             Dataset<Row> leftDF = dataset;
-            Dataset<Row> rightDF = ((NativeSparkDataSet)rightDataSet).dataset;
-                if (isBroadcast) {
-                    rightDF = broadcast(rightDF);
-                }
+            Dataset<Row> rightDF;
+            if (rightDataSet instanceof NativeSparkDataSet) {
+                rightDF = ((NativeSparkDataSet)rightDataSet).dataset;
+            } else {
+                rightDF = SpliceSpark.getSession().createDataFrame(
+                        ((SparkDataSet)rightDataSet).rdd.map(new LocatedRowToRowFunction()),
+                        context.getOperation().getRightOperation().getExecRowDefinition().schema());
+            }
+
+            if (isBroadcast) {
+                rightDF = broadcast(rightDF);
+            }
             Column expr = null;
             int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
             int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
@@ -842,6 +872,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static <V> JavaRDD<V> toSpliceLocatedRow(Dataset<Row> dataSet, OperationContext context) throws StandardException {
+        dataSet.explain(true);
         return (JavaRDD<V>) dataSet.javaRDD().map(new RowToLocatedRowFunction(context));
     }
 

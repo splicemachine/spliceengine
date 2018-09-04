@@ -97,7 +97,11 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
-            return qualifiers == null?locatedRows:locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
+            if (hasVariantQualifiers(qualifiers)) {
+                // The predicates have variant qualifiers, we couldn't push them down to the scan, process them here
+                return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
+            }
+            return locatedRows;
         }
 
         JavaSparkContext ctx = SpliceSpark.getContext();
@@ -131,10 +135,27 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
             return new SparkDataSet<>(useSample?rawRDD.map(f).filter(pred).sample(false, sampleFraction):rawRDD.map(f).filter(pred),
-                                      op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName(), operationContext);
+                                      op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
         } finally {
             SpliceSpark.popScope();
         }
+    }
+
+    private boolean hasVariantQualifiers(Qualifier[][] qualifiers) {
+        if (qualifiers == null) {
+            return false;
+        }
+        for (Qualifier[] qs : qualifiers) {
+            if (qs == null)
+                continue;
+
+            for (Qualifier q : qs) {
+                if (q.getVariantType() == Qualifier.VARIANT) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override

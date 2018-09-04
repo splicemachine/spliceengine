@@ -54,7 +54,7 @@ public class SparkDataSetTest extends AbstractDataSetTest{
     @Override
     protected DataSet<ExecRow> getTenRowsTwoDuplicateRecordsDataSet() {
         List<Row> rows = new ArrayList<>(tenRowsTwoDuplicateRecords);
-        return new SparkDataSet<>(SpliceSpark.getSessionUnsafe().createDataFrame(rows, tenRowsTwoDuplicateRecords.get(0).schema()));
+        return new NativeSparkDataSet<>(SpliceSpark.getSessionUnsafe().createDataFrame(rows, tenRowsTwoDuplicateRecords.get(0).schema()));
     }
 // Supported join types include: 'inner', 'outer', 'full', 'fullouter', 'leftouter', 'left', 'rightouter', 'right', 'leftsemi', 'leftanti'
     @Test

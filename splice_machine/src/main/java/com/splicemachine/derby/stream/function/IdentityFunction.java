@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2018 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -10,40 +10,31 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.utils.StreamLogUtils;
 
-/**
- *
- *
- */
-public class SetCurrentLocatedRowAndRowKeyFunction<Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,ExecRow> {
 
-    public SetCurrentLocatedRowAndRowKeyFunction() {
-        super();
+public class IdentityFunction<Op extends SpliceOperation> extends SpliceFunction<Op, ExecRow, ExecRow> {
+    public IdentityFunction() {
     }
 
-    public SetCurrentLocatedRowAndRowKeyFunction(OperationContext operationContext) {
+    public IdentityFunction(OperationContext<Op> operationContext) {
         super(operationContext);
     }
 
     @Override
-    public ExecRow call(ExecRow locatedRow) throws Exception {
-        getOperation().setCurrentRow(locatedRow);
-        getOperation().setCurrentRowLocation(new HBaseRowLocation(locatedRow.getKey()));
-        StreamLogUtils.logOperationRecord(locatedRow, operationContext);
-        return locatedRow;
+    public ExecRow call(ExecRow o) throws Exception {
+        return o;
     }
 
     @Override
     public boolean hasNativeSparkImplementation() {
-        return true;
+        return false;    // force materialization into derby's representation
     }
 }

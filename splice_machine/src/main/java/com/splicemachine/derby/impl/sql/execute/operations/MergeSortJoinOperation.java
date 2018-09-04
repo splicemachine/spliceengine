@@ -184,7 +184,8 @@ public class MergeSortJoinOperation extends JoinOperation {
 
         // Prepare Left
 
-        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp).map(new CloneFunction<>(operationContext));
+        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp)
+                .map(new CloneFunction<>(operationContext));
 
        // operationContext.pushScopeForOp("Prepare Left Side");
         DataSet<ExecRow> leftDataSet2 =
@@ -225,7 +226,8 @@ public class MergeSortJoinOperation extends JoinOperation {
                         isOuterJoin ? "outer" : "inner", notExistsRightSide, rightFromSSQ, restriction != null);
             joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
         }
-            return joined.map(new CountProducedFunction(operationContext), true);
+            return joined;
+                    //.map(new CountProducedFunction(operationContext), true);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })

@@ -123,7 +123,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> getEmpty(String name) {
-        return new SparkDataSet<>(SpliceSpark.getSession().emptyDataFrame());
+        return new NativeSparkDataSet<>(SpliceSpark.getSession().emptyDataFrame());
     }
 
     @Override
@@ -139,7 +139,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             Dataset<Row> rdd1 = SpliceSpark.getSession().createDataFrame(Collections.singletonList((ExecRow)value), ((ExecRow)value).schema());
 //            rdd1.setName(RDDName.SINGLE_ROW_DATA_SET.displayName());                  TODO
-            return new SparkDataSet<>(rdd1);                                            
+            return new NativeSparkDataSet<>(rdd1);
         } finally {
             SpliceSpark.popScope();
         }
@@ -235,7 +235,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         }
                     });
             SparkUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
-            return new SparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName(), op.getOperationContext());
+            return new NativeSparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName(), op.getOperationContext());
         } catch (IOException | StandardException ioe) {
             throw new RuntimeException(ioe);
         } finally {
@@ -333,10 +333,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
+                return new NativeSparkDataSet(table
                         .sample(false, sampleFraction));
             } else {
-                return new SparkDataSet(table);
+                return new NativeSparkDataSet(table);
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -376,10 +376,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
+                return new NativeSparkDataSet(table
                         .sample(false, sampleFraction));
             } else {
-                return new SparkDataSet(table);
+                return new NativeSparkDataSet(table);
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -631,9 +631,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                             .values();
 
             if (useSample) {
-                return new SparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)),"", context);
+                return new NativeSparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)),"", context);
             } else {
-                return new SparkDataSet(rows.map(new RowToLocatedRowFunction(context, execRow)), "", context);
+                return new NativeSparkDataSet(rows.map(new RowToLocatedRowFunction(context, execRow)), "", context);
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -702,10 +702,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
+                return new NativeSparkDataSet(table
                         .sample(false, sampleFraction));
             } else {
-                return new SparkDataSet(table);
+                return new NativeSparkDataSet(table);
             }
         } catch (Exception e) {
             throw StandardException.newException(

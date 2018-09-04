@@ -61,14 +61,14 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public DataSet<V> values(String name, OperationContext context){
-        return new SparkDataSet<>(rdd.values(),name, context);
+        return new SparkDataSet<>(rdd.values(),name);
     }
 
     @Override
     public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
         if (pushScope) context.pushScopeForOp(scopeDetail);
         try {
-            return new SparkDataSet<V>(rdd.values(), name != null ? name : RDDName.GET_VALUES.displayName(), context);
+            return new SparkDataSet<V>(rdd.values(), name != null ? name : RDDName.GET_VALUES.displayName());
         } finally {
             if (pushScope) context.popScope();
         }
@@ -98,7 +98,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> map(SpliceFunction<Op, Tuple2<K, V>, U> function){
-        return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)),function.getSparkName(), function.operationContext);
+        return new SparkDataSet<>(rdd.map(new SparkSpliceFunctionWrapper<>(function)),function.getSparkName());
     }
 
     @Override
@@ -178,12 +178,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K, V>, U> f){
-        return new SparkDataSet<U>(rdd.flatMap(new SparkFlatMapFunction<>(f)),f.getSparkName(), f.operationContext);
+        return new SparkDataSet<U>(rdd.flatMap(new SparkFlatMapFunction<>(f)),f.getSparkName());
     }
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K, V>, U> f,boolean isLast){
-        return new SparkDataSet<>(rdd.flatMap(new SparkFlatMapFunction<>(f)),planIfLast(f,isLast), f.operationContext);
+        return new SparkDataSet<>(rdd.flatMap(new SparkFlatMapFunction<>(f)),planIfLast(f,isLast));
     }
 
     @Override
@@ -211,7 +211,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f){
-        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)),f.getSparkName(), f.operationContext);
+        return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)),f.getSparkName());
     }
 
     @Override

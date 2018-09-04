@@ -22,6 +22,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.derby.stream.function.IdentityFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -83,13 +84,13 @@ public class QueryJob implements Callable<Void>{
             dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
             context = dsp.createOperationContext(root);
-            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset.map(new CloneFunction<>(context));
+            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset.map(new CloneFunction<>(context)).map(new IdentityFunction<>(context));
             String clientHost = queryRequest.host;
             int clientPort = queryRequest.port;
             UUID uuid = queryRequest.uuid;
             int numPartitions = sparkDataSet.rdd.rdd().getNumPartitions();
 
-            JavaRDD rdd = SparkDataSet.toSpliceLocatedRow(sparkDataSet.rdd, context);
+            JavaRDD rdd =  sparkDataSet.rdd;
             StreamableRDD streamableRDD = new StreamableRDD<>(rdd, context, uuid, clientHost, clientPort,
                     queryRequest.streamingBatches, queryRequest.streamingBatchSize);
             streamableRDD.setJobStatus(status);

@@ -201,19 +201,19 @@ public class SortOperation extends SpliceBaseOperation{
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext=dsp.createOperationContext(this);
-        DataSet dataSet=source.getDataSet(dsp);
-//                .map(new CloneFunction<>(operationContext));
+        DataSet dataSet=source.getDataSet(dsp)
+                .map(new CloneFunction<>(operationContext));
 
         if (distinct) {
             dataSet = dataSet.distinct(OperationContext.Scope.DISTINCT.displayName(),
                 false, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
-            try {
-                //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
-                dataSet = dataSet.map(new SetCurrentLocatedRowFunction(operationContext), true);
-
-            } finally {
-               // operationContext.popScope();
-            }
+//            try {
+//                //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
+////                dataSet = dataSet.map(new SetCurrentLocatedRowFunction(operationContext), true);
+//
+//            } finally {
+//               // operationContext.popScope();
+//            }
         }
 
 
