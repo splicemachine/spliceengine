@@ -144,17 +144,18 @@ public class SpliceClient {
                 if (pool == null) {
                     pool = new ComboPooledDataSource();
                     try {
+                        String poolConnectionString = connectionString;
                         pool.setDriverClass("com.splicemachine.db.jdbc.Driver40");
 
                         // parse and mask password in JDBC url in order to make it not logged
                         String password = parseJDBCPassword(connectionString);
                         if (password != null) {
-                            connectionString = connectionString.replace(
+                            poolConnectionString = poolConnectionString.replace(
                                     "password="+password+";", "");
-                            connectionString = connectionString.replace(
+                            poolConnectionString = poolConnectionString.replace(
                                     "password="+password, "");
                         }
-                        pool.setJdbcUrl(connectionString);
+                        pool.setJdbcUrl(poolConnectionString);
                         if (password != null) {
                             pool.setPassword(password);
                         }
