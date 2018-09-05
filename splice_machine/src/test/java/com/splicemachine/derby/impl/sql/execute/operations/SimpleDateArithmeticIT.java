@@ -63,6 +63,7 @@ public class SimpleDateArithmeticIT {
 
     private static final String QUALIFIED_TABLE_NAME = schemaWatcher.schemaName + ".date_add_test";
     private static final String QUALIFIED_TABLE_NAME2 = schemaWatcher.schemaName + ".old_date_test";
+    private static final String QUALIFIED_TIME_TABLE_NAME = schemaWatcher.schemaName + ".time_test";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -92,6 +93,24 @@ public class SimpleDateArithmeticIT {
         }
         catch (Exception e) {
             Assert.fail("Failed to merge data to table old_date_test.");
+        }
+
+        dataDir = SpliceUnitTest.getResourceDirectory() + "time.csv";
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        .withCreate(String.format("create table %s (t time, primary key(t))", QUALIFIED_TIME_TABLE_NAME))
+        .create();
+        spliceClassWatcher.commit();
+
+        dataDir = SpliceUnitTest.getResourceDirectory() + "time.csv";
+
+        sqlText = String.format("CALL SYSCS_UTIL.MERGE_DATA_FROM_FILE('" + schemaWatcher.schemaName + "','TIME_TEST',null,'%s',null,null,'yyyy-MM-dd HH:mm:ss.SSS','yyyy-MM-dd','HH:mm:ss',0,'/BAD',false,null)", dataDir);
+        try {
+            CallableStatement cs = spliceClassWatcher.prepareCall(sqlText);
+            ResultSet rs = cs.executeQuery();
+            DbUtils.closeQuietly(rs);
+        }
+        catch (Exception e) {
+            Assert.fail("Failed to merge data to table time_test.");
         }
         spliceClassWatcher.commit();
 
@@ -723,5 +742,37 @@ public class SimpleDateArithmeticIT {
             Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
+
+
+    //=========================================================================================================
+    // Time column
+    //=========================================================================================================
+
+    @Test
+    public void testTimeColumn() throws Exception {
+        String sqlText =
+        String.format("select t from %s order by 1", QUALIFIED_TIME_TABLE_NAME);
+
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+
+        String expected =
+        "T    |\n" +
+        "----------\n" +
+        "00:00:00 |\n" +
+        "00:00:01 |\n" +
+        "00:00:59 |\n" +
+        "00:01:01 |\n" +
+        "01:01:01 |\n" +
+        "05:55:55 |\n" +
+        "12:01:01 |\n" +
+        "15:09:02 |\n" +
+        "20:15:59 |\n" +
+        "22:01:00 |\n" +
+        "23:00:01 |\n" +
+        "23:59:59 |";
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
 }
 
