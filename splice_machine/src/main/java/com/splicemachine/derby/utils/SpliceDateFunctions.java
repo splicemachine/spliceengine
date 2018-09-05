@@ -112,8 +112,7 @@ public class SpliceDateFunctions {
      */
     public static Time TO_TIME(String source, String format) throws SQLException {
         if (source == null) return null;
-        Date date = TO_DATE(source, format);
-        return new Time(date.getTime()) ;
+        return new Time(stringWithFormatToDateTime(source, format).getMillis()) ;
     }
 
     /**
