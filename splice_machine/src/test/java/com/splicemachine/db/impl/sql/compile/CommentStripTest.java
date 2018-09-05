@@ -9,7 +9,7 @@ import org.junit.Test;
 /**
  * Created by yxia on 8/30/18.
  */
-public class CommentStripIT {
+public class CommentStripTest {
     private CommentStripper commentStripper = new CommentStripperImpl();
 
     @Test
