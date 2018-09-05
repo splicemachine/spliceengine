@@ -63,7 +63,7 @@ TOKEN :
 
 <IN_QUOTATION> TOKEN :
 {
-    <QUOTED_TEXT: (~["'"])*>
+    <QUOTED_TEXT: (~["'"])+>
 |   <CLOSE_QUOTE: "'"> : DEFAULT
 }
 
