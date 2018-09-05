@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.UTF8Util;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -95,6 +96,7 @@ import java.util.Locale;
 public class SQLChar
     extends DataType implements StringDataValue, StreamStorable
 {
+    private static Logger logger = Logger.getLogger(SQLChar.class);
     /**************************************************************************
      * static fields of the class
      **************************************************************************
@@ -1997,15 +1999,21 @@ public class SQLChar
 
                 StatementContext statementContext = (StatementContext)
                     ContextService.getContext(ContextId.LANG_STATEMENT);
-                // In some cases, the activation will be null on the context,
-                // which resulted in NPE when trying to add warning (DB-1288).
-                // When this happens, we have no choice but to skip the warning.
-                // We can address this later when we more deeply look into
-                // error and warning propagation.
-                Activation activation = statementContext.getActivation();
-                if (activation != null) {
-	                activation.getResultSet().addWarning(warning);
+                if (statementContext != null) {
+                    // In some cases, the activation will be null on the context,
+                    // which resulted in NPE when trying to add warning (DB-1288).
+                    // When this happens, we have no choice but to skip the warning.
+                    // We can address this later when we more deeply look into
+                    // error and warning propagation.
+                    Activation activation = statementContext.getActivation();
+                    if (activation != null) {
+                        activation.getResultSet().addWarning(warning);
+                    }
                 }
+
+                String warningMessage = String.format("Truncated a string source=%s, sourceWidth=%d, desiredWidth=%d, type=%s",
+                        source, sourceWidth, desiredWidth, this.getTypeName());
+                logger.warn(warningMessage);
             }
 
             /*
