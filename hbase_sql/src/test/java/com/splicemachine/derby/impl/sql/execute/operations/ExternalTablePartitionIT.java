@@ -236,6 +236,13 @@ public class ExternalTablePartitionIT {
                     "------------------\n" +
                     "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs5));
 
+            /* test query with predicate on partitioning column and non-partitioning column */
+            ResultSet rs51 = methodWatcher.executeQuery("select * from orc_part_1st where col1>=3 and col1<4 and col3='BBB'");
+            assertEquals("COL1 |COL2 |COL3 |\n" +
+                    "------------------\n" +
+                    "  3  |  4  | BBB |",TestUtils.FormattedResult.ResultFactory.toString(rs51));
+
+
             ResultSet rs6 = methodWatcher.executeQuery("select * from orc_part_1st where col2=4");
             assertEquals("COL1 |COL2 |COL3 |\n" +
                     "------------------\n" +
