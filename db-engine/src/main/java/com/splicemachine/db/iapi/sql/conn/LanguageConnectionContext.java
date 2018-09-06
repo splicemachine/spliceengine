@@ -1411,6 +1411,6 @@ public interface LanguageConnectionContext extends Context {
 	String getOrigStmtTxt();
 
 	CommentStripper getCommentStripper();
-	boolean getIgnoreCommentOptDisabled();
+	boolean getIgnoreCommentOptEnabled();
 
 }

@@ -1249,7 +1249,7 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
                 //and clear existing result sets in case this has been cached
                 a.reset();
                 a.setMaxRows(maxRows);
-                if (!lcc.getIgnoreCommentOptDisabled()) {
+                if (lcc.getIgnoreCommentOptEnabled()) {
                     lcc.setOrigStmtTxt(getSQLText());
                 }
                 ResultSet resultsToWrap = ps.execute(a, timeoutMillis);
