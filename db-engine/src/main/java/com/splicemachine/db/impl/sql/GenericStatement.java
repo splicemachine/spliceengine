@@ -89,7 +89,7 @@ public class GenericStatement implements Statement{
         this.compilationSchema=compilationSchema;
         this.statementText=statementText;
         this.isForReadOnly=isForReadOnly;
-        if (!lcc.getIgnoreCommentOptDisabled()) {
+        if (lcc.getIgnoreCommentOptEnabled()) {
             this.statementTextTrimed = filterComment(statementText, lcc);
         } else {
             this.statementTextTrimed = statementText;
@@ -327,7 +327,7 @@ public class GenericStatement implements Statement{
 		 */
         boolean foundInCache=false;
         sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();
-        if (!lcc.getIgnoreCommentOptDisabled()) {
+        if (lcc.getIgnoreCommentOptEnabled()) {
             lcc.setOrigStmtTxt(statementText);
         }
 
