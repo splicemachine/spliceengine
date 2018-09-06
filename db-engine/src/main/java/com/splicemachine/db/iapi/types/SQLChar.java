@@ -98,7 +98,7 @@ import java.util.Locale;
 public class SQLChar
     extends DataType implements StringDataValue, StreamStorable
 {
-    Logger logger = Logger.getLogger(SQLChar.class);
+    private static Logger logger = Logger.getLogger(SQLChar.class);
     /**************************************************************************
      * static fields of the class
      **************************************************************************
@@ -2013,8 +2013,8 @@ public class SQLChar
                     }
                 }
 
-                String warningMessage = String.format("Truncated a string source=%s, sourceWidth=%d, desiredWidth=%d",
-                        source, sourceWidth, desiredWidth);
+                String warningMessage = String.format("Truncated a string source=%s, sourceWidth=%d, desiredWidth=%d, type=%s",
+                        source, sourceWidth, desiredWidth, this.getTypeName());
                 logger.warn(warningMessage);
             }
 

@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -78,10 +79,8 @@ public class SpliceDateFunctions {
         }
         catch (IllegalArgumentException e) {
             // If format contains nanoseconds, but is not a valid SQL timestamp format
-            int nanos = getNanoseconds(source);
-            Timestamp ts =  new Timestamp(parseDateTime(source, format));
-            ts.setNanos(nanos);
-            return ts;
+            // Do nothing, fall through to below logic which can convert Joda DateTime
+            // to java.sql.Date.
         }
 
         DateTime dt = stringWithFormatToDateTime(source, format);
@@ -113,7 +112,7 @@ public class SpliceDateFunctions {
      */
     public static Time TO_TIME(String source, String format) throws SQLException {
         if (source == null) return null;
-        return new Time(parseDateTime(source, format));
+        return new Time(stringWithFormatToDateTime(source, format).getMillis()) ;
     }
 
     /**
@@ -128,13 +127,9 @@ public class SpliceDateFunctions {
      */
     public static Date TO_DATE(String source, String format) throws SQLException {
         if (source == null) return null;
-        return new Date(parseDateTime(source, format));
-    }
-
-    private static long parseDateTime(String source, String format) throws SQLException {
-        // FIXME: Timezone loss for Timestamp - see http://stackoverflow.com/questions/16794772/joda-time-parse-a-date-with-timezone-and-retain-that-timezone
-
-        return stringWithFormatToDateTime(source, format).getMillis();
+        DateTime dt = stringWithFormatToDateTime(source, format);
+        LocalDate ld = java.time.LocalDate.ofYearDay(dt.getYear(), dt.getDayOfYear());
+        return java.sql.Date.valueOf(ld);
     }
 
     private static DateTime stringWithFormatToDateTime(String source, String format) throws SQLException {
