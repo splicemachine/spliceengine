@@ -59,31 +59,25 @@ public class CommentStripTest {
         Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
     }
 
-    /* negative test case */
     @Test
     public void testQueryWithoutClosingCommentMark() throws Exception {
+        /* all characters after the opening comment mark will be skipped until a closing comment mark is seen. It is possible that an
+           end of string is seen without the closing comment mark, in that case, we will output a string ignorig all characters after the opening
+           comment mark
+         */
         String sql = "select /* test1 * from t1;";
-        try {
-            String sqlTrimmed = commentStripper.stripStatement(sql);
-            Assert.fail(String.format("String: %s should not be parsed successfully!", sql));
-        } catch (Throwable e) {
-            Assert.assertTrue(String.format("Actual error hit: %s, expected: Lexical error ...", e.getMessage()),
-                    (e instanceof com.splicemachine.db.impl.sql.misc.TokenMgrError) && (e.getMessage().startsWith("Lexical error")));
-        }
+        String sqlTrimmed = commentStripper.stripStatement(sql);
+        String expected = "select ";
+        Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
 
         /* nested comments without matching pairs */
         sql = "select /* test1 /* nested comment */ from t1;";
-        try {
-            String sqlTrimmed = commentStripper.stripStatement(sql);
-            Assert.fail(String.format("String: %s should not be parsed successfully!", sql));
-        } catch (Throwable e) {
-            Assert.assertTrue(String.format("Actual error hit: %s, expected: Lexical error ...", e.getMessage()),
-                    (e instanceof com.splicemachine.db.impl.sql.misc.TokenMgrError) && (e.getMessage().startsWith("Lexical error")));
-        }
+        sqlTrimmed = commentStripper.stripStatement(sql);
+        Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
     }
 
     @Test
-    public void testQuotedString() throws Exception {
+    public void testSingleQuotedString() throws Exception {
         /* slash-star pairs/no pairs enclosed inside quotation mark pair should not be treated as comments,
          * and should not be stripped */
         String sql = "select 'this is a string /*/* test2*/ */ to output' from t1;";
@@ -105,9 +99,9 @@ public class CommentStripTest {
     }
 
     @Test
-    public void testQueryWithoutClosingQuote() throws Exception {
+    public void testQueryWithoutClosingSingleQuote() throws Exception {
         /* though this is an invalid sql, commentStrip only focus on stripping comments enclosed in the slash-star pairs,
-           should CommentStripper should let it go through and leave it to sqlgrammer to report syntax error
+           CommentStripper should let it go through and leave it to sqlgrammer to report syntax error
          */
         String sql = "select 'test1 * from t1;";
         String sqlTrimmed = commentStripper.stripStatement(sql);
@@ -130,7 +124,7 @@ public class CommentStripTest {
     }
 
     @Test
-    public void testStatementWithEscapeForQuotationMark() throws Exception {
+    public void testStatementWithEscapeForSingleQuotationMark() throws Exception {
         String sql = "select t1.*, '''/*this is a constant*/''' from t1;";
         String sqlTrimmed = commentStripper.stripStatement(sql);
         String expected = sql;
@@ -153,5 +147,56 @@ public class CommentStripTest {
 
     }
 
+    @Test
+    public void testDoubleQuotedString() throws Exception {
+        /* slash-star pairs/no pairs enclosed inside quotation mark pair should not be treated as comments,
+         * and should not be stripped */
+        String sql = "create table \"it's a strange table name with /*/* comment*/ */\" (\"col/*1*/\" int, col2 int);";
+        String sqlTrimmed = commentStripper.stripStatement(sql);
+        String expected = sql;
+        Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
+
+        /* comment outside quotation mark pairs should be stripped off */
+        sql = "select \"col/*1*/\", /* this comment should be stripped */ col2 from t1;";
+        sqlTrimmed = commentStripper.stripStatement(sql);
+        expected = "select \"col/*1*/\",  col2 from t1;";
+        Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
+
+        /* double quote enclosed in comment mark pair will be treated as part of the comment and should be stripped off */
+        sql = "select /* this comment including the special character \" and \" pair should be stripped */ col2 from t1;";
+        sqlTrimmed = commentStripper.stripStatement(sql);
+        expected = "select  col2 from t1;";
+        Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
+    }
+
+    @Test
+    public void testQueryWithoutClosingDoubleQuote() throws Exception {
+        /* though this is an invalid sql, commentStrip only focus on stripping comments enclosed in the slash-star pairs,
+           CommentStripper should let it go through and leave it to sqlgrammer to report syntax error
+         */
+        String sql = "select \"col/*1*/ from t1;";
+        String sqlTrimmed = commentStripper.stripStatement(sql);
+        String expected = sql;
+        Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
+    }
+
+    @Test
+    public void testQueryWithMixtureOfSingleAndDoubleQuote() throws Exception {
+        /* if single quote comes first, everything follows(including double quote or comment mark will be treated as
+           part of the quoted string until the paired sinle quote appears
+         */
+        String sql = "select '\"col/*1*/' from t1 /*this is comment that should be stripped*/;";
+        String sqlTrimmed = commentStripper.stripStatement(sql);
+        String expected = "select '\"col/*1*/' from t1 ;";
+        Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
+
+        /* similarly, if a double quote comes first, everything follows(including single quote or comment mark will be treated as
+           part of the double-quoted string until the paired double quote appears
+         */
+        sql = "select \"col'1\" from t1 /*this is comment that should be stripped*/;";
+        sqlTrimmed = commentStripper.stripStatement(sql);
+        expected = "select \"col'1\" from t1 ;";
+        Assert.assertEquals("sqlTrimmed: " + sqlTrimmed + ", expected: " + expected, expected, sqlTrimmed);
+    }
 
 }
