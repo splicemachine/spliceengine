@@ -77,7 +77,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
-import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_DISABLED;
+import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
 
 /**
  * LanguageConnectionContext keeps the pool of prepared statements,
@@ -328,7 +328,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String lastLogStmtFormat;
     private SessionPropertiesImpl sessionProperties;
     private final CommentStripper commentStripper;
-    private boolean ignoreCommentOptDisabled = false;
+    private boolean ignoreCommentOptEnabled = false;
     private String origStmtTxt;
 
     /* constructor */
@@ -394,8 +394,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
 
-        String ignoreCommentOptDisabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_DISABLED);
-        ignoreCommentOptDisabled = Boolean.valueOf(ignoreCommentOptDisabledStr);
+        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
+        ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
 
     }
 
@@ -846,8 +846,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sessionProperties.resetAll();
 
         // read again the property in case it is changed
-        String ignoreCommentOptDisabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_DISABLED);
-        ignoreCommentOptDisabled = Boolean.valueOf(ignoreCommentOptDisabledStr);
+        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
+        ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
         origStmtTxt = null;
     }
 
@@ -3767,7 +3767,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         return commentStripper;
     }
 
-    public boolean getIgnoreCommentOptDisabled() {
-        return ignoreCommentOptDisabled;
+    public boolean getIgnoreCommentOptEnabled() {
+        return ignoreCommentOptEnabled;
     }
 }

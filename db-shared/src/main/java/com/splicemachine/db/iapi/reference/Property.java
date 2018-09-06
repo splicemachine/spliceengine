@@ -1336,7 +1336,7 @@ public interface Property {
 	 * If true, do not support optimization to allow statements with only comment difference
 	 * to reuse statment cache
 	 */
-	String MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_DISABLED =
-			"derby.database.matchStmtCacheIgnoreCommentOptimizationDisabled";
+	String MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED =
+			"derby.database.matchStmtCacheIgnoreCommentOptimizationEnabled";
 
 }

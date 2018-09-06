@@ -492,7 +492,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     private void logExecutionStart(DataSetProcessor dsp) {
-        boolean ignoreComentOptDisabled = activation.getLanguageConnectionContext().getIgnoreCommentOptDisabled();
+        boolean ignoreComentOptEnabled = activation.getLanguageConnectionContext().getIgnoreCommentOptEnabled();
         ExecPreparedStatement ps = activation.getPreparedStatement();
         /* if matching statement cache ignore comment optimization is disabled, just use the stmt text in the preparedStatement;
            however, if this optimization is turned on, the statement text in the preparedStatment may not reflect the original statement
@@ -502,7 +502,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
            a triggered statement(GenericTriggerExecutor.compile(), in those cases, we want to honor/use the explicitly set sourceText.
          */
         String stmtForLogging;
-        if (ignoreComentOptDisabled) {
+        if (!ignoreComentOptEnabled) {
             stmtForLogging = ps.getSource();
         } else {
             if (ps.getSourceTxt() == null)
