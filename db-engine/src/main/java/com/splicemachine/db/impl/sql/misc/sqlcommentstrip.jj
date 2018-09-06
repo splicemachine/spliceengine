@@ -37,7 +37,7 @@ TOKEN_MGR_DECLS :
 
 MORE : {<"/*"> {commentNestingDepth = 1;} : IN_COMMENT}
 
-<IN_COMMENT> MORE :
+<IN_COMMENT> SKIP :
 {
     <"/*"> {commentNestingDepth +=1;}
 }
@@ -51,7 +51,7 @@ MORE : {<"/*"> {commentNestingDepth = 1;} : IN_COMMENT}
     }
 }
 
-<IN_COMMENT> MORE :
+<IN_COMMENT> SKIP :
 {
     < ~[] >
 }
@@ -69,6 +69,17 @@ TOKEN :
 
 TOKEN :
 {
+    <OPEN_DOUBLE_QUOTE: "\""> : IN_DOUBLE_QUOTATION
+}
+
+<IN_DOUBLE_QUOTATION> TOKEN :
+{
+    <DOUBLE_QUOTED_TEXT: (~["\""])+>
+|   <CLOSE_DOUBLE_QUOTE: "\""> : DEFAULT
+}
+
+TOKEN :
+{
     <LINE_COMMENT: "--" (~["\n","\r"])* ("\n" | "\r" | "\r\n")>
 |   <TEXT: ~[]>
 }
@@ -80,7 +91,8 @@ String strip() throws StandardException :
     StringBuilder sb = new StringBuilder();
 }
 {
-    (( t= <TEXT> | t= <QUOTED_TEXT> | t= <OPEN_QUOTE> | t=<LINE_COMMENT> | t= <CLOSE_QUOTE>  )
+    (( t= <TEXT> | t= <QUOTED_TEXT> | t= <OPEN_QUOTE> | t=<LINE_COMMENT> | t= <CLOSE_QUOTE>
+    | t=<OPEN_DOUBLE_QUOTE> | t=<DOUBLE_QUOTED_TEXT> | t=<CLOSE_DOUBLE_QUOTE> )
      {sb.append(t.image);}
     )* <EOF>
     {
