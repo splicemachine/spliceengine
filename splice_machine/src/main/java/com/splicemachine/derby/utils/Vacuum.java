@@ -110,6 +110,7 @@ public class Vacuum{
                         continue; //ignore system tables
                     }
                     boolean requiresDroppedId = false;
+                    boolean ignoreDroppedId = false;
                     if (table.getTransactionId() != null) {
                         TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getTransactionId()));
                         if (txn.getEffectiveBeginTimestamp() >= oldestActiveTransaction) {
@@ -122,28 +123,27 @@ public class Vacuum{
                             continue;
                         }
                         if (txn.getEffectiveState().equals(Txn.State.ROLLEDBACK)) {
-                            // Transaction is rolled back, we can remove it safely
+                            // Transaction is rolled back, we can remove it safely, don't pay any mind to the droppedId
+                            ignoreDroppedId = true;
                         } else {
                             // This conglomerate requires a dropped transaction id
                             requiresDroppedId = true;
                         }
                     }
-                    if (requiresDroppedId) {
-                        if (table.getDroppedTransactionId() != null) {
-                            TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getDroppedTransactionId()));
-                            if (txn.getEffectiveCommitTimestamp() == -1 || txn.getEffectiveCommitTimestamp() >= oldestActiveTransaction) {
-                                // This conglomerate was dropped by an active, rolled back or "recent" transaction
-                                // (newer than the oldest active txn) ignore it in case it's still in use
+                    if (!ignoreDroppedId && table.getDroppedTransactionId() != null) {
+                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getDroppedTransactionId()));
+                        if (txn.getEffectiveCommitTimestamp() == -1 || txn.getEffectiveCommitTimestamp() >= oldestActiveTransaction) {
+                            // This conglomerate was dropped by an active, rolled back or "recent" transaction
+                            // (newer than the oldest active txn) ignore it in case it's still in use
 
-                                if (LOG.isInfoEnabled()) {
-                                    LOG.info("Ignoring recently dropped table: " + table.getTableName() + " by transaction " + txn.getTxnId());
-                                }
-                                continue;
+                            if (LOG.isInfoEnabled()) {
+                                LOG.info("Ignoring recently dropped table: " + table.getTableName() + " by transaction " + txn.getTxnId());
                             }
-                        } else {
-                            // This table must have a dropped transaction id before we can process it for vacuum
                             continue;
                         }
+                    } else if (requiresDroppedId) {
+                        // This table must have a dropped transaction id before we can process it for vacuum
+                        continue;
                     }
                     if(!activeConglomerates.contains(tableConglom)){
                         LOG.info("Deleting inactive table: " + table.getTableName());
