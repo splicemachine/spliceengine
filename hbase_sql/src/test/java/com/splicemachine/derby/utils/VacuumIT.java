@@ -56,6 +56,7 @@ public class VacuumIT extends SpliceUnitTest{
     protected static String TABLEA = "A";
     protected static String TABLED = "D";
     protected static String TABLEE = "E";
+    protected static String TABLEG = "G";
 
 	private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	@ClassRule
@@ -76,13 +77,16 @@ public class VacuumIT extends SpliceUnitTest{
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableEWatcher = new SpliceTableWatcher(TABLEE, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableGWatcher = new SpliceTableWatcher(TABLEG, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher)
             .around(spliceTableAWatcher)
             .around(spliceTableDWatcher)
-            .around(spliceTableEWatcher);
+            .around(spliceTableEWatcher)
+            .around(spliceTableGWatcher);
 
 	@Test
 	public void testVacuumDoesNotBreakStuff() throws Exception {
@@ -188,6 +192,61 @@ public class VacuumIT extends SpliceUnitTest{
         }
     }
 
+    @Test
+    public void testVacuumDoesNotDeleteTableWithoutTransactionIdPossiblyInUse() throws Exception {
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+
+        boolean autoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            try (ResultSet rs = connection.createStatement().executeQuery(String.format("select * from %s.g", CLASS_NAME))) {
+                rs.next();
+            }
+
+            long[] conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "G");
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    TableName tn = TableName.valueOf("splice:" + congId);
+                    HTableDescriptor td = admin.getTableDescriptor(tn);
+                    admin.disableTable(tn);
+                    admin.deleteTable(tn);
+                    td.setValue(SIConstants.TRANSACTION_ID_ATTR, null);
+                    admin.createTable(td);
+                }
+            }
+
+            try (Connection connection2 = spliceClassWatcher.createConnection()) {
+                connection2.createStatement().execute(String.format("drop table %s.g", CLASS_NAME));
+
+                try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                    try (CallableStatement callableStatement = connection2.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                        callableStatement.execute();
+                    }
+                    for (long congId : conglomerates) {
+                        // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                        admin.getTableDescriptor(TableName.valueOf("splice:" + congId));
+                    }
+
+                    // Now commit
+                    connection.commit();
+
+                    try (CallableStatement callableStatement = connection2.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                        callableStatement.execute();
+                    }
+
+                    for (long congId : conglomerates) {
+                        // make sure the table has been dropped by VACUUM
+                        assertFalse("Dropped table not in use hasn't been vaccumed", admin.tableExists(TableName.valueOf("splice:" + congId)));
+                    }
+                }
+            }
+
+        } finally {
+            connection.commit();
+            connection.setAutoCommit(autoCommit);
+        }
+    }
 
     @Test
     public void testVacuumRemovesTableFromRolledbackTransaction() throws Exception {
