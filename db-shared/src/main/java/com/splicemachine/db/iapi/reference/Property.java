@@ -1342,4 +1342,11 @@ public interface Property {
 	String CREATE_TABLES_AS_VERSION_2 =
 	"derby.database.createTablesWithVersion2Serializer";
 
+	/**
+	 * If true, do not support optimization to allow statements with only comment difference
+	 * to reuse statment cache
+	 */
+	String MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED =
+			"derby.database.matchStmtCacheIgnoreCommentOptimizationEnabled";
+
 }

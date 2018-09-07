@@ -67,6 +67,7 @@ import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
+import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -75,6 +76,8 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+
+import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
 
 /**
  * LanguageConnectionContext keeps the pool of prepared statements,
@@ -325,6 +328,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String lastLogStmt;
     private String lastLogStmtFormat;
     private SessionPropertiesImpl sessionProperties;
+    private final CommentStripper commentStripper;
+    private boolean ignoreCommentOptEnabled = false;
+    private String origStmtTxt;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -359,6 +365,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
+        this.commentStripper = lcf.newCommentStripper();
+
         /* Find out whether or not to log info on executing statements to error log
          */
         String logStatementProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logStatementText");
@@ -386,6 +394,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, new Boolean(skipStats).toString());
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
+
+        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
+        ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
+
     }
 
     /**
@@ -832,6 +844,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         referencedColumnMap=new WeakHashMap<>();
 
         sessionProperties.resetAll();
+
+        // read again the property in case it is changed
+        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
+        ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
+        origStmtTxt = null;
     }
 
     // debug methods
@@ -1158,7 +1175,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             //to system tables.
             compilationSchema=getDataDictionary().getSystemSchemaDescriptor();
         }
-        return connFactory.getStatement(compilationSchema,sqlText,isForReadOnly).prepare(this,forMetaData);
+        return connFactory.getStatement(compilationSchema,sqlText,isForReadOnly, this).prepare(this,forMetaData);
     }
 
 
@@ -1167,7 +1184,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if(restoreMode){
             throw StandardException.newException(SQLState.CONNECTION_RESET_ON_RESTORE_MODE);
         }
-        return connFactory.getStatement(getDefaultSchema(),sqlText,true).prepare(this);
+        return connFactory.getStatement(getDefaultSchema(),sqlText,true, this).prepare(this);
     }
 
     /**
@@ -3694,12 +3711,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void logStartExecuting(String uuid, String engine, ExecPreparedStatement ps,
+    public void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
                                   ParameterValueSet pvs) {
         if (stmtLogger.isInfoEnabled()) {
             stmtLogger.info(String.format(
                     "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
-                    getLogHeader(), uuid, engine, formatLogStmt(ps.getSource()),
+                    getLogHeader(), uuid, engine, formatLogStmt(stmt),
                     pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
         }
     }
@@ -3751,5 +3768,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             lastLogStmtFormat = result;
             return result;
         }
+    }
+
+    public void setOrigStmtTxt(String stmt) {
+        origStmtTxt = stmt;
+    }
+
+    public String getOrigStmtTxt() {
+        return origStmtTxt;
+    }
+
+    public CommentStripper getCommentStripper() {
+        return commentStripper;
+    }
+
+    public boolean getIgnoreCommentOptEnabled() {
+        return ignoreCommentOptEnabled;
     }
 }
