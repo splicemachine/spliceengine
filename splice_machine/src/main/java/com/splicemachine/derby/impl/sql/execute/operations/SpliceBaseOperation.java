@@ -484,9 +484,28 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     private void logExecutionStart(DataSetProcessor dsp) {
+        boolean ignoreComentOptEnabled = activation.getLanguageConnectionContext().getIgnoreCommentOptEnabled();
+        ExecPreparedStatement ps = activation.getPreparedStatement();
+        /* if matching statement cache ignore comment optimization is disabled, just use the stmt text in the preparedStatement;
+           however, if this optimization is turned on, the statement text in the preparedStatment may not reflect the original statement
+           that the user submitted(it could be a statement which differs from the user submitted one in comments).
+           We need to log the original statement text, which is passed down through lcc.lastlogstmt.
+           In both cases, there is a scenario where for internally generated statement, we explicitly set the sourceText, for example,
+           a triggered statement(GenericTriggerExecutor.compile(), in those cases, we want to honor/use the explicitly set sourceText.
+         */
+        String stmtForLogging;
+        if (!ignoreComentOptEnabled) {
+            stmtForLogging = ps.getSource();
+        } else {
+            if (ps.getSourceTxt() == null)
+                stmtForLogging = activation.getLanguageConnectionContext().getOrigStmtTxt();
+            else
+                stmtForLogging = ps.getSourceTxt();
+        }
+
         activation.getLanguageConnectionContext().logStartExecuting(
-                uuid.toString(), dsp.getType().toString(),
-                activation.getPreparedStatement(),
+                uuid.toString(), dsp.getType().toString(), stmtForLogging,
+                ps,
                 activation.getParameterValueSet()
         );
     }
