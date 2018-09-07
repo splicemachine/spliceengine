@@ -108,8 +108,11 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
                     continue; // Cannot Push Down Qualifier
                 StatsEval statsEval = statsEval(numberOfRows, statisticsByColumnIndex.get(q.getStoragePosition()),
                         structType.fields()[baseColumnMap[q.getStoragePosition()]].dataType());
-                if (statsEval == null || statsEval.maximumDVD == null || statsEval.minimumDVD == null)
-                    return true;
+                if (statsEval == null || statsEval.maximumDVD == null || statsEval.minimumDVD == null) {
+                    // predicate on non-partitioning column or no stats info, continue to evaluate other predicates
+                    continue;
+                }
+
                 if (q.getOrderable() == null || q.getOrderable().isNull()) {
                     if (!statsEval.hasNulls)
                         return false;
