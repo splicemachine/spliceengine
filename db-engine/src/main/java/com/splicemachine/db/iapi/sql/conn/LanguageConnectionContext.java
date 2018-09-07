@@ -46,7 +46,6 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -57,6 +56,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
+import com.splicemachine.db.impl.sql.misc.CommentStripper;
 
 import java.util.List;
 import java.util.Map;
@@ -1386,11 +1386,18 @@ public interface LanguageConnectionContext extends Context {
 	void logRollback();
 	void logStartFetching(String statement);
 	void logEndFetching(String statement, long fetchedRows);
-	void logStartExecuting(String uuid, String engine, ExecPreparedStatement ps,
+	void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
 						   ParameterValueSet pvs);
 	void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);
 
 	void setSessionProperties(Properties newProperties);
 	SessionProperties getSessionProperties();
 	String getCurrentSessionPropertyDelimited();
+
+	void setOrigStmtTxt(String stmt);
+	String getOrigStmtTxt();
+
+	CommentStripper getCommentStripper();
+	boolean getIgnoreCommentOptEnabled();
+
 }

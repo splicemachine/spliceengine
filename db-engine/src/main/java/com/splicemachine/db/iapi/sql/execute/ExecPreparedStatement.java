@@ -58,6 +58,8 @@ public interface ExecPreparedStatement
 	 */
 	void setSource(String txt);
 
+	String getSourceTxt();
+
     String getSource();
 
 	String getSessionPropertyValues();

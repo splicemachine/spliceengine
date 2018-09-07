@@ -145,6 +145,21 @@
                             <grammarEncoding>UTF-8</grammarEncoding>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>generate-comment-strip-execution-id</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>javacc</goal>
+                        </goals>
+                        <configuration>
+                            <jdkVersion>1.8</jdkVersion>
+                            <packageName>com.splicemachine.db.impl.sql.misc</packageName>
+                            <sourceDirectory>src/main/java/com/splicemachine/db/impl/sql/misc</sourceDirectory>
+                            <outputDirectory>${project.build.directory}/generated-sources/javacc_engine
+                            </outputDirectory>
+                            <grammarEncoding>UTF-8</grammarEncoding>
+                        </configuration>
+                    </execution>
                 </executions>
                 <dependencies>
                     <!-- Things break at runtime if we don't use version 4.0. Not sure why. -->
