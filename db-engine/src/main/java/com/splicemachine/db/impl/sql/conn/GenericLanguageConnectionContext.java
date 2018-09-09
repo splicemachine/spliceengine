@@ -395,7 +395,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
-        ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
+        ignoreCommentOptEnabled = ignoreCommentOptEnabledStr==null || Boolean.valueOf(ignoreCommentOptEnabledStr);
 
     }
 
@@ -847,7 +847,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         // read again the property in case it is changed
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
-        ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
+        ignoreCommentOptEnabled = ignoreCommentOptEnabledStr == null || Boolean.valueOf(ignoreCommentOptEnabledStr);
         origStmtTxt = null;
     }
 
