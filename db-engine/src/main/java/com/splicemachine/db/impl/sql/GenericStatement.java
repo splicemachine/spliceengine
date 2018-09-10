@@ -52,6 +52,7 @@ import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
+import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -74,6 +75,7 @@ public class GenericStatement implements Statement{
     private int prepareIsolationLevel;
     private GenericStorablePreparedStatement preparedStmt;
     private String sessionPropertyValues = "null";
+    private final String statementTextTrimed;
 
     /**
      * Constructor for a Statement given the text of the statement in a String
@@ -83,10 +85,15 @@ public class GenericStatement implements Statement{
      * @param isForReadOnly     if the statement is opened with level CONCUR_READ_ONLY
      */
 
-    public GenericStatement(SchemaDescriptor compilationSchema,String statementText,boolean isForReadOnly){
+    public GenericStatement(SchemaDescriptor compilationSchema,String statementText,boolean isForReadOnly, LanguageConnectionContext lcc) throws StandardException{
         this.compilationSchema=compilationSchema;
         this.statementText=statementText;
         this.isForReadOnly=isForReadOnly;
+        if (lcc.getIgnoreCommentOptEnabled()) {
+            this.statementTextTrimed = filterComment(statementText, lcc);
+        } else {
+            this.statementTextTrimed = statementText;
+        }
     }
 
     public PreparedStatement prepare(LanguageConnectionContext lcc) throws StandardException{
@@ -220,14 +227,14 @@ public class GenericStatement implements Statement{
     public boolean equals(Object other){
         if(other instanceof GenericStatement){
             GenericStatement os=(GenericStatement)other;
-            return statementText.equals(os.statementText) && sessionPropertyValues.equals(os.sessionPropertyValues) && isForReadOnly==os.isForReadOnly
+            return statementTextTrimed.equals(os.statementTextTrimed) && sessionPropertyValues.equals(os.sessionPropertyValues) && isForReadOnly==os.isForReadOnly
                     && compilationSchema.equals(os.compilationSchema) &&
                     (prepareIsolationLevel==os.prepareIsolationLevel);
         }
         return false;
     }
 
-    public int hashCode(){ return statementText.hashCode(); }
+    public int hashCode(){ return statementTextTrimed.hashCode(); }
 
     public String toString() {
         return statementText.trim().toUpperCase() + "[session properties: " + sessionPropertyValues + "]";
@@ -320,6 +327,10 @@ public class GenericStatement implements Statement{
 		 */
         boolean foundInCache=false;
         sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();
+        if (lcc.getIgnoreCommentOptEnabled()) {
+            lcc.setOrigStmtTxt(statementText);
+        }
+
 //        boolean isExplain=isExplainStatement();
         if(preparedStmt==null){
             if(cacheMe)
@@ -798,4 +809,10 @@ public class GenericStatement implements Statement{
         return target;
     }
 
+    private String filterComment(String stmtText, LanguageConnectionContext lcc) throws StandardException {
+        if (stmtText == null)
+            return null;
+        CommentStripper commentStripper = lcc.getCommentStripper();
+        return commentStripper.stripStatement(stmtText);
+    }
 }

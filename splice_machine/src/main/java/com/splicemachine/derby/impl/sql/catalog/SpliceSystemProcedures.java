@@ -19,6 +19,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.services.metadata.MetadataFactoryService;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -35,6 +36,7 @@ import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -346,6 +348,11 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(StatisticsAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(collectStatsForTable);
+
+                    Collection<Procedure> procs = MetadataFactoryService.newMetadataFactory().getProcedures();
+
+                    if (procs != null)
+                        procedures.addAll(procs);
 
                     Procedure collectSampleStatsForTable = Procedure.newBuilder().name("COLLECT_TABLE_SAMPLE_STATISTICS")
                             .numOutputParams(0)

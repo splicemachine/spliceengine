@@ -271,7 +271,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         }
 
         // stored statements always stored as unicode.
-        Statement stmt = lcf.getStatement(dd.getSchemaDescriptor(compSchemaId, null), text, true);
+        Statement stmt = lcf.getStatement(dd.getSchemaDescriptor(compSchemaId, null), text, true, lcc);
 
         try {
             preparedStatement = (ExecPreparedStatement) stmt.prepareStorable(
