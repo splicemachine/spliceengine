@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
@@ -2664,6 +2665,77 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     }
 
     /**
+     * generate ORed terms from inlist predicate
+     */
+    private void generateSingleQualifierCodeForInListElement(MethodBuilder consMB,
+                                             ExpressionClassBuilder acb,
+                                             int columnPosition,
+                                             int storagePosition,
+                                             ValueNode valNode,
+                                             LocalField qualField,
+                                             int array_idx_1,
+                                             int array_idx_2) throws StandardException{
+        consMB.getField(qualField); // first arg for setQualifier
+
+        // get instance for getQualifier call
+        consMB.pushThis();
+        consMB.callMethod(VMOpcode.INVOKEVIRTUAL,acb.getBaseClassName(),"getExecutionFactory",ExecutionFactory.MODULE,0);
+
+        // Column Id - first arg
+
+        consMB.push(columnPosition);
+        consMB.push(storagePosition);
+
+        // Operator - second arg
+        consMB.push(Orderable.ORDER_OP_EQUALS);
+
+        // Method to evaluate qualifier -- third arg
+        MethodBuilder qualMethod = acb.newUserExprFun();
+        valNode.generateExpression(acb, qualMethod);
+        qualMethod.methodReturn();
+        qualMethod.complete();
+        acb.pushMethodReference(consMB, qualMethod);
+
+        // Receiver for above method - fourth arg
+        acb.pushThisAsActivation(consMB);
+
+        // Ordered Nulls? - fifth arg
+        consMB.push(false);
+
+
+        /*
+        ** "Unknown" return value. For qualifiers,
+        ** we never want to return rows where the
+        ** result of a comparison is unknown.
+        ** But we can't just generate false, because
+        ** the comparison result could be negated.
+        ** So, generate the same as the negation
+        ** operand - that way, false will not be
+        ** negated, and true will be negated to false.
+        */
+        consMB.push(false);
+
+        /* Negate comparison result? */
+        consMB.push(false);
+
+        /* variantType for qualifier's orderable */
+        consMB.push(valNode.getOrderableVariantType());
+
+        int numArgs=10;
+        /* Qualifier's string representation */
+        consMB.push("TODOJL");
+
+        consMB.callMethod(VMOpcode.INVOKEINTERFACE,ExecutionFactory.MODULE,"getQualifier",ClassName.Qualifier,numArgs);
+
+        // result of getQualifier() is second arg for setQualifier
+
+        consMB.push(array_idx_1);       // third  arg for setQualifier
+        consMB.push(array_idx_2);       // fourth arg for setQualifier
+
+        consMB.callMethod(VMOpcode.INVOKESTATIC,acb.getBaseClassName(),"setQualifier","void",4);
+    }
+
+    /**
      * If there is an IN-list probe predicate in this list then generate
      * the corresponding IN-list values as a DataValueDescriptor array,
      * to be used for probing at execution time.  Also generate a boolean
@@ -2907,49 +2979,114 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     SanityManager.ASSERT(pred.isOrList());
                 }
 
-                // create an ArrayList of the OR nodes.  We need the count
-                // of Or's in order to first generate the allocateQualArray()
-                // call, then we walk the list assigning each of the OR's to
-                // entries in the array in generateSingleQualifierCode().
-                List<ValueNode> a_list=new ArrayList<>();
+                if (!(pred.getAndNode().getLeftOperand() instanceof InListOperatorNode)) {
+                    // create an ArrayList of the OR nodes.  We need the count
+                    // of Or's in order to first generate the allocateQualArray()
+                    // call, then we walk the list assigning each of the OR's to
+                    // entries in the array in generateSingleQualifierCode().
+                    List<ValueNode> a_list = new ArrayList<>();
 
-                QueryTreeNode node=pred.getAndNode().getLeftOperand();
+                    QueryTreeNode node = pred.getAndNode().getLeftOperand();
 
-                while(node instanceof OrNode){
-                    OrNode or_node=(OrNode)node;
+                    while (node instanceof OrNode) {
+                        OrNode or_node = (OrNode) node;
 
-                    // The left operand of OR node is one of the terms, 
-                    // (ie. A = 1)
-                    if(or_node.getLeftOperand() instanceof RelationalOperator){
-                        a_list.add(or_node.getLeftOperand());
+                        // The left operand of OR node is one of the terms,
+                        // (ie. A = 1)
+                        if (or_node.getLeftOperand() instanceof RelationalOperator) {
+                            a_list.add(or_node.getLeftOperand());
+                        }
+
+                        // The next OR node in the list if linked to the right.
+                        node = or_node.getRightOperand();
                     }
 
-                    // The next OR node in the list if linked to the right.
-                    node=or_node.getRightOperand();
-                }
+                    // Allocate an array to hold each of the terms of this OR,
+                    // clause.  ie. (a = 1 or b = 2), will allocate a 2 entry array.
 
-                // Allocate an array to hold each of the terms of this OR, 
-                // clause.  ie. (a = 1 or b = 2), will allocate a 2 entry array.
+                    consMB.getField(qualField);        // 1st arg allocateQualArray
+                    consMB.push(and_idx);        // 2nd arg allocateQualArray
+                    consMB.push(a_list.size());  // 3rd arg allocateQualArray
 
-                consMB.getField(qualField);        // 1st arg allocateQualArray
-                consMB.push(and_idx);        // 2nd arg allocateQualArray
-                consMB.push(a_list.size());  // 3rd arg allocateQualArray
-
-                consMB.callMethod(VMOpcode.INVOKESTATIC,acb.getBaseClassName(),"allocateQualArray","void",3);
+                    consMB.callMethod(VMOpcode.INVOKESTATIC, acb.getBaseClassName(), "allocateQualArray", "void", 3);
 
 
-                // finally transfer the nodes to the 2-d qualifier
-                for(int i=0;i<a_list.size();i++){
-                    generateSingleQualifierCode(
-                            consMB,
-                            optTable,
-                            absolute,
-                            acb,
-                            (RelationalOperator)a_list.get(i),
-                            qualField,
-                            and_idx,
-                            i);
+                    // finally transfer the nodes to the 2-d qualifier
+                    for (int i = 0; i < a_list.size(); i++) {
+                        generateSingleQualifierCode(
+                                consMB,
+                                optTable,
+                                absolute,
+                                acb,
+                                (RelationalOperator) a_list.get(i),
+                                qualField,
+                                and_idx,
+                                i);
 
+                    }
+                } else {
+                    // handle inlist
+                    // inlist getting here cannot be used for multi-probe scan and
+                    // Scans.qualifyRecordFromRow() does not know how to evaluate it. So convert it back to the
+                    // equivalent ORed.
+                    InListOperatorNode inListNode = (InListOperatorNode)pred.getAndNode().getLeftOperand();
+
+                    ValueNodeList inlistVals = inListNode.getRightOperandList();
+                    consMB.getField(qualField);        // 1st arg allocateQualArray
+                    consMB.push(and_idx);        // 2nd arg allocateQualArray
+                    consMB.push(inlistVals.size());  // 3rd arg allocateQualArray
+
+                    consMB.callMethod(VMOpcode.INVOKESTATIC, acb.getBaseClassName(), "allocateQualArray", "void", 3);
+
+                    // get inlist column
+                    ColumnReference cr = (ColumnReference)inListNode.getLeftOperand().getHashableJoinColumnReference();
+
+                    ConglomerateDescriptor bestCD = optTable.getTrulyTheBestAccessPath().
+                            getConglomerateDescriptor();
+                    /*
+		            ** Column positions are one-based, store is zero-based.
+		            */
+                    int columnPosition;
+                    int storagePosition;
+
+		            /*
+		            ** If it's an index, find the base column position in the index
+		            ** and translate it to an index column position.
+		            */
+                    if(bestCD!=null && bestCD.isIndex()){
+                        columnPosition=cr.getSource().getColumnPosition();
+                        columnPosition=bestCD.getIndexDescriptor().
+                                getKeyColumnPosition(columnPosition);
+                        storagePosition = columnPosition;
+
+                        if(SanityManager.DEBUG){
+                            SanityManager.ASSERT(columnPosition>0,
+                                    "Base column not found in index");
+                        }
+                    } else {
+                        columnPosition=cr.getSource().getColumnPosition();
+                        storagePosition = cr.getSource().getStoragePosition();
+                    }
+                    // get 0-based posistion
+                    columnPosition = columnPosition - 1;
+                    storagePosition = storagePosition - 1;
+
+                    if (!absolute) {
+                        columnPosition = optTable.convertAbsoluteToRelativeColumnPosition(columnPosition);
+                        storagePosition = optTable.convertAbsoluteToRelativeColumnPosition(storagePosition);
+                    }
+
+                    // transfer inlist to a bunch of "col=val" qualifiers
+                    for (int i=0; i< inlistVals.size(); i++) {
+                        generateSingleQualifierCodeForInListElement(consMB,
+                                                                    acb,
+                                                                    columnPosition,
+                                                                    storagePosition,
+                                                                    (ValueNode)inlistVals.elementAt(i),
+                                                                    qualField,
+                                                                    and_idx,
+                                                                    i);
+                    }
                 }
 
                 qualNum++;
@@ -3007,39 +3144,32 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             AndNode node=pred.getAndNode();
 
-            if(!(node.getLeftOperand() instanceof OrNode)){
+            if(!(pred.isOrList())){
+                RelationalOperator relop=(RelationalOperator)node.getLeftOperand();
 
-                if (node.getLeftOperand() instanceof RelationalOperator) {
-                    RelationalOperator relop=(RelationalOperator)node.getLeftOperand();
+                int op=relop.getOperator();
 
-                    int op=relop.getOperator();
+                switch(op){
+                    case RelationalOperator.EQUALS_RELOP:
+                        BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
 
-                    switch(op){
-                        case RelationalOperator.EQUALS_RELOP:
-                            BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
-
-                            if (brelop.getInListOp() != null) {
-                                sortList[QUALIFIER_IN_LIST].addElement(pred);
-                            }
-                            else {
-                                sortList[QUALIFIER_ORDER_EQUALS].addElement(pred);
-                            }
-                            break;
-                        case RelationalOperator.IS_NULL_RELOP:
+                        if (brelop.getInListOp() != null) {
+                            sortList[QUALIFIER_IN_LIST].addElement(pred);
+                        }
+                        else {
                             sortList[QUALIFIER_ORDER_EQUALS].addElement(pred);
-                            break;
-                        case RelationalOperator.NOT_EQUALS_RELOP:
-                        case RelationalOperator.IS_NOT_NULL_RELOP:
-                            sortList[QUALIFIER_ORDER_NOT_EQUALS].addElement(pred);
-                            break;
-                        default:
-                            sortList[QUALIFIER_ORDER_OTHER_RELOP].addElement(pred);
-                    }
+                        }
+                        break;
+                    case RelationalOperator.IS_NULL_RELOP:
+                        sortList[QUALIFIER_ORDER_EQUALS].addElement(pred);
+                        break;
+                    case RelationalOperator.NOT_EQUALS_RELOP:
+                    case RelationalOperator.IS_NOT_NULL_RELOP:
+                        sortList[QUALIFIER_ORDER_NOT_EQUALS].addElement(pred);
+                        break;
+                    default:
+                        sortList[QUALIFIER_ORDER_OTHER_RELOP].addElement(pred);
                 }
-                if (node.getLeftOperand() instanceof InListOperatorNode) {
-                    sortList[QUALIFIER_IN_LIST].addElement(pred);
-                }
-
             }else{
                 sortList[QUALIFIER_ORDER_OR_CLAUSE].addElement(pred);
             }
