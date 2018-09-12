@@ -572,12 +572,21 @@
                                         akka-remote_${scala.binary.version},
                                         splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
                                         super-csv,
-                                        spark-avro_2.11,
                                         splice_ranger_admin-${envClassifier},
                                         splice_ranger_service-${envClassifier},
                                         splice_atlas-${envClassifier},
                                         c3p0,
                                         mchange-commons-java,
+                                        splice_aws,
+                                        units,
+                                        log,
+                                        stats,
+                                        HdrHistogram,
+                                        jmxutils,
+                                        jol-core,
+                                        slice,
+                                        orc-protobuf,
+                                        spark-avro_2.11,
                                         jython-standalone
                                     </includeArtifactIds>
                                 </configuration>
