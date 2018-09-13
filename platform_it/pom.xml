@@ -1489,7 +1489,7 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx4g</argument>
+                                <argument>-Xmx2g</argument>
                                 <argument>-Xmn128m</argument>
                                 <!--
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
