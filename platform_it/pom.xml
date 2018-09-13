@@ -742,8 +742,11 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g</argLine>
+                            <excludedGroups>
+                                com.splicemachine.test.NoVacuumTest,
+                                ${excluded.categories}
+                            </excludedGroups>
+                            <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -766,7 +769,10 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest,
+                            <excludedGroups>
+                                com.splicemachine.test.NoVacuumTest,
+                                com.splicemachine.test.SerialTest,
+                                com.splicemachine.test.RestoreTest,
                                 ${excluded.categories}
                             </excludedGroups>
                             <parallel>classes</parallel>
@@ -1212,6 +1218,34 @@
                                 <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
                                 <argument>${project.build.directory}</argument>
                             </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>spliceVacuum</id>
+            <activation>
+                <property>
+                    <name>spliceVacuum</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.4.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <mainClass>com.splicemachine.test.SpliceTestVacuum</mainClass>
                         </configuration>
                     </plugin>
                 </plugins>

@@ -107,6 +107,7 @@ public class CompoundNonUniqueIndexIT extends AbstractIndexTest{
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
             .around(twoContiguousColumns)
             .around(twoContiguousColumnsAfter)
             .around(twoContiguousAscDescColumns)
