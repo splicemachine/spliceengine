@@ -19,6 +19,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.test.NoVacuumTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -44,7 +46,7 @@ import java.util.Set;
  * @author Scott Fines
  * Date: 3/19/14
  */
-@Category(SerialTest.class)
+@Category({NoVacuumTest.class, SerialTest.class})
 public class VacuumIT extends SpliceUnitTest{
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     protected static String TABLE = "T";
