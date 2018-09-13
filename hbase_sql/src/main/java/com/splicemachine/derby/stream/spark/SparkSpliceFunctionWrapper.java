@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.ExternalizableFunction;
+import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function;
 
 import java.io.Externalizable;
@@ -31,6 +32,7 @@ import java.io.ObjectOutput;
  *         Date: 1/25/16
  */
 public class SparkSpliceFunctionWrapper<T,R> implements Function<T,R>,Externalizable{
+    private static final Logger LOG = Logger.getLogger(SparkSpliceFunctionWrapper.class);
     private ExternalizableFunction<T,R> delegate;
 
     public SparkSpliceFunctionWrapper(ExternalizableFunction<T, R> delegate){
@@ -51,7 +53,12 @@ public class SparkSpliceFunctionWrapper<T,R> implements Function<T,R>,Externaliz
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        this.delegate = (ExternalizableFunction<T,R>)in.readObject();
+        try {
+            this.delegate = (ExternalizableFunction<T,R>)in.readObject();
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
+        }
     }
 
     public String getPrettyFunctionName() {

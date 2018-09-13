@@ -120,10 +120,15 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        this.optimizerEstimatedCost=in.readDouble();
-        this.optimizerEstimatedRowCount=in.readDouble();
-        this.operationInformation=(OperationInformation)in.readObject();
-        isTopResultSet=in.readBoolean();
+        try {
+            this.optimizerEstimatedCost = in.readDouble();
+            this.optimizerEstimatedRowCount = in.readDouble();
+            this.operationInformation = (OperationInformation) in.readObject();
+            isTopResultSet = in.readBoolean();
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
+        }
     }
 
     @Override

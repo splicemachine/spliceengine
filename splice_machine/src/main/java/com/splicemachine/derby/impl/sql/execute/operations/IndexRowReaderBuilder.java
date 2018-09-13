@@ -31,6 +31,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.EntryPredicateFilter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -43,6 +44,7 @@ import java.util.Iterator;
  *         Date: 4/11/14
  */
 public class IndexRowReaderBuilder implements Externalizable{
+    private static final Logger LOG = Logger.getLogger(IndexRowReaderBuilder.class);
     private Iterator<ExecRow> source;
     private int lookupBatchSize;
     private int numConcurrentLookups=-1;
@@ -228,21 +230,26 @@ public class IndexRowReaderBuilder implements Externalizable{
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        txn=SIDriver.driver().getOperationFactory().readTxn(in);
-        lookupBatchSize=in.readInt();
-        numConcurrentLookups=in.readInt();
-        outputTemplate = (ExecRow) in.readObject();
-        mainTableConglomId=in.readLong();
-        mainTableRowDecodingMap=ArrayUtil.readIntArray(in);
-        mainTableAccessedRowColumns=(FormatableBitSet)in.readObject();
-        mainTableKeyColumnEncodingOrder=ArrayUtil.readIntArray(in);
-        if(in.readBoolean()){
-            mainTableKeyColumnSortOrder=ArrayUtil.readBooleanArray(in);
+        try {
+            txn=SIDriver.driver().getOperationFactory().readTxn(in);
+            lookupBatchSize=in.readInt();
+            numConcurrentLookups=in.readInt();
+            outputTemplate = (ExecRow) in.readObject();
+            mainTableConglomId=in.readLong();
+            mainTableRowDecodingMap=ArrayUtil.readIntArray(in);
+            mainTableAccessedRowColumns=(FormatableBitSet)in.readObject();
+            mainTableKeyColumnEncodingOrder=ArrayUtil.readIntArray(in);
+            if(in.readBoolean()){
+                mainTableKeyColumnSortOrder=ArrayUtil.readBooleanArray(in);
+            }
+            mainTableKeyDecodingMap=ArrayUtil.readIntArray(in);
+            mainTableAccessedKeyColumns=(FormatableBitSet)in.readObject();
+            indexCols=ArrayUtil.readIntArray(in);
+            tableVersion=in.readUTF();
+            mainTableKeyColumnTypes=ArrayUtil.readIntArray(in);
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
         }
-        mainTableKeyDecodingMap=ArrayUtil.readIntArray(in);
-        mainTableAccessedKeyColumns=(FormatableBitSet)in.readObject();
-        indexCols=ArrayUtil.readIntArray(in);
-        tableVersion=in.readUTF();
-        mainTableKeyColumnTypes=ArrayUtil.readIntArray(in);
     }
 }
