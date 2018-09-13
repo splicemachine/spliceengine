@@ -32,7 +32,7 @@
         <ee_out/>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
-        <argLine>-Xmx4g -XX:MaxPermSize=256m ${jacocoAgent}</argLine>
+        <argLine>-Xms128m -Xmx4g -XX:MaxPermSize=256m ${jacocoAgent}</argLine>
     </properties>
     <dependencies>
         <dependency>
@@ -1064,7 +1064,9 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xms128m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>com.splicemachine.kafka.TestKafkaCluster</argument>
                                 <argument>localhost:2181</argument>
@@ -1134,7 +1136,9 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xms128m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4002</argument>
                                 <argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
@@ -1248,6 +1252,9 @@
                             <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
                             <arguments>
                                 <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
+                                <!--<argument>-agentpath:/opt/jprofiler/bin/linux-x64/libjprofilerti
+                                .so=port=8850,nowait,id=108,config=/home/wangbin/.jprofiler10/config.xml</argument>
+                                -->
                                 <argument>${project.build.directory}/classes</argument>
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
@@ -1289,6 +1296,11 @@
                                 <argument>-XX:+FlightRecorder</argument> -->
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <!--<argument>-agentpath:/opt/jprofiler/bin/linux-x64/libjprofilerti
+                                .so=port=8851,nowait,id=108,config=/home/wangbin/.jprofiler10/config.xml</argument>
+                                -->
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -1301,7 +1313,7 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Xmx6g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xms128m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
                                 <argument>-Dsplice.spark.eventLog.enabled=true</argument>
@@ -1453,6 +1465,11 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
+                                <!--<argument>-agentpath:/opt/jprofiler/bin/linux-x64/libjprofilerti
+                                .so=port=8852,nowait,id=108,config=/home/wangbin/.jprofiler10/config.xml</argument>
+                                -->
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
@@ -1629,7 +1646,7 @@
                                 <clusterRegionserver>localhost</clusterRegionserver>
                             </propertiesUser>
                             <jMeterProcessJVMSettings>
-                                <xms>1024</xms>
+                                <xms>128</xms>
                                 <xmx>4096</xmx>
                                 <!--
                                 <arguments>
@@ -1728,7 +1745,7 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Xmx6g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xms128m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
                                 <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse
@@ -1791,6 +1808,8 @@
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
                                 <!-- CMS Garbage Collection -->
                                 <argument>-Xmn128m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>
                                 <argument>-XX:NewSize=128m</argument>
