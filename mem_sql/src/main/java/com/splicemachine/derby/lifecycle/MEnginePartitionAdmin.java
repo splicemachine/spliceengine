@@ -148,4 +148,9 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public List<byte[]> hbaseOperation(String table, String operation, byte[] bytes) throws IOException {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
+
+    @Override
+    public void markDropped(long conglomId, long txn) throws IOException {
+        // no op
+    }
 }

@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.NoVacuumTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
@@ -65,7 +66,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by jyuan on 3/28/16.
  */
-@Category({SerialTest.class})
+@Category({NoVacuumTest.class, SerialTest.class})
 @RunWith(Parameterized.class)
 public class KillOperationIT {
     private static final Logger LOG = Logger.getLogger(KillOperationIT.class);

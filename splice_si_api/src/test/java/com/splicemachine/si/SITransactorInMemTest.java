@@ -18,6 +18,7 @@ package com.splicemachine.si;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
+import com.splicemachine.si.api.txn.TransactionMissing;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -106,6 +107,13 @@ public class SITransactorInMemTest {
     @After
     public void tearDown() throws Exception {
         for (Txn id : createdParentTxns) {
+            try {
+                TxnView txn = txnStore.getTransaction(id.getTxnId());
+                if ((txn != null && txn.getEffectiveState().isFinal()) || id.getState().isFinal())
+                    continue;
+            } catch (TransactionMissing missing) {
+                continue;
+            }
             id.rollback();
         }
     }

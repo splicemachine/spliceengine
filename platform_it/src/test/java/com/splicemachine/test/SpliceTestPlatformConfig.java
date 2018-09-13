@@ -137,7 +137,7 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.master.info.port", masterInfoPort);
         config.setInt("hbase.regionserver.port", regionServerPort);
         config.setInt("hbase.regionserver.info.port", regionServerInfoPort);
-        config.setInt("hbase.master.jmx.port", HConfiguration.DEFAULT_JMX_BIND_PORT); // this is set because the HBase master and regionserver are running on the same machine and in the same JVM
+        // config.setInt("hbase.master.jmx.port", HConfiguration.DEFAULT_JMX_BIND_PORT); // this is set because the HBase master and regionserver are running on the same machine and in the same JVM
         config.setInt(SQLConfiguration.NETWORK_BIND_PORT, derbyPort);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTOR_CLASS_KEY, SpliceDefaultCompactor.class, Compactor.class);
        // config.setClass(ConsistencyControlUtils.MVCC_IMPL, SIMultiVersionConsistencyControl.class, ConsistencyControl.class);
@@ -193,8 +193,11 @@ class SpliceTestPlatformConfig {
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
-        config.setLong("hbase.regionserver.handler.count", 100);
-        config.setLong("hbase.regionserver.metahandler.count", 100);
+        config.setLong("hbase.regionserver.handler.count", 10);
+        config.setLong("hbase.regionserver.metahandler.count", 10);
+        config.setInt("hbase.hconnection.threads.max", 128);
+        config.setInt("hbase.hconnection.threads.core", 8);
+        config.setLong("hbase.hconnection.threads.keepalivetime", 300);
         config.setLong("hbase.regionserver.msginterval", 1000);
         config.setLong("hbase.regionserver.optionalcacheflushinterval", 0); // disable automatic flush, meaningless since our timestamps are arbitrary
         config.setLong("hbase.master.event.waiting.time", 20);

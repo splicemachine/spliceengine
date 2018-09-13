@@ -16,6 +16,7 @@ package com.splicemachine.foreignkeys;
 
 import com.splicemachine.derby.test.framework.RuledConnection;
 import com.splicemachine.derby.test.framework.SchemaRule;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.TableRule;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
@@ -32,7 +33,9 @@ import java.sql.*;
 // SPLICE-894 Remove Serial
 @Category(value = {SerialTest.class})
 public class ForeignKeyMetadataIT{
-    private static final String SCHEMA = ForeignKeyMetadataIT.class.getSimpleName().toUpperCase();
+    private static final String CLASS_NAME = ForeignKeyMetadataIT.class.getSimpleName().toUpperCase();
+    @ClassRule public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static final String SCHEMA = spliceSchemaWatcher.schemaName;
 
     private RuledConnection conn = new RuledConnection(null,true);
 

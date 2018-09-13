@@ -80,6 +80,13 @@ public class SITransactorTest {
     @After
     public void tearDown() throws Exception {
         for (Txn id : createdParentTxns) {
+            try {
+                TxnView txn = txnStore.getTransaction(id.getTxnId());
+                if ((txn != null && txn.getEffectiveState().isFinal()) || id.getState().isFinal())
+                    continue;
+             } catch (TransactionMissing missing) {
+                continue;
+            }
             id.rollback();
         }
     }

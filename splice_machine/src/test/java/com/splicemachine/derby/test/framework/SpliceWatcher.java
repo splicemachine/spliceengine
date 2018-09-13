@@ -163,9 +163,15 @@ public class SpliceWatcher extends TestWatcher {
     }
 
     @Override
+    protected void starting(Description description) {
+        LOG.info("Test " + description.getMethodName() + " started.");
+    }
+
+    @Override
     protected void finished(Description description) {
         closeAll();
         super.finished(description);
+        LOG.info("Test " + description.getMethodName() + " finished.");
     }
 
     public void closeAll() {
