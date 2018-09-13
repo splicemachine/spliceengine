@@ -149,19 +149,38 @@ if [[ "$jversion" < "1.8" ]]; then
    exit 1
 fi
 
-# set up classpath to point to splice jars
-IJ_SYS_ARGS="-Djdbc.drivers=com.splicemachine.db.jdbc.ClientDriver"
-CURDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DBCLIENT=$(find ${CURDIR}/lib/ -type f -name 'db-client*-SNAPSHOT.jar')
-DBTOOLS=$(find ${CURDIR}/lib/ -type f -name 'db-tools*-SNAPSHOT.jar')
-DBENGINE=$(find ${CURDIR}/lib/ -type f -name 'db-engine*-SNAPSHOT.jar')
+# set splice lib dir
+SPLICE_LIB_DIR="##SPLICELIBDIR##"
+
+if [[ "$SPLICE_LIB_DIR" == *"##"* ]]; then
+   CURDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+   # ends in bin, go up and over to lib
+   if [[ "$CURDIR" = *"bin" ]]; then
+      SPLICE_LIB_DIR="${CURDIR}/../lib"
+   else #subdir
+      SPLICE_LIB_DIR="${CURDIR}/lib"
+   fi
+fi
 
 #check if all the tools needed to connect are found
-if [ -z "$DBCLIENT"] || [ -z "$DBTOOLS"] || [ -z "$DBENGINE"]; then
-  echo "Error: the db tools required to connect cannot be found."
+if [ "$(ls -A $SPLICE_LIB_DIR 2> /dev/null)" ]; then
+  dbclient=$(find $SPLICE_LIB_DIR -type f -name 'db-client*-SNAPSHOT.jar')
+  dbtools=$(find $SPLICE_LIB_DIR -type f -name 'db-tools*-SNAPSHOT.jar')
+  # set up classpath to point to splice jars
+  if [ -z "${dbclient}" ]; then
+    echo "Error: the db-client tool required to connect cannot be found."
+    exit 1
+  elif [ -z "${dbtools}" ]; then
+    echo "Error: the db-tools required to connect cannot be found."
+    exit 1
+  else
+    export CLASSPATH="${SPLICE_LIB_DIR}/*"
+  fi
+else
+  echo "Error: the db tools folder required to connect cannot be found."
   exit 1
 fi
-export CLASSPATH="${DBCLIENT}:${DBTOOLS}:${DBENGINE}"
 
 if [[ "$HOSTARG" != "" ]]; then
    HOST=$HOSTARG

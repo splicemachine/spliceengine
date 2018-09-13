@@ -64,17 +64,6 @@
               <version>1.0</version>
               <executions>
                 <execution>
-                  <id>copy-db-engine</id>
-                  <phase>install</phase>
-                  <goals>
-                    <goal>copy</goal>
-                  </goals>
-                  <configuration>
-                    <sourceFile>${maven.multiModuleProjectDirectory}/db-engine/target/db-engine-${project.version}.jar</sourceFile>
-                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/sqlshell/lib/db-engine-${project.version}.jar</destinationFile>
-                  </configuration>
-                </execution>
-                <execution>
                   <id>copy-db-client</id>
                   <phase>install</phase>
                   <goals>
@@ -82,7 +71,7 @@
                   </goals>
                   <configuration>
                     <sourceFile>${maven.multiModuleProjectDirectory}/db-client/target/db-client-${project.version}.jar</sourceFile>
-                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/sqlshell/lib/db-client-${project.version}.jar</destinationFile>
+                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/target/sqlshell/lib/db-client-${project.version}.jar</destinationFile>
                   </configuration>
                 </execution>
                 <execution>
@@ -93,7 +82,7 @@
                   </goals>
                   <configuration>
                     <sourceFile>${maven.multiModuleProjectDirectory}/db-tools-ij/target/db-tools-ij-${project.version}.jar</sourceFile>
-                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/sqlshell/lib/db-tools-ij-${project.version}.jar</destinationFile>
+                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/target/sqlshell/lib/db-tools-ij-${project.version}.jar</destinationFile>
                   </configuration>
                 </execution>
                 <execution>
@@ -104,7 +93,7 @@
                   </goals>
                   <configuration>
                     <sourceFile>${maven.multiModuleProjectDirectory}/assembly/common/src/main/resources/bin/sqlshell.sh</sourceFile>
-                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/sqlshell/sqlshell-${project.version}.sh</destinationFile>
+                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/target/sqlshell/sqlshell-${project.version}.sh</destinationFile>
                   </configuration>
                 </execution>
               </executions>
@@ -124,7 +113,7 @@
                           <executable>chmod</executable>
                           <arguments>
                               <argument>+x</argument>
-                              <argument>${maven.multiModuleProjectDirectory}/assembly/sqlshell/sqlshell-${project.version}.sh</argument>
+                              <argument>${maven.multiModuleProjectDirectory}/assembly/target/sqlshell/sqlshell-${project.version}.sh</argument>
                           </arguments>
                       </configuration>
                   </execution>
@@ -200,7 +189,6 @@
                                         splice_ee-${envClassifier},
                                         splice_backup-${envClassifier},
                                         splice_sentry-${envClassifier},
-                                        splice_atlas-${envClassifier},
                                         splice_auth,
                                         splice_colperms,
                                         splice_encryption,
@@ -646,6 +634,7 @@
                                         spark-avro_2.11,
                                         splice_ranger_admin-${envClassifier},
                                         splice_ranger_service-${envClassifier},
+                                        splice_atlas-${envClassifier},
                                         c3p0,
                                         mchange-commons-java,
                                         jython-standalone
