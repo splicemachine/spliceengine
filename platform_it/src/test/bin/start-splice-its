@@ -13,7 +13,8 @@ SPLICELOG="${ROOT_DIR}"/splice_it.log
 KAFKALOG="${ROOT_DIR}"/kafka.log
 
 CHAOS="false"
-PROFILE="cdh5.6.0"  # default hbase platform profile
+PROFILE="cdh5.8.3"  # default hbase platform profile
+HBASE_PROFILE=${PROFILE}
 
 usage() {
     # $1 is an error, if any
@@ -43,7 +44,9 @@ while getopts ":chp:b:" flag ; do
         ;;
         p)
         # the hbase profile
-            PROFILE=insecure,$(echo "$OPTARG" | tr -d [[:space:]])
+            t=$(echo "$OPTARG" | tr -d [[:space:]])
+            HBASE_PROFILE=${t%%,*}
+            PROFILE=insecure,${t}
         ;;
         ?)
             usage "Unknown option (ignored): ${OPTARG}"
@@ -63,7 +66,7 @@ fi
 
 # Start zookeeper in background.
 echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
-mvn -B exec:exec -P${PROFILE},spliceZoo > ${ZOOLOG} 2>&1 &
+mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo > ${ZOOLOG} 2>&1 &
 
 #######################################################################################################
 # Wait for up to 65 seconds for zoo to start, checking nc periodically to see if we are connected
@@ -88,17 +91,17 @@ fi
 
 # Start SpliceTestYarnPlatform in background.
 echo "Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
-mvn -B exec:java -P${PROFILE},spliceYarn > ${YARNLOG} 2>&1 &
+mvn -B exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARNLOG} 2>&1 &
 
 # Start Kafka in background.
 echo "Starting TestKafkaCluster, log file is ${KAFKALOG}"
-mvn -B exec:exec -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1 &
+mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1 &
 
 # Start SpliceTestPlaform in background.
 echo "Starting SpliceTestPlatform with failTasksRandomly set to ${CHAOS}, log file is ${SPLICELOG}"
-mvn -B initialize exec:exec -P${PROFILE},spliceFast -DfailTasksRandomly=${CHAOS} > ${SPLICELOG} 2>&1 &
+mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast -DfailTasksRandomly=${CHAOS} > ${SPLICELOG} 2>&1 &
 echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.log"
-mvn -B initialize exec:exec -P${PROFILE},spliceClusterMember -DmemberNumber=1             > ${SPLICELOG}.member1.log 2>&1 &
+mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember -DmemberNumber=1 > ${SPLICELOG}.member1.log 2>&1 &
 # echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member2.log"
 # mvn -B exec:exec -PspliceClusterMember -DmemberNumber=2             > ${SPLICELOG}.member2.log 2>&1 &
 

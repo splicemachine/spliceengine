@@ -25,6 +25,7 @@
     </parent>
     <dependencies>
         <dependency>
+            <!-- Get all projects and required dependencies transitively -->
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql-${envClassifier}</artifactId>
             <version>${project.version}</version>
@@ -57,6 +58,12 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -125,9 +132,9 @@
                                         hbase_pipeline-${envClassifier},
                                         hbase_storage-${envClassifier},
                                         hbase_sql-${envClassifier},
-                                        splice_ee-${envClassifier},
-                                        splice_backup-${envClassifier},
-                                        splice_sentry-${envClassifier},
+                                        splice_ee,
+                                        splice_backup,
+                                        splice_sentry,
                                         splice_auth,
                                         splice_colperms,
                                         splice_encryption,
@@ -562,8 +569,8 @@
                                         hbase_pipeline-${envClassifier},
                                         hbase_storage-${envClassifier},
                                         hbase_sql-${envClassifier},
-                                        splice_ee-${envClassifier},
-                                        splice_backup-${envClassifier},
+                                        splice_ee,
+                                        splice_backup,
                                         splice_auth,
                                         splice_colperms,
                                         splice_encryption,
@@ -571,9 +578,9 @@
                                         splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
                                         super-csv,
                                         spark-avro_2.11,
-                                        splice_ranger_admin-${envClassifier},
-                                        splice_ranger_service-${envClassifier},
-                                        splice_atlas-${envClassifier},
+                                        splice_ranger_admin,
+                                        splice_ranger_service,
+                                        splice_atlas,
                                         c3p0,
                                         mchange-commons-java,
                                         jython-standalone
