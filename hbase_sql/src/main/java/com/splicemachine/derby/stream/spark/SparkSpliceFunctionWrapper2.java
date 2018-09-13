@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.derby.stream.function.ZipperFunction;
+import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.Function2;
 
 import java.io.Externalizable;
@@ -28,6 +29,7 @@ import java.io.ObjectOutput;
  *         Date: 1/25/16
  */
 public class SparkSpliceFunctionWrapper2<T1,T2,R> implements Function2<T1,T2,R>,Externalizable{
+    private static final Logger LOG = Logger.getLogger(SparkSpliceFunctionWrapper2.class);
     private ZipperFunction<T1,T2,R> delegate;
 
     public SparkSpliceFunctionWrapper2(ZipperFunction<T1, T2, R> delegate){
@@ -49,6 +51,11 @@ public class SparkSpliceFunctionWrapper2<T1,T2,R> implements Function2<T1,T2,R>,
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        delegate = (ZipperFunction<T1,T2,R>)in.readObject();
+        try {
+            delegate = (ZipperFunction<T1,T2,R>)in.readObject();
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
+        }
     }
 }

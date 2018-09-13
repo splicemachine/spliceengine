@@ -24,6 +24,7 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.util.concurrent.Callable;
  * Created by jyuan on 10/4/17.
  */
 public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
+    private static final Logger LOG = Logger.getLogger(BulkLoadIndexJob.class);
 
     String jobGroup;
     TxnView childTxn;
@@ -104,18 +106,23 @@ public class BulkLoadIndexJob extends DistributedJob implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        ah = (ActivationHolder) in.readObject();
-        scanSetBuilder = (ScanSetBuilder<ExecRow>) in.readObject();
-        scope = in.readUTF();
-        jobGroup = in.readUTF();
-        prefix = in.readUTF();
-        byte[] bytes = (byte[]) in.readObject();
-        tentativeIndex = DDLMessage.TentativeIndex.parseFrom(bytes);
-        indexFormatIds = ArrayUtil.readIntArray(in);
-        childTxn = SIDriver.driver().getOperationFactory().readTxn(in);
-        tableVersion = in.readUTF();
-        hfilePath = in.readUTF();
-        sampling = in.readBoolean();
-        indexName = in.readUTF();
+        try {
+            ah = (ActivationHolder) in.readObject();
+            scanSetBuilder = (ScanSetBuilder<ExecRow>) in.readObject();
+            scope = in.readUTF();
+            jobGroup = in.readUTF();
+            prefix = in.readUTF();
+            byte[] bytes = (byte[]) in.readObject();
+            tentativeIndex = DDLMessage.TentativeIndex.parseFrom(bytes);
+            indexFormatIds = ArrayUtil.readIntArray(in);
+            childTxn = SIDriver.driver().getOperationFactory().readTxn(in);
+            tableVersion = in.readUTF();
+            hfilePath = in.readUTF();
+            sampling = in.readBoolean();
+            indexName = in.readUTF();
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
+        }
     }
 }

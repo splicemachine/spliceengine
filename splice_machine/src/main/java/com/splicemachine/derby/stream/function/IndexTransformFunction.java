@@ -21,6 +21,8 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.kvpair.KVPair;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -32,6 +34,7 @@ import java.util.List;
  * Created by jyuan on 10/16/15.
  */
 public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,KVPair> {
+    private static final Logger LOG = Logger.getLogger(IndexTransformFunction.class);
     private boolean initialized;
     private DDLMessage.TentativeIndex tentativeIndex;
     private int[] projectedMapping;
@@ -83,11 +86,16 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        byte[] message = new byte[in.readInt()];
-        in.readFully(message);
-        tentativeIndex = DDLMessage.TentativeIndex.parseFrom(message);
-        projectedMapping= ArrayUtil.readIntArray(in);
-        initialized = false;
+        try {
+            byte[] message = new byte[in.readInt()];
+            in.readFully(message);
+            tentativeIndex = DDLMessage.TentativeIndex.parseFrom(message);
+            projectedMapping= ArrayUtil.readIntArray(in);
+            initialized = false;
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
+        }
     }
 
     public long getIndexConglomerateId() {

@@ -34,6 +34,8 @@ import com.splicemachine.storage.DataScanner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
+import org.apache.log4j.Logger;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -47,6 +49,7 @@ import java.util.Arrays;
  *         Date: 4/9/14
  */
 public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetBuilder<V>{
+    private static final Logger LOG = Logger.getLogger(TableScannerBuilder.class);
     protected DataScanner scanner;
     protected ExecRow template;
     protected DataScan scan;
@@ -490,6 +493,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException{
+        try {
             template = (ExecRow)in.readObject();
             scan=readScan(in);
             if(in.readBoolean()){
@@ -552,6 +556,10 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 defaultRow = (ExecRow)in.readObject();
             if (in.readBoolean())
                 defaultValueMap = (FormatableBitSet) in.readObject();
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
+        }
     }
 
     protected TxnView readTxn(ObjectInput in) throws IOException{

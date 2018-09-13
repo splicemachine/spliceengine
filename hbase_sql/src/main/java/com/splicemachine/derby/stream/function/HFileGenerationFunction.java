@@ -228,17 +228,22 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        if(in.readBoolean()) {
-            operationContext = (OperationContext) in.readObject();
-        }
-        txnId = in.readLong();
-        heapConglom = in.readLong();
-        compressionAlgorithm = in.readUTF();
-        int n = in.readInt();
-        partitionList = new ArrayList<>(n);
-        for (int i = 0; i < n; ++i) {
-            BulkImportPartition partition = (BulkImportPartition) in.readObject();
-            partitionList.add(partition);
+        try {
+            if(in.readBoolean()) {
+                operationContext = (OperationContext) in.readObject();
+            }
+            txnId = in.readLong();
+            heapConglom = in.readLong();
+            compressionAlgorithm = in.readUTF();
+            int n = in.readInt();
+            partitionList = new ArrayList<>(n);
+            for (int i = 0; i < n; ++i) {
+                BulkImportPartition partition = (BulkImportPartition) in.readObject();
+                partitionList.add(partition);
+            }
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
         }
     }
 

@@ -178,53 +178,58 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException{
-        Credentials credentials = null;
-        if (in.readBoolean()) {
-            // we've got credentials to apply
-            Broadcast<SerializableWritable<Credentials>> bcast = (Broadcast<SerializableWritable<Credentials>>) in.readObject();
-            credentials = bcast.getValue().value();
-        }
-        if (in.readBoolean()) {
-            SpliceClient.connectionString = in.readUTF();
-            SpliceClient.setClient(HConfiguration.getConfiguration().getAuthenticationTokenEnabled(), SpliceClient.Mode.EXECUTOR);
-        }
-        badRecordsSeen = in.readLong();
-        badRecordThreshold = in.readLong();
-        permissive=in.readBoolean();
-        SpliceSpark.setupSpliceStaticComponents(credentials);
-        boolean isOp=in.readBoolean();
-        if(isOp){
-            broadcastedActivation = (BroadcastedActivation)in.readObject();
-            op=(Op)broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
-            ActivationHolder ah = broadcastedActivation.getActivationHolder();
-            activation=ah.getActivation();
-
-            if (ah.needsReinitialization()) {
-                ah.close();
-                ah.reinitialize(null, false);
+        try {
+            Credentials credentials = null;
+            if (in.readBoolean()) {
+                // we've got credentials to apply
+                Broadcast<SerializableWritable<Credentials>> bcast = (Broadcast<SerializableWritable<Credentials>>) in.readObject();
+                credentials = bcast.getValue().value();
             }
-        }
-        rowsRead=(LongAccumulator)in.readObject();
-        rowsFiltered=(LongAccumulator)in.readObject();
-        rowsWritten=(LongAccumulator)in.readObject();
-        retryAttempts =(LongAccumulator)in.readObject();
-        regionTooBusyExceptions =(LongAccumulator)in.readObject();
-        rowsJoinedLeft=(LongAccumulator)in.readObject();
-        rowsJoinedRight=(LongAccumulator)in.readObject();
-        rowsProduced=(LongAccumulator)in.readObject();
-        badRecordsAccumulator = (Accumulable<BadRecordsRecorder,String>) in.readObject();
+            if (in.readBoolean()) {
+                SpliceClient.connectionString = in.readUTF();
+                SpliceClient.setClient(HConfiguration.getConfiguration().getAuthenticationTokenEnabled(), SpliceClient.Mode.EXECUTOR);
+            }
+            badRecordsSeen = in.readLong();
+            badRecordThreshold = in.readLong();
+            permissive = in.readBoolean();
+            SpliceSpark.setupSpliceStaticComponents(credentials);
+            boolean isOp = in.readBoolean();
+            if (isOp) {
+                broadcastedActivation = (BroadcastedActivation) in.readObject();
+                op = (Op) broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
+                ActivationHolder ah = broadcastedActivation.getActivationHolder();
+                activation = ah.getActivation();
 
-        thrownErrorsRows=(LongAccumulator)in.readObject();
-        retriedRows=(LongAccumulator)in.readObject();
-        partialRows=(LongAccumulator)in.readObject();
-        partialThrownErrorRows=(LongAccumulator)in.readObject();
-        partialRetriedRows=(LongAccumulator)in.readObject();
-        partialIgnoredRows=(LongAccumulator)in.readObject();
-        partialWrite=(LongAccumulator)in.readObject();
-        ignoredRows=(LongAccumulator)in.readObject();
-        catchThrownRows=(LongAccumulator)in.readObject();
-        catchRetriedRows=(LongAccumulator)in.readObject();
-        importFileName= (String) in.readObject();
+                if (ah.needsReinitialization()) {
+                    ah.close();
+                    ah.reinitialize(null, false);
+                }
+            }
+            rowsRead = (LongAccumulator) in.readObject();
+            rowsFiltered = (LongAccumulator) in.readObject();
+            rowsWritten = (LongAccumulator) in.readObject();
+            retryAttempts = (LongAccumulator) in.readObject();
+            regionTooBusyExceptions = (LongAccumulator) in.readObject();
+            rowsJoinedLeft = (LongAccumulator) in.readObject();
+            rowsJoinedRight = (LongAccumulator) in.readObject();
+            rowsProduced = (LongAccumulator) in.readObject();
+            badRecordsAccumulator = (Accumulable<BadRecordsRecorder, String>) in.readObject();
+
+            thrownErrorsRows = (LongAccumulator) in.readObject();
+            retriedRows = (LongAccumulator) in.readObject();
+            partialRows = (LongAccumulator) in.readObject();
+            partialThrownErrorRows = (LongAccumulator) in.readObject();
+            partialRetriedRows = (LongAccumulator) in.readObject();
+            partialIgnoredRows = (LongAccumulator) in.readObject();
+            partialWrite = (LongAccumulator) in.readObject();
+            ignoredRows = (LongAccumulator) in.readObject();
+            catchThrownRows = (LongAccumulator) in.readObject();
+            catchRetriedRows = (LongAccumulator) in.readObject();
+            importFileName = (String) in.readObject();
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
+        }
     }
 
     @Override

@@ -177,13 +177,18 @@ public class ActivationHolder implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        operationsList = (List<SpliceOperation>) in.readObject();
-        operationsMap = Maps.newHashMap();
-        for (SpliceOperation so : operationsList) {
-            addSubOperations(operationsMap, so);
+        try {
+            operationsList = (List<SpliceOperation>) in.readObject();
+            operationsMap = Maps.newHashMap();
+            for (SpliceOperation so : operationsList) {
+                addSubOperations(operationsMap, so);
+            }
+            soi = (SpliceObserverInstructions) in.readObject();
+            txn = SIDriver.driver().getOperationFactory().readTxn(in);
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
         }
-        soi = (SpliceObserverInstructions) in.readObject();
-        txn = SIDriver.driver().getOperationFactory().readTxn(in);
     }
 
     public void setActivation(Activation activation) {
