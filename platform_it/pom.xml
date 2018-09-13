@@ -1369,10 +1369,13 @@
                                     ${hbase.rootdir}
                                     -Dhdp.version=2.6.3
                                     -enableassertions
+                                    -Xms128m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
                                 </argument>
                                 <argument>-Dsplice.spark.yarn.am.extraJavaOptions=
                                     -Dhdp.version=2.6.3
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
+                                    -Xms128m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
+                                    -XX:+UseG1GC
                                 </argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     ${hbase.rootdir}
@@ -1381,6 +1384,8 @@
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -enableassertions
+                                    -Xms128m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
+                                    -XX:+UseG1GC
                                     ${jacocoAgent}
                                 </argument>
                                 <argument>-Dsplice.spark.yarn.user=${user.name}</argument>
@@ -1395,6 +1400,8 @@
                                     -enableassertions
                                     -Djava.net.preferIPv4Stack=true
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
+                                    -Xms128m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
+                                    -XX:+UseG1GC
                                 </argument>
                                 <argument>${spark.keytab}</argument>
                                 <argument>${spark.principal}</argument>
@@ -1404,6 +1411,7 @@
                                 <argument>-Dsplice.spark.storage.memoryFraction=0.1</argument>
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
                                 <!-- CMS Garbage Collection -->
+                                <!--
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>
@@ -1414,6 +1422,10 @@
                                 <argument>-XX:MaxGCPauseMillis=100</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                -->
+
+                                <argument>-XX:+UseG1GC</argument>
+
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
                                 <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
@@ -1479,6 +1491,7 @@
                                 </argument>
                                 <argument>-Xmx4g</argument>
                                 <argument>-Xmn128m</argument>
+                                <!--
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>
                                 <argument>-XX:NewSize=128m</argument>
@@ -1486,9 +1499,13 @@
                                 <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
                                 <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
                                 <argument>-XX:MaxGCPauseMillis=100</argument>
-                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                -->
+
+                                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
+                                <argument>-XX:+UseG1GC</argument>
+
                                 <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
