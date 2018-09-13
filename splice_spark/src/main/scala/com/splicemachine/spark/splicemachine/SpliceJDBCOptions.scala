@@ -24,6 +24,19 @@ object SpliceJDBCOptions {
     name
   }
 
+  /**
+    * JDBC Url including authentication mechanism (user/password, principal or principal/keytab)
+    */
+  val JDBC_URL = newOption("url")
+
+  /**
+    * Whether to create relations using SplicemachineContext.internalDf() by default. Defaults to "false"
+    */
   val JDBC_INTERNAL_QUERIES = newOption("internal")
+
+
+  /**
+    * Temporary directory used by SplicemachineContext.internalDf() to hold temporary data. It has to be accessible by the client's user and SpliceMachine user
+    */
   val JDBC_TEMP_DIRECTORY = newOption("tmp")
 }
