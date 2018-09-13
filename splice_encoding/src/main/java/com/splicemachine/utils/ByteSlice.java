@@ -18,6 +18,7 @@ import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 
 public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable {
+    private static final Logger LOG = Logger.getLogger(ByteSlice.class);
     private static final Hash32 hashFunction = HashFunctions.murmur3(0);
     private static final byte[] EMPTY_BYTE_ARRAY = {};
     private byte[] buffer;
@@ -243,19 +245,24 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
 
     @Override
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-        offset = in.readInt();
-        length = in.readInt();
-        buffer = new byte[length];
-        if(length > 0) {
-            in.readFully(buffer);
-        }
-        hashSet = false;
-        if (buffer.length > 0) {
-            assertLengthCorrect(buffer, offset, length);
-        } else {
-            // If there's nothing in the buffer, reset offset and length
-            // to prevent ArrayIndexOutOfBoundsException
-            offset = length = 0;
+        try {
+            offset = in.readInt();
+            length = in.readInt();
+            buffer = new byte[length];
+            if (length > 0) {
+                in.readFully(buffer);
+            }
+            hashSet = false;
+            if (buffer.length > 0) {
+                assertLengthCorrect(buffer, offset, length);
+            } else {
+                // If there's nothing in the buffer, reset offset and length
+                // to prevent ArrayIndexOutOfBoundsException
+                offset = length = 0;
+            }
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
         }
     }
 

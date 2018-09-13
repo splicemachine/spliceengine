@@ -216,17 +216,22 @@ public class SpliceObserverInstructions implements Externalizable{
         @SuppressWarnings("unchecked")
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-            this.statementAtomic=in.readBoolean();
-            this.statementReadOnly=in.readBoolean();
-            if (in.readBoolean())
-                stmtText = (String) in.readObject();
-            this.stmtRollBackParentContext=in.readBoolean();
-            this.stmtTimeout=in.readLong();
-            if(in.readBoolean()){
-                this.pvs=(ParameterValueSet)in.readObject();
+            try {
+                this.statementAtomic=in.readBoolean();
+                this.statementReadOnly=in.readBoolean();
+                if (in.readBoolean())
+                    stmtText = (String) in.readObject();
+                this.stmtRollBackParentContext=in.readBoolean();
+                this.stmtTimeout=in.readLong();
+                if(in.readBoolean()){
+                    this.pvs=(ParameterValueSet)in.readObject();
+                }
+                activationData=new byte[in.readInt()];
+                in.readFully(activationData);
+            } catch (Throwable t) {
+                LOG.error("Unexpected exception during deserialization", t);
+                throw t;
             }
-            activationData=new byte[in.readInt()];
-            in.readFully(activationData);
         }
 
         public Activation populateActivation(ActivationHolder holder,GenericStorablePreparedStatement statement) throws StandardException{

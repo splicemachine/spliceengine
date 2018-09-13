@@ -18,6 +18,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import org.apache.log4j.Logger;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -32,6 +33,8 @@ import java.util.concurrent.Callable;
  * and avoid to have a case where the user query a table that doesn't have a file attached to it.
  */
 public class DistributedCreateExternalTableJob extends DistributedJob implements Externalizable {
+    private static final Logger LOG = Logger.getLogger(DistributedCreateExternalTableJob.class);
+    
     private String delimited;
     private String escaped;
     private String lines;
@@ -119,23 +122,28 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        int length = in.readInt();
-        partitionBy = new int[length];
-        for(int i =0;i<length;i++){
-            partitionBy[i]=in.readInt();
-        }
+        try {
+            int length = in.readInt();
+            partitionBy = new int[length];
+            for(int i =0;i<length;i++){
+                partitionBy[i]=in.readInt();
+            }
 
-        delimited   = in.readBoolean()?in.readUTF():null;
-        escaped     = in.readBoolean()?in.readUTF():null;
-        lines       = in.readBoolean()?in.readUTF():null;
-        storedAs    = in.readBoolean()?in.readUTF():null;
-        location    = in.readBoolean()?in.readUTF():null;
-        compression    = in.readBoolean()?in.readUTF():null;
-        jobGroup    = in.readUTF();
-        int n = in.readInt();
-        columnInfo = new ColumnInfo[n];
-        for (int i = 0; i < n; ++i) {
-            columnInfo[i] = (ColumnInfo)in.readObject();
+            delimited   = in.readBoolean()?in.readUTF():null;
+            escaped     = in.readBoolean()?in.readUTF():null;
+            lines       = in.readBoolean()?in.readUTF():null;
+            storedAs    = in.readBoolean()?in.readUTF():null;
+            location    = in.readBoolean()?in.readUTF():null;
+            compression    = in.readBoolean()?in.readUTF():null;
+            jobGroup    = in.readUTF();
+            int n = in.readInt();
+            columnInfo = new ColumnInfo[n];
+            for (int i = 0; i < n; ++i) {
+                columnInfo[i] = (ColumnInfo)in.readObject();
+            }
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
         }
     }
 

@@ -103,28 +103,33 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        smallestReadPoint = in.readLong();
-        namespace = new byte[in.readInt()];
-        in.readFully(namespace);
-        tableName = new byte[in.readInt()];
-        in.readFully(tableName);
-        byte[] hriBytes = new byte[in.readInt()];
-        in.readFully(hriBytes);
         try {
-            hri = HRegionInfo.parseFrom(hriBytes);
-        } catch (Exception e) {
-            throw new IOException(e);
+            super.readExternal(in);
+            smallestReadPoint = in.readLong();
+            namespace = new byte[in.readInt()];
+            in.readFully(namespace);
+            tableName = new byte[in.readInt()];
+            in.readFully(tableName);
+            byte[] hriBytes = new byte[in.readInt()];
+            in.readFully(hriBytes);
+            try {
+                hri = HRegionInfo.parseFrom(hriBytes);
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+            storeColumn = new byte[in.readInt()];
+            in.readFully(storeColumn);
+            isMajor = in.readBoolean();
+            context = (SparkCompactionContext) in.readObject();
+            favoredNodes = new InetSocketAddress[in.readInt()];
+            for (int i = 0; i < favoredNodes.length; i++) {
+                favoredNodes[i] = (InetSocketAddress) in.readObject();
+            }
+            SpliceSpark.setupSpliceStaticComponents();
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
         }
-        storeColumn = new byte[in.readInt()];
-        in.readFully(storeColumn);
-        isMajor = in.readBoolean();
-        context = (SparkCompactionContext) in.readObject();
-        favoredNodes = new InetSocketAddress[in.readInt()];
-        for (int i = 0; i< favoredNodes.length; i++) {
-            favoredNodes[i] = (InetSocketAddress) in.readObject();
-        }
-        SpliceSpark.setupSpliceStaticComponents();
     }
 
     @SuppressWarnings("unchecked")

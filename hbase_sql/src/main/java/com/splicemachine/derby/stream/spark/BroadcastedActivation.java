@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.spark;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;import com.splicemachine.derby.stream.ActivationHolder;
+import org.apache.log4j.Logger;
 import org.apache.spark.broadcast.Broadcast;
 
 import java.io.*;
@@ -29,6 +30,7 @@ import java.util.Arrays;
  * Created by dgomezferro on 1/14/16.
  */
 public class BroadcastedActivation implements Externalizable {
+    private static final Logger LOG = Logger.getLogger(BroadcastedActivation.class);
     private static ThreadLocal<ActivationHolderAndBytes> activationHolderTL =new ThreadLocal<>();
     private byte[] serializedValue;
     private ActivationHolder activationHolder;
@@ -51,15 +53,20 @@ public class BroadcastedActivation implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        bcast = (Broadcast<byte[]>) in.readObject();
-        serializedValue = bcast.getValue();
-        ActivationHolderAndBytes ah= activationHolderTL.get();
-        if(ah==null || !Arrays.equals(ah.bytes,serializedValue)){
-            ah = readActivationHolder();
-            activationHolderTL.set(ah);
+        try {
+            bcast = (Broadcast<byte[]>) in.readObject();
+            serializedValue = bcast.getValue();
+            ActivationHolderAndBytes ah= activationHolderTL.get();
+            if(ah==null || !Arrays.equals(ah.bytes,serializedValue)){
+                ah = readActivationHolder();
+                activationHolderTL.set(ah);
+            }
+    
+            activationHolder = ah.activationHolder;
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
         }
-
-        activationHolder = ah.activationHolder;
     }
 
     public ActivationHolder getActivationHolder() {

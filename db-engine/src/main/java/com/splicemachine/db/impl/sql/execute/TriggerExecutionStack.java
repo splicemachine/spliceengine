@@ -42,12 +42,14 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import org.apache.log4j.Logger;
 
 /**
  * A trigger execution stack holds a stack of {@link TriggerExecutionContext}s.<br/>
  * This class is pulled out of LCC for serialization.
  */
 public class TriggerExecutionStack implements Externalizable {
+    private static final Logger LOG = Logger.getLogger(TriggerExecutionStack.class);
     private List<TriggerExecutionContext> triggerExecutionContexts = new ArrayList<>();
 
     public List<TriggerExecutionContext> asList() {
@@ -111,7 +113,12 @@ public class TriggerExecutionStack implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        triggerExecutionContexts = (List<TriggerExecutionContext>) in.readObject();
+        try {
+            triggerExecutionContexts = (List<TriggerExecutionContext>) in.readObject();
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
+        }
     }
 
     public boolean isEmpty() {

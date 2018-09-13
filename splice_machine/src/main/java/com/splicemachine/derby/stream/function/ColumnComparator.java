@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.Comparator;
@@ -26,6 +27,7 @@ import java.util.Comparator;
  * Created by jleach on 4/28/15.
  */
 public class ColumnComparator implements Comparator<ExecRow>, Serializable, Externalizable {
+    private static final Logger LOG = Logger.getLogger(ColumnComparator.class);
     private static final long serialVersionUID = -7005014411999208729L;
     private int[] columns;
     private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
@@ -62,18 +64,23 @@ public class ColumnComparator implements Comparator<ExecRow>, Serializable, Exte
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        columns = new int[in.readInt()];
-        for (int i = 0; i < columns.length; i++)
-            columns[i] = in.readInt();
-        if (in.readBoolean()) {
-            descColumns = new boolean[in.readInt()];
-            for (int i = 0; i < descColumns.length; i++)
-                descColumns[i] = in.readBoolean();
-        }
-        if (in.readBoolean()) {
-            nullsOrderedLow = new boolean[in.readInt()];
-            for (int i = 0; i < nullsOrderedLow.length; i++)
-                nullsOrderedLow[i] = in.readBoolean();
+        try {
+            columns = new int[in.readInt()];
+            for (int i = 0; i < columns.length; i++)
+                columns[i] = in.readInt();
+            if (in.readBoolean()) {
+                descColumns = new boolean[in.readInt()];
+                for (int i = 0; i < descColumns.length; i++)
+                    descColumns[i] = in.readBoolean();
+            }
+            if (in.readBoolean()) {
+                nullsOrderedLow = new boolean[in.readInt()];
+                for (int i = 0; i < nullsOrderedLow.length; i++)
+                    nullsOrderedLow[i] = in.readBoolean();
+            }
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception during deserialization", t);
+            throw t;
         }
     }
 
