@@ -15,7 +15,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>platform_it</artifactId>
+    <artifactId>platform_it-${envClassifier}</artifactId>
     <description>Integration Tests for SQL engine based on HBase</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
@@ -646,15 +646,27 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>4.0.0</version>
                 <inherited>true</inherited>
                 <extensions>true</extensions>
             </plugin>
             <plugin>
-                <artifactId>maven-deploy-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
-                    <skip>true</skip>
+                    <excludes>
+                        <exclude>**/com/splicemachine/backup/*</exclude>
+                        <exclude>**/core-site.xml</exclude>
+                        <exclude>**/yarn-site.xml</exclude>
+                        <exclude>**/*log4j.properties</exclude>
+                    </excludes>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <!--This used to be confinded to the spark-prepare profile, but is now done always by default
@@ -747,7 +759,6 @@
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
                     <execution>
                         <id>integration-tests-parallel</id>
                         <goals>
@@ -771,6 +782,10 @@
                             <includes>
                                 <include>**/*IT.java</include>
                             </includes>
+                            <excludes>
+                                <!-- Skip all unit tests -->
+                                <exclude>**/*Test.java</exclude>
+                            </excludes>
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
@@ -1467,128 +1482,6 @@
                 </plugins>
             </build>
         </profile>
-
-        <profile>
-            <id>hdp2.5.5</id>
-            <properties>
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>hdp2.6.1</id>
-            <properties>
-                <extraDependency>splice_ranger_service</extraDependency>
-                <extraDependency2>splice_ranger_admin</extraDependency2>
-                <extraDependency3>splice_atlas</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>hdp2.6.3</id>
-            <properties>
-                <extraDependency>splice_ranger_service</extraDependency>
-                <extraDependency2>splice_ranger_admin</extraDependency2>
-                <extraDependency3>splice_atlas</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>hdp2.6.4</id>
-            <properties>
-                <extraDependency>splice_ranger_service</extraDependency>
-                <extraDependency2>splice_ranger_admin</extraDependency2>
-                <extraDependency3>splice_atlas</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.8.3</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.8.5</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.12.0</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.12.2</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.13.0</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.13.2</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.13.3</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>mapr5.2.0</id>
-            <properties>
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>cdh5.14.0</id>
-            <properties>
-                <!--extraDependency>splice_sentry</extraDependency-->
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
-            <id>mapr6.0.0</id>
-            <properties>
-                <extraDependency>splice_ee</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-
         <profile>
             <id>ee</id>
             <activation>
@@ -1603,16 +1496,14 @@
             <dependencies>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_ee</artifactId>
+                    <artifactId>splice_ee-${envClassifier}</artifactId>
                     <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_backup</artifactId>
+                    <artifactId>splice_backup-${envClassifier}</artifactId>
                     <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
@@ -1633,68 +1524,28 @@
                     <version>${project.version}</version>
                     <scope>test</scope>
                 </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>enterprise_it</artifactId>
-                    <version>${project.version}</version>
-                    <type>test-jar</type>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_backup</artifactId>
-                    <version>${project.version}</version>
-                    <type>test-jar</type>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>${extraDependency}</artifactId>
-                    <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>${extraDependency}</artifactId>
-                    <version>${project.version}</version>
-                    <type>test-jar</type>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>${extraDependency2}</artifactId>
-                    <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>${extraDependency2}</artifactId>
-                    <version>${project.version}</version>
-                    <type>test-jar</type>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>${extraDependency3}</artifactId>
-                    <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
-                </dependency>
-                <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>${extraDependency3}</artifactId>
-                    <version>${project.version}</version>
-                    <type>test-jar</type>
-                </dependency>
             </dependencies>
             <build>
                 <plugins>
                     <plugin>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <configuration>
-                            <dependenciesToScan combine.children="append">
-                                <dependency>com.splicemachine:splice_backup</dependency>
-                                <dependency>com.splicemachine:enterprise_it</dependency>
-                                <dependency>com.splicemachine:${extraDependency}</dependency>
-                                <dependency>com.splicemachine:${extraDependency2}</dependency>
-                                <dependency>com.splicemachine:${extraDependency3}</dependency>
-                            </dependenciesToScan>
-                        </configuration>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>add-ee-test-source</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-test-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>../../spliceengine-ee/splice_backup/src/test/java</source>
+                                        <source>../../spliceengine-ee/enterprise_it/src/test/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
