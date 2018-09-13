@@ -44,6 +44,7 @@ public class CompoundPrimaryKeyIT extends AbstractIndexTest {
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
             .around(twoCtgColumns)
             .around(twoNonCtgColumns)
             .around(twoOutOfOrderNonCtgColumns)
