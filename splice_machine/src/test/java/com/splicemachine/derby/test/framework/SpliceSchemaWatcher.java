@@ -79,8 +79,10 @@ public class SpliceSchemaWatcher extends TestWatcher {
         try (Connection connection = SpliceNetConnection.getConnection()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.drop(schemaName);
+	    /*
             LOG.info(tag("Start vacuum", schemaName));
             connection.createStatement().execute("CALL SYSCS_UTIL.VACUUM()");
+	    */
             connection.commit();
         } catch (Exception e) {
             throw new RuntimeException(e);
