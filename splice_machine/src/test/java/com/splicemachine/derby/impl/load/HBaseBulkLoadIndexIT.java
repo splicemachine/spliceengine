@@ -113,11 +113,19 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             assertEquals(333L, (long) spliceClassWatcher.query("select count(*) from " + PART));
             assertEquals(25L, (long) spliceClassWatcher.query("select count(*) from " + NATION));
             assertEquals(5L, (long) spliceClassWatcher.query("select count(*) from " + REGION));
+
+            spliceClassWatcher.execute("create table t(COL1 varchar(1000),COL2 varchar(1000), primary key(col1))");
+            String sql = String.format("call syscs_util.SYSCS_SPLIT_TABLE_OR_INDEX('%s', 'T', null, 'COL1', '%s', null,null,null,null,null,0,'/BAD',true,null)",
+                    SCHEMA_NAME, SpliceUnitTest.getResourceDirectory()+"largeKey.csv");
+            spliceClassWatcher.execute(sql);
         }
         catch (Exception e) {
             java.lang.Throwable ex = Throwables.getRootCause(e);
-            if (ex.getMessage().contains("bulk load not supported"))
+            if (ex.getMessage().contains("bulk load not supported")) {
                 notSupported = true;
+            }
+            else
+                throw e;
         }
     }
 
@@ -376,6 +384,31 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
         rowContainsQuery(7,"explain select count(*) from --splice-properties joinOrder=fixed\n" +
                 " ORDERS, LINEITEM --splice-properties joinStrategy=BROADCAST\n" +
                 " where l_orderkey = o_orderkey and l_shipdate > date('1995-03-15') and o_orderdate > date('1995-03-15')","preds=[(L_SHIPDATE[2:2] > 1995-03-15)]",methodWatcher);
+    }
+
+    @Test
+    public void testLargeKeys() throws Exception {
+        if (notSupported)
+            return;
+
+        String bulkImport = String.format("call syscs_util.bulk_import_hfile('%s','T','COL1', '%s', null,null,null,null,null,-1,'/BAD',true,null, '%s', true)",
+                SCHEMA_NAME, SpliceUnitTest.getResourceDirectory()+"largeKey.csv", SpliceUnitTest.getResourceDirectory());
+        spliceClassWatcher.execute(bulkImport);
+
+        String createIndex = String.format("create index ti on t(col2) SPLITKEYS LOCATION '%s' HFILE LOCATION '%s'",
+                SpliceUnitTest.getResourceDirectory()+"largeKey.csv", SpliceUnitTest.getResourceDirectory());
+        spliceClassWatcher.execute(createIndex);
+
+        ResultSet rs = spliceClassWatcher.executeQuery("select count(*) from t --splice-properties index=null");
+        rs.next();
+        int count = rs.getInt(1);
+        Assert.assertEquals(1, count);
+
+        rs = spliceClassWatcher.executeQuery("select count(*) from t --splice-properties index=ti");
+        rs.next();
+        count = rs.getInt(1);
+        Assert.assertEquals(1, count);
+
     }
 
     @Test
