@@ -15,7 +15,7 @@ KAFKALOG="${ROOT_DIR}"/kafka.log
 CHAOS="false"
 PROFILE="cdh5.6.0"  # default hbase platform profile
 
-MAVEN_OPTS="$MAVEN_OPTS -Xms128m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40"
+MAVEN_OPTS="$MAVEN_OPTS -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40"
 
 usage() {
     # $1 is an error, if any
