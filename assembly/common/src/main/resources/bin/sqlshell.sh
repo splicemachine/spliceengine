@@ -169,16 +169,16 @@ if [ "$(ls -A $SPLICE_LIB_DIR 2> /dev/null)" ]; then
   dbtools=$(find $SPLICE_LIB_DIR -type f -name 'db-tools*-SNAPSHOT.jar')
   # set up classpath to point to splice jars
   if [ -z "${dbclient}" ]; then
-    echo "Error: the db-client tool required to connect cannot be found."
+    echo "Error: the db-client tool required to connect cannot be found or created."
     exit 1
   elif [ -z "${dbtools}" ]; then
-    echo "Error: the db-tools required to connect cannot be found."
+    echo "Error: the db-tools required to connect cannot be found or created."
     exit 1
   else
     export CLASSPATH="${SPLICE_LIB_DIR}/*"
   fi
 else
-  echo "Error: the db tools folder required to connect cannot be found."
+  echo "Error: the dependency directory at $SPLICE_LIB_DIR cannot be found or created."
   exit 1
 fi
 
