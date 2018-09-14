@@ -33,6 +33,52 @@
     <properties>
         <jenkins.build.number>1</jenkins.build.number>
         <parcel.patch>p0.${jenkins.build.number}</parcel.patch>
+        <commonArtifacts>
+            db-client,
+            db-tools-i18n,
+            db-tools-ij,
+            db-shared,
+            db-drda,
+            db-engine,
+            pipeline_api,
+            splice_access_api,
+            splice_encoding,
+            splice_machine,
+            splice_protocol,
+            splice_si_api,
+            splice_timestamp_api,
+            utilities,
+            memory,
+            sketches-core,
+            opencsv,
+            concurrentlinkedhashmap-lru,
+            kryo-serializers,
+            lucene-core,
+            hbase_pipeline-${envClassifier},
+            hbase_storage-${envClassifier},
+            hbase_sql-${envClassifier},
+            splice_ee-${envClassifier},
+            splice_backup-${envClassifier},
+            splice_auth,
+            splice_colperms,
+            splice_encryption,
+            akka-remote_${scala.binary.version},
+            splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
+            super-csv,
+            c3p0,
+            mchange-commons-java,
+            splice_aws,
+            units,
+            log,
+            stats,
+            HdrHistogram,
+            jmxutils,
+            jol-core,
+            slice,
+            orc-protobuf,
+            spark-avro_2.11,
+            jython-standalone
+        </commonArtifacts>
     </properties>
     <build>
         <plugins>
@@ -92,7 +138,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.10</version>
                         <executions>
                             <execution>
                                 <id>copy</id>
@@ -102,51 +147,8 @@
                                 </goals>
                                 <configuration>
                                     <includeArtifactIds>
-                                        db-client,
-                                        db-tools-i18n,
-                                        db-tools-ij,
-                                        db-shared,
-                                        db-drda,
-                                        db-engine,
-                                        pipeline_api,
-                                        splice_access_api,
-                                        splice_encoding,
-                                        splice_machine,
-                                        splice_protocol,
-                                        splice_si_api,
-                                        splice_timestamp_api,
-                                        utilities,
-                                        memory,
-                                        sketches-core,
-                                        opencsv,
-                                        concurrentlinkedhashmap-lru,
-                                        kryo-serializers,
-                                        lucene-core,
-                                        hbase_pipeline-${envClassifier},
-                                        hbase_storage-${envClassifier},
-                                        hbase_sql-${envClassifier},
-                                        splice_ee-${envClassifier},
-                                        splice_backup-${envClassifier},
-                                        splice_sentry-${envClassifier},
-                                        splice_auth,
-                                        splice_colperms,
-                                        splice_encryption,
-                                        akka-remote_${scala.binary.version},
-                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
-					                    super-csv,
-					                    c3p0,
-					                    mchange-commons-java,
-                                        splice_aws,
-                                        units,
-                                        log,
-                                        stats,
-                                        HdrHistogram,
-                                        jmxutils,
-                                        jol-core,
-                                        slice,
-                                        orc-protobuf,
-                                        spark-avro_2.11,
-                                        jython-standalone
+                                        ${commonArtifacts},
+                                        splice_sentry-${envClassifier}
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
@@ -528,10 +530,8 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
-                        <version>2.10</version>
                         <executions>
                             <execution>
-
                                 <id>copy</id>
                                 <phase>package</phase>
                                 <goals>
@@ -539,44 +539,10 @@
                                 </goals>
                                 <configuration>
                                     <includeArtifactIds>
-                                        db-client,
-                                        db-tools-i18n,
-                                        db-tools-ij,
-                                        db-shared,
-                                        db-drda,
-                                        db-engine,
-                                        pipeline_api,
-                                        splice_access_api,
-                                        splice_encoding,
-                                        splice_machine,
-                                        splice_protocol,
-                                        splice_si_api,
-                                        splice_timestamp_api,
-                                        utilities,
-                                        memory,
-                                        sketches-core,
-                                        opencsv,
-                                        concurrentlinkedhashmap-lru,
-                                        kryo-serializers,
-                                        lucene-core,
-                                        hbase_pipeline-${envClassifier},
-                                        hbase_storage-${envClassifier},
-                                        hbase_sql-${envClassifier},
-                                        splice_ee-${envClassifier},
-                                        splice_backup-${envClassifier},
-                                        splice_auth,
-                                        splice_colperms,
-                                        splice_encryption,
-                                        akka-remote_${scala.binary.version},
-                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
-                                        super-csv,
-                                        spark-avro_2.11,
+                                        ${commonArtifacts},
                                         splice_ranger_admin-${envClassifier},
                                         splice_ranger_service-${envClassifier},
-                                        splice_atlas-${envClassifier},
-                                        c3p0,
-                                        mchange-commons-java,
-                                        jython-standalone
+                                        splice_atlas-${envClassifier}
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
