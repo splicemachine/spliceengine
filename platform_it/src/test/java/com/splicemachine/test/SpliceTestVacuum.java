@@ -27,6 +27,9 @@ public class SpliceTestVacuum {
                 long start = System.currentTimeMillis();
                 try (Statement statement = conn.createStatement()) {
                     statement.execute("call syscs_util.vacuum()");
+                } catch (Exception e) {
+                    System.out.println("VACUUM: Error to run vacuum");
+                    e.printStackTrace();
                 }
                 long finish = System.currentTimeMillis();
                 System.out.printf(
