@@ -1222,6 +1222,34 @@
             </build>
         </profile>
         <profile>
+            <id>spliceVacuum</id>
+            <activation>
+                <property>
+                    <name>spliceVacuum</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>1.4.0</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <mainClass>com.splicemachine.test.SpliceTestVacuum</mainClass>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>spliceYarn</id>
             <activation>
                 <property>
