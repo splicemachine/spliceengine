@@ -104,11 +104,26 @@ public final class SQLDate extends DataType
         return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-    int getEncodedDate()
+    public int getEncodedDate()
     {
         return encodedDate;
     }
-    
+
+	// Try to make modern dates close to the year 2020 take up less space.
+	// Subtracting this value from a disk-encoded date allows us to use
+	// 1 or 2 bytes for dates around year 2020 plus or minus 15 years,
+	// vs. 3 or 4 bytes.
+	public static final int DATE_ENCODING_OFFSET = 0xFC800;
+
+	public int getDiskEncodedDate()
+	{
+		return (getYear(encodedDate)  << 9)  +
+		       (getMonth(encodedDate) << 5)  +
+		        getDay(encodedDate)          -
+		       DATE_ENCODING_OFFSET;
+	}
+
+
 	/*
 	** DataValueDescriptor interface
 	** (mostly implemented in DataType)

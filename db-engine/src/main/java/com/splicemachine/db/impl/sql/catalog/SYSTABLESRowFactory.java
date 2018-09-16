@@ -97,7 +97,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	 */
 	public static final String ORIGINAL_TABLE_VERSION = "1.0";
 	//the current version for creating new tables with
-	public static final String CURRENT_TABLE_VERSION = "3.0";
+	public static final String CURRENT_TABLE_VERSION = "4.0";
 	
 	// all indexes are unique.
 
