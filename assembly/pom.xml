@@ -25,6 +25,7 @@
     </parent>
     <dependencies>
         <dependency>
+            <!-- Get all projects and required dependencies transitively -->
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql-${envClassifier}</artifactId>
             <version>${project.version}</version>
@@ -57,8 +58,8 @@
             hbase_pipeline-${envClassifier},
             hbase_storage-${envClassifier},
             hbase_sql-${envClassifier},
-            splice_ee-${envClassifier},
-            splice_backup-${envClassifier},
+            splice_ee,
+            splice_backup,
             splice_auth,
             splice_colperms,
             splice_encryption,
@@ -103,6 +104,12 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -540,9 +547,9 @@
                                 <configuration>
                                     <includeArtifactIds>
                                         ${commonArtifacts},
-                                        splice_ranger_admin-${envClassifier},
-                                        splice_ranger_service-${envClassifier},
-                                        splice_atlas-${envClassifier}
+                                        splice_ranger_admin,
+                                        splice_ranger_service,
+                                        splice_atlas
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
