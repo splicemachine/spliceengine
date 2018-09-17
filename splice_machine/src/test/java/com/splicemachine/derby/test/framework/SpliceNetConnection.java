@@ -15,9 +15,6 @@
 package com.splicemachine.derby.test.framework;
 
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
-
-import java.beans.PropertyVetoException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -31,28 +28,13 @@ public class SpliceNetConnection {
     private static final String DB_URL_LOCAL = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s";
     public static final String DEFAULT_USER = "splice";
     public static final String DEFAULT_USER_PASSWORD = "admin";
-    private static ComboPooledDataSource cpds = new ComboPooledDataSource();
-
-    static {
-        try {
-            cpds.setDriverClass("com.splicemachine.db.jdbc.ClientDriver");
-            cpds.setJdbcUrl(getDefaultLocalURL());
-            cpds.setUser(DEFAULT_USER);
-            cpds.setPassword(DEFAULT_USER_PASSWORD);
-            cpds.setMinPoolSize(2);
-            cpds.setAcquireIncrement(2);
-            cpds.setMaxPoolSize(20);
-        } catch (PropertyVetoException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     public static Connection getConnection() throws SQLException {
-        return cpds.getConnection();
+        return getConnectionAs(DEFAULT_USER, DEFAULT_USER_PASSWORD);
     }
 
     public static Connection getConnectionAs(String userName, String password) throws SQLException {
-        return cpds.getConnection(userName, password);
+        return getConnectionAs(DB_URL_LOCAL, userName, password);
     }
 
     public static String getDefaultLocalURL() {
@@ -60,15 +42,8 @@ public class SpliceNetConnection {
     }
 
     public static Connection getConnectionAs(String providedURL, String userName, String password) throws SQLException {
-        if (providedURL.equals(DB_URL_LOCAL)) {
-            if (userName.equals(DEFAULT_USER) && password.equals(DEFAULT_USER_PASSWORD)) {
-                return getConnection();
-            } else {
-                return getConnectionAs(userName, password);
-            }
-        } else {
-            String url = String.format(providedURL, userName, password);
-            return DriverManager.getConnection(url, new Properties());
-        }
+        String url = String.format(providedURL, userName, password);
+        return DriverManager.getConnection(url, new Properties());
     }
+
 }
