@@ -32,10 +32,12 @@ public class SpliceTestVacuum {
                     e.printStackTrace();
                 }
                 long finish = System.currentTimeMillis();
+                long spent = finish - start;
+                long sleep = Math.max(1000L * 10 - spent, 0L);
                 System.out.printf(
-                    "VACUUM: Finish vacuum, time used: %d ms. Sleep 1 minute to do next vacuum.",
-                    (finish - start));
-                Thread.sleep(1000 * 60);
+                    "VACUUM: Finish vacuum, time used: %d ms. Sleep %d ms to do next vacuum.\n",
+                    spent, sleep);
+                Thread.sleep(sleep);
             }
         }
     }
