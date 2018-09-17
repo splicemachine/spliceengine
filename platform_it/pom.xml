@@ -1414,11 +1414,16 @@
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -enableassertions
                                     -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30
+                                    <!--
                                     -XX:+UseSerialGC
+                                    -->
+
                                     -Xss256k
 
+                                    <!--
                                     -XX:NativeMemoryTracking=summary
                                     -XX:NativeMemoryTracking=detail
+                                    -->
 
 
                                     -Dcom.sun.management.jmxremote.ssl=false
@@ -1479,12 +1484,14 @@
                                 <argument>-XX:+UseSerialGC</argument>
                                 <argument>-Xss256k</argument>
 
+                                <!--
                                 <argument>-XX:+UnlockCommercialFeatures</argument>
                                 <argument>-XX:+FlightRecorder</argument>
                                 <argument>-XX:FlightRecorderOptions=defaultrecording=true,disk=true,repository=/data/profiling/tmp,settings=default,dumponexit=true,dumponexitpath=/data/profiling,maxage=6h</argument>
 
                                 <argument>-XX:NativeMemoryTracking=summary</argument>
                                 <argument>-XX:NativeMemoryTracking=detail</argument>
+                                -->
 
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
