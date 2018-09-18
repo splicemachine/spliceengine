@@ -1392,7 +1392,7 @@
                                 <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
-                                <argument>-Dsplice.spark.memory.storageFraction=0.1</argument>
+                                <argument>-Dsplice.spark.memory.storageFraction=0.2</argument>
                                 <argument>-Dsplice.spark.driver.extraJavaOptions=
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     ${hbase.rootdir}
