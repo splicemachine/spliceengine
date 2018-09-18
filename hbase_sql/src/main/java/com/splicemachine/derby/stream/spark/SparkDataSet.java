@@ -54,6 +54,8 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -723,18 +725,21 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                           OperationContext context) {
         try {
+            StructType dataSchema = context.getOperation().getExecRowDefinition().schema();
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                    rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
-                    context.getOperation().getExecRowDefinition().schema());
+                    rdd
+                            .map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context)))
+                            .map(new LocatedRowToRowFunction()),
+                    dataSchema);
 
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
+                partitionByCols.add(dataSchema.fields()[partitionBy[i]].name());
             }
             if (partitionBy.length > 0) {
                 List<Column> repartitionCols = new ArrayList();
                 for (int i = 0; i < partitionBy.length; i++) {
-                    repartitionCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                    repartitionCols.add(new Column(dataSchema.fields()[partitionBy[i]].name()));
                 }
                 insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
             }
@@ -756,14 +761,15 @@ public class SparkDataSet<V> implements DataSet<V> {
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                     rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                     context.getOperation().getExecRowDefinition().schema());
+            StructField[] fields = context.getOperation().getExecRowDefinition().schema().fields();
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
+                partitionByCols.add(fields[partitionBy[i]].name());
             }
             if (partitionBy.length > 0) {
                 List<Column> repartitionCols = new ArrayList();
                 for (int i = 0; i < partitionBy.length; i++) {
-                    repartitionCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                    repartitionCols.add(new Column(fields[partitionBy[i]].name()));
                 }
                 insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
             }

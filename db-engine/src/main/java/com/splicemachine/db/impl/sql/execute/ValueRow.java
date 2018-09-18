@@ -67,6 +67,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	private DataValueDescriptor[] column;
 	private int ncols;
 	private byte[] key;
+	private String[] names;
 
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -286,6 +287,13 @@ public class ValueRow implements ExecRow, Externalizable {
 
 		System.arraycopy(column, 0, newcol, 0, column.length);
 		column = newcol;
+
+		if (names != null) {
+			String[] newNames = new String[ncols];
+			System.arraycopy(names, 0, newNames, 0, names.length);
+			this.names = newNames;
+		}
+
 	}
 	
 	@Override
@@ -418,8 +426,12 @@ public class ValueRow implements ExecRow, Externalizable {
 	@Override
 	public StructType schema() {
 		StructField[] fields = new StructField[ncols];
-		for (int i = 0; i < ncols;i++) {
-			fields[i] = column[i].getStructField(getNamedColumn(i));
+		if (names != null ) {
+			for (int i = 0; i < ncols;i++)
+				fields[i] = column[i].getStructField(names[i]);
+		} else {
+			for (int i = 0; i < ncols;i++)
+				fields[i] = column[i].getStructField(getNamedColumn(i));
 		}
 		return DataTypes.createStructType(fields);
 	}
@@ -668,4 +680,31 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void setKey(byte[] key) {
 		this.key = key;
 	}
+
+	/**
+	 Get the string array of column names.
+	 */
+	public String[] getColumnNames() {
+		return names;
+	}
+
+	/**
+	 * Set the column names array
+	 *
+	 */
+	public void setColumnNames(String[] names)
+	{
+		this.names = names;
+	}
+
+	public String getColumnName(int columnNumber) throws StandardException {
+		if (names != null && names.length != 0) {
+			assert columnNumber < names.length : "Column index out of bound";
+			return names[columnNumber];
+		} else {
+			throw StandardException.newException("Can't get column name in index: " + columnNumber);
+		}
+
+	}
+
 }

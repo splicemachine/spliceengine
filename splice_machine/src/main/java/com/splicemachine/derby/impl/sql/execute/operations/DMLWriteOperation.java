@@ -184,8 +184,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         ResultDescription description=writeInfo.getResultDescription();
         ResultColumnDescriptor[] rcd=description.getColumnInfo();
         DataValueDescriptor[] dvds=new DataValueDescriptor[rcd.length];
+        String[] colNames = new String[rcd.length];
         for(int i=0;i<rcd.length;i++){
             dvds[i]=rcd[i].getType().getNull();
+            colNames[i] = rcd[i].getName();
             TypeId typeId=rcd[i].getType().getTypeId();
             if(typeId.getTypeFormatId()==StoredFormatIds.USERDEFINED_TYPE_ID_V3){
                 UserDefinedTypeIdImpl udt=(UserDefinedTypeIdImpl)typeId.getBaseTypeId();
@@ -209,6 +211,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         }
         ExecRow row=new ValueRow(dvds.length);
         row.setRowArray(dvds);
+
+        ((ValueRow) row).setColumnNames(colNames);
+
         SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
         return row;
     }

@@ -39,6 +39,7 @@ import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.spark_project.guava.base.Charsets;
 import scala.Tuple2;
@@ -345,9 +346,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException {
+    public void createEmptyExternalFile(StructField[] fields, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        proc.createEmptyExternalFile(execRow,baseColumnMap,partitionBy,storageAs,location, compression);
+        proc.createEmptyExternalFile(fields,baseColumnMap,partitionBy,storageAs,location, compression);
     }
 
     @Override
