@@ -1413,17 +1413,14 @@
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -enableassertions
-                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40
                                     <!--
                                     -XX:+UseSerialGC
-                                    -->
 
                                     -Xss256k
 
-                                    <!--
                                     -XX:NativeMemoryTracking=summary
                                     -XX:NativeMemoryTracking=detail
-                                    -->
 
 
                                     -Dcom.sun.management.jmxremote.ssl=false
@@ -1434,6 +1431,7 @@
                                     -XX:+UnlockCommercialFeatures
                                     -XX:+FlightRecorder
                                     -XX:FlightRecorderOptions=defaultrecording=true,disk=true,repository=/data/profiling/tmp,settings=default,dumponexit=true,dumponexitpath=/data/profiling,maxage=6h
+                                    -->
 
 
                                     ${jacocoAgent}
