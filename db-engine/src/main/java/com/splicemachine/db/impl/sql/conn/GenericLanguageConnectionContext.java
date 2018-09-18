@@ -375,7 +375,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             stmtLogger.setLevel(Level.OFF);
         }
 
-        String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(),
+        String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(this, getTransactionCompile(),
                 "derby.language.maxStatementLogLen");
         maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.valueOf
                 (maxStatementLogLenStr);
@@ -394,7 +394,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
 
-        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
+        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
 
     }
@@ -846,7 +846,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sessionProperties.resetAll();
 
         // read again the property in case it is changed
-        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
+        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
         origStmtTxt = null;
     }
