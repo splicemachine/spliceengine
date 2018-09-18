@@ -27,7 +27,6 @@ local_path=
 mapr_server_dns=ec2-52-23-199-220.compute-1.amazonaws.com
 
 #MapR client nodes:
-
 node1=ec2-34-227-193-89.compute-1.amazonaws.com
 node2=ec2-18-208-188-58.compute-1.amazonaws.com
 
