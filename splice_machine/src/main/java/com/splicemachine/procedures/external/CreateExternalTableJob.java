@@ -24,6 +24,7 @@ import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.utils.IntArrays;
+import org.apache.spark.sql.types.StructField;
 
 
 import java.util.concurrent.Callable;
@@ -66,7 +67,13 @@ public class CreateExternalTableJob implements Callable<Void> {
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.getJobGroup(), "");
-        dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
+
+        //Generate StructField Array
+        StructField[] fields = new StructField[columnInfo.length];
+        for (int i = 0; i < columnInfo.length;i++) {
+            fields[i] = dvds[i].getStructField(columnInfo[i].name);
+        }
+        dsp.createEmptyExternalFile(fields, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
 
 
         jobStatus.markCompleted(new SuccessfulOlapResult());

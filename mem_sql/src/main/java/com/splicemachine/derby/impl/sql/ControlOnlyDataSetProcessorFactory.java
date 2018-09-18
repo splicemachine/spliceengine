@@ -127,7 +127,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         }
 
         @Override
-        public void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException {
+        public void createEmptyExternalFile(StructFields fields, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "DistributedWrapper#createEmptyExternalFile()");
         }

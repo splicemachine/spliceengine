@@ -70,6 +70,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
@@ -829,13 +830,14 @@ public class SparkDataSet<V> implements DataSet<V> {
                     context.getOperation().getExecRowDefinition().schema());
 
             String[] partitionByCols = new String[partitionBy.length];
+            StructField[] fields = context.getOperation().getExecRowDefinition().schema().fields();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols[i] = ValueRow.getNamedColumn(partitionBy[i]);
+                partitionByCols[i] = fields[partitionBy[i]].name();
             }
             if (partitionBy.length > 0) {
                 List<Column> repartitionCols = new ArrayList();
                 for (int i = 0; i < partitionBy.length; i++) {
-                    repartitionCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                    repartitionCols.add(new Column(fields[partitionBy[i]].name()));
                 }
                 insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
             }
