@@ -177,6 +177,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         if(service!=null)
             try{
                 service.shutdown();
+                DatabaseLifecycleManager.manager().deregisterGeneralService(service);
             }catch(Exception e){
                 throw new IOException(e);
             }
