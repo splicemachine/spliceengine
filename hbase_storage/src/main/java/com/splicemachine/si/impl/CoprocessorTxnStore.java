@@ -20,6 +20,7 @@ import com.splicemachine.si.api.txn.ActiveTxnTracker;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.primitives.Longs;
@@ -56,6 +57,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @ThreadSafe
 public class CoprocessorTxnStore implements TxnStore {
+    private static Logger LOG=Logger.getLogger(CoprocessorTxnStore.class);
     private final TxnNetworkLayerFactory tableFactory;
     private TxnSupplier cache; //a transaction store which uses a global cache for us
     private volatile long oldTransactions;
@@ -244,9 +246,11 @@ public class CoprocessorTxnStore implements TxnStore {
             Collection<TxnMessage.ActiveTxnResponse> data = table.getActiveTxns(request);
 
             List<TxnView> txns=new ArrayList<>(data.size());
+            LOG.info("MEM LEAK: response size: " + data.size());
 
             for(TxnMessage.ActiveTxnResponse response : data){
                 int size=response.getTxnsCount();
+                LOG.info("MEM LEAK: each size: " + size);
                 for(int i=0;i<size;i++){
                     txns.add(decode(0, response.getTxns(i)));
                 }
