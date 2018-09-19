@@ -1449,7 +1449,7 @@
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30
                                     -XX:+UseSerialGC
-                                    -Xss256k
+                                    <!---Xss256k-->
 
 
                                     -XX:+UnlockCommercialFeatures
@@ -1479,7 +1479,7 @@
                                 -->
 
                                 <argument>-XX:+UseSerialGC</argument>
-                                <argument>-Xss256k</argument>
+                                <!--<argument>-Xss256k</argument>-->
 
                                 <!--
                                 <argument>-XX:+UnlockCommercialFeatures</argument>
@@ -1554,7 +1554,7 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Xmx2g</argument>
-                                <argument>-Xss256k</argument>
+                                <!--<argument>-Xss256k</argument>-->
                                 <!--
                                 <argument>-Xmn128m</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
