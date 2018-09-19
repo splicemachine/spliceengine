@@ -1452,9 +1452,11 @@
                                     <!---Xss256k-->
 
 
+                                    <!--
                                     -XX:+UnlockCommercialFeatures
                                     -XX:+FlightRecorder
                                     -XX:FlightRecorderOptions=defaultrecording=true,disk=true,repository=/data/profiling/tmp,settings=default,dumponexit=true,dumponexitpath=/data/profiling,maxage=6h
+                                    -->
 
                                 </argument>
                                 <argument>${spark.keytab}</argument>
@@ -1568,9 +1570,11 @@
                                 <argument>-XX:MaxDirectMemorySize=1g</argument>
                                 -->
 
+                                <!--
                                 <argument>-XX:+UnlockCommercialFeatures</argument>
                                 <argument>-XX:+FlightRecorder</argument>
                                 <argument>-XX:FlightRecorderOptions=defaultrecording=true,disk=true,repository=/data/profiling/tmp,settings=default,dumponexit=true,dumponexitpath=/data/profiling,maxage=6h</argument>
+                                -->
 
 
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
