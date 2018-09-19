@@ -146,8 +146,10 @@ public class SpliceIndexObserver extends BaseRegionObserver {
             super.stop(e);
             if (region != null)
                 region.close();
-            if(service!=null)
+            if(service!=null) {
                 service.shutdown();
+                DatabaseLifecycleManager.manager().deregisterGeneralService(service);
+            }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
