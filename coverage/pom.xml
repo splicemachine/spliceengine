@@ -319,7 +319,7 @@
 			</dependencies>
 		</profile>
         <profile>
-        	<id>mapr5.1.0</id>
+        	<id>mapr6.0.1</id>
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>

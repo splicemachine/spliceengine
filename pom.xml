@@ -1289,6 +1289,38 @@
         </profile>
 
         <profile>
+            <id>mapr6.0.1</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>mapr6.0.1</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>mapr6.0.1</envClassifier>
+                <envHbase>hbase1.1.8</envHbase>
+                <hadoop.version>2.7.0-mapr-1803</hadoop.version>
+                <hadoop.tools.version>1.0.3-mapr-6.0.1</hadoop.tools.version>
+                <hbase.version>1.1.8-mapr-1710</hbase.version>
+                <hive.version>2.1.1-mapr-1803</hive.version>
+                <zookeeper.version>3.4.5-mapr-1710</zookeeper.version>
+                <maprfs.version>6.0.1-mapr</maprfs.version>
+                <spark.version>2.2.1-mapr-1803</spark.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <kafka.version>1.0.1-mapr-1803</kafka.version>
+                <netty.version>4.0.37.Final</netty.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>splice_spark</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+
+        <profile>
             <id>ee</id>
             <activation>
                 <property>
