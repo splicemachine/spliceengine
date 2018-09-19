@@ -1324,9 +1324,8 @@
                                 <argument>-XX:+FlightRecorder</argument> -->
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
-                                <!--<argument>-agentpath:/opt/jprofiler/bin/linux-x64/libjprofilerti
-                                .so=port=8851,nowait,id=108,config=/home/wangbin/.jprofiler10/config.xml</argument>
-                                -->
+                                <argument>-agentpath:/opt/jprofiler/bin/linux-x64/libjprofilerti.so=port=8851</argument>
+                                  <!--,nowait,id=108,config=/home/wangbin/.jprofiler10/config.xml</argument>-->
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
