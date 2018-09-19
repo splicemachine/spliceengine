@@ -15,9 +15,6 @@ all_nodes=( $mapr_server_dns ${client_nodes[@]} )
 dir_decoupled="/opt/splice/decoupled-install"
 url_decoupled="raw.githubusercontent.com/splicemachine/spliceengine/master/assembly"
 
-eval $(ssh-agent -s)
-ssh-add /home/${userID}/splice-dcos.pem
-
 startStopWarden () {
    node=$1
    echo -e "\n$2 mapr-warden at $node"
