@@ -52,10 +52,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     private static final String ROWS_COUNT_WITHOUT_SAMPLE = "ROWS_COUNT_WITHOUT_SAMPLE";
     private static boolean notSupported;
 
-    @ClassRule
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
 
-    @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
     public static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(ROWS_COUNT_WITH_SAMPLE,
@@ -68,6 +66,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWatcher)
             .around(spliceTableWatcher1)
             .around(spliceTableWatcher2);
 

@@ -63,7 +63,8 @@ public class TempTableHBaseIT{
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(tableSchema)
-            .around(empPrivTable);
+            .around(empPrivTable)
+            .around(constraintTable1);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
     /**
