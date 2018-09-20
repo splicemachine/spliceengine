@@ -32,14 +32,13 @@ import static org.junit.Assert.assertNotNull;
 public class ImportNullityIT{
     public static final String SCHEMA_NAME=ImportNullityIT.class.getSimpleName();
     private final RuledConnection conn = new RuledConnection(null);
-    @ClassRule
     public static final SpliceSchemaWatcher schemaWatcher =
             new SpliceSchemaWatcher(SCHEMA_NAME);
 
     private final TableRule withDefault = new TableRule(conn,"T","(a varchar(10),b varchar(10),c varchar(20) NOT NULL default 'nullDefault')");
 
     @Rule public final TestRule rules =RuleChain.outerRule(conn)
-            .around(new SchemaRule(conn,SCHEMA_NAME))
+            .around(schemaWatcher)
             .around(withDefault);
 
     private static File BADDIR;
