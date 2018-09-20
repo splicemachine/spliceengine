@@ -734,6 +734,7 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <executions>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
+                    <!--
                     <execution>
                         <id>integration-tests-serial</id>
                         <goals>
@@ -759,6 +760,7 @@
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
+                    -->
                     <execution>
                         <id>integration-tests-parallel</id>
                         <goals>
@@ -780,7 +782,7 @@
                                 <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
                             </dependenciesToScan>
                             <includes>
-                                <include>**/*IT.java</include>
+                                <include>**/ExternalTableIT.java</include>
                             </includes>
                             <excludes>
                                 <!-- Skip all unit tests -->

@@ -2672,6 +2672,8 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "COL1  |COL2 |\n" +
                 "--------------\n" +
                 "100.23 |  1  |";
+        System.out.println("======= actual ==========");
+        System.out.println(actual);
 
         Assert.assertEquals(actual, expected, actual);
     }
