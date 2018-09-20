@@ -36,79 +36,78 @@ import static org.junit.Assert.assertEquals;
 
 public class InsertOperationIT {
 
-    private static final String SCHEMA = InsertOperationIT.class.getSimpleName();
-    private static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
-
-    @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
-
-    @BeforeClass
-    public static void createSharedTables() throws Exception {
-        classWatcher.executeUpdate("create table T (name varchar(40))");
-        classWatcher.executeUpdate("create table S (name varchar(40))");
-        classWatcher.executeUpdate("create table A (name varchar(40), count int)");
-
-        classWatcher.executeUpdate("create table G (name varchar(40))");
-        classWatcher.executeUpdate("create table B (name varchar(40))");
-        classWatcher.executeUpdate("create table E (name varchar(40))");
-        classWatcher.executeUpdate("create table J (name varchar(40))");
-        classWatcher.executeUpdate("create table L (name varchar(40))");
-        classWatcher.executeUpdate("create table Y (name varchar(40))");
-
-        classWatcher.executeUpdate("create table Z (name varchar(40),count int)");
-        classWatcher.executeUpdate("create table FILES (name varchar(32) not null primary key, doc blob(50M))");
-        classWatcher.executeUpdate("create table HMM (b16a char(2) for bit data, b16b char(2) for bit data, vb16a varchar(2) for bit data, vb16b varchar(2) for bit data, lbv long varchar for bit data)");
-        classWatcher.executeUpdate("create table WARNING (a char(1))");
-
-        classWatcher.executeUpdate("create table T1 (c1 int generated always as identity, c2 int)");
-        classWatcher.executeUpdate("create table T2 (a int, b int)");
-
-        classWatcher.executeUpdate("create table T3 (a int, b decimal(16,10))");
-        classWatcher.executeUpdate("insert into T3 values (1,1)");
-
-        classWatcher.executeUpdate("create table T4 (c int, d int)");
-        classWatcher.executeUpdate("insert into T4 values (1,1),(2,2)");
-
-        classWatcher.executeUpdate("create table T5 (a int, c int,b decimal(16,10), d int)");
-        classWatcher.executeUpdate("create table SAME_LENGTH (name varchar(40))");
-        classWatcher.executeUpdate("create table batch_test (col1 int, col2 int, col3 int, primary key (col1))");
-        classWatcher.executeUpdate("create table T6 (a int)");
-        classWatcher.executeUpdate("create table T7 (name varchar(20))");
-
-        classWatcher.executeUpdate("create table TABLE_DECIMAL (CUSTOMER_ID DECIMAL (10,0))");
-        classWatcher.executeUpdate("create table TABLE_BIGINT (CUSTOMER_ID BIGINT)");
-        classWatcher.executeUpdate("create table TABLE_RESULT (CUSTOMER_ID BIGINT)");
-        classWatcher.executeUpdate("insert into TABLE_BIGINT values (1),(2),(3)");
-
-        classWatcher.executeUpdate("create table TT(i int)");
-        classWatcher.executeUpdate("create table AA(c1 int, c2 int)");
-        classWatcher.executeUpdate("create table BB(c1 int, c2 int, c3 int, c4 int)");
-        classWatcher.executeUpdate("insert into AA values(1,1)");
-        classWatcher.executeUpdate("insert into BB values(1,1,1,1)");
-
-        classWatcher.executeUpdate("create table TT1(i int)");
-    }
+    private String SCHEMA = InsertOperationIT.class.getSimpleName();
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+    private SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+
+    @ClassRule
+    public SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+
+    @BeforeClass
+    public void createSharedTables() throws Exception {
+        methodWatcher.executeUpdate("create table T (name varchar(40))");
+        methodWatcher.executeUpdate("create table S (name varchar(40))");
+        methodWatcher.executeUpdate("create table A (name varchar(40), count int)");
+
+        methodWatcher.executeUpdate("create table G (name varchar(40))");
+        methodWatcher.executeUpdate("create table B (name varchar(40))");
+        methodWatcher.executeUpdate("create table E (name varchar(40))");
+        methodWatcher.executeUpdate("create table J (name varchar(40))");
+        methodWatcher.executeUpdate("create table L (name varchar(40))");
+        methodWatcher.executeUpdate("create table Y (name varchar(40))");
+
+        methodWatcher.executeUpdate("create table Z (name varchar(40),count int)");
+        methodWatcher.executeUpdate("create table FILES (name varchar(32) not null primary key, doc blob(50M))");
+        methodWatcher.executeUpdate("create table HMM (b16a char(2) for bit data, b16b char(2) for bit data, vb16a varchar(2) for bit data, vb16b varchar(2) for bit data, lbv long varchar for bit data)");
+        methodWatcher.executeUpdate("create table WARNING (a char(1))");
+
+        methodWatcher.executeUpdate("create table T1 (c1 int generated always as identity, c2 int)");
+        methodWatcher.executeUpdate("create table T2 (a int, b int)");
+
+        methodWatcher.executeUpdate("create table T3 (a int, b decimal(16,10))");
+        methodWatcher.executeUpdate("insert into T3 values (1,1)");
+
+        methodWatcher.executeUpdate("create table T4 (c int, d int)");
+        methodWatcher.executeUpdate("insert into T4 values (1,1),(2,2)");
+
+        methodWatcher.executeUpdate("create table T5 (a int, c int,b decimal(16,10), d int)");
+        methodWatcher.executeUpdate("create table SAME_LENGTH (name varchar(40))");
+        methodWatcher.executeUpdate("create table batch_test (col1 int, col2 int, col3 int, primary key (col1))");
+        methodWatcher.executeUpdate("create table T6 (a int)");
+        methodWatcher.executeUpdate("create table T7 (name varchar(20))");
+
+        methodWatcher.executeUpdate("create table TABLE_DECIMAL (CUSTOMER_ID DECIMAL (10,0))");
+        methodWatcher.executeUpdate("create table TABLE_BIGINT (CUSTOMER_ID BIGINT)");
+        methodWatcher.executeUpdate("create table TABLE_RESULT (CUSTOMER_ID BIGINT)");
+        methodWatcher.executeUpdate("insert into TABLE_BIGINT values (1),(2),(3)");
+
+        methodWatcher.executeUpdate("create table TT(i int)");
+        methodWatcher.executeUpdate("create table AA(c1 int, c2 int)");
+        methodWatcher.executeUpdate("create table BB(c1 int, c2 int, c3 int, c4 int)");
+        methodWatcher.executeUpdate("insert into AA values(1,1)");
+        methodWatcher.executeUpdate("insert into BB values(1,1,1,1)");
+
+        methodWatcher.executeUpdate("create table TT1(i int)");
+    }
 
     @Test
     public void testInsertCharsIntoSmallInt() throws Exception{
         //Varchar
-        classWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 smallint)");
-        classWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 smallint)");
-        classWatcher.executeUpdate("insert into tab1 values(2,'10',1)");
-        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
-        ResultSet res = classWatcher.executeQuery("select c3 from tab2");
+        methodWatcher.executeUpdate("create table tab1 (col1 int, col2 varchar(4), col3 smallint)");
+        methodWatcher.executeUpdate("create table tab2(c1 int, c2 varchar(4), c3 smallint)");
+        methodWatcher.executeUpdate("insert into tab1 values(2,'10',1)");
+        methodWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab1");
+        ResultSet res = methodWatcher.executeQuery("select c3 from tab2");
         res.next();
         int x = res.getInt("c3");
         Assert.assertEquals("Should have been converted to int correctly", 10, x);
 
         //Char
-        classWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 smallint)");
-        classWatcher.executeUpdate("insert into tab3 values(2,'5',1)");
-        classWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab3");
-        ResultSet res2 = classWatcher.executeQuery("select c3 from tab2 WHERE c3=5");
+        methodWatcher.executeUpdate("create table tab3 (col1 int, col2 char(4), col3 smallint)");
+        methodWatcher.executeUpdate("insert into tab3 values(2,'5',1)");
+        methodWatcher.executeUpdate("insert into tab2 (c1, c3) select col1, col2 from tab3");
+        ResultSet res2 = methodWatcher.executeQuery("select c3 from tab2 WHERE c3=5");
         res2.next();
         x = res2.getInt("c3");
         Assert.assertEquals(5, x);
@@ -117,20 +116,20 @@ public class InsertOperationIT {
     @Test
     public void testInsertCharsIntoBigInt() throws Exception{
         //varchar
-        classWatcher.executeUpdate("create table tt4 (col1 int, col2 varchar(4), col3 bigint)");
-        classWatcher.executeUpdate("create table tt2(c1 int, c2 varchar(4), c3 bigint)");
-        classWatcher.executeUpdate("insert into tt4 values(2,'10',1)");
-        classWatcher.executeUpdate("insert into tt2 (c1, c3) select col1, col2 from tt4");
-        ResultSet res = classWatcher.executeQuery("select c3 from tt2");
+        methodWatcher.executeUpdate("create table tt4 (col1 int, col2 varchar(4), col3 bigint)");
+        methodWatcher.executeUpdate("create table tt2(c1 int, c2 varchar(4), c3 bigint)");
+        methodWatcher.executeUpdate("insert into tt4 values(2,'10',1)");
+        methodWatcher.executeUpdate("insert into tt2 (c1, c3) select col1, col2 from tt4");
+        ResultSet res = methodWatcher.executeQuery("select c3 from tt2");
         res.next();
         int x = res.getInt("c3");
         Assert.assertEquals("Should have been converted to int correctly", 10, x);
 
         //char
-        classWatcher.executeUpdate("create table tt3 (col1 int, col2 char(4), col3 bigint)");
-        classWatcher.executeUpdate("insert into tt3 values(2,'5',1)");
-        classWatcher.executeUpdate("insert into tt2 (c1, c3) select col1, col2 from tt3");
-        ResultSet res2 = classWatcher.executeQuery("select c3 from tt2 WHERE c3=5");
+        methodWatcher.executeUpdate("create table tt3 (col1 int, col2 char(4), col3 bigint)");
+        methodWatcher.executeUpdate("insert into tt3 values(2,'5',1)");
+        methodWatcher.executeUpdate("insert into tt2 (c1, c3) select col1, col2 from tt3");
+        ResultSet res2 = methodWatcher.executeQuery("select c3 from tt2 WHERE c3=5");
         res2.next();
         x = res2.getInt("c3");
         Assert.assertEquals(5, x);
@@ -139,20 +138,20 @@ public class InsertOperationIT {
     @Test
     public void testInsertCharsIntoInt() throws Exception{
         //varchar
-        classWatcher.executeUpdate("create table table1 (col1 int, col2 varchar(4), col3 bigint)");
-        classWatcher.executeUpdate("create table table2(c1 int, c2 varchar(4), c3 int)");
-        classWatcher.executeUpdate("insert into table1 values(2,'10',1)");
-        classWatcher.executeUpdate("insert into table2 (c1, c3) select col1, col2 from table1");
-        ResultSet res = classWatcher.executeQuery("select c3 from table2");
+        methodWatcher.executeUpdate("create table table1 (col1 int, col2 varchar(4), col3 bigint)");
+        methodWatcher.executeUpdate("create table table2(c1 int, c2 varchar(4), c3 int)");
+        methodWatcher.executeUpdate("insert into table1 values(2,'10',1)");
+        methodWatcher.executeUpdate("insert into table2 (c1, c3) select col1, col2 from table1");
+        ResultSet res = methodWatcher.executeQuery("select c3 from table2");
         res.next();
         int x = res.getInt("c3");
         Assert.assertEquals("Should have been converted to int correctly", 10, x);
 
         //char
-        classWatcher.executeUpdate("create table table3 (col1 int, col2 char(4), col3 bigint)");
-        classWatcher.executeUpdate("insert into table3 values(2,'5',1)");
-        classWatcher.executeUpdate("insert into table2 (c1, c3) select col1, col2 from table3");
-        ResultSet res2 = classWatcher.executeQuery("select c3 from table2 WHERE c3=5");
+        methodWatcher.executeUpdate("create table table3 (col1 int, col2 char(4), col3 bigint)");
+        methodWatcher.executeUpdate("insert into table3 values(2,'5',1)");
+        methodWatcher.executeUpdate("insert into table2 (c1, c3) select col1, col2 from table3");
+        ResultSet res2 = methodWatcher.executeQuery("select c3 from table2 WHERE c3=5");
         res2.next();
         x = res2.getInt("c3");
         Assert.assertEquals(5, x);
@@ -161,11 +160,11 @@ public class InsertOperationIT {
     @Test
     public void testBadInsertVarcharToInt() throws Exception{
         //varchar
-        classWatcher.executeUpdate("create table tabb1 (col1 int, col2 varchar(4), col3 bigint)");
-        classWatcher.executeUpdate("create table tabb2(c1 int, c2 varchar(4), c3 int)");
-        classWatcher.executeUpdate("insert into tabb1 values(2,'abc',1)");
+        methodWatcher.executeUpdate("create table tabb1 (col1 int, col2 varchar(4), col3 bigint)");
+        methodWatcher.executeUpdate("create table tabb2(c1 int, c2 varchar(4), c3 int)");
+        methodWatcher.executeUpdate("insert into tabb1 values(2,'abc',1)");
         try {
-            classWatcher.executeUpdate("insert into tabb2 (c1, c3) select col1, col2 from tabb1");
+            methodWatcher.executeUpdate("insert into tabb2 (c1, c3) select col1, col2 from tabb1");
             Assert.fail("Query should fail as we are inserting a varchar that cannot be converted into an int (abc) into an int field");
         }
         catch(SQLDataException e){
@@ -176,60 +175,60 @@ public class InsertOperationIT {
     //Fix does not support inserting int types into varchar fields
     @Test
     public void testInsertIntsToChars() throws Exception{
-        classWatcher.executeUpdate("create table varcharTab(c1 int, c2 varchar(10))"); // varchar to put ints into
-        classWatcher.executeUpdate("create table charTab(c1 int, c2 char(10))");    // char to put ints into
+        methodWatcher.executeUpdate("create table varcharTab(c1 int, c2 varchar(10))"); // varchar to put ints into
+        methodWatcher.executeUpdate("create table charTab(c1 int, c2 char(10))");    // char to put ints into
 
-        classWatcher.executeUpdate("create table smallintTab(col1 int, col2 smallint)"); // smallint
-        classWatcher.executeUpdate("insert into smallintTab values(1,123)");
+        methodWatcher.executeUpdate("create table smallintTab(col1 int, col2 smallint)"); // smallint
+        methodWatcher.executeUpdate("insert into smallintTab values(1,123)");
 
-        classWatcher.executeUpdate("create table intTab(col1 int, col2 int)");      // int
-        classWatcher.executeUpdate("insert into intTab values(1,1234)");
+        methodWatcher.executeUpdate("create table intTab(col1 int, col2 int)");      // int
+        methodWatcher.executeUpdate("insert into intTab values(1,1234)");
 
-        classWatcher.executeUpdate("create table bigintTab(col1 int, col2 bigint)");   // bigint
-        classWatcher.executeUpdate("insert into bigintTab values(1,123123123)");
+        methodWatcher.executeUpdate("create table bigintTab(col1 int, col2 bigint)");   // bigint
+        methodWatcher.executeUpdate("insert into bigintTab values(1,123123123)");
 
         //smallint to varchar
-        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from smallintTab");
-        ResultSet r = classWatcher.executeQuery("select c2 from varcharTab");
+        methodWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from smallintTab");
+        ResultSet r = methodWatcher.executeQuery("select c2 from varcharTab");
         r.next();
         Assert.assertEquals(r.getString(1),"123");
-        classWatcher.executeUpdate("delete from varcharTab");
+        methodWatcher.executeUpdate("delete from varcharTab");
 
         //smallint to char
-        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from smallintTab");
-        r = classWatcher.executeQuery("select c2 from charTab");
+        methodWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from smallintTab");
+        r = methodWatcher.executeQuery("select c2 from charTab");
         r.next();
         Assert.assertEquals(r.getString(1),"123       ");
-        classWatcher.executeUpdate("delete from charTab");
+        methodWatcher.executeUpdate("delete from charTab");
 
         //int to varchar
-        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from intTab");
-        r = classWatcher.executeQuery("select c2 from varcharTab");
+        methodWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from intTab");
+        r = methodWatcher.executeQuery("select c2 from varcharTab");
         r.next();
         Assert.assertEquals(r.getString(1),"1234");
-        classWatcher.executeUpdate("delete from varcharTab");
+        methodWatcher.executeUpdate("delete from varcharTab");
 
         //int to char
-        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from intTab");
-        r = classWatcher.executeQuery("select c2 from charTab");
+        methodWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from intTab");
+        r = methodWatcher.executeQuery("select c2 from charTab");
         r.next();
         Assert.assertEquals(r.getString(1),"1234      ");
-        classWatcher.executeUpdate("delete from charTab");
+        methodWatcher.executeUpdate("delete from charTab");
 
         //bigint to varchar
-        classWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from bigintTab");
-        r = classWatcher.executeQuery("select c2 from varcharTab");
+        methodWatcher.executeUpdate("insert into varcharTab (c1, c2) select col1, col2 from bigintTab");
+        r = methodWatcher.executeQuery("select c2 from varcharTab");
         r.next();
         Assert.assertEquals(r.getString(1),"123123123");
-        classWatcher.executeUpdate("delete from varcharTab");
+        methodWatcher.executeUpdate("delete from varcharTab");
 
 
         //bigint to char
-        classWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from bigintTab");
-        r = classWatcher.executeQuery("select c2 from charTab");
+        methodWatcher.executeUpdate("insert into charTab (c1, c2) select col1, col2 from bigintTab");
+        r = methodWatcher.executeQuery("select c2 from charTab");
         r.next();
         Assert.assertEquals(r.getString(1),"123123123 ");
-        classWatcher.executeUpdate("delete from charTab");
+        methodWatcher.executeUpdate("delete from charTab");
     }
 
     @Test
