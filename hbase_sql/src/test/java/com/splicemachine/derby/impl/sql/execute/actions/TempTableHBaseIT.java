@@ -20,11 +20,7 @@ import com.splicemachine.homeless.TestUtils;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import java.sql.Connection;
@@ -51,20 +47,15 @@ public class TempTableHBaseIT{
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String SIMPLE_TEMP_TABLE = "SIMPLE_TEMP_TABLE";
     private static String simpleDef = "(id int, fname varchar(8), lname varchar(10))";
-    private static String constraintTableDef = "(id int not null primary key, fname varchar(8) not null, lname varchar(10) not null)";
     private static final String EMP_PRIV_TABLE = "EMP_PRIV";
     private static String ePrivDef = "(id int not null primary key, dob varchar(10) not null, ssn varchar(12) not null)";
     private static SpliceTableWatcher empPrivTable = new SpliceTableWatcher(EMP_PRIV_TABLE,CLASS_NAME, ePrivDef);
 
-    private static final String CONSTRAINT_TEMP_TABLE1 = "CONSTRAINT_TEMP_TABLE1";
-    private static SpliceTableWatcher constraintTable1 = new SpliceTableWatcher(CONSTRAINT_TEMP_TABLE1,CLASS_NAME, constraintTableDef);
-    private static String viewFormat = "(id, lname, fname, dob, ssn) as select n.id, n.lname, n.fname, p.dob, p.ssn from %s n, %s p where n.id = p.id";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(tableSchema)
-            .around(empPrivTable)
-            .around(constraintTable1);
+            .around(empPrivTable);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
     /**
@@ -101,5 +92,10 @@ public class TempTableHBaseIT{
             }
             Assert.assertFalse("HBase temp table [" + tempConglomID + "] still exists.", hbaseTempExists);
         }
+    }
+
+    @AfterClass
+    public static void cleanup() throws Exception {
+        spliceClassWatcher.execute("drop table " + CLASS_NAME + "." + empPrivTable.tableName);
     }
 }
