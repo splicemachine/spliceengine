@@ -22,6 +22,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.InputStream;
@@ -164,14 +165,14 @@ public interface DataSetProcessor {
      *  that doesn't exist.
      *  This is currently use when we do "CREATE EXTERNAL TABLE..."
      *
-     * @param execRow
+     * @param fields
      * @param baseColumnMap
      * @param partitionBy
      * @param storageAs
      * @param location
      * @throws StandardException
      */
-    void createEmptyExternalFile(ExecRow execRow, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException ;
+    void createEmptyExternalFile(StructField[] fields, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException ;
 
     /**
      * Get external schema. This used to verify and make sure that what is really provided in the external fil
