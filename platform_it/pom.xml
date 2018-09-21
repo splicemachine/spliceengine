@@ -1055,7 +1055,7 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
-                                <argument>-Xms64g</argument>
+                                <argument>-Xms64m</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=40</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
@@ -1324,7 +1324,7 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Xmx2g</argument>
-                                <argument>-Xms64g</argument>
+                                <argument>-Xms64m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
                                 <argument>-Dsplice.spark.eventLog.enabled=true</argument>
