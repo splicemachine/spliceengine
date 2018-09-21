@@ -55,7 +55,7 @@ import java.util.BitSet;
 import java.util.List;
 
 /**
-	Basic implementation of ExecRow.
+ Basic implementation of ExecRow.
 
  */
 public class ValueRow implements ExecRow, Externalizable {
@@ -68,7 +68,6 @@ public class ValueRow implements ExecRow, Externalizable {
 	private int ncols;
 	private int hash = 0; // Cached value of hashCode(). Invalidate on any change to the object.
 	private byte[] key;
-	private String[] names;
 
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -76,8 +75,8 @@ public class ValueRow implements ExecRow, Externalizable {
 	//
 	///////////////////////////////////////////////////////////////////////
 
-    /** Empty constructor for serialization */
-    public ValueRow() {
+	/** Empty constructor for serialization */
+	public ValueRow() {
 
 	}
 
@@ -86,7 +85,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	 * Pass in column array
 	 *
 	 * @param column
-     */
+	 */
 	public ValueRow(DataValueDescriptor[] column) {
 		this(column.length);
 		this.column = column;
@@ -94,14 +93,14 @@ public class ValueRow implements ExecRow, Externalizable {
 
 
 	/**
-	  *	Make a value row with a designated number of column slots.
-	  *
-	  *	@param	ncols	number of columns to allocate
-	  */
+	 *	Make a value row with a designated number of column slots.
+	 *
+	 *	@param	ncols	number of columns to allocate
+	 */
 	public ValueRow(int ncols)
 	{
-		 column = new DataValueDescriptor[ncols];
-		 this.ncols = ncols;
+		column = new DataValueDescriptor[ncols];
+		this.ncols = ncols;
 	}
 
 
@@ -121,7 +120,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void getNewObjectArray()
 	{
 		column = new DataValueDescriptor[ncols];
-        hash = 0;
+		hash = 0;
 	}
 
 	/*
@@ -129,23 +128,23 @@ public class ValueRow implements ExecRow, Externalizable {
 	 */
 	// position is 1-based
 	public DataValueDescriptor	getColumn (int position) {
-        try {
-            return column[position-1];
-        } catch (Exception e) {
-            return (DataValueDescriptor)null;
-        }
-    }
+		try {
+			return column[position-1];
+		} catch (Exception e) {
+			return (DataValueDescriptor)null;
+		}
+	}
 
 	// position is 1-based.
 	public void setColumn(int position, DataValueDescriptor col) {
-        hash = 0;
-        try {
-            column[position-1] = col;
-        } catch (Exception e) {
-            realloc(position);
-            column[position-1] = col;
-        }
-    }
+		hash = 0;
+		try {
+			column[position-1] = col;
+		} catch (Exception e) {
+			realloc(position);
+			column[position-1] = col;
+		}
+	}
 
 
 	/*
@@ -153,7 +152,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	*/
 
 	// position is 1-based
-	public ExecRow getClone() 
+	public ExecRow getClone()
 	{
 		return getClone((FormatableBitSet) null);
 	}
@@ -177,7 +176,7 @@ public class ValueRow implements ExecRow, Externalizable {
 			if (column[colCtr] != null)
 			{
 				/* Rows are 1-based, column[] is 0-based */
-                rowClone.setColumn(colCtr +1, column[colCtr].cloneValue(false));
+				rowClone.setColumn(colCtr +1, column[colCtr].cloneValue(false));
 			}
 		}
 		rowClone.setKey(getKey());
@@ -197,12 +196,12 @@ public class ValueRow implements ExecRow, Externalizable {
 		ValueRow rowClone = cloneMe();
 
 
-		for (int colCtr = 0; colCtr < numColumns; colCtr++) 
+		for (int colCtr = 0; colCtr < numColumns; colCtr++)
 		{
 			if (column[colCtr] != null)
 			{
 				/* Rows are 1-based, column[] is 0-based */
-                rowClone.setColumn(colCtr + 1, column[colCtr].getNewNull());
+				rowClone.setColumn(colCtr + 1, column[colCtr].getNewNull());
 			}
 		}
 		return rowClone;
@@ -212,22 +211,22 @@ public class ValueRow implements ExecRow, Externalizable {
 		return new ValueRow(ncols);
 	}
 
-    /**
-     * Reset all columns in the row array to null values.
-     */
-    public void resetRowArray() {
-        hash = 0;
-        for (int i = 0; i < column.length; i++) {
-            if (column[i] != null) {
-                column[i] = column[i].recycle();
-            }
-        }
-    }
+	/**
+	 * Reset all columns in the row array to null values.
+	 */
+	public void resetRowArray() {
+		hash = 0;
+		for (int i = 0; i < column.length; i++) {
+			if (column[i] != null) {
+				column[i] = column[i].recycle();
+			}
+		}
+	}
 
 	// position is 1-based
 	public final DataValueDescriptor cloneColumn(int columnPosition)
 	{
-        return column[columnPosition -1].cloneValue(false);
+		return column[columnPosition -1].cloneValue(false);
 	}
 
 	/*
@@ -252,29 +251,29 @@ public class ValueRow implements ExecRow, Externalizable {
 
 
 	/**
-		Get the array form of the row that Access expects.
+	 Get the array form of the row that Access expects.
 
-		@see ExecRow#getRowArray
-	*/
+	 @see ExecRow#getRowArray
+	 */
 	public DataValueDescriptor[] getRowArray() {
 		return column;
 	}
 
 	/**
-		Get a clone of the array form of the row that Access expects.
+	 Get a clone of the array form of the row that Access expects.
 
-		@see ExecRow#getRowArray
-	*/
-	public DataValueDescriptor[] getRowArrayClone() 
+	 @see ExecRow#getRowArray
+	 */
+	public DataValueDescriptor[] getRowArrayClone()
 	{
 		int numColumns = column.length;
 		DataValueDescriptor[] columnClones = new DataValueDescriptor[numColumns];
 
-		for (int colCtr = 0; colCtr < numColumns; colCtr++) 
+		for (int colCtr = 0; colCtr < numColumns; colCtr++)
 		{
 			if (column[colCtr] != null)
 			{
-                columnClones[colCtr] = column[colCtr].cloneValue(false);
+				columnClones[colCtr] = column[colCtr].cloneValue(false);
 			}
 		}
 
@@ -288,10 +287,10 @@ public class ValueRow implements ExecRow, Externalizable {
 	 */
 	public void setRowArray(DataValueDescriptor[] value)
 	{
-        hash = 0;
+		hash = 0;
 		column = value;
 	}
-		
+
 	// Set the number of columns in the row to ncols, preserving
 	// the existing contents.
 	protected void realloc(int ncols) {
@@ -300,14 +299,8 @@ public class ValueRow implements ExecRow, Externalizable {
 		System.arraycopy(column, 0, newcol, 0, column.length);
 		column = newcol;
 
-		if (names != null) {
-			String[] newNames = new String[ncols];
-			System.arraycopy(names, 0, newNames, 0, names.length);
-			this.names = newNames;
-		}
-
 	}
-	
+
 	@Override
 	public int compareTo(ExecRow row) {
 		if (row == null)
@@ -328,25 +321,25 @@ public class ValueRow implements ExecRow, Externalizable {
 		return 0;
 	}
 
-    @Override
-    public int compareTo(int[] compareKeys, ExecRow row) {
-        if (row == null)
-            return -1;
-        if (ncols != row.nColumns())
-            return -1;
-        int compare;
-        for (int compareKey : compareKeys) {
-            try {
-                compare = getColumn(compareKey).compare(row.getColumn(compareKey));
-                if (compare != 0)
-                    return compare;
-            } catch (StandardException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-        return 0;
-    }
+	@Override
+	public int compareTo(int[] compareKeys, ExecRow row) {
+		if (row == null)
+			return -1;
+		if (ncols != row.nColumns())
+			return -1;
+		int compare;
+		for (int compareKey : compareKeys) {
+			try {
+				compare = getColumn(compareKey).compare(row.getColumn(compareKey));
+				if (compare != 0)
+					return compare;
+			} catch (StandardException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return 0;
+	}
 
 
 	@Override
@@ -360,7 +353,7 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        hash = in.readInt();
+		hash = in.readInt();
 		ncols = in.readInt();
 		column = new DataValueDescriptor[ncols];
 		for (int i = 0; i < ncols; i++) {
@@ -368,46 +361,46 @@ public class ValueRow implements ExecRow, Externalizable {
 		}
 	}
 
-    public int hashCode() {
-        if (hash == 0) {
-            hash = MurmurHash3.arrayHashing().hash(column);
-        }
-        return hash;
-    }
+	public int hashCode() {
+		if (hash == 0) {
+			hash = MurmurHash3.arrayHashing().hash(column);
+		}
+		return hash;
+	}
 
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (!(obj instanceof ValueRow))
-            return false;
-        ValueRow other = (ValueRow) obj;
-        return Arrays.equals(column, other.column) && ncols == other.ncols;
-    }
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (!(obj instanceof ValueRow))
+			return false;
+		ValueRow other = (ValueRow) obj;
+		return Arrays.equals(column, other.column) && ncols == other.ncols;
+	}
 
-    @Override
-    public ExecRow getKeyedExecRow(int[] keyColumns) throws StandardException {
-        ValueRow key = new ValueRow(keyColumns.length);
-        int position = 1;
-        for (int keyColumn : keyColumns) {
-            key.setColumn(position++, getColumn(keyColumn + 1));
-        }
-        return key;
-    }
+	@Override
+	public ExecRow getKeyedExecRow(int[] keyColumns) throws StandardException {
+		ValueRow key = new ValueRow(keyColumns.length);
+		int position = 1;
+		for (int keyColumn : keyColumns) {
+			key.setColumn(position++, getColumn(keyColumn + 1));
+		}
+		return key;
+	}
 
-    @Override
-    public int hashCode(int[] keysToHash) {
-        final int prime = 31;
-        int result = 1;
-        if (column == null)
-            return 0;
-        for (int hashKey: keysToHash) {
-            result = 31 * result + (column[hashKey] == null ? 0 : column[hashKey].hashCode());
-        }
-        result = prime * result + keysToHash.length;
-        return result;
-    }
+	@Override
+	public int hashCode(int[] keysToHash) {
+		final int prime = 31;
+		int result = 1;
+		if (column == null)
+			return 0;
+		for (int hashKey: keysToHash) {
+			result = 31 * result + (column[hashKey] == null ? 0 : column[hashKey].hashCode());
+		}
+		result = prime * result + keysToHash.length;
+		return result;
+	}
 
 	public org.apache.spark.sql.Row getSparkRow() {
 		return this;
@@ -422,8 +415,8 @@ public class ValueRow implements ExecRow, Externalizable {
 			return this;
 		}
 		catch (StandardException se) {
-				throw new RuntimeException(se);
-			}
+			throw new RuntimeException(se);
+		}
 	}
 
 	@Override
@@ -439,13 +432,8 @@ public class ValueRow implements ExecRow, Externalizable {
 	@Override
 	public StructType schema() {
 		StructField[] fields = new StructField[ncols];
-		if (names != null ) {
-			for (int i = 0; i < ncols;i++)
-				fields[i] = column[i].getStructField(names[i]);
-		} else {
-			for (int i = 0; i < ncols;i++)
-				fields[i] = column[i].getStructField(getNamedColumn(i));
-		}
+		for (int i = 0; i < ncols;i++)
+			fields[i] = column[i].getStructField(getNamedColumn(i));
 		return DataTypes.createStructType(fields);
 	}
 
@@ -681,7 +669,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	@Override
 	public long getRowSize(BitSet validColumns) throws StandardException {
 		if (validColumns ==null)
-				return getRowSize();
+			return getRowSize();
 		long rowSize = 0L;
 		int nextSetBit = 0;
 		while ( (nextSetBit = validColumns.nextSetBit(nextSetBit)) != -1)
@@ -702,30 +690,4 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void setKey(byte[] key) {
 		this.key = key;
 	}
-
-	/**
-	 Get the string array of column names.
-	 */
-	public String[] getColumnNames() {
-		return names;
-	}
-
-	/**
-	 * Set the column names array
-	 *
-	 */
-	public void setColumnNames(String[] names)
-	{
-		this.names = names;
-	}
-	public String getColumnName(int columnNumber) throws StandardException {
-		if (names != null && names.length != 0) {
-			assert columnNumber < names.length : "Column index out of bound";
-			return names[columnNumber];
-		} else {
-			throw StandardException.newException("Can't get column name in index: " + columnNumber);
-		}
-
-	}
-
 }
