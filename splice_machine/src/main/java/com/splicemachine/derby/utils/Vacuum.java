@@ -147,7 +147,11 @@ public class Vacuum{
                     }
                     if(!activeConglomerates.contains(tableConglom)){
                         LOG.info("Deleting inactive table: " + table.getTableName());
-                        partitionAdmin.deleteTable(tableName[1]);
+                        try {
+                            partitionAdmin.deleteTable(tableName[1]);
+                        } catch (Exception e) {
+                            LOG.error("Cannot drop table when vacuum", e);
+                        }
                     } else if(LOG.isTraceEnabled()) {
                         LOG.trace("Skipping still active table: " + table.getTableName());
                     }
