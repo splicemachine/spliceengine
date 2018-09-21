@@ -17,14 +17,19 @@ package com.splicemachine.procedures.external;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
-import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+
 import com.splicemachine.utils.IntArrays;
+import org.apache.spark.sql.types.StructField;
 
 
 import java.nio.file.Path;
@@ -55,15 +60,25 @@ public class CreateExternalTableJob implements Callable<Void> {
             //the client has already cancelled us or has died before we could get started, so stop now
             return null;
         }
-
-        ExecRow execRow = request.getExecRow();
+        ColumnInfo[] columnInfo = request.getColumnInfo();
+        ExecRow execRow = new ValueRow(columnInfo.length);
+        DataValueDescriptor[] dvds = execRow.getRowArray();
+        for (int i = 0; i < columnInfo.length; ++i) {
+            dvds[i] = columnInfo[i].dataType.getNull();
+        }
         int[] execRowTypeFormatIds= WriteReadUtils.getExecRowTypeFormatIds(execRow);
+
 
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.getJobGroup(), "");
-        dsp.createEmptyExternalFile(execRow, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
+        //Generate StructField Array
+        StructField[] fields = new StructField[columnInfo.length];
+        for (int i = 0; i < columnInfo.length;i++) {
+            fields[i] = dvds[i].getStructField(columnInfo[i].name);
+        }
 
+        dsp.createEmptyExternalFile(fields, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
 
         jobStatus.markCompleted(new SuccessfulOlapResult());
         return null;

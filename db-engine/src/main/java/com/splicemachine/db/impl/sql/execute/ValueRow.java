@@ -418,9 +418,8 @@ public class ValueRow implements ExecRow, Externalizable {
 	@Override
 	public StructType schema() {
 		StructField[] fields = new StructField[ncols];
-		for (int i = 0; i < ncols;i++) {
+		for (int i = 0; i < ncols;i++)
 			fields[i] = column[i].getStructField(getNamedColumn(i));
-		}
 		return DataTypes.createStructType(fields);
 	}
 
@@ -668,4 +667,5 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void setKey(byte[] key) {
 		this.key = key;
 	}
+
 }

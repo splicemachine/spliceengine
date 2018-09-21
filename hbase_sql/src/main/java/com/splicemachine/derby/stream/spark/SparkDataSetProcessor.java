@@ -54,6 +54,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
@@ -201,7 +202,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public DataSet<String> readTextFile(String path) throws StandardException {
         return readTextFile(path, null);
     }
-    
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<String> readTextFile(String path, SpliceOperation op) throws StandardException {
@@ -433,20 +434,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
 
     @Override
-    public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
+    public void createEmptyExternalFile(StructField[] fields, int[] baseColumnMap, int[] partitionBy, String storedAs, String location, String compression) throws StandardException {
         try{
 
+            StructType schema = DataTypes.createStructType(fields);
 
-            Dataset<Row> empty =  SpliceSpark.getSession()
-                    .createDataFrame(new ArrayList<Row>(), execRows.schema());
+            Dataset<Row> empty = SpliceSpark.getSession()
+                        .createDataFrame(new ArrayList<Row>(), schema);
 
-            List<Column> cols = new ArrayList();
-            for (int i = 0; i < baseColumnMap.length; i++) {
-                cols.add(new Column(ValueRow.getNamedColumn(baseColumnMap[i])));
-            }
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
+                partitionByCols.add(fields[partitionBy[i]].name());
             }
                 if (storedAs!=null) {
                     if (storedAs.toLowerCase().equals("p")) {
