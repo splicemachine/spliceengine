@@ -59,6 +59,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.*;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
@@ -514,17 +515,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
 
     @Override
-    public void createEmptyExternalFile(ExecRow execRows, int[] baseColumnMap, int[] partitionBy, String storedAs,  String location, String compression) throws StandardException {
+    public void createEmptyExternalFile(StructField[] fields, int[] baseColumnMap, int[] partitionBy, String storedAs, String location, String compression) throws StandardException {
         try{
-
-            StructType schema = ExternalTableUtils.supportAvroDateType(execRows.schema(),storedAs);
+            StructType nschema = ExternalTableUtils.supportAvroDateType(DataTypes.createStructType(fields),storedAs);
 
             Dataset<Row> empty = SpliceSpark.getSession()
-                        .createDataFrame(new ArrayList<Row>(), schema);
+                        .createDataFrame(new ArrayList<Row>(), nschema);
+
 
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(ValueRow.getNamedColumn(partitionBy[i]));
+                partitionByCols.add(fields[partitionBy[i]].name());
             }
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p")) {
