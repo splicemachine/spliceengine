@@ -16,10 +16,12 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
@@ -54,6 +56,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
@@ -725,7 +728,14 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                           OperationContext context) {
         try {
-            StructType dataSchema = context.getOperation().getExecRowDefinition().schema();
+            //Generate Table Schema
+            String[] colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
+            DataValueDescriptor[] dvds = context.getOperation().getExecRowDefinition().getRowArray();
+            StructField[] fields = new StructField[colNames.length];
+            for (int i=0 ; i<colNames.length ; i++){
+                fields[i] = dvds[i].getStructField(colNames[i]);
+            }
+            StructType dataSchema = DataTypes.createStructType(fields);
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                     rdd
                             .map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context)))
@@ -734,12 +744,12 @@ public class SparkDataSet<V> implements DataSet<V> {
 
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(dataSchema.fields()[partitionBy[i]].name());
+                partitionByCols.add(colNames[partitionBy[i]]);
             }
             if (partitionBy.length > 0) {
                 List<Column> repartitionCols = new ArrayList();
                 for (int i = 0; i < partitionBy.length; i++) {
-                    repartitionCols.add(new Column(dataSchema.fields()[partitionBy[i]].name()));
+                    repartitionCols.add(new Column(colNames[partitionBy[i]]));
                 }
                 insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
             }
@@ -758,18 +768,25 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) {
         try {
+            //Generate Table Schema
+            String[] colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
+            DataValueDescriptor[] dvds = context.getOperation().getExecRowDefinition().getRowArray();
+            StructField[] fields = new StructField[colNames.length];
+            for (int i=0 ; i<colNames.length ; i++){
+                fields[i] = dvds[i].getStructField(colNames[i]);
+            }
+            StructType dataSchema = DataTypes.createStructType(fields);
             Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                     rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
-                    context.getOperation().getExecRowDefinition().schema());
-            StructField[] fields = context.getOperation().getExecRowDefinition().schema().fields();
+                    dataSchema);
             List<String> partitionByCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols.add(fields[partitionBy[i]].name());
+                partitionByCols.add(colNames[partitionBy[i]]);
             }
             if (partitionBy.length > 0) {
                 List<Column> repartitionCols = new ArrayList();
                 for (int i = 0; i < partitionBy.length; i++) {
-                    repartitionCols.add(new Column(fields[partitionBy[i]].name()));
+                    repartitionCols.add(new Column(colNames[partitionBy[i]]));
                 }
                 insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
             }

@@ -432,7 +432,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         File file = new File(tablePath);
         String[] files = file.list();
         for (String f:files) {
-            Assert.assertTrue(f.contains("_SUCCESS") || f.contains("c2"));
+            Assert.assertTrue(f.contains("_SUCCESS") || f.contains("COL3"));
         }
         // TODO: SPLICE-1809
 //        ResultSet rs = methodWatcher.executeQuery("select * from simple_parquet_with_partition");
