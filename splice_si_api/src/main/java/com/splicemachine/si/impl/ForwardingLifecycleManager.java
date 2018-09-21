@@ -131,6 +131,11 @@ public class ForwardingLifecycleManager implements TxnLifecycleManager{
 		}
 
 	@Override
+	public void unregisterActiveTransaction(long txnId) throws IOException {
+		lifecycleManager.unregisterActiveTransaction(txnId);
+	}
+
+	@Override
 	public void rollbackSubtransactions(long txnId, LongHashSet rolledback) throws IOException {
 		lifecycleManager.rollbackSubtransactions(txnId, rolledback);
 	}

@@ -648,6 +648,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
 
 
                     /*
+                     * Procedure to get oldest active transaction id
+                     */
+                    Procedure getActiveTxn = Procedure.newBuilder().name("SYSCS_GET_OLDEST_ACTIVE_TRANSACTION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(getActiveTxn);
+
+                    /*
                      * Procedure to delegate HDFS operations
                      */
                     Procedure hdfsOperation = Procedure.newBuilder().name("SYSCS_HDFS_OPERATION")
