@@ -17,10 +17,12 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.NoVacuumTest;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import java.sql.Connection;
@@ -32,6 +34,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 1/19/16
  */
+@Category(NoVacuumTest.class)
 public class TempTableHBaseIT{
 
     public static final String CLASS_NAME = TempTableHBaseIT.class.getSimpleName().toUpperCase();

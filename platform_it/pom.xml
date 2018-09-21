@@ -742,7 +742,10 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
+                            <excludedGroups>
+                                com.splicemachine.test.NoVacuumTest,
+                                ${excluded.categories}
+                            </excludedGroups>
                             <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
@@ -766,7 +769,10 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest,
+                            <excludedGroups>
+                                com.splicemachine.test.NoVacuumTest,
+                                com.splicemachine.test.SerialTest,
+                                com.splicemachine.test.RestoreTest,
                                 ${excluded.categories}
                             </excludedGroups>
                             <parallel>classes</parallel>
