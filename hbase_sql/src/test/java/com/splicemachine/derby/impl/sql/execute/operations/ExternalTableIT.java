@@ -2785,4 +2785,45 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals(actual, expected, actual);
     }
 
+    @Test @Ignore("Need to import spark-avro.jar in hbase_sql to test in a separate Spark")
+    public void testAvroColumnName() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "avro_colname";
+        methodWatcher.executeUpdate(String.format("create external table avro_colname (col1 int, col2 varchar(24))" +
+                " STORED AS AVRO LOCATION '%s'", tablePath));
+        methodWatcher.executeUpdate(String.format("insert into avro_colname values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("ExternaltableIT")
+                .getOrCreate();
+        Dataset dataset = spark
+                .read()
+                .format("com.databricks.spark.avro")
+                .load(tablePath);
+        String actual = dataset.schema().toString();
+        String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
+        Assert.assertEquals(actual, expected, actual);
+
+    }
+    @Test @Ignore("Need to import spark-avro.jar in hbase_sql to test in a separate Spark")
+    public void testAvroPartitionColumnName() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "avro_partition_colname";
+        methodWatcher.executeUpdate(String.format("create external table avro_patition_colname (col1 int, col2 varchar(24))" +
+                "partitioned by (col2) STORED AS AVRO LOCATION '%s'", tablePath));
+        methodWatcher.executeUpdate(String.format("insert into avro_patition_colname values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("ExternaltableIT")
+                .getOrCreate();
+        Dataset dataset = spark
+                .read()
+                .format("com.databricks.spark.avro")
+                .load(tablePath);
+        String actual = dataset.schema().toString();
+        String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
+        Assert.assertEquals(actual, expected, actual);
+    }
 }
