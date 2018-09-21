@@ -861,12 +861,12 @@ public class SparkDataSet<V> implements DataSet<V> {
 
             String[] partitionByCols = new String[partitionBy.length];
             for (int i = 0; i < partitionBy.length; i++) {
-                partitionByCols[i] = fields[partitionBy[i]].name();
+                partitionByCols[i] = colNames[partitionBy[i]];
             }
             if (partitionBy.length > 0) {
                 List<Column> repartitionCols = new ArrayList();
                 for (int i = 0; i < partitionBy.length; i++) {
-                    repartitionCols.add(new Column(fields[partitionBy[i]].name()));
+                    repartitionCols.add(new Column(colNames[partitionBy[i]]));
                 }
                 insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
             }

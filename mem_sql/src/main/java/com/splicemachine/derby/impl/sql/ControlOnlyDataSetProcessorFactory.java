@@ -29,6 +29,7 @@ import com.splicemachine.derby.stream.utils.ForwardingDataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import javax.annotation.Nullable;
 import java.util.Iterator;
