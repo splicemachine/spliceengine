@@ -15,6 +15,7 @@
 package com.splicemachine.access.hbase;
 
 import com.splicemachine.access.api.TableDescriptor;
+import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
 
 /**
@@ -31,6 +32,16 @@ public class HBaseTableDescriptor implements TableDescriptor{
     @Override
     public String getTableName() {
         return hTableDescriptor.getNameAsString();
+    }
+
+    @Override
+    public String getTransactionId() {
+        return hTableDescriptor.getValue(SIConstants.TRANSACTION_ID_ATTR);
+    }
+
+    @Override
+    public String getDroppedTransactionId() {
+        return hTableDescriptor.getValue(SIConstants.DROPPED_TRANSACTION_ID_ATTR);
     }
 
     public HTableDescriptor getHTableDescriptor() {

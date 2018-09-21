@@ -63,6 +63,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
     private class Creator implements PartitionCreator{
         private String name;
+        private long txnId;
 
         @Override
         public PartitionCreator withName(String name){
@@ -72,6 +73,12 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public PartitionCreator withCoprocessor(String coprocessor) throws IOException{
+            //no-op
+            return this;
+        }
+
+        @Override
+        public PartitionCreator withTransactionId(long txnId) throws IOException {
             //no-op
             return this;
         }
@@ -198,6 +205,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         @Override
         public List<byte[]> hbaseOperation(String table, String operation, byte[] bytes) throws IOException {
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        }
+
+        @Override
+        public void markDropped(long conglomId, long txn) throws IOException {
+            // do nothing
         }
     }
 }

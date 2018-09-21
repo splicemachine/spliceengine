@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.stats.StoreCostControllerImpl;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -489,6 +490,12 @@ public class SpliceTransactionManager implements XATransactionController,
         }
 
         return (ret_val);
+    }
+
+    @Override
+    public void markConglomerateDropped(long conglomerateId) throws StandardException {
+        ConglomerateUtils.markConglomerateDropped(conglomerateId,
+                ((SpliceTransaction)rawtran).getTxn());
     }
 
     /**

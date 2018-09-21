@@ -35,6 +35,7 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.*;
@@ -343,6 +344,14 @@ public class H10PartitionAdmin implements PartitionAdmin{
     public boolean tableExists(String tableName) throws IOException
     {
         return admin.tableExists(tableInfoFactory.getTableInfo(tableName));
+    }
+
+    @Override
+    public void markDropped(long conglomId, long txn) throws IOException {
+        TableName tn = tableInfoFactory.getTableInfo(Long.toString(conglomId));
+        HTableDescriptor htd = admin.getTableDescriptor(tn);
+        htd.setValue(SIConstants.DROPPED_TRANSACTION_ID_ATTR, Long.toString(txn));
+        admin.modifyTable(tn, htd);
     }
 
     @Override
