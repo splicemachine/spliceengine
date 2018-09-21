@@ -674,5 +674,29 @@
                 </plugins>
             </build>
         </profile>
+         <profile>
+             <id>standalone</id>
+             <build>
+                 <plugins>
+                     <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                          <descriptor>/bin.xml</descriptor>
+                          <finalName>SPLICEMACHINE-${project.version}</finalName>
+                        </configuration>
+                        <executions>
+                          <execution>
+                            <phase>package</phase>
+                            <goals>
+                              <goal>single</goal>
+                            </goals>
+                          </execution>
+                        </executions>
+                      </plugin>
+                 </plugins>
+             </build>
+         </profile>
+
     </profiles>
 </project>
