@@ -5481,6 +5481,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ti.deleteRow(tc,keyRow2,SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX2_ID);
 
+        tc.markConglomerateDropped(conglomerate.getConglomerateNumber());
     }
 
     /**
@@ -5505,8 +5506,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow3=exFactory.getIndexableRow(1);
         keyRow3.setColumn(1,tableIDOrderable);
 
+        ConglomerateDescriptorList cds = td.getConglomerateDescriptorList();
 
         ti.deleteRow(tc,keyRow3,SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX3_ID);
+
+        if (!td.isExternal()) {
+            for (ConglomerateDescriptor cd : cds) {
+                tc.markConglomerateDropped(cd.getConglomerateNumber());
+            }
+        }
     }
 
     /**
