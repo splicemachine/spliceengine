@@ -211,10 +211,18 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         }
         ExecRow row=new ValueRow(dvds.length);
         row.setRowArray(dvds);
-        ((ValueRow) row).setColumnNames(colNames);
-
         SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
         return row;
+    }
+
+    public String[] getColumnNames() {
+        ResultDescription description=writeInfo.getResultDescription();
+        ResultColumnDescriptor[] rcd=description.getColumnInfo();
+        String[] colNames = new String[rcd.length];
+        for (int i=0 ; i<rcd.length ; i++) {
+            colNames[i] = rcd[i].getName();
+        }
+        return colNames;
     }
 
     public String prettyPrint(int indentLevel){
