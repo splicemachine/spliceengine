@@ -196,13 +196,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         if(isOp){
             broadcastedActivation = (BroadcastedActivation)in.readObject();
             op=(Op)broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
-            ActivationHolder ah = broadcastedActivation.getActivationHolder();
-            activation=ah.getActivation();
-
-            if (ah.needsReinitialization()) {
-                ah.close();
-                ah.reinitialize(null, false);
-            }
+            activation=broadcastedActivation.getActivationHolder().getActivation();
         }
         rowsRead=(LongAccumulator)in.readObject();
         rowsFiltered=(LongAccumulator)in.readObject();
