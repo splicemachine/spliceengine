@@ -165,8 +165,8 @@ fi
 
 #check if all the tools needed to connect are found
 if [ "$(ls -A $SPLICE_LIB_DIR 2> /dev/null)" ]; then
-  dbclient=$(find $SPLICE_LIB_DIR -type f -name 'db-client*-SNAPSHOT.jar')
-  dbtools=$(find $SPLICE_LIB_DIR -type f -name 'db-tools*-SNAPSHOT.jar')
+  dbclient=$(find $SPLICE_LIB_DIR -type f -name 'db-client*.jar')
+  dbtools=$(find $SPLICE_LIB_DIR -type f -name 'db-tools*.jar')
   # set up classpath to point to splice jars
   if [ -z "${dbclient}" ]; then
     echo "Error: the db-client tool required to connect cannot be found or created."

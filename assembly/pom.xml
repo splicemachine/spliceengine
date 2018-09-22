@@ -58,67 +58,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-              <groupId>com.coderplus.maven.plugins</groupId>
-              <artifactId>copy-rename-maven-plugin</artifactId>
-              <version>1.0</version>
-              <executions>
-                <execution>
-                  <id>copy-db-client</id>
-                  <phase>install</phase>
-                  <goals>
-                    <goal>copy</goal>
-                  </goals>
-                  <configuration>
-                    <sourceFile>${maven.multiModuleProjectDirectory}/db-client/target/db-client-${project.version}.jar</sourceFile>
-                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/target/sqlshell/lib/db-client-${project.version}.jar</destinationFile>
-                  </configuration>
-                </execution>
-                <execution>
-                  <id>copy-db-tools-ij</id>
-                  <phase>install</phase>
-                  <goals>
-                    <goal>copy</goal>
-                  </goals>
-                  <configuration>
-                    <sourceFile>${maven.multiModuleProjectDirectory}/db-tools-ij/target/db-tools-ij-${project.version}.jar</sourceFile>
-                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/target/sqlshell/lib/db-tools-ij-${project.version}.jar</destinationFile>
-                  </configuration>
-                </execution>
-                <execution>
-                  <id>copy-sqlshell</id>
-                  <phase>install</phase>
-                  <goals>
-                    <goal>copy</goal>
-                  </goals>
-                  <configuration>
-                    <sourceFile>${maven.multiModuleProjectDirectory}/assembly/common/src/main/resources/bin/sqlshell.sh</sourceFile>
-                    <destinationFile>${maven.multiModuleProjectDirectory}/assembly/target/sqlshell/sqlshell-${project.version}.sh</destinationFile>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
-            <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>exec-maven-plugin</artifactId>
-              <version>1.6.0</version>
-              <executions>
-                 <execution>
-                      <id>sqlshell-executable</id>
-                      <phase>install</phase>
-                      <goals>
-                          <goal>exec</goal>
-                      </goals>
-                      <configuration>
-                          <executable>chmod</executable>
-                          <arguments>
-                              <argument>+x</argument>
-                              <argument>${maven.multiModuleProjectDirectory}/assembly/target/sqlshell/sqlshell-${project.version}.sh</argument>
-                          </arguments>
-                      </configuration>
-                  </execution>
-              </executions>
-          </plugin>
         </plugins>
     </build>
 
@@ -733,5 +672,75 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>sqlshell</id>
+            <activation>
+                <property>
+                    <name>installer</name>
+                    <value>installer</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                  <plugin>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-dependency-plugin</artifactId>
+                      <version>2.10</version>
+                      <executions>
+                          <execution>
+                              <id>copy-dependencies</id>
+                              <phase>package</phase>
+                              <goals>
+                                  <goal>copy</goal>
+                              </goals>
+                              <configuration>
+                                  <artifactItems>
+                                    <artifactItem>
+                                      <groupId>com.splicemachine</groupId>
+                                      <artifactId>db-client</artifactId>
+                                      <version>${project.parent.version}</version>
+                                      <type>jar</type>
+                                    </artifactItem>
+                                    <artifactItem>
+                                      <groupId>com.splicemachine</groupId>
+                                      <artifactId>db-tools-ij</artifactId>
+                                      <version>${project.parent.version}</version>
+                                      <type>jar</type>
+                                    </artifactItem>
+                                  </artifactItems>
+                                  <outputDirectory>${project.build.directory}/sqlshell/lib</outputDirectory>
+                              </configuration>
+                          </execution>
+                      </executions>
+                  </plugin>
+                  <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.1.0</version>
+                    <executions>
+                      <execution>
+                        <id>copy-sqlshell</id>
+                        <phase>package</phase>
+                        <goals>
+                          <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                          <outputDirectory>${project.build.directory}/sqlshell/</outputDirectory>
+                          <resources>
+                            <resource>
+                                <directory>common/src/main/resources/bin</directory>
+                                <includes>
+                                  <include>sqlshell.sh</include>
+                                </includes>
+                            </resource>
+                          </resources>
+                        </configuration>
+                      </execution>
+                    </executions>
+                  </plugin>
+                </plugins>
+            </build>
+        </profile>
+
     </profiles>
 </project>
