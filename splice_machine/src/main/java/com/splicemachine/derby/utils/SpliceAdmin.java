@@ -55,14 +55,12 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
-import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -1744,7 +1742,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         ExecRow row = new ValueRow(1);
         row.setColumn(1, id == null ? null : new SQLLongint(id));
         GenericColumnDescriptor[] descriptor = new GenericColumnDescriptor[]{
-                new GenericColumnDescriptor("transactionId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER))
+                new GenericColumnDescriptor("transactionId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
         };
         rows.add(row);
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptor, lastActivation);
