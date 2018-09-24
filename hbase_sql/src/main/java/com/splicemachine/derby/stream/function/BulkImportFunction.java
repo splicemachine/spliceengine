@@ -65,8 +65,9 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
         Configuration conf = HConfiguration.unwrapDelegate();
         LoadIncrementalHFiles loader = new LoadIncrementalHFiles(conf);
         FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
+        PartitionFactory tableFactory= SIDriver.driver().getTableFactory();
+
         for (Long conglomId : partitionMap.keySet()) {
-            PartitionFactory tableFactory= SIDriver.driver().getTableFactory();
             Partition partition=tableFactory.getTable(Long.toString(conglomId));
             List<BulkImportPartition> partitionList = partitionMap.get(conglomId);
             // For each batch of BulkImportPartition, use the first partition as staging area
@@ -85,7 +86,7 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
                         Path destPath = new Path(path, filePath.getName());
                         fs.rename(filePath, destPath);
                         if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "Move file %s to ", filePath.toString(), destPath.toString());
+                            SpliceLogUtils.debug(LOG, "Move file %s to %s", filePath.toString(), destPath.toString());
                         }
                     }
                     fs.delete(sourceDir.getParent(), true);
