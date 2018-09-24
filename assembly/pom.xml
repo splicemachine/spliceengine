@@ -649,13 +649,83 @@
 
         <profile>
               <id>standalone</id>
+              <dependencies>
+                <dependency>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>platform_it</artifactId>
+                  <version>${project.version}</version>
+                </dependency>
+
+                <!-- Test dependencies needed for standalone -->
+                <dependency>
+                  <groupId>${project.groupId}</groupId>
+                  <artifactId>platform_it</artifactId>
+                  <version>${project.version}</version>
+                  <type>test-jar</type>
+                </dependency>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>pipeline_api</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>splice_si_api</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>hbase_storage-${envClassifier}</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-testing-util</artifactId>
+                    <version>${hbase.version}</version>
+                    <!--intentionally compile scope,we use this dependency at app compile and runtime-->
+                    <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.mortbay.jetty</groupId>
+                            <artifactId>jsp-2.1</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.mortbay.jetty</groupId>
+                            <artifactId>jsp-api-2.1</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>tomcat</groupId>
+                            <artifactId>jasper-compiler</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>tomcat</groupId>
+                            <artifactId>jasper-runtime</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.hadoop</groupId>
+                            <artifactId>hadoop-core</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.mortbay.jetty</groupId>
+                            <artifactId>servlet-api</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+              </dependencies>
+
               <build>
                   <plugins>
                       <plugin>
                          <groupId>org.apache.maven.plugins</groupId>
                          <artifactId>maven-assembly-plugin</artifactId>
                          <configuration>
-                           <descriptor>/bin.xml</descriptor>
+                           <descriptor>assembly.xml</descriptor>
                            <finalName>SPLICEMACHINE-${project.version}</finalName>
                          </configuration>
                          <executions>
