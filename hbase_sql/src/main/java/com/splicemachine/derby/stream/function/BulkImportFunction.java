@@ -15,15 +15,16 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HTable;
@@ -36,12 +37,17 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by dgomezferro on 5/17/17.
  */
-public class BulkImportFunction implements VoidFunction<BulkImportPartition>, Externalizable {
+public class BulkImportFunction implements VoidFunction<Iterator<BulkImportPartition>>, Externalizable {
     private static final Logger LOG = Logger.getLogger(BulkImportFunction.class);
+    private Map<Long, List<BulkImportPartition>> partitionMap;
 
     // serialization
     public BulkImportFunction() {}
@@ -53,23 +59,41 @@ public class BulkImportFunction implements VoidFunction<BulkImportPartition>, Ex
     String bulkImportDirectory;
 
     @Override
-    public void call(BulkImportPartition importPartition) throws Exception {
+    public void call(Iterator<BulkImportPartition> importPartitions) throws Exception {
+
+        init(importPartitions);
         Configuration conf = HConfiguration.unwrapDelegate();
         LoadIncrementalHFiles loader = new LoadIncrementalHFiles(conf);
         FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
-        Long conglomerateId = importPartition.getConglomerateId();
         PartitionFactory tableFactory= SIDriver.driver().getTableFactory();
-        try(Partition partition=tableFactory.getTable(Long.toString(conglomerateId))){
-            Path path = new Path(importPartition.getFilePath()).getParent();
-            if (fs.exists(path)) {
-                loader.doBulkLoad(path,(HTable) ((SkeletonHBaseClientPartition)partition).unwrapDelegate());
-                fs.delete(path, true);
-            } else {
-                LOG.warn("Path doesn't exist, nothing to load into this partition? " + path);
+
+        for (Long conglomId : partitionMap.keySet()) {
+            Partition partition=tableFactory.getTable(Long.toString(conglomId));
+            List<BulkImportPartition> partitionList = partitionMap.get(conglomId);
+            // For each batch of BulkImportPartition, use the first partition as staging area
+            Path path = new Path(partitionList.get(0).getFilePath());
+            if (!fs.exists(path)) {
+                fs.mkdirs(path);
             }
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "Loaded file %s", path.toString());
+
+            // Move files from all partitions to the first partition
+            for (int i = 1; i < partitionList.size(); ++i) {
+                Path sourceDir = new Path(partitionList.get(i).getFilePath());
+                if (fs.exists(sourceDir)) {
+                    FileStatus[] statuses = fs.listStatus(sourceDir);
+                    for (FileStatus status : statuses) {
+                        Path filePath = status.getPath();
+                        Path destPath = new Path(path, filePath.getName());
+                        fs.rename(filePath, destPath);
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG, "Move file %s to %s", filePath.toString(), destPath.toString());
+                        }
+                    }
+                    fs.delete(sourceDir.getParent(), true);
+                }
             }
+            loader.doBulkLoad(path.getParent(), (HTable) ((SkeletonHBaseClientPartition)partition).unwrapDelegate());
+            fs.delete(path, true);
         }
     }
 
@@ -82,5 +106,19 @@ public class BulkImportFunction implements VoidFunction<BulkImportPartition>, Ex
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         bulkImportDirectory = (String) in.readObject();
         SpliceSpark.setupSpliceStaticComponents();
+    }
+
+    private void init(Iterator<BulkImportPartition> importPartitions) throws Exception {
+        partitionMap = new HashMap<>();
+        while (importPartitions.hasNext()) {
+            BulkImportPartition partition = importPartitions.next();
+            Long conglom = partition.getConglomerateId();
+            List<BulkImportPartition> partitionList = partitionMap.get(conglom);
+            if (partitionList == null) {
+                partitionList = Lists.newArrayList();
+                partitionMap.put(conglom, partitionList);
+            }
+            partitionList.add(partition);
+        }
     }
 }
