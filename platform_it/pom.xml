@@ -1270,10 +1270,6 @@
                             <!--<includePluginDependencies>true</includePluginDependencies>-->
                             <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
                             <arguments>
-                                <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
-                                <!--<argument>-agentpath:/opt/jprofiler/bin/linux-x64/libjprofilerti
-                                .so=port=8850,nowait,id=108,config=/home/wangbin/.jprofiler10/config.xml</argument>
-                                -->
                                 <argument>${project.build.directory}/classes</argument>
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
@@ -1315,8 +1311,6 @@
                                 <argument>-XX:+FlightRecorder</argument> -->
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
-                                <!--<argument>-agentpath:/opt/jprofiler/bin/linux-x64/libjprofilerti.so=port=8851</argument>-->
-                                  <!--,nowait,id=108,config=/home/wangbin/.jprofiler10/config.xml</argument>-->
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
@@ -1404,26 +1398,7 @@
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -enableassertions
                                     -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40
-                                    <!--
-                                    -XX:+UseSerialGC
-
-                                    -Xss256k
-
-                                    -XX:NativeMemoryTracking=summary
-                                    -XX:NativeMemoryTracking=detail
-
-
-                                    -Dcom.sun.management.jmxremote.ssl=false
-                                    -Dcom.sun.management.jmxremote.authenticate=false
-                                    -Dcom.sun.management.jmxremote.port=10103
-
-
-                                    -XX:+UnlockCommercialFeatures
-                                    -XX:+FlightRecorder
-                                    -XX:FlightRecorderOptions=defaultrecording=true,disk=true,repository=/data/profiling/tmp,settings=default,dumponexit=true,dumponexitpath=/data/profiling,maxage=6h
-                                    -->
-
-
+                                    -XX:+UseG1GC
                                     ${jacocoAgent}
                                 </argument>
                                 <argument>-Dsplice.spark.yarn.user=${user.name}</argument>
@@ -1440,49 +1415,14 @@
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30
                                     -XX:+UseG1GC
-                                    <!---Xss256k-->
-
-
-                                    <!--
-                                    -XX:+UnlockCommercialFeatures
-                                    -XX:+FlightRecorder
-                                    -XX:FlightRecorderOptions=defaultrecording=true,disk=true,repository=/data/profiling/tmp,settings=default,dumponexit=true,dumponexitpath=/data/profiling,maxage=6h
-                                    -->
-
                                 </argument>
                                 <argument>${spark.keytab}</argument>
                                 <argument>${spark.principal}</argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
                                 <argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
-                                <!--<argument>-Dsplice.spark.storage.memoryFraction=0.1</argument>-->
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
-                                <!-- CMS Garbage Collection -->
-                                <!--
-                                <argument>-Xmn128m</argument>
-                                <argument>-XX:+UseConcMarkSweepGC</argument>
-                                <argument>-XX:+UseParNewGC</argument>
-                                <argument>-XX:NewSize=128m</argument>
-                                <argument>-XX:MaxNewSize=128m</argument>
-                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
-                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-                                <argument>-XX:MaxGCPauseMillis=100</argument>
-                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
-                                <argument>-XX:MaxDirectMemorySize=1g</argument>
-                                -->
-
                                 <argument>-XX:+UseG1GC</argument>
-                                <!--<argument>-Xss256k</argument>-->
-
-                                <!--
-                                <argument>-XX:+UnlockCommercialFeatures</argument>
-                                <argument>-XX:+FlightRecorder</argument>
-                                <argument>-XX:FlightRecorderOptions=defaultrecording=true,disk=true,repository=/data/profiling/tmp,settings=default,dumponexit=true,dumponexitpath=/data/profiling,maxage=6h</argument>
-
-                                <argument>-XX:NativeMemoryTracking=summary</argument>
-                                <argument>-XX:NativeMemoryTracking=detail</argument>
-                                -->
-
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
                                 <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
@@ -1534,9 +1474,6 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
-                                <!--<argument>-agentpath:/opt/jprofiler/bin/linux-x64/libjprofilerti
-                                .so=port=8852,nowait,id=108,config=/home/wangbin/.jprofiler10/config.xml</argument>
-                                -->
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.awt.headless=true</argument>
@@ -1547,27 +1484,6 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Xmx2g</argument>
-                                <!--<argument>-Xss256k</argument>-->
-                                <!--
-                                <argument>-Xmn128m</argument>
-                                <argument>-XX:+UseConcMarkSweepGC</argument>
-                                <argument>-XX:+UseParNewGC</argument>
-                                <argument>-XX:NewSize=128m</argument>
-                                <argument>-XX:MaxNewSize=128m</argument>
-                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
-                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-                                <argument>-XX:MaxGCPauseMillis=100</argument>
-                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
-                                <argument>-XX:MaxDirectMemorySize=1g</argument>
-                                -->
-
-                                <!--
-                                <argument>-XX:+UnlockCommercialFeatures</argument>
-                                <argument>-XX:+FlightRecorder</argument>
-                                <argument>-XX:FlightRecorderOptions=defaultrecording=true,disk=true,repository=/data/profiling/tmp,settings=default,dumponexit=true,dumponexitpath=/data/profiling,maxage=6h</argument>
-                                -->
-
-
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
                                 <argument>-XX:+UseG1GC</argument>
 

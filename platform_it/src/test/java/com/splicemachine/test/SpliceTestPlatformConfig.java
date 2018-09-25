@@ -137,7 +137,7 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.master.info.port", masterInfoPort);
         config.setInt("hbase.regionserver.port", regionServerPort);
         config.setInt("hbase.regionserver.info.port", regionServerInfoPort);
-        // config.setInt("hbase.master.jmx.port", HConfiguration.DEFAULT_JMX_BIND_PORT); // this is set because the HBase master and regionserver are running on the same machine and in the same JVM
+        config.setInt("hbase.master.jmx.port", HConfiguration.DEFAULT_JMX_BIND_PORT); // this is set because the HBase master and regionserver are running on the same machine and in the same JVM
         config.setInt(SQLConfiguration.NETWORK_BIND_PORT, derbyPort);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTOR_CLASS_KEY, SpliceDefaultCompactor.class, Compactor.class);
        // config.setClass(ConsistencyControlUtils.MVCC_IMPL, SIMultiVersionConsistencyControl.class, ConsistencyControl.class);
