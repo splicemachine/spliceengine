@@ -40,8 +40,6 @@ import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedInput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 
-import com.splicemachine.db.iapi.services.info.JVMInfo;
-
 import java.lang.reflect.*;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
