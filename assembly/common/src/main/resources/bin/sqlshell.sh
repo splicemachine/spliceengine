@@ -161,8 +161,24 @@ if [[ "$SPLICE_LIB_DIR" == *"##"* ]]; then
    fi
 fi
 
-# set up classpath to point to splice jars
-export CLASSPATH="${SPLICE_LIB_DIR}/*"
+#check if all the tools needed to connect are found
+if [ "$(ls -A $SPLICE_LIB_DIR 2> /dev/null)" ]; then
+  dbclient=$(find $SPLICE_LIB_DIR -type f -name 'db-client*.jar')
+  dbtools=$(find $SPLICE_LIB_DIR -type f -name 'db-tools*.jar')
+  # set up classpath to point to splice jars
+  if [ -z "${dbclient}" ]; then
+    echo "Error: the db-client tool required to connect cannot be found or created."
+    exit 1
+  elif [ -z "${dbtools}" ]; then
+    echo "Error: the db-tools required to connect cannot be found or created."
+    exit 1
+  else
+    export CLASSPATH="${SPLICE_LIB_DIR}/*"
+  fi
+else
+  echo "Error: the dependency directory at $SPLICE_LIB_DIR cannot be found or created."
+  exit 1
+fi
 
 if [[ "$HOSTARG" != "" ]]; then
    HOST=$HOSTARG
