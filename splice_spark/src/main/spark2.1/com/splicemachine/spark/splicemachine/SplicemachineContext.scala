@@ -15,7 +15,6 @@ package com.splicemachine.spark.splicemachine
 
 import java.security.{PrivilegedExceptionAction, SecureRandom}
 import java.sql.Connection
-import java.util
 
 import com.splicemachine.EngineDriver
 import com.splicemachine.client.SpliceClient
@@ -26,20 +25,15 @@ import com.splicemachine.derby.vti.SpliceDatasetVTI
 import com.splicemachine.derby.vti.SpliceRDDVTI
 import com.splicemachine.tools.EmbedConnectionMaker
 import org.apache.spark.rdd.RDD
-import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types.{StructType, TimestampType}
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
-import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SerializableWritable
 import java.util.Properties
 
-import javassist.compiler.TokenId
 import com.splicemachine.access.HConfiguration
 import com.splicemachine.access.hbase.HBaseConnectionFactory
-import com.splicemachine.derby.stream.ActivationHolder
-import org.apache.commons.lang.SerializationUtils
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
@@ -64,7 +58,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
 
-  @transient var credentials = SparkHadoopUtil.get.getCurrentUserCredentials()
+  @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
