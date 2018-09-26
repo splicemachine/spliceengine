@@ -38,6 +38,12 @@
             <artifactId>splice_access_api</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <artifactId>guava</artifactId>
+            <groupId>com.google.guava</groupId>
+            <version>15.0</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.lmax</groupId>
