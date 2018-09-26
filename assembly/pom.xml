@@ -35,6 +35,11 @@
             <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
             <version>${project.version}</version>
         </dependency>
+	<dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
     </dependencies>
     <properties>
         <jenkins.build.number>1</jenkins.build.number>
@@ -59,6 +64,9 @@
             hppc,
             opencsv,
             concurrentlinkedhashmap-lru,
+	    guava,
+            snappy-java,
+            kryo-shaded,
             kryo-serializers,
             lucene-core,
             hbase_pipeline-${envClassifier},
@@ -84,7 +92,6 @@
             jol-core,
             slice,
             orc-protobuf,
-            spark-avro_2.11,
             jython-standalone
         </commonArtifacts>
     </properties>
@@ -364,7 +371,10 @@
                                             <exclude>org.apache.hive:*</exclude>
                                             <exclude>org.apache.zookeeper:zookeeper</exclude>
                                             <exclude>org.apache.hive.shims:*</exclude>
+					    <exclude>org.xerial.snappy:snappy-java</exclude>
                                             <exclude>com.amazonaws:*</exclude>
+					    <exclude>com.esotericsoftware:kryo-shaded</exclude>
+                                            <exclude>com.google.guava:guava</exclude>
                                             <exclude>com.mapr*:*</exclude>
                                             <exclude>mapr.fs*:*</exclude>
                                             <exclude>com.sun.jersey:*</exclude>
@@ -394,10 +404,11 @@
                                             <shadedPattern>splice.org.jboss.netty</shadedPattern>
                                         </relocation>
 
-                                        <relocation>
+                                        <!-- <relocation>
                                             <pattern>io.netty</pattern>
                                             <shadedPattern>org.spark_project.io.netty</shadedPattern>
                                         </relocation>
+					-->
 
                                         <relocation>
                                             <pattern>javax.ws</pattern>
