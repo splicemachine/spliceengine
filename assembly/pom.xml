@@ -747,33 +747,12 @@
                   <artifactId>platform_it</artifactId>
                   <version>${project.version}</version>
                   <type>test-jar</type>
-                </dependency>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>pipeline_api</artifactId>
-                    <version>${project.version}</version>
-                    <type>test-jar</type>
-                    <scope>test</scope>
-                </dependency>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>splice_si_api</artifactId>
-                    <version>${project.version}</version>
-                    <type>test-jar</type>
-                    <scope>test</scope>
-                </dependency>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>hbase_storage-${envClassifier}</artifactId>
-                    <version>${project.version}</version>
-                    <type>test-jar</type>
-                    <scope>test</scope>
+                  <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.hbase</groupId>
                     <artifactId>hbase-testing-util</artifactId>
                     <version>${hbase.version}</version>
-                    <!--intentionally compile scope,we use this dependency at app compile and runtime-->
                     <scope>test</scope>
                     <exclusions>
                         <exclusion>
@@ -801,6 +780,11 @@
                             <artifactId>servlet-api</artifactId>
                         </exclusion>
                     </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-mllib_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
                 </dependency>
               </dependencies>
 
