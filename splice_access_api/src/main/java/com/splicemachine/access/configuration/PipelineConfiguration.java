@@ -162,7 +162,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
     private static final int DEFAULT_BULK_IMPORT_TASKS_PER_REGION = 1;
 
     public static final String REGION_TOLOAD_PER_TASK = "splice.region.toLoad.perTask";
-    private static final int DEFAULT_REGION_TOLOAD_PER_TASK = 10;
+    private static final int DEFAULT_REGION_TOLOAD_PER_TASK = 30;
 
 
     @Override
