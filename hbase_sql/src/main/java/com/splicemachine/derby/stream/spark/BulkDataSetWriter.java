@@ -185,7 +185,7 @@ public class BulkDataSetWriter  {
         int numTasks = Math.max(bulkImportPartitions.size()/regionsPerTask, 1);
         SpliceSpark.pushScope(prefix + " Load HFiles");
         SpliceSpark.getContext().parallelize(bulkImportPartitions, numTasks)
-                .foreachPartition(new BulkImportFunction(bulkImportDirectory));
+	 	.foreachPartition(new BulkImportFunction(bulkImportDirectory));
         SpliceSpark.popScope();
     }
 

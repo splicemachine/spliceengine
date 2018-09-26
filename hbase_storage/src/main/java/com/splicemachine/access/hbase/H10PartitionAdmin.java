@@ -168,7 +168,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
             } catch (IOException e) {
                 String errMsg = e.getMessage();
                 if (errMsg.compareTo("should not give a splitkey which equals to startkey!") == 0) {
-                    SpliceLogUtils.warn(LOG, "%s : %s", errMsg, Bytes.toStringBinary(splitPoint));
+		    SpliceLogUtils.warn(LOG, "%s : %s", errMsg, Bytes.toStringBinary(splitPoint));
                     SQLWarning warning =
                             StandardException.newWarning(SQLState.SPLITKEY_EQUALS_STARTKEY, Bytes.toStringBinary(splitPoint));
                     try {
