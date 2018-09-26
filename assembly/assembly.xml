@@ -14,14 +14,30 @@
         <outputDirectory>lib</outputDirectory>
         <includes>
           <include>*:jar:*</include>
+          <include>*:test-jar:*</include>
         </includes>
+        <useProjectArtifact>true</useProjectArtifact>
+        <useProjectAttachments>true</useProjectAttachments>
+        <scope>compile</scope>
+      </dependencySet>
+      <dependencySet>
+        <outputDirectory>lib</outputDirectory>
+        <includes>
+          <include>*:jar:*</include>
+          <include>*:test-jar:*</include>
+        </includes>
+        <useProjectArtifact>true</useProjectArtifact>
+        <useProjectAttachments>true</useProjectAttachments>
+        <scope>test</scope>
       </dependencySet>
        <dependencySet>
         <outputDirectory>lib</outputDirectory>
         <includes>
-          <include>*:test-jar:*</include>
+          <include>*:jar:*</include>
         </includes>
-        <scope>test</scope>
+        <useProjectArtifact>true</useProjectArtifact>
+        <useProjectAttachments>true</useProjectAttachments>
+        <scope>provided</scope>
       </dependencySet>
    </dependencySets>
 </assembly>
