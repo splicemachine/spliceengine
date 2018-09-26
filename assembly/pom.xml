@@ -655,6 +655,11 @@
                   <artifactId>platform_it</artifactId>
                   <version>${project.version}</version>
                 </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-mllib_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                </dependency>
 
                 <!-- Test dependencies needed for standalone -->
                 <dependency>
@@ -695,11 +700,6 @@
                             <artifactId>servlet-api</artifactId>
                         </exclusion>
                     </exclusions>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-mllib_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
                 </dependency>
               </dependencies>
 
