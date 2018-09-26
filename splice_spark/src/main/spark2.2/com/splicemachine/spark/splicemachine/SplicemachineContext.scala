@@ -24,9 +24,7 @@ import com.splicemachine.derby.stream.spark.SparkUtils
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import com.splicemachine.derby.vti.SpliceRDDVTI
 import com.splicemachine.tools.EmbedConnectionMaker
-import org.apache.spark
 import org.apache.spark.rdd.RDD
-import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types._
@@ -66,7 +64,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
 
-  @transient var credentials = SparkHadoopUtil.get.getCurrentUserCredentials()
+  @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
