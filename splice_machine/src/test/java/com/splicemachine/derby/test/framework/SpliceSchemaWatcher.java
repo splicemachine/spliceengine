@@ -75,19 +75,13 @@ public class SpliceSchemaWatcher extends TestWatcher {
     @Override
     protected void finished(Description description) {
         LOG.info(tag("Finished", schemaName));
-        SpliceTestDataSource dataSource = new SpliceTestDataSource();
         try (Connection connection = SpliceNetConnection.getConnection()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.drop(schemaName);
-	    /*
-            LOG.info(tag("Start vacuum", schemaName));
-            connection.createStatement().execute("CALL SYSCS_UTIL.VACUUM()");
-	    */
             connection.commit();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        dataSource.shutdown();
         LOG.info(tag("Vacuum completed", schemaName));
     }
 
