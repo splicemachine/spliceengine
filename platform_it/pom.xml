@@ -780,6 +780,46 @@
                             <runOrder>alphabetical</runOrder>
                         </configuration>
                     </execution>
+
+                    <execution>
+                        <id>integration-tests-stop-vacuum</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <argLine>-Xmx2g -Xms64m</argLine>
+                            <redirectTestOutputToFile>false</redirectTestOutputToFile>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_machine</dependency>
+                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
+                            </dependenciesToScan>
+                            <includes>
+                                <include>**/SpliceTestStopVacuumIT.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>integration-tests-no-vacuum</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <groups>com.splicemachine.test.NoVacuumTest</groups>
+                            <argLine>-Xmx2g -Xms64m</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_machine</dependency>
+                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
+                            </dependenciesToScan>
+                            <includes>
+                                <include>**/*IT.java</include>
+                            </includes>
+                            <runOrder>alphabetical</runOrder>
+                        </configuration>
+                    </execution>
+
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
                     <execution>
                         <id>integration-tests-backup</id>

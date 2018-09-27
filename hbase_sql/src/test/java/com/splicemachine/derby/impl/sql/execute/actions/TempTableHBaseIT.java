@@ -57,8 +57,8 @@ public class TempTableHBaseIT{
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(tableSchema)
-            .around(empPrivTable);
+            .around(empPrivTable)
+            .around(tableSchema);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
     /**
@@ -67,7 +67,6 @@ public class TempTableHBaseIT{
      */
     @Test
     public void testTempHBaseTableGetsDropped() throws Exception {
-        long start = System.currentTimeMillis();
         try (org.apache.hadoop.hbase.client.Connection conn = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate());
              Admin admin = conn.getAdmin()) {
             TableName tempConglomID;
@@ -99,6 +98,6 @@ public class TempTableHBaseIT{
 
     @AfterClass
     public static void cleanup() throws Exception {
-        spliceClassWatcher.execute("drop table " + CLASS_NAME + "." + empPrivTable.tableName);
+        Thread.sleep(10000);
     }
 }
