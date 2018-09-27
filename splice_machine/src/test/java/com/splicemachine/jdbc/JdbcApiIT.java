@@ -15,13 +15,13 @@
 
 package com.splicemachine.jdbc;
 
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.util.StatementUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,29 +32,14 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Ordering;
-import org.spark_project.guava.collect.Sets;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class JdbcApiIT {
 
@@ -125,6 +110,33 @@ public class JdbcApiIT {
             s.setQueryTimeout(2);
             ResultSet rs = s.executeQuery(sql);
         }
+    }
+
+    @Test
+    public void testUrlWithSchema() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s;schema="
+                + CLASS_NAME;
+        try (Connection connection = SpliceNetConnection.getConnectionAs(url,
+                SpliceNetConnection.DEFAULT_USER,
+                SpliceNetConnection.DEFAULT_USER_PASSWORD)) {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeQuery("select * from a");
+            }
+        }
+    }
+
+    @Test
+    public void testUrlWithNonExistSchema() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s;schema="
+                + "nonexist";
+         try (Connection connection = SpliceNetConnection.getConnectionAs(url,
+                SpliceNetConnection.DEFAULT_USER,
+                SpliceNetConnection.DEFAULT_USER_PASSWORD)) {
+             Assert.fail("Connect to non exist schema should fail");
+         } catch (SQLException e) {
+             Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(),
+                     SQLState.LANG_SCHEMA_DOES_NOT_EXIST);
+         }
     }
 
 }
