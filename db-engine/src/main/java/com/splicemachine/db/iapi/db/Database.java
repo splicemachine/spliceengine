@@ -90,7 +90,9 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 													 CompilerContext.DataSetProcessorType dataSetProcessorType,
 													 boolean skipStats,
 													 double defaultSelectivityFactor,
-													 String ipAddress) throws StandardException;
+													 String ipAddress,
+                                                     String defaultSchema
+                                                     ) throws StandardException;
 
 	/**
 	  Push a DbContext onto the provided context stack. This conext will

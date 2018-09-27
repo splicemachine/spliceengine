@@ -136,6 +136,7 @@ public final class TransactionResourceImpl
     private boolean skipStats;
     private double defaultSelectivityFactor;
 	private String ipAddress;
+	private String defaultSchema;
 	// set these up after constructor, called by EmbedConnection
 	protected Database database;
 	protected LanguageConnectionContext lcc;
@@ -165,6 +166,7 @@ public final class TransactionResourceImpl
 
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
 		ipAddress = info.getProperty(Property.IP_ADDRESS, null);
+		defaultSchema = info.getProperty("schema", null);
         String useSparkString = info.getProperty("useSpark",null);
         if (useSparkString != null) {
             try {
@@ -235,7 +237,8 @@ public final class TransactionResourceImpl
 	void startTransaction() throws StandardException, SQLException
 	{
 		// setting up local connection
-		lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname,useSpark, skipStats, defaultSelectivityFactor, ipAddress);
+		lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname,useSpark,
+                skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
 	}
 
 	/**
