@@ -320,7 +320,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         String createAsVersion2String = null;
         if (lcc != null) {
             createAsVersion2String =
-            PropertyUtil.getCachedDatabaseProperty(lcc.getTransactionCompile(),
+            PropertyUtil.getCachedDatabaseProperty(lcc, lcc.getTransactionCompile(),
             Property.CREATE_TABLES_AS_VERSION_2);
         }
         boolean createAsVersion2 = createAsVersion2String != null && Boolean.valueOf(createAsVersion2String);
