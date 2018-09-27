@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.SQLRef;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -185,7 +186,7 @@ public class BatchOnceFunction<Op extends SpliceOperation>
         for(int i=0;i<keyColumns.length;i++){
             keyColumns[i] = pkCols[i] -1;
         }
-        DescriptorSerializer[] serializers = VersionedSerializers.forVersion("3.0", true).getSerializers(execRowDefinition);
+        DescriptorSerializer[] serializers = VersionedSerializers.forVersion(SYSTABLESRowFactory.CURRENT_TABLE_VERSION, true).getSerializers(execRowDefinition);
         dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
         return new KeyEncoder(NoOpPrefix.INSTANCE,dataHash,NoOpPostfix.INSTANCE);
     }

@@ -137,6 +137,7 @@ public class BareKeyHashTest {
 
 		@Test
 		public void testProperlyEncodesValues() throws Exception {
+
 				ExecRow execRow = new ValueRow(dataTypes.length);
 				for(int i=0;i<dataTypes.length;i++){
 						execRow.setColumn(i + 1, row[i].cloneValue(true));

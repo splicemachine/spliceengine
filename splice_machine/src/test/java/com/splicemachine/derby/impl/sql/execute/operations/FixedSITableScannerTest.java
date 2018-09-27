@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
@@ -311,7 +312,7 @@ public class FixedSITableScannerTest{
         }
                 .scan(scan)
                 .scanner(scanner)
-                .tableVersion("3.0")
+                .tableVersion(SYSTABLESRowFactory.CURRENT_TABLE_VERSION)
                 .rowDecodingMap(rowDecodingMap);
         builder = ((TableScannerBuilder)builder)
                 .filterFactory(
