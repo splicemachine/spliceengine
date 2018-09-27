@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2018 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -12,25 +12,29 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.stream.output;
+package com.splicemachine.derby.impl.sql.execute.index;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
 
 /**
- * @author Scott Fines
- *         Date: 1/8/16
+ * Created by jyuan on 10/9/18.
  */
-public interface DataSetWriter{
+public class SamplingResult extends AbstractOlapResult {
 
-    DataSet<ExecRow> write() throws StandardException;
+    byte[][] results;
 
-    void setTxn(TxnView childTxn);
+    public SamplingResult(){}
 
-    TxnView getTxn();
+    public SamplingResult(byte[][] results) {
+        this.results = results;
+    }
 
-    byte[] getDestinationTable();
+    public byte[][] getResults() {
+        return results;
+    }
 
+    @Override
+    public boolean isSuccess(){
+        return true;
+    }
 }

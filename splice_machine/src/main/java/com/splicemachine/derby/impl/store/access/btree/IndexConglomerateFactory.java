@@ -64,13 +64,15 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
 	ColumnOrdering[]        columnOrder,
     int[]                   collationIds,
     Properties              properties,
-	int                     temporaryFlag) throws StandardException {
+	int                     temporaryFlag,
+	byte[][]                splitKeys) throws StandardException {
 		IndexConglomerate index = new IndexConglomerate();
 		index.create(isExternal,
-            xact_mgr.getRawStoreXact(), input_containerid,
-            template, columnOrder, collationIds, properties, 
-            index.getTypeFormatId(), 
-            temporaryFlag,operationFactory,partitionFactory);
+				xact_mgr.getRawStoreXact(), input_containerid,
+				template, columnOrder, collationIds, properties,
+				index.getTypeFormatId(),
+				temporaryFlag,operationFactory,partitionFactory,
+				splitKeys);
 
 		return index;
 	}

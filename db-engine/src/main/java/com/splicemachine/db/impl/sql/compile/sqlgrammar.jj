@@ -2864,9 +2864,10 @@ TOKEN [IGNORE_CASE] :
 |	<LOCKS: "locks">
 |	<LOCKSIZE: "locksize">
 |	<LOGGED: "logged">
+|   <LOGICAL: "logical">
 |	<MAXVALUE: "maxvalue">
 |	<MINVALUE: "minvalue">
-|       <MOD: "mod">
+|   <MOD: "mod">
 |	<MODIFIES: "modifies">
 |	<MODIFY: "modify">
 |	<MONTH: "month">
@@ -2881,6 +2882,7 @@ TOKEN [IGNORE_CASE] :
 |	<OBJECT: "object">
 |	<OFFSET: "offset">
 |	<PASCAL: "pascal">
+|   <PHYSICAL: "physical">
 |	<PLI: "pli">
 |	<PRECISION: "precision">
 |	<RELEASE: "release">
@@ -3023,6 +3025,7 @@ TOKEN [IGNORE_CASE] :
 |   <ESTIMATE: "estimate">
 |	<EXCLUSIVE: "exclusive">
 |	<FN: "fn">
+|   <FRACTION: "fraction">
 |	<INDEX: "index">
 |	<INPLACE: "inplace">
 |	<JAVA: "java">
@@ -12129,9 +12132,11 @@ indexDefinition() throws StandardException :
     ValueNode   timestampFormat = null;
     ValueNode   dateFormat = null;
     ValueNode   timeFormat = null;
+    ValueNode   sampleFraction = null;
     Boolean     sampling = Boolean.FALSE;
     Boolean     preSplit = Boolean.FALSE;
-	Vector	indexColumnList = new Vector();
+	Vector	    indexColumnList = new Vector();
+	Boolean     isLogicalKey = Boolean.TRUE;
 }
 {
 	/*
@@ -12146,8 +12151,9 @@ indexDefinition() throws StandardException :
 		    [ <NULL> <KEYS> { excludeNulls = true;} ]
 		    [ <_DEFAULT> <KEYS> { excludeDefaults = true;} ]
 		]
-		[   <SPLITKEYS> {preSplit = Boolean.TRUE;}
-		        [ <AUTO> {sampling = Boolean.TRUE; } |
+		[   [<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
+		    <SPLITKEYS> {preSplit = Boolean.TRUE;}
+		        [ <AUTO> {sampling = Boolean.TRUE; } [<SAMPLE><FRACTION> {sampleFraction = literal();}] |
 		          <LOCATION> {splitKeysPath = literal();}
 		          [<COLUMNDELIMITER> {columnDelimiter = literal();}]
 		          [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
@@ -12155,8 +12161,8 @@ indexDefinition() throws StandardException :
                   [<DATEFORMAT> {dateFormat = literal();}]
                   [<TIMEFORMAT> {timeFormat = literal();}]
 		        ]
-		    <HFILE> <LOCATION> {hfilePath = literal();}
 		]
+		[<HFILE> <LOCATION> {hfilePath = literal();}]
 
 	{
 		/* User allowed to specify schema name on table and index.
@@ -12196,7 +12202,9 @@ indexDefinition() throws StandardException :
 								excludeNulls,
 								excludeDefaults,
 								preSplit,
+								isLogicalKey,
 								sampling,
+								sampleFraction,
 								splitKeysPath,
 								columnDelimiter,
 								characterDelimiter,
@@ -16718,6 +16726,7 @@ nonReservedKeyword()  :
 	|	tok = <FIRSTVALUE>
 	|	tok = <FN>
 	|	tok = <FORTRAN>
+	|   tok = <FRACTION>
 	|	tok = <GENERATED>
 	|   tok = <HFILE>
 	|	tok = <IDENTITY_VAL_LOCAL>

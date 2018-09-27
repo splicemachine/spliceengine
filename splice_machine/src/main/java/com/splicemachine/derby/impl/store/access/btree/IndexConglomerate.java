@@ -79,9 +79,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         super();
     }
 
-    @Override
     protected void create(boolean isExternal,
-                Transaction rawtran,
+                          Transaction rawtran,
                           long input_containerid,
                           DataValueDescriptor[] template,
                           ColumnOrdering[] columnOrder,
@@ -90,7 +89,8 @@ public class IndexConglomerate extends SpliceConglomerate{
                           int conglom_format_id,
                           int tmpFlag,
                           TxnOperationFactory opFactory,
-                          PartitionFactory partitionFactory) throws StandardException{
+                          PartitionFactory partitionFactory,
+                          byte[][] splitKeys) throws StandardException{
         super.create(isExternal,rawtran,
                 input_containerid,
                 template,
@@ -152,12 +152,13 @@ public class IndexConglomerate extends SpliceConglomerate{
         try{
 //            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
             ConglomerateUtils.createConglomerate(isExternal,
-                containerId,
-                this,
-                ((SpliceTransaction)rawtran).getTxn(),
+                    containerId,
+                    this,
+                    ((SpliceTransaction)rawtran).getTxn(),
                     properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
-                    properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR));
+                    properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
+                    splitKeys);
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
         }

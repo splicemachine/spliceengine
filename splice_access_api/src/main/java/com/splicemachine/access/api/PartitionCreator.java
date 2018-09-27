@@ -44,5 +44,8 @@ public interface PartitionCreator{
 
     PartitionCreator withTransactionId(long txnId) throws IOException;
 
+    PartitionCreator withSplitKeys(byte[][] splitKeys);
+
     Partition create() throws IOException;
+
 }

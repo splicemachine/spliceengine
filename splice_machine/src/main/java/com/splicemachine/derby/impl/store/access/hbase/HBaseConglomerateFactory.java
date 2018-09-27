@@ -89,7 +89,8 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
             ColumnOrdering[] columnOrder,
             int[] collationIds,
             Properties properties,
-            int temporaryFlag)
+            int temporaryFlag,
+            byte[][] splitKeys)
             throws StandardException{
         HBaseConglomerate hbase=new HBaseConglomerate();
 
@@ -104,7 +105,8 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
                 hbase.getTypeFormatId(),
                 temporaryFlag,
                 driver.getOperationFactory(),
-                driver.getTableFactory());
+                driver.getTableFactory(),
+                splitKeys);
 
         return hbase;
     }
