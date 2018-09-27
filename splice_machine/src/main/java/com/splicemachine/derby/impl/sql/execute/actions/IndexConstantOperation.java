@@ -16,7 +16,6 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -29,9 +28,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
-import com.splicemachine.derby.impl.sql.execute.index.BulkLoadIndexJob;
-import com.splicemachine.derby.impl.sql.execute.index.DistributedPopulateIndexJob;
-import com.splicemachine.derby.impl.sql.execute.index.PopulateIndexJob;
+import com.splicemachine.derby.impl.sql.execute.index.*;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -60,7 +57,8 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 	public String indexName;
 	public String tableName;
 	public String schemaName;
-
+    private int[] indexFormatIds;
+    boolean distributed;
 
     protected	IndexConstantOperation(UUID tableId){
         super(tableId);
@@ -118,16 +116,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                                  Txn indexTransaction,
                                  long demarcationPoint,
                                  DDLMessage.TentativeIndex tentativeIndex,
-                                 IndexDescriptor indexDescriptor,
-								 boolean         preSplit,
-								 boolean         sampling,
-								 String          splitKeyPath,
-								 String          hfilePath,
-								 String          columnDelimiter,
-								 String          characterDelimiter,
-								 String          timestampFormat,
-								 String          dateFormat,
-								 String          timeFormat,
+                                 String          hfilePath,
 								 ExecRow         baseDefaultRow) throws StandardException {
         // String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
 		/*
@@ -137,77 +126,9 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		 */
         Txn childTxn;
         try {
-			// This preps the scan to emulate TableScanOperation and use that code path
-			List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-			List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
-			List<Integer> columnOrdering = tentativeIndex.getTable().getColumnOrderingList();
-			int[] rowDecodingMap = new int[allFormatIds.size()];
-			int[] baseColumnMap = new int[allFormatIds.size()];
-			int counter = 0;
-			int[] indexFormatIds = new int[indexCols.size()];
-			ExecRow indexDefaultRow = new ValueRow(indexCols.size());
-			FormatableBitSet defaultValueMap = new FormatableBitSet(indexCols.size());
-
-			for (int i = 0; i < rowDecodingMap.length;i++) {
-				rowDecodingMap[i] = -1;
-				if (indexCols.contains(i+1)) {
-					baseColumnMap[i] = counter;
-					indexFormatIds[counter] = allFormatIds.get(indexCols.get(indexCols.indexOf(i+1))-1);
-					indexDefaultRow.setColumn(counter+1, baseDefaultRow.getColumn(i+1));
-					if (!baseDefaultRow.getColumn(i+1).isNull())
-						defaultValueMap.set(counter);
-					counter++;
-				} else {
-					baseColumnMap[i] = -1;
-				}
-			}
-			// Determine which keys it scans...
-			FormatableBitSet accessedKeyCols = new FormatableBitSet(columnOrdering.size());
-			for (int i = 0; i < columnOrdering.size(); i++) {
-				if (indexCols.contains(columnOrdering.get(i)+1))
-					accessedKeyCols.set(i);
-			}
-			for (int i = 0; i < baseColumnMap.length;i++) {
-				if (columnOrdering.contains(i))
-					rowDecodingMap[i] = -1;
-				else
-					rowDecodingMap[i] = baseColumnMap[i];
-			}
-
-
-			String table = Long.toString(tentativeIndex.getTable().getConglomerate());
-			Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,false);
-			boolean distributed = preSplit;
-			for (PartitionLoad load: partitionLoadCollection) {
-				if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
-					distributed = true;
-			}
-			DataSetProcessor dsp;
-			if (distributed)
-	            dsp =EngineDriver.driver().processorFactory().distributedProcessor();
-			else
-				dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
-
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
-            ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
-            builder.tableDisplayName(tableName)
-                    .demarcationPoint(demarcationPoint)
-                    .transaction(indexTransaction)
-                    .scan(DDLUtils.createFullScan())
-                    .keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
-                    .reuseRowLocation(false)
-                    .rowDecodingMap(rowDecodingMap)
-                    .keyColumnTypes(ScanOperation.getKeyFormatIds(
-                            Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
-                            Ints.toArray(tentativeIndex.getTable().getFormatIdsList())
-                    ))
-                    .keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
-                            Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
-                            baseColumnMap
-                    ))
-                    .accessedKeyColumns(accessedKeyCols)
-                    .template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds))
-			         .defaultRow(indexDefaultRow, defaultValueMap);
+            ScanSetBuilder<ExecRow> builder = getIndexScanBuilder(td, indexTransaction, demarcationPoint,
+                    tentativeIndex, baseDefaultRow, false);
 
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);
@@ -218,14 +139,14 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 				Future<OlapResult> futureResult = null;
                 OlapResult result = null;
                 SConfiguration config = EngineDriver.driver().getConfiguration();
-				if (!preSplit) {
+				if (hfilePath == null) {
                     futureResult = olapClient.submit(new DistributedPopulateIndexJob(childTxn, builder, scope, jobGroup, prefix,
                             tentativeIndex, indexFormatIds));
 				}
 				else {
                     ActivationHolder ah = new ActivationHolder(activation, null);
 					futureResult = olapClient.submit(new BulkLoadIndexJob(ah, childTxn, builder, scope, jobGroup, prefix, tentativeIndex,
-                            indexFormatIds, sampling, hfilePath, td.getVersion(), indexName));
+                            indexFormatIds, false, hfilePath, td.getVersion(), indexName));
 				}
                 while (result == null) {
                     try {
@@ -259,4 +180,128 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 	public String getScopeName() {
 		return String.format("%s %s", super.getScopeName(), indexName);
 	}
+
+
+    public ScanSetBuilder<ExecRow> getIndexScanBuilder(TableDescriptor td,
+                                                       TxnView indexTransaction,
+                                                       long demarcationPoint,
+                                                       DDLMessage.TentativeIndex tentativeIndex,
+                                                       ExecRow baseDefaultRow,
+                                                       boolean sampling) throws StandardException{
+
+        // This preps the scan to emulate TableScanOperation and use that code path
+        List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
+        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
+        List<Integer> columnOrdering = tentativeIndex.getTable().getColumnOrderingList();
+        td.getColumnDescriptorList().elementAt(0).getType().getNull();
+        int[] rowDecodingMap = new int[allFormatIds.size()];
+        int[] baseColumnMap = new int[allFormatIds.size()];
+        int counter = 0;
+        indexFormatIds = new int[indexCols.size()];
+        ExecRow indexDefaultRow = new ValueRow(indexCols.size());
+        FormatableBitSet defaultValueMap = new FormatableBitSet(indexCols.size());
+
+        for (int i = 0; i < rowDecodingMap.length;i++) {
+            rowDecodingMap[i] = -1;
+            if (indexCols.contains(i+1)) {
+                baseColumnMap[i] = counter;
+                indexFormatIds[counter] = allFormatIds.get(indexCols.get(indexCols.indexOf(i+1))-1);
+                indexDefaultRow.setColumn(counter+1, baseDefaultRow.getColumn(i+1));
+                if (!baseDefaultRow.getColumn(i+1).isNull())
+                    defaultValueMap.set(counter);
+                counter++;
+            } else {
+                baseColumnMap[i] = -1;
+            }
+        }
+        // Determine which keys it scans...
+        FormatableBitSet accessedKeyCols = new FormatableBitSet(columnOrdering.size());
+        for (int i = 0; i < columnOrdering.size(); i++) {
+            if (indexCols.contains(columnOrdering.get(i)+1))
+                accessedKeyCols.set(i);
+        }
+        for (int i = 0; i < baseColumnMap.length;i++) {
+            if (columnOrdering.contains(i))
+                rowDecodingMap[i] = -1;
+            else
+                rowDecodingMap[i] = baseColumnMap[i];
+        }
+
+
+        String table = Long.toString(tentativeIndex.getTable().getConglomerate());
+        Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,false);
+        for (PartitionLoad load: partitionLoadCollection) {
+            if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
+                distributed = true;
+        }
+        DataSetProcessor dsp;
+        if (distributed || sampling)
+            dsp =EngineDriver.driver().processorFactory().distributedProcessor();
+        else
+            dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
+        ScanSetBuilder<ExecRow> builder = dsp.newScanSet(null, Long.toString(tentativeIndex.getTable().getConglomerate()));
+        builder.tableDisplayName(tableName)
+                .tableVersion(tentativeIndex.getTable().getTableVersion())
+                .transaction(indexTransaction)
+                .scan(DDLUtils.createFullScan())
+                .keyColumnEncodingOrder(Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()))
+                .reuseRowLocation(false)
+                .rowDecodingMap(rowDecodingMap)
+                .keyColumnTypes(ScanOperation.getKeyFormatIds(
+                        Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+                        Ints.toArray(tentativeIndex.getTable().getFormatIdsList())
+                ))
+                .keyDecodingMap(ScanOperation.getKeyDecodingMap(accessedKeyCols,
+                        Ints.toArray(tentativeIndex.getTable().getColumnOrderingList()),
+                        baseColumnMap
+                ))
+                .accessedKeyColumns(accessedKeyCols)
+                .template(WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds))
+                .defaultRow(indexDefaultRow, defaultValueMap);
+
+        if (demarcationPoint > 0) {
+            builder = builder.demarcationPoint(demarcationPoint);
+        }
+        return builder;
+    }
+
+    protected byte[][] sample(Activation activation, TableDescriptor td, TxnView txn, long demarcationPoint,
+                              DDLMessage.TentativeIndex tentativeIndex, ExecRow baseDefaultRow, double sampleFraction) throws StandardException{
+        ScanSetBuilder<ExecRow> builder = getIndexScanBuilder(td, txn, demarcationPoint,
+                tentativeIndex, baseDefaultRow, true);
+
+        try {
+            String scope = this.getScopeName();
+            String prefix = StreamUtils.getScopeString(this);
+            String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+            String jobGroup = userId + " <" + txn.getTxnId() + ">";
+
+            OlapClient olapClient = EngineDriver.driver().getOlapClient();
+            Future<SamplingResult> futureResult = null;
+            SamplingResult result = null;
+            SConfiguration config = EngineDriver.driver().getConfiguration();
+            ActivationHolder ah = new ActivationHolder(activation, null);
+            futureResult = olapClient.submit(new SamplingJob(ah, txn, builder, scope, jobGroup, prefix, tentativeIndex,
+                    indexFormatIds, td.getVersion(), indexName, sampleFraction));
+
+            while (result == null) {
+                try {
+                    result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+                } catch (InterruptedException | ExecutionException e) {
+                    //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                    Thread.currentThread().interrupt();
+                    throw StandardException.plainWrapException(e);
+                } catch (TimeoutException e) {
+                        /*
+                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                         * head up and make sure that the client is still operating
+                         */
+                }
+            }
+
+            return result.getResults();
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
 }
