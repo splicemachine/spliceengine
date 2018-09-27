@@ -1485,44 +1485,41 @@
                     <artifactId>splice_ee</artifactId>
                     <version>${project.version}</version>
                     <classifier>${envClassifier}</classifier>
-                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup</artifactId>
                     <version>${project.version}</version>
                     <classifier>${envClassifier}</classifier>
-                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_auth</artifactId>
                     <version>${project.version}</version>
-                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_colperms</artifactId>
                     <version>${project.version}</version>
-                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_encryption</artifactId>
                     <version>${project.version}</version>
-                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>enterprise_it</artifactId>
                     <version>${project.version}</version>
                     <type>test-jar</type>
+                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup</artifactId>
                     <version>${project.version}</version>
                     <type>test-jar</type>
+                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1535,6 +1532,7 @@
                     <artifactId>${extraDependency}</artifactId>
                     <version>${project.version}</version>
                     <type>test-jar</type>
+                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1547,6 +1545,7 @@
                     <artifactId>${extraDependency2}</artifactId>
                     <version>${project.version}</version>
                     <type>test-jar</type>
+                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
@@ -1559,6 +1558,7 @@
                     <artifactId>${extraDependency3}</artifactId>
                     <version>${project.version}</version>
                     <type>test-jar</type>
+                    <scope>test</scope>
                 </dependency>
             </dependencies>
             <build>
