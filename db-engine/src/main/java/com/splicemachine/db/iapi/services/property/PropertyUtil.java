@@ -313,25 +313,23 @@ public class PropertyUtil {
 
 	 @exception StandardException Standard Derby error handling.
 	 */
-	public static String getCachedDatabaseProperty(PersistentSet set, String key)
+	public static String getCachedDatabaseProperty(LanguageConnectionContext lcc, PersistentSet set, String key)
 			throws StandardException {
 		if (set == null)
 			return null;
-		//look in dictionary cache first
-		try {
-			LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-			Optional<String> optional = lcc.getDataDictionary().getDataDictionaryCache().propertyCacheFind(key);
-			if (optional!=null) {
-				return optional.orNull();
-			}
+		//look in dictionary cache firstls -lrt
 
-			Object obj = set.getProperty(key);
+		Optional<String> optional = lcc.getDataDictionary().getDataDictionaryCache().propertyCacheFind(key);
+		if (optional!=null) {
+			return optional.orNull();
+		}
 
-			// save in cache
-			lcc.getDataDictionary().getDataDictionaryCache().propertyCacheAdd(key, obj==null? Optional.<String>absent():Optional.of(obj.toString()));
-			if (obj == null) { return null; }
-			return obj.toString();
-		} catch (java.sql.SQLException se) { throw StandardException.plainWrapException( se ); }
+		Object obj = set.getProperty(key);
+
+		// save in cache
+		lcc.getDataDictionary().getDataDictionaryCache().propertyCacheAdd(key, obj==null? Optional.<String>absent():Optional.of(obj.toString()));
+		if (obj == null) { return null; }
+		return obj.toString();
 	}
 	/**
 		Find a service wide property with a default. Search order is
