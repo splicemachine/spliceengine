@@ -481,13 +481,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         */
         if(cachedInitialDefaultSchemaDescr==null){
             DataDictionary dd=getDataDictionary();
+            SchemaDescriptor sd;
             if (defaultSchema != null) {
-                return dd.getSchemaDescriptor(defaultSchema, getTransactionCompile(), true);
+                sd = dd.getSchemaDescriptor(defaultSchema, getTransactionCompile(), true);
+            } else {
+                sd = dd.getSchemaDescriptor(
+                        getSessionUserId(), getTransactionCompile(), false);
             }
-            SchemaDescriptor sd=
-                    dd.getSchemaDescriptor(
-                            getSessionUserId(),getTransactionCompile(),false);
-
             if(sd==null){
                 sd=new SchemaDescriptor(
                         dd,
