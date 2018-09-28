@@ -114,7 +114,7 @@ public class JdbcApiIT {
 
     @Test
     public void testUrlWithSchema() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s;schema="
+        String url = "jdbc:splice://localhost:1527/splicedb;user=%s;password=%s;schema="
                 + CLASS_NAME;
         try (Connection connection = SpliceNetConnection.getConnectionAs(url,
                 SpliceNetConnection.DEFAULT_USER,
@@ -127,8 +127,7 @@ public class JdbcApiIT {
 
     @Test
     public void testUrlWithNonExistSchema() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=%s;password=%s;schema="
-                + "nonexist";
+        String url = "jdbc:splice://localhost:1527/splicedb;user=%s;password=%s;schema=nonexist";
          try (Connection connection = SpliceNetConnection.getConnectionAs(url,
                 SpliceNetConnection.DEFAULT_USER,
                 SpliceNetConnection.DEFAULT_USER_PASSWORD)) {
