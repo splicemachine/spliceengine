@@ -331,6 +331,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean ignoreCommentOptEnabled = false;
     private String origStmtTxt;
 
+    private String defaultSchema;
+
     /* constructor */
     public GenericLanguageConnectionContext(
             ContextManager cm,
@@ -346,7 +348,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             CompilerContext.DataSetProcessorType type,
             boolean skipStats,
             double defaultSelectivityFactor,
-            String ipAddress
+            String ipAddress,
+            String defaultSchema
             ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
@@ -365,6 +368,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.drdaID=drdaID;
         this.dbname=dbname;
         this.commentStripper = lcf.newCommentStripper();
+        this.defaultSchema = defaultSchema;
 
         /* Find out whether or not to log info on executing statements to error log
          */
@@ -476,11 +480,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         */
         if(cachedInitialDefaultSchemaDescr==null){
             DataDictionary dd=getDataDictionary();
-            String authorizationId=getSessionUserId();
-            SchemaDescriptor sd=
-                    dd.getSchemaDescriptor(
-                            getSessionUserId(),getTransactionCompile(),false);
-
+            SchemaDescriptor sd;
+            if (defaultSchema != null) {
+                sd = dd.getSchemaDescriptor(defaultSchema, getTransactionCompile(), true);
+            } else {
+                sd = dd.getSchemaDescriptor(
+                        getSessionUserId(), getTransactionCompile(), false);
+            }
             if(sd==null){
                 sd=new SchemaDescriptor(
                         dd,
