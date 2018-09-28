@@ -88,6 +88,7 @@ import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CA
 public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext{
 
     private final Logger stmtLogger = Logger.getLogger("splice-derby.statement");
+    private static Logger LOG=Logger.getLogger(GenericLanguageConnectionContext.class);
 
     private static final ThreadLocal<String> badFile = new ThreadLocal<String>() {
         @Override
@@ -3259,6 +3260,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("getCurrentRoleIdDelimited():\n" +
+                            "sessionUser: %s,\n" +
+                            "defaultRoles: %s,\n" +
+                            "groupUserList: %s\n",
+                    sessionUser,
+                    (defaultRoles==null?"null":defaultRoles.toString()),
+                    (groupuserlist==null?"null":groupuserlist.toString())));
+        }
 
         List<String> roles=getCurrentSQLSessionContext(a).getRoles();
 
@@ -3348,6 +3358,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 // or if not, via PUBLIC?
                 grantDesc=dd.getRoleGrantDescriptor
                         (role,Authorizer.PUBLIC_AUTHORIZATION_ID);
+            }
+
+            // or via group user
+            if (grantDesc == null && groupuserList != null) {
+                for (String currentGroupuser : groupuserList) {
+                    grantDesc = dd.getRoleGrantDescriptor(role, currentGroupuser);
+                    if (grantDesc != null)
+                        break;
+                }
             }
         }
         return grantDesc!=null;
