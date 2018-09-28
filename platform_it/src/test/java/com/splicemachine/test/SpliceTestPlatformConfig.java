@@ -186,7 +186,7 @@ class SpliceTestPlatformConfig {
         //
         // Threads, timeouts
         //
-        config.setLong("hbase.rpc.timeout", MINUTES.toMillis(2));
+        config.setLong("hbase.rpc.timeout", MINUTES.toMillis(5));
         config.setInt("hbase.client.max.perserver.tasks",50);
         config.setInt("hbase.client.ipc.pool.size",10);
         config.setInt("hbase.rowlock.wait.duration",0);
