@@ -125,10 +125,12 @@ public class SpliceDatabase extends BasicDatabase{
                                                      CompilerContext.DataSetProcessorType dspt,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
-                                                     String ipAddress)
+                                                     String ipAddress,
+                                                     String defaultSchema)
             throws StandardException{
 
-        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist, drdaID, dbname, dspt, skipStats, defaultSelectivityFactor, ipAddress);
+        final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
+                drdaID, dbname, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
 
         // If you add a visitor, be careful of ordering.
 
@@ -164,7 +166,9 @@ public class SpliceDatabase extends BasicDatabase{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
-        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,groupuserlist,drdaID,dbname,type,skipStats, defaultSelectivityFactor, ipAddress);
+        LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
+                groupuserlist,drdaID,dbname,type,skipStats, defaultSelectivityFactor, ipAddress,
+                null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
