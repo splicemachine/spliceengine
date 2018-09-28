@@ -34,7 +34,6 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 1/19/16
  */
-@Category(NoVacuumTest.class)
 public class TempTableHBaseIT{
 
     public static final String CLASS_NAME = TempTableHBaseIT.class.getSimpleName().toUpperCase();

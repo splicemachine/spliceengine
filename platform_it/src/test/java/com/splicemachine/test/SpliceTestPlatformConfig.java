@@ -260,7 +260,7 @@ class SpliceTestPlatformConfig {
         //
 
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
-        config.setLong("splice.ddl.maxWaitSeconds",240000);
+        config.setLong("splice.ddl.maxWaitSeconds",120000);
         config.setInt("splice.olap_server.memory", 4096);
         config.setInt("splice.authentication.token.renew-interval",120);
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
