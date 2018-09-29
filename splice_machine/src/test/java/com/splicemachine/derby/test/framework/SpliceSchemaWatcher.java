@@ -78,6 +78,9 @@ public class SpliceSchemaWatcher extends TestWatcher {
         try (Connection connection = SpliceNetConnection.getConnection()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.drop(schemaName);
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("call syscs_util.vacuum()");
+            }
             connection.commit();
         } catch (Exception e) {
             throw new RuntimeException(e);
