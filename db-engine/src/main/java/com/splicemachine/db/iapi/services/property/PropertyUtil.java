@@ -313,11 +313,12 @@ public class PropertyUtil {
 
 	 @exception StandardException Standard Derby error handling.
 	 */
-	public static String getCachedDatabaseProperty(LanguageConnectionContext lcc, PersistentSet set, String key)
+	public static String getCachedDatabaseProperty(LanguageConnectionContext lcc, String key)
 			throws StandardException {
+		PersistentSet set = lcc.getTransactionCompile();
 		if (set == null)
 			return null;
-		//look in dictionary cache firstls -lrt
+		//look in dictionary cache first
 
 		Optional<String> optional = lcc.getDataDictionary().getDataDictionaryCache().propertyCacheFind(key);
 		if (optional!=null) {

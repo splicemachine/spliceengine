@@ -197,8 +197,7 @@ public class VTIOperation extends SpliceBaseOperation {
         String convertTimestampsString = null;
         if (lcc != null) {
             convertTimestampsString =
-            PropertyUtil.getCachedDatabaseProperty(lcc, lcc.getTransactionCompile(),
-                                                   Property.CONVERT_OUT_OF_RANGE_TIMESTAMPS);
+            PropertyUtil.getCachedDatabaseProperty(lcc, Property.CONVERT_OUT_OF_RANGE_TIMESTAMPS);
         }
         // if database property is not set, treat it as false
 		this.convertTimestamps = convertTimestampsString != null && Boolean.valueOf(convertTimestampsString);
