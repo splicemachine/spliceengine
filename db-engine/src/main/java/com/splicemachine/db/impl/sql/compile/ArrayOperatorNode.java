@@ -239,7 +239,7 @@ public class ArrayOperatorNode extends ValueNode {
 	}
 
 	@Override
-	public ColumnReference getHashableJoinColumnReference() {
+	public List<ColumnReference> getHashableJoinColumnReference() {
 		return operand.getHashableJoinColumnReference();
 	}
 

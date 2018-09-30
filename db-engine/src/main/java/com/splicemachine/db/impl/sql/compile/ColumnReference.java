@@ -32,23 +32,22 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+
+import java.util.*;
 
 /**
  * A ColumnReference represents a column in the query tree.  The parser generates a
@@ -1462,8 +1461,8 @@ public class ColumnReference extends ValueNode {
 	}
 
 	@Override
-	public ColumnReference getHashableJoinColumnReference() {
-		return this;
+	public List<ColumnReference> getHashableJoinColumnReference() {
+		return new ArrayList<>(Arrays.asList(this));
 	}
 
 	public boolean isRowIdColumn() {

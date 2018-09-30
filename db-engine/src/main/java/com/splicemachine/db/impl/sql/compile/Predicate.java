@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.BitSet;
 import java.util.Hashtable;
+import java.util.List;
 
 /**
  * A Predicate represents a top level predicate.
@@ -784,16 +785,16 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         int leftTableNumber=-1;
         int rightTableNumber=-1;
 
-        ColumnReference cr = leftOperand.getHashableJoinColumnReference();
-        if (cr != null) {
+        List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
+        if (columnReferences != null && columnReferences.size() == 1) {
             isColumnReferenceOnLeft = true;
-            leftTableNumber = cr.getTableNumber();
+            leftTableNumber = columnReferences.get(0).getTableNumber();
         }
 
-        cr = rightOperand.getHashableJoinColumnReference();
-        if (cr != null) {
+        columnReferences = rightOperand.getHashableJoinColumnReference();
+        if (columnReferences != null && columnReferences.size() == 1) {
             isColumnReferenceOnRight = true;
-            rightTableNumber = cr.getTableNumber();
+            rightTableNumber = columnReferences.get(0).getTableNumber();
         }
 
         // If both sides are column references AND they point to different
