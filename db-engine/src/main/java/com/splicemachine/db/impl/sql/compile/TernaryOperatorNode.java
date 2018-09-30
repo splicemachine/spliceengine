@@ -1138,7 +1138,7 @@ public class TernaryOperatorNode extends OperatorNode
     }
 
 	@Override
-	public ColumnReference getHashableJoinColumnReference() {
+	public List<ColumnReference> getHashableJoinColumnReference() {
 		return receiver.getHashableJoinColumnReference();
 	}
 
