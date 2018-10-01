@@ -15,6 +15,7 @@
 package com.splicemachine.mrio.api.hive;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.sql.Connection;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -41,6 +42,7 @@ import org.apache.hadoop.mapred.Reporter;
 
 import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.mrio.api.serde.RowLocationWritable;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 
 public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, ExecRowWritable> {
@@ -53,9 +55,22 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
     protected TxnView childTxn;
     protected Connection conn;
 
-	public SMHiveRecordWriter (Configuration conf) {
+	public SMHiveRecordWriter (Configuration conf) throws IOException {
 		this.conf = conf;
-        init();
+        String principal = conf.get("hive.server2.authentication.kerberos.principal");
+        String keytab = conf.get("hive.server2.authentication.kerberos.keytab");
+        if (principal != null && keytab != null) {
+            UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
+            ugi.doAs(new PrivilegedAction<Void>(){
+                public Void run() {
+                    init();
+                    return null;
+                }
+            });
+        }
+        else {
+            init();
+        }
 	}
 	
 	@Override
