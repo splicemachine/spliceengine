@@ -687,7 +687,7 @@ public class PrestoS3FileSystem
         }
 
         if (isNullOrEmpty(accessKey) || isNullOrEmpty(secretKey)) {
-            return Optional.empty();
+            return Optional.of(new AnonymousAWSCredentials());
         }
         return Optional.of(new BasicAWSCredentials(accessKey, secretKey));
     }
