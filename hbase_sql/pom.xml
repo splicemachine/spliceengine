@@ -103,11 +103,6 @@
             <artifactId>netty-all</artifactId>
             <scope>provided</scope>
         </dependency>
-	<dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-mesos_${scala.binary.version}</artifactId>
@@ -241,6 +236,9 @@
                             <include>io.netty:netty-all</include>
                             <!-- <include>com.typesafe.akka:akka-remote_${scala.binary.version}</include> -->
                         </includes>
+			<excludes>
+                            <exclude>com.esotericsoftware:kryo-shaded</exclude>
+                        </excludes>
                     </artifactSet>
                     <filters>
                         <filter>
