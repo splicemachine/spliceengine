@@ -731,7 +731,6 @@
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>
-                                com.splicemachine.test.NoVacuumTest,
                                 ${excluded.categories}
                             </excludedGroups>
                             <argLine>-Xmx2g -Xms64m</argLine>
@@ -748,6 +747,9 @@
                                 </exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
+                            <systemPropertyVariables>
+                                <splice.schemaCleanup>none</splice.schemaCleanup>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
@@ -759,7 +761,6 @@
                         </goals>
                         <configuration>
                             <excludedGroups>
-                                com.splicemachine.test.NoVacuumTest,
                                 com.splicemachine.test.SerialTest,
                                 com.splicemachine.test.RestoreTest,
                                 ${excluded.categories}
@@ -778,48 +779,11 @@
                                 <include>**/*IT.java</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
+                            <systemPropertyVariables>
+                                <splice.schemaCleanup>async</splice.schemaCleanup>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
-
-                    <execution>
-                        <id>integration-tests-stop-vacuum</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <argLine>-Xmx2g -Xms64m</argLine>
-                            <redirectTestOutputToFile>false</redirectTestOutputToFile>
-                            <dependenciesToScan>
-                                <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
-                            </dependenciesToScan>
-                            <includes>
-                                <include>**/SpliceTestStopVacuumIT.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>integration-tests-no-vacuum</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <groups>com.splicemachine.test.NoVacuumTest</groups>
-                            <argLine>-Xmx2g -Xms64m</argLine>
-                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                            <dependenciesToScan>
-                                <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
-                            </dependenciesToScan>
-                            <includes>
-                                <include>**/*IT.java</include>
-                            </includes>
-                            <runOrder>alphabetical</runOrder>
-                        </configuration>
-                    </execution>
-
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
                     <execution>
                         <id>integration-tests-backup</id>
@@ -1253,34 +1217,6 @@
             </build>
         </profile>
         <profile>
-            <id>spliceVacuum</id>
-            <activation>
-                <property>
-                    <name>spliceVacuum</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>java</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <classpathScope>test</classpathScope>
-                            <mainClass>com.splicemachine.test.SpliceTestVacuum</mainClass>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <id>spliceYarn</id>
             <activation>
                 <property>
@@ -1342,13 +1278,10 @@
                             <classpathScope>test</classpathScope>
                             <executable>java</executable>
                             <arguments>
-                                <!-- <argument>-verbose:gc</argument> -->
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
                                 <argument>-Xdebug</argument>
-                                <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
-                                <argument>-XX:+FlightRecorder</argument> -->
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
@@ -1416,7 +1349,6 @@
                                 <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
-                                <!--<argument>-Dsplice.spark.memory.storageFraction=0.2</argument>-->
                                 <argument>-Dsplice.spark.driver.extraJavaOptions=
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     ${hbase.rootdir}
@@ -1428,7 +1360,6 @@
                                     -Dhdp.version=2.6.3
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
-                                    -XX:+UseG1GC
                                 </argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     ${hbase.rootdir}
@@ -1438,7 +1369,6 @@
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -enableassertions
                                     -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40
-                                    -XX:+UseG1GC
                                     ${jacocoAgent}
                                 </argument>
                                 <argument>-Dsplice.spark.yarn.user=${user.name}</argument>
@@ -1454,7 +1384,6 @@
                                     -Djava.net.preferIPv4Stack=true
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30
-                                    -XX:+UseG1GC
                                 </argument>
                                 <argument>${spark.keytab}</argument>
                                 <argument>${spark.principal}</argument>

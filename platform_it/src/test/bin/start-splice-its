@@ -11,7 +11,6 @@ ZOOLOG="${ROOT_DIR}"/zoo_it.log
 YARNLOG="${ROOT_DIR}"/yarn_it.log
 SPLICELOG="${ROOT_DIR}"/splice_it.log
 KAFKALOG="${ROOT_DIR}"/kafka.log
-VACUUMLOG="${ROOT_DIR}"/vacuum.log
 
 CHAOS="false"
 PROFILE="cdh5.8.3"  # default hbase platform profile
@@ -60,7 +59,7 @@ done
 
 # Check if server running. Shut down if so.
 Y=( $(ps -ef | awk '/spliceYarn|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}') )
-S=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant|spliceVacuum/ && !/awk/ {print $2}') )
+S=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}') )
 Z=( $(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}') )
 if [[ -n ${Y[0]} || -n ${S[0]} || -n ${Z[0]} ]]; then
     echo "Splice server is running. Shutting down."
@@ -107,7 +106,5 @@ echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member1.lo
 mvn -B initialize exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember -DmemberNumber=1 > ${SPLICELOG}.member1.log 2>&1 &
 # echo "Starting SpliceTestClusterParticipant, log file is ${SPLICELOG}.member2.log"
 # mvn -B exec:exec -PspliceClusterMember -DmemberNumber=2             > ${SPLICELOG}.member2.log 2>&1 &
-echo "Starting SpliceTestVacuum, log file is ${VACUUMLOG}"
-mvn -B exec:java -P${PROFILE},spliceVacuum > ${VACUUMLOG} 2>&1 &
 
 popd &>/dev/null
