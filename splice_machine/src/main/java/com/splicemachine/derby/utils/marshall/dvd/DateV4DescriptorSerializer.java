@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2018 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,48 +15,51 @@
 package com.splicemachine.derby.utils.marshall.dvd;
 
 
-import com.splicemachine.encoding.Encoding;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
-import java.sql.Date;
+import com.splicemachine.db.iapi.types.SQLDate;
+import com.splicemachine.encoding.Encoding;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.encoding.MultiFieldEncoder;
 
 /**
  * This class is NOT thread safe.
  *
- * @author Scott Fines
- * Date: 4/2/14
+ * @author Mark Sirek
+ * Date: 9/15/18
  */
-public class DateDescriptorSerializer extends AbstractTimeDescriptorSerializer {
+public class DateV4DescriptorSerializer extends DateDescriptorSerializer {
 		public static final Factory INSTANCE_FACTORY = new Factory() {
-				@Override public DescriptorSerializer newInstance() { return new DateDescriptorSerializer(); }
-
+				@Override public DescriptorSerializer newInstance() { return new DateV4DescriptorSerializer(); }
 				@Override public boolean applies(int typeFormatId) { return typeFormatId == StoredFormatIds.SQL_DATE_ID; }
-
 		};
 
-		protected DateDescriptorSerializer() { }
+		public static int diskEncodingToInMemEncoding(int diskEncoding)
+		{
+			diskEncoding += SQLDate.DATE_ENCODING_OFFSET;
+			return ((diskEncoding >>> 9) << 16)           +
+			       (((diskEncoding >>> 5) & 0x000f) << 8) +
+			       (diskEncoding & 0x001f);
+		}
 
 		@Override
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
-				fieldEncoder.encodeNext(dvd.getDate(getCalendar()).getTime(),desc);
+				fieldEncoder.encodeNext(((SQLDate)dvd).getDiskEncodedDate(),desc);
 		}
 
 		@Override
 		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
-				return Encoding.encode(dvd.getDate(getCalendar()).getTime(), desc);
+				return Encoding.encode(((SQLDate)dvd).getDiskEncodedDate(), desc);
 		}
 
 		@Override
 		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
-				destDvd.setValue(new Date(fieldDecoder.decodeNextLong(desc)));
+				destDvd.setValue(diskEncodingToInMemEncoding(fieldDecoder.decodeNextInt(desc)));
 		}
 
 		@Override
 		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-				dvd.setValue(new Date(Encoding.decodeLong(data,offset,desc)));
+				dvd.setValue(diskEncodingToInMemEncoding(Encoding.decodeInt(data,offset,desc)));
 		}
 }

@@ -24,6 +24,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
@@ -179,6 +180,29 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                         row(9, 9, 4),
                         row(10, 10,0)))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t4 (a4 date, b4 int, c4 int, d4 int, primary key (a4, b4))")
+                .withIndex("create index t4_idx1 on t4(a4, c4)")
+                .withIndex("create index t4_idx2 on t4(c4 desc, b4 desc)")
+                .withInsert("insert into t4 values (?,?,?,?)")
+                .withRows(rows(
+                        row("2015-01-01", 1, 10, 100),
+                        row("2015-01-02", 2, 20, 200),
+                        row("2015-01-03", 3, 30, 300),
+                        row("2015-01-04", 4, 40, 400),
+                        row("2015-01-05", 5, 50, 500),
+                        row("2015-01-01", 6, 60, 600),
+                        row("2015-01-02", 7, 70, 700),
+                        row("2015-01-03", 8, 80, 800),
+                        row("2015-01-04", 9, 90, 900),
+                        row("2015-01-05", 10, 100, 1000)))
+                .create();
+        increment = 10;
+        for (int i =0; i < 3; i ++) {
+            spliceClassWatcher.executeUpdate(format("insert into t4 select a4, b4+%d, c4, d4 from t4", increment));
+            increment *= 2;
+        }
     }
 
     @BeforeClass
@@ -812,5 +836,320 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+
+    // negative test case, multi-probe scan is not qualified
+    // min/max value in the inlist can still be used as the start/stop key
+    @Test
+    public void testInListWithExpressionsOnPK() throws Exception {
+        //Q1: non-parameterized sql with inlist condition only
+        String sqlText = "select * from t4 --splice-properties useSpark=false\n where a4 in (add_months('2014-01-03',12), add_months('2014-12-05',1))";
+
+        rowContainsQuery(4, "explain " + sqlText, "TableScan", methodWatcher);
+
+        String expected1 =
+                "A4     |B4 |C4  | D4  |\n" +
+                        "---------------------------\n" +
+                        "2015-01-03 |13 |30  | 300 |\n" +
+                        "2015-01-03 |18 |80  | 800 |\n" +
+                        "2015-01-03 |23 |30  | 300 |\n" +
+                        "2015-01-03 |28 |80  | 800 |\n" +
+                        "2015-01-03 | 3 |30  | 300 |\n" +
+                        "2015-01-03 |33 |30  | 300 |\n" +
+                        "2015-01-03 |38 |80  | 800 |\n" +
+                        "2015-01-03 |43 |30  | 300 |\n" +
+                        "2015-01-03 |48 |80  | 800 |\n" +
+                        "2015-01-03 |53 |30  | 300 |\n" +
+                        "2015-01-03 |58 |80  | 800 |\n" +
+                        "2015-01-03 |63 |30  | 300 |\n" +
+                        "2015-01-03 |68 |80  | 800 |\n" +
+                        "2015-01-03 |73 |30  | 300 |\n" +
+                        "2015-01-03 |78 |80  | 800 |\n" +
+                        "2015-01-03 | 8 |80  | 800 |\n" +
+                        "2015-01-05 |10 |100 |1000 |\n" +
+                        "2015-01-05 |15 |50  | 500 |\n" +
+                        "2015-01-05 |20 |100 |1000 |\n" +
+                        "2015-01-05 |25 |50  | 500 |\n" +
+                        "2015-01-05 |30 |100 |1000 |\n" +
+                        "2015-01-05 |35 |50  | 500 |\n" +
+                        "2015-01-05 |40 |100 |1000 |\n" +
+                        "2015-01-05 |45 |50  | 500 |\n" +
+                        "2015-01-05 | 5 |50  | 500 |\n" +
+                        "2015-01-05 |50 |100 |1000 |\n" +
+                        "2015-01-05 |55 |50  | 500 |\n" +
+                        "2015-01-05 |60 |100 |1000 |\n" +
+                        "2015-01-05 |65 |50  | 500 |\n" +
+                        "2015-01-05 |70 |100 |1000 |\n" +
+                        "2015-01-05 |75 |50  | 500 |\n" +
+                        "2015-01-05 |80 |100 |1000 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select * from t4 --splice-properties useSpark=true\n where a4 in (add_months('2014-01-03',12), add_months('2014-12-05',1))";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q2: non-parameterized sql with multiple conditions on PK
+        rowContainsQuery(4, "explain " + sqlText, "TableScan", methodWatcher);
+
+        sqlText = "select * from t4 --splice-properties useSpark=false\n where a4=add_months('2014-01-03',12) and b4 in (1+2, 11+2)";
+        String expected2 = "A4     |B4 |C4 |D4  |\n" +
+                "-------------------------\n" +
+                "2015-01-03 |13 |30 |300 |\n" +
+                "2015-01-03 | 3 |30 |300 |";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select * from t4 --splice-properties useSpark=true\n where a4=add_months('2014-01-03',12) and b4 in (1+2, 11+2)";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+
+        // Q3: prepeare statement -inlist condition only
+        PreparedStatement ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n " +
+                "where a4 in (add_months(?,12), add_months(?,1))");
+        ps.setDate(1, Date.valueOf("2014-01-03"));
+        ps.setDate(2, Date.valueOf("2014-12-05"));
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=true\n " +
+                "where a4 in (add_months(?,12), add_months(?,1))");
+        ps.setDate(1, Date.valueOf("2014-01-03"));
+        ps.setDate(2, Date.valueOf("2014-12-05"));
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        // Q4: prepare statement - inlist condition + other conditions
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n where a4=add_months('2014-01-03',12) and b4 in (?+2, ?+2)");
+        ps.setInt(1, 1);
+        ps.setInt(2, 11);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=true\n where a4=add_months('2014-01-03',12) and b4 in (?+2, ?+2)");
+        ps.setInt(1, 1);
+        ps.setInt(2, 11);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+    }
+
+    @Test
+    public void testInListWithExpressionsOnIndex() throws Exception {
+        //Q1: non-parameterized sql with inlist condition only
+        String sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4 in (add_months('2014-01-03',12), add_months('2014-12-05',1))";
+
+        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
+
+        String expected1 =
+                "A4     |B4 |C4  | D4  |\n" +
+                        "---------------------------\n" +
+                        "2015-01-03 |13 |30  | 300 |\n" +
+                        "2015-01-03 |18 |80  | 800 |\n" +
+                        "2015-01-03 |23 |30  | 300 |\n" +
+                        "2015-01-03 |28 |80  | 800 |\n" +
+                        "2015-01-03 | 3 |30  | 300 |\n" +
+                        "2015-01-03 |33 |30  | 300 |\n" +
+                        "2015-01-03 |38 |80  | 800 |\n" +
+                        "2015-01-03 |43 |30  | 300 |\n" +
+                        "2015-01-03 |48 |80  | 800 |\n" +
+                        "2015-01-03 |53 |30  | 300 |\n" +
+                        "2015-01-03 |58 |80  | 800 |\n" +
+                        "2015-01-03 |63 |30  | 300 |\n" +
+                        "2015-01-03 |68 |80  | 800 |\n" +
+                        "2015-01-03 |73 |30  | 300 |\n" +
+                        "2015-01-03 |78 |80  | 800 |\n" +
+                        "2015-01-03 | 8 |80  | 800 |\n" +
+                        "2015-01-05 |10 |100 |1000 |\n" +
+                        "2015-01-05 |15 |50  | 500 |\n" +
+                        "2015-01-05 |20 |100 |1000 |\n" +
+                        "2015-01-05 |25 |50  | 500 |\n" +
+                        "2015-01-05 |30 |100 |1000 |\n" +
+                        "2015-01-05 |35 |50  | 500 |\n" +
+                        "2015-01-05 |40 |100 |1000 |\n" +
+                        "2015-01-05 |45 |50  | 500 |\n" +
+                        "2015-01-05 | 5 |50  | 500 |\n" +
+                        "2015-01-05 |50 |100 |1000 |\n" +
+                        "2015-01-05 |55 |50  | 500 |\n" +
+                        "2015-01-05 |60 |100 |1000 |\n" +
+                        "2015-01-05 |65 |50  | 500 |\n" +
+                        "2015-01-05 |70 |100 |1000 |\n" +
+                        "2015-01-05 |75 |50  | 500 |\n" +
+                        "2015-01-05 |80 |100 |1000 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=true\n where a4 in (add_months('2014-01-03',12), add_months('2014-12-05',1))";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q2: non-parameterized sql with multiple conditions on index
+        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
+        sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4=add_months('2014-01-03',12) and c4 in (10+20, 110+20)";
+        String expected2 = "A4     |B4 |C4 |D4  |\n" +
+                "-------------------------\n" +
+                "2015-01-03 |13 |30 |300 |\n" +
+                "2015-01-03 |23 |30 |300 |\n" +
+                "2015-01-03 | 3 |30 |300 |\n" +
+                "2015-01-03 |33 |30 |300 |\n" +
+                "2015-01-03 |43 |30 |300 |\n" +
+                "2015-01-03 |53 |30 |300 |\n" +
+                "2015-01-03 |63 |30 |300 |\n" +
+                "2015-01-03 |73 |30 |300 |";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=true\n where a4=add_months('2014-01-03',12) and c4 in (10+20, 110+20)";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+
+        // Q3: prepeare statement -inlist condition only
+        PreparedStatement ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx1, useSpark=false\n " +
+                "where a4 in (add_months(?,12), add_months(?,1))");
+        ps.setDate(1, Date.valueOf("2014-01-03"));
+        ps.setDate(2, Date.valueOf("2014-12-05"));
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx1, useSpark=true\n " +
+                "where a4 in (add_months(?,12), add_months(?,1))");
+        ps.setDate(1, Date.valueOf("2014-01-03"));
+        ps.setDate(2, Date.valueOf("2014-12-05"));
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        // Q4: prepare statement - inlist condition + other conditions
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4=add_months('2014-01-03',12) and c4 in (?+20, ?+20)");
+        ps.setInt(1, 10);
+        ps.setInt(2, 110);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx1, useSpark=true\n where a4=add_months('2014-01-03',12) and c4 in (?+20, ?+20)");
+        ps.setInt(1, 10);
+        ps.setInt(2, 110);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+    }
+
+    @Test
+    public void testInListWithExpressionsOnIndexInDescOrder() throws Exception {
+        //Q1: non-parameterized sql with inlist condition only
+        String sqlText = "select * from t4 --splice-properties index=t4_idx2, useSpark=false\n where c4 in (20+30, 50+20)";
+
+        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
+
+        String expected1 =
+                "A4     |B4 |C4 |D4  |\n" +
+                        "-------------------------\n" +
+                        "2015-01-02 |17 |70 |700 |\n" +
+                        "2015-01-02 |27 |70 |700 |\n" +
+                        "2015-01-02 |37 |70 |700 |\n" +
+                        "2015-01-02 |47 |70 |700 |\n" +
+                        "2015-01-02 |57 |70 |700 |\n" +
+                        "2015-01-02 |67 |70 |700 |\n" +
+                        "2015-01-02 | 7 |70 |700 |\n" +
+                        "2015-01-02 |77 |70 |700 |\n" +
+                        "2015-01-05 |15 |50 |500 |\n" +
+                        "2015-01-05 |25 |50 |500 |\n" +
+                        "2015-01-05 |35 |50 |500 |\n" +
+                        "2015-01-05 |45 |50 |500 |\n" +
+                        "2015-01-05 | 5 |50 |500 |\n" +
+                        "2015-01-05 |55 |50 |500 |\n" +
+                        "2015-01-05 |65 |50 |500 |\n" +
+                        "2015-01-05 |75 |50 |500 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select * from t4 --splice-properties index=t4_idx2, useSpark=true\n where c4 in (20+30, 50+20)";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q2: non-parameterized sql with multiple conditions on index
+        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
+        sqlText = "select * from t4 --splice-properties index=t4_idx2, useSpark=false\n where c4=30 and b4 in (2+1, 30+3)";
+        String expected2 = "A4     |B4 |C4 |D4  |\n" +
+                "-------------------------\n" +
+                "2015-01-03 | 3 |30 |300 |\n" +
+                "2015-01-03 |33 |30 |300 |";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select * from t4 --splice-properties index=t4_idx2, useSpark=true\n where c4=30 and b4 in (2+1, 30+3)";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+
+        // Q3: prepeare statement -inlist condition only
+        PreparedStatement ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx2, useSpark=false\n " +
+                "where c4 in (?+30, ?+20)");
+        ps.setInt(1, 20);
+        ps.setInt(2, 50);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx2, useSpark=true\n " +
+                "where c4 in (?+30, ?+20)");
+        ps.setInt(1, 20);
+        ps.setInt(2, 50);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        // Q4: prepare statement - inlist condition + other conditions
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx2, useSpark=false\n where c4=30 and b4 in (?+1, ?+3)");
+        ps.setInt(1, 2);
+        ps.setInt(2, 30);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx2, useSpark=true\n where c4=30 and b4 in (?+1, ?+3)");
+        ps.setInt(1, 2);
+        ps.setInt(2, 30);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
     }
 }

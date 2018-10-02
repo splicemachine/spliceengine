@@ -88,6 +88,7 @@ import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CA
 public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext{
 
     private final Logger stmtLogger = Logger.getLogger("splice-derby.statement");
+    private static Logger LOG=Logger.getLogger(GenericLanguageConnectionContext.class);
 
     private static final ThreadLocal<String> badFile = new ThreadLocal<String>() {
         @Override
@@ -332,6 +333,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean ignoreCommentOptEnabled = false;
     private String origStmtTxt;
 
+    private String defaultSchema;
+
     /* constructor */
     public GenericLanguageConnectionContext(
             ContextManager cm,
@@ -347,7 +350,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             CompilerContext.DataSetProcessorType type,
             boolean skipStats,
             double defaultSelectivityFactor,
-            String ipAddress
+            String ipAddress,
+            String defaultSchema
             ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
@@ -366,6 +370,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.drdaID=drdaID;
         this.dbname=dbname;
         this.commentStripper = lcf.newCommentStripper();
+        this.defaultSchema = defaultSchema;
 
         /* Find out whether or not to log info on executing statements to error log
          */
@@ -376,8 +381,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             stmtLogger.setLevel(Level.OFF);
         }
 
-        String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(),
-                "derby.language.maxStatementLogLen");
+        String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.maxStatementLogLen");
         maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.valueOf
                 (maxStatementLogLenStr);
 
@@ -395,7 +399,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
 
-        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
+        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
 
     }
@@ -477,11 +481,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         */
         if(cachedInitialDefaultSchemaDescr==null){
             DataDictionary dd=getDataDictionary();
-            String authorizationId=getSessionUserId();
-            SchemaDescriptor sd=
-                    dd.getSchemaDescriptor(
-                            getSessionUserId(),getTransactionCompile(),false);
-
+            SchemaDescriptor sd;
+            if (defaultSchema != null) {
+                sd = dd.getSchemaDescriptor(defaultSchema, getTransactionCompile(), true);
+            } else {
+                sd = dd.getSchemaDescriptor(
+                        getSessionUserId(), getTransactionCompile(), false);
+            }
             if(sd==null){
                 sd=new SchemaDescriptor(
                         dd,
@@ -846,7 +852,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sessionProperties.resetAll();
 
         // read again the property in case it is changed
-        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(getTransactionCompile(), MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
+        String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
         origStmtTxt = null;
     }
@@ -3253,6 +3259,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("getCurrentRoleIdDelimited():\n" +
+                            "sessionUser: %s,\n" +
+                            "defaultRoles: %s,\n" +
+                            "groupUserList: %s\n",
+                    sessionUser,
+                    (defaultRoles==null?"null":defaultRoles.toString()),
+                    (groupuserlist==null?"null":groupuserlist.toString())));
+        }
 
         List<String> roles=getCurrentSQLSessionContext(a).getRoles();
 
@@ -3342,6 +3357,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 // or if not, via PUBLIC?
                 grantDesc=dd.getRoleGrantDescriptor
                         (role,Authorizer.PUBLIC_AUTHORIZATION_ID);
+            }
+
+            // or via group user
+            if (grantDesc == null && groupuserList != null) {
+                for (String currentGroupuser : groupuserList) {
+                    grantDesc = dd.getRoleGrantDescriptor(role, currentGroupuser);
+                    if (grantDesc != null)
+                        break;
+                }
             }
         }
         return grantDesc!=null;

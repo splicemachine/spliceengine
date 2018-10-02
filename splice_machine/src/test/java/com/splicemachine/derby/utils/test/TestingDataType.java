@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.marshall.dvd.DateV4DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV3DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -316,7 +317,7 @@ public enum TestingDataType {
             if(decoder.nextIsNull())
                 dvd.setToNull();
             else
-						  dvd.setValue(new java.sql.Date(decoder.decodeNextLong()));
+                dvd.setValue(DateV4DescriptorSerializer.diskEncodingToInMemEncoding(decoder.decodeNextInt()));
         }
 
         @Override

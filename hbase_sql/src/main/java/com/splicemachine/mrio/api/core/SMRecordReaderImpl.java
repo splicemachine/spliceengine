@@ -90,7 +90,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	public void init(Configuration config, InputSplit split) throws IOException, InterruptedException {	
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "init");
-		TaskContext.get().addTaskFailureListener(this);
+		if (TaskContext.get() != null) {
+			TaskContext.get().addTaskFailureListener(this);
+		}
 		String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
 		String operationContextAsString = config.get(MRConstants.SPLICE_OPERATION_CONTEXT);
         if (tableScannerAsString == null)
