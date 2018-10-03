@@ -981,16 +981,17 @@ public class ColumnReference extends ValueNode {
 				// inside a join tree, which can have many columns in the rcl
 				// with the same name, so looking up via column name can give
 				// the wrong column. DERBY-4679.
+				boolean markIfReferenced = !getCompilerContext().isProjectionPruningEnabled();
 				ftRC = rcl.getResultColumn(
 						tableNumberBeforeFlattening,
 						columnNumberBeforeFlattening,
-						columnName);
+						columnName, markIfReferenced);
 
 				if (ftRC == null) {
 					// The above lookup won't work for references to a base
 					// column, so fall back on column name, which is unique
 					// then.
-					ftRC = rcl.getResultColumn(columnName);
+					ftRC = rcl.getResultColumn(columnName, markIfReferenced);
                     tableNumber = ft.getTableNumber();
 				}
 				else {
