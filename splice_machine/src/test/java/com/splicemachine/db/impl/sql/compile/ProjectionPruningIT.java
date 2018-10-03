@@ -798,6 +798,22 @@ public class ProjectionPruningIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testDTInFlattenableInnerJoinFormat() throws Exception {
+        setProjectionPruningProperty(projectionPruningDisabled);
+
+        String sqlText = "with temp1 as (select * from (select * from t1) TX INNER JOIN t4 on b1=b4)\n" +
+                "select count(1) from temp1";
+
+        String expected = "1 |\n" +
+                "----\n" +
+                " 3 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
     public void testInsertSelect() throws Exception {
         setProjectionPruningProperty(projectionPruningDisabled);
 
