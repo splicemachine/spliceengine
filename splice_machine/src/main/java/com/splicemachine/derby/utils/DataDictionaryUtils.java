@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import org.spark_project.guava.collect.Lists;
 
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -36,6 +37,11 @@ public class DataDictionaryUtils {
     public static TableDescriptor getTableDescriptor(LanguageConnectionContext lcc, UUID tableId) throws StandardException {
         DataDictionary dd = lcc.getDataDictionary();
         return dd.getTableDescriptor(tableId);
+    }
+
+    public static TableDescriptor getUncachedTableDescriptor(LanguageConnectionContext lcc, UUID tableId) throws StandardException {
+        DataDictionaryImpl dd = (DataDictionaryImpl)lcc.getDataDictionary();
+        return dd.getUncachedTableDescriptor(tableId);
     }
 
     public static String getTableVersion(LanguageConnectionContext lcc, UUID tableId) throws StandardException {

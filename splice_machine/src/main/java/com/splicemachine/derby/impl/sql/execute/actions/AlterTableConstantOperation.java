@@ -196,7 +196,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // concurrent thread doing add/drop column.
 
         // older version (or at target) has to get td first, potential deadlock
-        TableDescriptor td = getTableDescriptor(lcc);
+        TableDescriptor td = getUncachedTableDescriptor(lcc);
 
         if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
             throw StandardException.newException(
@@ -494,6 +494,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         constraint.executeConstantAction(activation);
         }
 
+
     private void createPrimaryKeyConstraint(Activation activation,
                                   String changeMsg,
                                   CreateConstraintConstantOperation newConstraint) throws StandardException {
@@ -517,7 +518,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
         // How were the columns ordered before?
-        int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+         int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
 
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
@@ -797,6 +798,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         return numIndexes;
     }
 
+    protected TableDescriptor getUncachedTableDescriptor(LanguageConnectionContext lcc) throws StandardException {
+        TableDescriptor td;
+        td = DataDictionaryUtils.getUncachedTableDescriptor(lcc, tableId);
+        if (td == null) {
+            throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
+        }
+        return td;
+    }
+
     protected TableDescriptor getTableDescriptor(LanguageConnectionContext lcc) throws StandardException {
         TableDescriptor td;
         td = DataDictionaryUtils.getTableDescriptor(lcc, tableId);
@@ -883,6 +893,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
             // add the newly crated conglomerate to the table descriptor
             conglomerateList.add(cgd);
+
+            // set heap conglomerate Id to new one
+            tableDescriptor.setHeapConglomNumber(newConglomNum);
 
             // update the conglomerate in the data dictionary so that, when asked for TableDescriptor,
             // it's built with the new PK conglomerate

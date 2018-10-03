@@ -1432,13 +1432,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     /**
      * This method can get called from the DataDictionary cache.
      *
-     * @param tableKey The TableKey of the table
+     * @param tableId The UUID of the table
      * @return The descriptor for the table, null if the table does
      * not exist.
      * @throws StandardException Thrown on failure
      */
-    TableDescriptor getUncachedTableDescriptor(TableKey tableKey) throws StandardException{
-        return getTableDescriptorIndex1Scan(tableKey.getTableName(),tableKey.getSchemaId().toString());
+    public TableDescriptor getUncachedTableDescriptor(UUID tableId) throws StandardException{
+        return getTableDescriptorIndex2Scan(tableId.toString());
     }
 
     /**
@@ -1513,7 +1513,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             synchronized(td){
                 getColumnDescriptorsScan(td);
                 getConglomerateDescriptorsScan(td);
-            }
+                td.getHeapConglomerateId(); // populate heapConglomerateId
+             }
         }
 
         return td;
