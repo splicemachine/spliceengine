@@ -362,7 +362,7 @@ public class FromSubquery extends FromTable
 		}
 		else if (columnsTableName == null || columnsTableName.equals(correlationName)) // 5?
 		{
-		    resultColumn = resultColumns.getAtMostOneResultColumn(columnReference, correlationName, false);
+		    resultColumn = resultColumns.getAtMostOneResultColumn(columnReference, correlationName, false, true);
 		}
 
 
