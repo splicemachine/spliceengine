@@ -514,7 +514,7 @@ public class SQLToJavaValueNode extends JavaValueNode {
 	}
 
 	@Override
-	public ColumnReference getHashableJoinColumnReference() {
+	public List<ColumnReference> getHashableJoinColumnReference() {
 		return value.getHashableJoinColumnReference();
 	}
 
