@@ -26,7 +26,6 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -49,7 +48,7 @@ import static org.junit.Assert.assertTrue;
  * @author Scott Fines
  * Date: 3/19/14
  */
-@Category(SerialTest.class)
+@Category(value = {SerialTest.class})
 public class VacuumIT extends SpliceUnitTest{
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     protected static String TABLE = "T";

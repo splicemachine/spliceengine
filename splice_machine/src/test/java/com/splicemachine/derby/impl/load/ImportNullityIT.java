@@ -14,14 +14,8 @@
 
 package com.splicemachine.derby.impl.load;
 
-import com.splicemachine.derby.test.framework.RuledConnection;
-import com.splicemachine.derby.test.framework.SchemaRule;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.TableRule;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import com.splicemachine.derby.test.framework.*;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -37,12 +31,15 @@ import static org.junit.Assert.assertNotNull;
  */
 public class ImportNullityIT{
     public static final String SCHEMA_NAME=ImportNullityIT.class.getSimpleName();
-    private final RuledConnection conn = new RuledConnection(null);
+    private final RuledConnection conn = new RuledConnection(SCHEMA_NAME);
+
+    @ClassRule
+    public static final SpliceSchemaWatcher schemaWatcher =
+            new SpliceSchemaWatcher(SCHEMA_NAME);
 
     private final TableRule withDefault = new TableRule(conn,"T","(a varchar(10),b varchar(10),c varchar(20) NOT NULL default 'nullDefault')");
 
     @Rule public final TestRule rules =RuleChain.outerRule(conn)
-            .around(new SchemaRule(conn,SCHEMA_NAME))
             .around(withDefault);
 
     private static File BADDIR;

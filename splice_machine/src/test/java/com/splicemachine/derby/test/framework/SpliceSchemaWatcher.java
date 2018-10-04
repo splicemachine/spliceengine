@@ -15,18 +15,25 @@
 package com.splicemachine.derby.test.framework;
 
 import com.splicemachine.test_dao.SchemaDAO;
-import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.Semaphore;
 
 public class SpliceSchemaWatcher extends TestWatcher {
 
     private static final Logger LOG = Logger.getLogger(SpliceSchemaWatcher.class);
+
+    private enum CleanupMode {UNDEF, NONE, SYNC, ASYNC};
+
+    private static final String SPLICE_SCHEMA_CLEANUP = "splice.schemaCleanup";
+    private static CleanupMode mode = CleanupMode.UNDEF;
+    private static Semaphore sync;
 
     public String schemaName;
     protected String userName;
@@ -72,9 +79,60 @@ public class SpliceSchemaWatcher extends TestWatcher {
         super.starting(description);
     }
 
+    private static void runVacuum(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("call syscs_util.vacuum()");
+        }
+    }
+
+    private static void cleanup() {
+        try (Connection connection = SpliceNetConnection.getConnection()) {
+            connection.setAutoCommit(true);
+            while (true) {
+                sync.acquire();
+                sync.drainPermits();
+                runVacuum(connection);
+            }
+        }
+        catch (Exception e) {
+            LOG.error("SpliceSchemaWatcher cleanup exited", e);
+            mode = CleanupMode.UNDEF;
+        }
+    }
+
     @Override
     protected void finished(Description description) {
-        LOG.trace(tag("Finished", schemaName));
+        LOG.info(tag("Finished", schemaName));
+
+        synchronized (SpliceSchemaWatcher.class) {
+            if (mode == CleanupMode.UNDEF) {
+                mode = CleanupMode.valueOf(System.getProperty(SPLICE_SCHEMA_CLEANUP, CleanupMode.NONE.toString()).toUpperCase());
+                if (mode == CleanupMode.ASYNC) {
+                    sync = new Semaphore(0);
+                    Thread thread = new Thread(() -> cleanup());
+                    thread.setDaemon(true);
+                    thread.start();
+                }
+            }
+        }
+
+        try (Connection connection = SpliceNetConnection.getConnection()) {
+            SchemaDAO schemaDAO = new SchemaDAO(connection);
+            schemaDAO.drop(schemaName);
+
+            switch (mode) {
+                case SYNC:
+                    runVacuum(connection);
+                    break;
+                case ASYNC:
+                    sync.release();
+                    break;
+            }
+
+            connection.commit();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
