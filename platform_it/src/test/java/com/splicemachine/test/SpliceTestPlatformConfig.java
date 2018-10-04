@@ -193,8 +193,8 @@ class SpliceTestPlatformConfig {
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
-        config.setLong("hbase.regionserver.handler.count", 10);
-        config.setLong("hbase.regionserver.metahandler.count", 10);
+        config.setLong("hbase.regionserver.handler.count", 50);
+        config.setLong("hbase.regionserver.metahandler.count", 50);
         config.setInt("hbase.hconnection.threads.max", 128);
         config.setInt("hbase.hconnection.threads.core", 8);
         config.setLong("hbase.hconnection.threads.keepalivetime", 300);
