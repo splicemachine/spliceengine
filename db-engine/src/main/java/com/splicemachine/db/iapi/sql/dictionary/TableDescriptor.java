@@ -646,6 +646,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         heapConglomNumber=-1;
     }
 
+    public void setHeapConglomNumber(long heapConglomNumber){
+        this.heapConglomNumber = heapConglomNumber;
+    }
     /**
      * Gets an ExecRow for rows stored in the table this describes.
      *
