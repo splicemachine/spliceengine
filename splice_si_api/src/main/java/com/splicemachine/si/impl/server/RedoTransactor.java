@@ -14,7 +14,8 @@
 
 package com.splicemachine.si.impl.server;
 
-import com.carrotsearch.hppc.*;
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.LongOpenHashSet;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.LongCursor;
 import com.splicemachine.access.impl.data.UnsafeRecord;
@@ -29,7 +30,10 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.Transactor;
-import com.splicemachine.si.api.txn.*;
+import com.splicemachine.si.api.txn.ConflictType;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.ConflictResults;
 import com.splicemachine.si.impl.SpliceQuery;
@@ -40,14 +44,10 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.*;
-import java.util.BitSet;
 import java.util.concurrent.locks.Lock;
-
-import static com.splicemachine.si.constants.SIConstants.SI_NEEDED;
-import static com.splicemachine.si.constants.SIConstants.SI_NEEDED_VALUE_BYTES;
-import static com.splicemachine.si.constants.SIConstants.SI_TRANSACTION_ID_KEY;
 
 /**
  * Central point of implementation of the "snapshot isolation" MVCC algorithm that provides transactions across atomic
@@ -278,15 +278,21 @@ public class RedoTransactor implements Transactor{
 
         // Additive Check?
         for (int i = 0; i< dataAndLocks.length; i++) {
-            if(KVPair.Type.UPSERT.equals(dataAndLocks[i].getFirst().getType())){
+            try {
+                if (KVPair.Type.UPSERT.equals(dataAndLocks[i].getFirst().getType())) {
                     /*
                      * If the type is an upsert, then we want to check for an ADDITIVE conflict. If so,
                      * we fail this row with an ADDITIVE_UPSERT_CONFLICT.
                      */
-                    if(conflictResults[i].hasAdditiveConflicts()){
-                        finalStatus[i]=operationStatusLib.failure(exceptionLib.additiveWriteConflict());
+                    if (conflictResults[i].hasAdditiveConflicts()) {
+                        finalStatus[i] = operationStatusLib.failure(exceptionLib.additiveWriteConflict());
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                throw new RuntimeException(e);
+            }
         }
         for (int i = 0; i< dataAndLocks.length; i++) {
             if (finalStatus[i] == null) {
