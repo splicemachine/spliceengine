@@ -98,7 +98,6 @@ import java.util.*;
 
 public class FromBaseTable extends FromTable {
     static final int UNSET=-1;
-
     /**
      * Whether or not we have checked the index statistics for staleness.
      * Used to avoid performing the check multiple times per compilation.
@@ -1150,14 +1149,15 @@ public class FromBaseTable extends FromTable {
 			/* This represents a table - query is dependent on the TableDescriptor */
             compilerContext.createDependency(tableDescriptor);
 
+            long heapConglomerateId = tableDescriptor.getHeapConglomerateId();
 			/* Get the base conglomerate descriptor */
-            baseConglomerateDescriptor= tableDescriptor.getConglomerateDescriptor(tableDescriptor.getHeapConglomerateId());
+            baseConglomerateDescriptor= tableDescriptor.getConglomerateDescriptor(heapConglomerateId);
 
             // Bail out if the descriptor couldn't be found. The conglomerate
             // probably doesn't exist anymore.
             if(baseConglomerateDescriptor==null){
                 //noinspection UnnecessaryBoxing
-                throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST,new Long(tableDescriptor.getHeapConglomerateId()));
+                throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST,new Long(heapConglomerateId));
             }
 
 			/* Build the 0-based array of base column names. */
