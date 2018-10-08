@@ -111,7 +111,7 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
 
     @Override
         public int seekToKeyInBlock(byte[] key, int offset, int length, boolean seekBefore) {
-        SpliceLogUtils.error(LOG,"seek to key in block seekBefore=%s, key=%s",seekBefore,Base.toHex(key,offset,length));
+        //SpliceLogUtils.error(LOG,"seek to key in block seekBefore=%s, key=%s",seekBefore,Base.toHex(key,offset,length));
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"seek to key in block seekBefore=%s, key=%s",seekBefore,Base.toHex(key,offset,length));
         try {

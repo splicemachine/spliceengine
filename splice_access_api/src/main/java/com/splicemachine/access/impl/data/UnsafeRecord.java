@@ -83,7 +83,7 @@ public class UnsafeRecord implements Record<byte[]> {
     }
 
     public UnsafeRecord(byte[] keyObject, long keyOffset, int keyLength, long version, byte[] baseObject,long baseOffset, boolean isActiveRecord) {
-        assert keyObject != null:"key cannot be null";
+        // assert keyObject != null:"key cannot be null";  msirek-temp
         this.keyObject = keyObject;
         this.keyOffset = keyOffset;
         this.keyLength = keyLength;
