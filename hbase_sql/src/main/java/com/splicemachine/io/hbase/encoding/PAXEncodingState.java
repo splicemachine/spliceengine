@@ -6,7 +6,9 @@ import com.splicemachine.art.node.Base;
 import com.splicemachine.art.tree.ART;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLTinyint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.hbase.MemstoreAwareObserver;
 import com.splicemachine.primitives.Bytes;
@@ -20,19 +22,19 @@ import org.apache.hadoop.hbase.io.encoding.EncodingState;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
 import org.apache.hadoop.hive.ql.io.orc.Writer;
-import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.hive.orc.OrcSerializer;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import static org.apache.hadoop.hive.ql.io.orc.CompressionKind.NONE;
 
 
@@ -144,6 +146,9 @@ public class PAXEncodingState extends EncodingState {
             }
             radixTree.insert(rowKey, 0, rowKey.length, valueBytes, 0, valueBytes.length);
             counter++;
+            //radixTree.checkTree(); // msirek-temp
+            //SpliceLogUtils.info(LOG, "ART for row #%d : \n%s \n",counter, radixTree.toString());  // msirek-temp
+            //LOG.trace("ART for row #%d : \n%s \n",counter, radixTree.toString());  // msirek-temp
             hcell.set(cell);
             unsafeRecord.wrap(hcell);
             unsafeRecord.getData(dataToRetrieve, execRow);

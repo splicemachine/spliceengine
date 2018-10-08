@@ -40,7 +40,8 @@ import java.util.Map;
  *
  */
 public class LazyColumnarSeeker {
-    public static byte[] EMPTY = new byte[]{};
+    //public static byte[] EMPTY = new byte[]{};
+    public byte[] EMPTY = new byte[] { (byte)0x00 };  // msirek-temp
     public static final DateTimeZone HIVE_STORAGE_TIME_ZONE = DateTimeZone.getDefault();
     private static Logger LOG = Logger.getLogger(LazyColumnarSeeker.class);
     private ByteBuffer bb;
