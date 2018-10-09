@@ -2602,7 +2602,6 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-    @Ignore
     @Test
     public void testParquetMergeSchema() throws Exception {
         try {
