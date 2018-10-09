@@ -207,7 +207,7 @@ public class LazyColumnarSeeker {
         // Do we need to do this multiple times?
         System.arraycopy(writtenExecRow.getRowArray(),6,dataRow.getRowArray(),0,writtenExecRow.length()-6);
         unsafeRecord.setData(fbs,dataRow.getRowArray());
-        System.out.println("writtenExecRow ->" + writtenExecRow);
+        //System.out.println("writtenExecRow ->" + writtenExecRow);  msirek-temp
         return unsafeRecord.getValue();
     }
 }
