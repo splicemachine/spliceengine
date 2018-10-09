@@ -50,6 +50,9 @@ public class SIConstants {
     public static final long SUBTRANSANCTION_ID_MASK = 0xFFl;
     public static final long TRANSANCTION_ID_MASK= 0xFFFFFFFFFFFFFF00l;
 
+    // Dropped conglomerates
+    public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
+
     /**
      * Splice Columns
      *
