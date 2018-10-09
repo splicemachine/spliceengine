@@ -348,10 +348,10 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public void markDropped(long conglomId, long txn) throws IOException {
-        TableName tn = tableInfoFactory.getTableInfo(Long.toString(conglomId));
-        HTableDescriptor htd = admin.getTableDescriptor(tn);
-        htd.setValue(SIConstants.DROPPED_TRANSACTION_ID_ATTR, Long.toString(txn));
-        admin.modifyTable(tn, htd);
+        Table dropped = admin.getConnection().getTable(tableInfoFactory.getTableInfo(SIConstants.DROPPED_CONGLOMERATES_TABLE_NAME));
+        Put put = new Put(Bytes.toBytes(conglomId));
+        put.addImmutable(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, Bytes.toBytes(txn));
+        dropped.put(put);
     }
 
     @Override

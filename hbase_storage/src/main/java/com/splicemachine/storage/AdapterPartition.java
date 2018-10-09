@@ -209,6 +209,11 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
     }
 
     @Override
+    protected void doDelete(List<Delete> delete) throws IOException{
+        throw new UnsupportedOperationException("Delete not supported");
+    }
+
+    @Override
     protected void doPut(Put put) throws IOException{
         throw new UnsupportedOperationException("Put not supported");
     }
