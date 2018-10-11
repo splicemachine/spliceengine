@@ -44,9 +44,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-
 import java.sql.Types;
-import java.util.List;
 
 /**
  * This class represents the 6 binary operators: LessThan, LessThanEquals,
@@ -204,13 +202,12 @@ public class BinaryRelationalOperatorNode
         // either of this op's column references.
 
         boolean walkSubtree=true;
-        List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
-        if(columnReferences != null && columnReferences.size() == 1){
+        ColumnReference cr = leftOperand.getHashableJoinColumnReference();
+        if(cr != null){
 			/*
 			** The left operand is a column reference.
 			** Is it the correct column?
 			*/
-			ColumnReference cr = columnReferences.get(0);
             if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
 				/*
 				** The table is correct, how about the column position?
@@ -222,9 +219,8 @@ public class BinaryRelationalOperatorNode
             }
             walkSubtree=false;
         }
-        columnReferences = rightOperand.getHashableJoinColumnReference();
-        if(columnReferences != null && columnReferences.size() == 1){
-            ColumnReference cr = columnReferences.get(0);
+        cr = rightOperand.getHashableJoinColumnReference();
+        if(cr != null){
             if (valNodeReferencesOptTable(cr, ft, false, walkSubtree)) {
 				/*
 				** The table is correct, how about the column position?
@@ -482,26 +478,19 @@ public class BinaryRelationalOperatorNode
     @Override
     public boolean selfComparison(ColumnReference cr)
             throws StandardException{
-        ValueNode otherSide = null;
+        ValueNode otherSide;
         JBitSet tablesReferenced;
-
-        List<ColumnReference> lcr, rcr;
-
-        lcr = leftOperand.getHashableJoinColumnReference();
 
 		/*
 		** Figure out which side the given ColumnReference is on,
 		** and look for the same table on the other side.
 		*/
-        if(lcr != null && lcr.size() == 1 && lcr.get(0) == cr){
+        if(leftOperand.getHashableJoinColumnReference() == cr){
             otherSide=rightOperand;
-        }else {
-            rcr = rightOperand.getHashableJoinColumnReference();
-            if (rcr != null && rcr.size() == 1 && rcr.get(0) == cr)
-                otherSide = leftOperand;
-        }
-
-        if (otherSide == null) {
+        }else if(rightOperand.getHashableJoinColumnReference() == cr) {
+            otherSide=leftOperand;
+        }else{
+            otherSide=null;
             if(SanityManager.DEBUG){
                 SanityManager.THROWASSERT(
                         "ColumnReference not found on either side of binary comparison.");
@@ -546,12 +535,13 @@ public class BinaryRelationalOperatorNode
      * side of this operator.
      */
     protected boolean keyColumnOnLeft(Optimizable optTable){
+        ColumnReference cr;
         boolean left=false;
 
 		/* Is the key column on the left or the right? */
-        List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
-        if (columnReferences != null && columnReferences.size() == 1) {
-            if (valNodeReferencesOptTable(columnReferences.get(0), (FromTable) optTable, false, true)) {
+        cr = leftOperand.getHashableJoinColumnReference();
+        if (cr != null) {
+            if (valNodeReferencesOptTable(cr, (FromTable) optTable, false, true)) {
 				/* The left operand is the key column */
                 left = true;
             }
@@ -560,9 +550,9 @@ public class BinaryRelationalOperatorNode
         if(SanityManager.DEBUG){
             if(!left){
                 boolean right = false;
-                columnReferences = rightOperand.getHashableJoinColumnReference();
-                if (columnReferences != null && columnReferences.size() ==1) {
-                    if(valNodeReferencesOptTable(columnReferences.get(0),(FromTable)optTable,false,true)){
+                cr = rightOperand.getHashableJoinColumnReference();
+                if (cr != null) {
+                    if(valNodeReferencesOptTable(cr,(FromTable)optTable,false,true)){
 				    /* The right operand is the key column */
                         right=true;
                     }
@@ -684,22 +674,20 @@ public class BinaryRelationalOperatorNode
      * @return The absolute 0-based column position of the ColumnReference
      */
     private int getAbsoluteColumnPosition(Optimizable optTable){
-        List<ColumnReference> columnReferences;
+        ColumnReference cr=null;
         ConglomerateDescriptor bestCD;
         int columnPosition;
 
         if(keyColumnOnLeft(optTable)){
-            columnReferences = leftOperand.getHashableJoinColumnReference();
+            cr = leftOperand.getHashableJoinColumnReference();
 
         }else{
-            columnReferences = rightOperand.getHashableJoinColumnReference();
+            cr = rightOperand.getHashableJoinColumnReference();
         }
 
         bestCD=optTable.getTrulyTheBestAccessPath().
                 getConglomerateDescriptor();
 
-        assert columnReferences != null && columnReferences.size() == 1: "getAbsoluteColumnPosition: one column reference is expected";
-        ColumnReference cr = columnReferences.get(0);
 		/*
 		** Column positions are one-based, store is zero-based.
 		*/
@@ -724,21 +712,19 @@ public class BinaryRelationalOperatorNode
     }
 
     private int getAbsoluteStoragePosition(Optimizable optTable){
-        List<ColumnReference> columnReferences;
+        ColumnReference cr=null;
         ConglomerateDescriptor bestCD;
         int columnPosition;
 
         if(keyColumnOnLeft(optTable)){
-            columnReferences = leftOperand.getHashableJoinColumnReference();
+            cr = leftOperand.getHashableJoinColumnReference();
         }else{
-            columnReferences = rightOperand.getHashableJoinColumnReference();
+            cr = rightOperand.getHashableJoinColumnReference();
         }
 
         bestCD=optTable.getTrulyTheBestAccessPath().
                 getConglomerateDescriptor();
 
-        assert columnReferences != null && columnReferences.size() == 1: "getAbsoluteStoragePosition: one column reference is expected";
-        ColumnReference cr = columnReferences.get(0);
 		/*
 		** If it's an index, find the base column position in the index
 		** and translate it to an index column position.
@@ -883,9 +869,9 @@ public class BinaryRelationalOperatorNode
 
         ft=(FromTable)optTable;
 
-        List<ColumnReference> lcr = leftOperand.getHashableJoinColumnReference();
-        List<ColumnReference> rcr = rightOperand.getHashableJoinColumnReference();
-        if (lcr == null || rcr == null || lcr.size() > 1 || rcr.size() > 1) {
+        ColumnReference lcr = leftOperand.getHashableJoinColumnReference();
+        ColumnReference rcr = rightOperand.getHashableJoinColumnReference();
+        if (lcr == null || rcr == null) {
             // In order to have a hashable qualifier, we need to have have a column ref on both sides
             return false;
         }
@@ -894,7 +880,7 @@ public class BinaryRelationalOperatorNode
 			** The left operand is a column reference.
 			** Is it the correct column?
 			*/
-            if(valNodeReferencesOptTable(lcr.get(0),ft,forPush,walkSubtree)){
+            if(valNodeReferencesOptTable(lcr,ft,forPush,walkSubtree)){
                 otherSide=rightOperand;
                 found=true;
                 walkSubtree=false;
@@ -905,7 +891,7 @@ public class BinaryRelationalOperatorNode
 			** The right operand is a column reference.
 			** Is it the correct column?
 			*/
-            if(valNodeReferencesOptTable(rcr.get(0),ft,forPush,walkSubtree)){
+            if(valNodeReferencesOptTable(rcr,ft,forPush,walkSubtree)){
                 otherSide=leftOperand;
                 found=true;
             }

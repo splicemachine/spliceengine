@@ -31,6 +31,11 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.lang.reflect.Modifier;
+import java.sql.Types;
+import java.util.Collections;
+import java.util.List;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
@@ -44,11 +49,6 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-
-import java.lang.reflect.Modifier;
-import java.sql.Types;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * A UnaryOperatorNode represents a built-in unary operator as defined by
@@ -810,7 +810,7 @@ public class UnaryOperatorNode extends OperatorNode
     }
 
 	@Override
-	public List<ColumnReference> getHashableJoinColumnReference() {
+	public ColumnReference getHashableJoinColumnReference() {
 		return operand.getHashableJoinColumnReference();
 	}
 
