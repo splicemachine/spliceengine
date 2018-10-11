@@ -851,6 +851,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
         return defaultVisit(node);
     }
 
+    @Override
+    public Visitable visit(BinaryExportNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
 	@Override
 	public Visitable visit(OrderByNode node) throws StandardException {
         return defaultVisit(node);
