@@ -15,12 +15,14 @@ package com.splicemachine.spark.splicemachine
 
 import java.io.File
 import java.math.BigDecimal
+import java.nio.file.{Files, Path}
 import java.sql.{Time, Timestamp}
 
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.sql.jdbc.JdbcDialects
+
 import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql._
 import org.junit.runner.RunWith
@@ -43,6 +45,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
       splicemachineContext.dropTable(internalTN)
     }
     insertInternalRows(rowCount)
+    splicemachineContext.getConnection().commit()
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
 
@@ -181,6 +184,19 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     splicemachineContext.bulkImportHFile(changedDF.rdd, changedDF.schema, internalTN, bulkImportOptions)
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assert(newDF.count == 20)
+  }
+
+  test("binary export") {
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val outDirectory: Path = Files.createTempDirectory("exportBinary")
+
+
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    splicemachineContext.exportBinary(df, outDirectory.toString, false, "parquet")
+
+
+    val newDF = sqlContext.read.parquet(outDirectory.toString)
+    assert(newDF.count == 10)
   }
 
   test ("deletion") {
