@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.utils.IntArrays;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.impl.sql.compile.ExportNode;
@@ -69,6 +71,7 @@ public class ExportOperation extends SpliceBaseOperation {
                            int rsNumber,
                            String exportPath,
                            boolean compression,
+                           String format,
                            int replicationCount,
                            String encoding,
                            String fieldSeparator,
@@ -81,7 +84,7 @@ public class ExportOperation extends SpliceBaseOperation {
 
         this.source = source;
         this.sourceColumnDescriptors = sourceColumnDescriptors;
-        this.exportParams = new ExportParams(exportPath, compression, replicationCount, encoding, fieldSeparator, quoteCharacter);
+        this.exportParams = new ExportParams(exportPath, compression, format, replicationCount, encoding, fieldSeparator, quoteCharacter);
         this.activation = activation;
 
         try {
@@ -186,20 +189,38 @@ public class ExportOperation extends SpliceBaseOperation {
             SpliceLogUtils.trace(LOG, "getDataSet(): begin");
         DataSet<ExecRow> dataset = source.getDataSet(dsp);
         OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
-        DataSetWriter writer = dataset.writeToDisk()
-            .directory(exportParams.getDirectory())
-            .exportFunction(new ExportFunction(operationContext))
-            .build();
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getDataSet(): writing");
-        operationContext.pushScope();
-        try {
-            DataSet<ExecRow> resultDs = writer.write();
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "getDataSet(): done");
-            return resultDs;
-        } finally {
-            operationContext.popScope();
+        switch (exportParams.getFormat()) {
+            case "csv": {
+                DataSetWriter writer = dataset.writeToDisk()
+                        .directory(exportParams.getDirectory())
+                        .exportFunction(new ExportFunction(operationContext))
+                        .build();
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "getDataSet(): writing");
+                operationContext.pushScope();
+                try {
+                    DataSet<ExecRow> resultDs = writer.write();
+                    if (LOG.isTraceEnabled())
+                        SpliceLogUtils.trace(LOG, "getDataSet(): done");
+                    return resultDs;
+                } finally {
+                    operationContext.popScope();
+                }
+            }
+            case "parquet": {
+                OperationContext<?> writeContext = dsp.createOperationContext(this);
+                long start = System.currentTimeMillis();
+                dataset.writeParquetFile(IntArrays.count(this.getSourceResultColumnDescriptors().length), new int[]{}, exportParams.getDirectory(), exportParams.isCompression() ? "snappy" : "none", writeContext);
+                long end = System.currentTimeMillis();
+                ValueRow vr = new ValueRow(2);
+                vr.setColumn(1,new SQLLongint(writeContext.getRecordsWritten()));
+                vr.setColumn(2, new SQLLongint(end - start));
+                return dsp.singleRowDataSet(vr);
+
+            }
+            default:
+                throw new RuntimeException("Unknown export format: " + exportParams.getFormat());
         }
+
     }
 }
