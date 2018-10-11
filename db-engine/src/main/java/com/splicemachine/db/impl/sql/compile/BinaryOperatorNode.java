@@ -31,20 +31,22 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+
+import java.lang.reflect.Modifier;
+
+import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
-import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
@@ -909,29 +911,30 @@ public class BinaryOperatorNode extends OperatorNode
     }
 
 	@Override
-	public List<ColumnReference> getHashableJoinColumnReference() {
+	public ColumnReference getHashableJoinColumnReference() {
 		// only allow one column reference in a binary function or arithmetic expression for it to qualify
 		// for a hashable join
-		List<ColumnReference> lcr = leftOperand.getHashableJoinColumnReference();
-		List<ColumnReference> rcr = rightOperand.getHashableJoinColumnReference();
-		if (lcr != null) {
-			if (rcr != null)
-				lcr.addAll(rcr);
+		ColumnReference lcr = leftOperand.getHashableJoinColumnReference();
+		ColumnReference rcr = rightOperand.getHashableJoinColumnReference();
+		if (lcr != null && rcr == null)
 			return lcr;
+		else if (lcr ==null && rcr != null) {
+			return  rcr;
 		}
-		return  rcr;
+
+		return null;
 	}
 
 	@Override
 	public void setHashableJoinColumnReference(ColumnReference cr) {
-		List<ColumnReference> lcr = leftOperand.getHashableJoinColumnReference();
-		List<ColumnReference> rcr = rightOperand.getHashableJoinColumnReference();
-		if (lcr != null && lcr.size()==1 && rcr == null)
+		ColumnReference lcr = leftOperand.getHashableJoinColumnReference();
+		ColumnReference rcr = rightOperand.getHashableJoinColumnReference();
+		if (lcr != null && rcr == null)
 			if (leftOperand instanceof ColumnReference)
 				leftOperand = cr;
 			else
 				leftOperand.setHashableJoinColumnReference(cr);
-		else if (lcr ==null && rcr != null && rcr.size() == 1) {
+		else if (lcr ==null && rcr != null) {
 			if (rightOperand instanceof ColumnReference)
 				rightOperand = cr;
 			else

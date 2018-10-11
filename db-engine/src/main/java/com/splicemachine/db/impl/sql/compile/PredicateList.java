@@ -3039,7 +3039,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     consMB.callMethod(VMOpcode.INVOKESTATIC, acb.getBaseClassName(), "allocateQualArray", "void", 3);
 
                     // get inlist column
-                    ColumnReference cr = (ColumnReference)inListNode.getLeftOperand().getHashableJoinColumnReference().get(0);
+                    ColumnReference cr = (ColumnReference)inListNode.getLeftOperand().getHashableJoinColumnReference();
 
                     ConglomerateDescriptor bestCD = optTable.getTrulyTheBestAccessPath().
                             getConglomerateDescriptor();
