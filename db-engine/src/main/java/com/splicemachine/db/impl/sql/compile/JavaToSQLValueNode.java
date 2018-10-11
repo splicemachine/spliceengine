@@ -32,19 +32,21 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import java.lang.reflect.Modifier;
+
+import com.splicemachine.db.iapi.util.JBitSet;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -366,7 +368,7 @@ public class JavaToSQLValueNode extends ValueNode
 
 
 	@Override
-	public List<ColumnReference> getHashableJoinColumnReference() {
+	public ColumnReference getHashableJoinColumnReference() {
 		return javaNode.getHashableJoinColumnReference();
 	}
 
