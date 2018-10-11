@@ -206,11 +206,8 @@ public class SpliceDateFunctionsTest {
 
         try {
             assertEquals(date, SpliceDateFunctions.TO_TIMESTAMP(source));
-            fail("Expected to get an exception for parsing the wrong date pattern.");
         } catch (SQLException e) {
-           assertEquals("Error parsing datetime 2014-06-24 12:13:14.123 with pattern: null. Try using an ISO8601 " +
-                            "pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
-                        e.getLocalizedMessage());
+            fail("No exception expected.  Date is using the default timestamp format pattern.");
         }
     }
 
