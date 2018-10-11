@@ -67,14 +67,22 @@ public class SpliceDateFunctions {
     public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
 
         if (source == null) return null;
-        String microTest = null;
+        String microTest = format == null ? null : format.toUpperCase();
         try {
-            if (format != null) {
-                microTest = format.toUpperCase();
-                if ((microTest.endsWith("SSSS") || microTest.endsWith("NNNN") || microTest.endsWith("FFFF"))) {
-                    // If timestamp format is in microsecond precision, do not parse using Joda DateTimeFormatter
-                    return Timestamp.valueOf(source);
-                }
+            // An indicator of 'z' or 'Z' at the end of the string indicates a time zone is
+            // specified, so matching on uppercase Z handles both.
+            // Test for the only valid ISO8601 prefix that Timestamp.valueOf supports.
+            // Other format strings will be sent directly to the Joda DateTimeFormatter
+            // which will further qualify the string as a valid
+            // timestamp format or throw an exception if it's not valid.
+            if (microTest == null ||
+                (format.startsWith("yyyy-MM-dd HH:mm:ss") &&
+                 !(microTest.endsWith("Z")))) {
+                // If timestamp format does not include time zone,
+                // do not parse using Joda DateTimeFormatter, as it
+                // doesn't convert timestamps in the gap where daylight
+                // savings adjusts the clock ahead.
+                return Timestamp.valueOf(source);
             }
         }
         catch (IllegalArgumentException e) {
