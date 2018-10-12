@@ -14,9 +14,7 @@
 
 package com.splicemachine.pipeline.traffic;
 
-import org.apache.log4j.Logger;
-
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * WriteControl limits (or controls) the rate of writes per region server.  It restricts writes based on the number of writes that are currently "in flight"
@@ -28,13 +26,16 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 
 public class AtomicSpliceWriteControl implements SpliceWriteControl{
-    private static final Logger LOG = Logger.getLogger(AtomicSpliceWriteControl.class);
 
-    private final AtomicReference<WriteStatus> writeStatus = new AtomicReference<>(new WriteStatus(0, 0, 0, 0));
     protected int maxDependentWriteThreads;
     protected int maxIndependentWriteThreads;
     protected int maxDependentWriteCount;
     protected int maxIndependentWriteCount;
+
+    private final LongAdder dependentWriteThreads = new LongAdder();
+    private final LongAdder independentWriteThreads = new LongAdder();
+    private final LongAdder dependentWriteCount = new LongAdder();
+    private final LongAdder independentWriteCount = new LongAdder();
 
     public AtomicSpliceWriteControl(int maxDependentWriteThreads,
                                     int maxIndependentWriteThreads,int maxDependentWriteCount,int maxIndependentWriteCount) {
@@ -50,62 +51,50 @@ public class AtomicSpliceWriteControl implements SpliceWriteControl{
 
     @Override
     public Status performDependentWrite(int writes) {
-        while (true) {
-			WriteStatus state = writeStatus.get();
-			if (state.dependentWriteThreads > maxDependentWriteThreads
-                    || state.dependentWriteCount > maxDependentWriteCount) {
-					if (LOG.isTraceEnabled()) {
-						LOG.trace(String.format(
-								"Rejected dependent write: dependentWriteThreads=%d, maxDependentWriteThreads=%d, dependentWriteCount=%d, maxDependentWriteCount=%d, requestedWriteCount=%d",
-								state.dependentWriteThreads, maxDependentWriteThreads, state.dependentWriteCount, maxDependentWriteCount, writes));
-					}
-					return Status.REJECTED;
-			}
-			if (writeStatus.compareAndSet(state, WriteStatus.incrementDependentWriteStatus(state,writes))) {
-					return Status.DEPENDENT;
-			}
+        int threads = dependentWriteThreads.intValue();
+        if (threads + 1 <= maxDependentWriteThreads) {
+            int count = dependentWriteCount.intValue();
+            if (count + writes <= maxDependentWriteCount) {
+                dependentWriteThreads.increment();
+                dependentWriteCount.add(writes);
+                return Status.DEPENDENT;
+            }
         }
+        return Status.REJECTED;
     }
 
     @Override
     public boolean finishDependentWrite(int writes) {
-        while (true) {
-            WriteStatus state = writeStatus.get();
-            if (writeStatus.compareAndSet(state, WriteStatus.decrementDependentWriteStatus(state, writes)))
-                return true;
-        }
+        dependentWriteThreads.decrement();
+        dependentWriteCount.add(-writes);
+        return true;
     }
 
     @Override
     public Status performIndependentWrite(int writes) {
-        while (true) {
-			WriteStatus state = writeStatus.get();
-			if (state.independentWriteThreads > maxIndependentWriteThreads || state.independentWriteCount > maxIndependentWriteCount) {
-					if (LOG.isTraceEnabled()) {
-						LOG.trace(String.format(
-								"Rejected independent write, now attempting to steal from dependent: independentWriteThreads=%d, maxIndependentWriteThreads=%d, independentWriteCount=%d, maxIndependentWriteCount=%d, requestedWriteCount=%d",
-								state.independentWriteThreads, maxIndependentWriteThreads, state.independentWriteCount, maxIndependentWriteCount, writes));
-					}
-					return (performDependentWrite(writes)); // Attempt to steal
-			}
-			if (writeStatus.compareAndSet(state, WriteStatus.incrementIndependentWriteStatus(state,writes))) {
-					return Status.INDEPENDENT;
-			}
+        int threads = independentWriteThreads.intValue();
+        if (threads + 1 <= maxIndependentWriteThreads) {
+            int count = independentWriteCount.intValue();
+            if (count + writes <= maxIndependentWriteCount) {
+                independentWriteThreads.increment();
+                independentWriteCount.add(writes);
+                return Status.INDEPENDENT;
+            }
         }
+        return performDependentWrite(writes); // Attempt to steal
     }
 
     @Override
     public boolean finishIndependentWrite(int writes) {
-        while (true) {
-            WriteStatus state = writeStatus.get();
-            if (writeStatus.compareAndSet(state, WriteStatus.decrementIndependentWriteStatus(state, writes)))
-                return true;
-        }
+        independentWriteThreads.decrement();
+        independentWriteCount.add(-writes);
+        return true;
     }
 
     @Override
     public WriteStatus getWriteStatus() {
-        return writeStatus.get();
+        return new WriteStatus(dependentWriteThreads.intValue(), dependentWriteCount.intValue(),
+                independentWriteCount.intValue(), independentWriteThreads.intValue());
     }
 
     @Override
