@@ -70,7 +70,7 @@ public class SumAggregator extends SpliceGenericWindowFunction {
     public DataValueDescriptor getResult() throws StandardException {
         // Iterate through each chunk, compute the max/min of each chunk
         WindowChunk first = chunks.get(0);
-        NumberDataValue result = (NumberDataValue)first.getResult();
+        NumberDataValue result = (NumberDataValue)first.getResult().cloneValue(false);
         for (int i = 1; i < chunks.size(); ++i) {
             NumberDataValue dvd = (NumberDataValue)chunks.get(i).getResult();
             result.plus(result, dvd, result);
