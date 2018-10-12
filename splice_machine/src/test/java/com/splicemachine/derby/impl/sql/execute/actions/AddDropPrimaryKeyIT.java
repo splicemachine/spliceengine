@@ -78,9 +78,10 @@ public class AddDropPrimaryKeyIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testAddPrimaryKeyOnNonEmptyTable() throws Exception {
+    public void testAddDropPrimaryKeyOnNonEmptyTable() throws Exception {
         try {
             methodWatcher.execute("alter table t3 add primary key(a3, b3)");
+            methodWatcher.execute("alter table t3 drop primary key");
         } catch (SQLException se) {
             Assert.assertEquals(se.getSQLState(), SQLState.LANG_MODIFYING_PRIMARY_KEY_ON_NON_EMPTY_TABLE.substring(0,5));
         }
