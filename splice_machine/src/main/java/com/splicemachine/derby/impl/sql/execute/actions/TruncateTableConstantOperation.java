@@ -78,7 +78,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         //tell the data dictionary that we are going to be writing some data
         dd.startWriting(lcc);
 
-        TableDescriptor td = getTableDescriptor(lcc);
+        TableDescriptor td = getUncachedTableDescriptor(lcc);
         dd.getDependencyManager().invalidateFor(td, DependencyManager.TRUNCATE_TABLE,lcc);
         activation.setDDLTableDescriptor(td);
 
