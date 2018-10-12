@@ -71,6 +71,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
     private static final String tableA = "A";
     private static SpliceTableWatcher tableAWatcher = new SpliceTableWatcher(tableA, SCHEMA, tableADef);
 
+    private static String tableBDef = "(a1 bigint generated always as identity (start with 1, increment by 1),\n" +
+                                      "                 b1 timestamp)";
+    private static final String tableB = "B";
+    private static SpliceTableWatcher tableBWatcher = new SpliceTableWatcher(tableB, SCHEMA, tableBDef);
+
     private static String[] EMPTAB_ROWS = {
             "20,1,75000",
             "70,1,76000",
@@ -989,11 +994,309 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
                     }
                 }
-            });
+            })
+            .around(tableBWatcher)
+            .around(new SpliceDataWatcher() {
+        @Override
+        protected void starting(Description description) {
+            PreparedStatement ps;
+            try {
+                String sqlText = String.format("insert into %s(b1) values(timestamp(CURRENT_DATE))", tableBWatcher);
+                methodWatcher.executeUpdate(sqlText);
+                sqlText = String.format("insert into %s(b1) select b1 from %s", tableBWatcher, tableBWatcher);
+
+                for (int i = 0; i < 8; ++i) {
+                    methodWatcher.executeUpdate(sqlText);
+                }
+            }
+            catch (Exception e) {
+                fail("Problem setting up table B.");
+            }
+        }
+    });
 
     @ClassRule
     public static SpliceWatcher methodWatcher = new SpliceWatcher();
 
+
+    @Test
+    public void testSumWithMoreThan101Rows() throws Exception {
+        String sqlText =
+        String.format("select rn, sum(rn) over (order by rn) sm from (select a1 rn from %s --SPLICE-PROPERTIES useSpark=%s \n" +
+        " ) a", this.getTableReference(tableB),useSpark);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected =
+        "RN  | SM   |\n" +
+        "------------\n" +
+        " 1  |  1   |\n" +
+        " 2  |  3   |\n" +
+        " 3  |  6   |\n" +
+        " 4  | 10   |\n" +
+        " 5  | 15   |\n" +
+        " 6  | 21   |\n" +
+        " 7  | 28   |\n" +
+        " 8  | 36   |\n" +
+        " 9  | 45   |\n" +
+        "10  | 55   |\n" +
+        "11  | 66   |\n" +
+        "12  | 78   |\n" +
+        "13  | 91   |\n" +
+        "14  | 105  |\n" +
+        "15  | 120  |\n" +
+        "16  | 136  |\n" +
+        "17  | 153  |\n" +
+        "18  | 171  |\n" +
+        "19  | 190  |\n" +
+        "20  | 210  |\n" +
+        "21  | 231  |\n" +
+        "22  | 253  |\n" +
+        "23  | 276  |\n" +
+        "24  | 300  |\n" +
+        "25  | 325  |\n" +
+        "26  | 351  |\n" +
+        "27  | 378  |\n" +
+        "28  | 406  |\n" +
+        "29  | 435  |\n" +
+        "30  | 465  |\n" +
+        "31  | 496  |\n" +
+        "32  | 528  |\n" +
+        "33  | 561  |\n" +
+        "34  | 595  |\n" +
+        "35  | 630  |\n" +
+        "36  | 666  |\n" +
+        "37  | 703  |\n" +
+        "38  | 741  |\n" +
+        "39  | 780  |\n" +
+        "40  | 820  |\n" +
+        "41  | 861  |\n" +
+        "42  | 903  |\n" +
+        "43  | 946  |\n" +
+        "44  | 990  |\n" +
+        "45  |1035  |\n" +
+        "46  |1081  |\n" +
+        "47  |1128  |\n" +
+        "48  |1176  |\n" +
+        "49  |1225  |\n" +
+        "50  |1275  |\n" +
+        "51  |1326  |\n" +
+        "52  |1378  |\n" +
+        "53  |1431  |\n" +
+        "54  |1485  |\n" +
+        "55  |1540  |\n" +
+        "56  |1596  |\n" +
+        "57  |1653  |\n" +
+        "58  |1711  |\n" +
+        "59  |1770  |\n" +
+        "60  |1830  |\n" +
+        "61  |1891  |\n" +
+        "62  |1953  |\n" +
+        "63  |2016  |\n" +
+        "64  |2080  |\n" +
+        "65  |2145  |\n" +
+        "66  |2211  |\n" +
+        "67  |2278  |\n" +
+        "68  |2346  |\n" +
+        "69  |2415  |\n" +
+        "70  |2485  |\n" +
+        "71  |2556  |\n" +
+        "72  |2628  |\n" +
+        "73  |2701  |\n" +
+        "74  |2775  |\n" +
+        "75  |2850  |\n" +
+        "76  |2926  |\n" +
+        "77  |3003  |\n" +
+        "78  |3081  |\n" +
+        "79  |3160  |\n" +
+        "80  |3240  |\n" +
+        "81  |3321  |\n" +
+        "82  |3403  |\n" +
+        "83  |3486  |\n" +
+        "84  |3570  |\n" +
+        "85  |3655  |\n" +
+        "86  |3741  |\n" +
+        "87  |3828  |\n" +
+        "88  |3916  |\n" +
+        "89  |4005  |\n" +
+        "90  |4095  |\n" +
+        "91  |4186  |\n" +
+        "92  |4278  |\n" +
+        "93  |4371  |\n" +
+        "94  |4465  |\n" +
+        "95  |4560  |\n" +
+        "96  |4656  |\n" +
+        "97  |4753  |\n" +
+        "98  |4851  |\n" +
+        "99  |4950  |\n" +
+        "100 |5050  |\n" +
+        "101 |5151  |\n" +
+        "102 |5253  |\n" +
+        "103 |5356  |\n" +
+        "104 |5460  |\n" +
+        "105 |5565  |\n" +
+        "106 |5671  |\n" +
+        "107 |5778  |\n" +
+        "108 |5886  |\n" +
+        "109 |5995  |\n" +
+        "110 |6105  |\n" +
+        "111 |6216  |\n" +
+        "112 |6328  |\n" +
+        "113 |6441  |\n" +
+        "114 |6555  |\n" +
+        "115 |6670  |\n" +
+        "116 |6786  |\n" +
+        "117 |6903  |\n" +
+        "118 |7021  |\n" +
+        "119 |7140  |\n" +
+        "120 |7260  |\n" +
+        "121 |7381  |\n" +
+        "122 |7503  |\n" +
+        "123 |7626  |\n" +
+        "124 |7750  |\n" +
+        "125 |7875  |\n" +
+        "126 |8001  |\n" +
+        "127 |8128  |\n" +
+        "128 |8256  |\n" +
+        "129 |8385  |\n" +
+        "130 |8515  |\n" +
+        "131 |8646  |\n" +
+        "132 |8778  |\n" +
+        "133 |8911  |\n" +
+        "134 |9045  |\n" +
+        "135 |9180  |\n" +
+        "136 |9316  |\n" +
+        "137 |9453  |\n" +
+        "138 |9591  |\n" +
+        "139 |9730  |\n" +
+        "140 |9870  |\n" +
+        "141 |10011 |\n" +
+        "142 |10153 |\n" +
+        "143 |10296 |\n" +
+        "144 |10440 |\n" +
+        "145 |10585 |\n" +
+        "146 |10731 |\n" +
+        "147 |10878 |\n" +
+        "148 |11026 |\n" +
+        "149 |11175 |\n" +
+        "150 |11325 |\n" +
+        "151 |11476 |\n" +
+        "152 |11628 |\n" +
+        "153 |11781 |\n" +
+        "154 |11935 |\n" +
+        "155 |12090 |\n" +
+        "156 |12246 |\n" +
+        "157 |12403 |\n" +
+        "158 |12561 |\n" +
+        "159 |12720 |\n" +
+        "160 |12880 |\n" +
+        "161 |13041 |\n" +
+        "162 |13203 |\n" +
+        "163 |13366 |\n" +
+        "164 |13530 |\n" +
+        "165 |13695 |\n" +
+        "166 |13861 |\n" +
+        "167 |14028 |\n" +
+        "168 |14196 |\n" +
+        "169 |14365 |\n" +
+        "170 |14535 |\n" +
+        "171 |14706 |\n" +
+        "172 |14878 |\n" +
+        "173 |15051 |\n" +
+        "174 |15225 |\n" +
+        "175 |15400 |\n" +
+        "176 |15576 |\n" +
+        "177 |15753 |\n" +
+        "178 |15931 |\n" +
+        "179 |16110 |\n" +
+        "180 |16290 |\n" +
+        "181 |16471 |\n" +
+        "182 |16653 |\n" +
+        "183 |16836 |\n" +
+        "184 |17020 |\n" +
+        "185 |17205 |\n" +
+        "186 |17391 |\n" +
+        "187 |17578 |\n" +
+        "188 |17766 |\n" +
+        "189 |17955 |\n" +
+        "190 |18145 |\n" +
+        "191 |18336 |\n" +
+        "192 |18528 |\n" +
+        "193 |18721 |\n" +
+        "194 |18915 |\n" +
+        "195 |19110 |\n" +
+        "196 |19306 |\n" +
+        "197 |19503 |\n" +
+        "198 |19701 |\n" +
+        "199 |19900 |\n" +
+        "200 |20100 |\n" +
+        "201 |20301 |\n" +
+        "202 |20503 |\n" +
+        "203 |20706 |\n" +
+        "204 |20910 |\n" +
+        "205 |21115 |\n" +
+        "206 |21321 |\n" +
+        "207 |21528 |\n" +
+        "208 |21736 |\n" +
+        "209 |21945 |\n" +
+        "210 |22155 |\n" +
+        "211 |22366 |\n" +
+        "212 |22578 |\n" +
+        "213 |22791 |\n" +
+        "214 |23005 |\n" +
+        "215 |23220 |\n" +
+        "216 |23436 |\n" +
+        "217 |23653 |\n" +
+        "218 |23871 |\n" +
+        "219 |24090 |\n" +
+        "220 |24310 |\n" +
+        "221 |24531 |\n" +
+        "222 |24753 |\n" +
+        "223 |24976 |\n" +
+        "224 |25200 |\n" +
+        "225 |25425 |\n" +
+        "226 |25651 |\n" +
+        "227 |25878 |\n" +
+        "228 |26106 |\n" +
+        "229 |26335 |\n" +
+        "230 |26565 |\n" +
+        "231 |26796 |\n" +
+        "232 |27028 |\n" +
+        "233 |27261 |\n" +
+        "234 |27495 |\n" +
+        "235 |27730 |\n" +
+        "236 |27966 |\n" +
+        "237 |28203 |\n" +
+        "238 |28441 |\n" +
+        "239 |28680 |\n" +
+        "240 |28920 |\n" +
+        "241 |29161 |\n" +
+        "242 |29403 |\n" +
+        "243 |29646 |\n" +
+        "244 |29890 |\n" +
+        "245 |30135 |\n" +
+        "246 |30381 |\n" +
+        "247 |30628 |\n" +
+        "248 |30876 |\n" +
+        "249 |31125 |\n" +
+        "250 |31375 |\n" +
+        "251 |31626 |\n" +
+        "252 |31878 |\n" +
+        "253 |32131 |\n" +
+        "254 |32385 |\n" +
+        "255 |32640 |\n" +
+        "256 |32896 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        String.format("select rn, sum(rn) over (order by rn) sm from (select row_number() over (order by a1) rn from %s --SPLICE-PROPERTIES useSpark=%s \n" +
+        " ) a", this.getTableReference(tableB),useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
     @Test
     public void testMinRows2Preceding() throws Exception {
