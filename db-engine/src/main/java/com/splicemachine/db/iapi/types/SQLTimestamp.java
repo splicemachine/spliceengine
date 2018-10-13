@@ -1326,7 +1326,9 @@ public final class SQLTimestamp extends DataType
         try
         {
             cal.add( calIntervalType, count);
-            tsResult.setValue(SQLDate.computeEncodedDate(cal), SQLTime.computeEncodedTime(cal));
+            tsResult.setValue(SQLDate.computeEncodedDate(cal),
+			                  SQLTime.computeEncodedTime(cal),
+			                  tsResult.getNanos());
         }
         catch( StandardException se)
         {
@@ -1707,4 +1709,5 @@ public final class SQLTimestamp extends DataType
 		}
 	}
 
+	public int getNanos() { return nanos; }
 }
