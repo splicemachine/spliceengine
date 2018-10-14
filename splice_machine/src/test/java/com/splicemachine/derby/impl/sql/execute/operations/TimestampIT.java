@@ -384,14 +384,14 @@ public class TimestampIT extends SpliceUnitTest {
     @Test
     public void testGroupBy6Digits() throws Exception {
         String sqlText = "select count(*), col1 from t3 --SPLICE-PROPERTIES useSpark = %s  \n" +
-                         "group by col1";
+                         "group by col1 order by 2";
         String expected;
         expected = extendedTimestamps ?
         "1 |           COL1            |\n" +
         "--------------------------------\n" +
         " 1 |0001-01-01 00:00:00.123456 |\n" +
-        " 1 |0001-01-01 00:00:00.123458 |\n" +
-        " 1 |0001-01-01 00:00:00.123457 |" :
+        " 1 |0001-01-01 00:00:00.123457 |\n" +
+        " 1 |0001-01-01 00:00:00.123458 |" :
         "1 |         COL1           |\n" +
         "-----------------------------\n" +
         " 5 |1677-09-20 16:12:43.147 |";
@@ -400,20 +400,20 @@ public class TimestampIT extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
         sqlText = "select count(*), col1 from t3 --SPLICE-PROPERTIES useSpark = %s,index=idx1  \n" +
-        "group by col1";
+        "group by col1 order by 2";
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
         sqlText = "select count(*), col1 from t3b --SPLICE-PROPERTIES useSpark = %s  \n" +
-        "group by col1";
+        "group by col1 order by 2";
 
         expected = extendedTimestamps ?
         "1 |           COL1            |\n" +
         "--------------------------------\n" +
+        " 1 |9999-12-31 23:59:59.999997 |\n" +
         " 1 |9999-12-31 23:59:59.999998 |\n" +
-        " 1 |9999-12-31 23:59:59.999999 |\n" +
-        " 1 |9999-12-31 23:59:59.999997 |" :
+        " 1 |9999-12-31 23:59:59.999999 |" :
         "1 |         COL1           |\n" +
         "-----------------------------\n" +
         " 3 |2262-04-11 16:47:16.853 |";
@@ -426,15 +426,15 @@ public class TimestampIT extends SpliceUnitTest {
 
     @Test
     public void testTimestampAdd() throws Exception {
-        String sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3 --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        String sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3 order by 1 --SPLICE-PROPERTIES useSpark = %s", useSpark);
         String expected;
 
         TestConnection connection = methodWatcher.getOrCreateConnection();
         // Resulting timestamp should be out of range.
         if (extendedTimestamps)
-            assertFailed(connection, sqlText, "22003");
+            assertFailed(connection, sqlText, "42X01");
 
-        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, 1, col1) from t3 --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, 1, col1) from t3 --SPLICE-PROPERTIES useSpark = %s\n order by 1", useSpark);
 
         expected = extendedTimestamps ?
         "1             |\n" +
@@ -454,20 +454,20 @@ public class TimestampIT extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
-        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, 1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, 1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s\n order by 1", useSpark);
 
         // Resulting timestamp should be out of range.
         if (extendedTimestamps)
             assertFailed(connection, sqlText, "22003");
 
-        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s\n order by 1", useSpark);
 
         expected = extendedTimestamps ?
         "1             |\n" +
         "----------------------------\n" +
-        "9999-12-31 23:59:58.999999 |\n" +
+        "9999-12-31 23:59:58.999997 |\n" +
         "9999-12-31 23:59:58.999998 |\n" +
-        "9999-12-31 23:59:58.999997 |" :
+        "9999-12-31 23:59:58.999999 |" :
         "1            |\n" +
         "-------------------------\n" +
         "2262-04-11 16:47:15.853 |\n" +
@@ -518,7 +518,7 @@ public class TimestampIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         // ----------------------------------------------------
-        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_MINUTE, -30, col1) from t5", useSpark);
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_MINUTE, -30, col1) from t5 order by 1", useSpark);
 
         expected =
         "COL1            |             2             |\n" +
@@ -544,7 +544,7 @@ public class TimestampIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         // ----------------------------------------------------
-        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_HOUR, -3, col1) from t5", useSpark);
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_HOUR, -3, col1) from t5 order by 1", useSpark);
 
         expected =
         "COL1            |             2             |\n" +
@@ -570,7 +570,7 @@ public class TimestampIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         // ----------------------------------------------------
-        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_WEEK, -3, col1) from t5", useSpark);
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_WEEK, -3, col1) from t5 order by 1", useSpark);
 
         expected =
         "COL1            |             2             |\n" +
@@ -596,7 +596,7 @@ public class TimestampIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         // ----------------------------------------------------
-        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_QUARTER, -4, col1) from t5", useSpark);
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_QUARTER, -4, col1) from t5 order by 1", useSpark);
 
         expected =
         "COL1            |             2             |\n" +
@@ -609,7 +609,7 @@ public class TimestampIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         // ----------------------------------------------------
-        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_YEAR, 10, col1) from t5", useSpark);
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_YEAR, 10, col1) from t5 order by 1", useSpark);
 
         expected =
         "COL1            |             2             |\n" +
@@ -628,10 +628,9 @@ public class TimestampIT extends SpliceUnitTest {
 
     @Test
     public void testTimestampDiff() throws Exception {
-        String sqlText = format("select TIMESTAMPDIFF(SQL_TSI_FRAC_SECOND, col1, col2) from t4 --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        String sqlText = format("select TIMESTAMPDIFF(SQL_TSI_FRAC_SECOND, col1, col2) from t4 --SPLICE-PROPERTIES useSpark = %s\n  order by 1 ", useSpark);
         String expected;
 
-        // These results are expected to change once SPLICE-2200 is fixed.
         expected = extendedTimestamps ?
         "1          |\n" +
         "---------------------\n" +
@@ -653,7 +652,6 @@ public class TimestampIT extends SpliceUnitTest {
         String sqlText;
         String expected;
 
-        // These results are expected to change once SPLICE-2200 is fixed.
         expected = extendedTimestamps ?
         "COL1          |\n" +
         "-----------------------\n" +
