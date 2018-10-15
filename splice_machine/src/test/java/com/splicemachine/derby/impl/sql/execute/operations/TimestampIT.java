@@ -460,6 +460,7 @@ public class TimestampIT extends SpliceUnitTest {
         if (extendedTimestamps)
             assertFailed(connection, sqlText, "22003");
 
+        rs.close();
         sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s\n order by 1", useSpark);
 
         expected = extendedTimestamps ?
@@ -490,6 +491,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_FRAC_SECOND, 111000, col1) from t5 order by 1", useSpark);
 
@@ -503,6 +505,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
 
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_MINUTE, 59, col1) from t5 order by 1", useSpark);
@@ -517,6 +520,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_MINUTE, -30, col1) from t5 order by 1", useSpark);
 
@@ -530,6 +534,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_HOUR, 5, col1) from t5 order by 1", useSpark);
 
@@ -543,6 +548,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_HOUR, -3, col1) from t5 order by 1", useSpark);
 
@@ -556,6 +562,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_DAY, 30, col1) from t5 order by 1", useSpark);
 
@@ -569,6 +576,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_WEEK, -3, col1) from t5 order by 1", useSpark);
 
@@ -582,6 +590,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_MONTH, 99, col1) from t5 order by 1", useSpark);
 
@@ -595,6 +604,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_QUARTER, -4, col1) from t5 order by 1", useSpark);
 
@@ -608,6 +618,7 @@ public class TimestampIT extends SpliceUnitTest {
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
         // ----------------------------------------------------
         sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_YEAR, 10, col1) from t5 order by 1", useSpark);
 
