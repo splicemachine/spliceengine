@@ -494,11 +494,15 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             resultColumn.setResultSetNumber(joinNode.getResultSetNumber());
             generatedRef.setSource(resultColumn);
             if (brop.getLeftOperand() == operand) {
-                generatedRef.setTableNumber(brop.getLeftOperand().getHashableJoinColumnReference().getTableNumber());
+                List<ColumnReference> columnReferences = brop.getLeftOperand().getHashableJoinColumnReference();
+                assert columnReferences != null && columnReferences.size() == 1: "one column reference is expected!";
+                generatedRef.setTableNumber(columnReferences.get(0).getTableNumber());
                 brop.setLeftOperand(generatedRef);
             }
             else {
-                generatedRef.setTableNumber(brop.getRightOperand().getHashableJoinColumnReference().getTableNumber());
+                List<ColumnReference> columnReferences = brop.getRightOperand().getHashableJoinColumnReference();
+                assert columnReferences != null && columnReferences.size() == 1: "one column reference is expected!";
+                generatedRef.setTableNumber(columnReferences.get(0).getTableNumber());
                 brop.setRightOperand(generatedRef);
             }
             return resultColumn;
@@ -533,7 +537,9 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             assert rc.getExpression() instanceof VirtualColumnNode;
             vn = (VirtualColumnNode) rc.getExpression();
             generatedRef.setSource(vn.getSourceColumn());
-            generatedRef.setTableNumber(operand.getHashableJoinColumnReference().getTableNumber());
+            List<ColumnReference> columnReferences = operand.getHashableJoinColumnReference();
+            assert columnReferences != null && columnReferences.size() == 1: "one column reference is expected!";
+            generatedRef.setTableNumber(columnReferences.get(0).getTableNumber());
             operand.setHashableJoinColumnReference(generatedRef);
 
             ResultColumn resultColumn =
