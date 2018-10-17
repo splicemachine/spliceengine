@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.procedures.ProcedureUtils;
@@ -36,9 +37,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
@@ -186,7 +184,7 @@ public class BackupSystemProcedures {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check for ongoing backup...
             long runningBackupId = 0;
-            if ( (runningBackupId = backupManager.getRunningBackup()) != 0) {
+            if ( backupManager.getRunningBackups().length != 0) {
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
             backupManager.restoreDatabase(directory,backupId, true, validate);
@@ -295,7 +293,7 @@ public class BackupSystemProcedures {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check for ongoing backup...
             long runningBackupId = 0;
-            if ( (runningBackupId = backupManager.getRunningBackup()) != 0) {
+            if ( backupManager.getRunningBackups().length != 0) {
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
             backupManager.restoreDatabase(directory,backupId, false, validate);
@@ -452,16 +450,45 @@ public class BackupSystemProcedures {
         }
     }
 
-    public static void SYSCS_CANCEL_BACKUP(ResultSet[] resultSets) throws StandardException, SQLException {
-        try {
+    public static void SYSCS_CANCEL_BACKUP(long backupId) throws StandardException, SQLException {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            backupManager.cancelBackup();
+            backupManager.cancelBackup(backupId);
+    }
+
+    public static void SYSCS_GET_RUNNING_BACKUPS(ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            BackupJobStatus[] backupJobStatuses = backupManager.getRunningBackups();
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("BackupId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+                    new GenericColumnDescriptor("Scope", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 10)),
+                    new GenericColumnDescriptor("Type", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 20)),
+                    new GenericColumnDescriptor("Item", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 20)),
+                    new GenericColumnDescriptor("LastActiveTimestamp", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP))
+            };
+            ExecRow template = new ValueRow(5);
+            template.setRowArray(new DataValueDescriptor[]{new SQLLongint(), new SQLVarchar(), new SQLVarchar(),
+                    new SQLVarchar(), new SQLTimestamp()});
+            List<ExecRow> rows = Lists.newArrayList();
+            for (BackupJobStatus backupJobStatus : backupJobStatuses) {
+                template.getColumn(1).setValue(backupJobStatus.getBackupId());
+                template.getColumn(2).setValue(backupJobStatus.getScope().toString());
+                template.getColumn(3).setValue(backupJobStatus.isIncremental()?"Incremental":"Full");
+                template.getColumn(4).setValue(backupJobStatus.getObjects().get(0));
+                template.getColumn(5).setValue(new Timestamp(backupJobStatus.getLastActiveTimestamp()));
+
+                rows.add(template.getClone());
+            }
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Cancel backup error", t);
         }
     }
-
 
     public static void SYSCS_BACKUP_TABLE(String schemaName,
                                           String tableName,
@@ -494,6 +521,7 @@ public class BackupSystemProcedures {
             t.printStackTrace();
         }
     }
+
 
     public static void SYSCS_RESTORE_TABLE(String destSchema,
                                            String destTable,
@@ -532,4 +560,53 @@ public class BackupSystemProcedures {
             throw StandardException.newException(com.splicemachine.db.iapi.reference.SQLState.TABLE_NOT_FOUND, tableName);
         }
     }
+
+    public static void SYSCS_BACKUP_SCHEMA(String schemaName,
+                                           String directory,
+                                           String type,
+                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        try{
+            schemaName = EngineUtils.validateSchema(schemaName);
+            type = type.trim().toUpperCase();
+            if (directory == null || directory.isEmpty()) {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
+            }
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            if (type.compareToIgnoreCase("FULL") == 0) {
+                backupManager.fullBackupSchema(schemaName, directory);
+            }
+            else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
+
+            }
+            else {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
+            }
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
+        }
+    }
+
+    public static void SYSCS_RESTORE_SCHEMA(String destSchema,
+                                           String sourceSchema,
+                                           String directory,
+                                           long backupId,
+                                           boolean validate,
+                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            destSchema = EngineUtils.validateSchema(destSchema);
+            sourceSchema = EngineUtils.validateSchema(sourceSchema);
+            //validateTable(destSchema, destTable);
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.restoreSchema(destSchema, sourceSchema, directory, backupId, validate);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
+        }
+    }
+
 }
