@@ -1706,7 +1706,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         return toString();
     }
 
-    public ColumnReference getHashableJoinColumnReference() {
+    public List<ColumnReference> getHashableJoinColumnReference() {
         return null;
     }
 
