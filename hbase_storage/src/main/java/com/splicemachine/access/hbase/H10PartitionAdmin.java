@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -348,7 +349,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public void markDropped(long conglomId, long txn) throws IOException {
-        Table dropped = admin.getConnection().getTable(tableInfoFactory.getTableInfo(SIConstants.DROPPED_CONGLOMERATES_TABLE_NAME));
+        Table dropped = admin.getConnection().getTable(tableInfoFactory.getTableInfo(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME));
         Put put = new Put(Bytes.toBytes(conglomId));
         put.addImmutable(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, Bytes.toBytes(txn));
         dropped.put(put);
