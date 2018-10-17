@@ -111,7 +111,13 @@ public class SpliceClient {
 
         } catch (Throwable t) {
             LOG.error("Error while getting Splice token", t);
-
+            if (t instanceof SQLNonTransientConnectionException) {
+                // This is a non-recoverable failure, so stop
+                // with no retries.
+                String message = t.getMessage();
+                if (message.contains("userid or password invalid"))
+                    throw new RuntimeException(t);
+            }
             service.schedule(new Runnable() {
                 @Override
                 public void run() {
