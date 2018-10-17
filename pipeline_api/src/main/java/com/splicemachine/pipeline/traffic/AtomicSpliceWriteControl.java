@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.traffic;
 
-import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * WriteControl limits (or controls) the rate of writes per region server.  It restricts writes based on the number of writes that are currently "in flight"
@@ -32,10 +32,8 @@ public class AtomicSpliceWriteControl implements SpliceWriteControl{
     protected int maxDependentWriteCount;
     protected int maxIndependentWriteCount;
 
-    private final LongAdder dependentWriteThreads = new LongAdder();
-    private final LongAdder independentWriteThreads = new LongAdder();
-    private final LongAdder dependentWriteCount = new LongAdder();
-    private final LongAdder independentWriteCount = new LongAdder();
+    private final AtomicLong dependentWrites = new AtomicLong();
+    private final AtomicLong independentWrites = new AtomicLong();
 
     public AtomicSpliceWriteControl(int maxDependentWriteThreads,
                                     int maxIndependentWriteThreads,int maxDependentWriteCount,int maxIndependentWriteCount) {
@@ -49,52 +47,66 @@ public class AtomicSpliceWriteControl implements SpliceWriteControl{
         this.maxIndependentWriteCount = maxIndependentWriteCount;
     }
 
+    static private int toThreads(long val) {
+        return (int)(val >>> 32);
+    }
+
+    static private int toWrites(long val) {
+        return (int)(val & 0xffffffffL);
+    }
+
+    static private long toValue(int threads, int writes) {
+        return ((long)threads << 32) + writes;
+    }
+
     @Override
     public Status performDependentWrite(int writes) {
-        int threads = dependentWriteThreads.intValue();
-        if (threads + 1 <= maxDependentWriteThreads) {
-            int count = dependentWriteCount.intValue();
-            if (count + writes <= maxDependentWriteCount) {
-                dependentWriteThreads.increment();
-                dependentWriteCount.add(writes);
+        for (;;) {
+            long val = dependentWrites.get();
+            int threads = toThreads(val) + 1;
+            int count = toWrites(val) + writes;
+            if (threads > maxDependentWriteThreads || count > maxDependentWriteCount) {
+                return Status.REJECTED;
+            }
+            if (dependentWrites.compareAndSet(val, toValue(threads, count))) {
                 return Status.DEPENDENT;
             }
         }
-        return Status.REJECTED;
     }
 
     @Override
     public boolean finishDependentWrite(int writes) {
-        dependentWriteThreads.decrement();
-        dependentWriteCount.add(-writes);
+        dependentWrites.addAndGet(-toValue(1, writes));
         return true;
     }
 
     @Override
     public Status performIndependentWrite(int writes) {
-        int threads = independentWriteThreads.intValue();
-        if (threads + 1 <= maxIndependentWriteThreads) {
-            int count = independentWriteCount.intValue();
-            if (count + writes <= maxIndependentWriteCount) {
-                independentWriteThreads.increment();
-                independentWriteCount.add(writes);
+        for (;;) {
+            long val = independentWrites.get();
+            int threads = toThreads(val) + 1;
+            int count = toWrites(val) + writes;
+            if (threads > maxIndependentWriteThreads || count > maxIndependentWriteCount) {
+                return performDependentWrite(writes);
+            }
+            if (independentWrites.compareAndSet(val, toValue(threads, count))) {
                 return Status.INDEPENDENT;
             }
         }
-        return performDependentWrite(writes); // Attempt to steal
     }
 
     @Override
     public boolean finishIndependentWrite(int writes) {
-        independentWriteThreads.decrement();
-        independentWriteCount.add(-writes);
+        independentWrites.addAndGet(-toValue(1, writes));
         return true;
     }
 
     @Override
     public WriteStatus getWriteStatus() {
-        return new WriteStatus(dependentWriteThreads.intValue(), dependentWriteCount.intValue(),
-                independentWriteCount.intValue(), independentWriteThreads.intValue());
+        long depVal = dependentWrites.get();
+        long indepVal = independentWrites.get();
+        return new WriteStatus(toThreads(depVal), toWrites(depVal),
+                toWrites(indepVal), toThreads(indepVal));
     }
 
     @Override
