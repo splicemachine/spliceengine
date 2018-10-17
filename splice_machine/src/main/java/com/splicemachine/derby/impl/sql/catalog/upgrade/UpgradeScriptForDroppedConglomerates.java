@@ -14,6 +14,7 @@
  */
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -40,10 +41,10 @@ public class UpgradeScriptForDroppedConglomerates extends UpgradeScriptBase {
     @Override
     protected void upgradeSystemTables() throws StandardException {
         try {
-            LOG.info("Creating " + SIConstants.DROPPED_CONGLOMERATES_TABLE_NAME);
-            SIDriver.driver().getTableFactory().getAdmin().newPartition().withName(SIConstants.DROPPED_CONGLOMERATES_TABLE_NAME).create();
+            LOG.info("Creating " + HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME);
+            SIDriver.driver().getTableFactory().getAdmin().newPartition().withName(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME).create();
         } catch (IOException e) {
-            LOG.warn("Exception while creating while creating " + SIConstants.DROPPED_CONGLOMERATES_TABLE_NAME + ", does it already exist?", e);
+            LOG.warn("Exception while creating while creating " + HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME + ", does it already exist?", e);
         }
     }
 }

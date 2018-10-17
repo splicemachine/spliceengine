@@ -27,6 +27,7 @@ import java.util.Map;
 import com.carrotsearch.hppc.LongHashSet;
 
 import com.google.common.collect.Iterables;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.DataCell;
@@ -101,7 +102,7 @@ public class Vacuum{
         Map<Long, Long> droppedConglomerates = new HashMap<>();
         List<Long> toDelete = new ArrayList<>();
         SIDriver driver = SIDriver.driver();
-        try (Partition dropped = driver.getTableFactory().getTable(SIConstants.DROPPED_CONGLOMERATES_TABLE_NAME)) {
+        try (Partition dropped = driver.getTableFactory().getTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME)) {
             try (DataScanner scanner = dropped.openScanner(driver.baseOperationFactory().newScan())) {
                 while (true) {
                     List<DataCell> res = scanner.next(0);
@@ -158,8 +159,16 @@ public class Vacuum{
                             requiresDroppedId = true;
                         }
                     }
-                    if (!ignoreDroppedId && droppedConglomerates.containsKey(tableConglom)) {
-                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(droppedConglomerates.get(tableConglom));
+                    boolean hasDroppedId = table.getDroppedTransactionId() != null || droppedConglomerates.containsKey(tableConglom);
+                    if (!ignoreDroppedId && hasDroppedId) {
+                        long txnId;
+                        // The first case deals with conglomerates dropped before DB-7501 got merged
+                        if (table.getDroppedTransactionId() != null) 
+                            txnId = Long.parseLong(table.getDroppedTransactionId());
+                        else
+                            txnId = droppedConglomerates.get(tableConglom);
+
+                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(txnId);
                         if (txn.getEffectiveCommitTimestamp() == -1 || txn.getEffectiveCommitTimestamp() >= oldestActiveTransaction) {
                             // This conglomerate was dropped by an active, rolled back or "recent" transaction
                             // (newer than the oldest active txn) ignore it in case it's still in use
