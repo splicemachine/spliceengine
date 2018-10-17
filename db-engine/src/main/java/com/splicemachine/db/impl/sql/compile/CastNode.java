@@ -31,30 +31,24 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.types.DataTypeUtilities;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
-
-import java.lang.reflect.Modifier;
-
-import com.splicemachine.db.iapi.types.NumberDataType;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.db.iapi.util.StringUtil;
 
+import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.List;
 
@@ -1123,7 +1117,7 @@ public class CastNode extends ValueNode
 	}
 
 	@Override
-	public ColumnReference getHashableJoinColumnReference() {
+	public List<ColumnReference> getHashableJoinColumnReference() {
 		return castOperand.getHashableJoinColumnReference();
 	}
 
