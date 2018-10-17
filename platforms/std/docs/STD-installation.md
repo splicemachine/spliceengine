@@ -148,7 +148,7 @@ to ensure that you are in the directory in which you need to be.
    |Step|Command|
    |:---|:------|
    |Create symbolic link for YARN |`sudo ln -s /usr/bin/java /bin/java`
-   |Configure swappiness|`$ echo 'vm.swappiness = 0' &gt;&gt; /etc/sysctl.conf`
+   |Configure swappiness|`$ sudo /bin/su  -c "echo 'vm.swappiness = 0' >> /etc/sysctl.conf"`
    |Create an alias|`$ rm /bin/sh ; ln -sf /bin/bash /bin/sh`
 
 5. Ensure all necessary services are started:
