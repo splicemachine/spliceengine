@@ -19,15 +19,13 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -103,6 +101,18 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                 .withCreate("CREATE TABLE TABLE_C (ACCOUNT VARCHAR(75),CATEGORY VARCHAR(75),SUB_CATEGORY VARCHAR(75),SOURCE VARCHAR(75),TYPE VARCHAR(500))")
                 .withInsert("insert into table_c values(?,?,?,?,?)")
                 .withRows(rows(row("ACCOUNT", "CATEGORY", "SUB_CATEGORY", "PBD_SMARTWORKS", "A"))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("CREATE TABLE CFTC1(col1 DATE)")
+                .withInsert("insert into CFTC1 values (?)")
+                .withRows(rows(row("2018-08-02")))
+                .create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("CREATE TABLE CFTC2(col2 char(8))")
+                .withInsert("insert into CFTC2 values (?)")
+                .withRows(rows(row("02.08.18")))
+                .create();
     }
 
     @Test
@@ -239,6 +249,69 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                 "ACCOUNT |CATEGORY |SUB_CATEGORY |\n" +
                 "----------------------------------\n" +
                 " ACCOUNT |CATEGORY |SUB_CATEGORY |";
+        assertEquals(s, expected, s);
+    }
+
+    @Test
+    public void testJoinExpressionWithMultipleColumnReferences() throws Exception {
+        // expression with multiple column references
+        try {
+            String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                    "a\n" +
+                    ", b  --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                    "where a.j-a.i = b.j+b.i order by a.i, a.j, b.i, b.j", joinStrategy, joinStrategy);
+            ResultSet rs = methodWatcher.executeQuery(sql);
+            String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            rs.close();
+            String expected =
+                    "I | J | I | J |\n" +
+                            "----------------\n" +
+                            "-4 | 4 | 4 | 4 |\n" +
+                            "-3 | 3 | 3 | 3 |\n" +
+                            " 1 | 1 |-2 | 2 |\n" +
+                            " 1 | 1 |-1 | 1 |\n" +
+                            " 2 | 2 |-2 | 2 |\n" +
+                            " 2 | 2 |-1 | 1 |";
+            assertEquals(s, expected, s);
+        } catch (SQLException se) {
+            Assert.assertTrue(!this.joinStrategy.equals("NESTEDLOOP") && se.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
+        }
+
+        // expression with a concatenation of multiple binary operations
+        try {
+            String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                    "a\n" +
+                    ", b  --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                    "where a.j-a.i+a.j = b.j+b.i+b.j order by a.i, a.j, b.i, b.j", joinStrategy, joinStrategy);
+            ResultSet rs = methodWatcher.executeQuery(sql);
+            String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            rs.close();
+            String expected =
+                    "I | J | I | J |\n" +
+                            "----------------\n" +
+                            "-4 | 4 | 4 | 4 |\n" +
+                            "-3 | 3 | 3 | 3 |\n" +
+                            " 1 | 1 |-1 | 1 |\n" +
+                            " 2 | 2 |-2 | 2 |";
+            assertEquals(s, expected, s);
+        } catch (SQLException se) {
+            Assert.assertTrue(!this.joinStrategy.equals("NESTEDLOOP") && se.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
+        }
+    }
+
+    @Test
+    public void testJoinExpressionWithSQLFunctionWithOneColumnReference() throws Exception {
+        String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "CFTC1\n" +
+                ", CFTC2  --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                "where TO_CHAR(col1,'dd.mm.yy') = col2", joinStrategy, joinStrategy);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+        String expected =
+                "COL1    |  COL2   |\n" +
+                        "----------------------\n" +
+                        "2018-08-02 |02.08.18 |";
         assertEquals(s, expected, s);
     }
 }
