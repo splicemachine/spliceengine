@@ -22,7 +22,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>spliceengine-parent</artifactId>
-        <version>2.5.0.1831v1</version>
+        <version>2.5.0.1831v2</version>
     </parent>
     <build>
         <plugins>
