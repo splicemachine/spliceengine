@@ -85,12 +85,6 @@ import java.util.GregorianCalendar;
 public final class SQLTimestamp extends DataType
 						implements DateTimeDataValue
 {
-
-    protected static final ThreadLocal<Calendar> localCal = new ThreadLocal<Calendar>() {
-        protected Calendar initialValue() {
-            return Calendar.getInstance();
-        }
-    };
     static final int MAX_FRACTION_DIGITS = 9; // Only nanosecond resolution on conversion to/from strings
     static final int FRACTION_TO_NANO = 1; // 10**(9 - MAX_FRACTION_DIGITS)
 
@@ -1098,7 +1092,7 @@ public final class SQLTimestamp extends DataType
 		if (value != null)
 		{
             if( cal == null) {
-                cal = localCal.get();
+                cal = SQLDate.GREGORIAN_CALENDAR.get();
             }
 			setValue(computeEncodedDate(value, cal), computeEncodedTime(value, cal), value.getNanos());
 
