@@ -31,10 +31,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
-import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
@@ -539,7 +536,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public BulkDeleteDataSetWriterBuilder bulkDeleteData(OperationContext operationContext) throws StandardException {
         throw new RuntimeException("bulk load not supported");
-    };
+    }
+
+    @Override
+    public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
+        throw new RuntimeException("sampling not supported");
+    }
     /**
      *
      * Non Lazy Callable

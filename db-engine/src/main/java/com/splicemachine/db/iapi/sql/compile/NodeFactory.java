@@ -589,13 +589,15 @@ public abstract class NodeFactory
 							  Object arg15,
                               Object arg16,
                               Object arg17,
+							  Object arg18,
+							  Object arg19,
 							  ContextManager cm)
 			throws StandardException
 	{
 		Node retval =  getNode(nodeType, cm);
 
-		retval.init(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9,
-				arg10, arg11, arg12, arg13, arg14, arg15, arg16, arg17);
+		retval.init(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12,
+				arg13, arg14, arg15, arg16, arg17, arg18, arg19);
 
 		return  retval;
 	}
