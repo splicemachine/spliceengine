@@ -23,10 +23,12 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.utils.BulkLoadUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import scala.Tuple2;
@@ -127,10 +129,10 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> result = keyStatistics.collect();
 
         // Calculate cut points for main table and index tables
-        List<Tuple2<Long, byte[][]>> cutPoints = getCutPoints(sampleFraction, result);
+        List<Tuple2<Long, byte[][]>> cutPoints = BulkLoadUtils.getCutPoints(sampleFraction, result);
 
         // dump cut points to file system for reference
-        dumpCutPoints(cutPoints, bulkLoadDirectory);
+        ImportUtils.dumpCutPoints(cutPoints, bulkLoadDirectory);
 
         if (cutPoints != null && cutPoints.size() > 0) {
             splitTables(cutPoints);

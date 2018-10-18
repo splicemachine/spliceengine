@@ -16,15 +16,25 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import scala.Tuple2;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -183,5 +193,43 @@ public class ImportUtils{
             return "^";
         else
             return unescaped.toString();
+    }
+
+    /**
+     * Output cut points to files
+     * @param cutPointsList
+     * @throws IOException
+     */
+    public static void dumpCutPoints(List<Tuple2<Long, byte[][]>> cutPointsList, String bulkImportDirectory) throws StandardException {
+
+        BufferedWriter br = null;
+        try {
+            Configuration conf = (Configuration)SIDriver.driver().getConfiguration().getConfigSource().unwrapDelegate();
+            FileSystem fs = FileSystem.get(URI.create(bulkImportDirectory), conf);
+
+            for (Tuple2<Long, byte[][]> t : cutPointsList) {
+                Long conglomId = t._1;
+
+                Path path = new Path(bulkImportDirectory, conglomId.toString());
+                FSDataOutputStream os = fs.create(new Path(path, "cutpoints"));
+                br = new BufferedWriter( new OutputStreamWriter( os, "UTF-8" ) );
+
+                byte[][] cutPoints = t._2;
+
+                for (byte[] cutPoint : cutPoints) {
+                    br.write(Bytes.toStringBinary(cutPoint) + "\n");
+                }
+                br.close();
+            }
+        }catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        } finally {
+            try {
+                if (br != null)
+                    br.close();
+            } catch (IOException e) {
+                throw StandardException.plainWrapException(e);
+            }
+        }
     }
 }

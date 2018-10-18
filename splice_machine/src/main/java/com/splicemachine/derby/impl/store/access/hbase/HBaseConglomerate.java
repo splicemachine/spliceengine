@@ -59,16 +59,17 @@ public class HBaseConglomerate extends SpliceConglomerate{
     }
 
     protected void create(boolean isExternal,
-            Transaction rawtran,
-            long input_containerid,
-            DataValueDescriptor[] template,
-            ColumnOrdering[] columnOrder,
-            int[] collationIds,
-            Properties properties,
-            int conglom_format_id,
-            int tmpFlag,
-            TxnOperationFactory operationFactory,
-            PartitionFactory partitionFactory) throws StandardException{
+                          Transaction rawtran,
+                          long input_containerid,
+                          DataValueDescriptor[] template,
+                          ColumnOrdering[] columnOrder,
+                          int[] collationIds,
+                          Properties properties,
+                          int conglom_format_id,
+                          int tmpFlag,
+                          TxnOperationFactory operationFactory,
+                          PartitionFactory partitionFactory,
+                          byte[][] splitKeys) throws StandardException{
         super.create(isExternal,rawtran,
                 input_containerid,
                 template,
@@ -88,14 +89,16 @@ public class HBaseConglomerate extends SpliceConglomerate{
                //TODO -sf- add a warning to the activation that we weren't able to
             }
         }
-        ConglomerateUtils.createConglomerate(isExternal,
+        ConglomerateUtils.createConglomerate(
+                isExternal,
                 containerId,
                 this,
                 ((SpliceTransaction)rawtran).getTxn(),
                 properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
-                pSize);
+                pSize,
+                splitKeys);
     }
 
     @Override

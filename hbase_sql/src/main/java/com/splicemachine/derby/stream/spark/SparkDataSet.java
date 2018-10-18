@@ -952,4 +952,8 @@ public class SparkDataSet<V> implements DataSet<V> {
                 .wrapExceptions());
     }
 
+    @Override
+    public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
+        return new SparkTableSamplerBuilder(this);
+    }
 }

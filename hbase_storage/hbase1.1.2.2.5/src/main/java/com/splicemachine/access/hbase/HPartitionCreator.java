@@ -38,6 +38,7 @@ public class HPartitionCreator implements PartitionCreator{
     private final Clock clock;
     private final HBaseTableInfoFactory tableInfoFactory;
     private final PartitionInfoCache partitionInfoCache;
+    private byte[][] splitKeys;
 
     public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,HColumnDescriptor userDataFamilyDescriptor,PartitionInfoCache partitionInfoCache){
         this.connection = connection;
@@ -85,9 +86,20 @@ public class HPartitionCreator implements PartitionCreator{
         assert descriptor!=null: "No table to create!";
         descriptor.addFamily(userDataFamilyDescriptor);
         try(Admin admin = connection.getAdmin()){
-            admin.createTable(descriptor);
+            if (splitKeys == null) {
+                admin.createTable(descriptor);
+            }
+            else {
+                admin.createTable(descriptor, splitKeys);
+            }
         }
         TableName tableName=descriptor.getTableName();
         return new ClientPartition(connection,tableName,connection.getTable(tableName),clock,partitionInfoCache);
+    }
+
+    @Override
+    public PartitionCreator withSplitKeys(byte[][] splitKeys) {
+        this.splitKeys = splitKeys;
+        return this;
     }
 }

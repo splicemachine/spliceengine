@@ -556,6 +556,10 @@ public class ControlDataSet<V> implements DataSet<V> {
         throw new RuntimeException("bulk load not supported");
     }
 
+    @Override
+    public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
+        throw new RuntimeException("sampling not supported");
+    }
     /**
      *
      * Non Lazy Callable
