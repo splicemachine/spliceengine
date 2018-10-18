@@ -116,7 +116,9 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        boolean		excludeNulls,
                                                        boolean 		excludeDefaults,
                                                        boolean      preSplit,
+                                                       boolean      isLogicalKey,
                                                        boolean      sampling,
+                                                       double       sampleFraction,
                                                        String       splitKeyPath,
                                                        String       hfilePath,
                                                        String       columnDelimiter,
@@ -128,7 +130,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         SpliceLogUtils.trace(LOG,"getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName,indexName,schemaName,tableName,Arrays.toString(columnNames));
         return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, schemaName,
                 indexName,tableName,tableId,columnNames,isAscending,isConstraint, conglomerateUUID, excludeNulls,
-                excludeDefaults,preSplit,sampling,splitKeyPath,hfilePath,columnDelimiter,characterDelimiter,
+                excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath,columnDelimiter,characterDelimiter,
                 timestampFormat, dateFormat,timeFormat,properties);
     }
 
