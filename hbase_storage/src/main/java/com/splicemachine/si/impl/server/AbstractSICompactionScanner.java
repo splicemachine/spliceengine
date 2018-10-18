@@ -80,7 +80,6 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             compactionState.mutate(entry.cells, txns, list, purgeDeletedRows);
             if (!more) {
                 timer.cancel();
-                if (context != null)
                     context.close();
             }
             return more;
@@ -106,18 +105,15 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             try {
                 result = txn.get(timeout, TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
-                if (context != null)
-                    context.recordTimeout();
+                context.recordTimeout();
             }
             long duration = System.currentTimeMillis() - start;
             if (duration < 0)
                 duration = 0;
             remainingTime.addAndGet(-duration);
-            if (context != null)
-                context.timeBlocked(duration);
+            context.timeBlocked(duration);
             if (result == null) {
-                if (context != null)
-                    context.recordUnresolvedTransaction();
+                context.recordUnresolvedTransaction();
             }
             results.add(result);
             if (result != null) {
