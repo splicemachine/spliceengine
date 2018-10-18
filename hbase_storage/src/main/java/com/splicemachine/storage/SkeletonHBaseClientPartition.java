@@ -140,16 +140,6 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
         doDelete(((HDelete)delete).unwrapDelegate());
     }
 
-
-    @Override
-    public void delete(List<DataDelete> delete) throws IOException{
-        List<Delete> deletes = new ArrayList<>();
-        for (DataDelete dd : delete) {
-            deletes.add(((HDelete)dd).unwrapDelegate());
-        }
-        doDelete(deletes);
-    }
-
     @Override
     public void mutate(DataMutation put) throws IOException{
         if(put instanceof HPut)
@@ -223,8 +213,6 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     protected abstract ResultScanner getScanner(Scan scan) throws IOException;
 
     protected abstract void doDelete(Delete delete) throws IOException;
-
-    protected abstract void doDelete(List<Delete> delete) throws IOException;
 
     protected abstract void doPut(Put put) throws IOException;
 
