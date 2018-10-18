@@ -15,12 +15,14 @@ package com.splicemachine.spark.splicemachine
 
 import java.io.File
 import java.math.BigDecimal
+import java.nio.file.{Files, Path}
 import java.sql.{Time, Timestamp}
 
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.sql.jdbc.JdbcDialects
+
 import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql._
 import org.junit.runner.RunWith
@@ -392,6 +394,15 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
 
     assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]",
       sqlContext.sql(s"""SELECT c6_int FROM $table where c6_int is NOT NULL""").collectAsList().toString)
+  }
+
+  test("export") {
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val outDirectory: Path = Files.createTempDirectory("export")
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    splicemachineContext.export(df, outDirectory.toString, false, 1, null, null, null)
+    val newDF = sqlContext.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(outDirectory.toString)
+    assert(newDF.count == 10)
   }
 
   def createBadDirectory(directoryName: String): File = {
