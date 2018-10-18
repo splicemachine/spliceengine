@@ -24,7 +24,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.splicemachine.access.configuration.HBaseConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -219,11 +218,6 @@ public class HBaseConnectionFactory{
                 HTableDescriptor td=generateDefaultSIGovernedTable(HConfiguration.TENTATIVE_TABLE);
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG,HConfiguration.TENTATIVE_TABLE+" created");
-            }
-            if(!admin.tableExists(TableName.valueOf(namespace, HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME))){
-                HTableDescriptor td=generateDefaultSIGovernedTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG,HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME+" created");
             }
 
             if(!admin.tableExists(TableName.valueOf(namespaceBytes,SIConfigurations.CONGLOMERATE_TABLE_NAME_BYTES))){

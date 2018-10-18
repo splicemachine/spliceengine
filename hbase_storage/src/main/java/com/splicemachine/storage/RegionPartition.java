@@ -333,21 +333,6 @@ public class RegionPartition implements Partition{
     }
 
     @Override
-    public void delete(List<DataDelete> delete) throws IOException{
-        for (DataDelete dd : delete) {
-            Delete d = ((HDelete) dd).unwrapDelegate();
-            try{
-                region.delete(d);
-            }catch(NotServingRegionException | ConnectionClosingException nsre){
-                throw new HNotServingRegion(nsre.getMessage());
-            }catch(WrongRegionException wre){
-                throw new HWrongRegion(wre.getMessage());
-            }
-        }
-
-    }
-
-    @Override
     public void mutate(DataMutation put) throws IOException{
         try{
             if(put instanceof HPut)

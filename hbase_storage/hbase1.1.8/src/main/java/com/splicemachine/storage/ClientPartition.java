@@ -95,11 +95,6 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     }
 
     @Override
-    protected void doDelete(List<Delete> delete) throws IOException{
-        table.delete(delete);
-    }
-
-    @Override
     protected void doPut(Put put) throws IOException{
         table.put(put);
     }
