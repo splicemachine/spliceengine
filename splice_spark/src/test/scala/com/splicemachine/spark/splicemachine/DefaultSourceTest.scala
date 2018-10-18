@@ -43,6 +43,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
       splicemachineContext.dropTable(internalTN)
     }
     insertInternalRows(rowCount)
+    splicemachineContext.getConnection().commit()
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
 
