@@ -184,6 +184,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
     public static final String IGNORE_TXN_TABLE_NAME = "SPLICE_IGNORE_TXN";
+    public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
 
