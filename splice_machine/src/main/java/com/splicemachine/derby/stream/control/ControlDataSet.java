@@ -17,12 +17,19 @@ package com.splicemachine.derby.stream.control;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
+import com.splicemachine.derby.stream.control.output.ParquetWriterService;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.MergeWindowFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
@@ -44,6 +51,13 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterators;
@@ -59,6 +73,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -463,7 +478,50 @@ public class ControlDataSet<V> implements DataSet<V> {
      */
     @Override
     public DataSet<ExecRow> writeParquetFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, OperationContext context) {
-        throw new UnsupportedOperationException("Cannot write parquet files");
+        try {
+            //Generate Table Schema
+            String[] colNames;
+            DataValueDescriptor[] dvds;
+            if (context.getOperation() instanceof DMLWriteOperation) {
+                dvds  = context.getOperation().getExecRowDefinition().getRowArray();
+                colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
+            } else if (context.getOperation() instanceof ExportOperation) {
+                dvds = context.getOperation().getLeftOperation().getLeftOperation().getExecRowDefinition().getRowArray();
+                ExportOperation export = (ExportOperation) context.getOperation();
+                ResultColumnDescriptor[] descriptors = export.getSourceResultColumnDescriptors();
+                colNames = new String[descriptors.length];
+                int i = 0;
+                for (ResultColumnDescriptor rcd : export.getSourceResultColumnDescriptors()) {
+                    colNames[i++] = rcd.getName();
+                }
+            } else {
+                throw new IllegalArgumentException("Unsupported operation type: " + context.getOperation());
+            }
+            StructField[] fields = new StructField[colNames.length];
+            for (int i=0 ; i<colNames.length ; i++){
+                fields[i] = dvds[i].getStructField(colNames[i]);
+            }
+            StructType tableSchema = DataTypes.createStructType(fields);
+            RecordWriter<Void, Object> rw = ParquetWriterService.getFactory().getParquetRecordWriter(location, compression, tableSchema);
+
+            try {
+                ExpressionEncoder<Row> encoder = RowEncoder.apply(tableSchema);
+                while (iterator.hasNext()) {
+                    ValueRow vr = (ValueRow) iterator.next();
+                    context.recordWrite();
+
+                    rw.write(null, encoder.toRow(vr));
+                }
+            } finally {
+                rw.close(null);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        ValueRow valueRow=new ValueRow(1);
+        valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
+        return new ControlDataSet(Collections.singletonList(valueRow).iterator());
     }
 
     /**
