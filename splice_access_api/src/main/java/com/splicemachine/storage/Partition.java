@@ -115,6 +115,8 @@ public interface Partition extends AutoCloseable{
 
     void delete(DataDelete delete) throws IOException;
 
+    void delete(List<DataDelete> delete) throws IOException;
+
     void mutate(DataMutation put) throws IOException;
 
     boolean containsRow(byte[] row);
