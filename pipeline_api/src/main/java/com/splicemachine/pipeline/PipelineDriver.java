@@ -35,6 +35,7 @@ import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.security.AclChecker;
+import com.splicemachine.pipeline.traffic.AtomicSpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.traffic.SynchronousWriteControl;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
@@ -88,7 +89,7 @@ public class PipelineDriver{
         this.compressor = compressor;
         this.pipelineMeter= meter;
         this.writePipelineFactory = writePipelineFactory;
-        this.writeControl= new SynchronousWriteControl(
+        this.writeControl= new AtomicSpliceWriteControl(
                 config.getMaxDependentWriteThreads(),
                 config.getMaxIndependentWriteThreads(),
                 config.getMaxIndependentWrites(),

@@ -433,6 +433,16 @@ public interface TransactionController
     int                     temporaryFlag)
 		throws StandardException;
 
+    long createConglomerate(
+            boolean					isExternal,
+            String                  implementation,
+            DataValueDescriptor[]   template,
+            ColumnOrdering[]        columnOrder,
+            int[]                   collationIds,
+            Properties              properties,
+            int                     temporaryFlag,
+            byte[][]                splitKeys)
+            throws StandardException;
 
 	/** Tags this conglomerate with the transaction Id that dropped it, in order
 	 * to resolve whether or not we can VACUUM it later on

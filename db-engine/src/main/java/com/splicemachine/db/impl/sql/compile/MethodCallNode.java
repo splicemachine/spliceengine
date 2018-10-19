@@ -31,40 +31,27 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.loader.ClassInspector;
-
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.JSQLType;
-
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
 import com.splicemachine.db.catalog.TypeDescriptor;
-
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
-
-import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
-
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.JSQLType;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
-
 import java.lang.reflect.Member;
-
 import java.sql.ResultSet;
 import java.util.Enumeration;
 import java.util.List;
@@ -1302,26 +1289,30 @@ abstract class MethodCallNode extends JavaValueNode
 
 
 	@Override
-	public ColumnReference getHashableJoinColumnReference() {
+	public List<ColumnReference> getHashableJoinColumnReference() {
 		// To qualify for a hashable join, we only allow one column reference in a method call
 		int count = 0;
-		ColumnReference cr = null;
+		List<ColumnReference> columnReferences = null;
 		for(JavaValueNode param : methodParms) {
-			cr = param.getHashableJoinColumnReference();
-			if (cr != null)
-			    count++;
+			if (columnReferences == null)
+				columnReferences = param.getHashableJoinColumnReference();
+			else {
+				List<ColumnReference> parmColumnReferences = param.getHashableJoinColumnReference();
+				if (parmColumnReferences != null)
+				columnReferences.addAll(parmColumnReferences);
+			}
 		}
-		return count==1 ? cr : null;
+		return columnReferences;
 	}
 
 	@Override
 	public void setHashableJoinColumnReference(ColumnReference cr) {
-		for(int i = 0; i < methodParms.length; ++i) {
-			ColumnReference columnReference = methodParms[i].getHashableJoinColumnReference();
-			if (columnReference != null) {
-				methodParms[i].setHashableJoinColumnReference(cr);
-			}
-		}
+        for (JavaValueNode methodParm : methodParms) {
+            List<ColumnReference> columnReferences = methodParm.getHashableJoinColumnReference();
+            if (columnReferences != null && columnReferences.size()==1) {
+                methodParm.setHashableJoinColumnReference(cr);
+            }
+        }
 	}
 
 }
