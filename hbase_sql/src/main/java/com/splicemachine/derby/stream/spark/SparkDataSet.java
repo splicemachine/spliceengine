@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -61,6 +62,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
 
 import static org.apache.spark.sql.functions.broadcast;
@@ -726,8 +728,23 @@ public class SparkDataSet<V> implements DataSet<V> {
                                           OperationContext context) {
         try {
             //Generate Table Schema
-            String[] colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
-            DataValueDescriptor[] dvds = context.getOperation().getExecRowDefinition().getRowArray();
+            String[] colNames;
+            DataValueDescriptor[] dvds;
+            if (context.getOperation() instanceof DMLWriteOperation) {
+                dvds  = context.getOperation().getExecRowDefinition().getRowArray();
+                colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
+            } else if (context.getOperation() instanceof ExportOperation) {
+                dvds = context.getOperation().getLeftOperation().getLeftOperation().getExecRowDefinition().getRowArray();
+                ExportOperation export = (ExportOperation) context.getOperation();
+                ResultColumnDescriptor[] descriptors = export.getSourceResultColumnDescriptors();
+                colNames = new String[descriptors.length];
+                int i = 0;
+                for (ResultColumnDescriptor rcd : export.getSourceResultColumnDescriptors()) {
+                    colNames[i++] = rcd.getName();
+                }
+            } else {
+                throw new IllegalArgumentException("Unsupported operation type: " + context.getOperation());
+            }
             StructField[] fields = new StructField[colNames.length];
             for (int i=0 ; i<colNames.length ; i++){
                 fields[i] = dvds[i].getStructField(colNames[i]);
