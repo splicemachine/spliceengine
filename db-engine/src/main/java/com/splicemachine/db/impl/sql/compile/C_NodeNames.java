@@ -330,9 +330,7 @@ public interface C_NodeNames
 
     String EXPLAIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExplainNode";
 
-	String EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExportNode";
-	
-	String BINARY_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BinaryExportNode";
+    String EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExportNode";
 
     String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 

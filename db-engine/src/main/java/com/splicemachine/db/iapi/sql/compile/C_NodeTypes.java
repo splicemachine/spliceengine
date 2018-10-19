@@ -269,10 +269,9 @@ int CREATE_INDEX_NODE = 146;
 	int ARRAY_CONSTANT_NODE = 258;
 	int SET_SESSION_PROPERTY_NODE = 259;
 	int CURRENT_SESSION_PROPERTY_NODE = 260;
-	int BINARY_EXPORT_NODE = 261;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = BINARY_EXPORT_NODE;
+	int FINAL_VALUE = CURRENT_SESSION_PROPERTY_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

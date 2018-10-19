@@ -2973,7 +2973,6 @@ TOKEN [IGNORE_CASE] :
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
 |	<EXPORT: "export">
-|	<EXPORT_BINARY: "export_binary">
 |	<FIRSTVALUE: "first_value">
 |	<LAG: "lag">
 |	<LASTVALUE: "last_value">
@@ -3516,7 +3515,6 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 		statementNode = execStatement() |
 		statementNode = explainStatement() |
 		statementNode = exportStatement() |
-		statementNode = binaryExportStatement() |
 		statementNode = pinStatement() |
 		statementNode = dropPinStatement()
     )
@@ -3896,22 +3894,6 @@ exportStatement() throws StandardException :
     <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                   statementNode,
-                                   parameterList,
-                                   getContextManager());
-    }
-}
-
-StatementNode
-binaryExportStatement() throws StandardException :
-{
-    StatementNode   statementNode;
-    Vector parameterList = new Vector();
-}
-{
-    <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
-    {
-        return (BinaryExportNode) nodeFactory.getNode(C_NodeTypes.BINARY_EXPORT_NODE,
                                    statementNode,
                                    parameterList,
                                    getContextManager());
