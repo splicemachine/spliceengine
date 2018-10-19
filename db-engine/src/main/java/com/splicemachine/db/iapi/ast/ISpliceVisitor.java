@@ -207,6 +207,7 @@ public interface ISpliceVisitor {
     Visitable visit(XMLConstantNode node) throws StandardException;
     Visitable visit(ExplainNode node) throws StandardException;
     Visitable visit(ExportNode node) throws StandardException;
+    Visitable visit(BinaryExportNode node) throws StandardException;
     Visitable visit(BatchOnceNode node) throws StandardException;
     Visitable visit(CreatePinNode node) throws StandardException;
     Visitable visit(DropPinNode node) throws StandardException;

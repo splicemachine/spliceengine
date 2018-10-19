@@ -947,6 +947,7 @@
                             <sources>
                                 <source>${envHbase}/src/main/java</source>
                                 <source>spark${spark.version}/src/main/java</source>
+                                <source>${parquet.version}/src/main/java</source>
                             </sources>
                         </configuration>
                     </execution>
