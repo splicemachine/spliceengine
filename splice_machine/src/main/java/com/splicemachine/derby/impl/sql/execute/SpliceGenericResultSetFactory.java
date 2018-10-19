@@ -1351,41 +1351,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         return new ExplainOperation(opSet.getOperation(), activation, resultSetNumber);
     }
 
-
-    @Override
-    public NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
-                                             Activation activation,
-                                             int resultSetNumber,
-                                             String exportPath,
-                                             boolean compression,
-                                             String format,
-                                             int srcResultDescriptionSavedObjectNum) throws StandardException {
-        // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
-        // export operation returns (exported row count, and export time) not the columns of the source operation.
-        // Not what we need to format the rows during export.  So ExportNode now saves the source
-        // ResultColumnDescriptors and we retrieve them here.
-        Object resultDescription = activation.getPreparedStatement().getSavedObject(srcResultDescriptionSavedObjectNum);
-        ResultColumnDescriptor[] columnDescriptors = ((GenericResultDescription) resultDescription).getColumnInfo();
-
-        ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
-        SpliceBaseOperation op = new ExportOperation(
-                convertedResultSet.getOperation(),
-                columnDescriptors,
-                activation,
-                resultSetNumber,
-                exportPath,
-                compression,
-                format,
-                1,
-                "",
-                "",
-                ""
-        );
-        op.markAsTopResultSet();
-        return op;
-
-    }
-
     @Override
     public NoPutResultSet getExportResultSet(NoPutResultSet source,
                                              Activation activation,
@@ -1413,7 +1378,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 resultSetNumber,
                 exportPath,
                 compression,
-                "csv",
                 replicationCount,
                 encoding,
                 fieldSeparator,

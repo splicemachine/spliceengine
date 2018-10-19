@@ -267,10 +267,9 @@ public interface C_NodeTypes
 	static final int DROP_PIN_NODE = 256;
 	static final int SET_SESSION_PROPERTY_NODE = 257;
 	static final int CURRENT_SESSION_PROPERTY_NODE = 258;
-	static final int BINARY_EXPORT_NODE = 261;
 
 	// Final value in set, keep up to date!
-    static final int FINAL_VALUE = BINARY_EXPORT_NODE;
+    static final int FINAL_VALUE = CURRENT_SESSION_PROPERTY_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

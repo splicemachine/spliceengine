@@ -327,8 +327,6 @@ public interface C_NodeNames
     static final String EXPLAIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExplainNode";
 
     static final String EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExportNode";
-	
-    static final String BINARY_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BinaryExportNode";
 
     static final String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 
