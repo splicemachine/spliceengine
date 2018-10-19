@@ -803,35 +803,4 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     new StructType(columns.map(name => fieldMap(name)))
   }
 
-  /**
-    * Export a dataFrame in CSV
-    *
-    * @param location  - Destination directory
-    * @param compression - Whether to compress the output or not
-    * @param replicationCount - Replication used for HDFS write
-    * @param fileEncoding - fileEncoding or null, defaults to UTF-8
-    * @param fieldSeparator - fieldSeparator or null, defaults to ','
-    * @param quoteCharacter - quoteCharacter or null, defaults to '"'
-    *
-    */
-  def export(dataFrame: DataFrame, location: String,
-                   compression: Boolean, replicationCount: Int,
-             fileEncoding: String,
-             fieldSeparator: String,
-             quoteCharacter: String): Unit = {
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
-    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-    val encoding = quotedOrNull(fileEncoding)
-    val separator = quotedOrNull(fieldSeparator)
-    val quoteChar = quotedOrNull(quoteCharacter)
-    val sqlText = s"export ( '$location', $compression, $replicationCount, $encoding, $separator, $quoteChar) select " + columnList + " from " +
-      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
-    internalConnection.createStatement().execute(sqlText)
-  }
-
-  private[this] def quotedOrNull(value: String) = {
-    if (value == null) "null" else s"'$value"
-  }
-
 }
