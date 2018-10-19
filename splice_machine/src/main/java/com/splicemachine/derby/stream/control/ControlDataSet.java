@@ -30,6 +30,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOp
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
+import com.splicemachine.derby.stream.control.output.ParquetWriterService;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.MergeWindowFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
@@ -55,14 +56,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.execution.datasources.parquet.ParquetWriteSupport;
 import org.apache.spark.sql.internal.SQLConf;
 import org.apache.spark.sql.types.DataTypes;
@@ -74,8 +70,6 @@ import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Sets;
 import org.spark_project.guava.io.Closeables;
 import org.spark_project.guava.util.concurrent.Futures;
-import parquet.hadoop.ParquetOutputFormat;
-import parquet.hadoop.metadata.CompressionCodecName;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -96,7 +90,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import static com.splicemachine.derby.stream.control.ControlUtils.checkCancellation;
-import static parquet.hadoop.util.ContextUtil.getConfiguration;
 
 /**
  *
@@ -496,9 +489,6 @@ public class ControlDataSet<V> implements DataSet<V> {
     public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression, OperationContext context) {
 
         try {
-
-            ParquetWriteSupport pws = new ParquetWriteSupport();
-
             //Generate Table Schema
             String[] colNames;
             DataValueDescriptor[] dvds;
@@ -522,47 +512,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                 fields[i] = dvds[i].getStructField(colNames[i]);
             }
             StructType tableSchema = DataTypes.createStructType(fields);
-
-            final Configuration conf = new Configuration((Configuration) EngineDriver.driver().getConfiguration().getConfigSource().unwrapDelegate());
-            conf.set(SQLConf.PARQUET_WRITE_LEGACY_FORMAT().key(), "false");
-            conf.set(SQLConf.PARQUET_INT64_AS_TIMESTAMP_MILLIS().key(), "false");
-            conf.set(SQLConf.PARQUET_INT96_AS_TIMESTAMP().key(), "true");
-            conf.set(SQLConf.PARQUET_BINARY_AS_STRING().key(), "false");
-
-            pws.setSchema(tableSchema, conf);
-            RecordWriter<Void, Object> rw = new ParquetOutputFormat(new ParquetWriteSupport()) {
-                @Override
-                public Path getDefaultWorkFile(TaskAttemptContext context, String extension) throws IOException {
-                    return new Path(location+"/part-r-00000"+extension);
-                }
-
-                @Override
-                public RecordWriter<Void, Object> getRecordWriter(TaskAttemptContext taskAttemptContext)
-                        throws IOException, InterruptedException {
-
-                    CompressionCodecName codec;
-                    switch (compression) {
-                        case "none":
-                           codec = CompressionCodecName.UNCOMPRESSED;
-                           break;
-                        case "snappy":
-                            codec = CompressionCodecName.SNAPPY;
-                            break;
-                        case "lzo":
-                            codec = CompressionCodecName.LZO;
-                            break;
-                        case "gzip":
-                        case "zip":
-                            codec = CompressionCodecName.GZIP;
-                            break;
-                        default:
-                            throw new IllegalArgumentException("Unknown compression: " + compression);
-                    }
-                    String extension = codec.getExtension() + ".parquet";
-                    Path file = getDefaultWorkFile(taskAttemptContext, extension);
-                    return getRecordWriter(conf, file, codec);
-                }
-            }.getRecordWriter(null);
+            RecordWriter<Void, Object> rw = ParquetWriterService.getFactory().getParquetRecordWriter(location, compression, tableSchema);
 
             try {
                 ExpressionEncoder<Row> encoder = RowEncoder.apply(tableSchema);
