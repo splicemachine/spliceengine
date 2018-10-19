@@ -398,7 +398,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         queryId,queryId,
                         Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis());
             } else {
-                throw new TransactionMissing(queryId);
+                 throw new TransactionMissing(queryId);
             }
         }
 
