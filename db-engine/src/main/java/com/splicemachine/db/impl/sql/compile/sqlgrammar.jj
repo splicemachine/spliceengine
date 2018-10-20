@@ -2864,9 +2864,10 @@ TOKEN [IGNORE_CASE] :
 |	<LOCKS: "locks">
 |	<LOCKSIZE: "locksize">
 |	<LOGGED: "logged">
+|   <LOGICAL: "logical">
 |	<MAXVALUE: "maxvalue">
 |	<MINVALUE: "minvalue">
-|       <MOD: "mod">
+|   <MOD: "mod">
 |	<MODIFIES: "modifies">
 |	<MODIFY: "modify">
 |	<MONTH: "month">
@@ -2881,6 +2882,7 @@ TOKEN [IGNORE_CASE] :
 |	<OBJECT: "object">
 |	<OFFSET: "offset">
 |	<PASCAL: "pascal">
+|   <PHYSICAL: "physical">
 |	<PLI: "pli">
 |	<PRECISION: "precision">
 |	<RELEASE: "release">
@@ -2971,6 +2973,7 @@ TOKEN [IGNORE_CASE] :
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
 |	<EXPORT: "export">
+|	<EXPORT_BINARY: "export_binary">
 |	<FIRSTVALUE: "first_value">
 |	<LAG: "lag">
 |	<LASTVALUE: "last_value">
@@ -3023,6 +3026,7 @@ TOKEN [IGNORE_CASE] :
 |   <ESTIMATE: "estimate">
 |	<EXCLUSIVE: "exclusive">
 |	<FN: "fn">
+|   <FRACTION: "fraction">
 |	<INDEX: "index">
 |	<INPLACE: "inplace">
 |	<JAVA: "java">
@@ -3512,6 +3516,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 		statementNode = execStatement() |
 		statementNode = explainStatement() |
 		statementNode = exportStatement() |
+		statementNode = binaryExportStatement() |
 		statementNode = pinStatement() |
 		statementNode = dropPinStatement()
     )
@@ -3891,6 +3896,22 @@ exportStatement() throws StandardException :
     <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                   statementNode,
+                                   parameterList,
+                                   getContextManager());
+    }
+}
+
+StatementNode
+binaryExportStatement() throws StandardException :
+{
+    StatementNode   statementNode;
+    Vector parameterList = new Vector();
+}
+{
+    <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+    {
+        return (BinaryExportNode) nodeFactory.getNode(C_NodeTypes.BINARY_EXPORT_NODE,
                                    statementNode,
                                    parameterList,
                                    getContextManager());
@@ -12129,9 +12150,11 @@ indexDefinition() throws StandardException :
     ValueNode   timestampFormat = null;
     ValueNode   dateFormat = null;
     ValueNode   timeFormat = null;
+    ValueNode   sampleFraction = null;
     Boolean     sampling = Boolean.FALSE;
     Boolean     preSplit = Boolean.FALSE;
-	Vector	indexColumnList = new Vector();
+	Vector	    indexColumnList = new Vector();
+	Boolean     isLogicalKey = Boolean.TRUE;
 }
 {
 	/*
@@ -12146,8 +12169,9 @@ indexDefinition() throws StandardException :
 		    [ <NULL> <KEYS> { excludeNulls = true;} ]
 		    [ <_DEFAULT> <KEYS> { excludeDefaults = true;} ]
 		]
-		[   <SPLITKEYS> {preSplit = Boolean.TRUE;}
-		        [ <AUTO> {sampling = Boolean.TRUE; } |
+		[   [<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
+		    <SPLITKEYS> {preSplit = Boolean.TRUE;}
+		        [ <AUTO> {sampling = Boolean.TRUE; } [<SAMPLE><FRACTION> {sampleFraction = literal();}] |
 		          <LOCATION> {splitKeysPath = literal();}
 		          [<COLUMNDELIMITER> {columnDelimiter = literal();}]
 		          [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
@@ -12155,8 +12179,8 @@ indexDefinition() throws StandardException :
                   [<DATEFORMAT> {dateFormat = literal();}]
                   [<TIMEFORMAT> {timeFormat = literal();}]
 		        ]
-		    <HFILE> <LOCATION> {hfilePath = literal();}
 		]
+		[<HFILE> <LOCATION> {hfilePath = literal();}]
 
 	{
 		/* User allowed to specify schema name on table and index.
@@ -12196,7 +12220,9 @@ indexDefinition() throws StandardException :
 								excludeNulls,
 								excludeDefaults,
 								preSplit,
+								isLogicalKey,
 								sampling,
+								sampleFraction,
 								splitKeysPath,
 								columnDelimiter,
 								characterDelimiter,
@@ -16718,6 +16744,7 @@ nonReservedKeyword()  :
 	|	tok = <FIRSTVALUE>
 	|	tok = <FN>
 	|	tok = <FORTRAN>
+	|   tok = <FRACTION>
 	|	tok = <GENERATED>
 	|   tok = <HFILE>
 	|	tok = <IDENTITY_VAL_LOCAL>

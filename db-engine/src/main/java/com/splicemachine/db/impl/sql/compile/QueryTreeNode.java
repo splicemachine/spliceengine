@@ -995,7 +995,9 @@ public abstract class QueryTreeNode implements Node, Visitable{
                      Object arg14,
                      Object arg15,
                      Object arg16,
-                     Object arg17) throws StandardException{
+                     Object arg17,
+                     Object arg18,
+                     Object arg19) throws StandardException{
         if(SanityManager.DEBUG){
             SanityManager.THROWASSERT("Seventeen-argument init() not implemented for "+getClass().getName());
         }
