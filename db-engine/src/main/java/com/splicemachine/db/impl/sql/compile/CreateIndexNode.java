@@ -71,7 +71,9 @@ public class CreateIndexNode extends DDLStatementNode
 	boolean 			excludeNulls;
 	boolean				excludeDefaults;
     boolean             preSplit;
+	boolean             isLogicalKey;
     boolean             sampling;
+	double              sampleFraction;
     String              splitKeyPath;
     String              hfilePath;
     String              columnDelimiter;
@@ -105,7 +107,9 @@ public class CreateIndexNode extends DDLStatementNode
 					Object excludeNulls,
 					Object excludeDefaults,
                     Object preSplit,
+					Object isLogicalKey,
                     Object sampling,
+                    Object sampleFraction,
                     Object splitKeyPath,
                     Object columnDelimiter,
                     Object characterDelimite,
@@ -126,7 +130,9 @@ public class CreateIndexNode extends DDLStatementNode
 		this.excludeNulls = (Boolean) excludeNulls;
 		this.excludeDefaults = (Boolean) excludeDefaults;
         this.preSplit = (Boolean)preSplit;
+		this.isLogicalKey = (Boolean)isLogicalKey;
         this.sampling = (Boolean)sampling;
+        this.sampleFraction = sampleFraction!=null ? ((NumericConstantNode)sampleFraction).getValue().getDouble():0;
         this.splitKeyPath = splitKeyPath!=null ? ((CharConstantNode)splitKeyPath).getString() : null;
         this.columnDelimiter = columnDelimiter != null ? ((CharConstantNode)columnDelimiter).getString() : null;
         this.characterDelimiter = characterDelimite != null ? ((CharConstantNode)characterDelimite).getString() : null;
@@ -343,7 +349,9 @@ public class CreateIndexNode extends DDLStatementNode
                 excludeNulls,
                 excludeDefaults,
                 preSplit,
+				isLogicalKey,
                 sampling,
+                sampleFraction,
                 splitKeyPath,
                 hfilePath,
                 columnDelimiter,

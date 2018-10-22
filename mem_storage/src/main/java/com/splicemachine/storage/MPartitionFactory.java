@@ -96,6 +96,12 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
+        public PartitionCreator withSplitKeys(byte[][] splitKeys) {
+            //no-op
+            return this;
+        }
+
+        @Override
         public Partition create() throws IOException{
             assert name!=null:"No name specified!";
             final MPartition p=new MPartition(name,name);

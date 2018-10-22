@@ -93,6 +93,7 @@ public class TimestampIT extends SpliceUnitTest {
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t3"));
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t3b"));
             s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t4"));
+            s.executeUpdate(String.format("DROP TABLE %s IF EXISTS", SCHEMA + ".t5"));
 
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t1") + "(col1 timestamp, col2 int, primary key(col1,col2))");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t11") + "(col1 timestamp, col2 int)");
@@ -101,6 +102,7 @@ public class TimestampIT extends SpliceUnitTest {
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t3b") + "(col1 timestamp, col2 int)");
             s.executeUpdate(String.format("create index idx1 on %s ", SCHEMA + ".t3") + "(col1)");
             s.executeUpdate(String.format("create table %s ", SCHEMA + ".t4") + "(col1 timestamp, col2 timestamp)");
+            s.executeUpdate(String.format("create table %s ", SCHEMA + ".t5") + "(col1 timestamp)");
 
             conn.commit();
             ResultSet rs = s.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.createTablesWithVersion2Serializer')");
@@ -223,6 +225,11 @@ public class TimestampIT extends SpliceUnitTest {
 
 
             s.executeUpdate(String.format("insert into %s select * from %s", SCHEMA + ".t11", SCHEMA + ".t1"));
+
+            s.executeUpdate(String.format("insert into %s values({ts'1700-12-31 23:59:58.999999'})", SCHEMA + ".t5"));
+            s.executeUpdate(String.format("insert into %s values({ts'1867-02-28 01:38:01.0426'})", SCHEMA + ".t5"));
+            s.executeUpdate(String.format("insert into %s values({ts'1999-04-22 12:28:11.123456'})", SCHEMA + ".t5"));
+            s.executeUpdate(String.format("insert into %s values({ts'2020-11-02 10:57:00.000006'})", SCHEMA + ".t5"));
 
             conn.commit();
             rs.close();
@@ -377,14 +384,14 @@ public class TimestampIT extends SpliceUnitTest {
     @Test
     public void testGroupBy6Digits() throws Exception {
         String sqlText = "select count(*), col1 from t3 --SPLICE-PROPERTIES useSpark = %s  \n" +
-                         "group by col1";
+                         "group by col1 order by 2";
         String expected;
         expected = extendedTimestamps ?
         "1 |           COL1            |\n" +
         "--------------------------------\n" +
         " 1 |0001-01-01 00:00:00.123456 |\n" +
-        " 1 |0001-01-01 00:00:00.123458 |\n" +
-        " 1 |0001-01-01 00:00:00.123457 |" :
+        " 1 |0001-01-01 00:00:00.123457 |\n" +
+        " 1 |0001-01-01 00:00:00.123458 |" :
         "1 |         COL1           |\n" +
         "-----------------------------\n" +
         " 5 |1677-09-20 16:12:43.147 |";
@@ -393,20 +400,20 @@ public class TimestampIT extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
         sqlText = "select count(*), col1 from t3 --SPLICE-PROPERTIES useSpark = %s,index=idx1  \n" +
-        "group by col1";
+        "group by col1 order by 2";
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
         sqlText = "select count(*), col1 from t3b --SPLICE-PROPERTIES useSpark = %s  \n" +
-        "group by col1";
+        "group by col1 order by 2";
 
         expected = extendedTimestamps ?
         "1 |           COL1            |\n" +
         "--------------------------------\n" +
+        " 1 |9999-12-31 23:59:59.999997 |\n" +
         " 1 |9999-12-31 23:59:59.999998 |\n" +
-        " 1 |9999-12-31 23:59:59.999999 |\n" +
-        " 1 |9999-12-31 23:59:59.999997 |" :
+        " 1 |9999-12-31 23:59:59.999999 |" :
         "1 |         COL1           |\n" +
         "-----------------------------\n" +
         " 3 |2262-04-11 16:47:16.853 |";
@@ -419,68 +426,222 @@ public class TimestampIT extends SpliceUnitTest {
 
     @Test
     public void testTimestampAdd() throws Exception {
-        String sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3 --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        String sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3 order by 1 --SPLICE-PROPERTIES useSpark = %s", useSpark);
         String expected;
 
         TestConnection connection = methodWatcher.getOrCreateConnection();
         // Resulting timestamp should be out of range.
         if (extendedTimestamps)
-            assertFailed(connection, sqlText, "22003");
+            assertFailed(connection, sqlText, "42X01");
 
-        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, 1, col1) from t3 --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, 1, col1) from t3 --SPLICE-PROPERTIES useSpark = %s\n order by 1", useSpark);
 
-        // These results are expected to change once SPLICE-2200 is fixed.
         expected = extendedTimestamps ?
-        "1           |\n" +
-        "-----------------------\n" +
-        "0001-01-01 00:00:01.0 |\n" +
-        "0001-01-01 00:00:01.0 |\n" +
-        "0001-01-01 00:00:01.0 |" :
-        "1           |\n" +
-        "-----------------------\n" +
-        "1677-09-20 16:12:44.0 |\n" +
-        "1677-09-20 16:12:44.0 |\n" +
-        "1677-09-20 16:12:44.0 |\n" +
-        "1677-09-20 16:12:44.0 |\n" +
-        "1677-09-20 16:12:44.0 |";
+        "1             |\n" +
+        "----------------------------\n" +
+        "0001-01-01 00:00:01.123456 |\n" +
+        "0001-01-01 00:00:01.123457 |\n" +
+        "0001-01-01 00:00:01.123458 |" :
+        "1            |\n" +
+        "-------------------------\n" +
+        "1677-09-20 16:12:44.147 |\n" +
+        "1677-09-20 16:12:44.147 |\n" +
+        "1677-09-20 16:12:44.147 |\n" +
+        "1677-09-20 16:12:44.147 |\n" +
+        "1677-09-20 16:12:44.147 |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
-        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, 1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, 1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s\n order by 1", useSpark);
 
         // Resulting timestamp should be out of range.
         if (extendedTimestamps)
             assertFailed(connection, sqlText, "22003");
 
-        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        rs.close();
+        sqlText = format("select TIMESTAMPADD(SQL_TSI_SECOND, -1, col1) from t3b --SPLICE-PROPERTIES useSpark = %s\n order by 1", useSpark);
 
-        // These results are expected to change once SPLICE-2200 is fixed.
         expected = extendedTimestamps ?
-        "1           |\n" +
-        "-----------------------\n" +
-        "9999-12-31 23:59:58.0 |\n" +
-        "9999-12-31 23:59:58.0 |\n" +
-        "9999-12-31 23:59:58.0 |" :
-        "1           |\n" +
-        "-----------------------\n" +
-        "2262-04-11 16:47:15.0 |\n" +
-        "2262-04-11 16:47:15.0 |\n" +
-        "2262-04-11 16:47:15.0 |";
+        "1             |\n" +
+        "----------------------------\n" +
+        "9999-12-31 23:59:58.999997 |\n" +
+        "9999-12-31 23:59:58.999998 |\n" +
+        "9999-12-31 23:59:58.999999 |" :
+        "1            |\n" +
+        "-------------------------\n" +
+        "2262-04-11 16:47:15.853 |\n" +
+        "2262-04-11 16:47:15.853 |\n" +
+        "2262-04-11 16:47:15.853 |";
 
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_FRAC_SECOND, -999999000, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |   1700-12-31 23:59:58.0   |\n" +
+        " 1867-02-28 01:38:01.0426  |1867-02-28 01:38:00.042601 |\n" +
+        "1999-04-22 12:28:11.123456 |1999-04-22 12:28:10.123457 |\n" +
+        "2020-11-02 10:57:00.000006 |2020-11-02 10:56:59.000007 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_FRAC_SECOND, 111000, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 | 1700-12-31 23:59:59.00011 |\n" +
+        " 1867-02-28 01:38:01.0426  |1867-02-28 01:38:01.042711 |\n" +
+        "1999-04-22 12:28:11.123456 |1999-04-22 12:28:11.123567 |\n" +
+        "2020-11-02 10:57:00.000006 |2020-11-02 10:57:00.000117 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_MINUTE, 59, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1701-01-01 00:58:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1867-02-28 02:37:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |1999-04-22 13:27:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2020-11-02 11:56:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_MINUTE, -30, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1700-12-31 23:29:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1867-02-28 01:08:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |1999-04-22 11:58:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2020-11-02 10:27:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_HOUR, 5, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1701-01-01 04:59:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1867-02-28 06:38:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |1999-04-22 17:28:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2020-11-02 15:57:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_HOUR, -3, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1700-12-31 20:59:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1867-02-27 22:38:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |1999-04-22 09:28:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2020-11-02 07:57:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_DAY, 30, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1701-01-30 23:59:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1867-03-30 01:38:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |1999-05-22 12:28:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2020-12-02 10:57:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_WEEK, -3, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1700-12-10 23:59:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1867-02-07 01:38:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |1999-04-01 12:28:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2020-10-12 10:57:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_MONTH, 99, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1709-03-31 23:59:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1875-05-28 01:38:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |2007-07-22 12:28:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2029-02-02 10:57:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_QUARTER, -4, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1699-12-31 23:59:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1866-02-28 01:38:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |1998-04-22 12:28:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2019-11-02 10:57:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        // ----------------------------------------------------
+        sqlText = format("select col1, TIMESTAMPADD(SQL_TSI_YEAR, 10, col1) from t5 order by 1", useSpark);
+
+        expected =
+        "COL1            |             2             |\n" +
+        "--------------------------------------------------------\n" +
+        "1700-12-31 23:59:58.999999 |1710-12-31 23:59:58.999999 |\n" +
+        " 1867-02-28 01:38:01.0426  | 1877-02-28 01:38:01.0426  |\n" +
+        "1999-04-22 12:28:11.123456 |2009-04-22 12:28:11.123456 |\n" +
+        "2020-11-02 10:57:00.000006 |2030-11-02 10:57:00.000006 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
         rs.close();
 
     }
 
     @Test
     public void testTimestampDiff() throws Exception {
-        String sqlText = format("select TIMESTAMPDIFF(SQL_TSI_FRAC_SECOND, col1, col2) from t4 --SPLICE-PROPERTIES useSpark = %s", useSpark);
+        String sqlText = format("select TIMESTAMPDIFF(SQL_TSI_FRAC_SECOND, col1, col2) from t4 --SPLICE-PROPERTIES useSpark = %s\n  order by 1 ", useSpark);
         String expected;
 
-        // These results are expected to change once SPLICE-2200 is fixed.
         expected = extendedTimestamps ?
         "1          |\n" +
         "---------------------\n" +
@@ -502,7 +663,6 @@ public class TimestampIT extends SpliceUnitTest {
         String sqlText;
         String expected;
 
-        // These results are expected to change once SPLICE-2200 is fixed.
         expected = extendedTimestamps ?
         "COL1          |\n" +
         "-----------------------\n" +

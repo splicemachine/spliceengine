@@ -1325,7 +1325,9 @@ public final class SQLTimestamp extends DataType
         try
         {
             cal.add( calIntervalType, count);
-            tsResult.setValue(SQLDate.computeEncodedDate(cal), SQLTime.computeEncodedTime(cal));
+            tsResult.setValue(SQLDate.computeEncodedDate(cal),
+			                  SQLTime.computeEncodedTime(cal),
+			                  tsResult.getNanos());
         }
         catch( StandardException se)
         {
@@ -1605,7 +1607,7 @@ public final class SQLTimestamp extends DataType
 		        Platform.putInt(holder.buffer, holder.cursor + 4, encodedTime);
 		        Platform.putInt(holder.buffer, holder.cursor + 8, nanos);
 		        unsafeRowWriter.setOffsetAndSize(ordinal, 12);
-				holder.cursor = 12;
+				holder.cursor += 12;
 			}
 	    }
 
@@ -1706,4 +1708,5 @@ public final class SQLTimestamp extends DataType
 		}
 	}
 
+	public int getNanos() { return nanos; }
 }

@@ -14,9 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.clearspring.analytics.util.Lists;
 import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -40,6 +39,7 @@ import com.splicemachine.db.impl.sql.execute.RowUtil;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.function.FileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -63,13 +63,12 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import scala.Tuple2;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Creates an Index transactionally.
@@ -175,7 +174,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private boolean         excludeNulls;
     private boolean         excludeDefaults;
     private boolean         preSplit;
+    private boolean         isLogicalKey;
     private boolean         sampling;
+    private double          sampleFraction;
     private String          splitKeyPath;
     private String          hfilePath;
     private String          columnDelimiter;
@@ -253,7 +254,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             boolean 		excludeNulls,
             boolean			excludeDefaults,
             boolean         preSplit,
+            boolean         isLogicalKey,
             boolean         sampling,
+            double          sampleFraction,
             String          splitKeyPath,
             String          hfilePath,
             String          columnDelimiter,
@@ -278,7 +281,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.excludeDefaults            = excludeDefaults;
         this.excludeNulls               = excludeNulls;
         this.preSplit                   = preSplit;
+        this.isLogicalKey               = isLogicalKey;
         this.sampling                   = sampling;
+        this.sampleFraction             = sampleFraction;
         this.splitKeyPath               = splitKeyPath;
         this.hfilePath                  = hfilePath;
         this.columnDelimiter            = columnDelimiter;
@@ -611,34 +616,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             indexProperties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
             indexProperties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, this.indexName);
 
-            /* For non-unique indexes, we order by all columns + the RID.
-             * For unique indexes, we just order by the columns.
-             * We create a unique index observer for unique indexes
-             * so that we can catch duplicate key.
-             * We create a basic sort observer for non-unique indexes
-             * so that we can reuse the wrappers during an external
-             * sort.
-             */
-            conglomId = userTransaction.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
-                    getColumnOrderings(baseColumnPositions), indexRowGenerator.getColumnCollationIds(
-                    td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT);
-
-            ConglomerateController indexController = userTransaction.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
-
-            // Check to make sure that the conglomerate can be used as an index
-            if ( ! indexController.isKeyed()) {
-                indexController.close();
-                throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
-            }
-            indexController.close();
-
             //
             // Create a conglomerate descriptor with the conglomId filled
             // in and add it--if we don't have one already.
             //
             if(!alreadyHaveConglomDescriptor){
-                long indexCId=createConglomerateDescriptor(dd,userTransaction,sd,td,indexRowGenerator,ddg);
-                createAndPopulateIndex(activation,userTransaction,td,indexCId,heapConglomerateId,indexRowGenerator,defaultValue, defaultRow);
+                createAndPopulateIndex(activation, userTransaction, dd, sd, indexRowGenerator,indexProperties, td, defaultValue, defaultRow, ddg);
             }
         }catch (Throwable t) {
             throw Exceptions.parseException(t);
@@ -798,85 +781,142 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
     private void createAndPopulateIndex(Activation activation,
                                         TransactionController tc,
+                                        DataDictionary dd,
+                                        SchemaDescriptor sd,
+                                        IndexRowGenerator indexRowGenerator,
+                                        Properties indexProperties,
                                         TableDescriptor td,
-                                        long indexConglomId,
-                                        long heapConglomerateId,
-                                        IndexDescriptor indexDescriptor,
                                         DataValueDescriptor defaultValue,
-                                        ExecRow defaultRow) throws StandardException, IOException {
-        /*
-         * Manages the Create and Populate index phases
-         */
+                                        ExecRow defaultRow,
+                                        DataDescriptorGenerator ddg) throws StandardException, IOException {
         Txn tentativeTransaction;
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         try {
             TxnLifecycleManager lifecycleManager = SIDriver.driver().lifecycleManager();
 
+
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
+                    activation.getLanguageConnectionContext(),
+                    td.getHeapConglomerateId(), conglomId, td, indexRowGenerator, defaultValue);
+            // Calculate split Key
+            byte[][] splitKeys = null;
+            if (preSplit) {
+                if (sampling) {
+                    splitKeys = sample(activation, td, parentTxn, 0, ddlChange.getTentativeIndex(),defaultRow, sampleFraction);
+                }
+                else {
+                    splitKeys = calculateSplitKeys(activation, td, indexRowGenerator);
+                }
+            }
+            /* For non-unique indexes, we order by all columns + the RID.
+             * For unique indexes, we just order by the columns.
+             * We create a unique index observer for unique indexes
+             * so that we can catch duplicate key.
+             * We create a basic sort observer for non-unique indexes
+             * so that we can reuse the wrappers during an external
+             * sort.
+             */
+            conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
+                    getColumnOrderings(indexRowGenerator.baseColumnPositions()), indexRowGenerator.getColumnCollationIds(
+                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
+
+            ConglomerateController indexController = tc.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
+
+            // Check to make sure that the conglomerate can be used as an index
+            if ( ! indexController.isKeyed()) {
+                indexController.close();
+                throw StandardException.newException(SQLState.LANG_NON_KEYED_INDEX, indexName,indexType);
+            }
+            indexController.close();
+            long indexCId=createConglomerateDescriptor(dd,tc,sd,td,indexRowGenerator,ddg);
+
+            // dump split keys
+            if (splitKeys!= null && splitKeys.length > 0) {
+                List<Tuple2<Long, byte[][]>> cutPointsList = Lists.newArrayList();
+                cutPointsList.add(new Tuple2<>(conglomId, splitKeys));
+                if (hfilePath != null) {
+                    ImportUtils.dumpCutPoints(cutPointsList, hfilePath);
+                }
+            }
+             /*
+             * Manages the Create and Populate index phases
+             */
             // tentativeTransaction must be a fully distributed transaction capable of committing with a CommitTimestamp,
             // in order to reuse this commit timestamp as the begin timestamp and chain the transactions
             ((Txn) parentTxn).forbidSubtransactions();
-            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, DDLUtils.getIndexConglomBytes(indexConglomId));
+            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, "CreateIndex".getBytes());
+            ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(),
+                    activation.getLanguageConnectionContext(),
+                    td.getHeapConglomerateId(), conglomId, td, indexRowGenerator, defaultValue);
+
+            String changeId = DDLUtils.notifyMetadataChange(ddlChange);
+            tc.prepareDataDictionaryChange(changeId);
+            Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
+            populateIndex(td, activation, indexTransaction, tentativeTransaction.getCommitTimestamp(),
+                    ddlChange.getTentativeIndex(), hfilePath, defaultRow);
+            indexTransaction.commit();
         } catch (IOException e) {
             LOG.error("Couldn't start transaction for tentative DDL operation");
             throw Exceptions.parseException(e);
         }
-
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(),
-                activation.getLanguageConnectionContext(),
-                td.getHeapConglomerateId(), indexConglomId, td, indexDescriptor, defaultValue);
-        if (preSplit && !sampling) {
-            splitIndex(indexDescriptor, splitKeyPath, columnDelimiter, characterDelimiter,
-                    timestampFormat, dateFormat, timeFormat, ddlChange.getTentativeIndex(), td, activation);
-        }
-        String changeId = DDLUtils.notifyMetadataChange(ddlChange);
-        tc.prepareDataDictionaryChange(changeId);
-        Txn indexTransaction = DDLUtils.getIndexTransaction(tc, tentativeTransaction, td.getHeapConglomerateId(),indexName);
-        populateIndex(td, activation, indexTransaction, tentativeTransaction.getCommitTimestamp(),
-                ddlChange.getTentativeIndex(), indexDescriptor, preSplit, sampling, splitKeyPath, hfilePath,
-                columnDelimiter, characterDelimiter, timestampFormat, dateFormat, timeFormat, defaultRow);
-        indexTransaction.commit();
     }
 
-    private void splitIndex(IndexDescriptor indexDescriptor, String splitKeyPath, String columnDelimiter,
-                            String characterDelimiter, String timestampFormat, String dateTimeFormat, String timeFormat,
-                            DDLMessage.TentativeIndex tentativeIndex, TableDescriptor td, Activation activation) throws IOException, StandardException {
+    private byte[][] calculateSplitKeys(Activation activation,
+                                        TableDescriptor td,
+                                        IndexRowGenerator indexRowGenerator) throws IOException, StandardException{
 
-        List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
-        int[] indexFormatIds = new int[indexCols.size()];
-        for (int i = 0; i < indexCols.size(); ++i) {
-            indexFormatIds[i] = allFormatIds.get(indexCols.get(i)-1);
-        }
+        Map<String, byte[]> keysMap = new HashMap<>();
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
         DataSet<String> text = dsp.readTextFile(splitKeyPath);
-        OperationContext operationContext = dsp.createOperationContext(activation);
-        ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
-        DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                null, timeFormat, dateTimeFormat, timestampFormat, operationContext), true);
-        List<ExecRow> rows = dataSet.collect();
-        DataHash encoder = getEncoder(td, execRow, indexDescriptor);
-        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
-        long conglomId = tentativeIndex.getIndex().getConglomerate();
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "Pre-splitting index splice:%d", conglomId);
-        }
-        for (ExecRow row : rows) {
-            encoder.setRow(row);
-            byte[] splitKey = encoder.encode();
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "execRow = %s, splitKey = %s", execRow,
-                        Bytes.toStringBinary(splitKey));
+        if (isLogicalKey) {
+            int[] indexCols = indexRowGenerator.baseColumnPositions();
+            int[] allFormatIds = td.getFormatIds();
+
+            int[] indexFormatIds = new int[indexCols.length];
+            for (int i = 0; i < indexCols.length; ++i) {
+                indexFormatIds[i] = allFormatIds[indexCols[i]-1];
             }
-            admin.splitTable(new Long(conglomId).toString(), splitKey);
+
+            OperationContext operationContext = dsp.createOperationContext(activation);
+            ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
+            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
+                    null, timeFormat, dateFormat, timestampFormat, operationContext), true);
+            List<ExecRow> rows = dataSet.collect();
+            DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
+            for (ExecRow row : rows) {
+                encoder.setRow(row);
+                byte[] bytes = encoder.encode();
+                String s = Bytes.toHex(bytes);
+                if (keysMap.get(s) == null) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "execRow = %s, splitKey = %s", execRow,
+                                Bytes.toStringBinary(bytes));
+                    }
+                    keysMap.put(s, bytes);
+                }
+            }
         }
+        else {
+            List<String> physicalKeys = text.collect();
+            for (String key : physicalKeys) {
+                byte[] bytes = Bytes.toBytesBinary(key);
+                String s = Bytes.toHex(bytes);
+                if (keysMap.get(s) == null) {
+                    keysMap.put(s, bytes);
+                }
+            }
+        }
+        byte[][] splitKeys = new byte[keysMap.size()][];
+        splitKeys = keysMap.values().toArray(splitKeys);
+        return splitKeys;
     }
 
-    private DataHash getEncoder(TableDescriptor td, ExecRow execRow, IndexDescriptor indexDescriptor) {
+    private DataHash getEncoder(TableDescriptor td, ExecRow execRow, IndexRowGenerator indexRowGenerator) {
         DescriptorSerializer[] serializers= VersionedSerializers
                 .forVersion(td.getVersion(), false)
                 .getSerializers(execRow.getRowArray());
         int[] rowColumns = IntArrays.count(execRow.nColumns());
-        boolean[] sortOrder = indexDescriptor.isAscending();
+        boolean[] sortOrder = indexRowGenerator.isAscending();
         DataHash dataHash = BareKeyHash.encoder(rowColumns, sortOrder, serializers);
         return dataHash;
     }

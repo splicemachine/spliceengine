@@ -67,12 +67,15 @@ public class ImportErrorIT extends SpliceUnitTest {
     private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date not null,g time not null, h timestamp not null)");
     private static final SpliceTableWatcher decimalTable = new SpliceTableWatcher("DECIMALTABLE", schema.schemaName, "(d decimal(2))");
     private static final SpliceTableWatcher incrementTable = new SpliceTableWatcher("INCREMENT", schema.schemaName, "(a int generated always as identity, b int)");
+    private static final SpliceTableWatcher timestampTable = new SpliceTableWatcher("TIMESTAMP", schema.schemaName, "(a1 bigint, b1 timestamp)");
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(schema)
             .around(tableWatcher)
             .around(decimalTable)
-            .around(incrementTable);
+            .around(incrementTable)
+            .around(timestampTable);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -506,5 +509,113 @@ public class ImportErrorIT extends SpliceUnitTest {
             s.execute("call syscs_util.syscs_set_global_database_property('derby.database.convertOutOfRangeTimeStamps', 'false')");
         }
     }
-}
 
+    @Test
+    public void testTimestampInGap() throws Exception {
+        /*
+         * Regression test for SPLICE-2257.
+         * Test importing of timestamps in the gap where the clock jumps
+         * ahead for daylight savings.
+         */
+
+        Connection conn = methodWatcher.getOrCreateConnection();
+        conn.setSchema(schema.schemaName);
+        String inputFilePath = getResourceDirectory() + "ts7.csv";
+
+        try (Statement s = conn.createStatement()) {
+            s.execute("drop table if exists TS7");
+            s.execute("create table TS7(a1 BIGINT, b1 timestamp, primary key(a1))");
+
+            try {
+                s.execute(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                "'%s'," +  // schema name
+                "'%s'," +  // table name
+                "null," +  // insert column list
+                "'%s'," +  // file path
+                "','," +   // column delimiter
+                "null," +  // character delimiter
+                "'yyyy-MM-dd HH:mm:ss'," +  // timestamp format
+                "null," +  // date format
+                "null," +  // time format
+                "%d," +    // max bad records
+                "'%s'," +  // bad record dir
+                "null," +  // has one line records
+                "null)",   // char set
+                schema.schemaName, "TS7", inputFilePath,
+                0, BADDIR.getCanonicalPath()));
+            }
+            catch (SQLException se) {
+                Assert.fail("Timestamp in daylight savings gap not parsed!");
+            }
+
+            inputFilePath = getResourceDirectory() + "ts8.csv";
+
+            try {
+                s.execute(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                "'%s'," +  // schema name
+                "'%s'," +  // table name
+                "null," +  // insert column list
+                "'%s'," +  // file path
+                "','," +   // column delimiter
+                "null," +  // character delimiter
+                "'yyyy-MM-dd HH:mm:ss.SSSSSS'," +  // timestamp format
+                "null," +  // date format
+                "null," +  // time format
+                "%d," +    // max bad records
+                "'%s'," +  // bad record dir
+                "null," +  // has one line records
+                "null)",   // char set
+                schema.schemaName, "TS7", inputFilePath,
+                0, BADDIR.getCanonicalPath()));
+            }
+            catch (SQLException se) {
+                Assert.fail("Timestamp in daylight savings gap not parsed!");
+            }
+
+            inputFilePath = getResourceDirectory() + "ts9.csv";
+
+            try {
+                s.execute(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                "'%s'," +  // schema name
+                "'%s'," +  // table name
+                "null," +  // insert column list
+                "'%s'," +  // file path
+                "','," +   // column delimiter
+                "null," +  // character delimiter
+                "'yyyy-MM-dd HH:mm:ss.S'," +  // timestamp format
+                "null," +  // date format
+                "null," +  // time format
+                "%d," +    // max bad records
+                "'%s'," +  // bad record dir
+                "null," +  // has one line records
+                "null)",   // char set
+                schema.schemaName, "TS7", inputFilePath,
+                0, BADDIR.getCanonicalPath()));
+            }
+            catch (SQLException se) {
+                Assert.fail("Timestamp in daylight savings gap not parsed!");
+            }
+
+            try(ResultSet rs = s.executeQuery("select * from TS7 order by 1")){
+                // Handle the case when we're in a time zone with daylight savings,
+                // and also the case when our time zone has no daylight savings,
+                String expectedResult1 =
+                "A1 |            B1             |\n" +
+                "--------------------------------\n" +
+                " 1 |   2017-03-12 02:00:00.0   |\n" +
+                " 2 |2017-03-12 02:00:00.123456 |\n" +
+                " 3 |   2017-03-12 02:08:23.9   |";
+                String expectedResult2 =
+                "A1 |            B1             |\n" +
+                "--------------------------------\n" +
+                " 1 |   2017-03-12 03:00:00.0   |\n" +
+                " 2 |2017-03-12 03:00:00.123456 |\n" +
+                " 3 |   2017-03-12 03:08:23.9   |";
+                String matchString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+                if (!matchString.equals(expectedResult1))
+                    assertEquals(expectedResult2, matchString);
+            }
+            s.execute("drop table if exists TS7");
+        }
+    }
+}
