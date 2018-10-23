@@ -15,6 +15,7 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -39,6 +40,7 @@ import org.apache.zookeeper.data.Stat;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.util.List;
 
 /**
  * Created by jyuan on 8/10/16.
@@ -46,8 +48,18 @@ import java.sql.Timestamp;
 public class BackupUtils {
     private static final Logger LOG=Logger.getLogger(BackupUtils.class);
 
+    /**
+     * Backup Scope.  This allows us to understand the scope of the backup.
+     *
+     * S = Schema
+     * T = Table
+     * D = Database
+     *
+     */
+    public static enum BackupScope {TABLE, SCHEMA, DATABASE};
+
     public static boolean backupInProgress() throws Exception {
-        String path = HConfiguration.getConfiguration().getBackupPath();
+        String path = BackupUtils.getBackupPath();
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
         Stat stat = zooKeeper.exists(path, false);
         return (stat != null);
@@ -95,10 +107,26 @@ public class BackupUtils {
         return p.replace(BackupRestoreConstants.ARCHIVE_DIR, BackupRestoreConstants.BACKUP_DIR);
     }
 
-    public static void waitForBackupToComplete(String tableName, String regionName, String path) throws IOException{
+    public static void waitForBackupToComplete(String tableName, String regionName) throws IOException{
+        String path = getBackupPath();
+        try {
+            List<String> children = ZkUtils.getRecoverableZooKeeper().getChildren(path, false);
+            for (String backupId : children) {
+                String backupJobPath = path + "/" + backupId;
+                String regionBackupPath = backupJobPath + "/" + tableName + "/" + regionName;
+                waitForBackupToComplete(tableName, regionName, backupJobPath, regionBackupPath);
+            }
+
+        }
+        catch (InterruptedException | KeeperException e) {
+            throw new IOException(e);
+        }
+    }
+
+    public static void waitForBackupToComplete(String tableName, String regionName, String backupJobPath, String regionBackupPath) throws IOException{
         int i = 0;
         long maxWaitTime = 60*1000;
-        while (regionIsBeingBackup(tableName, regionName, path)) {
+        while (regionIsBeingBackup(tableName, regionName, backupJobPath, regionBackupPath)) {
             try {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "wait for backup to complete");
@@ -117,23 +145,23 @@ public class BackupUtils {
     }
 
 
-    public static boolean regionIsBeingBackup(String tableName, String regionName, String path) {
+    public static boolean regionIsBeingBackup(String tableName, String regionName, String backupJobPath, String regionBackupPath) {
         boolean isBackup = false;
         try {
             RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-            if (zooKeeper.exists(HConfiguration.getConfiguration().getBackupPath(), false) == null ||
+            if (zooKeeper.exists(backupJobPath, false) == null ||
                     backupTimedout()) {
                 // Not in backup or backup timed out
                 isBackup = false;
             }
-            else if (zooKeeper.exists(path, false) == null) {
+            else if (zooKeeper.exists(regionBackupPath, false) == null) {
                 if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "Table %s region %s is not in backup", tableName, regionName);
                 isBackup = false;
             }
             else {
                 try {
-                    byte[] status = ZkUtils.getData(path);
+                    byte[] status = ZkUtils.getData(regionBackupPath);
                     if (Bytes.compareTo(status, HConfiguration.BACKUP_IN_PROGRESS) == 0) {
                         if (LOG.isDebugEnabled())
                             SpliceLogUtils.debug(LOG, "Table %s region %s is in backup", tableName, regionName);
@@ -143,7 +171,7 @@ public class BackupUtils {
                             SpliceLogUtils.debug(LOG, "Table %s region %s is done with backup", tableName, regionName);
                         isBackup = false;
                     } else {
-                        throw new RuntimeException("Unexpected data in node:" + path);
+                        throw new RuntimeException("Unexpected data in node:" + regionBackupPath);
                     }
                 } catch ( IOException e) {
                     if (e.getCause() instanceof KeeperException)
@@ -168,7 +196,6 @@ public class BackupUtils {
      */
     public static void captureIncrementalChanges( Configuration conf,
                                                   HRegion region,
-                                                  String path,
                                                   FileSystem fs,
                                                   Path rootDir,
                                                   Path backupDir,
@@ -187,7 +214,10 @@ public class BackupUtils {
             boolean enabled = incrementalBackupEnabled();
             if (enabled) {
                 RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-                String spliceBackupPath = HConfiguration.getConfiguration().getBackupPath();
+                String spliceBackupPath = BackupUtils.getBackupPath();
+                if (zooKeeper.exists(spliceBackupPath, false)==null){
+                    return false;
+                }
                 boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
                 if (!isRestoreMode) {
                     if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
@@ -195,12 +225,19 @@ public class BackupUtils {
                             SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
                         }
                         shouldRegister = true;
-                    } else if (zooKeeper.exists(spliceBackupPath, false) != null) {
-
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "A backup is running");
+                    } else {
+                        List<String> backupJobs = zooKeeper.getChildren(spliceBackupPath, false);
+                        for (String backupId : backupJobs) {
+                            String path = spliceBackupPath + "/" + backupId;
+                            byte[] data = zooKeeper.getData(path, false, null);
+                            BackupJobStatus status = BackupJobStatus.parseFrom(data);
+                            if (status.getScope() == BackupScope.DATABASE) {
+                                if (LOG.isDebugEnabled()) {
+                                    SpliceLogUtils.debug(LOG, "A database backup is running");
+                                }
+                                shouldRegister = true;
+                            }
                         }
-                        shouldRegister = true;
                     }
                 }
             }
@@ -236,7 +273,7 @@ public class BackupUtils {
 
     public static boolean backupCanceled() throws KeeperException, InterruptedException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-        String path = HConfiguration.getConfiguration().getBackupPath();
+        String path = BackupUtils.getBackupPath();
         return zooKeeper.exists(path, false) == null;
     }
 
@@ -303,11 +340,13 @@ public class BackupUtils {
     }
 
     private static boolean backupTimedout() throws Exception {
-        String path = HConfiguration.getConfiguration().getBackupPath();
+        String path = BackupUtils.getBackupPath();
         boolean timedout = true;
-        try {
-            byte[] data = ZkUtils.getData(path);
 
+        List<String> backupIds = ZkUtils.getChildren(path, false);
+        for (String backupId : backupIds) {
+            String backupJobPath = path + "/" + backupId;
+            byte[] data = ZkUtils.getData(backupJobPath);
             if (data != null) {
                 BackupJobStatus backupJobStatus = null;
                 long lastActiveTimestamp = 0;
@@ -326,21 +365,19 @@ public class BackupUtils {
                 }
                 try {
                     if (timedout) {
-                        ZkUtils.recursiveDelete(path);
+                        ZkUtils.recursiveDelete(backupJobPath);
                         SpliceLogUtils.info(LOG, "Found a timeout backup that were active at %s", new Timestamp(lastActiveTimestamp));
                     }
                 } catch (KeeperException e) {
                     if (e.code() != KeeperException.Code.NONODE) {
-                        // Ignore NONODE exception because it may be deleted by another thread.
-                        throw e;
+                        SpliceLogUtils.info(LOG, "Znode %s has been removed by another thread", backupJobPath);
                     }
+                    else
+                        throw e;
                 }
             }
         }
-        catch (KeeperException.NoNodeException e) {
-            // Ignore NoNodeException because the /backup znode may have been removed
-            SpliceLogUtils.info(LOG, "Znode /backup was removed by another thread");
-        }
+
         return timedout;
     }
 
@@ -349,5 +386,13 @@ public class BackupUtils {
         Configuration conf = HConfiguration.unwrapDelegate();
         String fileCleaners = conf.get("hbase.master.hfilecleaner.plugins");
         return fileCleaners.contains("SpliceHFileCleaner");
+    }
+
+    public static String getBackupPath() {
+        return HConfiguration.getConfiguration().getSpliceRootPath() + HConfiguration.getConfiguration().getBackupPath();
+    }
+
+    public static String getBackupLockPath() {
+        return HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.DEFAULT_BACKUP_LOCK_PATH;
     }
 }

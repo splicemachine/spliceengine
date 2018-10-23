@@ -259,6 +259,14 @@
                     <artifactId>hadoop-client</artifactId>
                     <groupId>org.apache.hadoop</groupId>
                 </exclusion>
+		<exclusion>
+		    <groupId>org.apache.curator</groupId>
+    		    <artifactId>curator-recipes</artifactId>
+		</exclusion>
+		<exclusion>
+		    <groupId>org.apache.curator</groupId>
+    		    <artifactId>curator-framework</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
