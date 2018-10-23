@@ -77,4 +77,20 @@ public class NoOpBackupManager implements BackupManager{
     public void validateBackup(String dir, long backupId) throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
+
+    @Override
+    public void validateTableBackup(String schemaName, String tableName, String directory,long backupId)throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
+
+    @Override
+    public void fullBackupTable(String schemaName, String tableName, String backupDirectory) throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
+
+    @Override
+    public void restoreTable(String destSchema, String destTable, String sourceSchema, String sourceTable,
+                             String directory, long backupId, boolean validate) throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
 }
