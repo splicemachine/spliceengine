@@ -41,4 +41,11 @@ public interface BackupManager{
     void cancelBackup() throws StandardException;
 
     void validateBackup(String directory,long backupId)throws StandardException;
+
+    void validateTableBackup(String schemaName, String tableName, String directory,long backupId)throws StandardException;
+
+    void fullBackupTable(String schemaName, String tableName, String backupDirectory) throws StandardException;
+
+    void restoreTable(String destSchema, String destTable, String sourceSchema, String sourceTable, String directory,
+                      long backupId, boolean validate) throws StandardException;
 }

@@ -367,7 +367,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     @Override
-    protected List<StoreFileScanner> createFileScanners(Collection<StoreFile> filesToCompact, long smallestReadPoint) throws IOException {
+    public List<StoreFileScanner> createFileScanners(Collection<StoreFile> filesToCompact, long smallestReadPoint) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"createFileScanners");
         return super.createFileScanners(filesToCompact, smallestReadPoint);
