@@ -87,6 +87,9 @@ public class AuthorizationIT {
                 "CITY     VARCHAR(15))");
         user1Conn.createStatement().executeUpdate("create view V_STAFF " +
                 "as select CITY from STAFF");
+
+        Connection conn = spliceClassWatcher.createConnection();
+        conn.createStatement().executeUpdate("CALL SYSCS_UTIL.SYSCS_ENABLE_ENTERPRISE('false')");
     }
 
     @Test
