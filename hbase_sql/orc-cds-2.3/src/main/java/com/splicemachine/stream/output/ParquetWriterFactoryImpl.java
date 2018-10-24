@@ -36,7 +36,7 @@ public class ParquetWriterFactoryImpl implements ParquetWriterFactory{
         ParquetWriteSupport pws = new ParquetWriteSupport();
         final Configuration conf = new Configuration((Configuration) EngineDriver.driver().getConfiguration().getConfigSource().unwrapDelegate());
         conf.set(SQLConf.PARQUET_WRITE_LEGACY_FORMAT().key(), "false");
-        conf.set("spark.sql.parquet.int64AsTimestampMillis", "false");
+        conf.set(SQLConf.PARQUET_OUTPUT_TIMESTAMP_TYPE().key(), "INT96");
         conf.set(SQLConf.PARQUET_INT96_AS_TIMESTAMP().key(), "true");
         conf.set(SQLConf.PARQUET_BINARY_AS_STRING().key(), "false");
 
