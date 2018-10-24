@@ -90,7 +90,7 @@ _startSplice() {
 -Dderby.language.logStatementText=false \
 -Dderby.infolog.append=true"
 
-SYS_ARGS2="-Dsplice.spark.executor.extraJavaOptions=-Dhbase.rootdir=$HBASE_ROOT_DIR_URI
+SYS_ARGS2="-Dsplice.spark.executor.extraJavaOptions=-Dhbase.rootdir=$HBASE_ROOT_DIR_URI/hbase
 -XX:MaxPermSize=128m
 -Dlog4j.configuration=$LOG4J_PATH
 -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
