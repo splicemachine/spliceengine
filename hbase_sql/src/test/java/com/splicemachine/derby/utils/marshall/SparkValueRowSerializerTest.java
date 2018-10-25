@@ -23,10 +23,8 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceSparkKryoRegistrator;
 import com.splicemachine.derby.utils.test.TestingDataType;
-import com.splicemachine.si.testenv.ArchitectureIndependent;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.io.*;
 import java.math.BigDecimal;
