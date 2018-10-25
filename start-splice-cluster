@@ -134,7 +134,8 @@ SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=$
 #=============================================================================
 _kill_em_all 9
 
-if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
+HBASE_PROFILE=${PROFILE%%,*}
+if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
   RUN_DIR="${BASE_DIR}/mem_sql"
 # Otherwise, set (in)secure option
 elif [[ "${DISTRIBUTED}" == "1" ]]; then
@@ -164,7 +165,7 @@ pushd "${RUN_DIR}" > /dev/null
 /bin/rm -f *.log*
 
 # Run IN MEMORY
-if [[ ${PROFILE} == ${IN_MEM_PROFILE} ]]; then
+if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
   MEM_LOG="${RUN_DIR}/spliceMem.log"
   echo "Starting MEM. Log file is ${MEM_LOG}"
   (${MVN} -Pmem exec:java > ${MEM_LOG} 2>&1) &    ## IN MEMORY
@@ -173,7 +174,7 @@ fi
 
 ZOO_LOG="${RUN_DIR}/zoo.log"
 echo "Starting ZooKeeper. Log file is ${ZOO_LOG}"
-(${MVN} exec:exec -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
+(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceZoo > ${ZOO_LOG} 2>&1) &    ## zookeeper
 #######################################################################################################
 # Wait for up to 65 seconds for zoo to start, checking nc periodically to see if we are connected
 # This makes use of ZooKeeper's 'Four-Letter Words' commands to determine the liveness of ZooKeeper
@@ -201,34 +202,34 @@ fi
 if [[ "${DISTRIBUTED}" == "1" ]]; then
     KDC_LOG="${RUN_DIR}/kdc.log"
     echo "Starting KDC. Log file is ${KDC_LOG}"
-    (${MVN} exec:java -P${PROFILE},spliceKDC > ${KDC_LOG} 2>&1) &  ## KDC
+    (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKDC > ${KDC_LOG} 2>&1) &  ## KDC
     wait_for ${KDC_LOG} "KDC cluster started" 
     
     export MAVEN_OPTS="$MAVEN_OPTS -Djava.security.krb5.conf=${RUN_DIR}/target/krb5.conf -Dsun.security.krb5.debug=true"
     
     HDFS_LOG="${RUN_DIR}/hdfs.log"
     echo "Starting HDFS. Log file is ${HDFS_LOG}"
-    (${MVN} exec:java -P${PROFILE},spliceHdfs > ${HDFS_LOG} 2>&1) &  ## HDFS
+    (${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceHdfs > ${HDFS_LOG} 2>&1) &  ## HDFS
     wait_for ${HDFS_LOG} "HDFS cluster started"
 fi 
   
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
-(${MVN} exec:java -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+(${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
 
 KAFKALOG="${RUN_DIR}"/kafka.log
 # Start Kafka in background.
 echo "Starting Kafka, log file is ${KAFKALOG}"
-(${MVN} exec:exec -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
+(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceKafka > ${KAFKALOG} 2>&1) &
 
 SPLICE_LOG="${RUN_DIR}/splice.log"
 echo "Starting Master and 1 Region Server. Log file is ${SPLICE_LOG}"
 ## (master + region server on 1527)
 
 if [ -z "${SERVER_SSLMODE}" ]; then
-  (${MVN} exec:exec -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFast ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 else
-  (${MVN} exec:exec -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
+  (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceFastSSL ${SYSTEM_PROPS} -Dxml.plan.debug.path=${DEBUG_PATH} > ${SPLICE_LOG} 2>&1) &
 fi
 
 echo -n "  Waiting. "
@@ -240,7 +241,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     REGION_SVR_LOG="${RUN_DIR}/spliceRegionSvr$(($MEMBER +1)).log"
     echo "Starting Region Server ${REGION_SVR_LOG}"
     ## (region server, splice on 1528, 1529, ...)
-    (${MVN} exec:exec -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
+    (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
     echo -n "  Waiting. "
     while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
     echo
