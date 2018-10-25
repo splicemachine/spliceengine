@@ -224,7 +224,7 @@ public class BackupUtils {
                             String path = spliceBackupPath + "/" + backupId;
                             byte[] data = zooKeeper.getData(path, false, null);
                             BackupJobStatus status = BackupJobStatus.parseFrom(data);
-                            if (status.getScope() == BackupJobStatus.BackupScope.DATABASE.DATABASE) {
+                            if (status.getScope() == BackupJobStatus.BackupScope.DATABASE) {
                                 if (LOG.isDebugEnabled()) {
                                     SpliceLogUtils.debug(LOG, "A database backup is running");
                                 }

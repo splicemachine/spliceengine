@@ -183,8 +183,9 @@ public class BackupSystemProcedures {
         try {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check for ongoing backup...
-            long runningBackupId = 0;
-            if ( backupManager.getRunningBackups().length != 0) {
+            BackupJobStatus[] backupJobStatuses = backupManager.getRunningBackups();
+            if ( backupJobStatuses.length > 0) {
+                long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
             backupManager.restoreDatabase(directory,backupId, true, validate);
@@ -292,8 +293,9 @@ public class BackupSystemProcedures {
         try {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check for ongoing backup...
-            long runningBackupId = 0;
-            if ( backupManager.getRunningBackups().length != 0) {
+            BackupJobStatus[] backupJobStatuses = backupManager.getRunningBackups();
+            if ( backupJobStatuses.length > 0) {
+                long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
             backupManager.restoreDatabase(directory,backupId, false, validate);
