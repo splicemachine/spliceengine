@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -347,7 +346,6 @@ public class MiniYARNClusterSplice extends CompositeService {
     }
 
     @InterfaceAudience.Private
-    @VisibleForTesting
     public synchronized void stopResourceManager(int index) {
         if (resourceManagers[index] != null) {
             resourceManagers[index].stop();
@@ -356,7 +354,6 @@ public class MiniYARNClusterSplice extends CompositeService {
     }
 
     @InterfaceAudience.Private
-    @VisibleForTesting
     public synchronized void restartResourceManager(int index)
         throws InterruptedException {
         if (resourceManagers[index] != null) {
@@ -380,7 +377,6 @@ public class MiniYARNClusterSplice extends CompositeService {
      * @return index of the active RM or -1 if none of them turn active
      */
     @InterfaceAudience.Private
-    @VisibleForTesting
     public int getActiveRMIndex() {
         if (resourceManagers.length == 1) {
             return 0;
