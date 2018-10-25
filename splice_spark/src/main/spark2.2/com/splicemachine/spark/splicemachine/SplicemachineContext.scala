@@ -49,6 +49,17 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
 object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
+
+  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
+
+  def broadcastCreds(credentials: Credentials) : Unit = this.synchronized {
+    if (broadcastCredentials != null)
+      return
+    
+    SpliceSpark.logCredentialsInformation(credentials)
+    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
+    SpliceSpark.setCredentials(broadcastCredentials)
+  }
 }
 
 /**
@@ -65,7 +76,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
-  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   private[this] def initConnection() = {
@@ -116,8 +126,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
           // Add it to credentials and broadcast them
           credentials.addToken(getUniqueAlias(token), token)
-          broadcastCreds
-          SpliceSpark.setCredentials(broadcastCredentials)
+          Holder.broadcastCreds(credentials)
 
           Holder.log.debug(f"Broadcasted credentials")
 
@@ -129,11 +138,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       
       initConnection()
     }
-  }
-
-  def broadcastCreds = {
-    SpliceSpark.logCredentialsInformation(credentials)
-    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
   }
 
   /**
