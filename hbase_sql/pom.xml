@@ -70,11 +70,6 @@
         </dependency>
         <dependency>
             <groupId>io.airlift</groupId>
-            <artifactId>configuration</artifactId>
-            <version>0.144</version>
-        </dependency>
-        <dependency>
-            <groupId>io.airlift</groupId>
             <artifactId>stats</artifactId>
             <version>0.144</version>
         </dependency>
