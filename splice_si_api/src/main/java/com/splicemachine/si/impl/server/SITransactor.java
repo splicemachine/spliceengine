@@ -184,7 +184,7 @@ public class SITransactor implements Transactor{
         try{
             lockRows(table,mutations,lockPairs,finalStatus);
 
-            LOG.info("Locked rows: " + Arrays.toString(lockPairs));
+            LOG.info(Thread.currentThread() + " Locked rows: " + Arrays.toString(lockPairs) + " for batch: " + mutations + " with txn: " + txn + " txnId:" + txn.getTxnId());
 
             /*
              * You don't need a low-level operation check here, because this code can only be called from
@@ -245,7 +245,7 @@ public class SITransactor implements Transactor{
         IntObjectOpenHashMap<DataPut> finalMutationsToWrite = IntObjectOpenHashMap.newInstance(dataAndLocks.length, 0.9f);
         DataResult possibleConflicts = null;
         BitSet bloomInMemoryCheck  = skipConflictDetection ? null : table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
-        LOG.info("Bloom check: " + bloomInMemoryCheck);
+        LOG.info(Thread.currentThread() + " Bloom check: " + bloomInMemoryCheck);
 
         for(int i=0;i<dataAndLocks.length;i++){
             Pair<KVPair, Lock> baseDataAndLock=dataAndLocks[i];
@@ -266,13 +266,13 @@ public class SITransactor implements Transactor{
                  */
                 //todo -sf remove the Row key copy here
                 possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
-                LOG.info("Possible conflicts for index " + i + " " + possibleConflicts);
+                LOG.info(Thread.currentThread() + " Possible conflicts for index " + i + " " + possibleConflicts);
                 
                 if(possibleConflicts!=null){
                     //we need to check for write conflicts
                     try {
                         conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts);
-                        LOG.info("Conflict results for index " + i + " " + conflictResults);
+                        LOG.info(Thread.currentThread() + " Conflict results for index " + i + " " + conflictResults);
                     } catch (IOException ioe) {
                         if (ioe instanceof WriteConflict) {
                             finalStatus[i] = operationStatusLib.failure(ioe);
