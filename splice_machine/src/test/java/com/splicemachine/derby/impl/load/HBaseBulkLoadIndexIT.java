@@ -41,6 +41,7 @@ import static org.junit.Assert.assertEquals;
 public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
     private static final String SCHEMA_NAME = HBaseBulkLoadIndexIT.class.getSimpleName().toUpperCase();
     private static final String LINEITEM = "LINEITEM";
+    private static final String LINEITEM2 = "LINEITEM2";
     private static final String ORDERS = "ORDERS";
     private static final String CUSTOMERS = "CUSTOMER";
     private static final String PARTSUPP = "PARTSUPP";
@@ -63,7 +64,9 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
     public static void loaddata() throws Exception {
         try {
             TestUtils.executeSqlFile(spliceClassWatcher, "tcph/createTable.sql", SCHEMA_NAME);
+            spliceClassWatcher.prepareStatement("create table lineitem2 as select * from lineitem with no data").execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("data"))).execute();
+            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM2, getResource("lineitem.tbl"), getResource("data"))).execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), getResource("data"))).execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), getResource("data"))).execute();
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), getResource("data"))).execute();
@@ -75,7 +78,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             spliceClassWatcher.prepareStatement(format("create index O_CUST_IDX on ORDERS(\n" +
                     " O_CUSTKEY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) splitkeys auto hfile location '%s'", getResource("data"))).execute();
+                    " ) splitkeys auto sample fraction 0.1 hfile location '%s'", getResource("data"))).execute();
 
             spliceClassWatcher.prepareStatement(format("create index O_DATE_PRI_KEY_IDX on ORDERS(\n" +
                     " O_ORDERDATE,\n" +
@@ -100,7 +103,36 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
                     " L_QUANTITY,\n" +
                     " L_SHIPMODE,\n" +
                     " L_SHIPINSTRUCT\n" +
-                    " ) splitkeys auto hfile location '%s'", getResource("data"))).execute();
+                    " ) physical splitkeys location '%s' hfile location '%s'", getResource("l_part_idx.txt"), getResource("data"))).execute();
+
+            spliceClassWatcher.prepareStatement(format("create index L_SHIPDATE_IDX2 on LINEITEM2(\n" +
+                    " L_SHIPDATE,\n" +
+                    " L_PARTKEY,\n" +
+                    " L_EXTENDEDPRICE,\n" +
+                    " L_DISCOUNT\n" +
+                    " ) splitkeys location '%s' columnDelimiter '|'", getResource("shipDateIndex.csv"))).execute();
+
+            spliceClassWatcher.prepareStatement(format(" create index L_PART_IDX2 on LINEITEM2(\n" +
+                    " L_PARTKEY,\n" +
+                    " L_ORDERKEY,\n" +
+                    " L_SUPPKEY,\n" +
+                    " L_SHIPDATE,\n" +
+                    " L_EXTENDEDPRICE,\n" +
+                    " L_DISCOUNT,\n" +
+                    " L_QUANTITY,\n" +
+                    " L_SHIPMODE,\n" +
+                    " L_SHIPINSTRUCT\n" +
+                    " ) physical splitkeys location '%s'", getResource("l_part_idx.txt"))).execute();
+
+            spliceClassWatcher.prepareStatement(format(" create index L_PART_IDX3 on LINEITEM2(\n" +
+                    " L_PARTKEY,\n" +
+                    " L_ORDERKEY,\n" +
+                    " L_SUPPKEY,\n" +
+                    " L_SHIPDATE,\n" +
+                    " L_EXTENDEDPRICE,\n" +
+                    " L_DISCOUNT,\n" +
+                    " L_SHIPINSTRUCT\n" +
+                    " ) splitkeys auto sample fraction 0.1")).execute();
 
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
             spliceClassWatcher.prepareStatement(format("create table A(c varchar(200))"));
@@ -113,6 +145,12 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             assertEquals(333L, (long) spliceClassWatcher.query("select count(*) from " + PART));
             assertEquals(25L, (long) spliceClassWatcher.query("select count(*) from " + NATION));
             assertEquals(5L, (long) spliceClassWatcher.query("select count(*) from " + REGION));
+            assertEquals(9958L, (long) spliceClassWatcher.query("select count(*) from lineitem2 --splice-properties index=L_PART_IDX2"));
+            assertEquals(9958L, (long) spliceClassWatcher.query("select count(*) from lineitem2 --splice-properties index=L_SHIPDATE_IDX2"));
+            spliceClassWatcher.execute("create table t(COL1 varchar(1000),COL2 varchar(1000), primary key(col1))");
+            String sql = String.format("call syscs_util.SYSCS_SPLIT_TABLE_OR_INDEX('%s', 'T', null, 'COL1', '%s', null,null,null,null,null,0,'/BAD',true,null)",
+                    SCHEMA_NAME, SpliceUnitTest.getResourceDirectory()+"largeKey.csv");
+            spliceClassWatcher.execute(sql);
         }
         catch (Exception e) {
             java.lang.Throwable ex = Throwables.getRootCause(e);
@@ -132,6 +170,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
         if (notSupported)
             return;
         bulkDelete(LINEITEM);
+        bulkDelete(LINEITEM2);
         bulkDelete(ORDERS);
         bulkDelete(CUSTOMERS);
         bulkDelete(PART);
@@ -143,6 +182,9 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
         countUsingIndex(LINEITEM, "L_SHIPDATE_IDX");
         countUsingIndex(ORDERS, "O_CUST_IDX");
         countUsingIndex(ORDERS, "O_DATE_PRI_KEY_IDX");
+        countUsingIndex(LINEITEM2, "L_PART_IDX2");
+        countUsingIndex(LINEITEM2, "L_PART_IDX3");
+        countUsingIndex(LINEITEM2, "L_SHIPDATE_IDX2");
     }
 
     private static void bulkDelete(String tableName) throws Exception {

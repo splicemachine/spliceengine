@@ -38,6 +38,7 @@ public class ExportParams implements Serializable {
     private static final String DEFAULT_RECORD_DELIMITER = "\n";
 
     private String directory;
+    private String format;
     private short replicationCount = DEFAULT_REPLICATION_COUNT;
     private boolean compression;
     private String characterEncoding = DEFAULT_ENCODING;
@@ -49,10 +50,11 @@ public class ExportParams implements Serializable {
     public ExportParams() {
     }
 
-    public ExportParams(String directory, boolean compression, int replicationCount, String characterEncoding,
+    public ExportParams(String directory, boolean compression, String format, int replicationCount, String characterEncoding,
                         String fieldDelimiter, String quoteChar) throws StandardException {
         setDirectory(directory);
         setCompression(compression);
+        setFormat(format);
         setReplicationCount((short) replicationCount);
         setCharacterEncoding(characterEncoding);
         setDefaultFieldDelimiter(StringEscapeUtils.unescapeJava(fieldDelimiter));
@@ -70,6 +72,10 @@ public class ExportParams implements Serializable {
 
     public String getDirectory() {
         return directory;
+    }
+
+    public String getFormat() {
+        return format;
     }
 
     public char getFieldDelimiter() {
@@ -103,6 +109,12 @@ public class ExportParams implements Serializable {
     private void setDirectory(String directory) throws StandardException {
         checkArgument(!isBlank(directory), "export path", directory);
         this.directory = directory;
+    }
+
+
+    private void setFormat(String format) throws StandardException {
+        checkArgument(!isBlank(format), "format", format);
+        this.format = format;
     }
 
     private void setCompression(Boolean compression) throws StandardException {

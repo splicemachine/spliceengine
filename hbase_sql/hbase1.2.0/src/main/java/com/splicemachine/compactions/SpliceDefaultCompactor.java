@@ -754,4 +754,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
 
     }
+
+    public List<StoreFileScanner> createFileScanners(
+            final Collection<StoreFile> filesToCompact,
+            long smallestReadPoint) throws IOException {
+        return StoreFileScanner.getScannersForStoreFiles(filesToCompact,
+        /* cache blocks = */ false,
+        /* use pread = */ false,
+        /* is compaction */ true,
+        /* use Drop Behind */ false,
+                smallestReadPoint);
+    }
 }
