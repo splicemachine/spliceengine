@@ -15,7 +15,6 @@ package com.splicemachine.spark.splicemachine
 
 import java.security.{PrivilegedExceptionAction, SecureRandom}
 import java.sql.Connection
-import java.util
 
 import com.splicemachine.EngineDriver
 import com.splicemachine.client.SpliceClient
@@ -26,20 +25,15 @@ import com.splicemachine.derby.vti.SpliceDatasetVTI
 import com.splicemachine.derby.vti.SpliceRDDVTI
 import com.splicemachine.tools.EmbedConnectionMaker
 import org.apache.spark.rdd.RDD
-import org.apache.spark.deploy.SparkHadoopUtil
 import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types.{StructType, TimestampType}
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
-import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.SerializableWritable
 import java.util.Properties
 
-import javassist.compiler.TokenId
 import com.splicemachine.access.HConfiguration
 import com.splicemachine.access.hbase.HBaseConnectionFactory
-import com.splicemachine.derby.stream.ActivationHolder
-import org.apache.commons.lang.SerializationUtils
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
@@ -64,7 +58,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
 
-  @transient var credentials = SparkHadoopUtil.get.getCurrentUserCredentials()
+  @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
@@ -293,23 +287,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       fs.setPermission(new Path(tempDirectory, id), FsPermission.createImmutable(Integer.parseInt("777", 8).toShort))
 
       val schema = resolveQuery(connection, sql, false)
-      val schemaNoTime = resolveQuery(connection, sql, true)
 
-      connection.prepareStatement(s"EXPORT('$tempDirectory/$id', true, 1, null, null, null) " + sql).execute()
+      connection.prepareStatement(s"EXPORT_BINARY('$tempDirectory/$id', false, 'parquet') " + sql).execute()
       // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-      var df = SpliceSpark.getSession.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").schema(schemaNoTime).csv(fs.getUri + s"$tempDirectory/$id")
-
-      // Columns of type TIME are serialized with a HH:mm:ss format, which is incompatible with the Timestamp format
-      // Deserialize them as Strings and parse the strings into Timestamps here
-      if (!schema.equals(schemaNoTime)) {
-        for ((ft, f) <- schema.fields zip schemaNoTime.fields) {
-          if (!ft.equals(f)) {
-            import org.apache.spark.sql.functions._
-            val name = ft.name
-            df = df.withColumn(name, unix_timestamp(col(name), "HH:mm:ss").cast(TimestampType))
-          }
-        }
-      }
+      var df = SpliceSpark.getSession.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").schema(schema).parquet(fs.getUri + s"$tempDirectory/$id")
       df
     } finally {
       connection.close()
@@ -560,6 +541,23 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         rs.close()
       }
     }
+  }
+
+  /**
+  * Export a dataFrame in binary format
+  *
+  * @param location  - Destination directory
+  * @param compression - Whether to compress the output or not
+  * @param format - Binary format to be used, currently only 'parquet' is supported
+  */
+  def exportBinary(dataFrame: DataFrame, location: String,
+                   compression: Boolean, format: String): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = s"export_binary ( '$location', $compression, '$format') select " + columnList + " from " +
+       s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
+    internalConnection.createStatement().execute(sqlText)
   }
 
   /**

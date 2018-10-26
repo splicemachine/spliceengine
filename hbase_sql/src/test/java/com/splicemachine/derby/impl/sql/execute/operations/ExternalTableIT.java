@@ -20,6 +20,8 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import org.apache.commons.io.FileUtils;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.SparkSession;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -2600,7 +2602,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "  3  |  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-
+    @Ignore
     @Test
     public void testParquetMergeSchema() throws Exception {
         try {
@@ -2707,5 +2709,121 @@ public class ExternalTableIT extends SpliceUnitTest{
         catch (SQLException e) {
             Assert.assertEquals("Wrong Exception","EXT11",e.getSQLState());
         }
+    }
+
+    @Test
+    public void testParquetColumnName() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"parquet_colname";
+        methodWatcher.execute(String.format("create external table t_parquet (col1 int, col2 varchar(5))" +
+                " STORED AS PARQUET LOCATION '%s'", tablePath));
+        methodWatcher.execute("insert into t_parquet values (1, 'A')");
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("ExternaltableIT")
+                .getOrCreate();
+
+        Dataset dataset = spark
+                .read()
+                .parquet(tablePath);
+        String actual = dataset.schema().toString();
+        String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
+        Assert.assertEquals(actual, expected, actual);
+    }
+
+
+    @Test
+    public void testParquetPartitionColumnName() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"parquet_partition_colname";
+        methodWatcher.execute(String.format("create external table t_parquet_partition (col1 int, col2 varchar(5)) partitioned by (col2)" +
+                " STORED AS PARQUET LOCATION '%s'", tablePath));
+        methodWatcher.execute("insert into t_parquet_partition values (2, 'B')");
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("ExternaltableIT")
+                .getOrCreate();
+        Dataset dataset = spark
+                .read()
+                .parquet(tablePath);
+        String actual = dataset.schema().toString();
+        String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
+        Assert.assertEquals(actual, expected, actual);
+    }
+
+    @Test
+    public void testOrcColumnName() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"orc_colname";
+        methodWatcher.execute(String.format("create external table t_orc (col1 int, col2 varchar(5))" +
+                " STORED AS ORC LOCATION '%s'", tablePath));
+        methodWatcher.execute("insert into t_orc values (3, 'C')");
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("ExternaltableIT")
+                .getOrCreate();
+        Dataset dataset = spark
+                .read()
+                .orc(tablePath);
+        String actual = dataset.schema().toString();
+        String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
+        Assert.assertEquals(actual, expected, actual);
+    }
+
+    @Test
+    public void testOrcPartitionColumnName() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"orc_partition_colname";
+        methodWatcher.execute(String.format("create external table t_orc_partition (col1 int, col2 varchar(5)) partitioned by (col2)" +
+                " STORED AS ORC LOCATION '%s'", tablePath));
+        methodWatcher.execute("insert into t_orc_partition values (4, 'D')");
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("ExternaltableIT")
+                .getOrCreate();
+        Dataset dataset = spark
+                .read()
+                .orc(tablePath);
+        String actual = dataset.schema().toString();
+        String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
+        Assert.assertEquals(actual, expected, actual);
+    }
+
+    @Test @Ignore("Need to import spark-avro.jar in hbase_sql to test in a separate Spark")
+    public void testAvroColumnName() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "avro_colname";
+        methodWatcher.executeUpdate(String.format("create external table avro_colname (col1 int, col2 varchar(24))" +
+                " STORED AS AVRO LOCATION '%s'", tablePath));
+        methodWatcher.executeUpdate(String.format("insert into avro_colname values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("ExternaltableIT")
+                .getOrCreate();
+        Dataset dataset = spark
+                .read()
+                .format("com.databricks.spark.avro")
+                .load(tablePath);
+        String actual = dataset.schema().toString();
+        String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
+        Assert.assertEquals(actual, expected, actual);
+
+    }
+    @Test @Ignore("Need to import spark-avro.jar in hbase_sql to test in a separate Spark")
+    public void testAvroPartitionColumnName() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "avro_partition_colname";
+        methodWatcher.executeUpdate(String.format("create external table avro_patition_colname (col1 int, col2 varchar(24))" +
+                "partitioned by (col2) STORED AS AVRO LOCATION '%s'", tablePath));
+        methodWatcher.executeUpdate(String.format("insert into avro_patition_colname values (1,'XXXX')," +
+                "(2,'YYYY')," +
+                "(3,'ZZZZ')"));
+        SparkSession spark = SparkSession.builder()
+                .master("local")
+                .appName("ExternaltableIT")
+                .getOrCreate();
+        Dataset dataset = spark
+                .read()
+                .format("com.databricks.spark.avro")
+                .load(tablePath);
+        String actual = dataset.schema().toString();
+        String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
+        Assert.assertEquals(actual, expected, actual);
     }
 }

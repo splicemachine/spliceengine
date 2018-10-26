@@ -123,7 +123,8 @@ public interface LanguageConnectionFactory {
                                 CompilerContext.DataSetProcessorType type,
 								boolean skipStats,
 								double defaultSelectivityFactor,
-								 String ipAddress)
+								String ipAddress,
+                                String defaultSchema)
 
 		throws StandardException;
 

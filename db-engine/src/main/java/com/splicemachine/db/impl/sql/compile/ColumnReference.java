@@ -32,23 +32,22 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+
+import java.util.*;
 
 /**
  * A ColumnReference represents a column in the query tree.  The parser generates a
@@ -981,16 +980,17 @@ public class ColumnReference extends ValueNode {
 				// inside a join tree, which can have many columns in the rcl
 				// with the same name, so looking up via column name can give
 				// the wrong column. DERBY-4679.
+				boolean markIfReferenced = !getCompilerContext().isProjectionPruningEnabled();
 				ftRC = rcl.getResultColumn(
 						tableNumberBeforeFlattening,
 						columnNumberBeforeFlattening,
-						columnName);
+						columnName, markIfReferenced);
 
 				if (ftRC == null) {
 					// The above lookup won't work for references to a base
 					// column, so fall back on column name, which is unique
 					// then.
-					ftRC = rcl.getResultColumn(columnName);
+					ftRC = rcl.getResultColumn(columnName, markIfReferenced);
                     tableNumber = ft.getTableNumber();
 				}
 				else {
@@ -1462,8 +1462,8 @@ public class ColumnReference extends ValueNode {
 	}
 
 	@Override
-	public ColumnReference getHashableJoinColumnReference() {
-		return this;
+	public List<ColumnReference> getHashableJoinColumnReference() {
+		return new ArrayList<>(Arrays.asList(this));
 	}
 
 	public boolean isRowIdColumn() {

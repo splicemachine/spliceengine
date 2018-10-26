@@ -37,7 +37,9 @@ import static org.junit.Assert.assertEquals;
 public class InsertOperationIT {
 
     private static final String SCHEMA = InsertOperationIT.class.getSimpleName();
-    private static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
+
+    @ClassRule
+    public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);

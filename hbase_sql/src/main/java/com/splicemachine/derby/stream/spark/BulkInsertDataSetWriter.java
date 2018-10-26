@@ -31,12 +31,14 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.utils.BulkLoadUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -208,10 +210,10 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                 List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> result = keyStatistics.collect();
 
                 // Calculate cut points for main table and index tables
-                cutPoints = getCutPoints(sampleFraction, result);
+                cutPoints = BulkLoadUtils.getCutPoints(sampleFraction, result);
 
                 // dump cut points to file system for reference
-                dumpCutPoints(cutPoints, bulkImportDirectory);
+                ImportUtils.dumpCutPoints(cutPoints, bulkImportDirectory);
                 operationContext.reset();
             }
             if (!samplingOnly && !outputKeysOnly) {

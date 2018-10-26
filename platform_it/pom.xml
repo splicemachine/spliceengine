@@ -15,12 +15,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>platform_it-${envClassifier}</artifactId>
+    <artifactId>platform_it</artifactId>
     <description>Integration Tests for SQL engine based on HBase</description>
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.8.0.1836-SNAPSHOT</version>
+        <version>2.8.0.1843-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -32,7 +32,7 @@
         <ee_out/>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
-        <argLine>-Xmx4g -XX:MaxPermSize=256m ${jacocoAgent}</argLine>
+        <argLine>-Xms64m -Xmx4g ${jacocoAgent}</argLine>
     </properties>
     <dependencies>
         <dependency>
@@ -258,6 +258,14 @@
                 <exclusion>
                     <artifactId>hadoop-client</artifactId>
                     <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+		<exclusion>
+		    <groupId>org.apache.curator</groupId>
+    		    <artifactId>curator-recipes</artifactId>
+		</exclusion>
+		<exclusion>
+		    <groupId>org.apache.curator</groupId>
+    		    <artifactId>curator-framework</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -646,27 +654,15 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>4.0.0</version>
                 <inherited>true</inherited>
                 <extensions>true</extensions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
+                <artifactId>maven-deploy-plugin</artifactId>
                 <configuration>
-                    <excludes>
-                        <exclude>**/com/splicemachine/backup/*</exclude>
-                        <exclude>**/core-site.xml</exclude>
-                        <exclude>**/yarn-site.xml</exclude>
-                        <exclude>**/*log4j.properties</exclude>
-                    </excludes>
+                    <skip>true</skip>
                 </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <!--This used to be confinded to the spark-prepare profile, but is now done always by default
@@ -742,8 +738,10 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g</argLine>
+                            <excludedGroups>
+                                ${excluded.categories}
+                            </excludedGroups>
+                            <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -757,8 +755,12 @@
                                 </exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
+                            <systemPropertyVariables>
+                                <splice.schemaCleanup>none</splice.schemaCleanup>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
                     <execution>
                         <id>integration-tests-parallel</id>
                         <goals>
@@ -766,14 +768,16 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest,
+                            <excludedGroups>
+                                com.splicemachine.test.SerialTest,
+                                com.splicemachine.test.RestoreTest,
                                 ${excluded.categories}
                             </excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx5g</argLine>
+                            <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -782,11 +786,10 @@
                             <includes>
                                 <include>**/*IT.java</include>
                             </includes>
-                            <excludes>
-                                <!-- Skip all unit tests -->
-                                <exclude>**/*Test.java</exclude>
-                            </excludes>
                             <runOrder>alphabetical</runOrder>
+                            <systemPropertyVariables>
+                                <splice.schemaCleanup>async</splice.schemaCleanup>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
@@ -798,7 +801,7 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.RestoreTest</groups>
-                            <argLine>-Xmx3g</argLine>
+                            <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>
                                 <include>**/*RestoreIT.java</include>
@@ -1064,7 +1067,9 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xms64m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>com.splicemachine.kafka.TestKafkaCluster</argument>
                                 <argument>localhost:2181</argument>
@@ -1134,7 +1139,9 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xms64m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4002</argument>
                                 <argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
@@ -1247,7 +1254,6 @@
                             <!--<includePluginDependencies>true</includePluginDependencies>-->
                             <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
                             <arguments>
-                                <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
                                 <argument>${project.build.directory}/classes</argument>
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
@@ -1280,15 +1286,14 @@
                             <classpathScope>test</classpathScope>
                             <executable>java</executable>
                             <arguments>
-                                <!-- <argument>-verbose:gc</argument> -->
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
                                 <argument>-Xdebug</argument>
-                                <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
-                                <argument>-XX:+FlightRecorder</argument> -->
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -1300,8 +1305,8 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx6g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xms64m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
                                 <argument>-Dsplice.spark.eventLog.enabled=true</argument>
@@ -1357,10 +1362,12 @@
                                     ${hbase.rootdir}
                                     -Dhdp.version=2.6.3
                                     -enableassertions
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
                                 </argument>
                                 <argument>-Dsplice.spark.yarn.am.extraJavaOptions=
                                     -Dhdp.version=2.6.3
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
                                 </argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     ${hbase.rootdir}
@@ -1369,6 +1376,7 @@
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -enableassertions
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40
                                     ${jacocoAgent}
                                 </argument>
                                 <argument>-Dsplice.spark.yarn.user=${user.name}</argument>
@@ -1383,25 +1391,15 @@
                                     -enableassertions
                                     -Djava.net.preferIPv4Stack=true
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30
                                 </argument>
                                 <argument>${spark.keytab}</argument>
                                 <argument>${spark.principal}</argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
                                 <argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
-                                <argument>-Dsplice.spark.storage.memoryFraction=0.1</argument>
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
-                                <!-- CMS Garbage Collection -->
-                                <argument>-Xmn128m</argument>
-                                <argument>-XX:+UseConcMarkSweepGC</argument>
-                                <argument>-XX:+UseParNewGC</argument>
-                                <argument>-XX:NewSize=128m</argument>
-                                <argument>-XX:MaxNewSize=128m</argument>
-                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
-                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-                                <argument>-XX:MaxGCPauseMillis=100</argument>
-                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
-                                <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                <argument>-XX:+UseG1GC</argument>
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
                                 <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
@@ -1453,6 +1451,8 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
@@ -1460,18 +1460,10 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx4g</argument>
-                                <argument>-Xmn128m</argument>
-                                <argument>-XX:+UseConcMarkSweepGC</argument>
-                                <argument>-XX:+UseParNewGC</argument>
-                                <argument>-XX:NewSize=128m</argument>
-                                <argument>-XX:MaxNewSize=128m</argument>
-                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
-                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-                                <argument>-XX:MaxGCPauseMillis=100</argument>
+                                <argument>-Xmx2g</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
-                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
-                                <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                <argument>-XX:+UseG1GC</argument>
+
                                 <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
@@ -1482,6 +1474,128 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>hdp2.5.5</id>
+            <properties>
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>hdp2.6.1</id>
+            <properties>
+                <extraDependency>splice_ranger_service</extraDependency>
+                <extraDependency2>splice_ranger_admin</extraDependency2>
+                <extraDependency3>splice_atlas</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>hdp2.6.3</id>
+            <properties>
+                <extraDependency>splice_ranger_service</extraDependency>
+                <extraDependency2>splice_ranger_admin</extraDependency2>
+                <extraDependency3>splice_atlas</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>hdp2.6.4</id>
+            <properties>
+                <extraDependency>splice_ranger_service</extraDependency>
+                <extraDependency2>splice_ranger_admin</extraDependency2>
+                <extraDependency3>splice_atlas</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>cdh5.8.3</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>cdh5.8.5</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>cdh5.12.0</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>cdh5.12.2</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>cdh5.13.0</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>cdh5.13.2</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>cdh5.13.3</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>mapr5.2.0</id>
+            <properties>
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>cdh5.14.0</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>mapr6.0.0</id>
+            <properties>
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+
         <profile>
             <id>ee</id>
             <activation>
@@ -1496,14 +1610,16 @@
             <dependencies>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_ee-${envClassifier}</artifactId>
+                    <artifactId>splice_ee</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_backup-${envClassifier}</artifactId>
+                    <artifactId>splice_backup</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
@@ -1524,28 +1640,68 @@
                     <version>${project.version}</version>
                     <scope>test</scope>
                 </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>enterprise_it</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_backup</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>${extraDependency}</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>${extraDependency}</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>${extraDependency2}</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>${extraDependency2}</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>${extraDependency3}</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>${extraDependency3}</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                </dependency>
             </dependencies>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>1.9.1</version>
-                        <executions>
-                            <execution>
-                                <id>add-ee-test-source</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>add-test-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>../../spliceengine-ee/splice_backup/src/test/java</source>
-                                        <source>../../spliceengine-ee/enterprise_it/src/test/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <dependenciesToScan combine.children="append">
+                                <dependency>com.splicemachine:splice_backup</dependency>
+                                <dependency>com.splicemachine:enterprise_it</dependency>
+                                <dependency>com.splicemachine:${extraDependency}</dependency>
+                                <dependency>com.splicemachine:${extraDependency2}</dependency>
+                                <dependency>com.splicemachine:${extraDependency3}</dependency>
+                            </dependenciesToScan>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -1629,7 +1785,7 @@
                                 <clusterRegionserver>localhost</clusterRegionserver>
                             </propertiesUser>
                             <jMeterProcessJVMSettings>
-                                <xms>1024</xms>
+                                <xms>128</xms>
                                 <xmx>4096</xmx>
                                 <!--
                                 <arguments>
@@ -1727,8 +1883,8 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx6g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xms64m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
                                 <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse
@@ -1791,6 +1947,8 @@
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
                                 <!-- CMS Garbage Collection -->
                                 <argument>-Xmn128m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>
                                 <argument>-XX:NewSize=128m</argument>

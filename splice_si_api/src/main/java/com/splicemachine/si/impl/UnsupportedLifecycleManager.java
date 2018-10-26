@@ -92,6 +92,11 @@ public class UnsupportedLifecycleManager implements TxnLifecycleManager {
 		}
 
 	@Override
+	public void unregisterActiveTransaction(long txnId) throws IOException {
+		throw new UnsupportedOperationException("Cannot unregister active transactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
+	}
+
+	@Override
 	public void rollbackSubtransactions(long txnId, LongHashSet rolledback) throws IOException {
 		throw new UnsupportedOperationException("Cannot rollback subtransactions from the UnsupportedLifecycle Manager. Use a real Lifecycle manager instead");
 	}

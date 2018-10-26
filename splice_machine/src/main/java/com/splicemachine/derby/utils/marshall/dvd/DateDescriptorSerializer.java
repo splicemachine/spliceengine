@@ -38,7 +38,7 @@ public class DateDescriptorSerializer extends AbstractTimeDescriptorSerializer {
 
 		};
 
-		private DateDescriptorSerializer() { }
+		protected DateDescriptorSerializer() { }
 
 		@Override
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {

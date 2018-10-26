@@ -61,6 +61,7 @@ public class TableCreator {
     private List<String> indexSqlList = Lists.newArrayList();
     private RowCreator rowCreator;
     private String constraints;
+    private int queryTimeout = 240;
 
     public TableCreator(Connection connection) {
         this.connection = connection;
@@ -118,6 +119,7 @@ public class TableCreator {
         }
         String CREATE_SQL=tableName!=null?String.format(baseSql,tableName):baseSql;
         Statement statement = connection.createStatement();
+        statement.setQueryTimeout(queryTimeout);
         try {
             statement.execute(CREATE_SQL);
         } finally {
@@ -129,6 +131,7 @@ public class TableCreator {
         for (String indexSql : indexSqlList) {
             String INDEX_SQL = tableName == null ? indexSql : String.format(indexSql, tableName);
             Statement statement = connection.createStatement();
+            statement.setQueryTimeout(queryTimeout);
             try {
                 statement.execute(INDEX_SQL);
             } finally {
@@ -142,6 +145,7 @@ public class TableCreator {
         int batchSize = rowCreator.batchSize();
         rowCreator.reset();
         try(PreparedStatement ps = connection.prepareStatement(insertSql)) {
+            ps.setQueryTimeout(queryTimeout);
             if(batchSize>1){
                 int size = 0;
                 while(rowCreator.advanceRow()){

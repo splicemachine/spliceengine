@@ -14,22 +14,34 @@
 
 package com.splicemachine.hbase;
 
+import org.spark_project.guava.collect.Lists;
+
 import java.io.*;
+import java.util.List;
 
 /**
  * Created by jyuan on 5/5/17.
  */
 public class BackupJobStatus implements Externalizable{
     private long backupId;
+    private BackupUtils.BackupScope scope;
     private boolean isIncremental = false;
     private long lastActiveTimestamp = 0;
+    private List<String> tables;
 
     public BackupJobStatus(){}
 
-    public BackupJobStatus(long backupId, boolean isIncremental,long lastActiveTimestamp) {
+    public BackupJobStatus(long backupId, boolean isIncremental, long lastActiveTimestamp, BackupUtils.BackupScope scope) {
         this.backupId = backupId;
         this.isIncremental = isIncremental;
         this.lastActiveTimestamp = lastActiveTimestamp;
+        this.scope = scope;
+    }
+
+    public BackupJobStatus(long backupId, boolean isIncremental, long lastActiveTimestamp,
+                           BackupUtils.BackupScope scope, List<String> tables) {
+        this(backupId, isIncremental, lastActiveTimestamp, scope);
+        this.tables = tables;
     }
 
     public long getBackupId() {
@@ -53,6 +65,16 @@ public class BackupJobStatus implements Externalizable{
         out.writeLong(backupId);
         out.writeBoolean(isIncremental);
         out.writeLong(lastActiveTimestamp);
+        out.writeInt(scope.ordinal());
+        if (tables != null) {
+            out.writeInt(tables.size());
+            for (int i = 0; i < tables.size(); ++i) {
+                out.writeUTF(tables.get(i));
+            }
+        }
+        else {
+            out.writeInt(0);
+        }
     }
 
     @Override
@@ -60,6 +82,14 @@ public class BackupJobStatus implements Externalizable{
         backupId = in.readLong();
         isIncremental = in.readBoolean();
         lastActiveTimestamp = in.readLong();
+        scope = BackupUtils.BackupScope.values()[in.readInt()];
+        int size = in.readInt();
+        if (size > 0) {
+            tables = Lists.newArrayList();
+            for (int i = 0; i < size; ++i) {
+                tables.add(in.readUTF());
+            }
+        }
     }
 
     /**
@@ -104,5 +134,13 @@ public class BackupJobStatus implements Externalizable{
                 in.close();
             }
         }
+    }
+
+    public BackupUtils.BackupScope getScope() {
+        return scope;
+    }
+
+    public List<String> getTables() {
+        return tables;
     }
 }

@@ -55,14 +55,12 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
-import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -753,9 +751,30 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
     
     public static void VACUUM() throws SQLException{
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        long oldestActiveTransaction = Long.MAX_VALUE;
+        List<ExecRow> rows = new ArrayList<>();
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_OLDEST_ACTIVE_TRANSACTION()")) {
+                    if (rs.next()) {
+                        long localOldestActive = rs.getLong(1);
+                        if (!rs.wasNull() && localOldestActive < oldestActiveTransaction)
+                            oldestActiveTransaction = localOldestActive;
+                    }
+                }
+            }
+        }
+
         Vacuum vacuum=new Vacuum(getDefaultConn());
         try{
-            vacuum.vacuumDatabase();
+            vacuum.vacuumDatabase(oldestActiveTransaction);
         }finally{
             vacuum.shutdown();
         }
@@ -1704,6 +1723,29 @@ public class SpliceAdmin extends BaseAdminProcedures{
         LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
         IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, runningOpsDescriptors, lastActivation);
+        try {
+            resultsToWrap.openCore();
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        resultSet[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+    }
+
+    public static void SYSCS_GET_OLDEST_ACTIVE_TRANSACTION(ResultSet[] resultSet) throws SQLException{
+        Long id = SIDriver.driver().getTxnStore().oldestActiveTransaction();
+
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+        List<ExecRow> rows = new ArrayList<>(1);
+        ExecRow row = new ValueRow(1);
+        row.setColumn(1, id == null ? null : new SQLLongint(id));
+        GenericColumnDescriptor[] descriptor = new GenericColumnDescriptor[]{
+                new GenericColumnDescriptor("transactionId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
+        };
+        rows.add(row);
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows, descriptor, lastActivation);
         try {
             resultsToWrap.openCore();
         } catch (StandardException se) {

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -35,6 +36,7 @@ import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.*;
@@ -166,7 +168,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
             } catch (IOException e) {
                 String errMsg = e.getMessage();
                 if (errMsg.compareTo("should not give a splitkey which equals to startkey!") == 0) {
-                    SpliceLogUtils.warn(LOG, errMsg + ": " + Bytes.toStringBinary(splitPoint));
+                    SpliceLogUtils.warn(LOG, "%s : %s", errMsg, Bytes.toStringBinary(splitPoint));
                     SQLWarning warning =
                             StandardException.newWarning(SQLState.SPLITKEY_EQUALS_STARTKEY, Bytes.toStringBinary(splitPoint));
                     try {
@@ -343,6 +345,14 @@ public class H10PartitionAdmin implements PartitionAdmin{
     public boolean tableExists(String tableName) throws IOException
     {
         return admin.tableExists(tableInfoFactory.getTableInfo(tableName));
+    }
+
+    @Override
+    public void markDropped(long conglomId, long txn) throws IOException {
+        Table dropped = admin.getConnection().getTable(tableInfoFactory.getTableInfo(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME));
+        Put put = new Put(Bytes.toBytes(conglomId));
+        put.addImmutable(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, Bytes.toBytes(txn));
+        dropped.put(put);
     }
 
     @Override

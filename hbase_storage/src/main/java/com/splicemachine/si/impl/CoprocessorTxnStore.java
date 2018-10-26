@@ -16,6 +16,7 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.si.api.txn.ActiveTxnTracker;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -40,6 +41,7 @@ import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -58,6 +60,7 @@ public class CoprocessorTxnStore implements TxnStore {
     private TxnSupplier cache; //a transaction store which uses a global cache for us
     private volatile long oldTransactions;
     private final boolean ignoreMissingTransactions;
+    private final ActiveTxnTracker activeTransactions;
     
     @ThreadSafe
     private final TimestampSource timestampSource;
@@ -76,6 +79,7 @@ public class CoprocessorTxnStore implements TxnStore {
         this.cache = txnCache==null?this:txnCache; // Not Used...
         this.timestampSource=timestampSource;
         this.ignoreMissingTransactions = HConfiguration.getConfiguration().getIgnoreMissingTxns();
+        this.activeTransactions = new ActiveTxnTracker();
     }
 
     @Override
@@ -127,6 +131,20 @@ public class CoprocessorTxnStore implements TxnStore {
         }
     }
 
+    @Override
+    public void registerActiveTransaction(Txn txn) {
+        activeTransactions.registerActiveTxn(txn.getBeginTimestamp());
+    }
+
+    @Override
+    public void unregisterActiveTransaction(long txnId) {
+        activeTransactions.unregisterActiveTxn(txnId);
+    }
+
+    @Override
+    public Long oldestActiveTransaction() {
+        return activeTransactions.oldestActiveTransaction();
+    }
 
     @Override
     public void rollback(long txnId) throws IOException{
@@ -386,7 +404,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         queryId,queryId,
                         Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis());
             } else {
-                throw new TransactionMissing(queryId);
+                 throw new TransactionMissing(queryId);
             }
         }
 

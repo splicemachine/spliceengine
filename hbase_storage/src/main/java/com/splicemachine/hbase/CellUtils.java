@@ -16,6 +16,8 @@ package com.splicemachine.hbase;
 
 import java.util.List;
 
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.CellType;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -178,4 +180,22 @@ public class CellUtils {
 		if (bytes.length == 0) return "";
 		return Bytes.toHex(bytes);
 	}
+
+	public static CellType getKeyValueType(Cell keyValue) {
+		if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES)) {
+			return CellType.COMMIT_TIMESTAMP;
+		} else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
+			return CellType.USER_DATA;
+		} else if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES)) {
+			if (CellUtils.matchingValue(keyValue, SIConstants.EMPTY_BYTE_ARRAY)) {
+				return CellType.TOMBSTONE;
+			} else if (CellUtils.matchingValue(keyValue,SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES)) {
+				return CellType.ANTI_TOMBSTONE;
+			}
+		} else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
+			return CellType.FOREIGN_KEY_COUNTER;
+		}
+		return CellType.OTHER;
+	}
+
 }

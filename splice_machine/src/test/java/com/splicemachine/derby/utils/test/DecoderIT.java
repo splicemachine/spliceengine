@@ -14,10 +14,7 @@
 
 package com.splicemachine.derby.utils.test;
 
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -61,6 +58,7 @@ public class DecoderIT {
 
     private static final String SCHEMA_NAME = DecoderIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    private static final SpliceSchemaWatcher spliceSchemaWathcer = new SpliceSchemaWatcher(SCHEMA_NAME);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -110,6 +108,7 @@ public class DecoderIT {
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(spliceSchemaWathcer)
             .around(headerTableWatcher)
             .around(headerTableWatcher2);
 

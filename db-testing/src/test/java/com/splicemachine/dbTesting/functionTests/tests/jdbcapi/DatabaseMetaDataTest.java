@@ -2077,7 +2077,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(rs, new String[][]
           {
-            {"SYNONYM"},{"SYSTEM TABLE"},{"TABLE"},{"VIEW"},               
+            {"SYNONYM"},{"SYSTEM TABLE"},{"TABLE"},{"VIEW"},{"EXTERNAL TABLE"}
           }, true);
         rs.close();
     }

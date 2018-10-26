@@ -1433,13 +1433,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     /**
      * This method can get called from the DataDictionary cache.
      *
-     * @param tableKey The TableKey of the table
+     * @param tableId The UUID of the table
      * @return The descriptor for the table, null if the table does
      * not exist.
      * @throws StandardException Thrown on failure
      */
-    TableDescriptor getUncachedTableDescriptor(TableKey tableKey) throws StandardException{
-        return getTableDescriptorIndex1Scan(tableKey.getTableName(),tableKey.getSchemaId().toString());
+    public TableDescriptor getUncachedTableDescriptor(UUID tableId) throws StandardException{
+        return getTableDescriptorIndex2Scan(tableId.toString());
     }
 
     /**
@@ -1522,7 +1522,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 getColumnDescriptorsScan(td);
                 getConglomerateDescriptorsScan(td);
                 markSystemTablesAsVersion1(td);
-            }
+                td.getHeapConglomerateId(); // populate heapConglomerateId
+             }
         }
 
         return td;
@@ -5481,6 +5482,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ti.deleteRow(tc,keyRow2,SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX2_ID);
 
+        tc.markConglomerateDropped(conglomerate.getConglomerateNumber());
     }
 
     /**
@@ -5505,8 +5507,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow3=exFactory.getIndexableRow(1);
         keyRow3.setColumn(1,tableIDOrderable);
 
+        ConglomerateDescriptorList cds = td.getConglomerateDescriptorList();
 
         ti.deleteRow(tc,keyRow3,SYSCONGLOMERATESRowFactory.SYSCONGLOMERATES_INDEX3_ID);
+
+        if (!td.isExternal()) {
+            for (ConglomerateDescriptor cd : cds) {
+                tc.markConglomerateDropped(cd.getConglomerateNumber());
+            }
+        }
     }
 
     /**

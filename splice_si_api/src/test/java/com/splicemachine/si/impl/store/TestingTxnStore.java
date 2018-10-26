@@ -111,6 +111,21 @@ public class TestingTxnStore implements TxnStore{
     }
 
     @Override
+    public void registerActiveTransaction(Txn txn) {
+        
+    }
+
+    @Override
+    public void unregisterActiveTransaction(long txnId) {
+
+    }
+
+    @Override
+    public Long oldestActiveTransaction() {
+        return null;
+    }
+
+    @Override
     public void rollback(long txnId) throws IOException{
         TxnHolder txnHolder=txnMap.get(txnId);
         if(txnHolder==null) return; //no transaction exists

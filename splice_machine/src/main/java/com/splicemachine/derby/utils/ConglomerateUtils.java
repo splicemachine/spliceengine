@@ -212,16 +212,7 @@ public class ConglomerateUtils{
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,null,null,null,-1);
-    }
-
-    public static void createConglomerate(boolean isExternal,long conglomId,
-                                          Conglomerate conglomerate,
-                                          Txn txn,
-                                          String schemaDisplayName,
-                                          String tableDisplayName,
-                                          String indexDisplayName) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,-1);
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,null,null,null,-1,null);
     }
 
     public static void createConglomerate(boolean isExternal,long conglomId,
@@ -230,8 +221,30 @@ public class ConglomerateUtils{
                                           String schemaDisplayName,
                                           String tableDisplayName,
                                           String indexDisplayName,
-                                          long partitionSize) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,partitionSize);
+                                          byte[][] splitKeys) throws StandardException{
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,-1, splitKeys);
+    }
+
+    public static void createConglomerate(boolean isExternal,long conglomId,
+                                          Conglomerate conglomerate,
+                                          Txn txn,
+                                          String schemaDisplayName,
+                                          String tableDisplayName,
+                                          String indexDisplayName,
+                                          long partitionSize,
+                                          byte[][] splitKeys) throws StandardException{
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,partitionSize, splitKeys);
+    }
+
+
+    public static void markConglomerateDropped(long conglomId, Txn txn) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            admin.markDropped(conglomId, txn.getTxnId());
+        } catch (Exception e) {
+            SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));
+        }
     }
 
     /**
@@ -249,7 +262,8 @@ public class ConglomerateUtils{
             String schemaDisplayName,
             String tableDisplayName,
             String indexDisplayName,
-            long partitionSize) throws StandardException{
+            long partitionSize,
+            byte[][] splitKeys) throws StandardException{
         SpliceLogUtils.debug(LOG,"creating Hbase table for conglom {%s} with data {%s}",tableName,conglomData);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
@@ -259,9 +273,11 @@ public class ConglomerateUtils{
         PartitionFactory tableFactory=driver.getTableFactory();
         if (!isExternal) {
             try (PartitionAdmin admin = tableFactory.getAdmin()) {
-                PartitionCreator partitionCreator = admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName});
+                PartitionCreator partitionCreator = admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId());
                 if (partitionSize > 0)
                     partitionCreator = partitionCreator.withPartitionSize(partitionSize);
+                if (splitKeys != null && splitKeys.length > 0)
+                    partitionCreator = partitionCreator.withSplitKeys(splitKeys);
                 partitionCreator.create();
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));

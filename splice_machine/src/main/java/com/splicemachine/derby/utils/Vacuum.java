@@ -19,9 +19,20 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.carrotsearch.hppc.LongHashSet;
 
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.DataDelete;
+import com.splicemachine.storage.DataScanner;
+import com.splicemachine.storage.Partition;
 import org.spark_project.guava.collect.Iterables;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
@@ -37,6 +48,7 @@ import com.splicemachine.derby.impl.sql.execute.actions.ActiveTransactionReader;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
@@ -66,10 +78,7 @@ public class Vacuum{
         }
     }
 
-    public void vacuumDatabase() throws SQLException{
-
-        ensurePriorTransactionsComplete();
-
+    public void vacuumDatabase(long oldestActiveTransaction) throws SQLException{
         //get all the conglomerates from sys.sysconglomerates
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -89,8 +98,26 @@ public class Vacuum{
         }
         LOG.info("Found " + activeConglomerates.size() + " active conglomerates.");
 
-        //get all the tables from HBaseAdmin
-        try {
+        //get all dropped conglomerates
+        Map<Long, Long> droppedConglomerates = new HashMap<>();
+        List<Long> toDelete = new ArrayList<>();
+        SIDriver driver = SIDriver.driver();
+        try (Partition dropped = driver.getTableFactory().getTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME)) {
+            try (DataScanner scanner = dropped.openScanner(driver.baseOperationFactory().newScan())) {
+                while (true) {
+                    List<DataCell> res = scanner.next(0);
+                    if (res.isEmpty())
+                        break;
+                    for (DataCell dc : res) {
+                        long conglomerateId = Bytes.toLong(dc.key());
+                        long txnId = Bytes.toLong(dc.value());
+
+                        droppedConglomerates.putIfAbsent(conglomerateId, txnId);
+                    }
+                }
+            }
+
+            //get all the tables from HBaseAdmin
             Iterable<TableDescriptor> hTableDescriptors = partitionAdmin.listTables();
 
             if (LOG.isTraceEnabled()) {
@@ -111,9 +138,54 @@ public class Vacuum{
                         }
                         continue; //ignore system tables
                     }
+                    boolean requiresDroppedId = false;
+                    boolean ignoreDroppedId = false;
+                    if (table.getTransactionId() != null) {
+                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getTransactionId()));
+                        if (txn.getEffectiveBeginTimestamp() >= oldestActiveTransaction) {
+                            // This conglomerate was created by a "recent" transaction (newer than the oldest active txn)
+                            // ignore it in case it's still in use
+
+                            if (LOG.isInfoEnabled()) {
+                                LOG.info("Ignoring recently created table: " + table.getTableName() + " by transaction " + txn.getTxnId());
+                            }
+                            continue;
+                        }
+                        if (txn.getEffectiveState().equals(Txn.State.ROLLEDBACK)) {
+                            // Transaction is rolled back, we can remove it safely, don't pay any mind to the droppedId
+                            ignoreDroppedId = true;
+                        } else {
+                            // This conglomerate requires a dropped transaction id
+                            requiresDroppedId = true;
+                        }
+                    }
+                    boolean hasDroppedId = table.getDroppedTransactionId() != null || droppedConglomerates.containsKey(tableConglom);
+                    if (!ignoreDroppedId && hasDroppedId) {
+                        long txnId;
+                        // The first case deals with conglomerates dropped before DB-7501 got merged
+                        if (table.getDroppedTransactionId() != null) 
+                            txnId = Long.parseLong(table.getDroppedTransactionId());
+                        else
+                            txnId = droppedConglomerates.get(tableConglom);
+
+                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(txnId);
+                        if (txn.getEffectiveCommitTimestamp() == -1 || txn.getEffectiveCommitTimestamp() >= oldestActiveTransaction) {
+                            // This conglomerate was dropped by an active, rolled back or "recent" transaction
+                            // (newer than the oldest active txn) ignore it in case it's still in use
+
+                            if (LOG.isInfoEnabled()) {
+                                LOG.info("Ignoring recently dropped table: " + table.getTableName() + " by transaction " + txn.getTxnId());
+                            }
+                            continue;
+                        }
+                    } else if (requiresDroppedId) {
+                        // This table must have a dropped transaction id before we can process it for vacuum
+                        continue;
+                    }
                     if(!activeConglomerates.contains(tableConglom)){
                         LOG.info("Deleting inactive table: " + table.getTableName());
                         partitionAdmin.deleteTable(tableName[1]);
+                        toDelete.add(tableConglom);
                     } else if(LOG.isTraceEnabled()) {
                         LOG.trace("Skipping still active table: " + table.getTableName());
                     }
@@ -124,6 +196,13 @@ public class Vacuum{
                     LOG.info("Ignoring non-numeric table name: " + table.getTableName());
                 }
             }
+
+            List<DataDelete> deletes = new ArrayList<>();
+            for (long removed : toDelete) {
+                DataDelete delete = driver.baseOperationFactory().newDelete(Bytes.toBytes(removed));
+                deletes.add(delete);
+            }
+            dropped.delete(deletes);
         } catch (IOException e) {
             LOG.error("Vacuum Unexpected exception", e);
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
@@ -131,73 +210,6 @@ public class Vacuum{
             LOG.info("Vacuum complete");
         }
     }
-
-    /*
-     * We have to make sure that all prior transactions complete. Once that happens, we know that the worldview
-     * of all outstanding transactions is the same as ours--so if a conglomerate doesn't exist in sysconglomerates,
-     * then it's not useful anymore.
-     */
-    private void ensurePriorTransactionsComplete() throws SQLException {
-        EmbedConnection embedConnection = (EmbedConnection)connection;
-
-        TransactionController transactionExecute = embedConnection.getLanguageConnection().getTransactionExecute();
-        TxnView activeStateTxn = ((SpliceTransactionManager) transactionExecute).getActiveStateTxn();
-
-        //wait for all transactions prior to us to complete, but only wait for so long
-        try{
-            long activeTxn = waitForConcurrentTransactions(activeStateTxn);
-            if(activeTxn>0){
-                //we can't do anything, blow up
-                throw PublicAPI.wrapStandardException(
-                        ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("VACUUM", activeTxn));
-            }
-
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
-        }
-    }
-
-    private long waitForConcurrentTransactions(TxnView txn) throws StandardException {
-        ActiveTransactionReader reader = new ActiveTransactionReader(0l,txn.getTxnId(),null);
-        SConfiguration config = EngineDriver.driver().getConfiguration();
-        long timeRemaining = config.getDdlDrainingMaximumWait();
-        long pollPeriod = config.getDdlDrainingInitialWait();
-        int tryNum = 1;
-        long activeTxn;
-
-        try {
-            do {
-                activeTxn = -1l;
-
-                TxnView next;
-                try (Stream<TxnView> activeTransactions = reader.getActiveTransactions()){
-                    while((next = activeTransactions.next())!=null){
-                        long txnId = next.getTxnId();
-                        if(txnId!=txn.getTxnId()){
-                            activeTxn = txnId;
-                            break;
-                        }
-                    }
-                }
-
-                if(activeTxn<0) return activeTxn; //no active transactions
-
-                long time = System.currentTimeMillis();
-
-                try {
-                    Thread.sleep(Math.min(tryNum*pollPeriod,timeRemaining));
-                } catch (InterruptedException e) {
-                    throw new IOException(e);
-                }
-                timeRemaining-=(System.currentTimeMillis()-time);
-                tryNum++;
-            } while (timeRemaining>0);
-        } catch (IOException | StreamException e) {
-            throw Exceptions.parseException(e);
-        }
-
-        return activeTxn;
-    } // end waitForConcurrentTransactions
 
     public void shutdown() throws SQLException {
         try {

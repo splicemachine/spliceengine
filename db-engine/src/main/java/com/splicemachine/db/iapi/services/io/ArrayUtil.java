@@ -396,7 +396,7 @@ public abstract class ArrayUtil
 	public static byte[] readByteArray(ObjectInput in) throws IOException {
 		int size = in.readInt();
 		byte[] b = new byte[size];
-		in.read(b);
+		in.readFully(b);
 		return b;
 	}
 }
