@@ -167,6 +167,7 @@ service BackupCoprocessorService {
 message PrepareBackupRequest {
     optional bytes startKey=1;
     optional bytes endKey=2;
+    optional int64 backupId=3;
 }
 
 message PrepareBackupResponse {
