@@ -85,7 +85,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
-        <spark.version>2.1.0.cloudera1</spark.version>
+        <spark.version>2.1.0</spark.version>
     </properties>
     <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
@@ -185,11 +185,6 @@
             </dependency>
             <dependency>
                 <groupId>com.carrotsearch</groupId>
-                <artifactId>hppc</artifactId>
-                <version>0.7.2</version>
-            </dependency>
-            <dependency>
-                <groupId>com.carrotsearch</groupId>
                 <artifactId>java-sizeof</artifactId>
                 <version>0.0.4</version>
                 <exclusions>
@@ -207,6 +202,11 @@
                 <groupId>com.github.stephenc.high-scale-lib</groupId>
                 <artifactId>high-scale-lib</artifactId>
                 <version>1.1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>12.0.1</version>
             </dependency>
             <dependency>
                 <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
@@ -297,8 +297,8 @@
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>
-                <artifactId>netty</artifactId>
-                <version>3.6.6.Final</version>
+                <artifactId>netty-all</artifactId>
+                <version>4.0.29.Final</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -844,6 +844,8 @@
             </activation>
             <properties>
                 <envClassifier>mem</envClassifier>
+                <hbase.version>1.2.0</hbase.version>
+                <spark.version>2.2.0</spark.version>
             </properties>
             <modules>
                 <module>mem_storage</module>
@@ -869,12 +871,13 @@
                 <spark.version>2.2.0</spark.version>
                 <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
                 <hadoop.tools.version>1.2.1</hadoop.tools.version>
-		<parquet.version>parquet-spark2</parquet.version>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>coverage</module>
             </modules>
         </profile>
@@ -898,12 +901,13 @@
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
                 <!-- <kafka.version>0.10.0.2.5.5.7-1</kafka.version> -->
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-		<parquet.version>parquet-spark2</parquet.version>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -928,12 +932,13 @@
                 <spark.major.version>spark2.1</spark.major.version>
                 <kafka.version>0.10.1.2.6.1.0-129</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-		<parquet.version>parquet-spark2</parquet.version>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -958,12 +963,13 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <kafka.version>0.10.1.2.6.3.0-235</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-		<parquet.version>parquet-spark2</parquet.version>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -987,12 +993,13 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <kafka.version>0.10.1.2.6.4.0-91</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-		<parquet.version>parquet-spark2</parquet.version>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1017,12 +1024,13 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-		<parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1047,12 +1055,13 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-		<parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1077,12 +1086,13 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-		<parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1107,12 +1117,13 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-		<parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1137,12 +1148,13 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-		<parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1167,12 +1179,13 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-		<parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1197,12 +1210,13 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-		<parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1228,12 +1242,13 @@
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
                 <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-		<parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1260,12 +1275,13 @@
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-		<parquet.version>parquet-spark2</parquet.version>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>
@@ -1292,12 +1308,13 @@
                 <kafka.version>0.9.0.0-mapr-1710</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-		<parquet.version>parquet-spark2</parquet.version>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>platform_it</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
             </modules>

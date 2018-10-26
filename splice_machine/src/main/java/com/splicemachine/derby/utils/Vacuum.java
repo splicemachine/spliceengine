@@ -26,7 +26,7 @@ import java.util.Map;
 
 import com.carrotsearch.hppc.LongHashSet;
 
-import com.google.common.collect.Iterables;
+import org.spark_project.guava.collect.Iterables;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;

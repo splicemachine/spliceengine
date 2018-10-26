@@ -16,7 +16,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import java.io.IOException;
 
-import com.google.common.primitives.Longs;
+import org.spark_project.guava.primitives.Longs;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;

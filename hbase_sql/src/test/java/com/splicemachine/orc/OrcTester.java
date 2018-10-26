@@ -42,7 +42,6 @@ import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTimeZone;
-import shapeless.DataT;
 
 import java.io.Closeable;
 import java.io.File;

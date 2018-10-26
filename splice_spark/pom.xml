@@ -28,8 +28,8 @@
         <!--Ant task to run shell scripts-->
 	<skipTests>${maven.skip.tests}</skipTests>
         <shell.command>/bin/bash</shell.command>
-        <start.script>${project.basedir}/../hbase_sql/src/test/bin/start-splice-its</start.script>
-        <stop.script>${project.basedir}/../hbase_sql/src/test/bin/stop-splice-its</stop.script>
+        <start.script>${project.basedir}/../platform_it/src/test/bin/start-splice-its</start.script>
+        <stop.script>${project.basedir}/../platform_it/src/test/bin/stop-splice-its</stop.script>
         <ee_out/>
     </properties>
     <dependencies>
@@ -254,7 +254,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-			<argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../hbase_sql/target/hbase</argLine>
+			    <argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../platform_it/target/hbase</argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -271,7 +271,7 @@
                                     <istrue value="${failTasksRandomly}"/>
                                     <!-- run with chaos monkey (default) -->
                                     <then>
-                                        <exec executable="${shell.command}" dir="${basedir}/../hbase_sql" spawn="false">
+                                        <exec executable="${shell.command}" dir="${basedir}/../platform_it" spawn="false">
                                             <arg value="${start.script}"/>
                                             <arg value="-c"/>
                                             <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
@@ -279,7 +279,7 @@
                                     </then>
                                     <else>
                                         <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
-                                        <exec executable="${shell.command}" dir="${basedir}/../hbase_sql" spawn="false">
+                                        <exec executable="${shell.command}" dir="${basedir}/../platform_it" spawn="false">
                                             <arg value="${start.script}"/>
                                             <arg value="-p ${envClassifier},${envHbase}${ee_out}"/>
                                         </exec>
@@ -303,7 +303,7 @@
                         <configuration>
                             <skip>${skipTests}</skip>
                             <target name="StopSpliceServer" unless="${server.skip.start}">
-                                <exec executable="${shell.command}" dir="${basedir}/../hbase_sql" spawn="false">
+                                <exec executable="${shell.command}" dir="${basedir}/../platform_it" spawn="false">
                                     <arg value="${stop.script}"/>
                                 </exec>
                             </target>
