@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.hbase;
+package com.splicemachine.backup;
 
 import org.spark_project.guava.collect.Lists;
 
@@ -23,15 +23,26 @@ import java.util.List;
  * Created by jyuan on 5/5/17.
  */
 public class BackupJobStatus implements Externalizable{
+
+    /**
+     * Backup Scope.  This allows us to understand the scope of the backup.
+     *
+     * S = Schema
+     * T = Table
+     * D = Database
+     *
+     */
+    public static enum BackupScope {TABLE, SCHEMA, DATABASE};
+
     private long backupId;
-    private BackupUtils.BackupScope scope;
+    private BackupScope scope;
     private boolean isIncremental = false;
     private long lastActiveTimestamp = 0;
-    private List<String> tables;
+    private List<String> objects;
 
     public BackupJobStatus(){}
 
-    public BackupJobStatus(long backupId, boolean isIncremental, long lastActiveTimestamp, BackupUtils.BackupScope scope) {
+    public BackupJobStatus(long backupId, boolean isIncremental, long lastActiveTimestamp, BackupScope scope) {
         this.backupId = backupId;
         this.isIncremental = isIncremental;
         this.lastActiveTimestamp = lastActiveTimestamp;
@@ -39,9 +50,9 @@ public class BackupJobStatus implements Externalizable{
     }
 
     public BackupJobStatus(long backupId, boolean isIncremental, long lastActiveTimestamp,
-                           BackupUtils.BackupScope scope, List<String> tables) {
+                           BackupScope scope, List<String> objects) {
         this(backupId, isIncremental, lastActiveTimestamp, scope);
-        this.tables = tables;
+        this.objects = objects;
     }
 
     public long getBackupId() {
@@ -66,10 +77,10 @@ public class BackupJobStatus implements Externalizable{
         out.writeBoolean(isIncremental);
         out.writeLong(lastActiveTimestamp);
         out.writeInt(scope.ordinal());
-        if (tables != null) {
-            out.writeInt(tables.size());
-            for (int i = 0; i < tables.size(); ++i) {
-                out.writeUTF(tables.get(i));
+        if (objects != null) {
+            out.writeInt(objects.size());
+            for (int i = 0; i < objects.size(); ++i) {
+                out.writeUTF(objects.get(i));
             }
         }
         else {
@@ -82,12 +93,12 @@ public class BackupJobStatus implements Externalizable{
         backupId = in.readLong();
         isIncremental = in.readBoolean();
         lastActiveTimestamp = in.readLong();
-        scope = BackupUtils.BackupScope.values()[in.readInt()];
+        scope = BackupScope.values()[in.readInt()];
         int size = in.readInt();
         if (size > 0) {
-            tables = Lists.newArrayList();
+            objects = Lists.newArrayList();
             for (int i = 0; i < size; ++i) {
-                tables.add(in.readUTF());
+                objects.add(in.readUTF());
             }
         }
     }
@@ -136,11 +147,11 @@ public class BackupJobStatus implements Externalizable{
         }
     }
 
-    public BackupUtils.BackupScope getScope() {
+    public BackupScope getScope() {
         return scope;
     }
 
-    public List<String> getTables() {
-        return tables;
+    public List<String> getObjects() {
+        return objects;
     }
 }
