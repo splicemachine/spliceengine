@@ -16,6 +16,7 @@ package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.backup.BackupJobStatus;
 import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -48,15 +49,7 @@ import java.util.List;
 public class BackupUtils {
     private static final Logger LOG=Logger.getLogger(BackupUtils.class);
 
-    /**
-     * Backup Scope.  This allows us to understand the scope of the backup.
-     *
-     * S = Schema
-     * T = Table
-     * D = Database
-     *
-     */
-    public static enum BackupScope {TABLE, SCHEMA, DATABASE};
+
 
     public static boolean backupInProgress() throws Exception {
         String path = BackupUtils.getBackupPath();
@@ -231,7 +224,7 @@ public class BackupUtils {
                             String path = spliceBackupPath + "/" + backupId;
                             byte[] data = zooKeeper.getData(path, false, null);
                             BackupJobStatus status = BackupJobStatus.parseFrom(data);
-                            if (status.getScope() == BackupScope.DATABASE) {
+                            if (status.getScope() == BackupJobStatus.BackupScope.DATABASE) {
                                 if (LOG.isDebugEnabled()) {
                                     SpliceLogUtils.debug(LOG, "A database backup is running");
                                 }
