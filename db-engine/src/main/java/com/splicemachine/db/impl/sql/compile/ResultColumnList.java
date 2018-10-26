@@ -3253,7 +3253,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     if (isIndex)
                     newReferencedCols.set(index);
                     else
-                        newReferencedCols.set(this.getResultColumn(index).getStoragePosition()-1);
+                        newReferencedCols.set(this.getResultColumn(index+1).getStoragePosition()-1);
                 }
 
                 return newReferencedCols;
