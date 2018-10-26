@@ -440,6 +440,15 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
       sqlContext.sql(s"""SELECT c6_int FROM $table where c6_int is NOT NULL""").collectAsList().toString)
   }
 
+  test("export") {
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val outDirectory: Path = Files.createTempDirectory("export")
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    splicemachineContext.export(df, outDirectory.toString, false, 1, null, null, null)
+    val newDF = sqlContext.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(outDirectory.toString)
+    assert(newDF.count == 10)
+  }
+
   def createBadDirectory(directoryName: String): File = {
     val tmpDir: String = System.getProperty("java.io.tmpdir");
     val bulkImportDirectory: File = new File(tmpDir, directoryName)
