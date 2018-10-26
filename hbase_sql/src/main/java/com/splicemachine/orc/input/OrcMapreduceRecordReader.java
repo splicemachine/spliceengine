@@ -31,6 +31,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.execution.vectorized.ColumnarBatch;
 import org.apache.spark.sql.types.StructType;
 import java.io.IOException;
@@ -43,7 +44,7 @@ import java.util.*;
 public class OrcMapreduceRecordReader extends RecordReader<NullWritable,Row> {
     OrcRecordReader orcRecordReader;
     private ColumnarBatch columnarBatch;
-    private Iterator<ColumnarBatch.Row> currentIterator;
+    private Iterator<InternalRow> currentIterator;
     private StructType rowStruct;
     private SpliceORCPredicate predicate;
 
@@ -86,7 +87,18 @@ public class OrcMapreduceRecordReader extends RecordReader<NullWritable,Row> {
             if (orcRecordReader.nextBatch() == -1)
                 return false;
             columnarBatch = orcRecordReader.getColumnarBatch(rowStruct);
-            currentIterator = columnarBatch.rowIterator();
+            final Iterator<? extends InternalRow> iter = columnarBatch.rowIterator();
+            currentIterator = new Iterator<InternalRow>() {
+                @Override
+                public boolean hasNext() {
+                    return iter.hasNext();
+                }
+
+                @Override
+                public InternalRow next() {
+                    return iter.next();
+                }
+            };
         }
         return true;
     }

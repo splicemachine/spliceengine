@@ -3407,7 +3407,7 @@ public class SQLChar
         if (sparkObject == null)
             setToNull();
         else {
-            value = (String) sparkObject; // Autobox, must be something better.
+            value = sparkObject.toString();
             setIsNull(false);
         }
     }
