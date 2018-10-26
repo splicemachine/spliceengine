@@ -21,6 +21,13 @@ import java.util.List;
 import java.util.TimeZone;
 
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.procedures.ProcedureUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
@@ -30,9 +37,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
@@ -50,6 +54,51 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class BackupSystemProcedures {
 
     private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
+
+    public static void VALIDATE_TABLE_BACKUP(String schemaName,
+                                             String tableName,
+                                             String directory,
+                                             long backupId,
+                                             ResultSet[] resultSets) throws StandardException, SQLException {
+
+        IteratorNoPutResultSet inprs = null;
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        Activation activation = lcc.getLastActivation();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
+        try {
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.validateTableBackup(schemaName, tableName, directory, backupId);
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Results", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            SQLWarning warning = activation.getWarnings();
+            if (warning == null) {
+                template.getColumn(1).setValue("No corruptions found for backup.");
+                rows.add(template.getClone());
+            }
+            else {
+                while (warning != null) {
+                    String warningMessage = warning.getLocalizedMessage();
+                    template.getColumn(1).setValue(warningMessage);
+                    rows.add(template.getClone());
+                    warning = warning.getNextWarning();
+                }
+            }
+
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Backup validation error", t);
+            t.printStackTrace();
+        }
+    }
 
     public static void VALIDATE_BACKUP(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
 
@@ -135,8 +184,9 @@ public class BackupSystemProcedures {
         try {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check for ongoing backup...
-            long runningBackupId = 0;
-            if ( (runningBackupId = backupManager.getRunningBackup()) != 0) {
+            BackupJobStatus[] backupJobStatuses = backupManager.getRunningBackups();
+            if ( backupJobStatuses.length > 0) {
+                long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
             backupManager.restoreDatabase(directory,backupId, true, validate);
@@ -244,8 +294,9 @@ public class BackupSystemProcedures {
         try {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             // Check for ongoing backup...
-            long runningBackupId = 0;
-            if ( (runningBackupId = backupManager.getRunningBackup()) != 0) {
+            BackupJobStatus[] backupJobStatuses = backupManager.getRunningBackups();
+            if ( backupJobStatuses.length > 0) {
+                long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
             backupManager.restoreDatabase(directory,backupId, false, validate);
@@ -403,15 +454,163 @@ public class BackupSystemProcedures {
         }
     }
 
-    public static void SYSCS_CANCEL_BACKUP(ResultSet[] resultSets) throws StandardException, SQLException {
-        try {
+    public static void SYSCS_CANCEL_BACKUP(long backupId) throws StandardException, SQLException {
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            backupManager.cancelBackup();
+            backupManager.cancelBackup(backupId);
+    }
+
+    public static void SYSCS_GET_RUNNING_BACKUPS(ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            Connection conn = SpliceAdmin.getDefaultConn();
+            LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            BackupJobStatus[] backupJobStatuses = backupManager.getRunningBackups();
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("BackupId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+                    new GenericColumnDescriptor("Scope", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 10)),
+                    new GenericColumnDescriptor("Type", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 20)),
+                    new GenericColumnDescriptor("Item", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 20)),
+                    new GenericColumnDescriptor("LastActiveTimestamp", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP))
+            };
+            ExecRow template = new ValueRow(5);
+            template.setRowArray(new DataValueDescriptor[]{new SQLLongint(), new SQLVarchar(), new SQLVarchar(),
+                    new SQLVarchar(), new SQLTimestamp()});
+            List<ExecRow> rows = Lists.newArrayList();
+            for (BackupJobStatus backupJobStatus : backupJobStatuses) {
+                template.getColumn(1).setValue(backupJobStatus.getBackupId());
+                template.getColumn(2).setValue(backupJobStatus.getScope().toString());
+                template.getColumn(3).setValue(backupJobStatus.isIncremental()?"Incremental":"Full");
+                template.getColumn(4).setValue(backupJobStatus.getObjects().get(0));
+                template.getColumn(5).setValue(new Timestamp(backupJobStatus.getLastActiveTimestamp()));
+
+                rows.add(template.getClone());
+            }
+            IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
             SpliceLogUtils.error(LOG, "Cancel backup error", t);
         }
     }
 
+    public static void SYSCS_BACKUP_TABLE(String schemaName,
+                                          String tableName,
+                                          String directory,
+                                          String type,
+                                          ResultSet[] resultSets) throws StandardException, SQLException {
+        try{
+            schemaName = EngineUtils.validateSchema(schemaName);
+            tableName = EngineUtils.validateTable(tableName);
+            validateTable(schemaName, tableName);
+            type = type.trim().toUpperCase();
+            if (directory == null || directory.isEmpty()) {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
+            }
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            if (type.compareToIgnoreCase("FULL") == 0) {
+                backupManager.fullBackupTable(schemaName, tableName, directory);
+            }
+            else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
+
+            }
+            else {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
+            }
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
+        }
+    }
+
+
+    public static void SYSCS_RESTORE_TABLE(String destSchema,
+                                           String destTable,
+                                           String sourceSchema,
+                                           String sourceTable,
+                                           String directory,
+                                           long backupId,
+                                           boolean validate,
+                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            destSchema = EngineUtils.validateSchema(destSchema);
+            destTable = EngineUtils.validateTable(destTable);
+            sourceSchema = EngineUtils.validateSchema(sourceSchema);
+            sourceTable = EngineUtils.validateTable(sourceTable);
+            validateTable(destSchema, destTable);
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.restoreTable(destSchema, destTable, sourceSchema, sourceTable, directory, backupId, validate);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
+        }
+    }
+
+    private static void validateTable(String schemaName, String tableName) throws StandardException, SQLException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null) {
+            throw StandardException.newException(com.splicemachine.db.iapi.reference.SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
+        TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+        if (td == null)
+        {
+            throw StandardException.newException(com.splicemachine.db.iapi.reference.SQLState.TABLE_NOT_FOUND, tableName);
+        }
+    }
+
+    public static void SYSCS_BACKUP_SCHEMA(String schemaName,
+                                           String directory,
+                                           String type,
+                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        try{
+            schemaName = EngineUtils.validateSchema(schemaName);
+            type = type.trim().toUpperCase();
+            if (directory == null || directory.isEmpty()) {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
+            }
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            if (type.compareToIgnoreCase("FULL") == 0) {
+                backupManager.fullBackupSchema(schemaName, directory);
+            }
+            else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
+
+            }
+            else {
+                throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
+            }
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
+        }
+    }
+
+    public static void SYSCS_RESTORE_SCHEMA(String destSchema,
+                                           String sourceSchema,
+                                           String directory,
+                                           long backupId,
+                                           boolean validate,
+                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            destSchema = EngineUtils.validateSchema(destSchema);
+            sourceSchema = EngineUtils.validateSchema(sourceSchema);
+            //validateTable(destSchema, destTable);
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.restoreSchema(destSchema, sourceSchema, directory, backupId, validate);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Database backup error", t);
+            t.printStackTrace();
+        }
+    }
 
 }

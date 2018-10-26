@@ -17,7 +17,6 @@ package com.splicemachine.si.impl.server;
 import com.google.common.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TransactionMissing;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -27,8 +26,6 @@ import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.si.impl.txn.CommittedTxn;
 import com.splicemachine.si.impl.txn.RolledBackTxn;
 import com.splicemachine.storage.CellType;
-import com.splicemachine.utils.ByteSlice;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
@@ -102,7 +99,7 @@ public class SICompactionState {
      * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
      */
     private long mutate(Cell element, TxnView txn) throws IOException {
-        final CellType cellType= getKeyValueType(element);
+        final CellType cellType= CellUtils.getKeyValueType(element);
         long timestamp = element.getTimestamp();
         switch (cellType) {
             case COMMIT_TIMESTAMP:
@@ -144,7 +141,7 @@ public class SICompactionState {
         } else if (txn.getState() == Txn.State.ROLLEDBACK) {
             // rolled back data, remove it from the compacted data
             return false;
-        } else if (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() == Txn.ROOT_TRANSACTION) {
+        } else if (committed(txn)) {
             /*
              * This element has been committed all the way to the user level, so a
              * commit timestamp can be placed on it.
@@ -154,6 +151,13 @@ public class SICompactionState {
         }
         // Committed or active, return the original data too
         return true;
+    }
+
+    private boolean committed(TxnView txn) {
+        while (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
+            txn = txn.getParentTxnView();
+        }
+        return txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() == Txn.ROOT_TRANSACTION;
     }
 
     public Cell newTransactionTimeStampKeyValue(Cell element, byte[] value) {
@@ -171,29 +175,13 @@ public class SICompactionState {
         return element.getValueLength()==1 && element.getValueArray()[element.getValueOffset()]==SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
     }
 
-    public CellType getKeyValueType(Cell keyValue) {
-        if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES)) {
-            return CellType.COMMIT_TIMESTAMP;
-        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
-            return CellType.USER_DATA;
-        } else if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES)) {
-            if (CellUtils.matchingValue(keyValue, SIConstants.EMPTY_BYTE_ARRAY)) {
-                return CellType.TOMBSTONE;
-            } else if (CellUtils.matchingValue(keyValue,SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES)) {
-                return CellType.ANTI_TOMBSTONE;
-            }
-        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
-            return CellType.FOREIGN_KEY_COUNTER;
-        }
-        return CellType.OTHER;
-    }
-
 
     public List<Future<TxnView>> resolve(List<Cell> list) throws IOException {
-        context.rowRead();
+        if (context != null)
+            context.rowRead();
         List<Future<TxnView>> result = new ArrayList<>(list.size());
         for (Cell element : list) {
-            final CellType cellType= getKeyValueType(element);
+            final CellType cellType= CellUtils.getKeyValueType(element);
             long timestamp = element.getTimestamp();
             switch (cellType) {
                 case COMMIT_TIMESTAMP:
@@ -205,24 +193,28 @@ public class SICompactionState {
                      */
                     ensureTransactionCached(timestamp,element);
                     result.add(null); // no transaction needed for this entry
-                    context.readCommit();
+                    if (context != null)
+                        context.readCommit();
                     break;
                 case TOMBSTONE:
                 case ANTI_TOMBSTONE:
                 case USER_DATA:
                 default:
-                    context.readData();
+                    if (context != null)
+                        context.readData();
                     TxnView tentative = transactionStore.getTransactionFromCache(timestamp);
                     if (tentative != null) {
                         if (LOG.isDebugEnabled())
                             LOG.debug("Cached " + tentative);
                         result.add(Futures.immediateFuture(tentative));
-                        context.recordResolutionCached();
+                        if (context != null)
+                            context.recordResolutionCached();
                     } else {
                         Future<TxnView> future;
                         try {
                             future = futuresCache.computeIfAbsent(timestamp, txnId -> {
-                                context.recordRPC();
+                                if (context != null)
+                                    context.recordRPC();
                                 return executorService.submit(() -> {
                                     if (LOG.isDebugEnabled())
                                         LOG.debug("Resolving " + txnId);
@@ -250,9 +242,11 @@ public class SICompactionState {
                                     return txn;
                                 });
                             });
-                            context.recordResolutionScheduled();
+                            if (context != null)
+                                context.recordResolutionScheduled();
                         } catch (RejectedExecutionException ex) {
-                            context.recordResolutionRejected();
+                            if (context != null)
+                                context.recordResolutionRejected();
                             future = Futures.immediateFuture(null);
                         }
                         result.add(future);

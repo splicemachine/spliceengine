@@ -220,6 +220,11 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public void delete(List<DataDelete> delete) throws IOException {
+        throw new UnsupportedOperationException("multi delete not supported");
+    }
+
+    @Override
     public void mutate(DataMutation put) throws IOException{
         if(put instanceof DataPut)
             put((DataPut)put);

@@ -45,6 +45,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
       splicemachineContext.dropTable(internalTN)
     }
     insertInternalRows(rowCount)
+    splicemachineContext.getConnection().commit()
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
 
@@ -63,6 +64,36 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(df.count == 10)
     val result = df.collect()
     assert(result.length == 10)
+  }
+
+  test("read from internal execution with non-escaped characters") {
+    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    try {
+      val ps = conn.prepareStatement("insert into " + internalTN + allTypesInsertString + allTypesInsertStringValues)
+      ps.setBoolean(1, false)
+      ps.setString(2, "\n")
+      ps.setDate(3, java.sql.Date.valueOf("2013-09-05"))
+      ps.setBigDecimal(4, new BigDecimal("11"))
+      ps.setDouble(5, 11)
+      ps.setInt(6, 11)
+      ps.setInt(7, 11)
+      ps.setFloat(8, 11)
+      ps.setShort(9, 11.toShort)
+      ps.setTime(10, new Time(11))
+      ps.setTimestamp(11, new Timestamp(11))
+      ps.setString(12, "somet\nestinfo" + 11)
+      ps.execute()
+    }finally {
+      conn.close()
+    }
+    
+    val df = sqlContext.read.options(internalExecutionOptions).splicemachine
+    df.printSchema()
+    assert(splicemachineContext.getSchema(internalTN).equals(df.schema))
+    assert(splicemachineContext.tableExists(internalTN))
+    assert(df.count == 11)
+    val result = df.collect()
+    assert(result.length == 11)
   }
 
   test("insertion") {
@@ -183,6 +214,19 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     splicemachineContext.bulkImportHFile(changedDF.rdd, changedDF.schema, internalTN, bulkImportOptions)
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assert(newDF.count == 20)
+  }
+
+  test("binary export") {
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val outDirectory: Path = Files.createTempDirectory("exportBinary")
+
+
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    splicemachineContext.exportBinary(df, outDirectory.toString, false, "parquet")
+
+
+    val newDF = sqlContext.read.parquet(outDirectory.toString)
+    assert(newDF.count == 10)
   }
 
   test ("deletion") {
