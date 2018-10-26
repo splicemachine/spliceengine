@@ -62,4 +62,13 @@ public class ConflictResults {
     public LongOpenHashSet getChildConflicts() {
         return childConflicts;
     }
+
+    @Override
+    public String toString() {
+        return "ConflictResults{" +
+                "childConflicts=" + childConflicts +
+                ", additiveConflicts=" + additiveConflicts +
+                ", hasTombstone=" + hasTombstone +
+                '}';
+    }
 }

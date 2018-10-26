@@ -126,4 +126,9 @@ public class HResult implements DataResult{
     public DataResult getClone(){
         return new HResult(Result.create(result.rawCells(),result.getExists(),result.isStale()));
     }
+
+    @Override
+    public String toString() {
+        return result == null ? "null" : result.toString();
+    }
 }

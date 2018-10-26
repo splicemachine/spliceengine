@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import javax.annotation.Nonnull;
@@ -89,5 +90,12 @@ public class HLock implements Lock{
     @Override
     public @Nonnull Condition newCondition(){
         throw new UnsupportedOperationException("Cannot support conditions on an HLock");
+    }
+
+    @Override
+    public String toString() {
+        if (delegate != null)
+            return delegate.toString();
+        return "Unlocked for row " + Bytes.toStringBinary(key);
     }
 }
