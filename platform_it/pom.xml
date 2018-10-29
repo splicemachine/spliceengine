@@ -32,7 +32,7 @@
         <ee_out/>
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
-        <argLine>-Xmx4g -XX:MaxPermSize=256m ${jacocoAgent}</argLine>
+        <argLine>-Xms64m -Xmx4g ${jacocoAgent}</argLine>
     </properties>
     <dependencies>
         <dependency>
@@ -730,8 +730,10 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>${excluded.categories}</excludedGroups>
-                            <argLine>-Xmx3g</argLine>
+                            <excludedGroups>
+                                ${excluded.categories}
+                            </excludedGroups>
+                            <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -745,6 +747,9 @@
                                 </exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
+                            <systemPropertyVariables>
+                                <splice.schemaCleanup>none</splice.schemaCleanup>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
@@ -755,14 +760,16 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.RestoreTest,
+                            <excludedGroups>
+                                com.splicemachine.test.SerialTest,
+                                com.splicemachine.test.RestoreTest,
                                 ${excluded.categories}
                             </excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
                             <perCoreThreadCount>false</perCoreThreadCount>
-                            <argLine>-Xmx5g</argLine>
+                            <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
@@ -772,6 +779,9 @@
                                 <include>**/*IT.java</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
+                            <systemPropertyVariables>
+                                <splice.schemaCleanup>async</splice.schemaCleanup>
+                            </systemPropertyVariables>
                         </configuration>
                     </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
@@ -783,7 +793,7 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.RestoreTest</groups>
-                            <argLine>-Xmx3g</argLine>
+                            <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <includes>
                                 <include>**/*RestoreIT.java</include>
@@ -1049,7 +1059,9 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xms64m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>com.splicemachine.kafka.TestKafkaCluster</argument>
                                 <argument>localhost:2181</argument>
@@ -1119,7 +1131,9 @@
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
                                 <argument>-Xmx1g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xms64m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4002</argument>
                                 <argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
@@ -1232,7 +1246,6 @@
                             <!--<includePluginDependencies>true</includePluginDependencies>-->
                             <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
                             <arguments>
-                                <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
                                 <argument>${project.build.directory}/classes</argument>
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
@@ -1265,15 +1278,14 @@
                             <classpathScope>test</classpathScope>
                             <executable>java</executable>
                             <arguments>
-                                <!-- <argument>-verbose:gc</argument> -->
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
                                 <argument>-Xdebug</argument>
-                                <!-- <argument>-XX:+UnlockCommercialFeatures</argument>
-                                <argument>-XX:+FlightRecorder</argument> -->
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
@@ -1285,8 +1297,8 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx6g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xms64m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
                                 <argument>-Dsplice.spark.eventLog.enabled=true</argument>
@@ -1342,10 +1354,12 @@
                                     ${hbase.rootdir}
                                     -Dhdp.version=2.6.3
                                     -enableassertions
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
                                 </argument>
                                 <argument>-Dsplice.spark.yarn.am.extraJavaOptions=
                                     -Dhdp.version=2.6.3
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50
                                 </argument>
                                 <argument>-Dsplice.spark.executor.extraJavaOptions=
                                     ${hbase.rootdir}
@@ -1354,6 +1368,7 @@
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
                                     -enableassertions
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40
                                     ${jacocoAgent}
                                 </argument>
                                 <argument>-Dsplice.spark.yarn.user=${user.name}</argument>
@@ -1368,25 +1383,15 @@
                                     -enableassertions
                                     -Djava.net.preferIPv4Stack=true
                                     -Djava.security.krb5.conf=${project.build.directory}/krb5.conf
+                                    -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30
                                 </argument>
                                 <argument>${spark.keytab}</argument>
                                 <argument>${spark.principal}</argument>
                                 <argument>-Dsplice.spark.shuffle.file.buffer=128k</argument>
                                 <argument>-Dsplice.spark.shuffle.memoryFraction=0.7</argument>
                                 <argument>-Dsplice.spark.shuffle.service.enabled=true</argument>
-                                <argument>-Dsplice.spark.storage.memoryFraction=0.1</argument>
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
-                                <!-- CMS Garbage Collection -->
-                                <argument>-Xmn128m</argument>
-                                <argument>-XX:+UseConcMarkSweepGC</argument>
-                                <argument>-XX:+UseParNewGC</argument>
-                                <argument>-XX:NewSize=128m</argument>
-                                <argument>-XX:MaxNewSize=128m</argument>
-                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
-                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-                                <argument>-XX:MaxGCPauseMillis=100</argument>
-                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
-                                <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                <argument>-XX:+UseG1GC</argument>
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4000</argument>
                                 <!-- Setting the updateSystemProcs option to true causes all of the system stored procedures to be re-created on server startup. -->
@@ -1438,6 +1443,8 @@
                                 <argument>-classpath</argument>
                                 <classpath/>
                                 <argument>${jacocoAgent}</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=30</argument>
                                 <argument>-Djava.awt.headless=true</argument>
                                 <argument>-Djava.security.krb5.conf=${project.build.directory}/krb5.conf</argument>
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
@@ -1445,18 +1452,10 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx4g</argument>
-                                <argument>-Xmn128m</argument>
-                                <argument>-XX:+UseConcMarkSweepGC</argument>
-                                <argument>-XX:+UseParNewGC</argument>
-                                <argument>-XX:NewSize=128m</argument>
-                                <argument>-XX:MaxNewSize=128m</argument>
-                                <argument>-XX:CMSInitiatingOccupancyFraction=70</argument>
-                                <argument>-XX:+UseCMSInitiatingOccupancyOnly</argument>
-                                <argument>-XX:MaxGCPauseMillis=100</argument>
+                                <argument>-Xmx2g</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
-                                <argument>-XX:+CMSClassUnloadingEnabled</argument>
-                                <argument>-XX:MaxDirectMemorySize=1g</argument>
+                                <argument>-XX:+UseG1GC</argument>
+
                                 <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
@@ -1778,7 +1777,7 @@
                                 <clusterRegionserver>localhost</clusterRegionserver>
                             </propertiesUser>
                             <jMeterProcessJVMSettings>
-                                <xms>1024</xms>
+                                <xms>128</xms>
                                 <xmx>4096</xmx>
                                 <!--
                                 <arguments>
@@ -1876,8 +1875,8 @@
                                 <argument>
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
-                                <argument>-Xmx6g</argument>
-                                <argument>-Xms1g</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Xms64m</argument>
                                 <!-- Spark Sys props -->
                                 <argument>-Dsplice.spark.app.name=SpliceMachine</argument>
                                 <argument>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse
@@ -1940,6 +1939,8 @@
                                 <argument>-Dsplice.spark.yarn.am.waitTime=10s</argument>
                                 <!-- CMS Garbage Collection -->
                                 <argument>-Xmn128m</argument>
+                                <argument>-XX:MinHeapFreeRatio=10</argument>
+                                <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+UseConcMarkSweepGC</argument>
                                 <argument>-XX:+UseParNewGC</argument>
                                 <argument>-XX:NewSize=128m</argument>
