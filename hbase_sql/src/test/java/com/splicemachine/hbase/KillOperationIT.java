@@ -19,19 +19,14 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
-import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.log4j.Logger;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -43,7 +38,6 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -53,7 +47,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -65,7 +58,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by jyuan on 3/28/16.
  */
-@Category({SerialTest.class})
+@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class KillOperationIT {
     private static final Logger LOG = Logger.getLogger(KillOperationIT.class);

@@ -58,7 +58,7 @@ import static org.junit.Assert.assertTrue;
  * @author Scott Fines
  * Date: 3/19/14
  */
-@Category(SerialTest.class)
+@Category(value = {SerialTest.class})
 public class VacuumIT extends SpliceUnitTest{
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     protected static String TABLE = "T";
