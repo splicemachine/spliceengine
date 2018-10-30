@@ -334,7 +334,7 @@ Start Splice Machine on your computer and run a few commands to verifythe instal
 2. Run the Splice Machine start-up script
 
    ````
-   ./start-splice.sh
+   ./bin/start-splice.sh
    ````
 
    Initialization of the database may take a couple minutes. It is ready for use when you see this message:
@@ -346,7 +346,7 @@ Start Splice Machine on your computer and run a few commands to verifythe instal
 3.  Start using the Splice Machine command line interpreter by launching the `sqlshell.sh` script:
 
    ````
-   ./sqlshell.sh
+   ./bin/sqlshell.sh
    ````
 
    Once you have launched the command line interpreter (the splice&gt; prompt), we recommend verifying that all is well by running a few sample commands. First:
