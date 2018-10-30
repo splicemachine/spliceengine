@@ -431,9 +431,7 @@ public class SITransactor implements Transactor{
      */
     private ConflictResults ensureNoWriteConflict(TxnView updateTransaction,KVPair.Type updateType,DataResult row) throws IOException{
 
-        DataCell commitTsKeyValue=row.commitTimestamp();//opFactory.getColumnLatest(result, DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
-//        Data tombstoneKeyValue = opFactory.getColumnLatest(result, DEFAULT_FAMILY_BYTES, SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES);
-//        Data userDataKeyValue = opFactory.getColumnLatest(result, DEFAULT_FAMILY_BYTES, PACKED_COLUMN_BYTES);
+        DataCell commitTsKeyValue=row.commitTimestamp();
 
         ConflictResults conflictResults=null;
         if(commitTsKeyValue!=null){
@@ -524,6 +522,14 @@ public class SITransactor implements Transactor{
         if(updateTransaction.getTxnId()!=dataTransactionId){
             final TxnView dataTransaction=txnSupplier.getTransaction(dataTransactionId);
             if(dataTransaction.getState()==Txn.State.ROLLEDBACK){
+                if (dataTransaction.getBeginTimestamp() > updateTransaction.getBeginTimestamp()) {
+                    // If we ignore this transaction it could mask other writes with which we do conflict, see DB-7582 for details
+                    if(LOG.isTraceEnabled()){
+                        SpliceLogUtils.trace(LOG,"Write conflict on row "
+                                +Bytes.toHex(cell.keyArray(),cell.keyOffset(),cell.keyLength()));
+                    }
+                    throw exceptionLib.writeWriteConflict(dataTransactionId,updateTransaction.getTxnId());
+                }
                 return conflictResults; //can't conflict with a rolled back transaction
             }
             final ConflictType conflictType=updateTransaction.conflicts(dataTransaction);

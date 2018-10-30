@@ -37,6 +37,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.fail;
+
 @SuppressWarnings("unchecked")
 @Category(ArchitectureSpecific.class)
 public class SITransactorTest {
@@ -253,7 +255,7 @@ public class SITransactorTest {
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
         try {
             testUtility.insertAge(t2, "joe012", 30);
-            Assert.fail("was able to insert age");
+            fail("was able to insert age");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -263,7 +265,7 @@ public class SITransactorTest {
         t1.commit();
         error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
         t2.commit(); //should not work, probably need to change assertion
-        Assert.fail("Was able to commit a rolled back transaction");
+        fail("Was able to commit a rolled back transaction");
     }
 
     @Test
@@ -280,7 +282,7 @@ public class SITransactorTest {
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
         try {
             testUtility.insertAge(t2, "joe142", 30);
-            Assert.fail();
+            fail();
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         }
@@ -305,7 +307,7 @@ public class SITransactorTest {
         Txn t1 = control.beginTransaction();
         try{
             testUtility.insertAge(t1,"scott2",20);
-            Assert.fail("Was able to insert age!");
+            fail("Was able to insert age!");
         }catch(IOException ioe){
             ioe =testEnv.getExceptionFactory().processRemoteException(ioe);
             Assert.assertTrue("Incorrect exception",ReadOnlyModificationException.class.isAssignableFrom(ioe.getClass()));
@@ -574,7 +576,7 @@ public class SITransactorTest {
         Txn t2 = control.beginTransaction(DESTINATION_TABLE);
         try {
             testUtility.deleteRow(t2, "joe2");
-            Assert.fail("No Write conflict was detected!");
+            fail("No Write conflict was detected!");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -585,7 +587,7 @@ public class SITransactorTest {
         error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
         error.expectMessage(String.format("[%1$d]Transaction %1$d cannot be committed--it is in the %2$s state",t2.getTxnId(),Txn.State.ROLLEDBACK));
         t2.commit();
-        Assert.fail("Did not throw CannotCommit exception!");
+        fail("Did not throw CannotCommit exception!");
     }
 
     @Test
@@ -601,7 +603,7 @@ public class SITransactorTest {
         Assert.assertEquals("joe013 age=20 job=null",testUtility.read(t2,"joe013"));
         try {
             testUtility.insertAge(t2, "joe013", 21);
-            Assert.fail("No WriteConflict thrown!");
+            fail("No WriteConflict thrown!");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -611,7 +613,7 @@ public class SITransactorTest {
         t1.commit();
         try {
             t2.commit();
-            Assert.fail();
+            fail();
         } catch (IOException dnrio) {
             Assert.assertTrue("Was not a CannotCommitException!",dnrio instanceof CannotCommitException);
             CannotCommitException cce = (CannotCommitException)dnrio;
@@ -1003,7 +1005,7 @@ public class SITransactorTest {
         Assert.assertEquals("joe18 age=20 job=null", testUtility.read(t2, "joe18"));
         try {
             testUtility.insertAge(t2, "joe18", 21);
-            Assert.fail("expected exception performing a write on a read-only transaction");
+            fail("expected exception performing a write on a read-only transaction");
         } catch (IOException e) {
         }
     }
@@ -1347,7 +1349,7 @@ public class SITransactorTest {
         Txn other = control.beginTransaction(Txn.IsolationLevel.READ_COMMITTED, DESTINATION_TABLE);
         try {
             testUtility.insertAge(other, "joe34", 21);
-            Assert.fail("No write conflict detected");
+            fail("No write conflict detected");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -1381,7 +1383,7 @@ public class SITransactorTest {
 
         try {
             testUtility.insertAge(other, "joe36", 21);
-            Assert.fail();
+            fail();
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -1765,6 +1767,24 @@ public class SITransactorTest {
     }
 
     @Test
+    public void testRolledBackTxnDoesntMaskEarlierConflcits() throws IOException, InterruptedException {
+        try {
+            final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+            final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
+            final Txn t3 = control.beginTransaction(DESTINATION_TABLE);
+            testUtility.insertAge(t2, "joe66", 20);
+
+            t2.rollback();
+            testUtility.insertAge(t1, "joe66", 22);
+            testUtility.insertAge(t3, "joe66", 23);
+
+            fail("Expected WW conflict");
+        } catch (IOException e) {
+            testUtility.assertWriteConflict(e);
+        }
+    }
+
+    @Test
     public void childIndependentTransactionWriteCommitRollbackRead() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
         Txn t2 = control.beginChildTransaction(noSubTxns(t1), t1.getIsolationLevel(), DESTINATION_TABLE);
@@ -1892,7 +1912,7 @@ public class SITransactorTest {
         testUtility.insertAge(t2, "moe31", 21);
         try {
             testUtility.insertJob(t3, "moe31", "baker");
-            Assert.fail();
+            fail();
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -1973,7 +1993,7 @@ public class SITransactorTest {
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
         try {
             testUtility.insertAge(t2, "joe116", 30);
-            Assert.fail("Allowed insertion");
+            fail("Allowed insertion");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -1983,7 +2003,7 @@ public class SITransactorTest {
         t1.commit();
         error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
         t2.commit();
-        Assert.fail("Was able to comit a rolled back transaction");
+        fail("Was able to comit a rolled back transaction");
     }
 
     @Test
@@ -2167,6 +2187,6 @@ public class SITransactorTest {
 //            control.beginChildTransaction(t3, true, true, false, null, null, t2);
         error.expect(IOException.class);
         control.chainTransaction(t3, t3.getIsolationLevel(), true, DESTINATION_TABLE, t2);
-        Assert.fail();
+        fail();
     }
 }
