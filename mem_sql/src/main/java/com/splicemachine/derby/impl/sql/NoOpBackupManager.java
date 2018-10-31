@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql;
 
+import com.splicemachine.backup.BackupJobStatus;
 import com.splicemachine.backup.BackupManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -44,11 +45,6 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public long getRunningBackup() throws StandardException{
-        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
-    }
-
-    @Override
     public void restoreDatabase(String directory,long backupId, boolean sync, boolean validate) throws StandardException{
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
@@ -69,7 +65,12 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public void cancelBackup() throws StandardException {
+    public BackupJobStatus[] getRunningBackups() throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
+
+    @Override
+    public void cancelBackup(long backupId) throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 
@@ -89,8 +90,19 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
+    public void fullBackupSchema(String schemaName, String backupDirectory) throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
+
+    @Override
     public void restoreTable(String destSchema, String destTable, String sourceSchema, String sourceTable,
                              String directory, long backupId, boolean validate) throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
+
+    @Override
+    public void restoreSchema(String destSchema, String sourceSchema, String directory,
+                              long backupId, boolean validate) throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 }
