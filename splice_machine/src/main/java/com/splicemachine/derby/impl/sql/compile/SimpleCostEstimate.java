@@ -65,7 +65,7 @@ public class SimpleCostEstimate implements CostEstimate{
     public SimpleCostEstimate(double localCost,double remoteCost,double numRows,double singleScanRowCount,int numPartitions){
         this.localCost=localCost;
         this.remoteCost=remoteCost;
-        this.numRows=numRows=numRows>1?numRows:1;
+        this.numRows=numRows>1?numRows:1;
         this.singleScanRowCount=singleScanRowCount;
         this.numPartitions=numPartitions;
     }
