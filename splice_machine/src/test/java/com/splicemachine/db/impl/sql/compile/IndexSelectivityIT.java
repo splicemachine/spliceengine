@@ -166,6 +166,32 @@ public class IndexSelectivityIT extends SpliceUnitTest {
             factor = factor * 2;
         }
         conn.commit();
+
+        new TableCreator(conn)
+                .withCreate("create table splice2250 (a1 int, b1 date, c1 int, d1 time, e1 timestamp)")
+                .withInsert("insert into splice2250 values(?,?,?,?,?)")
+                .withRows(rows(
+                        row(1, "2018-01-01", 1,"15:01:01","2018-01-01 17:12:30"),
+                        row(2, "2018-01-02", 2,"15:02:02","2018-01-02 17:12:30"),
+                        row(3, "2018-01-03", 3,"15:03:03","2018-01-03 17:12:30"),
+                        row(4, "2018-01-04", 4,"15:04:04","2018-01-04 17:12:30"),
+                        row(5, "2018-01-05", 5,"15:05:05","2018-01-05 17:12:30"),
+                        row(6, "2018-01-06", 6,"15:06:06","2018-01-06 17:12:30"),
+                        row(7, "2018-01-07", 7,"15:07:07","2018-01-07 17:12:30"),
+                        row(8, "2018-01-08", 8,"15:08:08","2018-01-08 17:12:30"),
+                        row(9, "2018-01-09", 9,"15:09:09","2018-01-09 17:12:30"),
+                        row(10, "2018-01-10", 10,"15:10:10","2018-01-10 17:12:30")))
+                .create();
+
+        spliceClassWatcher.executeUpdate("insert into splice2250 select a1+10,b1,c1,d1,e1 from splice2250");
+        spliceClassWatcher.executeUpdate("insert into splice2250 select a1+20,b1,c1,d1,e1 from splice2250");
+        spliceClassWatcher.executeUpdate("insert into splice2250 select a1+40,b1,c1,d1,e1 from splice2250");
+        spliceClassWatcher.executeUpdate("insert into splice2250 select a1+80,b1,c1,d1,e1 from splice2250");
+        spliceClassWatcher.execute("analyze table splice2250");
+        spliceClassWatcher.execute("create index ix_t1_1 on splice2250 (b1, c1) ");
+        spliceClassWatcher.execute("create index ix_t1_2 on splice2250 (d1) ");
+        spliceClassWatcher.execute("create index ix_t1_3 on splice2250 (e1) ");
+
     }
 
     @Test
@@ -410,5 +436,20 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     // testMostSelectiveIndexChosen
     // test1PercentRangeScan
     // test20PercentRangeScan
+
+    @Test
+    public void testImplicitCastStringToDate() throws Exception {
+        thirdRowContainsQuery("explain select b1,c1 from splice2250 where b1='2018-01-03'","scannedRows=16,outputRows=16",methodWatcher);
+    }
+
+    @Test
+    public void testImplicitCastStringToTime() throws Exception {
+        thirdRowContainsQuery("explain select d1 from splice2250 where d1='15:03:03'","scannedRows=16,outputRows=16",methodWatcher);
+    }
+
+    @Test
+    public void testImplicitCastStringToTimeStamp() throws Exception {
+        thirdRowContainsQuery("explain select e1 from splice2250 where e1='2018-01-03 17:12:30'","scannedRows=16,outputRows=16",methodWatcher);
+    }
 
 }

@@ -31,7 +31,11 @@
 package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLDate;
+import com.splicemachine.db.iapi.types.SQLTime;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.yahoo.memory.NativeMemory;
 import com.yahoo.sketches.frequencies.ErrorType;
 import com.yahoo.sketches.quantiles.ItemsSketch;
@@ -43,6 +47,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.GregorianCalendar;
 
 import static com.splicemachine.db.iapi.types.Orderable.*;
 
@@ -228,10 +233,41 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         // Use Null Data
         if (element == null || element.isNull())
             return nullCount;
+
         // Frequent Items Sketch?
-        long count = frequenciesSketch.getEstimate(element);
-        if (count>0)
-            return count;
+
+        // When look up predicate value in quantilesSketch, the element's data type
+        // must match with the data type stored the ItemsSketch.hashMap
+        // Otherwise the same value of element in ItemsSketch.hashMap can't be queried out
+        // This handle the situation of string predict compare with DATE/TIME/TIMESTAMP
+        DataValueDescriptor lookUpElement = element;
+        int typeFormatId = dvd.getTypeFormatId();
+        int eTypeFormatId = element.getTypeFormatId();
+        boolean isConverted = false;
+        if (typeFormatId != eTypeFormatId) {
+            if (eTypeFormatId == StoredFormatIds.SQL_CHAR_ID) {
+                try {
+                    switch (typeFormatId) {
+                        case StoredFormatIds.SQL_DATE_ID:
+                            lookUpElement = new SQLDate(element.getDate(new GregorianCalendar()));
+                            break;
+                        case StoredFormatIds.SQL_TIME_ID:
+                            lookUpElement = new SQLTime(element.getTime(null));
+                            break;
+                        case StoredFormatIds.SQL_TIMESTAMP_ID:
+                            lookUpElement = new SQLTimestamp(element.getTimestamp(new GregorianCalendar()));
+                    }
+                    isConverted = true;
+                } catch (StandardException e) {
+                    LOG.warn("Data type conversion failure when looking up frequencies.ItemsSketch", e);
+                }
+            }
+        }
+        if (typeFormatId == eTypeFormatId || isConverted) {
+            long count = frequenciesSketch.getEstimate(lookUpElement);
+            if (count > 0)
+                return count;
+        }
         // Return Cardinality Based Estimate
         if (rpv == -1)
             rpv = getAvgRowsPerValueExcludingSkews();
