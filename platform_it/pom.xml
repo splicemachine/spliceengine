@@ -37,12 +37,12 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -381,12 +381,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_pipeline-${envClassifier}</artifactId>
+            <artifactId>hbase_pipeline</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -441,7 +441,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
@@ -644,7 +644,7 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
@@ -757,7 +757,7 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -793,7 +793,7 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>

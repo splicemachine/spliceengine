@@ -14,7 +14,7 @@
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>splice_machine-assembly-${envClassifier}</artifactId>
+    <artifactId>splice_machine-assembly</artifactId>
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
     <description>Assembly module for SpliceMachine</description>
@@ -27,7 +27,7 @@
         <dependency>
             <!-- Get all projects and required dependencies transitively -->
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
@@ -55,9 +55,9 @@
             concurrentlinkedhashmap-lru,
             kryo-serializers,
             lucene-core,
-            hbase_pipeline-${envClassifier},
-            hbase_storage-${envClassifier},
-            hbase_sql-${envClassifier},
+            hbase_pipeline,
+            hbase_storage,
+            hbase_sql,
             splice_ee,
             splice_backup,
             splice_auth,
@@ -82,6 +82,7 @@
         </commonArtifacts>
     </properties>
     <build>
+        <finalName>${project.artifactId}-${envClassifier}-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
