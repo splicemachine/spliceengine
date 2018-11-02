@@ -31,14 +31,14 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class aggregates objects that make up a Window Over() clause.<br/>
@@ -95,23 +95,33 @@ public class OverClause extends QueryTreeNode {
         int partitionSize = (partition != null ? partition.size() : 0);
         int orderByListSize = (orderByClause != null ? orderByClause.size() : 0);
         List<OrderedColumn> keyCols = new ArrayList<>(partitionSize+orderByListSize);
-        Set<ValueNode> addedNodes = new HashSet<>(partitionSize+orderByListSize);
+
+        // A Multimap may have multiple values per key.
+        // If V is a ColumnReference with zero-length column name, the underlying
+        // source expressions are compared for equivalence when Multimap.contains is called.
+        // Otherwise, just table number and column name are compared.
+        final Multimap<Integer, ValueNode> rowkeyParts =
+               ArrayListMultimap.create(partitionSize+orderByListSize, 1);
 
         // partition columns
         for (int i=0; i<partitionSize; i++) {
             OrderedColumn oc = partition.elementAt(i);
-            if (! addedNodes.contains(oc.getColumnExpression())) {
+            if (! rowkeyParts.containsEntry(oc.getColumnExpression().hashCode(),
+                                            oc.getColumnExpression())) {
                 keyCols.add(oc);
-                addedNodes.add(oc.getColumnExpression());
+                rowkeyParts.put(oc.getColumnExpression().hashCode(),
+                                oc.getColumnExpression());
             }
         }
 
         // order by columns
         for (int i=0; i<orderByListSize; ++i) {
             OrderedColumn oc = orderByClause.elementAt(i);
-            if (! addedNodes.contains(oc.getColumnExpression())) {
+            if (! rowkeyParts.containsEntry(oc.getColumnExpression().hashCode(),
+                  oc.getColumnExpression())) {
                 keyCols.add(oc);
-                addedNodes.add(oc.getColumnExpression());
+                rowkeyParts.put(oc.getColumnExpression().hashCode(),
+                                oc.getColumnExpression());
             }
         }
 
