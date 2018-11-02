@@ -28,8 +28,6 @@ public interface BackupManager{
 
     long incrementalBackup(String directory, boolean sync) throws StandardException;
 
-    long getRunningBackup() throws StandardException;
-
     void restoreDatabase(String directory,long backupId, boolean sync, boolean validate)throws StandardException;
 
     void removeBackup(List<Long> backupIds) throws StandardException;
@@ -38,7 +36,9 @@ public interface BackupManager{
 
     void cancelDailyBackup(long jobId) throws StandardException;
 
-    void cancelBackup() throws StandardException;
+    BackupJobStatus[] getRunningBackups() throws StandardException;
+
+    void cancelBackup(long backupId) throws StandardException;
 
     void validateBackup(String directory,long backupId)throws StandardException;
 
@@ -46,6 +46,11 @@ public interface BackupManager{
 
     void fullBackupTable(String schemaName, String tableName, String backupDirectory) throws StandardException;
 
+    void fullBackupSchema(String schemaName, String backupDirectory) throws StandardException;
+
     void restoreTable(String destSchema, String destTable, String sourceSchema, String sourceTable, String directory,
+                      long backupId, boolean validate) throws StandardException;
+
+    void restoreSchema(String destSchema, String sourceSchema, String directory,
                       long backupId, boolean validate) throws StandardException;
 }

@@ -49,6 +49,17 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
+
+  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
+
+  def broadcastCreds(credentials: Credentials) : Unit = this.synchronized {
+    if (broadcastCredentials != null)
+      return
+    
+    SpliceSpark.logCredentialsInformation(credentials)
+    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
+    SpliceSpark.setCredentials(broadcastCredentials)
+  }
 }
 
 /**
@@ -71,7 +82,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   @transient private[this] var credentials = UserGroupInformation.getCurrentUser().getCredentials()
-  private[this] var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   private[this] def initConnection() = {
@@ -122,8 +132,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
           // Add it to credentials and broadcast them
           credentials.addToken(getUniqueAlias(token), token)
-          broadcastCreds
-          SpliceSpark.setCredentials(broadcastCredentials)
+          Holder.broadcastCreds(credentials)
 
           Holder.log.debug(f"Broadcasted credentials")
 
@@ -135,11 +144,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       
       initConnection()
     }
-  }
-
-  private[this] def broadcastCreds = {
-    SpliceSpark.logCredentialsInformation(credentials)
-    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
   }
 
   /**
@@ -803,6 +807,37 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def pruneSchema(schema: StructType, columns: Array[String]): StructType = {
     val fieldMap = Map(schema.fields.map(x => x.metadata.getString("name") -> x): _*)
     new StructType(columns.map(name => fieldMap(name)))
+  }
+
+  /**
+    * Export a dataFrame in CSV
+    *
+    * @param location  - Destination directory
+    * @param compression - Whether to compress the output or not
+    * @param replicationCount - Replication used for HDFS write
+    * @param fileEncoding - fileEncoding or null, defaults to UTF-8
+    * @param fieldSeparator - fieldSeparator or null, defaults to ','
+    * @param quoteCharacter - quoteCharacter or null, defaults to '"'
+    *
+    */
+  def export(dataFrame: DataFrame, location: String,
+                   compression: Boolean, replicationCount: Int,
+             fileEncoding: String,
+             fieldSeparator: String,
+             quoteCharacter: String): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val encoding = quotedOrNull(fileEncoding)
+    val separator = quotedOrNull(fieldSeparator)
+    val quoteChar = quotedOrNull(quoteCharacter)
+    val sqlText = s"export ( '$location', $compression, $replicationCount, $encoding, $separator, $quoteChar) select " + columnList + " from " +
+      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
+    internalConnection.createStatement().execute(sqlText)
+  }
+
+  private[this] def quotedOrNull(value: String) = {
+    if (value == null) "null" else s"'$value"
   }
 
   /**
