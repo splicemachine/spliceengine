@@ -98,7 +98,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     maker.createNew(dbProperties)
   }
 
-  private[this] def getConnection(): Connection = {
+  /**
+    * Get internal JDBC connection
+    */
+  def getConnection(): Connection = {
     internalConnection
   }
 
@@ -185,7 +188,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dt The datatype (e.g. [[org.apache.spark.sql.types.StringType]])
     * @return The default JdbcType for this DataType
     */
-  def getCommonJDBCType(dt: DataType) = {
+  private[this] def getCommonJDBCType(dt: DataType) = {
     dt match {
       case IntegerType => Option(JdbcType("INTEGER", java.sql.Types.INTEGER))
       case LongType => Option(JdbcType("BIGINT", java.sql.Types.BIGINT))
