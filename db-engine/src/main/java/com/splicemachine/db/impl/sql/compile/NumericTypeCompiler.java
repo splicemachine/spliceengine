@@ -217,7 +217,9 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		TypeId leftTypeId = leftType.getTypeId();
 		TypeId rightTypeId = rightType.getTypeId();
 
-		
+
+		/* The result is nullable if either side is nullable */
+		nullable = leftType.isNullable() || rightType.isNullable();
 		boolean supported = true;
 
 		if ( ! (rightTypeId.isNumericTypeId()) )
@@ -246,7 +248,10 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 				supported = false;
 				break;
 			}
-
+            if (supported)
+				return new DataTypeDescriptor(
+				               TypeId.getBuiltInTypeId(leftTypeId.getJDBCTypeId()),
+				               nullable);
 		}
 
 		if (!supported) {
@@ -271,9 +276,6 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			higherTC = (NumericTypeCompiler) getTypeCompiler(leftTypeId);
 		}
 
-		/* The result is nullable if either side is nullable */
-		nullable = leftType.isNullable() || rightType.isNullable();
-		
 		int highTypeId = higherType.getTypeId().getJDBCTypeId();
 		if (java.sql.Types.TINYINT == highTypeId ||
 			java.sql.Types.SMALLINT == highTypeId ||

@@ -1291,8 +1291,18 @@ public class ColumnReference extends ValueNode {
 			return false;
 		}
 		ColumnReference other = (ColumnReference)o;
-		return (tableNumber == other.tableNumber
-				&& columnName.equals(other.getColumnName()));
+		if (tableNumber != other.tableNumber)
+			return false;
+        if (columnName.equals(other.getColumnName())) {
+            // A ColumnReference with zero-length column name may be an expression.
+            // Compare the source trees in this case to see if they really
+            // are equivalent.
+            if (columnName.length() == 0)
+                return this.getSource().isEquivalent(other.getSource());
+            else
+                return true;
+        }
+        return false;
 	}
 
 	@Override
