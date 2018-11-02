@@ -33,6 +33,7 @@ package com.splicemachine.db.iapi.stats;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLDate;
 import com.splicemachine.db.iapi.types.SQLTime;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
@@ -239,31 +240,43 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         // When look up predicate value in quantilesSketch, the element's data type
         // must match with the data type stored the ItemsSketch.hashMap
         // Otherwise the same value of element in ItemsSketch.hashMap can't be queried out
-        // This handle the situation of string predict compare with DATE/TIME/TIMESTAMP
+        // This handle the situation of string predicate compare with DATE/TIME/TIMESTAMP
         DataValueDescriptor lookUpElement = element;
         int typeFormatId = dvd.getTypeFormatId();
         int eTypeFormatId = element.getTypeFormatId();
         boolean isConverted = false;
-        if (typeFormatId != eTypeFormatId) {
-            if (eTypeFormatId == StoredFormatIds.SQL_CHAR_ID) {
-                try {
-                    switch (typeFormatId) {
-                        case StoredFormatIds.SQL_DATE_ID:
-                            lookUpElement = new SQLDate(element.getDate(new GregorianCalendar()));
-                            break;
-                        case StoredFormatIds.SQL_TIME_ID:
-                            lookUpElement = new SQLTime(element.getTime(null));
-                            break;
-                        case StoredFormatIds.SQL_TIMESTAMP_ID:
-                            lookUpElement = new SQLTimestamp(element.getTimestamp(new GregorianCalendar()));
-                    }
-                    isConverted = true;
-                } catch (StandardException e) {
-                    LOG.warn("Data type conversion failure when looking up frequencies.ItemsSketch", e);
+        if (lookUpElement instanceof SQLChar) {
+            try {
+                switch (typeFormatId) {
+                    case StoredFormatIds.SQL_DATE_ID:
+                        lookUpElement = new SQLDate(element.getDate(SQLDate.GREGORIAN_CALENDAR.get()));
+                        break;
+                    case StoredFormatIds.SQL_TIME_ID:
+                        lookUpElement = new SQLTime(element.getTime(null));
+                        break;
+                    case StoredFormatIds.SQL_TIMESTAMP_ID:
+                        lookUpElement = new SQLTimestamp(element.getTimestamp(SQLDate.GREGORIAN_CALENDAR.get()));
                 }
+                isConverted = true;
+            } catch (StandardException e) {
+                LOG.warn("Data type conversion failure when looking up frequencies.ItemsSketch", e);
             }
         }
-        if (typeFormatId == eTypeFormatId || isConverted) {
+        boolean isIntegerFamily = false;
+        if ((eTypeFormatId == StoredFormatIds.SQL_INTEGER_ID || eTypeFormatId == StoredFormatIds.SQL_TINYINT_ID || eTypeFormatId == StoredFormatIds.SQL_SMALLINT_ID) &&
+                (typeFormatId == StoredFormatIds.SQL_INTEGER_ID || typeFormatId == StoredFormatIds.SQL_TINYINT_ID || typeFormatId == StoredFormatIds.SQL_SMALLINT_ID )
+        ) {
+            isIntegerFamily = true;
+        }
+
+        boolean isFloatFamily = false;
+        if ((eTypeFormatId == StoredFormatIds.SQL_REAL_ID || eTypeFormatId == StoredFormatIds.SQL_DOUBLE_ID || eTypeFormatId == StoredFormatIds.SQL_DECIMAL_ID) &&
+                (typeFormatId == StoredFormatIds.SQL_REAL_ID || typeFormatId == StoredFormatIds.SQL_DOUBLE_ID || typeFormatId == StoredFormatIds.SQL_DECIMAL_ID )
+        ) {
+            isFloatFamily = true;
+        }
+
+        if (typeFormatId == eTypeFormatId || isConverted || isIntegerFamily || isFloatFamily) {
             long count = frequenciesSketch.getEstimate(lookUpElement);
             if (count > 0)
                 return count;
