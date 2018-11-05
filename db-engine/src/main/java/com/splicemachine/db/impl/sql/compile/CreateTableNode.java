@@ -78,7 +78,14 @@ public class CreateTableNode extends DDLStatementNode
 	CharConstantNode              location;
 	String              		  compression;
     boolean                       mergeSchema;
-
+	boolean                       presplit;
+	boolean                       isLogicalKey;
+	String                        splitKeyPath;
+	String                        columnDelimiter;
+	String                        characterDelimiter;
+	String                        timestampFormat;
+	String                        dateFormat;
+	String                        timeFormat;
 
 	/**
 	 * Initializer for a CreateTableNode for a base table
@@ -106,7 +113,51 @@ public class CreateTableNode extends DDLStatementNode
 			Object storageFormat,
 			Object location,
 			Object compression,
-			Object mergeSchema
+			Object mergeSchema) throws StandardException
+	{
+		this.isExternal = (Boolean) isExternal;
+		if (this.isExternal)
+			tableType = TableDescriptor.EXTERNAL_TYPE;
+		else
+			tableType = TableDescriptor.BASE_TABLE_TYPE;
+		this.lockGranularity = ((Character) lockGranularity).charValue();
+		implicitCreateSchema = true;
+
+		if (SanityManager.DEBUG)
+		{
+			if (this.lockGranularity != TableDescriptor.TABLE_LOCK_GRANULARITY &&
+					this.lockGranularity != TableDescriptor.ROW_LOCK_GRANULARITY)
+			{
+				SanityManager.THROWASSERT(
+						"Unexpected value for lockGranularity = " + this.lockGranularity);
+			}
+		}
+		initAndCheck(newObjectName);
+		this.tableElementList = (TableElementList) tableElementList;
+		this.properties = (Properties) properties;
+		this.partitionedResultColumns = (ResultColumnList) partitionedResultColumns;
+		this.terminationChar = (CharConstantNode) terminationChar;
+		this.escapedByChar = (CharConstantNode) escapedByChar;
+		this.linesTerminatedByChar = (CharConstantNode) linesTerminatedByChar;
+		this.storageFormat = (String) storageFormat;
+		this.location = (CharConstantNode) location;
+		this.compression = (String) compression;
+		this.mergeSchema = (Boolean)mergeSchema;
+	}
+
+	public void init(
+			Object newObjectName,
+			Object tableElementList,
+			Object properties,
+			Object lockGranularity,
+			Object presplit,
+			Object isLogicalKey,
+			Object splitKeyPath,
+			Object columnDelimiter,
+			Object characterDelimiter,
+			Object timestampFormat,
+			Object dateFormat,
+			Object timeFormat
 		)
 		throws StandardException
 	{
@@ -115,7 +166,7 @@ public class CreateTableNode extends DDLStatementNode
 			tableType = TableDescriptor.EXTERNAL_TYPE;
 		else
 			tableType = TableDescriptor.BASE_TABLE_TYPE;
-		this.lockGranularity = ((Character) lockGranularity).charValue();
+		this.lockGranularity = (Character) lockGranularity;
 		implicitCreateSchema = true;
 
 		if (SanityManager.DEBUG)
@@ -130,14 +181,14 @@ public class CreateTableNode extends DDLStatementNode
 		initAndCheck(newObjectName);
 		this.tableElementList = (TableElementList) tableElementList;
 		this.properties = (Properties) properties;
-		this.partitionedResultColumns = (ResultColumnList) partitionedResultColumns;
-		this.terminationChar = (CharConstantNode) terminationChar;
-		this.escapedByChar = (CharConstantNode) escapedByChar;
-		this.linesTerminatedByChar = (CharConstantNode) linesTerminatedByChar;
-		this.storageFormat = (String) storageFormat;
-		this.location = (CharConstantNode) location;
-		this.compression = (String) compression;
-        this.mergeSchema = (Boolean)mergeSchema;
+		this.presplit = (Boolean) presplit;
+		this.isLogicalKey = (Boolean)isLogicalKey;
+        this.splitKeyPath = splitKeyPath!=null ? ((CharConstantNode)splitKeyPath).getString() : null;
+        this.columnDelimiter = columnDelimiter != null ? ((CharConstantNode)columnDelimiter).getString() : null;
+        this.characterDelimiter = characterDelimiter != null ? ((CharConstantNode)characterDelimiter).getString() : null;
+        this.timestampFormat = timestampFormat != null ? ((CharConstantNode)timestampFormat).getString() : null;
+        this.dateFormat = dateFormat != null ? ((CharConstantNode)dateFormat).getString() : null;
+        this.timeFormat = timeFormat != null ? ((CharConstantNode)timeFormat).getString() : null;
 	}
 
 	/**
@@ -611,7 +662,15 @@ public class CreateTableNode extends DDLStatementNode
                     storageFormat,
                     location!=null?location.value.getString():null,
                     compression,
-                    mergeSchema
+                    mergeSchema,
+                    presplit,
+                    isLogicalKey,
+                    splitKeyPath,
+                    columnDelimiter,
+                    characterDelimiter,
+                    timestampFormat,
+                    dateFormat,
+                    timeFormat
             ));
     }
 

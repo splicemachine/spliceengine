@@ -64,6 +64,12 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     public static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(ROWS_COUNT_WITHOUT_SAMPLE,
             spliceSchemaWatcher.schemaName,
             "(i varchar(10), j varchar(10) not null, constraint a_pk2 primary key (i))");
+    private static String startKeys[] = {
+            "{ NULL, NULL }",
+            "{ 1424004, 7 }",
+            "{ 2384419, 4 }",
+            "{ 3244416, 6 }",
+            "{ 5295747, 4 }"};
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -463,6 +469,69 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                 "\\xE1(Q\\x00\\xE4<\\x8F\\x84 |";
 
         Assert.assertEquals(expected, s);
+    }
+    @Test
+    public void testCreateTableWithLogicalSplitKeyes() throws Exception {
+        String sql = String.format("CREATE TABLE LINEITEM2 (\n" +
+                "  L_ORDERKEY      INTEGER NOT NULL,\n" +
+                "  L_PARTKEY       INTEGER NOT NULL,\n" +
+                "  L_SUPPKEY       INTEGER NOT NULL,\n" +
+                "  L_LINENUMBER    INTEGER NOT NULL,\n" +
+                "  L_QUANTITY      DECIMAL(15, 2),\n" +
+                "  L_EXTENDEDPRICE DECIMAL(15, 2),\n" +
+                "  L_DISCOUNT      DECIMAL(15, 2),\n" +
+                "  L_TAX           DECIMAL(15, 2),\n" +
+                "  L_RETURNFLAG    CHAR(1),\n" +
+                "  L_LINESTATUS    CHAR(1),\n" +
+                "  L_SHIPDATE      DATE,\n" +
+                "  L_COMMITDATE    DATE,\n" +
+                "  L_RECEIPTDATE   DATE,\n" +
+                "  L_SHIPINSTRUCT  CHAR(25),\n" +
+                "  L_SHIPMODE      CHAR(10),\n" +
+                "  L_COMMENT       VARCHAR(44),\n" +
+                "  PRIMARY KEY (L_ORDERKEY, L_LINENUMBER)\n" +
+                ") logical splitkeys location '%s'", SpliceUnitTest.getResourceDirectory()+ "lineitemKeys.csv");
+        methodWatcher.execute(sql);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.get_regions('HBASEBULKLOADIT','LINEITEM2',null,null,null,null,null,null,null,null)");
+        int i = 0;
+        while (rs.next()) {
+            String startKey = rs.getString("SPLICE_START_KEY");
+            Assert.assertEquals(startKey, startKey, startKeys[i]);
+            i++;
+        }
+
+    }
+
+    @Test
+    public void testCreateTableWithPhysicalSplitKeyes() throws Exception {
+        String sql = String.format("CREATE TABLE LINEITEM3 (\n" +
+                "  L_ORDERKEY      INTEGER NOT NULL,\n" +
+                "  L_PARTKEY       INTEGER NOT NULL,\n" +
+                "  L_SUPPKEY       INTEGER NOT NULL,\n" +
+                "  L_LINENUMBER    INTEGER NOT NULL,\n" +
+                "  L_QUANTITY      DECIMAL(15, 2),\n" +
+                "  L_EXTENDEDPRICE DECIMAL(15, 2),\n" +
+                "  L_DISCOUNT      DECIMAL(15, 2),\n" +
+                "  L_TAX           DECIMAL(15, 2),\n" +
+                "  L_RETURNFLAG    CHAR(1),\n" +
+                "  L_LINESTATUS    CHAR(1),\n" +
+                "  L_SHIPDATE      DATE,\n" +
+                "  L_COMMITDATE    DATE,\n" +
+                "  L_RECEIPTDATE   DATE,\n" +
+                "  L_SHIPINSTRUCT  CHAR(25),\n" +
+                "  L_SHIPMODE      CHAR(10),\n" +
+                "  L_COMMENT       VARCHAR(44),\n" +
+                "  PRIMARY KEY (L_ORDERKEY, L_LINENUMBER)\n" +
+                ") physical splitkeys location '%s'", SpliceUnitTest.getResourceDirectory()+ "lineitemKeys.txt");
+        methodWatcher.execute(sql);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.get_regions('HBASEBULKLOADIT','LINEITEM3',null,null,null,null,null,null,null,null)");
+        int i = 0;
+        while (rs.next()) {
+            String startKey = rs.getString("SPLICE_START_KEY");
+            Assert.assertEquals(startKey, startKey, startKeys[i]);
+            i++;
+        }
+
     }
 
     @Test

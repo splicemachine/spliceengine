@@ -336,7 +336,15 @@ public abstract class GenericConstantActionFactory {
 		String storedAs,
 		String location,
 		String compression,
-		boolean mergeSchema
+		boolean mergeSchema,
+		boolean presplit,
+		boolean isLogicalKey,
+		String splitKeyPath,
+		String columnDelimiter,
+		String characterDelimiter,
+		String timestampFormat,
+		String dateFormat,
+		String timeFormat
 		);
 
 	public abstract	ConstantAction	getPinTableConstantAction (
