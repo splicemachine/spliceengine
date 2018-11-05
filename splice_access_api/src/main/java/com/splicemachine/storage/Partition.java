@@ -119,6 +119,8 @@ public interface Partition extends AutoCloseable{
 
     void mutate(DataMutation put) throws IOException;
 
+    void batchMutate(List<DataMutation> mutations) throws IOException;
+
     boolean containsRow(byte[] row);
 
     boolean containsRow(byte[] row, int offset, int length);
