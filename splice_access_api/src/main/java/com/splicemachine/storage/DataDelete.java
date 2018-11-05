@@ -26,4 +26,6 @@ public interface DataDelete extends DataMutation{
     byte[] key();
 
     Iterable<DataCell> cells();
+
+    void skipWAL();
 }
