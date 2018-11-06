@@ -107,7 +107,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              final String tableVersion,
                              SIFilterFactory filterFactory,
                              ExecRow defaultRow,
-                             FormatableBitSet defaultValueMap) {
+                             FormatableBitSet defaultValueMap,
+                             boolean ignoreRecentTransactions
+    ) {
         assert template!=null:"Template cannot be null into a scanner";
         this.region = region;
         regionId.set(region.getRegionName());
@@ -127,7 +129,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 keyColumnTypes, VersionedSerializers.typesForVersion(tableVersion));
         this.tableVersion = tableVersion;
         if(filterFactory==null){
-            this.filterFactory = createFilterFactory(txn, demarcationPoint);
+            this.filterFactory = createFilterFactory(txn, demarcationPoint, ignoreRecentTransactions);
         }
         else
             this.filterFactory = filterFactory;
@@ -152,13 +154,14 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              SIFilterFactory filterFactory,
                              final long demarcationPoint,
                              ExecRow defaultRow,
-                             FormatableBitSet defaultValueMap) {
+                             FormatableBitSet defaultValueMap,
+                             boolean ignoreRecentTransactions) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory, defaultRow, defaultValueMap);
+                tableVersion, filterFactory, defaultRow, defaultValueMap, ignoreRecentTransactions);
         this.demarcationPoint = demarcationPoint;
         if(filterFactory==null)
-            this.filterFactory = createFilterFactory(txn, demarcationPoint);
+            this.filterFactory = createFilterFactory(txn, demarcationPoint,ignoreRecentTransactions);
     }
 
     protected SITableScanner(DataScanner scanner,
@@ -179,10 +182,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              final long demarcationPoint,
                              DataValueDescriptor optionalProbeValue,
                              ExecRow defaultRow,
-                             FormatableBitSet defaultValueMap) {
+                             FormatableBitSet defaultValueMap,
+                             boolean ignoreRecentTransactions) {
         this(scanner, region, template, scan, rowDecodingMap, txn, keyColumnEncodingOrder,
                 keyColumnSortOrder, keyColumnTypes, keyDecodingMap, accessedPks, reuseRowLocation, indexName,
-                tableVersion, filterFactory,demarcationPoint, defaultRow, defaultValueMap);
+                tableVersion, filterFactory,demarcationPoint, defaultRow, defaultValueMap, ignoreRecentTransactions);
         this.optionalProbeValue = optionalProbeValue;
     }
 
@@ -291,7 +295,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
     /*********************************************************************************************************************/
 		/*Private helper methods*/
-    private SIFilterFactory createFilterFactory(TxnView txn, long demarcationPoint) {
+    private SIFilterFactory createFilterFactory(TxnView txn, long demarcationPoint,
+                                                boolean ignoreRecentTransactions) {
         TxnView txnView = txn;
         if (demarcationPoint > 0) {
             txnView = new DDLTxnView(txn,demarcationPoint);
@@ -299,7 +304,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
         SIFilterFactory siFilterFactory;
         try {
-            final TxnFilter txnFilter = region.unpackedFilter(txnView);
+            final TxnFilter txnFilter = region.unpackedFilter(txnView, ignoreRecentTransactions);
 
             siFilterFactory = new SIFilterFactory<Data>() {
                 @Override
