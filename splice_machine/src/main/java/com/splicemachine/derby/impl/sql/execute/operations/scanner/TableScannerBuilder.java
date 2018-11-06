@@ -86,6 +86,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected FormatableBitSet defaultValueMap;
     protected byte[] token = SpliceClient.token;
 
+    protected boolean ignoreRecentTransactions = false;
+
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
         this.metricFactory = metricFactory;
@@ -400,7 +402,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     demarcationPoint,
                     optionalProbeValue,
                     defaultRow,
-                    defaultValueMap);
+                    defaultValueMap,
+                    ignoreRecentTransactions);
     }
 
     @Override
@@ -473,6 +476,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             out.writeBoolean(defaultValueMap != null);
             if (defaultValueMap != null)
                 out.writeObject(defaultValueMap);
+            out.writeBoolean(ignoreRecentTransactions);
     }
     private void writeNullableString (String nullableString,ObjectOutput out) throws IOException {
         out.writeBoolean(nullableString!=null);
@@ -552,6 +556,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 defaultRow = (ExecRow)in.readObject();
             if (in.readBoolean())
                 defaultValueMap = (FormatableBitSet) in.readObject();
+            ignoreRecentTransactions = in.readBoolean();
     }
 
     protected TxnView readTxn(ObjectInput in) throws IOException{
@@ -698,4 +703,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
+    @Override
+    public ScanSetBuilder<V> ignoreRecentTransactions(boolean ignoreRecentTransactions) {
+        this.ignoreRecentTransactions = ignoreRecentTransactions;
+        return this;
+    }
+
+    @Override
+    public boolean getIgnoreRecentTransactions() {
+        return ignoreRecentTransactions;
+    }
 }

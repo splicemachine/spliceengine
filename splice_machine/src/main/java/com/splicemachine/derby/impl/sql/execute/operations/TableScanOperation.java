@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
@@ -360,6 +361,7 @@ public class TableScanOperation extends ScanOperation{
                 .storedAs(storedAs)
                 .location(location)
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
+                .ignoreRecentTransactions(!txn.allowsWrites())
                 .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 }

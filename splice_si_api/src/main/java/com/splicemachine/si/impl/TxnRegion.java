@@ -67,13 +67,13 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     }
 
     @Override
-    public TxnFilter unpackedFilter(TxnView txn) throws IOException{
-        return new SimpleTxnFilter(tableName,txn,readResolver,txnSupplier);
+    public TxnFilter unpackedFilter(TxnView txn, boolean ignoreRecentTransactions) throws IOException{
+        return new SimpleTxnFilter(tableName,txn,readResolver,txnSupplier,ignoreRecentTransactions);
     }
 
     @Override
     public TxnFilter packedFilter(TxnView txn,EntryPredicateFilter predicateFilter,boolean countStar) throws IOException{
-        return new PackedTxnFilter(unpackedFilter(txn),new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
+        return new PackedTxnFilter(unpackedFilter(txn, false),new HRowAccumulator(predicateFilter,new EntryDecoder(),countStar));
     }
 
 //    @Override
