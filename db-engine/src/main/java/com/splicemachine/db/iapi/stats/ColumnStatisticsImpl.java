@@ -31,10 +31,13 @@
 package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLDate;
+import com.splicemachine.db.iapi.types.SQLDouble;
 import com.splicemachine.db.iapi.types.SQLTime;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.yahoo.memory.NativeMemory;
@@ -48,7 +51,6 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.GregorianCalendar;
 
 import static com.splicemachine.db.iapi.types.Orderable.*;
 
@@ -237,50 +239,90 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
 
         // Frequent Items Sketch?
 
-        // When look up predicate value in quantilesSketch, the element's data type
-        // must match with the data type stored the ItemsSketch.hashMap
-        // Otherwise the same value of element in ItemsSketch.hashMap can't be queried out
-        // This handle the situation of string predicate compare with DATE/TIME/TIMESTAMP
+        // When look up predicate value in quantilesSketch, the hashCodes of two different data types having different values may be same by coincident
+        // We should follow this checking sequence
+        // 1. Checking if predicate and column's data  types are same
+        // 2. Checking if they are in the same data type family
+        // 3. Checking if column typePrecedence >= predicate typePrecedence, then convert predicate's data type to column
+        // 4. So far, we can't use quantilesSketch.ReverseRurgeItemHashMap to look up predicate, we need to compare the predicate with each elements in frequent item sketch iteratively.
+
         DataValueDescriptor lookUpElement = element;
         int typeFormatId = dvd.getTypeFormatId();
         int eTypeFormatId = element.getTypeFormatId();
+        boolean isSameType = false;
+        boolean isSameFamily = false;
         boolean isConverted = false;
-        if (lookUpElement instanceof SQLChar) {
+
+        // Checking same datatype
+        if (typeFormatId == eTypeFormatId)
+            {isSameType = true;}
+        // Checking datatype family
+        else if ((eTypeFormatId == StoredFormatIds.SQL_INTEGER_ID || eTypeFormatId == StoredFormatIds.SQL_TINYINT_ID
+                || eTypeFormatId == StoredFormatIds.SQL_SMALLINT_ID ||eTypeFormatId == StoredFormatIds.SQL_LONGINT_ID)
+                &&
+                (typeFormatId == StoredFormatIds.SQL_INTEGER_ID || typeFormatId == StoredFormatIds.SQL_TINYINT_ID
+                || typeFormatId == StoredFormatIds.SQL_SMALLINT_ID || typeFormatId == StoredFormatIds.SQL_LONGINT_ID)) {
+            isSameFamily = true;
+        }
+        else if ((eTypeFormatId == StoredFormatIds.SQL_REAL_ID || eTypeFormatId == StoredFormatIds.SQL_DOUBLE_ID || eTypeFormatId == StoredFormatIds.SQL_DECIMAL_ID) &&
+                    (typeFormatId == StoredFormatIds.SQL_REAL_ID || typeFormatId == StoredFormatIds.SQL_DOUBLE_ID || typeFormatId == StoredFormatIds.SQL_DECIMAL_ID )) {
+            isSameFamily = true;
+        }
+        else  if (lookUpElement instanceof SQLChar && dvd instanceof SQLChar) //Handle Char, Varchar, Long Varchar
+        {
+            isSameFamily = true;
+        }
+        // Checking if convertible
+        else if (dvd.typePrecedence() >= lookUpElement.typePrecedence()){
             try {
                 switch (typeFormatId) {
-                    case StoredFormatIds.SQL_DATE_ID:
-                        lookUpElement = new SQLDate(element.getDate(SQLDate.GREGORIAN_CALENDAR.get()));
+                    case StoredFormatIds.SQL_BOOLEAN_ID:
+                        lookUpElement = new SQLBoolean(element.getBoolean());
                         break;
                     case StoredFormatIds.SQL_TIME_ID:
                         lookUpElement = new SQLTime(element.getTime(null));
                         break;
                     case StoredFormatIds.SQL_TIMESTAMP_ID:
                         lookUpElement = new SQLTimestamp(element.getTimestamp(SQLDate.GREGORIAN_CALENDAR.get()));
+                        break;
+                    case StoredFormatIds.SQL_DATE_ID:
+                        lookUpElement = new SQLDate(element.getDate(SQLDate.GREGORIAN_CALENDAR.get()));
+                        break;
+                    case StoredFormatIds.SQL_DOUBLE_ID:
+                    case StoredFormatIds.SQL_REAL_ID:
+                    case StoredFormatIds.SQL_DECIMAL_ID:
+                        lookUpElement = new SQLDouble(element.getDouble()); // These types are in the same family
+                        break;
+                    default:
+                        throw  StandardException.newException(SQLState.TYPE_MISMATCH,"Failure convert from " + element.getTypeName() + " to " + dvd.getTypeName() );
                 }
                 isConverted = true;
             } catch (StandardException e) {
                 LOG.warn("Data type conversion failure when looking up frequencies.ItemsSketch", e);
             }
         }
-        boolean isIntegerFamily = false;
-        if ((eTypeFormatId == StoredFormatIds.SQL_INTEGER_ID || eTypeFormatId == StoredFormatIds.SQL_TINYINT_ID || eTypeFormatId == StoredFormatIds.SQL_SMALLINT_ID) &&
-                (typeFormatId == StoredFormatIds.SQL_INTEGER_ID || typeFormatId == StoredFormatIds.SQL_TINYINT_ID || typeFormatId == StoredFormatIds.SQL_SMALLINT_ID )
-        ) {
-            isIntegerFamily = true;
-        }
 
-        boolean isFloatFamily = false;
-        if ((eTypeFormatId == StoredFormatIds.SQL_REAL_ID || eTypeFormatId == StoredFormatIds.SQL_DOUBLE_ID || eTypeFormatId == StoredFormatIds.SQL_DECIMAL_ID) &&
-                (typeFormatId == StoredFormatIds.SQL_REAL_ID || typeFormatId == StoredFormatIds.SQL_DOUBLE_ID || typeFormatId == StoredFormatIds.SQL_DECIMAL_ID )
-        ) {
-            isFloatFamily = true;
+        long count = 0;
+        if (isSameType || isSameFamily || isConverted) {
+            count = frequenciesSketch.getEstimate(lookUpElement);
+        } else {
+        // Iterated comparing
+            com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+            for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+                DataValueDescriptor skewedValue = row.getItem();
+                try {
+                    if (skewedValue != null && skewedValue.compare(ORDER_OP_EQUALS, lookUpElement, false, false)) {
+                        count = row.getEstimate();
+                        break;
+                    }
+                } catch (StandardException e) {
+                    // this should not happen, but if it happens, cost estimation error does not need to fail the query
+                    LOG.warn("Failure is not expected but we don't want to fail the query because of estimation error", e);
+                }
+            }
         }
-
-        if (typeFormatId == eTypeFormatId || isConverted || isIntegerFamily || isFloatFamily) {
-            long count = frequenciesSketch.getEstimate(lookUpElement);
-            if (count > 0)
-                return count;
-        }
+        if (count > 0)
+            return count;
         // Return Cardinality Based Estimate
         if (rpv == -1)
             rpv = getAvgRowsPerValueExcludingSkews();
