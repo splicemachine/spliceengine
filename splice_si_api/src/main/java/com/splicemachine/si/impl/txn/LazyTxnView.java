@@ -16,6 +16,7 @@ package com.splicemachine.si.impl.txn;
 
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.ConflictType;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
@@ -95,6 +96,12 @@ public class LazyTxnView implements TxnView {
     public boolean descendsFrom(TxnView potentialParent) {
         lookup(false);
         return delegate.descendsFrom(potentialParent);
+    }
+
+    @Override
+    public TaskId getTaskId() {
+        lookup(false);
+        return delegate.getTaskId();
     }
 
     @Override

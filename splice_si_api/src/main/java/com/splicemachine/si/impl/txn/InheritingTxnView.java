@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
@@ -46,6 +47,7 @@ public class InheritingTxnView extends AbstractTxnView{
     private long globalCommitTimestamp;
     private final Iterator<ByteSlice> destinationTables;
     private final long lastKaTime;
+    private final TaskId taskId;
 
     @SuppressFBWarnings("SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION")
     public InheritingTxnView(TxnView parentTxn,
@@ -98,7 +100,7 @@ public class InheritingTxnView extends AbstractTxnView{
                 hasAdditive,isAdditive,
                 hasAllowWrites,allowWrites,
                 commitTimestamp,globalCommitTimestamp,
-                state,destinationTables,-1l);
+                state,destinationTables,-1l,null);
     }
 
     public InheritingTxnView(TxnView parentTxn,
@@ -109,7 +111,7 @@ public class InheritingTxnView extends AbstractTxnView{
                              long commitTimestamp,long globalCommitTimestamp,
                              Txn.State state,
                              Iterator<ByteSlice> destinationTables,
-                             long lastKaTime){
+                             long lastKaTime,TaskId taskId){
         super(txnId,beginTimestamp,isolationLevel);
         this.hasAdditive=hasAdditive;
         this.isAdditive=isAdditive;
@@ -121,6 +123,7 @@ public class InheritingTxnView extends AbstractTxnView{
         this.globalCommitTimestamp=globalCommitTimestamp;
         this.destinationTables=destinationTables;
         this.lastKaTime=lastKaTime;
+        this.taskId=taskId;
     }
 
     @Override
@@ -194,5 +197,10 @@ public class InheritingTxnView extends AbstractTxnView{
     @Override
     public void writeExternal(ObjectOutput output) throws IOException{
         throw new UnsupportedOperationException("InheritingTxnView is not intended to be serialized");
+    }
+
+    @Override
+    public TaskId getTaskId() {
+        return taskId;
     }
 }

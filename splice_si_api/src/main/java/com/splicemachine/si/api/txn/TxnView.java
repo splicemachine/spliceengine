@@ -190,5 +190,7 @@ public interface TxnView extends Externalizable {
      * @throws  java.lang.NullPointerException if {@code potentialParent==null}.
      */
     boolean descendsFrom(TxnView potentialParent);
+
+    TaskId getTaskId();
     
 }
