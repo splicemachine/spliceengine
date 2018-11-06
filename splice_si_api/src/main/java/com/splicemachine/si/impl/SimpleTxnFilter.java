@@ -213,6 +213,9 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private boolean isVisible(long txnId) throws IOException{
+        if (myTxn.getBeginTimestamp() < txnId)
+            return false;
+
         TxnView toCompare=fetchTransaction(txnId);
         // If the database is restored from a backup, it may contain data that were written by a transaction which
         // is not present in SPLICE_TXN table, because SPLICE_TXN table is copied before the transaction begins.
