@@ -1272,7 +1272,7 @@
                 <zookeeper.version>3.4.5-cdh5.14.2</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.2</spark-assembly-id>
-                <kafka.version>0.10.2-kafka-2.2.0</kafka.version>
+                <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
