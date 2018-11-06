@@ -97,8 +97,6 @@ public class CoprocessorTxnStore implements TxnStore {
         TaskId taskId = txn.getTaskId();
         if (taskId != null) {
             request.setTaskId(TxnMessage.TaskId.newBuilder()
-                    .setJtId(taskId.getJtId())
-                    .setJobId(taskId.getJobId())
                     .setPartitionId(taskId.getPartitionId())
                     .setStageId(taskId.getStageId())
                     .setTaskAttemptNumber(taskId.getTaskAttemptNumber())
@@ -330,7 +328,7 @@ public class CoprocessorTxnStore implements TxnStore {
 
         try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()) {
             TxnMessage.TaskId taskId = table.getTaskId(rowKey, request);
-            return new TaskId(taskId.getJtId(), taskId.getJobId(), taskId.getStageId(), taskId.getPartitionId(), taskId.getTaskAttemptNumber());
+            return new TaskId(taskId.getStageId(), taskId.getPartitionId(), taskId.getTaskAttemptNumber());
         } catch (IOException e) {
             throw e;
         } catch(Throwable throwable){
@@ -396,7 +394,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         false, false,
                         true,true,
                         queryId,queryId,
-                        Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis());
+                        Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis(),null);
             } else {
                  throw new TransactionMissing(queryId);
             }
@@ -429,6 +427,12 @@ public class CoprocessorTxnStore implements TxnStore {
         }else
             destinationTables=Iterators.emptyIterator();
 
+        TaskId taskId = null;
+        if (info.hasTaskId()) {
+            TxnMessage.TaskId ti = info.getTaskId();
+            taskId = new TaskId(ti.getStageId(), ti.getPartitionId(), ti.getTaskAttemptNumber());
+        }
+
         long kaTime=-1l;
         if(message.hasLastKeepAliveTime())
             kaTime=message.getLastKeepAliveTime();
@@ -460,7 +464,7 @@ public class CoprocessorTxnStore implements TxnStore {
                 hasAdditive,additive,
                 true,true,
                 commitTs,globalCommitTs,
-                state,destTablesIterator,kaTime);
+                state,destTablesIterator,kaTime,taskId);
     }
 
     private byte[] encode(Txn txn){

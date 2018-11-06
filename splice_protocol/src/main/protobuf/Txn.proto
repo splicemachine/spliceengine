@@ -160,8 +160,6 @@ message ActiveTxnResponse{
 }
 
 message TaskId {
-    required string jtId = 1;
-    required int32 jobId = 2;
     required int32 stageId = 3;
     required int32 partitionId = 4;
     required int32 taskAttemptNumber = 5;

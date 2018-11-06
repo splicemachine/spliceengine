@@ -112,7 +112,7 @@ public class TxnViewDecoderFunction<Op extends SpliceOperation, T> extends Splic
                 hasAdditive,additive,
                 true,true,
                 commitTs,globalCommitTs,
-                state,destTablesIterator,kaTime);
+                state,destTablesIterator,kaTime,null);
     }
 
 }

@@ -20,6 +20,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -133,12 +134,17 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
         //throw away the allow reads bit, since we won't care anyway
         decoder.decodeNextBoolean();
 
+        TaskId taskId = new TaskId(decoder.decodeNextInt(), decoder.decodeNextInt(), decoder.decodeNextInt());
+        if (taskId.getStageId() == -1 && taskId.getPartitionId() == -1 && taskId.getTaskAttemptNumber() == -1) {
+            taskId = null;
+        }
+
         TxnView parent=Txn.ROOT_TRANSACTION;
         while(decoder.available()){
             long id=decoder.decodeNextLong();
             parent=new ActiveWriteTxn(id,id,parent,additive,level);
         }
-        return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
+        return new ActiveWriteTxn(txnId,beginTs,parent,additive,level,taskId);
     }
 
     @Override
@@ -157,12 +163,19 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
 
     @Override
     public byte[] encode(TxnView txn){
-        MultiFieldEncoder encoder=MultiFieldEncoder.create(6)
+        MultiFieldEncoder encoder=MultiFieldEncoder.create(9)
                 .encodeNext(txn.getTxnId())
                 .encodeNext(txn.getBeginTimestamp())
                 .encodeNext(txn.isAdditive())
                 .encodeNext(txn.getIsolationLevel().encode())
                 .encodeNext(txn.allowsWrites());
+
+        TaskId taskId = txn.getTaskId();
+        if (taskId != null) {
+            encoder.encodeNext(taskId.getStageId()).encodeNext(taskId.getPartitionId()).encodeNext(taskId.getTaskAttemptNumber());
+        } else {
+            encoder.encodeNext(-1).encodeNext(-1).encodeNext(-1);
+        }
 
         LongArrayList parentTxnIds= new LongArrayList();
         byte[] build=encodeParentIds(txn,parentTxnIds);
@@ -178,6 +191,11 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
         Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
         boolean allowsWrites=decoder.decodeNextBoolean();
 
+        TaskId taskId = new TaskId(decoder.decodeNextInt(), decoder.decodeNextInt(), decoder.decodeNextInt());
+        if (taskId.getStageId() == -1 && taskId.getPartitionId() == -1 && taskId.getTaskAttemptNumber() == -1) {
+            taskId = null;
+        }
+
         TxnView parent=Txn.ROOT_TRANSACTION;
         while(decoder.available()){
             long id=decoder.decodeNextLong();
@@ -187,9 +205,9 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
                 parent=new ReadOnlyTxn(id,id,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
         }
         if(allowsWrites)
-            return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
+            return new ActiveWriteTxn(txnId,beginTs,parent,additive,level,taskId);
         else
-            return new ReadOnlyTxn(txnId,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
+            return new ReadOnlyTxn(txnId,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive,taskId);
     }
 
     @Override
