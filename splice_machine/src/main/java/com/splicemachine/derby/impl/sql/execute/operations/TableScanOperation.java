@@ -340,13 +340,13 @@ public class TableScanOperation extends ScanOperation{
     public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
         TxnView txn=getCurrentTransaction();
         operationContext = dsp.createOperationContext(this);
-//        boolean ignoreRecentTransactions = false;
-//        switch (((BaseActivation) activation).datasetProcessorType()) {
-//            case FORCED_SPARK:
-//            case SPARK:
-//                ignoreRecentTransactions = true;
-//                break;
-//        }
+        boolean ignoreRecentTransactions = false;
+        switch (((BaseActivation) activation).datasetProcessorType()) {
+            case FORCED_SPARK:
+            case SPARK:
+                ignoreRecentTransactions = true;
+                break;
+        }
         return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)
@@ -371,7 +371,7 @@ public class TableScanOperation extends ScanOperation{
                 .location(location)
                 .partitionByColumns(getPartitionColumnMap())
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
-//                .ignoreRecentTransactions(ignoreRecentTransactions)
+                .ignoreRecentTransactions(ignoreRecentTransactions)
                 .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 }
