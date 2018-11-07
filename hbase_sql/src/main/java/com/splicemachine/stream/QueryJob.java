@@ -17,6 +17,7 @@ package com.splicemachine.stream;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -69,8 +70,9 @@ public class QueryJob implements Callable<Void>{
             if (!(activation.isMaterialized()))
                 activation.materialize();
             TxnView parent = root.getCurrentTransaction();
-            activation.getLanguageConnectionContext().pushNestedTransaction(activation.getLanguageConnectionContext().getTransactionExecute().startNestedUserTransaction(!parent.allowsWrites(), false));
+            TransactionController nested = activation.getLanguageConnectionContext().getTransactionExecute().startNestedUserTransaction(!parent.allowsWrites(), false);
             try {
+                activation.getLanguageConnectionContext().pushNestedTransaction(nested);
                 long txnId = parent.getTxnId();
                 String sql = queryRequest.sql;
                 String session = queryRequest.session;
@@ -101,6 +103,7 @@ public class QueryJob implements Callable<Void>{
 
                 LOG.info("Completed query for session: " + session);
             } finally {
+                nested.commit();
                 activation.getLanguageConnectionContext().popNestedTransaction();
             }
 
