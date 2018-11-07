@@ -57,6 +57,10 @@ public class ForeignKey_Concurrent_IT {
         Connection connection1 = newNoAutoCommitConnection();
         Connection connection2 = newNoAutoCommitConnection();
 
+        // Initialize transaction 2 so that we don't have a WW conflict due to DB-7582
+        ResultSet rs = connection2.createStatement().executeQuery("select * from P");
+        rs.close();
+
         // Transaction 1: insert child row referencing parent we will delete
         connection1.createStatement().executeUpdate("insert into C values(4,4)");
 
@@ -66,7 +70,7 @@ public class ForeignKey_Concurrent_IT {
         connection2.commit();
         connection2.close();
 
-        // Transaction 2: verify CAN update parent
+        // Transaction 1: verify CAN update parent
         connection1.createStatement().executeUpdate("update P set b=-1 where a=4");
 
         connection1.commit();
