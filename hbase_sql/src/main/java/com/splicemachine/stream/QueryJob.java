@@ -26,6 +26,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
 
 import java.util.UUID;
@@ -67,35 +68,41 @@ public class QueryJob implements Callable<Void>{
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
-            long txnId = root.getCurrentTransaction().getTxnId();
-            String sql = queryRequest.sql;
-            String session = queryRequest.session;
-            String userId = queryRequest.userId;
-            jobName = userId + " <" + session + "," + txnId + ">";
+            TxnView parent = root.getCurrentTransaction();
+            activation.getLanguageConnectionContext().pushNestedTransaction(activation.getLanguageConnectionContext().getTransactionExecute().startNestedUserTransaction(!parent.allowsWrites(), false));
+            try {
+                long txnId = parent.getTxnId();
+                String sql = queryRequest.sql;
+                String session = queryRequest.session;
+                String userId = queryRequest.userId;
+                jobName = userId + " <" + session + "," + txnId + ">";
 
-            LOG.info("Running query for user/session: " + userId + "," + session);
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Query: " + sql);
+                LOG.info("Running query for user/session: " + userId + "," + session);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Query: " + sql);
+                }
+
+                dsp.setJobGroup(jobName, sql);
+                dsp.clearBroadcastedOperation();
+                dataset = root.getDataSet(dsp);
+                context = dsp.createOperationContext(root);
+                SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset.map(new CloneFunction<>());
+                String clientHost = queryRequest.host;
+                int clientPort = queryRequest.port;
+                UUID uuid = queryRequest.uuid;
+                int numPartitions = sparkDataSet.rdd.getNumPartitions();
+
+                StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, context, uuid, clientHost, clientPort,
+                        queryRequest.streamingBatches, queryRequest.streamingBatchSize);
+                streamableRDD.setJobStatus(status);
+                streamableRDD.submit();
+
+                status.markCompleted(new QueryResult(numPartitions));
+
+                LOG.info("Completed query for session: " + session);
+            } finally {
+                activation.getLanguageConnectionContext().popNestedTransaction();
             }
-
-            dsp.setJobGroup(jobName, sql);
-            dsp.clearBroadcastedOperation();
-            dataset = root.getDataSet(dsp);
-            context = dsp.createOperationContext(root);
-            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset.map(new CloneFunction<>());
-            String clientHost = queryRequest.host;
-            int clientPort = queryRequest.port;
-            UUID uuid = queryRequest.uuid;
-            int numPartitions = sparkDataSet.rdd.getNumPartitions();
-
-            StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, context, uuid, clientHost, clientPort,
-                    queryRequest.streamingBatches, queryRequest.streamingBatchSize);
-            streamableRDD.setJobStatus(status);
-            streamableRDD.submit();
-
-            status.markCompleted(new QueryResult(numPartitions));
-
-            LOG.info("Completed query for session: " + session);
 
         } catch (CancellationException e) {
             if (jobName != null)

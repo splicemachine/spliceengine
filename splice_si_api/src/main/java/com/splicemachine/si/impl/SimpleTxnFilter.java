@@ -60,16 +60,31 @@ public class SimpleTxnFilter implements TxnFilter{
      */
     private TxnView currentTxn;
 
-    @SuppressWarnings("unchecked")
+    /**
+     * In some cases we can safely ignore any data with a txnId greater than our
+     * transaction begin timestamp, for instance during Spark reads
+     */
+    private final boolean ignoreNewerTransactions;
+
     public SimpleTxnFilter(String tableName,
                            TxnView myTxn,
                            ReadResolver readResolver,
-                           TxnSupplier baseSupplier){
+                           TxnSupplier baseSupplier,
+                           boolean ignoreNewerTransactions) {
         assert readResolver!=null;
         this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier,1024); //TODO -sf- configure
         this.tableName=tableName;
         this.myTxn=myTxn;
         this.readResolver=readResolver;
+        this.ignoreNewerTransactions = ignoreNewerTransactions;
+    }
+
+    @SuppressWarnings("unchecked")
+    public SimpleTxnFilter(String tableName,
+                           TxnView myTxn,
+                           ReadResolver readResolver,
+                           TxnSupplier baseSupplier){
+        this(tableName, myTxn, readResolver, baseSupplier, false);
     }
 
     @Override
@@ -213,7 +228,7 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private boolean isVisible(long txnId) throws IOException{
-        if (myTxn.getBeginTimestamp() < txnId)
+        if (ignoreNewerTransactions && myTxn.getBeginTimestamp() < txnId)
             return false;
 
         TxnView toCompare=fetchTransaction(txnId);

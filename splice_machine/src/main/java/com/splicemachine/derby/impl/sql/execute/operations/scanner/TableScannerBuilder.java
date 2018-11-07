@@ -89,6 +89,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected FormatableBitSet defaultValueMap;
     protected byte[] token = SpliceClient.token;
 
+    protected boolean ignoreRecentTransactions = false;
+
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
         this.metricFactory = metricFactory;
@@ -411,7 +413,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     demarcationPoint,
                     optionalProbeValue,
                     defaultRow,
-                    defaultValueMap);
+                    defaultValueMap,
+                    ignoreRecentTransactions);
     }
 
     @Override
@@ -717,4 +720,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
+    @Override
+    public ScanSetBuilder<V> ignoreRecentTransactions(boolean ignoreRecentTransactions) {
+        this.ignoreRecentTransactions = ignoreRecentTransactions;
+        return this;
+    }
+
+    @Override
+    public boolean getIgnoreRecentTransactions() {
+        return ignoreRecentTransactions;
+    }
 }

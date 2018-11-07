@@ -265,7 +265,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
                     .template(template)
                     .transaction(localTxn)
                     .scan(new HScan(scan))
-                    .scanner(new RegionDataScanner(new RegionPartition(hregion),mrs,statisticsRun?Metrics.basicMetricFactory():Metrics.noOpMetricFactory()));
+                    .scanner(new RegionDataScanner(new RegionPartition(hregion),mrs,statisticsRun?Metrics.basicMetricFactory():Metrics.noOpMetricFactory()))
+					.ignoreRecentTransactions(true);
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
 			siTableScanner = builder.build();
