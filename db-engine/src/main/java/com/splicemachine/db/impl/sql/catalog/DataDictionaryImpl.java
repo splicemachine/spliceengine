@@ -9193,6 +9193,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return (SchemaPermsDescriptor)getPermissions(key);
     }
 
+    @Override
+    public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID) throws StandardException{
+        SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,schemaPermsUUID);
+        return getUncachedSchemaPermsDescriptor(key);
+    }
+
     public Object getPermissions(PermissionsDescriptor key) throws StandardException{
 
         Optional<PermissionsDescriptor> optional = dataDictionaryCache.permissionCacheFind(key);
@@ -9508,7 +9514,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no table-level permissions have been granted to him on the table.
      * @throws StandardException
      */
-    TablePermsDescriptor getUncachedTablePermsDescriptor(TablePermsDescriptor key) throws StandardException{
+    public TablePermsDescriptor getUncachedTablePermsDescriptor(TablePermsDescriptor key) throws StandardException{
         if(key.getObjectID()==null){
             //the TABLEPERMSID for SYSTABLEPERMS is not known, so use
             //table id, grantor and granteee to find TablePermsDescriptor
@@ -9534,7 +9540,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no schema-table permissions have been granted to him on the schema
      * @throws StandardException
      */
-    SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key) throws StandardException{
+    public SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key) throws StandardException{
         if(key.getObjectID()==null){
             //the SCHEMAPERMSID for SYSTABLEPERMS is not known, so use
             //table id, grantor and granteee to find SchemaPermsDescriptor

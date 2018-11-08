@@ -95,6 +95,12 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
                 (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, (String) null);
     }
 
+    public SchemaPermsDescriptor(DataDictionary dd,
+                                 UUID schemaPermpUUID) throws StandardException {
+        this( dd, null, null, null,
+                (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, null);
+        oid = schemaPermpUUID;
+    }
 
 
     public int getCatalogNumber()
