@@ -142,6 +142,7 @@ public interface ResultSetFactory {
 								 boolean samplingOnly,
                                  boolean outputKeysOnly,
 								 boolean skipSampling,
+								 double sampleFraction,
 								 String indexName)
         throws StandardException;
 

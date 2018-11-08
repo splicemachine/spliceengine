@@ -1173,6 +1173,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              boolean samplingOnly,
                                              boolean outputKeysOnly,
                                              boolean skipSampling,
+                                             double sampleFraction,
                                              String indexName)
             throws StandardException {
         try{
@@ -1181,7 +1182,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     statusDirectory, failBadRecordCount, skipConflictDetection, skipWAL,
                     optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
                     delimited,escaped,lines,storedAs,location, compression, partitionBy,bulkImportDirectory,
-            samplingOnly, outputKeysOnly, skipSampling, indexName);
+            samplingOnly, outputKeysOnly, skipSampling, sampleFraction, indexName);
 
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
