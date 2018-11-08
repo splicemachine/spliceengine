@@ -159,8 +159,11 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 		DataDictionary dd = lcc.getDataDictionary();
 		DependencyManager dm = dd.getDependencyManager();
         String currentUser = lcc.getCurrentUserId(activation);
-		SettableBoolean roleDepAdded = new SettableBoolean();
-        if (! currentUser.equals( dd.getAuthorizationDatabaseOwner()) ) {
+        List<String> dependedRoleList = new ArrayList<>();
+		List<String> groupuserList = lcc.getCurrentGroupUser(activation);
+		String dbo = dd.getAuthorizationDatabaseOwner();
+        if (! currentUser.equals(dbo)
+				&& !(groupuserList != null && groupuserList.contains(dbo))) {
 			PermissionsDescriptor permDesc;
 			// Now, it is time to add into dependency system the FOREIGN
 			// constraint's dependency on REFERENCES privilege, or, if it is a
@@ -229,28 +232,28 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 						// the PUBLIC level others may be still be missing,
 						// hence the call in the test below to
 						// allColumnsCoveredByUserOrPUBLIC.
-						boolean roleUsed = false;
+						PermissionsDescriptor rolePermDesc = null;
 
 						if (permDesc == null ||
 							((permDesc instanceof ColPermsDescriptor) &&
                                  ! ((StatementColumnPermission)statPerm).
                                    allColumnsCoveredByUserOrPUBLIC(
                                        currentUser, dd))) {
-							roleUsed = true;
-							permDesc = findRoleUsage(activation, statPerm);
+							rolePermDesc = findRoleUsage(activation, statPerm);
 						}
 
 						// If the user accessing the object is the owner of
 						// that object, then no privilege tracking is needed
 						// for the owner.
-                        if (! permDesc.checkOwner(currentUser) ) {
+                        if (permDesc != null && ! permDesc.checkOwner(currentUser) ) {
                             dm.addDependency(dependent, permDesc,lcc.getContextManager());
+						}
 
-							if (roleUsed) {
-								// We had to rely on role, so track that
-								// dependency, too.
-								trackRoleDependency(activation, dependent, roleDepAdded);
-							}
+						if (rolePermDesc != null) {
+							dm.addDependency(dependent, rolePermDesc,lcc.getContextManager());
+							// We had to rely on role, so track that
+							// dependency, too.
+							trackRoleDependency(activation, dependent, rolePermDesc, dependedRoleList);
 						}
 					} else
 						//if the object on which permission is required is owned by the
@@ -291,8 +294,11 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
                                         currentUser, dd)) {
 								// Role has been relied upon, so register a
 								// dependency.
-								trackRoleDependency
-									(activation, dependent, roleDepAdded);
+								permDesc = findRoleUsage(activation, statPerm);
+								if (permDesc != null) {
+									dm.addDependency(dependent, permDesc,lcc.getContextManager());
+									trackRoleDependency(activation, dependent, permDesc, dependedRoleList);
+								}
 							}
 						}
 					}
@@ -380,27 +386,32 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 	 * @param activation the current activation
 	 * @param dependent the view, constraint or trigger that is dependent on the
 	 *        current role for some privilege.
-	 * @param roleDepAdded keeps track of whether a dependeny on the
-	 *        current role has aleady been registered.
+	 * @param permDesc the permDesc that the dependent rely on, which contains the role with the required privilege
+	 * @param addedRoleList list of depended roles that have already been added
 	 */
 	private static void trackRoleDependency(Activation activation, Dependent dependent,
-			SettableBoolean roleDepAdded) throws StandardException {
-		SpliceLogUtils.trace(LOG, "trackRoleDependency with dependent %s and roleDepAdded %s",dependent,roleDepAdded);
+			PermissionsDescriptor permDesc, List<String> addedRoleList) throws StandardException {
+		SpliceLogUtils.trace(LOG, "trackRoleDependency with dependent %s and permDesc %s",dependent,permDesc);
 		// We only register the dependency once, lest
 		// we get duplicates in SYSDEPENDS (duplicates
 		// are not healthy..invalidating more than once
 		// fails for triggers at least).
-		if (!roleDepAdded.get()) {
+
 			LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 			DataDictionary dd = lcc.getDataDictionary();
 			DependencyManager dm = dd.getDependencyManager();
+			String grantee = permDesc.getGrantee();
+			if (addedRoleList.contains(grantee))
+				return;
 			List<String> roleList = lcc.getCurrentRoles(activation);
 			for (String role : roleList) {
-				RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role);
-				dm.addDependency(dependent, rgd, lcc.getContextManager());
+				if (role.equals(grantee)) {
+					RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role);
+					dm.addDependency(dependent, rgd, lcc.getContextManager());
+					addedRoleList.add(grantee);
+					break;
+				}
 			}
-			roleDepAdded.set(true);
-		}
 	}
 
 	/**
@@ -444,12 +455,14 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 		DependencyManager dm = dd.getDependencyManager();
 		String dbo = dd.getAuthorizationDatabaseOwner();
         String currentUser = lcc.getCurrentUserId(activation);
-		SettableBoolean roleDepAdded = new SettableBoolean();
+        List<String> dependedRoleList = new ArrayList<>();
+		List<String> groupuserList = lcc.getCurrentGroupUser(activation);
 
 		// If the Database Owner is creating this view/trigger, then no need to
 		// collect any privilege dependencies because the Database Owner can
 		// access any objects without any restrictions.
-        if (! currentUser.equals(dbo)) {
+        if (! currentUser.equals(dbo)
+				&& !(groupuserList != null && groupuserList.contains(dbo))) {
 			PermissionsDescriptor permDesc;
 			List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
 			if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty()) {
@@ -486,7 +499,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 						permDesc = statPerm.getPermissionDescriptor(
 							Authorizer.PUBLIC_AUTHORIZATION_ID, dd);
 
-						boolean roleUsed = false;
+						PermissionsDescriptor rolePermDesc = null;
 
 						// .. or at role level
 						if (permDesc == null ||
@@ -494,23 +507,22 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
                                  ! ((StatementColumnPermission)statPerm).
                                      allColumnsCoveredByUserOrPUBLIC(
                                          currentUser, dd)) ) {
-							roleUsed = true;
-							permDesc = findRoleUsage(activation, statPerm);
+							rolePermDesc = findRoleUsage(activation, statPerm);
 						}
 
 						//If the user accessing the object is the owner of that 
 						//object, then no privilege tracking is needed for the
 						//owner.
-                        if (! permDesc.checkOwner(currentUser) ) {
+                        if (permDesc != null && !permDesc.checkOwner(currentUser) ) {
 
 							dm.addDependency(dependent, permDesc, lcc.getContextManager());
+						}
 
+						if (rolePermDesc != null) {
+							dm.addDependency(dependent, rolePermDesc,lcc.getContextManager());
 							// We had to rely on role, so track that
 							// dependency, too.
-							if (roleUsed) {
-								trackRoleDependency
-									(activation, dependent, roleDepAdded);
-							}
+							trackRoleDependency(activation, dependent, rolePermDesc, dependedRoleList);
 						}
 						continue;
 					}
@@ -564,8 +576,11 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
 							if (!statementColumnPermission.
                                     allColumnsCoveredByUserOrPUBLIC(
                                         currentUser, dd)) {
-								trackRoleDependency
-									(activation, dependent, roleDepAdded);
+								permDesc = findRoleUsage(activation, statPerm);
+								if (permDesc != null) {
+									dm.addDependency(dependent, permDesc,lcc.getContextManager());
+									trackRoleDependency(activation, dependent, permDesc, dependedRoleList);
+								}
 							}
 						}
 					}

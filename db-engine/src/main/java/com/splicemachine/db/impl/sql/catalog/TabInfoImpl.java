@@ -824,6 +824,63 @@ public class TabInfoImpl
     }
 
     /**
+     * Delete row given its row location
+     * @param tc
+     * @param rowLocation
+     * @param wait
+     * @param cols
+     * @return
+     * @throws StandardException
+     */
+    public int deleteRowBasedOnRowLocation(TransactionController tc,
+                                            RowLocation rowLocation,
+                                            boolean wait,
+                                            FormatableBitSet cols)
+            throws StandardException
+    {
+        ConglomerateController		heapCC;
+
+        RowChanger 					rc;
+        ExecRow						baseRow = crf.makeEmptyRow();
+        int                         rowsDeleted = 0;
+
+        rc = getRowChanger( tc, (int[])null,baseRow );
+
+        // we know the row location
+        int lockMode = tc.MODE_RECORD;
+
+        // Row level locking
+        rc.open(lockMode, wait);
+
+		/* Open the heap conglomerate */
+        heapCC = tc.openConglomerate(
+                getHeapConglomerate(),
+                false,
+                (TransactionController.OPENMODE_FORUPDATE |
+                        ((wait) ? 0 : TransactionController.OPENMODE_LOCK_NOWAIT)),
+                lockMode,
+                TransactionController.ISOLATION_REPEATABLE_READ);
+
+        boolean row_exists =
+                heapCC.fetch(
+                        rowLocation, baseRow.getRowArray(), (FormatableBitSet) cols);
+
+        if (!row_exists) {
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(row_exists, "base row not found");
+            }
+            return 0;
+        }
+        rc.deleteRow( baseRow, rowLocation);
+
+        heapCC.close();
+        rc.close();
+
+        return 1;
+
+    }
+
+    /**
      * Given a key row, return the first matching heap row.
      * <p>
      * LOCKING: shared row locking.
