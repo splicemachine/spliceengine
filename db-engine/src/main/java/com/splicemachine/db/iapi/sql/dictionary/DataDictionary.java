@@ -1800,6 +1800,8 @@ public interface DataDictionary{
      */
     SchemaPermsDescriptor getSchemaPermissions(UUID schemaUUID,String authorizationId) throws StandardException;
 
+    SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID) throws StandardException;
+
     /**
      * Get one user's privileges on a table using tablePermsUUID
      *
