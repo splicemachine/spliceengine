@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunc
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -361,7 +362,16 @@ public class TableScanOperation extends ScanOperation{
                 .storedAs(storedAs)
                 .location(location)
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
-                .ignoreRecentTransactions(!txn.allowsWrites())
+                .ignoreRecentTransactions(isReadOnly(txn))
                 .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+    }
+
+    private boolean isReadOnly(TxnView txn) {
+        while(txn != Txn.ROOT_TRANSACTION) {
+            if (txn.allowsWrites())
+                return false;
+            txn = txn.getParentTxnView();
+        }
+        return true;
     }
 }
