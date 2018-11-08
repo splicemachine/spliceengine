@@ -11718,6 +11718,14 @@ tableDefinition() throws StandardException :
 	OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
 	ValueNode[] topNOut = new ValueNode[ 1 ];
+	Boolean     isLogicalKey = Boolean.TRUE;
+	Boolean     presplit = Boolean.FALSE;
+	ValueNode   splitKeysPath = null;
+	ValueNode   columnDelimiter = null;
+    ValueNode   characterDelimiter = null;
+    ValueNode   timestampFormat = null;
+    ValueNode   dateFormat = null;
+    ValueNode   timeFormat = null;
 }
 {
     [ isExternal = isExternal() ]
@@ -11729,23 +11737,49 @@ tableDefinition() throws StandardException :
 	                   getToken(3).kind != RIGHT_PAREN})
 			tableElementList = tableElementList()
 			[ properties = propertyList(false)<CHECK_PROPERTIES>]
-			[<COMMA>]
-			[ <COMPRESSED> <WITH> [ <ZLIB> { compression ="zlib"; } | <SNAPPY> { compression ="snappy"; } ] ]
-			[<COMMA>]
-            [ <PARTITIONED> <BY> <LEFT_PAREN> partitionedResultColumns = tableColumnList() <RIGHT_PAREN> ]
-            [<COMMA>]
-            [ <ROW> <FORMAT> <DELIMITED>
-                [ <FIELDS> <TERMINATED> <BY> { terminationChar=literal(); }  [
-                [<COMMA>]
+			([<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
+			  <SPLITKEYS> {presplit = Boolean.TRUE;}
+              <LOCATION> {splitKeysPath = literal();}
+              [<COLUMNDELIMITER> {columnDelimiter = literal();}]
+              [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
+              [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
+              [<DATEFORMAT> {dateFormat = literal();}]
+              [<TIMEFORMAT> {timeFormat = literal();}]
+              {
+              		validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
+                                linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
+              			return (StatementNode) nodeFactory.getNode(
+              								C_NodeTypes.CREATE_TABLE_NODE,
+              								tableName,
+              								tableElementList,
+              								properties,
+              								new Character(lockGranularity),
+              								presplit,
+              								isLogicalKey,
+              								splitKeysPath,
+              								columnDelimiter,
+              								characterDelimiter,
+              								timestampFormat,
+              								dateFormat,
+              								timeFormat,
+              								getContextManager());
+              }
+            |[<COMMA>]
+             [ <COMPRESSED> <WITH> [ <ZLIB> { compression ="zlib"; } | <SNAPPY> { compression ="snappy"; } ] ]
+             [<COMMA>]
+             [ <PARTITIONED> <BY> <LEFT_PAREN> partitionedResultColumns = tableColumnList() <RIGHT_PAREN> ]
+             [<COMMA>]
+             [ <ROW> <FORMAT> <DELIMITED>
+              [ <FIELDS> <TERMINATED> <BY> { terminationChar=literal(); }  [
+               [<COMMA>]
                 <ESCAPED> <BY> { escapedByChar=literal(); } ] ]
-                [<COMMA>]
-                [ <LINES> <TERMINATED> <BY> { linesTerminatedByChar=literal(); } ]
-            ]
-			[<COMMA>]
-            [<STORED> <AS> storageFormat = storedAs() ]
-			[<COMMA>]
-            [<LOCATION> {location = literal();}]
-            [<MERGE> <SCHEMA> {mergeSchema = Boolean.TRUE;}]
+               [<COMMA>]
+               [ <LINES> <TERMINATED> <BY> { linesTerminatedByChar=literal(); } ]]
+             [<COMMA>]
+             [<STORED> <AS> storageFormat = storedAs() ]
+             [<COMMA>]
+             [<LOCATION> {location = literal();}]
+             [<MERGE> <SCHEMA> {mergeSchema = Boolean.TRUE;}]
 			{
 			validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                         linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
@@ -11765,7 +11799,7 @@ tableDefinition() throws StandardException :
 										compression,
 										mergeSchema,
 										getContextManager());
-			}
+			})
 		|
 			[ <LEFT_PAREN> resultColumns = tableColumnList() <RIGHT_PAREN> ]
 						[<COMMA>]
@@ -11828,6 +11862,7 @@ tableDefinition() throws StandardException :
 			}
 	)
 }
+
 
 void
 validateParameters(boolean isExternal, String storageFormat, ValueNode terminationChar, ValueNode escapedByChar,
