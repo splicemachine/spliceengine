@@ -477,6 +477,27 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /**
+    *
+    * Sample the dataframe, split the table, and insert a dataFrame into a table (schema.table).  This corresponds to an
+    *
+    * insert into from select statement
+    *
+    * @param dataFrame
+    * @param schemaTableName
+    * @param sampleFraction
+    */
+  def splitAndInsert(dataFrame: DataFrame, schemaTableName: String, sampleFraction: Double): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = "insert into " + schemaTableName +
+      " (" + columnList + ") --splice-properties useSpark=true, sampleFraction=" +
+      sampleFraction + "\n select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
+      "as SpliceDatasetVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+  /**
     * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
     *
     * @param rdd

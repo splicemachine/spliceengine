@@ -78,6 +78,7 @@ public class SparkBulkInsertTableWriterBuilder<K, V>
         out.writeBoolean(outputKeysOnly);
         out.writeBoolean(skipSampling);
         out.writeUTF(indexName);
+        out.writeDouble(sampleFraction);
     }
 
     @Override
@@ -88,12 +89,13 @@ public class SparkBulkInsertTableWriterBuilder<K, V>
         outputKeysOnly = in.readBoolean();
         skipSampling = in.readBoolean();
         indexName = in.readUTF();
+        sampleFraction = in.readDouble();
     }
 
     @Override
     public DataSetWriter build() {
         return new BulkInsertDataSetWriter(dataSet, tableVersion, pkCols, autoIncrementRowLocationArray, heapConglom,
                 execRowDefinition, spliceSequences, operationContext, txn, bulkImportDirectory, samplingOnly, outputKeysOnly,
-                skipSampling, indexName);
+                skipSampling, indexName, sampleFraction);
     }
 }
