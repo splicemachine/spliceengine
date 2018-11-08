@@ -632,7 +632,7 @@ public final class SQLTinyint
 	{
 		if (result == null)
 		{
-			result = new SQLTinyint();
+			result = getNullDVD(left, right);
 		}
 
 		if (left.isNull() || right.isNull())

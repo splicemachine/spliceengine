@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class DeleteOperationIT extends SpliceUnitTest {
 
@@ -122,12 +123,12 @@ public class DeleteOperationIT extends SpliceUnitTest {
         assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(methodWatcher.executeQuery("select * from T")));
     }
 
-    @Test(expected = SQLException.class, timeout = 10000)
-    public void testDeleteWithSumOverflowThrowsError() throws Exception {
+    @Test(timeout = 30000)
+    public void testDeleteWithSumDoesNotOverflow() throws Exception {
         try {
-            methodWatcher.getStatement().execute("delete from a_test where c1+c1 > 0");
+            methodWatcher.getStatement().execute("delete from a_test where c1+c1 < 0");
         } catch (SQLException sql) {
-            assertEquals("Incorrect SQLState for message " + sql.getMessage(), SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, sql.getSQLState());
+            fail("Delete statement not expected to fail.");
             throw sql;
         }
     }
