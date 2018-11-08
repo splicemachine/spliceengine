@@ -472,6 +472,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     }
     @Test
     public void testCreateTableWithLogicalSplitKeyes() throws Exception {
+        if (notSupported)
+            return;
         String sql = String.format("CREATE TABLE LINEITEM2 (\n" +
                 "  L_ORDERKEY      INTEGER NOT NULL,\n" +
                 "  L_PARTKEY       INTEGER NOT NULL,\n" +
@@ -504,6 +506,8 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void testCreateTableWithPhysicalSplitKeyes() throws Exception {
+        if (notSupported)
+            return;
         String sql = String.format("CREATE TABLE LINEITEM3 (\n" +
                 "  L_ORDERKEY      INTEGER NOT NULL,\n" +
                 "  L_PARTKEY       INTEGER NOT NULL,\n" +
