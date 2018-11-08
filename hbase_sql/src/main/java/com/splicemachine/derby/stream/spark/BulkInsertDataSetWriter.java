@@ -64,6 +64,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
     private boolean outputKeysOnly;
     private boolean skipSampling;
     private String indexName;
+    private double sampleFraction;
 
     public BulkInsertDataSetWriter(){
     }
@@ -81,7 +82,8 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                                    boolean samplingOnly,
                                    boolean outputKeysOnly,
                                    boolean skipSampling,
-                                   String indexName) {
+                                   String indexName,
+                                   double sampleFraction) {
         super(dataSet, operationContext, heapConglom, txn);
         this.tableVersion = tableVersion;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
@@ -160,7 +162,6 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                     DataValueDescriptor dvd =
                             td.getColumnDescriptor(
                                     searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
-                    ValueRow defaultRow = new ValueRow(new DataValueDescriptor[]{dvd});
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
@@ -192,8 +193,10 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             }
             List<Tuple2<Long, byte[][]>> cutPoints = null;
             if (!skipSampling) {
-                SConfiguration sConfiguration = HConfiguration.getConfiguration();
-                double sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                if (sampleFraction == 0) {
+                    SConfiguration sConfiguration = HConfiguration.getConfiguration();
+                    sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                }
                 DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
 
                 // encode key/vale pairs for table and indexes
@@ -220,7 +223,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
 
                 // split table and indexes using the calculated cutpoints
                 if (cutPoints != null && !cutPoints.isEmpty()) {
-                    splitTables(cutPoints);
+                    BulkLoadUtils.splitTables(cutPoints);
                 }
 
                 // get the actual start/end key for each partition after split

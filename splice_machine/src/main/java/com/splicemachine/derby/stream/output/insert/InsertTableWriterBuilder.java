@@ -54,6 +54,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     protected byte[] token;
     protected OperationContext operationContext;
     protected boolean isUpsert;
+    protected double sampleFraction;
 
     @Override
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
@@ -158,6 +159,12 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     }
 
     @Override
+    public InsertDataSetWriterBuilder sampleFraction(double sampleFraction) {
+        this.sampleFraction = sampleFraction;
+        return this;
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         try {
             out.writeBoolean(isUpsert);
@@ -178,6 +185,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
                 out.writeObject(spliceSequences[i]);
             }
             out.writeLong(heapConglom);
+            out.writeDouble(sampleFraction);
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -202,6 +210,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         for (int i =0; i< spliceSequences.length; i++)
             spliceSequences[i] = (SpliceSequence) in.readObject();
         heapConglom = in.readLong();
+        sampleFraction = in.readDouble();
     }
 
     @Override
@@ -216,6 +225,4 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     public String getInsertTableWriterBuilderBase64String() throws IOException, StandardException {
         return Base64.encodeBase64String(SerializationUtils.serialize(this));
     }
-
-
 }

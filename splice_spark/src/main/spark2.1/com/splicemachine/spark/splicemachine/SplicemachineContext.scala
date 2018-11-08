@@ -325,6 +325,28 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     internalConnection.createStatement().executeUpdate(sqlText)
   }
 
+  /**
+    *
+    * Sample the dataframe, split the table, and insert a dataFrame into a table (schema.table).  This corresponds to an
+    *
+    * insert into from select statement
+    *
+    * @param dataFrame
+    * @param schemaTableName
+    * @param sampleFraction
+    */
+  def insert(dataFrame: DataFrame, schemaTableName: String, sampleFraction: Double): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = "insert into " + schemaTableName +
+      " (" + columnList + ") --splice-properties useSpark=true, sampleFraction=" +
+      sampleFraction + "\n select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
+      "as SpliceDatasetVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
     SpliceRDDVTI.datasetThreadLocal.set(rdd)
     val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)

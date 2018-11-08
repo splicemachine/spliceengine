@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2012 - 2017 Splice Machine, Inc.
  *
@@ -135,7 +136,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         ImportUtils.dumpCutPoints(cutPoints, bulkLoadDirectory);
 
         if (cutPoints != null && cutPoints.size() > 0) {
-            splitTables(cutPoints);
+            BulkLoadUtils.splitTables(cutPoints);
         }
     }
 }
