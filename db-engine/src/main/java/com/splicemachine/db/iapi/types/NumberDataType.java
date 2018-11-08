@@ -58,7 +58,7 @@ public abstract class NumberDataType extends DataType
 	static final BigDecimal MAXLONG_PLUS_ONE = BigDecimal.valueOf(Long.MAX_VALUE).add(ONE);
 	static final BigDecimal MINLONG_MINUS_ONE = BigDecimal.valueOf(Long.MIN_VALUE).subtract(ONE);
 
-	private final NumberDataValue getNullDVD(NumberDataValue parm1, NumberDataValue parm2) {
+	protected final NumberDataValue getNullDVD(NumberDataValue parm1, NumberDataValue parm2) {
 		NumberDataValue highPrec, result;
 		highPrec = (parm1.typePrecedence() >= parm2.typePrecedence()) ?
 		            parm1 : parm2;
