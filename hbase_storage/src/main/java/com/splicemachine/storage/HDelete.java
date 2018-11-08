@@ -14,6 +14,9 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.utils.ByteSlice;
+import org.apache.hadoop.hbase.client.Durability;
 import org.spark_project.guava.collect.Iterables;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
@@ -30,6 +33,10 @@ public class HDelete implements DataDelete,HMutation{
 
     public HDelete(byte[] rowKey){
         this.delete = new Delete(rowKey);
+    }
+
+    public HDelete(ByteSlice rowKey){
+        this.delete = new Delete(rowKey.array(), rowKey.offset(), rowKey.length());
     }
 
     @Override
@@ -67,6 +74,11 @@ public class HDelete implements DataDelete,HMutation{
     @Override
     public Iterable<DataCell> cells(){
         return new CellIterable(Iterables.concat(delete.getFamilyCellMap().values()));
+    }
+
+    @Override
+    public void skipWAL() {
+        delete.setDurability(Durability.SKIP_WAL);
     }
 
     @Override
