@@ -31,9 +31,11 @@
 package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLDate;
 import com.splicemachine.db.iapi.types.SQLDouble;
 import com.splicemachine.db.iapi.types.SQLTime;
@@ -242,7 +244,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         // 1. Checking if predicate and column's data  types are same
         // 2. Checking if they are in the same data type family
         // 3. Checking if column typePrecedence >= predicate typePrecedence, then convert predicate's data type to column
-        // 4. So far, we can't use quantilesSketch.ReverseRurgeItemHashMap to look up predicate, we need to compare the predicate with each elements in quantilesSketch iteratively.
+        // 4. So far, we can't use quantilesSketch.ReverseRurgeItemHashMap to look up predicate, we need to compare the predicate with each elements in frequent item sketch iteratively.
 
         DataValueDescriptor lookUpElement = element;
         int typeFormatId = dvd.getTypeFormatId();
@@ -266,6 +268,10 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
                     (typeFormatId == StoredFormatIds.SQL_REAL_ID || typeFormatId == StoredFormatIds.SQL_DOUBLE_ID || typeFormatId == StoredFormatIds.SQL_DECIMAL_ID )) {
             isSameFamily = true;
         }
+        else  if (lookUpElement instanceof SQLChar && dvd instanceof SQLChar) //Handle Char, Varchar, Long Varchar
+        {
+            isSameFamily = true;
+        }
         // Checking if convertible
         else if (dvd.typePrecedence() >= lookUpElement.typePrecedence()){
             try {
@@ -286,6 +292,9 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
                     case StoredFormatIds.SQL_REAL_ID:
                     case StoredFormatIds.SQL_DECIMAL_ID:
                         lookUpElement = new SQLDouble(element.getDouble()); // These types are in the same family
+                        break;
+                    default:
+                        throw  StandardException.newException(SQLState.TYPE_MISMATCH,"Failure convert from " + element.getTypeName() + " to " + dvd.getTypeName() );
                 }
                 isConverted = true;
             } catch (StandardException e) {
