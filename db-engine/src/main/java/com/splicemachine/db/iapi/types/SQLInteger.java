@@ -567,7 +567,7 @@ public final class SQLInteger
 	{
 		if (result == null)
 		{
-			result = new SQLInteger();
+			result = getNullDVD(left, right);
 		}
 
 		if (left.isNull() || right.isNull())
