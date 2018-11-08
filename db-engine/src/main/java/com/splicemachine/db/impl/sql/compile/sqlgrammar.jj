@@ -12207,14 +12207,16 @@ indexDefinition() throws StandardException :
 		]
 		[   [<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
 		    <SPLITKEYS> {preSplit = Boolean.TRUE;}
-		        [ <AUTO> {sampling = Boolean.TRUE; } [<SAMPLE><FRACTION> {sampleFraction = literal();}] |
-		          <LOCATION> {splitKeysPath = literal();}
-		          [<COLUMNDELIMITER> {columnDelimiter = literal();}]
-		          [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
-                  [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
-                  [<DATEFORMAT> {dateFormat = literal();}]
-                  [<TIMEFORMAT> {timeFormat = literal();}]
-		        ]
+		        <LOCATION> {splitKeysPath = literal();}
+		         [<COLUMNDELIMITER> {columnDelimiter = literal();}]
+		         [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
+                 [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
+                 [<DATEFORMAT> {dateFormat = literal();}]
+                 [<TIMEFORMAT> {timeFormat = literal();}]
+
+		    |<AUTO> {sampling = Boolean.TRUE;}
+		     <SPLITKEYS> {preSplit = Boolean.TRUE;}
+		     [ <SAMPLE><FRACTION> {sampleFraction = literal();}]
 		]
 		[<HFILE> <LOCATION> {hfilePath = literal();}]
 
