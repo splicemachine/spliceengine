@@ -45,7 +45,7 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
      * @return a new transactional filter for the region
      * @throws IOException if something goes wrong.
      */
-    TxnFilter unpackedFilter(TxnView txn) throws IOException;
+    TxnFilter unpackedFilter(TxnView txn, boolean ignoreRecentTransactions) throws IOException;
 
     TxnFilter packedFilter(TxnView txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException;
 

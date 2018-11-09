@@ -25,6 +25,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
 
 import java.util.UUID;
@@ -66,7 +67,8 @@ public class QueryJob implements Callable<Void>{
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
-            long txnId = root.getCurrentTransaction().getTxnId();
+            TxnView parent = root.getCurrentTransaction();
+            long txnId = parent.getTxnId();
             String sql = queryRequest.sql;
             String session = queryRequest.session;
             String userId = queryRequest.userId;
@@ -95,7 +97,6 @@ public class QueryJob implements Callable<Void>{
             status.markCompleted(new QueryResult(numPartitions));
 
             LOG.info("Completed query for session: " + session);
-
         } catch (CancellationException e) {
             if (jobName != null)
                 SpliceSpark.getContext().sc().cancelJobGroup(jobName);
