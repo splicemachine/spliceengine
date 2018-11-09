@@ -33,7 +33,7 @@ import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
