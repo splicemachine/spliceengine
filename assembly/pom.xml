@@ -82,8 +82,18 @@
         </commonArtifacts>
     </properties>
     <build>
-        <finalName>${project.artifactId}-${envClassifier}-${project.version}</finalName>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <configuration>
+                            <classifier>${envClassifier}</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -721,6 +731,18 @@
                           </resources>
                         </configuration>
                       </execution>
+                    </executions>
+                  </plugin>
+                  <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>default-jar</id>
+                            <configuration>
+                                <classifier>${envClassifier}</classifier>
+                            </configuration>
+                        </execution>
                     </executions>
                   </plugin>
                 </plugins>
