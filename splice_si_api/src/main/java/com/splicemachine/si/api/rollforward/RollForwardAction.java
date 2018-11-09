@@ -10,21 +10,16 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
-package com.splicemachine.si.api.readresolve;
+package com.splicemachine.si.api.rollforward;
 
-import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.storage.Partition;
 
 /**
- * Represents a Roll Forward structure.
- *
- * @author Scott Fines
- * Date: 6/26/14
+ * Created by jleach on 12/11/15.
  */
-public interface RollForward {
-
-	void submitForResolution(ByteSlice rowKey, long txnId);
-
-		void recordResolved(ByteSlice rowKey,long txnId);
+public interface RollForwardAction {
+    void submitAction(Partition region,byte[] startKey,byte[] stopKey);
 }

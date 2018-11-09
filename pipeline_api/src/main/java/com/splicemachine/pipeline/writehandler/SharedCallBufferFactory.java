@@ -18,6 +18,7 @@ import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
 import com.splicemachine.pipeline.config.UnsafeWriteConfiguration;
 import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.context.WriteContext;
@@ -78,6 +79,9 @@ public class SharedCallBufferFactory{
                 writeConfiguration.getExceptionFactory());
         if (context.skipConflictDetection() || context.skipWAL()) {
             wc = new UnsafeWriteConfiguration(wc, context.skipConflictDetection(), context.skipWAL());
+        }
+        if (context.rollforward()) {
+            wc = new RollforwardWriteConfiguration(wc);
         }
         hook.registerContext(context, indexToMainMutationMap);
         wc.registerContext(context, indexToMainMutationMap);
