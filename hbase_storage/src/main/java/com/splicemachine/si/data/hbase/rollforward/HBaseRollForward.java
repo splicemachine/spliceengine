@@ -23,27 +23,33 @@ import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.IOException;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class HBaseRollForward implements Runnable, RollForward {
     private static final Logger LOG = Logger.getLogger(HBaseRollForward.class);
 
     private ArrayBlockingQueue<RFEvent> queue;
-    private Thread rollforwardThread;
+    private ExecutorService service;
     private TxnSupplier supplier;
+    private int threads = 20;
 
     public HBaseRollForward(TxnSupplier supplier) {
         this.queue = new ArrayBlockingQueue<>(4096);
 
-        this.rollforwardThread = new Thread(this,"WritesRollforwarder");
-        this.rollforwardThread.setDaemon(true);
+        this.service = Executors.newFixedThreadPool(threads,
+                new ThreadFactoryBuilder().setDaemon(true).setNameFormat("WritesRollforward-%d").build());
         this.supplier = supplier;
     }
 
     public void start() {
-        rollforwardThread.start();
+        for (int i = 0; i < threads; ++i) {
+            this.service.submit(this);
+        }
     }
 
     @Override
