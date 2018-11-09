@@ -31,12 +31,12 @@
 
 package com.splicemachine.db.iapi.types;
 
-import java.math.BigDecimal;
-
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
+import java.math.BigDecimal;
 
 /**
  * NumberDataType is the superclass for all exact and approximate 
@@ -58,6 +58,22 @@ public abstract class NumberDataType extends DataType
 	static final BigDecimal MAXLONG_PLUS_ONE = BigDecimal.valueOf(Long.MAX_VALUE).add(ONE);
 	static final BigDecimal MINLONG_MINUS_ONE = BigDecimal.valueOf(Long.MIN_VALUE).subtract(ONE);
 
+	protected final NumberDataValue getNullDVD(NumberDataValue parm1, NumberDataValue parm2) {
+		NumberDataValue highPrec, result;
+		highPrec = (parm1.typePrecedence() >= parm2.typePrecedence()) ?
+		            parm1 : parm2;
+
+		// Follow the same construction rules as in
+		// NumericTypeCompiler.resolveArithmeticOperation.
+		if (highPrec instanceof SQLInteger ||
+		    highPrec instanceof SQLSmallint ||
+		    highPrec instanceof SQLTinyint)
+			result = (NumberDataValue) new SQLLongint();
+		else
+			result = (NumberDataValue) getNewNull();
+
+		return result;
+	}
     /**
      * Numbers check for isNegative first and negate it if negative.
      * 
@@ -132,13 +148,13 @@ public abstract class NumberDataType extends DataType
 	 */
 
 	public NumberDataValue plus(NumberDataValue addend1,
-							NumberDataValue addend2,
-							NumberDataValue result)
+							    NumberDataValue addend2,
+							    NumberDataValue result)
 				throws StandardException
 	{
 		if (result == null)
 		{
-			result = (NumberDataValue) getNewNull();
+			result = getNullDVD(addend1, addend2);
 		}
 
 		if (addend1.isNull() || addend2.isNull())
@@ -195,7 +211,7 @@ public abstract class NumberDataType extends DataType
 	{
 		if (result == null)
 		{
-			result = (NumberDataValue) getNewNull();
+			result = getNullDVD(left, right);
 		}
 
 		if (left.isNull() || right.isNull())
@@ -253,7 +269,7 @@ public abstract class NumberDataType extends DataType
 	{
 		if (result == null)
 		{
-			result = (NumberDataValue) getNewNull();
+			result = getNullDVD(dividend, divisor);
 		}
 
 		if (dividend.isNull() || divisor.isNull())
