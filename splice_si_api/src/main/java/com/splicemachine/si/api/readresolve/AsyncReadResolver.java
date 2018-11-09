@@ -118,7 +118,7 @@ public class AsyncReadResolver{
                         status,
                         false,
                         trafficControl)){
-                    event.rollForward.recordResolved(event.rowKey,event.txnId);
+//                    event.rollForward.recordResolved(event.rowKey,event.txnId);
                 }
             }catch(Exception e){
                 LOG.info("Error during read resolution",e);

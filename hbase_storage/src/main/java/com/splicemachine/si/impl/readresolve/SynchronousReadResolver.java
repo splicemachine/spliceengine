@@ -124,9 +124,7 @@ public class SynchronousReadResolver implements KeyedReadResolver{
         }
     }
 
-    /******************************************************************************************************************/
-    /*private helper methods */
-    private void resolveCommitted(Partition region,ByteSlice rowKey,long txnId,long commitTimestamp,boolean failOnError){
+    public void resolveCommitted(Partition region,ByteSlice rowKey,long txnId,long commitTimestamp,boolean failOnError){
         assert region instanceof RegionPartition: "Not on a region!";
         /*
          * Resolve the row as committed directly.
@@ -155,7 +153,7 @@ public class SynchronousReadResolver implements KeyedReadResolver{
         }
     }
 
-    private void resolveRolledback(Partition region,ByteSlice rowKey,long txnId,boolean failOnError){
+    public void resolveRolledback(Partition region,ByteSlice rowKey,long txnId,boolean failOnError){
         assert region instanceof RegionPartition: "Not on a region!";
         /*
          * Resolve the row as rolled back directly.

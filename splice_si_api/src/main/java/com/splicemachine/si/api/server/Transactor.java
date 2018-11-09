@@ -50,6 +50,6 @@ public interface Transactor{
                                     TxnView txn,
                                     ConstraintChecker constraintChecker,
                                     boolean skipConflictDetection,
-                                    boolean skipWAL) throws IOException;
+                                    boolean skipWAL, boolean rollforward) throws IOException;
 
 }

@@ -15,18 +15,20 @@
 package com.splicemachine.si.impl.rollforward;
 
 import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 
 /**
  * @author Scott Fines
- *         Date: 7/1/14
+ * Date: 7/1/14
  */
-public class NoopRollForward implements RollForward{
-		public static final RollForward INSTANCE = new NoopRollForward();
+public class NoopRollForward implements RollForward {
+    public static final RollForward INSTANCE = new NoopRollForward();
 
-		private NoopRollForward(){}
+    private NoopRollForward() {
+    }
 
-	@Override public void submitForResolution(ByteSlice rowKey, long txnId) {  }
-		@Override public void recordResolved(ByteSlice rowKey, long txnId) {  }
-
+    @Override
+    public void submitForResolution(Partition partition, ByteSlice rowKey, long txnId) {
+    }
 }

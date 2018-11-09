@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.api.readresolve;
 
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.ByteSlice;
 
 /**
@@ -23,8 +24,5 @@ import com.splicemachine.utils.ByteSlice;
  * Date: 6/26/14
  */
 public interface RollForward {
-
-	void submitForResolution(ByteSlice rowKey, long txnId);
-
-		void recordResolved(ByteSlice rowKey,long txnId);
+	void submitForResolution(Partition partition, ByteSlice rowKey, long txnId);
 }
