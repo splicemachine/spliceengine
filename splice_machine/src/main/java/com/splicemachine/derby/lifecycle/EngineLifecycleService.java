@@ -134,6 +134,9 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
             ObjectName execServ = new ObjectName("com.splicemachine.derby.lifecycle:type=ExecutorService");
             mbs.registerMBean(logging,on);
             mbs.registerMBean(SIDriver.driver().getRejectingExecutorService(),execServ);
+
+            ObjectName rollforward = new ObjectName("com.splicemachine.si.api.rollforward:type=RollForward");
+            mbs.registerMBean(SIDriver.driver().getRollForward(),rollforward);
             db.getDataDictionary().getDataDictionaryCache().registerJMX(mbs);
 
 
