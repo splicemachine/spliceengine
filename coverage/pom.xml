@@ -9,7 +9,8 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-    	<version>0.0.0.1-SNAPSHOT</version>
+        <version>0.0.0.1-SNAPSHOT</version>
+        <classifier>${envClassifier}</classifier>
     </parent>
     <dependencies>
         <dependency>
@@ -103,18 +104,21 @@
 	    <dependencies>
 		    <dependency>
 			    <groupId>${project.groupId}</groupId>
-			    <artifactId>hbase_sql-${envClassifier}</artifactId>
+			    <artifactId>hbase_sql</artifactId>
 			    <version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
 		    </dependency>
 		    <dependency>
 			    <groupId>${project.groupId}</groupId>
-			    <artifactId>hbase_storage-${envClassifier}</artifactId>
+			    <artifactId>hbase_storage</artifactId>
 			    <version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
 		    </dependency>
 		    <dependency>
 			    <groupId>${project.groupId}</groupId>
-			    <artifactId>hbase_pipeline-${envClassifier}</artifactId>
+			    <artifactId>hbase_pipeline</artifactId>
 			    <version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
 		    </dependency>
 	    </dependencies>
         </profile>
@@ -123,18 +127,21 @@
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_sql-${envClassifier}</artifactId>
+        		<artifactId>hbase_sql</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_storage-${envClassifier}</artifactId>
+        		<artifactId>hbase_storage</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+        		<artifactId>hbase_pipeline</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         </dependencies>
         </profile>
@@ -143,18 +150,21 @@
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_sql-${envClassifier}</artifactId>
+        		<artifactId>hbase_sql</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_storage-${envClassifier}</artifactId>
+        		<artifactId>hbase_storage</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+        		<artifactId>hbase_pipeline</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         </dependencies>
         </profile>
@@ -163,18 +173,21 @@
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_sql-${envClassifier}</artifactId>
+        		<artifactId>hbase_sql</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_storage-${envClassifier}</artifactId>
+        		<artifactId>hbase_storage</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+        		<artifactId>hbase_pipeline</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         </dependencies>
         </profile>
@@ -183,18 +196,21 @@
 			<dependencies>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_sql-${envClassifier}</artifactId>
+					<artifactId>hbase_sql</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_storage-${envClassifier}</artifactId>
+					<artifactId>hbase_storage</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+					<artifactId>hbase_pipeline</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 			</dependencies>
 		</profile>
@@ -202,18 +218,21 @@
 			<id>hdp2.6.4</id>
 			<dependencies>
 				<dependency> <groupId>${project.groupId}</groupId>
-					<artifactId>hbase_sql-${envClassifier}</artifactId>
+					<artifactId>hbase_sql</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_storage-${envClassifier}</artifactId>
+					<artifactId>hbase_storage</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+					<artifactId>hbase_pipeline</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 			</dependencies>
 		</profile>
@@ -222,18 +241,21 @@
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_sql-${envClassifier}</artifactId>
+        		<artifactId>hbase_sql</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_storage-${envClassifier}</artifactId>
+        		<artifactId>hbase_storage</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+        		<artifactId>hbase_pipeline</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         </dependencies>
         </profile>
@@ -242,18 +264,21 @@
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_sql-${envClassifier}</artifactId>
+        		<artifactId>hbase_sql</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_storage-${envClassifier}</artifactId>
+        		<artifactId>hbase_storage</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+        		<artifactId>hbase_pipeline</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         </dependencies>
         </profile>
@@ -262,18 +287,21 @@
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_sql-${envClassifier}</artifactId>
+        		<artifactId>hbase_sql</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_storage-${envClassifier}</artifactId>
+        		<artifactId>hbase_storage</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+        		<artifactId>hbase_pipeline</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         </dependencies>
         </profile>
@@ -282,18 +310,21 @@
 			<dependencies>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_sql-${envClassifier}</artifactId>
+					<artifactId>hbase_sql</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_storage-${envClassifier}</artifactId>
+					<artifactId>hbase_storage</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+					<artifactId>hbase_pipeline</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 			</dependencies>
 		</profile>
@@ -302,18 +333,21 @@
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_sql-${envClassifier}</artifactId>
+        		<artifactId>hbase_sql</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_storage-${envClassifier}</artifactId>
+        		<artifactId>hbase_storage</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+        		<artifactId>hbase_pipeline</artifactId>
         		<version>${project.version}</version>
+                <classifier>${envClassifier}</classifier>
         	</dependency>
         </dependencies>
         </profile>
@@ -322,18 +356,21 @@
         <dependencies>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_sql-${envClassifier}</artifactId>
+        		<artifactId>hbase_sql</artifactId>
         		<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_storage-${envClassifier}</artifactId>
+        		<artifactId>hbase_storage</artifactId>
         		<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
         	</dependency>
         	<dependency>
         		<groupId>${project.groupId}</groupId>
-        		<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+        		<artifactId>hbase_pipeline</artifactId>
         		<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
         	</dependency>
         </dependencies>
         </profile>
@@ -342,18 +379,21 @@
 			<dependencies>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_sql-${envClassifier}</artifactId>
+					<artifactId>hbase_sql</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_storage-${envClassifier}</artifactId>
+					<artifactId>hbase_storage</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 				<dependency>
 					<groupId>${project.groupId}</groupId>
-					<artifactId>hbase_pipeline-${envClassifier}</artifactId>
+					<artifactId>hbase_pipeline</artifactId>
 					<version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
 				</dependency>
 			</dependencies>
 		</profile>
