@@ -253,7 +253,6 @@ $MR2_CLASSPATH</code>
          <tr>
              <td><code>YARN Application Classpath</code></td>
              <td><code>$HADOOP_CLIENT_CONF_DIR
-$HADOOP_CLIENT_CONF_DIR
 $HADOOP_CONF_DIR
 $HADOOP_COMMON_HOME/*
 $HADOOP_COMMON_HOME/lib/*
