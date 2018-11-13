@@ -161,7 +161,7 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
 
             // create index from hfile
             methodWatcher.prepareStatement(format("create index ix_t2 on %s.%s(c2 desc, b2 desc) exclude default keys \n" +
-                    "splitkeys auto \n" +
+                    "auto splitkeys \n" +
                     "hfile location '%s'", schemaWatcher.schemaName, T2.tableName, getResourceDirectory() + "data")).execute();
 
             // query

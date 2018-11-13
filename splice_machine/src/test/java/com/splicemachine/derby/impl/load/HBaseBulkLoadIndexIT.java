@@ -78,13 +78,13 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             spliceClassWatcher.prepareStatement(format("create index O_CUST_IDX on ORDERS(\n" +
                     " O_CUSTKEY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) splitkeys auto sample fraction 0.1 hfile location '%s'", getResource("data"))).execute();
+                    " ) auto splitkeys sample fraction 0.1 hfile location '%s'", getResource("data"))).execute();
 
             spliceClassWatcher.prepareStatement(format("create index O_DATE_PRI_KEY_IDX on ORDERS(\n" +
                     " O_ORDERDATE,\n" +
                     " O_ORDERPRIORITY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) splitkeys auto hfile location '%s'", getResource("data"))).execute();
+                    " ) auto splitkeys hfile location '%s'", getResource("data"))).execute();
 
             spliceClassWatcher.prepareStatement(format("create index L_SHIPDATE_IDX on LINEITEM(\n" +
                     " L_SHIPDATE,\n" +
@@ -132,7 +132,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
                     " L_EXTENDEDPRICE,\n" +
                     " L_DISCOUNT,\n" +
                     " L_SHIPINSTRUCT\n" +
-                    " ) splitkeys auto sample fraction 0.1")).execute();
+                    " ) auto splitkeys sample fraction 0.1")).execute();
 
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
             spliceClassWatcher.prepareStatement(format("create table A(c varchar(200))"));
