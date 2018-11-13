@@ -89,6 +89,16 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>test-jar</id>
+                        <configuration>
+                            <classifier>${envClassifier}-tests</classifier>
+                        </configuration>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>default-jar</id>
                         <configuration>
                             <classifier>${envClassifier}</classifier>
                         </configuration>
