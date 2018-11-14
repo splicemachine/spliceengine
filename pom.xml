@@ -1022,7 +1022,8 @@
                 <spark.major.version>spark2.3</spark.major.version>
                 <kafka.version>1.0.0.2.6.5.0-292</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-                <parquet.version>parquet-spark2</parquet.version>
+                <parquet.version>orc-spark-2.3</parquet.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
