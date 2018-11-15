@@ -31,7 +31,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <!-- Get all projects and required dependencies transitively -->
             <groupId>${project.groupId}</groupId>
             <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
             <version>${project.version}</version>
