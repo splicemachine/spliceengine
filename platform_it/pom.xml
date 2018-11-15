@@ -810,23 +810,6 @@
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>############### standalone build ###############</id>
-                        <!-- run as jenkins to build standalone. use deploy. mvn deploy. -->
-                        <phase>test</phase>
-                        <configuration>
-                            <tasks>
-                                <delete dir="../assembly/standalone/target"/>
-                                <mkdir dir="../assembly/standalone/target"/>
-                                <copydir src="../assembly/standalone/template"
-                                         dest="../assembly/standalone/target/splicemachine" includes="**/*"/>
-                                <chmod file="../assembly/standalone/target/splicemachine/bin/*.sh" perm="ugo+rx"/>
-                            </tasks>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
                         <id>############### copy jars ###############</id>
                         <phase>deploy</phase>
                         <configuration>
