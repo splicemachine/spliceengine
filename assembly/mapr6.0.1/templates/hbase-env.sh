@@ -34,6 +34,9 @@ HADOOPTOOLSDIR="/opt/mapr/hadoop/hadoop-2.7.0/share/hadoop/tools/lib"
 PREPENDSTRING="$SPLICELIBDIR/*:$HADOOPTOOLSDIR"
 export HBASE_CLASSPATH="${PREPENDSTRING}:${HBASE_CLASSPATH}"
 
+# explicitly use our hbase conf dir
+export HBASE_CONF_DIR="/opt/mapr/hbase/hbase-1.1.8-splice/conf"
+
 # The maximum amount of heap to use. Default is left to JVM default.
 # export HBASE_HEAPSIZE=1G
 
@@ -57,10 +60,10 @@ SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremo
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.ssl=false"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.port=10101"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.enabled=true"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.app.name=SpliceMachine"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.appMasterEnv.HADOOP_USER=mapr"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.appMasterEnv.HBASE_USER=mapr"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.user=mapr"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.app.name=SpliceMachine"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.master=yarn-client"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.logConf=true"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.maxResultSize=1g"
