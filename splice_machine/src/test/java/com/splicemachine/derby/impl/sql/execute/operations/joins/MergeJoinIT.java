@@ -399,8 +399,185 @@ public class MergeJoinIT extends SpliceUnitTest {
                         row(5,4,50,5,5),
                         row(5,5,50,5,5)))
                 .create();
+        new TableCreator(conn)
+            .withCreate("create table tt5 (a5 int, b5 int, c5 int, d5 int, primary key(d5, b5))")
+            .withInsert("insert into tt5 values(?,?,?,?)")
+            .withRows(rows(
+                row(100,1,100,1),
+                row(119,2,700,2),
+                row(500,400,500,6),
+                row(577,8,500,8)))
+            .create();
+        new TableCreator(conn)
+            .withCreate("create table tt6 (a6 int, b6 int, c6 int, primary key(c6, b6))")
+            .withInsert("insert into tt6 values(?,?,?)")
+            .withRows(rows(
+                row(1,1,1),
+                row(2,2,2),
+                row(6,6,6),
+                row(8,8,8)))
+            .create();
+        new TableCreator(conn)
+            .withCreate("create table tt7 (col1 int, col2 int, col3 int, col4 int, primary key(col1,col2,col3,col4))")
+            .withIndex("create index tt7_idx on tt7(col4 desc, col3, col1, col2)")
+            .withInsert("insert into tt7 values(?,?,?,?)")
+            .withRows(rows(
+                row(100,1,100,1),
+                row(119,2,700,2),
+                row(500,400,500,6),
+                row(577,8,500,8)))
+            .create();
+        new TableCreator(conn)
+            .withCreate("create table tt8 (col1 int, col2 int, col3 int)")
+            .withIndex("create index tt8_idx on tt8(col3 desc, col2 desc, col1)")
+            .withInsert("insert into tt8 values(?,?,?)")
+            .withRows(rows(
+                row(1,1,1),
+                row(2,2,2),
+                row(6,6,6),
+                row(8,8,8)))
+            .create();
+
 
     }
+    @Test
+    public void testJoinWithRangePred() throws Exception {
+        List<Object[]> expected = Arrays.asList(
+            o(119,2),
+            o(577,8));
+        String query = "select a5,a6 from tt5,tt6 --splice-properties joinStrategy=%s \n" +
+            "where d5=c6 and b5=b6 and d5 > 1";
+        List<List<Object[]>> results = Lists.newArrayList();
+
+        for (String strategy : STRATEGIES) {
+            ResultSet rs = methodWatcher.executeQuery(String.format(query, strategy));
+            results.add(TestUtils.resultSetToArrays(rs));
+            rs.close();
+        }
+
+        Assert.assertTrue("Each strategy returns the same join results",
+            results.size() == STRATEGIES.size());
+        for (List<Object[]> result: results) {
+            Assert.assertArrayEquals("The join results match expected results",
+                expected.toArray(), result.toArray());
+        }
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+                "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+                "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=false\n" +
+            "on tt7.col4= tt8.col3 order by 1,2,3,4,5,6,7";
+        String expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                " 100 |  1  | 100 |  1  |  1  |  1  |  1  |\n" +
+                " 119 |  2  | 700 |  2  |  2  |  2  |  2  |\n" +
+                " 500 | 400 | 500 |  6  |  6  |  6  |  6  |\n" +
+                " 577 |  8  | 500 |  8  |  8  |  8  |  8  |";
+        ResultSet rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=true\n" +
+            "on tt7.col4= tt8.col3 order by 1,2,3,4,5,6,7";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=false\n" +
+            "on tt7.col4= tt8.col3 where tt7.col4 < 7 order by 1,2,3,4,5,6,7";
+        expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                " 100 |  1  | 100 |  1  |  1  |  1  |  1  |\n" +
+                " 119 |  2  | 700 |  2  |  2  |  2  |  2  |\n" +
+                " 500 | 400 | 500 |  6  |  6  |  6  |  6  |";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=true\n" +
+            "on tt7.col4= tt8.col3 where tt7.col4 < 7 order by 1,2,3,4,5,6,7";
+        expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                " 100 |  1  | 100 |  1  |  1  |  1  |  1  |\n" +
+                " 119 |  2  | 700 |  2  |  2  |  2  |  2  |\n" +
+                " 500 | 400 | 500 |  6  |  6  |  6  |  6  |";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+
+        try {
+            query = "drop index TT7_IDX";
+            methodWatcher.executeUpdate(query);
+            query = "drop index TT8_IDX";
+            methodWatcher.executeUpdate(query);
+            query = "create index tt7_idx on tt7(col2 asc, col4 desc, col1, col3)";
+            methodWatcher.executeUpdate(query);
+            query = "create index tt8_idx on tt8(col2 asc, col3 desc, col1)";
+            methodWatcher.executeUpdate(query);
+        }
+        catch (Exception e) {
+            fail("Unable to recreate indexes.");
+        }
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=false\n" +
+            "on tt7.col2= tt8.col2 and tt7.col4 = tt8.col3 where tt7.col2 < 7 and tt8.col3 > 1 order by 1,2,3,4,5,6,7";
+        expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                " 119 |  2  | 700 |  2  |  2  |  2  |  2  |";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=true\n" +
+            "on tt7.col2= tt8.col2 and tt7.col4 = tt8.col3 where tt7.col2 < 7 and tt8.col3 > 1 order by 1,2,3,4,5,6,7";
+        expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                " 119 |  2  | 700 |  2  |  2  |  2  |  2  |";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=false\n" +
+            "on tt7.col2 = tt8.col2 and tt7.col4 = tt8.col3 where tt7.col2 > 1 and tt8.col3 < 7 order by 1,2,3,4,5,6,7";
+        expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                " 119 |  2  | 700 |  2  |  2  |  2  |  2  |";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=true\n" +
+            "on tt7.col2 = tt8.col2 and tt7.col4 = tt8.col3 where tt7.col2 > 1 and tt8.col3 < 7 order by 1,2,3,4,5,6,7";
+        expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                " 119 |  2  | 700 |  2  |  2  |  2  |  2  |";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
     @Test
     public void testSimpleJoinOverAllStrategies() throws Exception {
         String query = "select count(*) from --SPLICE-PROPERTIES joinOrder=FIXED \n" +
@@ -412,6 +589,7 @@ public class MergeJoinIT extends SpliceUnitTest {
             ResultSet rs = methodWatcher.executeQuery(String.format(query, strategy));
             rs.next();
             counts.add(rs.getInt(1));
+            rs.close();
         }
 
         Assert.assertTrue("Each strategy returns the same number of join results",
@@ -435,6 +613,7 @@ public class MergeJoinIT extends SpliceUnitTest {
         for (String strategy : STRATEGIES) {
             ResultSet rs = methodWatcher.executeQuery(String.format(query, strategy));
             results.add(TestUtils.resultSetToArrays(rs));
+            rs.close();
         }
 
         Assert.assertTrue("Each strategy returns the same join results",
@@ -457,6 +636,7 @@ public class MergeJoinIT extends SpliceUnitTest {
                     "group by s.empnum " +
                     "order by s.empnum");
             List<Object[]> msj = TestUtils.resultSetToArrays(rs);
+            rs.close();
 
             rs = methodWatcher.executeQuery("select s.empnum, count(*) " +
                     "from staff s --splice-properties index=staff_ordered \n" +
@@ -466,6 +646,7 @@ public class MergeJoinIT extends SpliceUnitTest {
                     "group by s.empnum " +
                     "order by s.empnum");
             List<Object[]> merge = TestUtils.resultSetToArrays(rs);
+            rs.close();
 
             Assert.assertArrayEquals(msj.toArray(), merge.toArray());
 
@@ -491,6 +672,7 @@ public class MergeJoinIT extends SpliceUnitTest {
                     "--splice-properties index=lineitem_ordered, joinStrategy=merge\n" +
                     "where o_orderkey = l_orderkey");
             List<Object[]> merge = TestUtils.resultSetToArrays(rs);
+            rs.close();
 
             Assert.assertArrayEquals(msj.toArray(), merge.toArray());
 
@@ -601,6 +783,7 @@ public class MergeJoinIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertEquals(1, count);
+        rs.close();
     }
 
     @Test
@@ -616,6 +799,7 @@ public class MergeJoinIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertEquals(1, count);
+        rs.close();
     }
 
     @Test
@@ -631,6 +815,7 @@ public class MergeJoinIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertEquals(1, count);
+        rs.close();
     }
 
     @Test
