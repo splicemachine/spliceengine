@@ -103,13 +103,6 @@
         <url>https://splice.atlassian.net</url>
     </issueManagement>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Fail the build if not using maven >= 3.3.0  Just a sanity check.  3.3.0 because this
-   is currently the min supported version by our plugins.
-   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <prerequisites>
-        <maven>3.3.0</maven>
-    </prerequisites>
-    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  dependencies - should be a very minimal set of dependencies here as it is difficult to
  predict what all inhering projects will want/need and they can't exclude things
  inherited from the parent pom.
