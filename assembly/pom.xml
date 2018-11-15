@@ -30,6 +30,12 @@
             <artifactId>hbase_sql-${envClassifier}</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <!-- Get all projects and required dependencies transitively -->
+            <groupId>${project.groupId}</groupId>
+            <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
     <properties>
         <jenkins.build.number>1</jenkins.build.number>
@@ -157,23 +163,6 @@
                                         ${commonArtifacts},
                                         splice_sentry-${envClassifier}
                                     </includeArtifactIds>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-spark-adapter</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>com.splicemachine</groupId>
-                                            <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
-                                            <version>${project.version}</version>
-                                            <type>jar</type>
-                                        </artifactItem>
-                                    </artifactItems>
                                 </configuration>
                             </execution>
                         </executions>
@@ -343,25 +332,9 @@
                                         db-drda,
                                         javax.servlet-api,
                                         javax.ws.rs-api,
-                                        jython-standalone
+                                        jython-standalone,
+                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}
                                     </includeArtifactIds>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-spark-adapter</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>com.splicemachine</groupId>
-                                            <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
-                                            <version>${project.version}</version>
-                                            <type>jar</type>
-                                        </artifactItem>
-                                    </artifactItems>
                                 </configuration>
                             </execution>
                         </executions>
@@ -596,23 +569,6 @@
                                         splice_ranger_service,
                                         splice_atlas
                                     </includeArtifactIds>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-spark-adapter</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>copy</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>com.splicemachine</groupId>
-                                            <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
-                                            <version>${project.version}</version>
-                                            <type>jar</type>
-                                        </artifactItem>
-                                    </artifactItems>
                                 </configuration>
                             </execution>
                         </executions>
