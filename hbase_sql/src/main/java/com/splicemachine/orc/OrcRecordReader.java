@@ -198,7 +198,8 @@ public class OrcRecordReader
                 rowsInRowGroup,
                 predicate,
                 hiveWriterVersion,
-                metadataReader);
+                metadataReader,
+                partitionIds);
 
         streamReaders = createStreamReaders(orcDataSource, types, hiveStorageTimeZone, presentColumnsAndTypes, partitionIds);
     }
