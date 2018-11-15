@@ -30,8 +30,9 @@
 # export HBASE_CLASSPATH=
 
 SPLICELIBDIR="/opt/splice/default/lib"
-APPENDSTRING=`echo $SPLICELIBDIR/*.jar | sed 's/ /:/g'`
-export HBASE_CLASSPATH="$HBASE_CLASSPATH:$APPENDSTRING"
+HADOOPTOOLSDIR="/opt/mapr/hadoop/hadoop-2.7.0/share/hadoop/tools/lib"
+PREPENDSTRING="$SPLICELIBDIR/*:$HADOOPTOOLSDIR"
+export HBASE_CLASSPATH="${PREPENDSTRING}:${HBASE_CLASSPATH}"
 
 # The maximum amount of heap to use. Default is left to JVM default.
 # export HBASE_HEAPSIZE=1G
