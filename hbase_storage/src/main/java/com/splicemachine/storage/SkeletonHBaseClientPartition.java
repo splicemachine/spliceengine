@@ -157,6 +157,10 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
         else doDelete(((HDelete)put).unwrapDelegate());
     }
 
+    @Override
+    public void batchMutate(List<DataMutation> mutations) {
+        throw new UnsupportedOperationException("batchMutate not implemented");
+    }
 
     @Override
     @SuppressWarnings("ForLoopReplaceableByForEach")

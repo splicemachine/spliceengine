@@ -306,6 +306,11 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     }
 
     @Override
+    public void batchMutate(List<DataMutation> mutations) throws IOException {
+        delegate.batchMutate(mutations);
+    }
+
+    @Override
     public Iterator<MutationStatus> writeBatch(DataPut[] toWrite) throws IOException {
         return delegate.writeBatch(toWrite);
     }
