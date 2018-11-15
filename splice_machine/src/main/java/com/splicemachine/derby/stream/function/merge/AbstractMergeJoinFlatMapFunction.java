@@ -128,6 +128,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
         int nCols = startPosition != null ? startPosition.nColumns():0;
         ExecRow scanStartOverride;
+        boolean firstTime = true;
 
         /* To see if we can further restrict the scan of the right table by overiding the scan
            startPosition with the actual values of the left key if it is greater than the
@@ -147,23 +148,21 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             ExecRow newStartKey = new ValueRow(columnOrdering.length);
             int[] rightHashKeys = joinOperation.getRightHashKeys();
             int[] rightHashKeySortOrders = ((MergeJoinOperation) joinOperation).getRightHashKeySortOrders();
-
+            boolean rightKeyIsNull = false, leftKeyIsNull = false, replaceWithLeftRowVal = false;
             int len = 0;
+
             for (int i = 0; i < columnOrdering.length; i++) {
                 int keyColumnBaseTablePosition = columnOrdering[i];
                 int j = 0;
                 for (; j < rightHashKeys.length; j++) {
                     // both columnOrdering and colToBaseTableMap are 0-based
                     if (colToBaseTableMap[j] == keyColumnBaseTablePosition) {
-                        if (i >= nCols) {
-                            newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
-                        }
-                        else {
-
-                            boolean rightKeyIsNull = startPosition == null ||
-                                    isNullDataValue(startPosition.getColumn(i + 1));
-                            boolean leftKeyIsNull =
-                                    isNullDataValue(firstHashRow.getColumn(j + 1));
+                        if (firstTime) {
+                            rightKeyIsNull =
+                                startPosition == null || i >= nCols ||
+                                isNullDataValue(startPosition.getColumn(i + 1));
+                            leftKeyIsNull =
+                                isNullDataValue(firstHashRow.getColumn(j + 1));
 
                             // Replace the right key value to seek to with left row data value if:
                             // - The right key is null, in which case left is always >= right , or
@@ -173,30 +172,43 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                             //     position is less than the left data value, or
                             //   - If the key is descending and the current right key start
                             //     position is greater than the left data value.
-                            boolean replaceWithLeftRowVal = false;
-                            if (rightKeyIsNull)
+                            // As long as the left and right key column values are equal,
+                            // keep doing comparisons until we find the partial key
+                            // or full key which is truly greater than the other.
+                            if (rightKeyIsNull) {
                                 replaceWithLeftRowVal = true;
+                                firstTime = false;
+                            }
                             else if (!leftKeyIsNull) {
                                 boolean rightKeyIsAscending = isAscendingKey(rightHashKeySortOrders, j);
                                 replaceWithLeftRowVal =
-                                (rightKeyIsAscending ?
+                                    (rightKeyIsAscending ?
                                         (startPosition.getColumn(i + 1).
-                                                compare(firstHashRow.getColumn(j + 1)) < 0) :
+                                            compare(firstHashRow.getColumn(j + 1)) < 0) :
                                         (startPosition.getColumn(i + 1).
-                                                compare(firstHashRow.getColumn(j + 1)) > 0));
+                                            compare(firstHashRow.getColumn(j + 1)) > 0));
+                                // As long as prior parts of the key are equal, keep comparing
+                                // latter parts of the key until we have inequality.
+                                firstTime = startPosition.getColumn(i + 1).
+                                    compare(firstHashRow.getColumn(j + 1)) == 0;
                             }
-
-                            if (replaceWithLeftRowVal) {
-                                // If for some reason there is no DVD created, break out right away
-                                // without building the full start key, to prevent NPE.
-                                if (firstHashRow.getColumn(j + 1) == null) {
-                                    j = rightHashKeys.length;
-                                    break;
-                                }
-                                newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
-                            } else {
-                                newStartKey.setColumn(i + 1, startPosition.getColumn(i + 1));
+                            else
+                                firstTime = false;
+                        }
+                        if (replaceWithLeftRowVal) {
+                            // If for some reason there is no DVD created, break out right away
+                            // without building the full start key, to prevent NPE.
+                            if (firstHashRow.getColumn(j + 1) == null) {
+                                j = rightHashKeys.length;
+                                break;
                             }
+                            newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
+                        } else {
+                            if (i >= nCols || startPosition.getColumn(i + 1) == null) {
+                                j = rightHashKeys.length;
+                                break;
+                            }
+                            newStartKey.setColumn(i + 1, startPosition.getColumn(i + 1));
                         }
                         len++;
                         break;
