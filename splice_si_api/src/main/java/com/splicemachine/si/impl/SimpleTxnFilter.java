@@ -97,6 +97,10 @@ public class SimpleTxnFilter implements TxnFilter{
         nextRow();
     }
 
+    public TxnSupplier getTxnSupplier() {
+        return transactionStore;
+    }
+
     @Override
     public DataFilter.ReturnCode filterCell(DataCell keyValue) throws IOException{
         CellType type=keyValue.dataType();

@@ -79,6 +79,11 @@ public class HOperationFactory implements OperationFactory{
     }
 
     @Override
+    public DataDelete newDelete(ByteSlice rowKey){
+        return new HDelete(rowKey);
+    }
+
+    @Override
     public DataCell newCell(byte[] key,byte[] family,byte[] qualifier,byte[] value){
         KeyValue kv = new KeyValue(key,family,qualifier,value);
         return new HCell(kv);

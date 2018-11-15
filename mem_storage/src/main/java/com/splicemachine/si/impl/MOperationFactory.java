@@ -70,6 +70,11 @@ public class MOperationFactory implements OperationFactory{
     }
 
     @Override
+    public DataDelete newDelete(ByteSlice rowKey) {
+        return new MDelete(rowKey);
+    }
+
+    @Override
     public DataCell newCell(byte[] key,byte[] family,byte[] qualifier,byte[] value){
         return newCell(key,family,qualifier,clock.currentTimeMillis(),value);
     }

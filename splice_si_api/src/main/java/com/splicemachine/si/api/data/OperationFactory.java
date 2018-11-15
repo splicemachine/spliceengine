@@ -39,6 +39,8 @@ public interface OperationFactory{
 
     DataDelete newDelete(byte[] rowKey);
 
+    DataDelete newDelete(ByteSlice rowKey);
+
     DataCell newCell(byte[] key, byte[] family, byte[] qualifier, byte[] value);
 
     DataCell newCell(byte[] key, byte[] family, byte[] qualifier, long timestamp,byte[] value);
