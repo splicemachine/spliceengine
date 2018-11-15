@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.function.merge;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -112,6 +113,15 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         return false;
     }
 
+    private static boolean isNullDataValue(DataValueDescriptor dvd) {
+        return dvd == null || dvd.isNull();
+    }
+    private static boolean isAscendingKey(int[] rightHashKeySortOrders, int keyPos) {
+        boolean retval = rightHashKeySortOrders == null ||
+                         rightHashKeySortOrders.length <= keyPos ||
+                         rightHashKeySortOrders[keyPos] == 1;
+        return retval;
+    }
     protected void initRightScan(PeekingIterator<ExecRow> leftPeekingIterator) throws StandardException{
         ExecRow firstHashRow = joinOperation.getKeyRow(leftPeekingIterator.peek());
         ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
@@ -149,18 +159,40 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                             newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
                         }
                         else {
-                            // If a descending index, reverse the result of the comparison.
-                            boolean replaceWithLeftRowVal = (startPosition == null) ||
-                                (!firstHashRow.getColumn(j + 1).isNull() &&
-                                    (rightHashKeySortOrders == null ||
-                                      rightHashKeySortOrders.length == 0 ||
-                                        rightHashKeySortOrders[j] == 1 ?
-                                      (startPosition.getColumn(i + 1).
-                                        compare(firstHashRow.getColumn(j + 1)) < 0) :
-                                      (startPosition.getColumn(i + 1).
-                                        compare(firstHashRow.getColumn(j + 1)) > 0)));
+
+                            boolean rightKeyIsNull = startPosition == null ||
+                                    isNullDataValue(startPosition.getColumn(i + 1));
+                            boolean leftKeyIsNull =
+                                    isNullDataValue(firstHashRow.getColumn(j + 1));
+
+                            // Replace the right key value to seek to with left row data value if:
+                            // - The right key is null, in which case left is always >= right , or
+                            // - If neither left key nor right key is null, compare
+                            //   left and right key values, and do the replacement if:
+                            //   - If the key is ascending and the current right key start
+                            //     position is less than the left data value, or
+                            //   - If the key is descending and the current right key start
+                            //     position is greater than the left data value.
+                            boolean replaceWithLeftRowVal = false;
+                            if (rightKeyIsNull)
+                                replaceWithLeftRowVal = true;
+                            else if (!leftKeyIsNull) {
+                                boolean rightKeyIsAscending = isAscendingKey(rightHashKeySortOrders, j);
+                                replaceWithLeftRowVal =
+                                (rightKeyIsAscending ?
+                                        (startPosition.getColumn(i + 1).
+                                                compare(firstHashRow.getColumn(j + 1)) < 0) :
+                                        (startPosition.getColumn(i + 1).
+                                                compare(firstHashRow.getColumn(j + 1)) > 0));
+                            }
 
                             if (replaceWithLeftRowVal) {
+                                // If for some reason there is no DVD created, break out right away
+                                // without building the full start key, to prevent NPE.
+                                if (firstHashRow.getColumn(j + 1) == null) {
+                                    j = rightHashKeys.length;
+                                    break;
+                                }
                                 newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
                             } else {
                                 newStartKey.setColumn(i + 1, startPosition.getColumn(i + 1));
