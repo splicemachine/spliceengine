@@ -721,48 +721,6 @@
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>############### standalone build ###############</id>
-			<!-- run as jenkins to build standalone. mvn deploy to build. -->
-                        <phase>test</phase>
-                        <configuration>
-                            <tasks>
-                                <delete dir="../assembly/standalone/target"/>
-                                <mkdir  dir="../assembly/standalone/target"/>
-                                <copydir src="../assembly/standalone/template" dest="../assembly/standalone/target/splicemachine" includes="**/*"/>
-                                <chmod file="../assembly/standalone/target/splicemachine/bin/*.sh" perm="ugo+rx"/>
-                            </tasks>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>############### copy jars ###############</id>
-                        <phase>deploy</phase>
-                        <configuration>
-                            <target>
-                                    <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                        <fileset dir="../assembly/standalone/template/conf" includes="yarn-site.xml"/>
-                                </copy>
-                                <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                        <fileset dir="target/dependency" includes="*.jar"/>
-                                </copy>
-                                <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                        <fileset dir="target" includes="*.jar" excludes="*sources.jar"/>
-                                </copy>
-                                <copy todir="../assembly/standalone/target/splicemachine/jdbc-driver">
-                                        <fileset dir="target/dependency" includes="db-client*.jar"/>
-                                </copy>
-                                <tar compression="gzip" destfile="../assembly/standalone/target/SPLICEMACHINE-${project.version}.standalone.tar.gz">
-                                        <tarfileset username="root" group="root" filemode="755" dir="../assembly/standalone/target/splicemachine" prefix="splicemachine"/>
-                                </tar>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
                         <id>############### start-splice-its ###############</id>
                         <phase>pre-integration-test</phase>
                         <configuration>
