@@ -31,6 +31,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -43,6 +44,7 @@ import java.util.Map;
  */
 public class SpliceDateFunctions {
     private static final DateTimeFormatter DEFAULT_DATE_TIME_FORMATTER = ISODateTimeFormat.dateOptionalTimeParser();
+    private static final DateTimeFormatter DEFAULT_DATE_FORMATTER = ISODateTimeFormat.localDateParser();
 
     private static final Map<String, Integer> WEEK_DAY_MAP = new ImmutableMap.Builder<String, Integer>()
             .put("sunday", 1).put("monday", 2).put("tuesday", 3).put("wednesday", 4).put("thursday", 5)
@@ -135,9 +137,41 @@ public class SpliceDateFunctions {
      */
     public static Date TO_DATE(String source, String format) throws SQLException {
         if (source == null) return null;
-        DateTime dt = stringWithFormatToDateTime(source, format);
-        LocalDate ld = java.time.LocalDate.ofYearDay(dt.getYear(), dt.getDayOfYear());
-        return java.sql.Date.valueOf(ld);
+        return TO_DATE(source, format, (ZoneId) null);
+    }
+
+    public static Date TO_DATE(String source, String format, ZoneId zoneId) throws SQLException {
+        if (source == null) return null;
+        SpliceDateFormatter formatter = new SpliceDateFormatter(format);
+        if (zoneId != null)
+            formatter.setFormatter(formatter.getFormatter().withZone(zoneId));
+        return stringWithFormatToDate(source, formatter);
+    }
+
+    public static Date TO_DATE(String source, String format, SpliceDateFormatter formatter) throws SQLException {
+        if (source == null) return null;
+        if (formatter == null)
+            formatter = new SpliceDateFormatter(format);
+        return stringWithFormatToDate(source, formatter);
+    }
+
+    public static Date stringWithFormatToDate(String source, SpliceDateFormatter formatter) throws SQLException {
+        java.sql.Date sqlDate = null;
+
+        try {
+            sqlDate = java.sql.Date.valueOf(LocalDate.parse(source, formatter.getFormatter()));
+        }
+        catch (Exception e) {
+            if (e.getMessage().startsWith("pattern") ||
+                e.getMessage().contains("could not be parsed"))
+                throw new SQLException("Error parsing datetime "+source+" with pattern: "+formatter.getFormat()+". Try using an" +
+                " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+            else // For errors not related to parsing, send the original message as it may
+                 // contain additional information useful to the end user.
+                throw new SQLException(e.getMessage(), SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+        }
+
+        return sqlDate;
     }
 
     private static DateTime stringWithFormatToDateTime(String source, String format) throws SQLException {
