@@ -576,6 +576,44 @@ public class MergeJoinIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(query);
         assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+
+        try {
+            query = "delete from tt7";
+            methodWatcher.executeUpdate(query);
+            query = "delete from tt8";
+            methodWatcher.executeUpdate(query);
+            query = "insert into tt7 values (1,1,3,3), (1,2,1,1)";
+            methodWatcher.executeUpdate(query);
+            query = "insert into tt8 values (1,1,3), (1,2,1)";
+            methodWatcher.executeUpdate(query);
+        }
+        catch (Exception e) {
+            fail("Unable to repopulate rows.");
+        }
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=false\n" +
+            "on tt7.col2 = tt8.col2 and tt7.col4 = tt8.col3 where tt7.col2 >= 4/2 order by 1,2,3,4,5,6,7";
+        expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                "  1  |  2  |  1  |  1  |  1  |  2  |  1  |";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        query = "select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            "            tt7 --SPLICE-PROPERTIES index=TT7_IDX\n" +
+            "              inner join tt8 --SPLICE-PROPERTIES index=TT8_IDX, joinStrategy=MERGE, useSpark=true\n" +
+            "on tt7.col2 = tt8.col2 and tt7.col4 = tt8.col3 where tt7.col2 >= 4/2 order by 1,2,3,4,5,6,7";
+        expectedRows =
+            "COL1 |COL2 |COL3 |COL4 |COL1 |COL2 |COL3 |\n" +
+                "------------------------------------------\n" +
+                "  1  |  2  |  1  |  1  |  1  |  2  |  1  |";
+        rs = methodWatcher.executeQuery(query);
+        assertEquals("\n"+query+"\n", expectedRows, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
