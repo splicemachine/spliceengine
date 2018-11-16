@@ -66,10 +66,12 @@ public class SpliceUDTIT extends SpliceUnitTest {
         methodWatcher.execute("DROP DERBY AGGREGATE Median RESTRICT");
         methodWatcher.execute("DROP table orders");
         methodWatcher.execute("DROP FUNCTION makePrice");
+        methodWatcher.execute("DROP FUNCTION getAmount");
         methodWatcher.execute("DROP TYPE price restrict");
         methodWatcher.execute("drop function testConnection");
         methodWatcher.execute("drop table test");
-
+        methodWatcher.execute("drop table t");
+        methodWatcher.execute("drop table t1");
     }
 
     private static void createData(Connection conn) throws Exception {
@@ -96,12 +98,27 @@ public class SpliceUDTIT extends SpliceUnitTest {
                             row(5)))
                     .create();
 
+            new TableCreator(conn)
+                    .withCreate("create table t1(itemName varchar(30), rawPrice int)")
+                    .withInsert("insert into t1 values(?, ?)")
+                    .withRows(rows(
+                    row("Coffee", 4),
+                    row("Tea", 3),
+                    row("Milk", 2),
+                    row("Soda", 2),
+                    row("Bagel", 1),
+                    row("Donut", 1)))
+                    .create();
+
             s.execute("CREATE TYPE price EXTERNAL NAME 'com.splicemachine.customer.Price' language Java");
             s.execute("CREATE FUNCTION makePrice(varchar(30), double)\n"+
                     "RETURNS Price\n"+
                     "LANGUAGE JAVA\n"+
                     "PARAMETER STYLE JAVA\n"+
                     "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
+
+            s.execute("create function getAmount( int ) returns double language java parameter style java no sql\n" +
+                           "external name 'com.splicemachine.customer.Price.getAmount'\n" );
 
             s.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
             s.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
@@ -115,6 +132,35 @@ public class SpliceUDTIT extends SpliceUnitTest {
             s.execute("insert into test values(1,'erin')");
         }
 
+    }
+
+    @Test
+    public void testAggregationReferencingUDF() throws Exception {
+        ResultSet rs;
+        rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
+                                                "(\n" +
+                                                "SELECT makePrice('USD', t1.rawPrice) AS ItemPrice\n" +
+                                                "FROM t1" +
+                                                ") x");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(6, rs.getInt(1));
+
+        rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
+        "(\n" +
+        "SELECT makePrice('USD', t1.rawPrice) AS ItemPrice\n" +
+        "FROM t1 JOIN t\n" +
+        "ON t.i = t1.rawPrice\n" +
+        ") x");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(6, rs.getInt(1));
+
+        rs =  methodWatcher.executeQuery("SELECT count(*) from t1 where testconnection() < 'a'");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(6, rs.getInt(1));
+
+        rs =  methodWatcher.executeQuery("SELECT count(testconnection()) from t1");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(6, rs.getInt(1));
     }
 
     @Test
