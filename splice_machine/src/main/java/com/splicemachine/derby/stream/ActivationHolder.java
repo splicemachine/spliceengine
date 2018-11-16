@@ -128,8 +128,9 @@ public class ActivationHolder implements Externalizable {
         }
     }
 
-    public Activation getActivation() {
-        // Reinitialize if deserialized
+    public synchronized Activation getActivation() {
+        // Only directly instantiated ActivationHolders have initialized == true
+        // Those deserialized will check if impl.get() and activation are both set
         if (!initialized) {
             init(txn, true);
         }
@@ -150,7 +151,7 @@ public class ActivationHolder implements Externalizable {
         SIDriver.driver().getOperationFactory().writeTxn(txn,out);
     }
 
-    private synchronized void init(TxnView txn, boolean reinit){
+    private void init(TxnView txn, boolean reinit){
         try {
             SpliceTransactionResourceImpl txnResource = impl.get();
             if (txnResource != null && activation != null) return;
