@@ -1388,6 +1388,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
             return retval;
         }
+        if (schemaUUID == null)
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, sd.getSchemaName());
         retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
         if (retval!=null) {
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
