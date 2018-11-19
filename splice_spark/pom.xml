@@ -215,7 +215,6 @@
         </dependency>
     </dependencies>
     <build>
-        <finalName>${project.artifactId}-${envClassifier}-${spark.version}_${scala.binary.version}</finalName>
         <extensions>
             <extension>
                 <groupId>kr.motd.maven</groupId>
