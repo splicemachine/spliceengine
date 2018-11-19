@@ -492,7 +492,7 @@ public class SMSQLUtil  {
             StandardException.plainWrapException(ioe);
         }
         ActivationHolder ah = (ActivationHolder) SerializationUtils.deserialize(activationHolderBytes);
-        ah.reinitialize(txnView);
+        ah.init(txnView);
         return ah.getActivation();
     }
 

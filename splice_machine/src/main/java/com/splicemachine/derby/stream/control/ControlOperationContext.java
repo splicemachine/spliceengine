@@ -99,6 +99,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             out.writeObject(activationHolder);
             out.writeInt(op.resultSetNumber());
             out.writeObject(badRecordsRecorder);
+            SIDriver.driver().getOperationFactory().writeTxn(txn, out);
        }
 
         @Override
@@ -107,8 +108,12 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             int rsn = in.readInt();
             op = (Op)activationHolder.getOperationsMap().get(rsn);
             badRecordsRecorder = (BadRecordsRecorder) in.readObject();
-            txn = activationHolder.getTxn();
+            txn = SIDriver.driver().getOperationFactory().readTxn(in);
+            boolean prepared = false;
             try {
+                impl = new SpliceTransactionResourceImpl();
+
+                prepared = impl.marshallTransaction(txn);
                 activation = activationHolder.getActivation();
                 context = SpliceOperationContext.newContext(activation);
                 op.init(context);
@@ -116,7 +121,9 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
-                activationHolder.close();
+                if (prepared) {
+                    impl.close();
+                }
             }
         }
 

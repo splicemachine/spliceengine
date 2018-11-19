@@ -33,11 +33,8 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
 import org.apache.spark.SerializableWritable;
-import org.apache.spark.TaskContext;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.util.LongAccumulator;
-import org.apache.spark.util.TaskCompletionListener;
-
 import java.io.*;
 import java.sql.SQLException;
 import java.util.List;
@@ -200,13 +197,8 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         boolean isOp=in.readBoolean();
         if(isOp){
             broadcastedActivation = (BroadcastedActivation)in.readObject();
-            ActivationHolder ah = broadcastedActivation.getActivationHolder();
-            op=(Op)ah.getOperationsMap().get(in.readInt());
-            activation = ah.getActivation();
-            TaskContext taskContext = TaskContext.get();
-            if (taskContext != null) {
-                taskContext.addTaskCompletionListener((TaskCompletionListener)(ctx) -> ah.close());
-            }
+            op=(Op)broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
+            activation=broadcastedActivation.getActivationHolder().getActivation();
         }
         rowsRead=(LongAccumulator)in.readObject();
         rowsFiltered=(LongAccumulator)in.readObject();
