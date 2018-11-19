@@ -131,7 +131,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
       JDBCOptions.JDBC_TABLE_NAME -> (schema+"."+"T2"),
       JDBCOptions.JDBC_URL -> defaultJDBCURL
     )
-    splicemachineContext.insert(df, schema+"."+"T2", 0.001)
+    splicemachineContext.splitAndInsert(df, schema+"."+"T2", 0.001)
     val newDF = sqlContext.read.options(options2).splicemachine
     assert(newDF.count == 8388608)
   }

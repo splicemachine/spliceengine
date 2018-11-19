@@ -486,7 +486,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     * @param sampleFraction
     */
-  def insert(dataFrame: DataFrame, schemaTableName: String, sampleFraction: Double): Unit = {
+  def splitAndInsert(dataFrame: DataFrame, schemaTableName: String, sampleFraction: Double): Unit = {
     SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
