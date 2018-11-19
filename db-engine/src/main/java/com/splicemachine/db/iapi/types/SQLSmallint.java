@@ -630,7 +630,7 @@ public final class SQLSmallint
 	{
 		if (result == null)
 		{
-			result = new SQLSmallint();
+			result = getNullDVD(left, right);
 		}
 
 		if (left.isNull() || right.isNull())

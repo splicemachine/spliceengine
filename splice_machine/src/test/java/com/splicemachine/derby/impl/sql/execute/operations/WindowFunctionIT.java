@@ -1297,6 +1297,284 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
+    @Test
+    public void testSumWithMoreThan101RowsAndExpressionInOverClause() throws Exception {
+        String sqlText =
+        String.format("select rn, sum(rn) over (partition by rn/10 order by rn) sm from (select a1 rn from %s --SPLICE-PROPERTIES useSpark=%s \n" +
+        " ) a order by rn", this.getTableReference(tableB),useSpark);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected =
+        "RN  | SM  |\n" +
+        "-----------\n" +
+        " 1  |  1  |\n" +
+        " 2  |  3  |\n" +
+        " 3  |  6  |\n" +
+        " 4  | 10  |\n" +
+        " 5  | 15  |\n" +
+        " 6  | 21  |\n" +
+        " 7  | 28  |\n" +
+        " 8  | 36  |\n" +
+        " 9  | 45  |\n" +
+        "10  | 10  |\n" +
+        "11  | 21  |\n" +
+        "12  | 33  |\n" +
+        "13  | 46  |\n" +
+        "14  | 60  |\n" +
+        "15  | 75  |\n" +
+        "16  | 91  |\n" +
+        "17  | 108 |\n" +
+        "18  | 126 |\n" +
+        "19  | 145 |\n" +
+        "20  | 20  |\n" +
+        "21  | 41  |\n" +
+        "22  | 63  |\n" +
+        "23  | 86  |\n" +
+        "24  | 110 |\n" +
+        "25  | 135 |\n" +
+        "26  | 161 |\n" +
+        "27  | 188 |\n" +
+        "28  | 216 |\n" +
+        "29  | 245 |\n" +
+        "30  | 30  |\n" +
+        "31  | 61  |\n" +
+        "32  | 93  |\n" +
+        "33  | 126 |\n" +
+        "34  | 160 |\n" +
+        "35  | 195 |\n" +
+        "36  | 231 |\n" +
+        "37  | 268 |\n" +
+        "38  | 306 |\n" +
+        "39  | 345 |\n" +
+        "40  | 40  |\n" +
+        "41  | 81  |\n" +
+        "42  | 123 |\n" +
+        "43  | 166 |\n" +
+        "44  | 210 |\n" +
+        "45  | 255 |\n" +
+        "46  | 301 |\n" +
+        "47  | 348 |\n" +
+        "48  | 396 |\n" +
+        "49  | 445 |\n" +
+        "50  | 50  |\n" +
+        "51  | 101 |\n" +
+        "52  | 153 |\n" +
+        "53  | 206 |\n" +
+        "54  | 260 |\n" +
+        "55  | 315 |\n" +
+        "56  | 371 |\n" +
+        "57  | 428 |\n" +
+        "58  | 486 |\n" +
+        "59  | 545 |\n" +
+        "60  | 60  |\n" +
+        "61  | 121 |\n" +
+        "62  | 183 |\n" +
+        "63  | 246 |\n" +
+        "64  | 310 |\n" +
+        "65  | 375 |\n" +
+        "66  | 441 |\n" +
+        "67  | 508 |\n" +
+        "68  | 576 |\n" +
+        "69  | 645 |\n" +
+        "70  | 70  |\n" +
+        "71  | 141 |\n" +
+        "72  | 213 |\n" +
+        "73  | 286 |\n" +
+        "74  | 360 |\n" +
+        "75  | 435 |\n" +
+        "76  | 511 |\n" +
+        "77  | 588 |\n" +
+        "78  | 666 |\n" +
+        "79  | 745 |\n" +
+        "80  | 80  |\n" +
+        "81  | 161 |\n" +
+        "82  | 243 |\n" +
+        "83  | 326 |\n" +
+        "84  | 410 |\n" +
+        "85  | 495 |\n" +
+        "86  | 581 |\n" +
+        "87  | 668 |\n" +
+        "88  | 756 |\n" +
+        "89  | 845 |\n" +
+        "90  | 90  |\n" +
+        "91  | 181 |\n" +
+        "92  | 273 |\n" +
+        "93  | 366 |\n" +
+        "94  | 460 |\n" +
+        "95  | 555 |\n" +
+        "96  | 651 |\n" +
+        "97  | 748 |\n" +
+        "98  | 846 |\n" +
+        "99  | 945 |\n" +
+        "100 | 100 |\n" +
+        "101 | 201 |\n" +
+        "102 | 303 |\n" +
+        "103 | 406 |\n" +
+        "104 | 510 |\n" +
+        "105 | 615 |\n" +
+        "106 | 721 |\n" +
+        "107 | 828 |\n" +
+        "108 | 936 |\n" +
+        "109 |1045 |\n" +
+        "110 | 110 |\n" +
+        "111 | 221 |\n" +
+        "112 | 333 |\n" +
+        "113 | 446 |\n" +
+        "114 | 560 |\n" +
+        "115 | 675 |\n" +
+        "116 | 791 |\n" +
+        "117 | 908 |\n" +
+        "118 |1026 |\n" +
+        "119 |1145 |\n" +
+        "120 | 120 |\n" +
+        "121 | 241 |\n" +
+        "122 | 363 |\n" +
+        "123 | 486 |\n" +
+        "124 | 610 |\n" +
+        "125 | 735 |\n" +
+        "126 | 861 |\n" +
+        "127 | 988 |\n" +
+        "128 |1116 |\n" +
+        "129 |1245 |\n" +
+        "130 | 130 |\n" +
+        "131 | 261 |\n" +
+        "132 | 393 |\n" +
+        "133 | 526 |\n" +
+        "134 | 660 |\n" +
+        "135 | 795 |\n" +
+        "136 | 931 |\n" +
+        "137 |1068 |\n" +
+        "138 |1206 |\n" +
+        "139 |1345 |\n" +
+        "140 | 140 |\n" +
+        "141 | 281 |\n" +
+        "142 | 423 |\n" +
+        "143 | 566 |\n" +
+        "144 | 710 |\n" +
+        "145 | 855 |\n" +
+        "146 |1001 |\n" +
+        "147 |1148 |\n" +
+        "148 |1296 |\n" +
+        "149 |1445 |\n" +
+        "150 | 150 |\n" +
+        "151 | 301 |\n" +
+        "152 | 453 |\n" +
+        "153 | 606 |\n" +
+        "154 | 760 |\n" +
+        "155 | 915 |\n" +
+        "156 |1071 |\n" +
+        "157 |1228 |\n" +
+        "158 |1386 |\n" +
+        "159 |1545 |\n" +
+        "160 | 160 |\n" +
+        "161 | 321 |\n" +
+        "162 | 483 |\n" +
+        "163 | 646 |\n" +
+        "164 | 810 |\n" +
+        "165 | 975 |\n" +
+        "166 |1141 |\n" +
+        "167 |1308 |\n" +
+        "168 |1476 |\n" +
+        "169 |1645 |\n" +
+        "170 | 170 |\n" +
+        "171 | 341 |\n" +
+        "172 | 513 |\n" +
+        "173 | 686 |\n" +
+        "174 | 860 |\n" +
+        "175 |1035 |\n" +
+        "176 |1211 |\n" +
+        "177 |1388 |\n" +
+        "178 |1566 |\n" +
+        "179 |1745 |\n" +
+        "180 | 180 |\n" +
+        "181 | 361 |\n" +
+        "182 | 543 |\n" +
+        "183 | 726 |\n" +
+        "184 | 910 |\n" +
+        "185 |1095 |\n" +
+        "186 |1281 |\n" +
+        "187 |1468 |\n" +
+        "188 |1656 |\n" +
+        "189 |1845 |\n" +
+        "190 | 190 |\n" +
+        "191 | 381 |\n" +
+        "192 | 573 |\n" +
+        "193 | 766 |\n" +
+        "194 | 960 |\n" +
+        "195 |1155 |\n" +
+        "196 |1351 |\n" +
+        "197 |1548 |\n" +
+        "198 |1746 |\n" +
+        "199 |1945 |\n" +
+        "200 | 200 |\n" +
+        "201 | 401 |\n" +
+        "202 | 603 |\n" +
+        "203 | 806 |\n" +
+        "204 |1010 |\n" +
+        "205 |1215 |\n" +
+        "206 |1421 |\n" +
+        "207 |1628 |\n" +
+        "208 |1836 |\n" +
+        "209 |2045 |\n" +
+        "210 | 210 |\n" +
+        "211 | 421 |\n" +
+        "212 | 633 |\n" +
+        "213 | 846 |\n" +
+        "214 |1060 |\n" +
+        "215 |1275 |\n" +
+        "216 |1491 |\n" +
+        "217 |1708 |\n" +
+        "218 |1926 |\n" +
+        "219 |2145 |\n" +
+        "220 | 220 |\n" +
+        "221 | 441 |\n" +
+        "222 | 663 |\n" +
+        "223 | 886 |\n" +
+        "224 |1110 |\n" +
+        "225 |1335 |\n" +
+        "226 |1561 |\n" +
+        "227 |1788 |\n" +
+        "228 |2016 |\n" +
+        "229 |2245 |\n" +
+        "230 | 230 |\n" +
+        "231 | 461 |\n" +
+        "232 | 693 |\n" +
+        "233 | 926 |\n" +
+        "234 |1160 |\n" +
+        "235 |1395 |\n" +
+        "236 |1631 |\n" +
+        "237 |1868 |\n" +
+        "238 |2106 |\n" +
+        "239 |2345 |\n" +
+        "240 | 240 |\n" +
+        "241 | 481 |\n" +
+        "242 | 723 |\n" +
+        "243 | 966 |\n" +
+        "244 |1210 |\n" +
+        "245 |1455 |\n" +
+        "246 |1701 |\n" +
+        "247 |1948 |\n" +
+        "248 |2196 |\n" +
+        "249 |2445 |\n" +
+        "250 | 250 |\n" +
+        "251 | 501 |\n" +
+        "252 | 753 |\n" +
+        "253 |1006 |\n" +
+        "254 |1260 |\n" +
+        "255 |1515 |\n" +
+        "256 |1771 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        String.format("select rn, sum(rn) over (order by rn) sm from (select row_number() over (order by a1) rn from %s --SPLICE-PROPERTIES useSpark=%s \n" +
+        " ) a", this.getTableReference(tableB),useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
 
     @Test
     public void testMinRows2Preceding() throws Exception {
@@ -1326,6 +1604,36 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "  100  |  3  | 55000 | 55000 |\n" +
                         "  110  |  1  | 53000 | 52000 |\n" +
                         "  120  |  3  | 75000 | 55000 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("SELECT empnum,dept,salary," +
+        "min(salary) over (Partition by CASE WHEN dept=1 then 1 else 2 END ORDER BY salary ROWS 2 preceding) as minsal " +
+        "from %s --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
+        this.getTableReference(EMPTAB),useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+        "EMPNUM |DEPT |SALARY |MINSAL |\n" +
+        "------------------------------\n" +
+        "  10   |  1  | 50000 | 50000 |\n" +
+        "  20   |  1  | 75000 | 52000 |\n" +
+        "  30   |  3  | 84000 | 75000 |\n" +
+        "  40   |  2  | 52000 | 51000 |\n" +
+        "  44   |  2  | 52000 | 51000 |\n" +
+        "  49   |  2  | 53000 | 52000 |\n" +
+        "  50   |  1  | 52000 | 50000 |\n" +
+        "  55   |  1  | 52000 | 50000 |\n" +
+        "  60   |  1  | 78000 | 75000 |\n" +
+        "  70   |  1  | 76000 | 53000 |\n" +
+        "  80   |  3  | 79000 | 55000 |\n" +
+        "  90   |  2  | 51000 | 51000 |\n" +
+        "  100  |  3  | 55000 | 52000 |\n" +
+        "  110  |  1  | 53000 | 52000 |\n" +
+        "  120  |  3  | 75000 | 53000 |";
 
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -1361,6 +1669,36 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "  120  |  3  | 75000 | 84000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+        // The following makes the window size 1 row.
+        sqlText =
+        String.format("SELECT empnum,dept,salary," +
+        "max(salary) over (Partition by ln(ABS(salary/1000)) ORDER BY salary, empnum ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING ) as maxsal " +
+        "from %s --SPLICE-PROPERTIES useSpark = %s \n  order by empnum",
+        this.getTableReference(EMPTAB),useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+        "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
+        "------------------------------\n" +
+        "  10   |  1  | 50000 | 50000 |\n" +
+        "  20   |  1  | 75000 | 75000 |\n" +
+        "  30   |  3  | 84000 | 84000 |\n" +
+        "  40   |  2  | 52000 | 52000 |\n" +
+        "  44   |  2  | 52000 | 52000 |\n" +
+        "  49   |  2  | 53000 | 53000 |\n" +
+        "  50   |  1  | 52000 | 52000 |\n" +
+        "  55   |  1  | 52000 | 52000 |\n" +
+        "  60   |  1  | 78000 | 78000 |\n" +
+        "  70   |  1  | 76000 | 76000 |\n" +
+        "  80   |  3  | 79000 | 79000 |\n" +
+        "  90   |  2  | 51000 | 51000 |\n" +
+        "  100  |  3  | 55000 | 55000 |\n" +
+        "  110  |  1  | 53000 | 53000 |\n" +
+        "  120  |  3  | 75000 | 75000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
@@ -1392,35 +1730,91 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "  30   |  3  | 84000 | 84000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+        sqlText =
+        String.format("SELECT empnum, dept, salary, " +
+        "max(salary) over (Partition by substr(cast (empnum as CHAR(7)),1,1) ORDER BY salary, empnum rows between unbounded preceding and unbounded following) as maxsal " +
+        "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
+        this.getTableReference(EMPTAB),useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
+        "------------------------------\n" +
+        "  10   |  1  | 50000 | 75000 |\n" +
+        "  20   |  1  | 75000 | 75000 |\n" +
+        "  30   |  3  | 84000 | 84000 |\n" +
+        "  40   |  2  | 52000 | 53000 |\n" +
+        "  44   |  2  | 52000 | 53000 |\n" +
+        "  49   |  2  | 53000 | 53000 |\n" +
+        "  50   |  1  | 52000 | 52000 |\n" +
+        "  55   |  1  | 52000 | 52000 |\n" +
+        "  60   |  1  | 78000 | 78000 |\n" +
+        "  70   |  1  | 76000 | 76000 |\n" +
+        "  80   |  3  | 79000 | 79000 |\n" +
+        "  90   |  2  | 51000 | 51000 |\n" +
+        "  100  |  3  | 55000 | 75000 |\n" +
+        "  110  |  1  | 53000 | 75000 |\n" +
+        "  120  |  3  | 75000 | 75000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testFrameRowsCurrentRowUnboundedFollowing() throws Exception {
         String sqlText =
-                String.format("SELECT empnum, dept, salary, " +
-                                "max(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) as maxsal " +
-                                "from %s --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
-                        this.getTableReference(EMPTAB),useSpark);
+        String.format("SELECT empnum, dept, salary, " +
+        "max(salary) over (Partition by dept ORDER BY salary rows between current row and unbounded following) as maxsal " +
+        "from %s --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
+        this.getTableReference(EMPTAB),useSpark);
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
-                "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
-                        "------------------------------\n" +
-                        "  10   |  1  | 50000 | 78000 |\n" +
-                        "  20   |  1  | 75000 | 78000 |\n" +
-                        "  30   |  3  | 84000 | 84000 |\n" +
-                        "  40   |  2  | 52000 | 53000 |\n" +
-                        "  44   |  2  | 52000 | 53000 |\n" +
-                        "  49   |  2  | 53000 | 53000 |\n" +
-                        "  50   |  1  | 52000 | 78000 |\n" +
-                        "  55   |  1  | 52000 | 78000 |\n" +
-                        "  60   |  1  | 78000 | 78000 |\n" +
-                        "  70   |  1  | 76000 | 78000 |\n" +
-                        "  80   |  3  | 79000 | 84000 |\n" +
-                        "  90   |  2  | 51000 | 53000 |\n" +
-                        "  100  |  3  | 55000 | 84000 |\n" +
-                        "  110  |  1  | 53000 | 78000 |\n" +
-                        "  120  |  3  | 75000 | 84000 |";
+        "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
+        "------------------------------\n" +
+        "  10   |  1  | 50000 | 78000 |\n" +
+        "  20   |  1  | 75000 | 78000 |\n" +
+        "  30   |  3  | 84000 | 84000 |\n" +
+        "  40   |  2  | 52000 | 53000 |\n" +
+        "  44   |  2  | 52000 | 53000 |\n" +
+        "  49   |  2  | 53000 | 53000 |\n" +
+        "  50   |  1  | 52000 | 78000 |\n" +
+        "  55   |  1  | 52000 | 78000 |\n" +
+        "  60   |  1  | 78000 | 78000 |\n" +
+        "  70   |  1  | 76000 | 78000 |\n" +
+        "  80   |  3  | 79000 | 84000 |\n" +
+        "  90   |  2  | 51000 | 53000 |\n" +
+        "  100  |  3  | 55000 | 84000 |\n" +
+        "  110  |  1  | 53000 | 78000 |\n" +
+        "  120  |  3  | 75000 | 84000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("SELECT empnum, dept, salary, " +
+        "max(salary) over (Partition by MOD(cast ((trim(cast(empnum as char(7))) || trim(cast(salary as char(5))) || trim(cast(dept as char(1)))) as int),3) ORDER BY salary rows between current row and unbounded following) as maxsal " +
+        "from %s --SPLICE-PROPERTIES useSpark = %s \n order by empnum",
+        this.getTableReference(EMPTAB),useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "EMPNUM |DEPT |SALARY |MAXSAL |\n" +
+        "------------------------------\n" +
+        "  10   |  1  | 50000 | 78000 |\n" +
+        "  20   |  1  | 75000 | 84000 |\n" +
+        "  30   |  3  | 84000 | 84000 |\n" +
+        "  40   |  2  | 52000 | 78000 |\n" +
+        "  44   |  2  | 52000 | 55000 |\n" +
+        "  49   |  2  | 53000 | 55000 |\n" +
+        "  50   |  1  | 52000 | 78000 |\n" +
+        "  55   |  1  | 52000 | 84000 |\n" +
+        "  60   |  1  | 78000 | 78000 |\n" +
+        "  70   |  1  | 76000 | 84000 |\n" +
+        "  80   |  3  | 79000 | 84000 |\n" +
+        "  90   |  2  | 51000 | 55000 |\n" +
+        "  100  |  3  | 55000 | 55000 |\n" +
+        "  110  |  1  | 53000 | 55000 |\n" +
+        "  120  |  3  | 75000 | 84000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2466,6 +2860,29 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "    5    |    2    |    Tom    |Matthews |   8   |2001-09-15 11:52:00.0 |";
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+        sqlText =
+        String.format("select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over (partition by length(FirstName) order by DOB) as Number, dob " +
+        "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by PersonID",
+        this.getTableReference(PEOPLE), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "PERSONID |FAMILYID | FIRSTNAME |LASTNAME |NUMBER |         DOB          |\n" +
+        "-------------------------------------------------------------------------\n" +
+        "    1    |    1    |    Joe    | Johnson |   1   |2000-10-23 13:00:00.0 |\n" +
+        "    1    |    1    |    Joe    | Johnson |   2   |2000-10-23 13:00:00.0 |\n" +
+        "    1    |    1    |    Joe    | Johnson |   3   |2000-10-23 13:00:00.0 |\n" +
+        "    2    |    1    |    Jim    | Johnson |   6   |2001-12-15 05:45:00.0 |\n" +
+        "    2    |    1    |    Jim    | Johnson |   7   |2001-12-15 05:45:00.0 |\n" +
+        "    2    |    1    |    Jim    | Johnson |   8   |2001-12-15 05:45:00.0 |\n" +
+        "    3    |    2    |   Karly   |Matthews |   1   |2000-05-20 04:00:00.0 |\n" +
+        "    3    |    2    |   Karly   |Matthews |   2   |2000-05-20 04:00:00.0 |\n" +
+        "    4    |    2    |   Kacy    |Matthews |   1   |2000-05-20 04:02:00.0 |\n" +
+        "    5    |    2    |    Tom    |Matthews |   4   |2001-09-15 11:52:00.0 |\n" +
+        "    5    |    2    |    Tom    |Matthews |   5   |2001-09-15 11:52:00.0 |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
@@ -2491,6 +2908,30 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "    4    |    2    |   Kacy    |Matthews |   3   |\n" +
                         "    5    |    2    |    Tom    |Matthews |   7   |\n" +
                         "    5    |    2    |    Tom    |Matthews |   8   |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("select PersonID,FamilyID,FirstName,LastName, ROW_NUMBER() over ( partition by " +
+        "length(trim(ucase(lcase(ucase(firstname)))) || trim(substr(lastname, 1, 5))) order by DOB) as Number " +
+        "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by PersonID",
+        this.getTableReference(PEOPLE), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "PERSONID |FAMILYID | FIRSTNAME |LASTNAME |NUMBER |\n" +
+        "--------------------------------------------------\n" +
+        "    1    |    1    |    Joe    | Johnson |   1   |\n" +
+        "    1    |    1    |    Joe    | Johnson |   2   |\n" +
+        "    1    |    1    |    Joe    | Johnson |   3   |\n" +
+        "    2    |    1    |    Jim    | Johnson |   6   |\n" +
+        "    2    |    1    |    Jim    | Johnson |   7   |\n" +
+        "    2    |    1    |    Jim    | Johnson |   8   |\n" +
+        "    3    |    2    |   Karly   |Matthews |   1   |\n" +
+        "    3    |    2    |   Karly   |Matthews |   2   |\n" +
+        "    4    |    2    |   Kacy    |Matthews |   1   |\n" +
+        "    5    |    2    |    Tom    |Matthews |   4   |\n" +
+        "    5    |    2    |    Tom    |Matthews |   5   |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2523,6 +2964,32 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "  25.00  |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+        sqlText =
+        String.format("SELECT item, date, sum(price) over (Partition by extract(hour from date) ORDER BY date) as  sumprice from %s  --SPLICE-PROPERTIES useSpark = %s \n order by date, item",
+        this.getTableReference(PURCHASED), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "ITEM |         DATE           |SUMPRICE |\n" +
+        "-----------------------------------------\n" +
+        "  3  |2014-09-08 17:36:55.414 |  3.00   |\n" +
+        "  5  |2014-09-08 17:41:56.353 |  14.00  |\n" +
+        "  1  |2014-09-08 17:45:15.204 |  15.00  |\n" +
+        "  5  |2014-09-08 17:46:26.428 |  19.00  |\n" +
+        "  2  |2014-09-08 17:50:17.182 |  35.00  |\n" +
+        "  4  |2014-09-08 17:50:17.182 |  35.00  |\n" +
+        "  3  |2014-09-08 18:00:44.742 |  7.00   |\n" +
+        "  4  |2014-09-08 18:05:47.166 |  9.00   |\n" +
+        "  4  |2014-09-08 18:08:04.986 |  17.00  |\n" +
+        "  5  |2014-09-08 18:11:23.645 |  27.00  |\n" +
+        "  3  |2014-09-08 18:25:42.387 |  37.00  |\n" +
+        "  2  |2014-09-08 18:26:51.387 |  42.00  |\n" +
+        "  1  |2014-09-08 18:27:48.881 |  43.00  |\n" +
+        "  1  |2014-09-08 18:33:46.446 |  50.00  |\n" +
+        "  2  |2014-09-08 18:40:15.48  |  62.00  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
@@ -2530,29 +2997,58 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // DB-1774
         String sqlText =
                 String.format("SELECT item, price, sum(price) over (Partition by item ORDER BY date) as sumsal, date " +
-                                "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by item",
+                                "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by item, price, date",
                         this.getTableReference(PURCHASED), useSpark);
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         // Validated with PostgreSQL app
         String expected =
                 "ITEM | PRICE |SUMSAL |         DATE           |\n" +
-                        "-----------------------------------------------\n" +
-                        "  1  | 1.00  | 1.00  |2014-09-08 17:45:15.204 |\n" +
-                        "  1  | 1.00  | 2.00  |2014-09-08 18:27:48.881 |\n" +
-                        "  1  | 7.00  | 9.00  |2014-09-08 18:33:46.446 |\n" +
-                        "  2  | 6.00  | 6.00  |2014-09-08 17:50:17.182 |\n" +
-                        "  2  | 5.00  | 11.00 |2014-09-08 18:26:51.387 |\n" +
-                        "  2  | 12.00 | 23.00 |2014-09-08 18:40:15.48  |\n" +
-                        "  3  | 3.00  | 3.00  |2014-09-08 17:36:55.414 |\n" +
-                        "  3  | 7.00  | 10.00 |2014-09-08 18:00:44.742 |\n" +
-                        "  3  | 10.00 | 20.00 |2014-09-08 18:25:42.387 |\n" +
-                        "  4  | 10.00 | 10.00 |2014-09-08 17:50:17.182 |\n" +
-                        "  4  | 2.00  | 12.00 |2014-09-08 18:05:47.166 |\n" +
-                        "  4  | 8.00  | 20.00 |2014-09-08 18:08:04.986 |\n" +
-                        "  5  | 11.00 | 11.00 |2014-09-08 17:41:56.353 |\n" +
-                        "  5  | 4.00  | 15.00 |2014-09-08 17:46:26.428 |\n" +
-                        "  5  | 10.00 | 25.00 |2014-09-08 18:11:23.645 |";
+                "-----------------------------------------------\n" +
+                "  1  | 1.00  | 1.00  |2014-09-08 17:45:15.204 |\n" +
+                "  1  | 1.00  | 2.00  |2014-09-08 18:27:48.881 |\n" +
+                "  1  | 7.00  | 9.00  |2014-09-08 18:33:46.446 |\n" +
+                "  2  | 5.00  | 11.00 |2014-09-08 18:26:51.387 |\n" +
+                "  2  | 6.00  | 6.00  |2014-09-08 17:50:17.182 |\n" +
+                "  2  | 12.00 | 23.00 |2014-09-08 18:40:15.48  |\n" +
+                "  3  | 3.00  | 3.00  |2014-09-08 17:36:55.414 |\n" +
+                "  3  | 7.00  | 10.00 |2014-09-08 18:00:44.742 |\n" +
+                "  3  | 10.00 | 20.00 |2014-09-08 18:25:42.387 |\n" +
+                "  4  | 2.00  | 12.00 |2014-09-08 18:05:47.166 |\n" +
+                "  4  | 8.00  | 20.00 |2014-09-08 18:08:04.986 |\n" +
+                "  4  | 10.00 | 10.00 |2014-09-08 17:50:17.182 |\n" +
+                "  5  | 4.00  | 15.00 |2014-09-08 17:46:26.428 |\n" +
+                "  5  | 10.00 | 25.00 |2014-09-08 18:11:23.645 |\n" +
+                "  5  | 11.00 | 11.00 |2014-09-08 17:41:56.353 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // Repeated expression in the OVER clause.
+        sqlText =
+        String.format("SELECT item, price, sum(price) over (Partition by TIMESTAMPADD(SQL_TSI_HOUR, 6, date), " +
+        "TIMESTAMPADD(SQL_TSI_HOUR, 6, date)) as sumsal, TIMESTAMPADD(SQL_TSI_HOUR, 6, date)" +
+        "from %s  --SPLICE-PROPERTIES useSpark = %s \n order by item, price, date",
+        this.getTableReference(PURCHASED), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "ITEM | PRICE |SUMSAL |           4            |\n" +
+        "-----------------------------------------------\n" +
+        "  1  | 1.00  | 1.00  |2014-09-08 23:45:15.204 |\n" +
+        "  1  | 1.00  | 1.00  |2014-09-09 00:27:48.881 |\n" +
+        "  1  | 7.00  | 7.00  |2014-09-09 00:33:46.446 |\n" +
+        "  2  | 5.00  | 5.00  |2014-09-09 00:26:51.387 |\n" +
+        "  2  | 6.00  | 16.00 |2014-09-08 23:50:17.182 |\n" +
+        "  2  | 12.00 | 12.00 |2014-09-09 00:40:15.48  |\n" +
+        "  3  | 3.00  | 3.00  |2014-09-08 23:36:55.414 |\n" +
+        "  3  | 7.00  | 7.00  |2014-09-09 00:00:44.742 |\n" +
+        "  3  | 10.00 | 10.00 |2014-09-09 00:25:42.387 |\n" +
+        "  4  | 2.00  | 2.00  |2014-09-09 00:05:47.166 |\n" +
+        "  4  | 8.00  | 8.00  |2014-09-09 00:08:04.986 |\n" +
+        "  4  | 10.00 | 16.00 |2014-09-08 23:50:17.182 |\n" +
+        "  5  | 4.00  | 4.00  |2014-09-08 23:46:26.428 |\n" +
+        "  5  | 10.00 | 10.00 |2014-09-09 00:11:23.645 |\n" +
+        "  5  | 11.00 | 11.00 |2014-09-08 23:41:56.353 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2686,6 +3182,61 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "1250.00 |   4   | WARD  |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+        sqlText =
+        String.format("select sum(sal), " +
+        "rank() over ( order by substr(ename, 1,1) ) empsal, ename from %s  --SPLICE-PROPERTIES useSpark = %s \n " +
+        "group by ename order by ename",
+        this.getTableReference(EMP), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+        "1    |EMPSAL | ENAME |\n" +
+        "-------------------------\n" +
+        "1100.00 |   1   | ADAMS |\n" +
+        "1600.00 |   1   | ALLEN |\n" +
+        "2850.00 |   3   | BLAKE |\n" +
+        "2450.00 |   4   | CLARK |\n" +
+        "3000.00 |   5   | FORD  |\n" +
+        "950.00  |   6   | JAMES |\n" +
+        "2975.00 |   6   | JONES |\n" +
+        "5000.00 |   8   | KING  |\n" +
+        "1250.00 |   9   |MARTIN |\n" +
+        "1300.00 |   9   |MILLER |\n" +
+        "3000.00 |  11   | SCOTT |\n" +
+        "800.00  |  11   | SMITH |\n" +
+        "1500.00 |  13   |TURNER |\n" +
+        "1250.00 |  14   | WARD  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("select sal, max(sal) over (partition by substr(ename, 1,1) order by " +
+                      "substr(ename, 1,2) desc) empsal, ename from %s  --SPLICE-PROPERTIES useSpark = %s \n " +
+                      "order by ename",
+                      this.getTableReference(EMP), useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+        "SAL   |EMPSAL  | ENAME |\n" +
+        "--------------------------\n" +
+        "1100.00 |1600.00 | ADAMS |\n" +
+        "1600.00 |1600.00 | ALLEN |\n" +
+        "2850.00 |2850.00 | BLAKE |\n" +
+        "2450.00 |2450.00 | CLARK |\n" +
+        "3000.00 |3000.00 | FORD  |\n" +
+        "950.00  |2975.00 | JAMES |\n" +
+        "2975.00 |2975.00 | JONES |\n" +
+        "5000.00 |5000.00 | KING  |\n" +
+        "1250.00 |1300.00 |MARTIN |\n" +
+        "1300.00 |1300.00 |MILLER |\n" +
+        "3000.00 |3000.00 | SCOTT |\n" +
+        "800.00  |800.00  | SMITH |\n" +
+        "1500.00 |1500.00 |TURNER |\n" +
+        "1250.00 |1250.00 | WARD  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test(expected=SQLException.class)
@@ -2727,6 +3278,89 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         " 800.00  |800.0000  |   1   | SMITH |\n" +
                         " 1500.00 |1500.0000 |   7   |TURNER |\n" +
                         " 1250.00 |1250.0000 |   4   | WARD  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("select sum(sal) as sum_sal, avg(sal) as avg_sal," +
+        "rank() over ( order by sum(sal) + avg(sal) ) empsal, ename " +
+        "from %s  --SPLICE-PROPERTIES useSpark = %s \n  group by ename order by ename",
+        this.getTableReference(EMP), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+        "SUM_SAL | AVG_SAL  |EMPSAL | ENAME |\n" +
+        "-------------------------------------\n" +
+        " 1100.00 |1100.0000 |   3   | ADAMS |\n" +
+        " 1600.00 |1600.0000 |   8   | ALLEN |\n" +
+        " 2850.00 |2850.0000 |  10   | BLAKE |\n" +
+        " 2450.00 |2450.0000 |   9   | CLARK |\n" +
+        " 3000.00 |3000.0000 |  12   | FORD  |\n" +
+        " 950.00  |950.0000  |   2   | JAMES |\n" +
+        " 2975.00 |2975.0000 |  11   | JONES |\n" +
+        " 5000.00 |5000.0000 |  14   | KING  |\n" +
+        " 1250.00 |1250.0000 |   4   |MARTIN |\n" +
+        " 1300.00 |1300.0000 |   6   |MILLER |\n" +
+        " 3000.00 |3000.0000 |  12   | SCOTT |\n" +
+        " 800.00  |800.0000  |   1   | SMITH |\n" +
+        " 1500.00 |1500.0000 |   7   |TURNER |\n" +
+        " 1250.00 |1250.0000 |   4   | WARD  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("select sum(sal) as sum_sal, avg(sal) as avg_sal," +
+        "rank() over ( order by deptno - avg(sal) ) empsal, ename " +
+        "from %s  --SPLICE-PROPERTIES useSpark = %s \n  group by ename order by ename",
+        this.getTableReference(EMP), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+        "SUM_SAL | AVG_SAL  |EMPSAL | ENAME |\n" +
+        "-------------------------------------\n" +
+        " 1100.00 |1100.0000 |  12   | ADAMS |\n" +
+        " 1600.00 |1600.0000 |   7   | ALLEN |\n" +
+        " 2850.00 |2850.0000 |   5   | BLAKE |\n" +
+        " 2450.00 |2450.0000 |   6   | CLARK |\n" +
+        " 3000.00 |3000.0000 |   2   | FORD  |\n" +
+        " 950.00  |950.0000  |  13   | JAMES |\n" +
+        " 2975.00 |2975.0000 |   4   | JONES |\n" +
+        " 5000.00 |5000.0000 |   1   | KING  |\n" +
+        " 1250.00 |1250.0000 |  10   |MARTIN |\n" +
+        " 1300.00 |1300.0000 |   9   |MILLER |\n" +
+        " 3000.00 |3000.0000 |   2   | SCOTT |\n" +
+        " 800.00  |800.0000  |  14   | SMITH |\n" +
+        " 1500.00 |1500.0000 |   8   |TURNER |\n" +
+        " 1250.00 |1250.0000 |  10   | WARD  |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("select sal, min(sal) over ( partition by substr(ename,1,1) order by substr(ename,1,1),sal ) minsal," +
+        "ename from %s  --SPLICE-PROPERTIES useSpark = %s \n  order by ename",
+        this.getTableReference(EMP), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+        "SAL   |MINSAL  | ENAME |\n" +
+        "--------------------------\n" +
+        "1100.00 |1100.00 | ADAMS |\n" +
+        "1600.00 |1100.00 | ALLEN |\n" +
+        "2850.00 |2850.00 | BLAKE |\n" +
+        "2450.00 |2450.00 | CLARK |\n" +
+        "3000.00 |3000.00 | FORD  |\n" +
+        "950.00  |950.00  | JAMES |\n" +
+        "2975.00 |950.00  | JONES |\n" +
+        "5000.00 |5000.00 | KING  |\n" +
+        "1250.00 |1250.00 |MARTIN |\n" +
+        "1300.00 |1250.00 |MILLER |\n" +
+        "3000.00 |800.00  | SCOTT |\n" +
+        "800.00  |800.00  | SMITH |\n" +
+        "1500.00 |1500.00 |TURNER |\n" +
+        "1250.00 |1250.00 | WARD  |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2931,32 +3565,104 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "83 |    1    | ADAMS |1983-01-12 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+        sqlText =
+        String.format("select yr, rank() over ( partition by extract(month from hiredate) order by hiredate ) as EMPRANK, ename," +
+        "hiredate from %s   --SPLICE-PROPERTIES useSpark = %s \n  order by hiredate, ename", this.getTableReference(YEAR_VIEW), useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "YR | EMPRANK | ENAME | HIREDATE  |\n" +
+        "----------------------------------\n" +
+        "80 |    1    | SMITH |1980-12-17 |\n" +
+        "81 |    1    | ALLEN |1981-02-20 |\n" +
+        "81 |    2    | WARD  |1981-02-22 |\n" +
+        "81 |    1    | JONES |1981-04-02 |\n" +
+        "81 |    1    | BLAKE |1981-05-01 |\n" +
+        "81 |    1    | CLARK |1981-06-09 |\n" +
+        "81 |    1    |TURNER |1981-09-08 |\n" +
+        "81 |    2    |MARTIN |1981-09-28 |\n" +
+        "81 |    1    | KING  |1981-11-17 |\n" +
+        "81 |    2    | FORD  |1981-12-03 |\n" +
+        "81 |    2    | JAMES |1981-12-03 |\n" +
+        "82 |    1    |MILLER |1982-01-23 |\n" +
+        "82 |    4    | SCOTT |1982-12-09 |\n" +
+        "83 |    2    | ADAMS |1983-01-12 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("select a. yr, rank() over ( partition by extract(month from b.hiredate) order by b.hiredate ) as EMPRANK, a.ename," +
+        "b.hiredate from %s a left outer join %s b   --SPLICE-PROPERTIES useSpark = %s \n  on a.ename = b.ename and b.ename <> 'JAMES' order by a.hiredate, a.ename",
+        this.getTableReference(YEAR_VIEW), this.getTableReference(YEAR_VIEW), useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "YR | EMPRANK | ENAME | HIREDATE  |\n" +
+        "----------------------------------\n" +
+        "80 |    1    | SMITH |1980-12-17 |\n" +
+        "81 |    1    | ALLEN |1981-02-20 |\n" +
+        "81 |    2    | WARD  |1981-02-22 |\n" +
+        "81 |    1    | JONES |1981-04-02 |\n" +
+        "81 |    1    | BLAKE |1981-05-01 |\n" +
+        "81 |    1    | CLARK |1981-06-09 |\n" +
+        "81 |    1    |TURNER |1981-09-08 |\n" +
+        "81 |    2    |MARTIN |1981-09-28 |\n" +
+        "81 |    1    | KING  |1981-11-17 |\n" +
+        "81 |    2    | FORD  |1981-12-03 |\n" +
+        "81 |    1    | JAMES |   NULL    |\n" +
+        "82 |    1    |MILLER |1982-01-23 |\n" +
+        "82 |    3    | SCOTT |1982-12-09 |\n" +
+        "83 |    2    | ADAMS |1983-01-12 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
-    @Ignore("DB-2170 - window function over view. (works periodically, why?)")
     public void testDB2170RankOverViewMissingKey() throws Exception {
         String sqlText =
                 String.format("select rank() over ( partition by yr order by hiredate ) as EMPRANK, ename," +
-                        "hiredate from %s  --SPLICE-PROPERTIES useSpark = %s \n ", this.getTableReference(YEAR_VIEW), useSpark);
+                        "hiredate from %s  --SPLICE-PROPERTIES useSpark = %s \n  order by hiredate, ename ", this.getTableReference(YEAR_VIEW), useSpark);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "EMPRANK | ENAME | HIREDATE  |\n" +
-                        "------------------------------\n" +
-                        "    1    | ALLEN |1981-02-20 |\n" +
-                        "    2    | WARD  |1981-02-22 |\n" +
-                        "    3    | JONES |1981-04-02 |\n" +
-                        "    4    | BLAKE |1981-05-01 |\n" +
-                        "    5    | CLARK |1981-06-09 |\n" +
-                        "    6    |TURNER |1981-09-08 |\n" +
-                        "    7    |MARTIN |1981-09-28 |\n" +
-                        "    8    | KING  |1981-11-17 |\n" +
-                        "    9    | FORD  |1981-12-03 |\n" +
-                        "    9    | JAMES |1981-12-03 |\n" +
-                        "    1    | ADAMS |1983-01-12 |\n" +
-                        "    1    |MILLER |1982-01-23 |\n" +
-                        "    2    | SCOTT |1982-12-09 |\n" +
-                        "    1    | SMITH |1980-12-17 |";
+                "------------------------------\n" +
+                "    1    | SMITH |1980-12-17 |\n" +
+                "    1    | ALLEN |1981-02-20 |\n" +
+                "    2    | WARD  |1981-02-22 |\n" +
+                "    3    | JONES |1981-04-02 |\n" +
+                "    4    | BLAKE |1981-05-01 |\n" +
+                "    5    | CLARK |1981-06-09 |\n" +
+                "    6    |TURNER |1981-09-08 |\n" +
+                "    7    |MARTIN |1981-09-28 |\n" +
+                "    8    | KING  |1981-11-17 |\n" +
+                "    9    | FORD  |1981-12-03 |\n" +
+                "    9    | JAMES |1981-12-03 |\n" +
+                "    1    |MILLER |1982-01-23 |\n" +
+                "    2    | SCOTT |1982-12-09 |\n" +
+                "    1    | ADAMS |1983-01-12 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("select rank() over ( partition by extract(year from hiredate) order by hiredate ) as EMPRANK, ename," +
+        "hiredate from %s  --SPLICE-PROPERTIES useSpark = %s \n  order by hiredate, ename ", this.getTableReference(YEAR_VIEW), useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "EMPRANK | ENAME | HIREDATE  |\n" +
+        "------------------------------\n" +
+        "    1    | SMITH |1980-12-17 |\n" +
+        "    1    | ALLEN |1981-02-20 |\n" +
+        "    2    | WARD  |1981-02-22 |\n" +
+        "    3    | JONES |1981-04-02 |\n" +
+        "    4    | BLAKE |1981-05-01 |\n" +
+        "    5    | CLARK |1981-06-09 |\n" +
+        "    6    |TURNER |1981-09-08 |\n" +
+        "    7    |MARTIN |1981-09-28 |\n" +
+        "    8    | KING  |1981-11-17 |\n" +
+        "    9    | FORD  |1981-12-03 |\n" +
+        "    9    | JAMES |1981-12-03 |\n" +
+        "    1    |MILLER |1982-01-23 |\n" +
+        "    2    | SCOTT |1982-12-09 |\n" +
+        "    1    | ADAMS |1983-01-12 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -2984,6 +3690,32 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         " 1983-01-12  | SMITH |1980-12-17 |\n" +
                         " 1983-01-12  |TURNER |1981-09-08 |\n" +
                         " 1983-01-12  | WARD  |1981-02-22 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText =
+        String.format("select max(extract (year from hiredate)) over (partition by extract(month from hiredate))" +
+        "as maxhiredate, ename," +
+        "hiredate from %s --SPLICE-PROPERTIES useSpark = %s \n order by extract(month from hiredate), ename", this.getTableReference(YEAR_VIEW), useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "MAXHIREDATE | ENAME | HIREDATE  |\n" +
+        "----------------------------------\n" +
+        "    1983     | ADAMS |1983-01-12 |\n" +
+        "    1983     |MILLER |1982-01-23 |\n" +
+        "    1981     | ALLEN |1981-02-20 |\n" +
+        "    1981     | WARD  |1981-02-22 |\n" +
+        "    1981     | JONES |1981-04-02 |\n" +
+        "    1981     | BLAKE |1981-05-01 |\n" +
+        "    1981     | CLARK |1981-06-09 |\n" +
+        "    1981     |MARTIN |1981-09-28 |\n" +
+        "    1981     |TURNER |1981-09-08 |\n" +
+        "    1981     | KING  |1981-11-17 |\n" +
+        "    1982     | FORD  |1981-12-03 |\n" +
+        "    1982     | JAMES |1981-12-03 |\n" +
+        "    1982     | SCOTT |1982-12-09 |\n" +
+        "    1982     | SMITH |1980-12-17 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -3089,6 +3821,25 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "     103     | 6 |    20000    |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+        sqlText = format("SELECT employee_id, rank() over(order by salary), CASE WHEN (commission is not null)" +
+           " THEN min(salary) over(PARTITION BY CASE WHEN department = 'Sales' THEN 1 ELSE 0 END) ELSE -1 END as  minimum_sal" +
+           " FROM %s   --SPLICE-PROPERTIES useSpark = %s \n order by minimum_sal, employee_id", EMPLOYEES_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        expected =
+        "EMPLOYEE_ID | 2 | MINIMUM_SAL |\n" +
+        "--------------------------------\n" +
+        "     101     | 1 |     -1      |\n" +
+        "     107     | 2 |     -1      |\n" +
+        "     108     | 2 |     -1      |\n" +
+        "     105     | 8 |    10000    |\n" +
+        "     106     | 4 |    10000    |\n" +
+        "     102     | 4 |    12000    |\n" +
+        "     103     | 6 |    12000    |\n" +
+        "     104     | 7 |    12000    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
@@ -3117,6 +3868,32 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "  22   | 6500  |   4   |   23    |\n" +
                         "  23   | 7800  |   4   |   23    |\n" +
                         "  24   | 7200  |   4   |   23    |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = format("select empno, salary, deptno, last_value(empno) over(partition by deptno/3 order by " +
+        "salary+empno*1000 asc range between current row and unbounded following) as last_val from  \n " +
+        "%s  --SPLICE-PROPERTIES useSpark = %s \n order by empno asc", EMP_2_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        expected =
+        "EMPNO |SALARY |DEPTNO |LAST_VAL |\n" +
+        "----------------------------------\n" +
+        "  10   | 12000 |   5   |   24    |\n" +
+        "  11   | 10000 |   5   |   24    |\n" +
+        "  12   | 10000 |   5   |   24    |\n" +
+        "  13   | 9000  |   1   |   17    |\n" +
+        "  14   | 7500  |   1   |   17    |\n" +
+        "  15   | 7600  |   1   |   17    |\n" +
+        "  16   | 8500  |   2   |   17    |\n" +
+        "  17   | 9500  |   2   |   17    |\n" +
+        "  18   | 7700  |   2   |   17    |\n" +
+        "  19   | 8500  |   3   |   24    |\n" +
+        "  20   | 6900  |   3   |   24    |\n" +
+        "  21   | 7500  |   3   |   24    |\n" +
+        "  22   | 6500  |   4   |   24    |\n" +
+        "  23   | 7800  |   4   |   24    |\n" +
+        "  24   | 7200  |   4   |   24    |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -3200,6 +3977,13 @@ public class WindowFunctionIT extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
+        sqlText = format("select deptno, empno, salary, first_value(salary respect nulls) over(partition by abs(deptno) order by " +
+        "empno desc rows BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as first_value from  " +
+        "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
         // test ignore nulls
         expected =
                 "DEPTNO | EMPNO |SALARY | FIRST_VALUE |\n" +
@@ -3227,6 +4011,13 @@ public class WindowFunctionIT extends SpliceUnitTest {
         sqlText = format("select deptno, empno, salary, first_value(salary ignore nulls) over(partition by deptno order by " +
                 "empno desc) as first_value from  " +
                 "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = format("select deptno, empno, salary, first_value(salary ignore nulls) over(partition by abs(deptno) order by " +
+        "empno desc) as first_value from  " +
+        "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -3270,6 +4061,36 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "empno desc rows between 1 preceding and 1 following) as first_value from  " +
                 "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
         rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = format("select deptno, empno, salary, first_value(-salary) over(partition by ln(deptno) order by " +
+        "empno desc rows between 1 preceding and 1 following) as first_value from  " +
+        "%s --SPLICE-PROPERTIES useSpark = %s \n order by deptno, empno desc", EMP3_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+        "DEPTNO | EMPNO |SALARY | FIRST_VALUE |\n" +
+        "--------------------------------------\n" +
+        "   1   |  15   | 7600  |    -7600    |\n" +
+        "   1   |  14   | 7500  |    -7600    |\n" +
+        "   1   |  13   | 9000  |    -7500    |\n" +
+        "   2   |  18   | 7700  |    -7700    |\n" +
+        "   2   |  17   | 9500  |    -7700    |\n" +
+        "   2   |  16   | 8500  |    -9500    |\n" +
+        "   3   |  21   | 7500  |    -7500    |\n" +
+        "   3   |  20   | 6900  |    -7500    |\n" +
+        "   3   |  19   | 8500  |    -6900    |\n" +
+        "   4   |  24   | 7200  |    -7200    |\n" +
+        "   4   |  23   | 7800  |    -7200    |\n" +
+        "   4   |  22   | 6500  |    -7800    |\n" +
+        "   5   |  29   | NULL  |    NULL     |\n" +
+        "   5   |  28   | 15000 |    NULL     |\n" +
+        "   5   |  27   | NULL  |   -15000    |\n" +
+        "   5   |  26   | NULL  |    NULL     |\n" +
+        "   5   |  25   | NULL  |    NULL     |\n" +
+        "   5   |  12   | 10000 |    NULL     |\n" +
+        "   5   |  11   | 10000 |   -10000    |\n" +
+        "   5   |  10   | 12000 |   -10000    |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
@@ -3477,6 +4298,29 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "  12   |  20067.28   |     20067.28      |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+
+        sqlText = format("SELECT month, SUM(amount) AS month_amount, " +
+        "LAST_VALUE(SUM(amount)) OVER (ORDER BY mod(month,7)+month ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) " +
+        "AS next_month_amount FROM %s  --SPLICE-PROPERTIES useSpark = %s \n GROUP BY month ORDER BY month", ALL_SALES_2_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        expected =
+        "MONTH |MONTH_AMOUNT | NEXT_MONTH_AMOUNT |\n" +
+        "------------------------------------------\n" +
+        "   1   |  58704.52   |     28289.30      |\n" +
+        "   2   |  28289.30   |     20167.83      |\n" +
+        "   3   |  20167.83   |     78299.47      |\n" +
+        "   4   |  50082.90   |     42869.64      |\n" +
+        "   5   |  17212.66   |     35299.22      |\n" +
+        "   6   |  31128.92   |     43028.38      |\n" +
+        "   7   |  78299.47   |     50082.90      |\n" +
+        "   8   |  42869.64   |     17212.66      |\n" +
+        "   9   |  35299.22   |     31128.92      |\n" +
+        "  10   |  43028.38   |     26053.46      |\n" +
+        "  11   |  26053.46   |     20067.28      |\n" +
+        "  12   |  20067.28   |     20067.28      |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
@@ -3543,6 +4387,67 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "   9001    |Dont think about it |2015-06-11 21:00:40.206 |ILWSWUTLTSCJRSV |         NULL           |\n" +
                         "   9001    |       Good         | 2015-09-27 17:49:39.5  |XHFHMOPWMOJNGOL |         NULL           |\n" +
                         "   9001    |       Poor         |2014-05-22 22:20:20.929 |HZLYPGHDEQORMOH |         NULL           |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = format("select a.productId, a.ratingAgencyCode, a.ratingEffDate as effDate, a.rating, LEAD(ratingeffDate)" +
+        " OVER (PARTITION BY extract(year from a.ratingEffDate) + length(ratingAgencyCode) ORDER BY ratingeffDate) \"endDate\" " +
+        "from %s a --SPLICE-PROPERTIES useSpark = %s \n  order by productId, ratingAgencyCode, effdate", PRODUCT_RATING_REF, useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        // Verified with PostgreSQL App
+        expected =
+        "PRODUCTID | RATINGAGENCYCODE   |        EFFDATE         |    RATING      |        endDate         |\n" +
+        "----------------------------------------------------------------------------------------------------\n" +
+        "     1     |       Best         |2014-08-29 22:30:41.012 |BIMTVQOBOXOMBNI |2014-11-01 21:51:02.199 |\n" +
+        "     1     |Dont think about it |2014-02-09 08:12:02.596 |PXVDSMZWANQWGCX |2014-02-14 04:59:08.36  |\n" +
+        "     1     |Dont think about it |2015-01-25 19:47:53.004 |NWAJOBJVSGIAIZU |2015-05-23 16:04:52.561 |\n" +
+        "     1     |       Good         |2014-11-02 03:24:36.044 |TILAXMXGUEYZSEK |2014-12-14 05:52:22.326 |\n" +
+        "     1     |       Good         |2014-12-14 05:52:22.326 |UMTHLNRYDFAYWQS |         NULL           |\n" +
+        "     1     |       Good         |2015-07-22 04:39:19.453 |XQSJCCCGLIOMMCJ |2015-09-02 05:09:32.683 |\n" +
+        "     1     |       Good         |2015-12-04 16:40:43.67  |BLYUEGSMCFCPXJA |         NULL           |\n" +
+        "     2     |Dont think about it |2014-02-14 04:59:08.36  |JVEZECWKNBLAALU |2014-03-11 10:19:44.256 |\n" +
+        "     2     |       Good         |2015-01-22 11:41:01.329 |ZRHSIVRCQUUQZLC |2015-01-23 18:15:43.723 |\n" +
+        "     2     |       Good         |2015-10-06 03:44:19.184 |NZRXIDYRZNUVXDU |2015-12-04 16:40:43.67  |\n" +
+        "     2     |     Run Away       |2014-05-16 22:44:34.056 |ZSFHGWWFCQZZNMO |2014-06-22 08:12:53.937 |\n" +
+        "     2     |     Run Away       |2015-06-30 07:06:13.865 |IAUEYFHYZBFMJFW |         NULL           |\n" +
+        "    700    |      Better        |2014-01-27 01:22:55.581 |CHZGQMKFKUXIEAY |2014-03-07 19:37:30.604 |\n" +
+        "    700    |Dont think about it |2014-07-19 08:25:52.238 |UYLCQPSCHURELLY |2014-07-30 10:23:12.643 |\n" +
+        "    700    |       Poor         |2014-02-07 12:19:36.492 |YPXRMRFFYYPWBUZ |2014-05-22 22:20:20.929 |\n" +
+        "    700    |       Poor         |2014-08-21 21:27:35.482 |ZKBLWNEPGNMQUTL |2014-08-29 22:30:41.012 |\n" +
+        "    800    |      Better        |2015-07-30 11:36:16.128 |UUAYIPTXDNCCBTU |2015-11-25 00:16:42.154 |\n" +
+        "    800    |      Better        |2015-11-25 00:16:42.154 |ZCQJQILUQRCHWCY |         NULL           |\n" +
+        "    800    |     Run Away       |2014-01-04 21:08:27.058 |FWXYVWSYDWYXXBZ |2014-04-11 06:29:30.187 |\n" +
+        "    800    |     Run Away       |2014-11-04 19:02:56.001 |ZIMKXUOKMCWCGSZ |2014-11-12 06:40:59.685 |\n" +
+        "    800    |     Run Away       |2015-01-09 13:29:29.642 |KMCNRDOWZFAEVFS |2015-05-09 01:21:16.513 |\n" +
+        "    800    |     Run Away       |2015-06-23 20:21:06.677 |DBAEKJQCJBGMOYQ |2015-06-30 07:06:13.865 |\n" +
+        "   3300    |      Better        |2014-03-07 19:37:30.604 |WDQTAXMXLMTWXQL |2014-05-22 10:42:47.834 |\n" +
+        "   3300    |      Better        |2014-05-22 10:42:47.834 |QOJYERFYJAYGNIC |         NULL           |\n" +
+        "   3300    |      Better        |2015-01-13 11:01:19.065 |SPIHABCGNPNOOAC |2015-07-30 11:36:16.128 |\n" +
+        "   3300    |Dont think about it |2014-11-03 05:15:49.851 |TMXIAVAKXCDJYKY |         NULL           |\n" +
+        "   3300    |Dont think about it |2015-08-13 21:03:44.191 |MRUQGZIKYBXHZPQ |         NULL           |\n" +
+        "   3300    |       Poor         |2015-09-02 05:09:32.683 |FFXXMDXCAVYDJTC | 2015-09-27 17:49:39.5  |\n" +
+        "   4040    |       Best         |2014-08-21 15:48:24.096 |JSKWDFWMTQCVJTS |2014-08-21 21:27:35.482 |\n" +
+        "   4040    |Dont think about it |2015-06-10 12:59:47.54  |LTCOVEBAVEHNCRP |2015-06-11 21:00:40.206 |\n" +
+        "   4040    |       Poor         |2014-07-29 18:45:46.257 |EMXGEGPTWXUECLS |2014-07-31 20:33:36.713 |\n" +
+        "   4040    |     Run Away       |2014-06-22 08:12:53.937 |PHAMOZYXPQXWJDF |2014-11-04 19:02:56.001 |\n" +
+        "   4040    |     Run Away       |2015-05-09 01:21:16.513 |YNWDVEUSONYHZXE |2015-06-23 20:21:06.677 |\n" +
+        "   4440    |Dont think about it |2014-03-11 10:19:44.256 |NIILBXPPMRRKVSG |2014-07-19 08:25:52.238 |\n" +
+        "   4440    |Dont think about it |2014-08-05 09:55:23.669 |GLUUGLMTGJRUHSA |2014-09-21 01:20:16.26  |\n" +
+        "   4440    |Dont think about it |2015-01-06 21:26:12.528 |KVPKDRBXWBGATQY |2015-01-25 19:47:53.004 |\n" +
+        "   4440    |       Good         |2014-07-27 14:25:56.885 |APGRMQQJCJSTCDB |2014-07-29 18:45:46.257 |\n" +
+        "   4440    |     Run Away       |2014-04-11 06:29:30.187 |WYREDMPIIZPGXZA |2014-05-16 22:44:34.056 |\n" +
+        "   4440    |     Run Away       |2014-11-12 06:40:59.685 |VVEEPGAEVWDLBPF |         NULL           |\n" +
+        "   5500    |       Best         |2015-01-23 18:15:43.723 |JRLYTUTWIZNOAPT |2015-04-30 05:52:43.627 |\n" +
+        "   5500    |       Good         |2014-07-31 20:33:36.713 |OLSEYNIBUDVHEIF |2014-08-21 15:48:24.096 |\n" +
+        "   6999    |Dont think about it |2014-07-30 10:23:12.643 |MRVUOQXPZMVTVXW |2014-08-05 09:55:23.669 |\n" +
+        "   6999    |Dont think about it |2014-09-21 01:20:16.26  |MLBLXWCFKHVWXVU |2014-11-03 05:15:49.851 |\n" +
+        "   6999    |Dont think about it |2015-05-23 16:04:52.561 |HCZIXOTTRASHITI |2015-06-10 12:59:47.54  |\n" +
+        "   6999    |Dont think about it |2015-08-03 18:40:21.753 |QZMNXNYRPEKJWBY |2015-08-13 21:03:44.191 |\n" +
+        "   6999    |       Poor         |2015-04-30 05:52:43.627 |LFHHSWUBDDIPKPA |2015-07-22 04:39:19.453 |\n" +
+        "   9001    |       Best         |2014-11-01 21:51:02.199 |JFVQBHBCTVPVZTR |2014-11-02 03:24:36.044 |\n" +
+        "   9001    |Dont think about it |2015-06-11 21:00:40.206 |ILWSWUTLTSCJRSV |2015-08-03 18:40:21.753 |\n" +
+        "   9001    |       Good         | 2015-09-27 17:49:39.5  |XHFHMOPWMOJNGOL |2015-10-06 03:44:19.184 |\n" +
+        "   9001    |       Poor         |2014-05-22 22:20:20.929 |HZLYPGHDEQORMOH |2014-07-27 14:25:56.885 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }

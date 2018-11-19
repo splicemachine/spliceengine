@@ -66,13 +66,16 @@ public class StripeReader
             int rowsInRowGroup,
             OrcPredicate predicate,
             HiveWriterVersion hiveWriterVersion,
-            MetadataReader metadataReader)
+            MetadataReader metadataReader,
+            List<Integer> partitionIds)
     {
         this.orcDataSource = requireNonNull(orcDataSource, "orcDataSource is null");
         this.compressionKind = requireNonNull(compressionKind, "compressionKind is null");
         this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
         this.bufferSize = bufferSize;
-        this.includedOrcColumns = getIncludedOrcColumns(types, requireNonNull(includedColumns, "includedColumns is null"));
+        this.includedOrcColumns = getIncludedOrcColumns(types,
+                requireNonNull(includedColumns, "includedColumns is null"),
+                requireNonNull(partitionIds, "partitionIds is null"));
         this.rowsInRowGroup = rowsInRowGroup;
         this.predicate = requireNonNull(predicate, "predicate is null");
         this.hiveWriterVersion = requireNonNull(hiveWriterVersion, "hiveWriterVersion is null");
@@ -411,15 +414,38 @@ public class StripeReader
         return streamDiskRanges.build();
     }
 
-    private static Set<Integer> getIncludedOrcColumns(List<OrcType> types, Set<Integer> includedColumns)
+    private static Set<Integer> getIncludedOrcColumns(List<OrcType> types, Set<Integer> includedColumns, List<Integer> partitionIds)
     {
         Set<Integer> includes = new LinkedHashSet<>();
 
         OrcType root = types.get(0);
-        for (int i = 0; i < root.getFieldCount(); i++) {
-            includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(i));
-        }
 
+        if (partitionIds.isEmpty()) {
+            // not a partitioned ORC table
+            for (int includedColumn : includedColumns) {
+                includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(includedColumn));
+            }
+        } else {
+            int lastColumn = 0;
+            for (int i : includedColumns) {
+                if (i > lastColumn) {
+                    lastColumn = i;
+                }
+            }
+
+            int index = 0;
+            for (int col = 0; col <= lastColumn; col++) {
+                // skip partitionIds
+                if (partitionIds.contains(col)) {
+                    continue;
+                }
+
+                if (includedColumns.contains(col)) {
+                    includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(index));
+                }
+                index++;
+            }
+        }
         return includes;
     }
 

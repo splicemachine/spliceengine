@@ -110,6 +110,8 @@ public interface ScanSetBuilder<V>{
 
     ScanSetBuilder<V> sampleFraction(double sampleFraction);
 
+    ScanSetBuilder<V> ignoreRecentTransactions(boolean ignoreRecentTransactions);
+
     DataSet<V> buildDataSet() throws StandardException;
 
     DataSet<V> buildDataSet(Object caller) throws StandardException;
@@ -256,6 +258,12 @@ public interface ScanSetBuilder<V>{
      * @return
      */
     double getSampleFraction();
+
+    /**
+     * Whether to ignore recent transactions with a txnId greater than our begin timestamp
+     * @return
+     */
+    boolean getIgnoreRecentTransactions();
 
     /**
      * Get the default row
