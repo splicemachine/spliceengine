@@ -199,6 +199,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*log4j.properties</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>test-jar</id>
