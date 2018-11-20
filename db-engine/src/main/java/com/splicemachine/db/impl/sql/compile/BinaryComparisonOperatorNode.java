@@ -150,28 +150,38 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		if (! leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId())
 		{
 			DataTypeDescriptor rightTypeServices = rightOperand.getTypeServices();
+			TypeId targetTypeId;
+			if (leftTypeId.isBooleanTypeId() || leftTypeId.isDateTimeTimeStampTypeId())
+				targetTypeId = leftTypeId;
+			else
+				targetTypeId = rightTypeId;
 
-			rightOperand =  (ValueNode)
-				getNodeFactory().getNode(
-					C_NodeTypes.CAST_NODE,
-					rightOperand, 
-					new DataTypeDescriptor(
-							rightTypeId,
-							true, 
-							rightTypeServices.getMaximumWidth()),
-					getContextManager());
+			rightOperand = (ValueNode)
+					getNodeFactory().getNode(
+							C_NodeTypes.CAST_NODE,
+							rightOperand,
+							new DataTypeDescriptor(
+									targetTypeId,
+									true,
+									rightTypeServices.getMaximumWidth()),
+							getContextManager());
 			((CastNode) rightOperand).bindCastNodeOnly();
+
 		}
 		else if (! rightTypeId.isStringTypeId() && leftTypeId.isStringTypeId())
 		{
 			DataTypeDescriptor leftTypeServices = leftOperand.getTypeServices();
-
+			TypeId targetTypeId;
+			if (rightTypeId.isBooleanTypeId() || rightTypeId.isDateTimeTimeStampTypeId())
+				targetTypeId = rightTypeId;
+			else
+				targetTypeId = leftTypeId;
 			leftOperand =  (ValueNode)
 				getNodeFactory().getNode(
 					C_NodeTypes.CAST_NODE,
 					leftOperand, 
 					new DataTypeDescriptor(
-							leftTypeId,
+							targetTypeId,
 							true, 
 							leftTypeServices.getMaximumWidth()),
 					getContextManager());
