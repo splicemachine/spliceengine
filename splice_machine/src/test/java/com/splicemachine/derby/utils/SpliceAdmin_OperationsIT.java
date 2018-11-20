@@ -173,7 +173,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
                     assertEquals("Produce Result Set", opsRs.getString(9)); // check job type
                 } else if (opsRs.getString(5).equals(opsCall)) {
                     assertEquals(submitted, opsRs.getString(6)); // check submitted time
-                    assertEquals("CONTROL", opsRs.getString(8)); // check engine "CONTROL"
+                    assertEquals("SYSTEM", opsRs.getString(8)); // check engine "CONTROL"
                     assertEquals("Call Procedure", opsRs.getString(9)); // check job type
                 }
             }

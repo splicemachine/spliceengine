@@ -1785,8 +1785,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         int port = config.getNetworkBindPort();
         String engineName ;
         String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
-        String submittedTime ;
-        Date current;
+        String submittedTime;
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
         for (Pair<UUID, RunningOperation> pair : operations) {
@@ -1800,11 +1799,16 @@ public class SpliceAdmin extends BaseAdminProcedures{
             row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
             submittedTime = new SimpleDateFormat(timeStampFormat).format(pair.getSecond().getSubmittedTime());
             row.setColumn(6, new SQLVarchar(submittedTime));
-            engineName = (pair.getSecond().getEngine() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
-            current = new Date();
-            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(pair.getSecond().getSubmittedTime(),current)));
+            String scopeName = pair.getSecond().getOperation().getScopeName();
+            if (scopeName.compareTo("Call Procedure") == 0) {
+                engineName = "SYSTEM";
+            }
+            else {
+                engineName = (pair.getSecond().getEngine() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
+            }
+            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(pair.getSecond().getSubmittedTime(),new Date())));
             row.setColumn(8, new SQLVarchar(engineName));
-            row.setColumn(9, new SQLVarchar(pair.getSecond().getOperation().getScopeName()));
+            row.setColumn(9, new SQLVarchar(scopeName));
             rows.add(row);
         }
 
