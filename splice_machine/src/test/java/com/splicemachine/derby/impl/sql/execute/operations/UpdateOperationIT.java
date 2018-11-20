@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.Assert;
@@ -682,6 +683,23 @@ public class UpdateOperationIT {
             conn.rollback();
             conn.setAutoCommit(oldAutoCommit);
         }
+    }
+
+    @Test
+    public void testUpdateWithTableAlias() throws Exception {
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table alias1 (a1 int, b1 int, c1 int)")
+                .create();
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table alias2 (a2 int, b2 int, c2 int)")
+                .create();
+
+        Assert.assertTrue("expected result having Subquery",
+                SpliceUnitTest.getExplainMessage(3,"explain update alias1 X set a1 = (select y.a2 from alias2 y where b1=y.b2)",methodWatcher).contains("Subquery"));
+        Assert.assertTrue("expected result having BroadcastJoin",
+            SpliceUnitTest.getExplainMessage(3,"explain update alias1 X set (a1) = (select y.a2 from alias2 y where b1=y.b2)",methodWatcher).contains("BroadcastJoin"));
+
     }
 
 }
