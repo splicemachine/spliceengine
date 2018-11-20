@@ -177,7 +177,7 @@ public class DeleteOperationIT extends SpliceUnitTest {
 
     @Test
     public void deleteUsesIndexScan() throws Exception {
-        fourthRowContainsQuery("explain delete from tableb where col3='01-01-1976' and col4 in ('dfsfd','sdfsdfsdf','sdfsdfdsfs','sdf')","MultiProbeIndexScan",methodWatcher);
+        fourthRowContainsQuery("explain delete from tableb where col3='1976-01-01' and col4 in ('dfsfd','sdfsdfsdf','sdfsdfdsfs','sdf')","MultiProbeIndexScan",methodWatcher);
     }
 
     @Test
