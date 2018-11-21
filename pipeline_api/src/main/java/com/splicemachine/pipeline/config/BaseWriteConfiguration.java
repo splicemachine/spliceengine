@@ -210,4 +210,9 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
     public boolean skipWAL() {
         return false;
     }
+
+    @Override
+    public boolean rollForward() {
+        return false;
+    }
 }

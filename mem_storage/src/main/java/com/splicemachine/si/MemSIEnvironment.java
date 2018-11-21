@@ -17,14 +17,11 @@ package com.splicemachine.si;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
-import java.util.Arrays;
-import java.util.List;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.configuration.ConfigurationBuilder;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
@@ -35,7 +32,7 @@ import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -49,7 +46,6 @@ import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.net.HostAndPort;
 
 /**
  * @author Scott Fines
