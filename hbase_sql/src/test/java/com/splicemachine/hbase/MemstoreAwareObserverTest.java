@@ -158,12 +158,12 @@ public class MemstoreAwareObserverTest {
         assertEquals(in, out);
 
         MemstoreAware pre = mao.getMemstoreAware();
-        assertEquals(1, pre.currentFlushCount);
+        assertEquals(true, pre.flush);
 
         mao.postFlush(mockCtx, mockStore, mockStoreFile);
         MemstoreAware post = mao.getMemstoreAware();
 
-        assertEquals(0, post.currentFlushCount);
+        assertEquals(false, post.flush);
     }
 
     //==============================================================================================================
