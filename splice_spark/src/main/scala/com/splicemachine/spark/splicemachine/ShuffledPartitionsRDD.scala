@@ -36,7 +36,6 @@ class ShuffledPartitionsRDD[T: ClassTag]  (               @transient private var
     for( i <- 0 to parentPartitions.length - 1) {
       partitions(i) = new ShuffledPartition[T](i, _parent, dep.partitions(i))
     }
-    println("Partitions : " + dep.partitions)
     partitions
   }
 
