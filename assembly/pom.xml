@@ -737,11 +737,11 @@
               <id>standalone</id>
               <dependencies>
                     <dependency>
-                      <groupId>${project.groupId}</groupId>
-                      <artifactId>platform_it</artifactId>
-                      <version>${project.version}</version>
-                      <type>test-jar</type>
-                      <scope>test</scope>
+                        <groupId>${project.groupId}</groupId>
+                        <artifactId>platform_it</artifactId>
+                        <version>${project.version}</version>
+                        <type>test-jar</type>
+                        <scope>test</scope>
                     </dependency>
                     <dependency>
                         <groupId>org.apache.hbase</groupId>
@@ -1138,22 +1138,22 @@
 
               <build>
                 <plugins>
-                  <plugin>
-                     <groupId>org.apache.maven.plugins</groupId>
-                     <artifactId>maven-assembly-plugin</artifactId>
-                     <configuration>
-                       <descriptor>assembly.xml</descriptor>
-                       <finalName>SPLICEMACHINE-${project.version}</finalName>
-                     </configuration>
-                     <executions>
-                       <execution>
-                         <phase>package</phase>
-                         <goals>
-                           <goal>single</goal>
-                         </goals>
-                       </execution>
-                     </executions>
-                   </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                        <descriptor>assembly.xml</descriptor>
+                        <finalName>SPLICEMACHINE-${project.version}</finalName>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
               </build>
         </profile>
