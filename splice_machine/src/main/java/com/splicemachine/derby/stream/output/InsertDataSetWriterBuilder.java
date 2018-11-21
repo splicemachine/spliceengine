@@ -37,4 +37,6 @@ public interface InsertDataSetWriterBuilder extends DataSetWriterBuilder{
     InsertDataSetWriterBuilder pkCols(int[] keyCols);
 
     InsertDataSetWriterBuilder tableVersion(String tableVersion);
+
+    InsertDataSetWriterBuilder sampleFraction(double sampleFraction);
 }

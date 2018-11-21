@@ -95,7 +95,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected boolean outputKeysOnly;
     protected boolean skipSampling;
     protected String indexName;
-
+    protected double sampleFraction;
     @Override
     public String getName(){
         return NAME;
@@ -128,6 +128,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            boolean samplingOnly,
                            boolean outputKeysOnly,
                            boolean skipSampling,
+                           double sampleFraction,
                            String indexName) throws StandardException{
         super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
@@ -146,6 +147,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.samplingOnly = samplingOnly;
         this.outputKeysOnly = outputKeysOnly;
         this.skipSampling = skipSampling;
+        this.sampleFraction = sampleFraction;
         this.indexName = indexName;
         init();
     }
@@ -297,6 +299,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         skipSampling = in.readBoolean();
         if (in.readBoolean())
             indexName = in.readUTF();
+        sampleFraction = in.readDouble();
     }
 
     @Override
@@ -342,6 +345,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         out.writeBoolean(indexName != null);
         if (indexName != null)
             out.writeUTF(indexName);
+        out.writeDouble(sampleFraction);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -390,6 +394,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             }
             InsertDataSetWriterBuilder writerBuilder = null;
             if (bulkImportDirectory!=null && bulkImportDirectory.compareToIgnoreCase("NULL") !=0) {
+                // bulk import
                 writerBuilder = set.bulkInsertData(operationContext)
                         .bulkImportDirectory(bulkImportDirectory)
                         .samplingOnly(samplingOnly)
@@ -397,16 +402,18 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                         .skipSampling(skipSampling)
                         .indexName(indexName);
             }
-
-            if (writerBuilder == null) {
+            else {
+                // regular import
                 writerBuilder = set.insertData(operationContext);
             }
+
             DataSetWriter writer = writerBuilder
                     .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
                     .execRowDefinition(getExecRowDefinition())
                     .execRowTypeFormatIds(execRowTypeFormatIds)
                     .sequences(spliceSequences)
                     .isUpsert(insertMode.equals(InsertNode.InsertMode.UPSERT))
+                    .sampleFraction(sampleFraction)
                     .pkCols(pkCols)
                     .tableVersion(tableVersion)
                     .destConglomerate(heapConglom)

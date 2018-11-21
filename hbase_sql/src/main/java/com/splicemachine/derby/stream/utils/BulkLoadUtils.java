@@ -16,17 +16,20 @@ package com.splicemachine.derby.stream.utils;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,4 +142,31 @@ public class BulkLoadUtils {
 
         return statisticsMap;
     }
+
+    /**
+     * Split a table using cut points
+     * @param cutPointsList
+     * @throws StandardException
+     */
+    public static void splitTables(List<Tuple2<Long, byte[][]>> cutPointsList) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
+            for (Tuple2<Long, byte[][]> tuple : cutPointsList) {
+                String table = tuple._1.toString();
+                byte[][] cutpoints = tuple._2;
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "split keys for table %s", table);
+                    for(byte[] cutpoint : cutpoints) {
+                        SpliceLogUtils.debug(LOG, "%s", Bytes.toHex(cutpoint));
+                    }
+                }
+                pa.splitTable(table, cutpoints);
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
 }
