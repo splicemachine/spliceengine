@@ -733,7 +733,6 @@
             </build>
         </profile>
 
-<<<<<<< HEAD
         <profile>
               <id>standalone</id>
               <dependencies>
@@ -1138,24 +1137,24 @@
               </dependencies>
 
               <build>
-                  <plugins>
-                      <plugin>
-                         <groupId>org.apache.maven.plugins</groupId>
-                         <artifactId>maven-assembly-plugin</artifactId>
-                         <configuration>
-                           <descriptor>assembly.xml</descriptor>
-                           <finalName>SPLICEMACHINE-${project.version}</finalName>
-                         </configuration>
-                         <executions>
-                           <execution>
-                             <phase>package</phase>
-                             <goals>
-                               <goal>single</goal>
-                             </goals>
-                           </execution>
-                         </executions>
-                       </plugin>
-                  </plugins>
+                <plugins>
+                  <plugin>
+                     <groupId>org.apache.maven.plugins</groupId>
+                     <artifactId>maven-assembly-plugin</artifactId>
+                     <configuration>
+                       <descriptor>assembly.xml</descriptor>
+                       <finalName>SPLICEMACHINE-${project.version}</finalName>
+                     </configuration>
+                     <executions>
+                       <execution>
+                         <phase>package</phase>
+                         <goals>
+                           <goal>single</goal>
+                         </goals>
+                       </execution>
+                     </executions>
+                   </plugin>
+                </plugins>
               </build>
         </profile>
 
