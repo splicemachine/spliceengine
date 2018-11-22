@@ -15,6 +15,8 @@
 
 package com.splicemachine.spark.splicemachine
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow
+import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 
@@ -28,4 +30,12 @@ object ShuffleUtils {
     dataFrame.sqlContext.createDataFrame(new ShuffledPartitionsRDD[Row](dataFrame.rdd), dataFrame.schema)
   }
 
+  def shuffle(rdd: JavaRDD[Row]): JavaRDD[Row] = {
+    new JavaRDD(new ShuffledPartitionsRDD(rdd))
+  }
+
+
+  def shuffleSplice(rdd: JavaRDD[ExecRow]): JavaRDD[ExecRow] = {
+    new JavaRDD(new ShuffledPartitionsRDD(rdd))
+  }
 }

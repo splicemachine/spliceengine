@@ -15,8 +15,8 @@
 
 package com.splicemachine.spark.splicemachine
 
-import org.apache.spark.{Dependency, Partition, SparkContext, TaskContext}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{Dependency, Partition, SparkContext, TaskContext}
 
 import scala.reflect.ClassTag
 
