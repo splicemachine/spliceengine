@@ -17,18 +17,11 @@ package com.splicemachine.spark.splicemachine
 
 import java.io.{IOException, ObjectOutputStream}
 
-import com.splicemachine.derby.impl.SpliceSpark
-import org.apache.hadoop.security.Credentials
 import org.apache.log4j.Logger
-import org.apache.spark.broadcast.Broadcast
-
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.parallel.ForkJoinTaskSupport
-import scala.concurrent.forkjoin.ForkJoinPool
-import scala.reflect.ClassTag
 import org.apache.spark._
 import org.apache.spark.rdd.RDD
 
+import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
 /**
@@ -70,4 +63,9 @@ private[spark] class ShuffledPartition[T: ClassTag](
         throw new IOException(e)
     }
   }
+}
+
+
+object Holder extends Serializable {
+  @transient lazy val log = Logger.getLogger(getClass.getName)
 }
