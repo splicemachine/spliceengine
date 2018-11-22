@@ -32,6 +32,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.*;
+import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -49,6 +50,7 @@ import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -142,6 +144,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
         return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)),f.getSparkName());
+    }
+
+    @Override
+    public DataSet<V> shufflePartitions() {
+        return new SparkDataSet(ShuffleUtils.shuffleSplice((JavaRDD<ExecRow>) rdd));
     }
 
     /**

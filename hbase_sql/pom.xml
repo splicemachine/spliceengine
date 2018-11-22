@@ -226,7 +226,12 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.splicemachine</groupId>
+	    <artifactId>scala_util-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
             <artifactId>hbase_pipeline-${envClassifier}</artifactId>
             <version>${project.version}</version>
         </dependency>
