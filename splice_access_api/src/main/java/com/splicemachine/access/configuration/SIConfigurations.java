@@ -123,11 +123,11 @@ public class SIConfigurations implements ConfigurationDefault {
 
     // Share of time spent on transaction resolution during compactions, between 0 and 1 (no time vs infinite time)
     public static final String COMPACTION_RESOLUTION_SHARE = "splice.txn.resolution.compaction.share";
-    public static final double DEFAULT_COMPACTION_RESOLUTION_SHARE = 1f;
+    public static final double DEFAULT_COMPACTION_RESOLUTION_SHARE = 0.2f;
 
     // Share of time spent on transaction resolution during flushes, between 0 and 1 (no time vs infinite time)
     public static final String FLUSH_RESOLUTION_SHARE = "splice.txn.resolution.flush.share";
-    public static final double DEFAULT_FLUSH_RESOLUTION_SHARE = 0.5f;
+    public static final double DEFAULT_FLUSH_RESOLUTION_SHARE = 0.2f;
 
     // Size of buffer for asynchronous transaction resolution
     public static final String COMPACTION_RESOLUTION_BUFFER_SIZE = "splice.txn.resolution.bufferSize";

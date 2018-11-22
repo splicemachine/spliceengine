@@ -45,9 +45,10 @@
 <property><name>hbase.htable.threads.max</name><value>20</value></property>
 <property><name>hbase.ipc.warn.response.time</name><value>100000000</value></property>
 <property><name>hbase.master.loadbalance.bytable</name><value>true</value></property>
-<property><name>hbase.regionserver.thread.compaction.large</name><value>2</value></property>
+<property><name>hbase.master.balancer.stochastic.regionCountCost</name><value>1500</value></property>
+<property><name>hbase.regionserver.thread.compaction.large</name><value>4</value></property>
 <property><name>hbase.regionserver.thread.compaction.small</name><value>2</value></property>
-<property><name>hbase.regions.slop</name><value>0.01</value></property>
+<property><name>hbase.regions.slop</name><value>0</value></property>
 <property><name>hbase.rpc.timeout</name><value>300000</value></property>
 <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>
 <property><name>ipc.client.connect.timeout</name><value>300000</value></property>
