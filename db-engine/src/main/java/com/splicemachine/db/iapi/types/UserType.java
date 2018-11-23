@@ -38,6 +38,11 @@ import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.sql.Date;
 import java.sql.Time;
@@ -247,7 +252,27 @@ public class UserType extends DataType
 	{
 		return value;
 	}
-		
+
+	@Override
+	public Object getSparkObject() throws StandardException {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		ObjectOutput out = null;
+		try {
+			out = new ObjectOutputStream(bos);
+			out.writeObject(value);
+			out.flush();
+			return bos.toByteArray();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} finally {
+			try {
+				bos.close();
+			} catch (IOException ex) {
+				// ignore close exception
+			}
+		}
+	}
+
 	public int getLength()
 	{
 		return TypeDescriptor.MAXIMUM_WIDTH_UNKNOWN;
@@ -662,7 +687,23 @@ public class UserType extends DataType
 			setToNull();
 		else {
 			isNull = false;
-			value = row.get(ordinal);
+			byte[] bytes = (byte[]) row.get(ordinal);
+			ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+			ObjectInput in = null;
+			try {
+				in = new ObjectInputStream(bis);
+				value = in.readObject();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			} finally {
+				try {
+					if (in != null) {
+						in.close();
+					}
+				} catch (IOException ex) {
+					// ignore close exception
+				}
+			}
 		}
 	}
 
@@ -679,6 +720,6 @@ public class UserType extends DataType
 
 	@Override
 	public void setSparkObject(Object sparkObject) throws StandardException {
-
+		value = sparkObject;
 	}
 }
