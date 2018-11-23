@@ -1449,7 +1449,7 @@ public class FromBaseTable extends FromTable {
 		** matches the table we're looking at, see whether the column
 		** is in this table.
 		*/
-        if(columnsTableName==null || columnsTableName.equals(exposedTableName) || columnsTableName.equals(getTableNameField())){
+        if(columnsTableName==null || columnsTableName.equals(exposedTableName)){
             resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
 			/* Did we find a match? */
             if(resultColumn!=null){
