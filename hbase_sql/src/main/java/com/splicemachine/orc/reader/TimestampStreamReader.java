@@ -90,10 +90,10 @@ public class TimestampStreamReader
             }
             if (readOffset > 0) {
                 if (secondsStream == null) {
-                    throw new OrcCorruptionException("Value is not null but seconds stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but seconds stream is not present");
                 }
                 if (nanosStream == null) {
-                    throw new OrcCorruptionException("Value is not null but nanos stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but nanos stream is not present");
                 }
 
                 secondsStream.skip(readOffset);
@@ -109,10 +109,10 @@ public class TimestampStreamReader
         }
         if (presentStream == null) {
             if (secondsStream == null) {
-                throw new OrcCorruptionException("Value is not null but seconds stream is not present");
+                throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but seconds stream is not present");
             }
             if (nanosStream == null) {
-                throw new OrcCorruptionException("Value is not null but nanos stream is not present");
+                throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but nanos stream is not present");
             }
 
             secondsStream.nextLongVector(nextBatchSize, secondsVector);
@@ -134,10 +134,10 @@ public class TimestampStreamReader
             int nullValues = presentStream.getUnsetBits(nextBatchSize, nullVector);
             if (nullValues != nextBatchSize) {
                 if (secondsStream == null) {
-                    throw new OrcCorruptionException("Value is not null but seconds stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but seconds stream is not present");
                 }
                 if (nanosStream == null) {
-                    throw new OrcCorruptionException("Value is not null but nanos stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but nanos stream is not present");
                 }
 
                 secondsStream.nextLongVector(nextBatchSize, secondsVector, nullVector);

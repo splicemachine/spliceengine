@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This file is part of Splice Machine.
- * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
- * GNU Affero General Public License as published by the Free Software Foundation, either
- * version 3, or (at your option) any later version.
- * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
- * If not, see <http://www.gnu.org/licenses/>.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.splicemachine.orc;
 
@@ -19,51 +19,71 @@ import com.splicemachine.orc.metadata.*;
 import com.splicemachine.orc.metadata.PostScript.HiveWriterVersion;
 import com.splicemachine.orc.stream.OrcInputStream;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import io.airlift.units.DataSize;
 import org.apache.spark.sql.types.DataType;
 import org.joda.time.DateTimeZone;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
+
+import static com.splicemachine.orc.OrcDecompressor.createOrcDecompressor;
+import static com.splicemachine.orc.metadata.PostScript.MAGIC;
 import static io.airlift.slice.SizeOf.SIZE_OF_BYTE;
+import static io.airlift.units.DataSize.Unit.MEGABYTE;
 import static java.lang.Math.min;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
 public class OrcReader
 {
-    public static final int MAX_BATCH_SIZE = 1024;
-
+    //public static final int MAX_BATCH_SIZE = 1024;
+    public static final int MAX_BATCH_SIZE = 128;
     private static final Logger log = Logger.get(OrcReader.class);
 
-    private static final Slice MAGIC = Slices.utf8Slice("ORC");
     private static final int CURRENT_MAJOR_VERSION = 0;
     private static final int CURRENT_MINOR_VERSION = 12;
-    private static final int EXPECTED_FOOTER_SIZE = 128 * 1024;
+    private static final int EXPECTED_FOOTER_SIZE = 16 * 1024;
 
     private final OrcDataSource orcDataSource;
-    private final MetadataReader metadataReader;
+    private final ExceptionWrappingMetadataReader metadataReader;
     private final DataSize maxMergeDistance;
     private final DataSize maxReadSize;
-    private final CompressionKind compressionKind;
+    private final DataSize maxBlockSize;
     private final HiveWriterVersion hiveWriterVersion;
     private final int bufferSize;
+    private final Optional<OrcDecompressor> decompressor;
     private final Footer footer;
     private final Metadata metadata;
 
+    private final Optional<OrcWriteValidation> writeValidation;
+
     // This is based on the Apache Hive ORC code
-    public OrcReader(OrcDataSource orcDataSource, MetadataReader metadataReader, DataSize maxMergeDistance, DataSize maxReadSize)
+    public OrcReader(OrcDataSource orcDataSource, MetadataReader delegate, DataSize maxMergeDistance, DataSize maxReadSize, DataSize maxBlockSize)
+            throws IOException
+    {
+        this(orcDataSource, delegate, maxMergeDistance, maxReadSize, maxBlockSize, Optional.empty());
+    }
+
+    OrcReader(OrcDataSource orcDataSource, MetadataReader delegate, DataSize maxMergeDistance, DataSize maxReadSize, DataSize maxBlockSize, Optional<OrcWriteValidation> writeValidation)
             throws IOException
     {
         orcDataSource = wrapWithCacheIfTiny(requireNonNull(orcDataSource, "orcDataSource is null"), maxMergeDistance);
         this.orcDataSource = orcDataSource;
-        this.metadataReader = requireNonNull(metadataReader, "metadataReader is null");
+        this.metadataReader = new ExceptionWrappingMetadataReader(orcDataSource.getId(), requireNonNull(delegate, "delegate is null"));
         this.maxMergeDistance = requireNonNull(maxMergeDistance, "maxMergeDistance is null");
         this.maxReadSize = requireNonNull(maxReadSize, "maxReadSize is null");
+        this.maxBlockSize = requireNonNull(maxBlockSize, "maxBlockSize is null");
+
+        this.writeValidation = requireNonNull(writeValidation, "writeValidation is null");
 
         //
         // Read the file tail:
@@ -77,31 +97,45 @@ public class OrcReader
         // figure out the size of the file using the option or filesystem
         long size = orcDataSource.getSize();
         if (size <= 0) {
-            throw new OrcCorruptionException("Malformed ORC file %s. Invalid file size %s", orcDataSource, size);
+            throw new OrcCorruptionException(orcDataSource.getId(), "Invalid file size %s", size);
         }
 
         // Read the tail of the file
-        byte[] buffer = new byte[toIntExact(min(size, EXPECTED_FOOTER_SIZE))];
-        orcDataSource.readFully(size - buffer.length, buffer);
+
+
+
+        // position, length
+
+        int length = toIntExact(min(size, EXPECTED_FOOTER_SIZE));
+        ByteBuffer buffer = orcDataSource.readFully(size - length,length);
 
         // get length of PostScript - last byte of the file
-        int postScriptSize = buffer[buffer.length - SIZE_OF_BYTE] & 0xff;
+        int postScriptSize = buffer.get(length - SIZE_OF_BYTE) & 0xff;
 
         // make sure this is an ORC file and not an RCFile or something else
         verifyOrcFooter(orcDataSource, postScriptSize, buffer);
 
         // decode the post script
-        int postScriptOffset = buffer.length - SIZE_OF_BYTE - postScriptSize;
-        PostScript postScript = metadataReader.readPostScript(buffer, postScriptOffset, postScriptSize);
+        int postScriptOffset = buffer.limit() - SIZE_OF_BYTE - postScriptSize;
+
+        buffer.position(postScriptOffset);
+        ByteBuffer postScriptBuffer = buffer.slice();
+        postScriptBuffer.limit(postScriptSize);
+        PostScript postScript = metadataReader.readPostScript(postScriptBuffer);
+
 
         // verify this is a supported version
         checkOrcVersion(orcDataSource, postScript.getVersion());
+        validateWrite(validation -> validation.getVersion().equals(postScript.getVersion()), "Unexpected version");
+
+        this.bufferSize = toIntExact(postScript.getCompressionBlockSize());
 
         // check compression codec is supported
-        this.compressionKind = postScript.getCompression();
+        CompressionKind compressionKind = postScript.getCompression();
+        this.decompressor = createOrcDecompressor(orcDataSource.getId(), compressionKind, bufferSize);
+        validateWrite(validation -> validation.getCompression() == compressionKind, "Unexpected compression");
 
         this.hiveWriterVersion = postScript.getHiveWriterVersion();
-        this.bufferSize = toIntExact(postScript.getCompressionBlockSize());
 
         int footerSize = toIntExact(postScript.getFooterLength());
         int metadataSize = toIntExact(postScript.getMetadataLength());
@@ -109,32 +143,35 @@ public class OrcReader
         // check if extra bytes need to be read
         Slice completeFooterSlice;
         int completeFooterSize = footerSize + metadataSize + postScriptSize + SIZE_OF_BYTE;
-        if (completeFooterSize > buffer.length) {
+        if (completeFooterSize > buffer.limit()) {
             // allocate a new buffer large enough for the complete footer
-            byte[] newBuffer = new byte[completeFooterSize];
-            completeFooterSlice = Slices.wrappedBuffer(newBuffer);
-
-            // initial read was not large enough, so read missing section
-            orcDataSource.readFully(size - completeFooterSize, newBuffer, 0, completeFooterSize - buffer.length);
-
-            // copy already read bytes into the new buffer
-            completeFooterSlice.setBytes(completeFooterSize - buffer.length, buffer);
+            ByteBuffer byteBuffer = orcDataSource.readFully(size - completeFooterSize,completeFooterSize);
+            completeFooterSlice = Slices.wrappedBuffer(byteBuffer);
         }
         else {
             // footer is already in the bytes in buffer, just adjust position, length
-            completeFooterSlice = Slices.wrappedBuffer(buffer, buffer.length - completeFooterSize, completeFooterSize);
+            buffer.position(buffer.limit()-completeFooterSize);
+            completeFooterSlice = Slices.wrappedBuffer(buffer.slice());
         }
 
         // read metadata
         Slice metadataSlice = completeFooterSlice.slice(0, metadataSize);
-        try (InputStream metadataInputStream = new OrcInputStream(orcDataSource.toString(), metadataSlice.getInput(), compressionKind, bufferSize, new AggregatedMemoryContext())) {
+        try (InputStream metadataInputStream = new OrcInputStream(orcDataSource.getId(), metadataSlice.getInput(), decompressor, new AggregatedMemoryContext())) {
             this.metadata = metadataReader.readMetadata(hiveWriterVersion, metadataInputStream);
         }
 
         // read footer
         Slice footerSlice = completeFooterSlice.slice(metadataSize, footerSize);
-        try (InputStream footerInputStream = new OrcInputStream(orcDataSource.toString(), footerSlice.getInput(), compressionKind, bufferSize, new AggregatedMemoryContext())) {
+        try (InputStream footerInputStream = new OrcInputStream(orcDataSource.getId(), footerSlice.getInput(), decompressor, new AggregatedMemoryContext())) {
             this.footer = metadataReader.readFooter(hiveWriterVersion, footerInputStream);
+        }
+
+        validateWrite(validation -> validation.getMetadata().equals(footer.getUserMetadata()), "Unexpected metadata");
+        validateWrite(validation -> validation.getColumnNames().equals(getColumnNames()), "Unexpected column names");
+        validateWrite(validation -> validation.getRowGroupMaxRowCount() == footer.getRowsInRowGroup(), "Unexpected rows in group");
+        if (writeValidation.isPresent()) {
+            writeValidation.get().validateFileStatistics(orcDataSource.getId(), footer.getFileStats());
+            writeValidation.get().validateStripeStatistics(orcDataSource.getId(), footer.getStripes(), metadata.getStripeStatsList());
         }
     }
 
@@ -153,22 +190,20 @@ public class OrcReader
         return metadata;
     }
 
-    public CompressionKind getCompressionKind()
-    {
-        return compressionKind;
-    }
-
     public int getBufferSize()
     {
         return bufferSize;
     }
 
-    public OrcRecordReader createRecordReader(Map<Integer, DataType> includedColumns, OrcPredicate predicate, DateTimeZone hiveStorageTimeZone, AbstractAggregatedMemoryContext systemMemoryUsage,
-                                              List<Integer> partitionIds, List<String> partitionValues)
+    public OrcRecordReader createRecordReader(Map<Integer, DataType> includedColumns,
+                                              OrcPredicate predicate,
+                                              DateTimeZone hiveStorageTimeZone,
+                                              AbstractAggregatedMemoryContext systemMemoryUsage,
+                                              List<Integer> partitionIds,
+                                              List<String> partitionValues)
             throws IOException
     {
-        return createRecordReader(includedColumns, predicate, 0, orcDataSource.getSize(), hiveStorageTimeZone, systemMemoryUsage,
-                partitionIds,partitionValues);
+        return createRecordReader(includedColumns, predicate, 0, orcDataSource.getSize(), hiveStorageTimeZone, systemMemoryUsage,partitionIds,partitionValues);
     }
 
     public OrcRecordReader createRecordReader(
@@ -179,8 +214,7 @@ public class OrcReader
             DateTimeZone hiveStorageTimeZone,
             AbstractAggregatedMemoryContext systemMemoryUsage,
             List<Integer> partitionIds,
-            List<String> partitionValues
-            )
+            List<String> partitionValues)
             throws IOException
     {
         return new OrcRecordReader(
@@ -194,16 +228,17 @@ public class OrcReader
                 offset,
                 length,
                 footer.getTypes(),
-                compressionKind,
-                bufferSize,
+                decompressor,
                 footer.getRowsInRowGroup(),
                 requireNonNull(hiveStorageTimeZone, "hiveStorageTimeZone is null"),
                 hiveWriterVersion,
                 metadataReader,
                 maxMergeDistance,
                 maxReadSize,
+                maxBlockSize,
                 footer.getUserMetadata(),
                 systemMemoryUsage,
+                writeValidation,
                 partitionIds,
                 partitionValues);
     }
@@ -228,22 +263,21 @@ public class OrcReader
     private static void verifyOrcFooter(
             OrcDataSource source,
             int postScriptSize,
-            byte[] buffer)
+            ByteBuffer buffer)
             throws IOException
     {
         int magicLength = MAGIC.length();
-        if (postScriptSize < magicLength + 1) {
-            throw new OrcCorruptionException("Malformed ORC file %s. Invalid postscript length %s", source, postScriptSize);
+        if ((postScriptSize < (magicLength + 1)) || (postScriptSize >= buffer.limit())) {
+            throw new OrcCorruptionException(source.getId(), "Invalid postscript length %s", postScriptSize);
         }
-
-        if (!MAGIC.equals(Slices.wrappedBuffer(buffer, buffer.length - 1 - magicLength, magicLength))) {
+        if (!MAGIC.equals(0,magicLength,Slices.wrappedBuffer(buffer),buffer.limit() - 1 -magicLength,magicLength)) {
             // Old versions of ORC (0.11) wrote the magic to the head of the file
             byte[] headerMagic = new byte[magicLength];
             source.readFully(0, headerMagic);
 
             // if it isn't there, this isn't an ORC file
-            if  (!MAGIC.equals(Slices.wrappedBuffer(headerMagic))) {
-                throw new OrcCorruptionException("Malformed ORC file %s. Invalid postscript.", source);
+            if (!MAGIC.equals(Slices.wrappedBuffer(headerMagic))) {
+                throw new OrcCorruptionException(source.getId(), "Invalid postscript");
             }
         }
     }
@@ -270,5 +304,40 @@ public class OrcReader
                         CURRENT_MINOR_VERSION);
             }
         }
+    }
+
+    private void validateWrite(Predicate<OrcWriteValidation> test, String messageFormat, Object... args)
+            throws OrcCorruptionException
+    {
+        if (writeValidation.isPresent() && !test.test(writeValidation.get())) {
+            throw new OrcCorruptionException(orcDataSource.getId(), "Write validation failed: " + messageFormat, args);
+        }
+    }
+
+    static void validateFile(
+            OrcWriteValidation writeValidation,
+            OrcDataSource input,
+            List<DataType> types,
+            DateTimeZone hiveStorageTimeZone,
+            MetadataReader metadataReader)
+            throws OrcCorruptionException
+    {
+        /*
+        ImmutableMap.Builder<Integer, DataType> readTypes = ImmutableMap.builder();
+        for (int columnIndex = 0; columnIndex < types.size(); columnIndex++) {
+            readTypes.put(columnIndex, types.get(columnIndex));
+        }
+        try {
+            OrcReader orcReader = new OrcReader(input, metadataReader, new DataSize(1, MEGABYTE), new DataSize(8, MEGABYTE), new DataSize(16, MEGABYTE), Optional.of(writeValidation));
+            try (OrcRecordReader orcRecordReader = orcReader.createRecordReader(readTypes.build(), OrcPredicate.TRUE, hiveStorageTimeZone, new AggregatedMemoryContext())) {
+                while (orcRecordReader.nextBatch() >= 0) {
+                    // ignored
+                }
+            }
+        }
+        catch (IOException e) {
+            throw new OrcCorruptionException(e, input.getId(), "Validation failed");
+        }
+        */
     }
 }

@@ -13,6 +13,8 @@
  */
 package com.splicemachine.orc.block;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
@@ -41,4 +43,11 @@ public class IntegerColumnBlock extends AbstractColumnBlock {
         columnVector.appendInts(size,Integer.parseInt(value));
     }
 
+    @Override
+    public void setValue(DataValueDescriptor dvd) throws StandardException {
+        if (dvd.isNull())
+            columnVector.appendNull();
+        else
+            columnVector.appendLong(dvd.getInt());
+    }
 }

@@ -40,6 +40,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Stream;
 import static com.splicemachine.orc.OrcRecordReader.LinearProbeRangeFinder.createTinyStripesRangeFinder;
@@ -186,7 +187,7 @@ public class TestCachingOrcDataSource
     public void doIntegration(TestingOrcDataSource orcDataSource, DataSize maxMergeDistance, DataSize maxReadSize)
             throws IOException
     {
-        OrcReader orcReader = new OrcReader(orcDataSource, new OrcMetadataReader(), maxMergeDistance, maxReadSize);
+        OrcReader orcReader = new OrcReader(orcDataSource, new OrcMetadataReader(), maxMergeDistance, maxReadSize, maxReadSize);
         // 1 for reading file footer
         assertEquals(orcDataSource.getReadCount(), 1);
         List<StripeInformation> stripes = orcReader.getFooter().getStripes();
@@ -280,10 +281,25 @@ public class TestCachingOrcDataSource
         }
 
         @Override
+        public ByteBuffer readFully(long position, int bufferLength) throws IOException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public <K> Map<K, FixedLengthSliceInput> readFully(Map<K, DiskRange> diskRanges)
                 throws IOException
         {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public OrcDataSourceId getId() {
+            return null;
+        }
+
+        @Override
+        public void close() throws IOException {
+
         }
     }
 }

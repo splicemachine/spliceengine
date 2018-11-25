@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.orc.OrcPredicate;
 import com.splicemachine.orc.metadata.*;
+import com.splicemachine.orc.metadata.statistics.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
@@ -264,23 +265,23 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
 
                 DataType dataType = rowStruct.fields()[j].dataType();
                 if (dataType instanceof BooleanType) {
-                    partitionStatistics.put(storagePos, BooleanStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, BooleanStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else if (dataType instanceof DecimalType) {
-                    partitionStatistics.put(storagePos, DecimalStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, LongDecimalStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else if (dataType instanceof StringType) {
-                    partitionStatistics.put(storagePos, StringStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, StringStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else if (dataType instanceof DateType) {
-                    partitionStatistics.put(storagePos, DateStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, DateStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else if (dataType instanceof IntegerType) {
-                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, IntegerStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else if (dataType instanceof LongType) {
-                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, IntegerStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else if (dataType instanceof ShortType) {
-                    partitionStatistics.put(storagePos, IntegerStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, IntegerStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else if (dataType instanceof DoubleType) {
-                    partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, DoubleStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else if (dataType instanceof FloatType) {
-                    partitionStatistics.put(storagePos, DoubleStatistics.getPartitionColumnStatistics(!isDefaultPartition(values[i]) ? values[i] : null));
+                    partitionStatistics.put(storagePos, DoubleStatisticsBuilder.newBuilder().buildColumnPartitionStatistics(values[i]));
                 } else {
                 }
             }
@@ -333,8 +334,8 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
         }
         else if (dataType instanceof DecimalType) {
             DecimalStatistics decimalStatistics = columnStatistics.getDecimalStatistics();
-            statsEval.minimumDVD = new SQLDecimal(decimalStatistics.getMin());
-            statsEval.maximumDVD = new SQLDecimal(decimalStatistics.getMax());
+            statsEval.minimumDVD = new SQLDecimal(Decimal.apply(decimalStatistics.getMin()));
+            statsEval.maximumDVD = new SQLDecimal(Decimal.apply(decimalStatistics.getMax()));
         }
         else if (dataType instanceof StringType) {
             StringStatistics stringStatistics = columnStatistics.getStringStatistics();

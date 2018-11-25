@@ -289,6 +289,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	{
 		hash = 0;
 		column = value;
+		ncols = value ==null?0:value.length;
 	}
 
 	// Set the number of columns in the row to ncols, preserving
@@ -537,6 +538,8 @@ public class ValueRow implements ExecRow, Externalizable {
 	public BigDecimal getDecimal(int i) {
 		try {
 			return (BigDecimal) column[i].getObject();
+			// Enable when switching to native Spark Decimal.
+			// return ((Decimal) column[i].getObject()).toJavaBigDecimal();
 		} catch (StandardException se) {
 			throw new RuntimeException(se);
 		}
@@ -651,6 +654,16 @@ public class ValueRow implements ExecRow, Externalizable {
 	}
 
 	@Override
+	public StructType createStructType() {
+		// use baseColumnMap to ensure all selected columns (at each index i) are returned
+		StructField[] fields = new StructField[length()];
+		for(int i = 0; i < ncols; i++){
+			fields[i] = getColumn(i+1).getStructField(getNamedColumn(i));
+		}
+		return DataTypes.createStructType(fields);
+	}
+
+	@Override
 	public int compare(ExecRow o1, ExecRow o2) {
 		return o1.compareTo(o2);
 	}
@@ -690,4 +703,36 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void setKey(byte[] key) {
 		this.key = key;
 	}
+
+	public int getNonNullCount() throws StandardException {
+		return nonNullCountFromArray(column);
+	}
+
+	public static int nonNullCountFromArray(DataValueDescriptor[] dvds) {
+		if (dvds == null)
+			return 0;
+		int j = 0;
+		for (int i = 0; i< dvds.length;i++) {
+			if (dvds[i] != null && !dvds[i].isNull())
+				j++;
+		}
+		return j;
+	}
+
+	// @Override msirek-temp
+	public byte[] generateRowKey(int[] columns) throws StandardException {
+		throw new UnsupportedOperationException("Not Implemented Yet");
+	}
+                               /* msirek-temp->
+	@Override
+	public FormatableBitSet getVariableLengthBitSet() throws StandardException {
+		FormatableBitSet fbs = new FormatableBitSet(ncols);
+		for (int i = 0; i < ncols; i++) {
+			if (column[i].isVariableLength())
+				fbs.set(i);
+		}
+		return fbs;
+	}
+	*/
 }
+

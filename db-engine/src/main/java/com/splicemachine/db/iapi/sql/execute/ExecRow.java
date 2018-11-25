@@ -119,6 +119,8 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 	 */
 	void getNewObjectArray();
 
+	StructType createStructType();
+
 	StructType createStructType(int[] baseColumnMap);
 
 	org.apache.spark.sql.Row getSparkRow();
@@ -132,5 +134,11 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 	byte[] getKey();
 
 	void setKey(byte[] key);
+                                        /* msirek-temp->
+	public int getNonNullCount() throws StandardException;
+
+	public byte[] generateRowKey(int[] columns) throws StandardException;
+
+	public FormatableBitSet getVariableLengthBitSet() throws StandardException;  <-msirek-temp */
 
 }
