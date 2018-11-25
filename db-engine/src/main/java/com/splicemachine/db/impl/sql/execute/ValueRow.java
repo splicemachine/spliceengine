@@ -37,10 +37,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.roaringbitmap.RoaringBitmap;
 import scala.collection.Map;
 import scala.collection.Seq;
 import scala.util.hashing.MurmurHash3;
@@ -539,7 +537,9 @@ public class ValueRow implements ExecRow, Externalizable {
 	@Override
 	public BigDecimal getDecimal(int i) {
 		try {
-			return ((Decimal) column[i].getObject()).toJavaBigDecimal();
+			return (BigDecimal) column[i].getObject();
+			// Enable when switching to native Spark Decimal.
+			// return ((Decimal) column[i].getObject()).toJavaBigDecimal();
 		} catch (StandardException se) {
 			throw new RuntimeException(se);
 		}
@@ -703,9 +703,6 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void setKey(byte[] key) {
 		this.key = key;
 	}
-<<<<<<< HEAD
-}
-=======
 
 	public int getNonNullCount() throws StandardException {
 		return nonNullCountFromArray(column);
@@ -737,4 +734,4 @@ public class ValueRow implements ExecRow, Externalizable {
 		return fbs;
 	}
 }
->>>>>>> 04f7add7c5... PAX, all commits combined into one.
+
