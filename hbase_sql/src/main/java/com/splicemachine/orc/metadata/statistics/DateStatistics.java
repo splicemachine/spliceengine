@@ -13,6 +13,10 @@
  */
 package com.splicemachine.orc.metadata.statistics;
 
+import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
+import org.apache.hadoop.hive.serde2.io.DateWritable;
+
+import java.io.IOException;
 import java.util.Objects;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
@@ -32,6 +36,16 @@ public class DateStatistics
         checkArgument(minimum == null || maximum == null || minimum <= maximum, "minimum is not less than maximum");
         this.minimum = minimum;
         this.maximum = maximum;
+    }
+
+    public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
+        DateStatistics dateStatistics = null;
+        if(value != null) {
+            Integer dateInDays = DateWritable.dateToDays(java.sql.Date.valueOf(value));
+            dateStatistics = new DateStatistics(dateInDays, dateInDays);
+        }
+        return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
+            null,null,null,null,dateStatistics,null,null);
     }
 
     @Override

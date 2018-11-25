@@ -13,6 +13,9 @@
  */
 package com.splicemachine.orc.metadata.statistics;
 
+import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
+
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -33,6 +36,17 @@ public class DecimalStatistics
         checkArgument(minimum == null || maximum == null || minimum.compareTo(maximum) <= 0, "minimum is not less than maximum");
         this.minimum = minimum;
         this.maximum = maximum;
+    }
+
+    public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
+        DecimalStatistics decimalStatistics = null;
+        if(value != null) {
+            BigDecimal bigDecimal = BigDecimal.valueOf(Double.parseDouble(value));
+            decimalStatistics = new DecimalStatistics(bigDecimal,
+                bigDecimal);
+        }
+        return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
+            null,null,null,null,null,decimalStatistics,null);
     }
 
     @Override

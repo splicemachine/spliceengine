@@ -13,9 +13,12 @@
  */
 package com.splicemachine.orc.metadata.statistics;
 
+import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Objects;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
@@ -39,6 +42,16 @@ public class StringStatistics
         this.minimum = minimum;
         this.maximum = maximum;
         this.sum = sum;
+    }
+
+    public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
+        StringStatistics stringStatistics = null;
+        if(value != null) {
+            Slice slice = Slices.wrappedBuffer(value.getBytes("UTF-8"));
+            stringStatistics = new StringStatistics(slice,slice);
+        }
+        return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
+            null,null,null,stringStatistics,null,null,null);
     }
 
     @Override

@@ -39,6 +39,21 @@ public class BooleanStatistics
         return trueValueCount;
     }
 
+    public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
+        BooleanStatistics booleanStatistics = null;
+        if(value != null) {
+            try {
+                SQLBoolean sqlBoolean = new SQLBoolean();
+                sqlBoolean.setValue(value);
+                booleanStatistics = new BooleanStatistics(sqlBoolean.getBoolean()? SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE:0l);
+            } catch (StandardException se) {
+                throw new IOException(se);
+            }
+
+        }
+        return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,booleanStatistics,null,null,null,null,null,null);
+    }
+
     @Override
     public boolean equals(Object o)
     {

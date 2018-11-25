@@ -13,6 +13,9 @@
  */
 package com.splicemachine.orc.metadata.statistics;
 
+import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
+
+import java.io.IOException;
 import java.util.Objects;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
@@ -32,6 +35,15 @@ public class IntegerStatistics
         checkArgument(minimum == null || maximum == null || minimum <= maximum, "minimum is not less than maximum");
         this.minimum = minimum;
         this.maximum = maximum;
+    }
+
+    public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
+        IntegerStatistics integerStatistics = null;
+        if(value != null) {
+            integerStatistics = new IntegerStatistics(Long.valueOf(value),Long.valueOf(value));
+        }
+        return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
+            null,integerStatistics,null,null,null,null,null);
     }
 
     @Override
