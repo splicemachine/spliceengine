@@ -93,7 +93,9 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
         SpliceMessage.SpliceRegionSizeResponse.Builder writeResponse = SpliceMessage.SpliceRegionSizeResponse.newBuilder();
         try {
             writeResponse.setEncodedName(region.getRegionInfo().getRegionNameAsString());
-            writeResponse.setSizeInBytes(HBasePlatformUtils.getMemstoreSize(region)+getStoreFileSize());
+            writeResponse.setSizeInBytes(
+                    region.getStores().size()==1?HBasePlatformUtils.getMemstoreSize(region)+getStoreFileSize():
+            HBasePlatformUtils.getMemstoreSize(region)+getActiveStoreFileSize());
         } catch (Exception e) {
             org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, new IOException(e));
         }
@@ -103,7 +105,10 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey, int requestedSplits) throws IOException {
-        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey, requestedSplits);
+        if (region.getStores().size() > 1) {
+            return BytesCopyTaskSplitter.getActiveCutPoints(region, beginKey, endKey,requestedSplits);
+        }
+        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey,requestedSplits);
     }
 
     /**
@@ -117,10 +122,31 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
     private long getStoreFileSize() {
         Store store = region.getStore(SIConstants.DEFAULT_FAMILY_BYTES);
         try {
+            if (region.getStores().size()==1)
             HRegionUtil.lockStore(store);
             return region.getStore(SIConstants.DEFAULT_FAMILY_BYTES).getStoreSizeUncompressed();
         } finally {
             HRegionUtil.unlockStore(store);
         }
     }
+
+    /**
+     * Compute Store File Size.  Performs it under a lock in case store files are changing underneath us.
+     *
+     * @see HRegionUtil#lockStore(org.apache.hadoop.hbase.regionserver.Store)
+     * @see HRegionUtil#unlockStore(org.apache.hadoop.hbase.regionserver.Store)
+     *
+     * @return
+     */
+    private long getActiveStoreFileSize() {
+        Store store = region.getStore(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES);
+        try {
+            HRegionUtil.lockStore(store);
+            return region.getStore(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES).getStoreSizeUncompressed();
+        } finally {
+            HRegionUtil.unlockStore(store);
+        }
+    }
+
+
 }

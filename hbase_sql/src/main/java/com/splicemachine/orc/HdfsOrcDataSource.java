@@ -18,33 +18,48 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import java.io.IOException;
 
 import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
 public class HdfsOrcDataSource
         extends AbstractOrcDataSource
 {
     private final FSDataInputStream inputStream;
+    private final FileFormatDataSourceStats stats;
 
-    public HdfsOrcDataSource(String name, long size, DataSize maxMergeDistance, DataSize maxReadSize, DataSize streamBufferSize, FSDataInputStream inputStream)
+    public HdfsOrcDataSource(
+            OrcDataSourceId id,
+            long size,
+            DataSize maxMergeDistance,
+            DataSize maxReadSize,
+            DataSize streamBufferSize,
+            FSDataInputStream inputStream,
+            FileFormatDataSourceStats stats)
     {
-        super(name, size, maxMergeDistance, maxReadSize, streamBufferSize);
-        this.inputStream = inputStream;
+        super(id, size, maxMergeDistance, maxReadSize, streamBufferSize);
+        this.inputStream = requireNonNull(inputStream, "inputStream is null");
+        this.stats = requireNonNull(stats, "stats is null");
     }
 
     @Override
-    public void close() throws IOException {
+    public void close()
+            throws IOException
+    {
         inputStream.close();
     }
 
     @Override
     protected void readInternal(long position, byte[] buffer, int bufferOffset, int bufferLength)
-            throws IOException {
+            throws IOException
+    {
         try {
+            long readStart = System.nanoTime();
             inputStream.readFully(position, buffer, bufferOffset, bufferLength);
+            stats.readDataBytesPerSecond(bufferLength, System.nanoTime() - readStart);
         }
         catch (Exception e) {
-            String message = format("HDFS error reading from %s at position %s", this, position);
+            String message = format("Error reading from %s at position %s", this, position);
             if (e.getClass().getSimpleName().equals("BlockMissingException")) {
-                message = message + ": Block Missing Exception";
+                throw new IOException(message, e);
             }
             throw new IOException(message, e);
         }

@@ -72,11 +72,13 @@ public class OrcMapreduceRecordReader extends RecordReader<NullWritable,Row> {
         } catch (MetaException me) {
             throw new IOException(me);
         }
-        OrcDataSource orcDataSource = new HdfsOrcDataSource(path.toString(), size, new DataSize(maxMergeDistance, DataSize.Unit.MEGABYTE),
+        OrcDataSource orcDataSource = new HdfsOrcDataSource(new OrcDataSourceId(taskAttemptContext.getTaskAttemptID().toString()), size, new DataSize(maxMergeDistance, DataSize.Unit.MEGABYTE),
                 new DataSize(maxReadSize, DataSize.Unit.MEGABYTE),
-                new DataSize(streamBufferSize, DataSize.Unit.MEGABYTE), inputStream);
+                new DataSize(streamBufferSize, DataSize.Unit.MEGABYTE), inputStream,new FileFormatDataSourceStats());
         OrcReader orcReader = new OrcReader(orcDataSource, new OrcMetadataReader(), new DataSize(maxMergeDistance, DataSize.Unit.MEGABYTE),
-                new DataSize(maxReadSize, DataSize.Unit.MEGABYTE));
+                new DataSize(maxReadSize, DataSize.Unit.MEGABYTE),
+                new DataSize(1024, DataSize.Unit.MEGABYTE) // FIX JL
+                );
         orcRecordReader = orcReader.createRecordReader(getColumnsAndTypes(columnIds,rowStruct),
                 predicate, HIVE_STORAGE_TIME_ZONE, new AggregatedMemoryContext(),partitions,values);
     }

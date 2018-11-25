@@ -1,25 +1,30 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This file is part of Splice Machine.
- * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
- * GNU Affero General Public License as published by the Free Software Foundation, either
- * version 3, or (at your option) any later version.
- * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
- * If not, see <http://www.gnu.org/licenses/>.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.splicemachine.orc;
 
 import com.google.common.collect.ImmutableMap;
-import io.airlift.slice.*;
+import io.airlift.slice.ChunkedSliceInput;
 import io.airlift.slice.ChunkedSliceInput.BufferReference;
 import io.airlift.slice.ChunkedSliceInput.SliceLoader;
+import io.airlift.slice.FixedLengthSliceInput;
+import io.airlift.slice.Slice;
+import io.airlift.slice.Slices;
 import io.airlift.units.DataSize;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,7 +38,7 @@ import static java.util.Objects.requireNonNull;
 public abstract class AbstractOrcDataSource
         implements OrcDataSource
 {
-    private final String name;
+    private final OrcDataSourceId id;
     private final long size;
     private final DataSize maxMergeDistance;
     private final DataSize maxBufferSize;
@@ -41,9 +46,9 @@ public abstract class AbstractOrcDataSource
     private long readTimeNanos;
     private long readBytes;
 
-    public AbstractOrcDataSource(String name, long size, DataSize maxMergeDistance, DataSize maxBufferSize, DataSize streamBufferSize)
+    public AbstractOrcDataSource(OrcDataSourceId id, long size, DataSize maxMergeDistance, DataSize maxBufferSize, DataSize streamBufferSize)
     {
-        this.name = requireNonNull(name, "name is null");
+        this.id = requireNonNull(id, "id is null");
 
         this.size = size;
         checkArgument(size >= 0, "size is negative");
@@ -55,6 +60,12 @@ public abstract class AbstractOrcDataSource
 
     protected abstract void readInternal(long position, byte[] buffer, int bufferOffset, int bufferLength)
             throws IOException;
+
+    @Override
+    public OrcDataSourceId getId()
+    {
+        return id;
+    }
 
     @Override
     public final long getReadBytes()
@@ -72,6 +83,13 @@ public abstract class AbstractOrcDataSource
     public final long getSize()
     {
         return size;
+    }
+
+    @Override
+    public final ByteBuffer readFully(long position, int bufferLength) throws IOException {
+        byte[] array = new byte[bufferLength];
+        readFully(position,array);
+        return ByteBuffer.wrap(array);
     }
 
     @Override
@@ -173,7 +191,7 @@ public abstract class AbstractOrcDataSource
     @Override
     public final String toString()
     {
-        return name;
+        return id.toString();
     }
 
     private class HdfsSliceLoader
@@ -205,7 +223,7 @@ public abstract class AbstractOrcDataSource
                 readFully(diskRange.getOffset() + position, bufferReference.getBuffer(), 0, length);
             }
             catch (IOException e) {
-                throw new RuntimeIOException(e);
+                throw new UncheckedIOException(e);
             }
         }
 

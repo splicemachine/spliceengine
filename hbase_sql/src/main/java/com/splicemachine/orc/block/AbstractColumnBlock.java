@@ -13,9 +13,13 @@
  */
 package com.splicemachine.orc.block;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.unsafe.types.UTF8String;
 
 /**
  *
@@ -73,6 +77,61 @@ public abstract class AbstractColumnBlock implements ColumnBlock {
         columnVector.appendNulls(size);
     }
 
+    @Override
+    public int getPositionCount() {
+        return this.columnVector.getElementsAppended();
+    }
 
+    @Override
+    public boolean getBoolean(int position) {
+        return this.columnVector.getBoolean(position);
+    }
 
+    @Override
+    public boolean isNull(int position) {
+        return this.columnVector.isNullAt(position);
+    }
+
+    @Override
+    public long getLong(int position) {
+        return this.columnVector.getLong(position);
+    }
+
+    @Override
+    public byte getByte(int position) {
+        return this.columnVector.getByte(position);
+    }
+    @Override
+    public double getDouble(int position) {
+        return this.columnVector.getDouble(position);
+    }
+    @Override
+    public float getFloat(int position) {
+        return this.columnVector.getFloat(position);
+    }
+
+    @Override
+    public Decimal getDecimal(int positon, int precision, int scale) {
+        return this.columnVector.getDecimal(positon,precision,scale);
+    }
+
+    @Override
+    public UTF8String getUTF8String(int position) {
+        return this.columnVector.getUTF8String(position);
+    }
+
+    @Override
+    public byte[] getBinary(int position) {
+        return this.columnVector.getBinary(position);
+    }
+
+    @Override
+    public void setNull() {
+        columnVector.appendNull();
+    }
+
+    @Override
+    public void setValue(DataValueDescriptor dvd) throws StandardException {
+        throw new UnsupportedOperationException("Not Supported");
+    }
 }

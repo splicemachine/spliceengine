@@ -15,10 +15,10 @@ package com.splicemachine.orc;
 
 import com.splicemachine.orc.OrcTester.*;
 import com.splicemachine.orc.metadata.Footer;
-import com.splicemachine.orc.metadata.IntegerStatistics;
 import com.splicemachine.orc.metadata.OrcMetadataReader;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.splicemachine.orc.metadata.statistics.IntegerStatistics;
 import io.airlift.slice.Slice;
 import io.airlift.units.DataSize;
 import org.apache.hadoop.conf.Configuration;
@@ -177,7 +177,7 @@ public class TestOrcReaderPositions
             createFileWithOnlyUserMetadata(tempFile.getFile(), metadata);
 
             OrcDataSource orcDataSource = new FileOrcDataSource(tempFile.getFile(), new DataSize(1, DataSize.Unit.MEGABYTE), new DataSize(1, DataSize.Unit.MEGABYTE), new DataSize(1, DataSize.Unit.MEGABYTE));
-            OrcReader orcReader = new OrcReader(orcDataSource, new OrcMetadataReader(), new DataSize(1, DataSize.Unit.MEGABYTE), new DataSize(1, DataSize.Unit.MEGABYTE));
+            OrcReader orcReader = new OrcReader(orcDataSource, new OrcMetadataReader(), new DataSize(1, DataSize.Unit.MEGABYTE), new DataSize(1, DataSize.Unit.MEGABYTE),new DataSize(1, DataSize.Unit.MEGABYTE));
             Footer footer = orcReader.getFooter();
             Map<String, String> readMetadata = Maps.transformValues(footer.getUserMetadata(), Slice::toStringAscii);
             assertEquals(readMetadata, metadata);

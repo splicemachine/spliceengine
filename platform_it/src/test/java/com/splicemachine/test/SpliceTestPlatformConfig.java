@@ -132,6 +132,11 @@ class SpliceTestPlatformConfig {
         //
         // Networking
         //
+        config.setBoolean("hbase.defaults.for.version.skip",true);
+        config.setBoolean("hbase.ipc.client.fallback-to-simple-auth-allowed",true);
+        config.setBoolean("hbase.regionserver.safemode",false);
+        config.setBoolean("hbase.table.sanity.checks",false);
+        config.setLong("hbase.regionserver.msginterval",1000);
         config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
         config.setInt("hbase.master.port", masterPort);
         config.setInt("hbase.master.info.port", masterInfoPort);
@@ -206,7 +211,7 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.balancer.period",5000);
 
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
-        config.setLong("hbase.client.pause", 100);
+        config.setLong("hbase.client.pause", 20);
 
         //
         // Compaction Controls

@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This file is part of Splice Machine.
- * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
- * GNU Affero General Public License as published by the Free Software Foundation, either
- * version 3, or (at your option) any later version.
- * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
- * If not, see <http://www.gnu.org/licenses/>.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.splicemachine.orc;
 
@@ -22,6 +22,8 @@ import com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind;
 import com.splicemachine.orc.metadata.OrcType.OrcTypeKind;
 import com.splicemachine.orc.metadata.PostScript.HiveWriterVersion;
 import com.splicemachine.orc.metadata.Stream.StreamKind;
+import com.splicemachine.orc.metadata.statistics.ColumnStatistics;
+import com.splicemachine.orc.metadata.statistics.HiveBloomFilter;
 import com.splicemachine.orc.stream.*;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +35,7 @@ import io.airlift.slice.Slices;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -41,24 +44,26 @@ import static com.splicemachine.orc.checkpoint.Checkpoints.getStreamCheckpoints;
 import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.DICTIONARY;
 import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.DICTIONARY_V2;
 import static com.splicemachine.orc.metadata.Stream.StreamKind.*;
-import static com.splicemachine.orc.stream.CheckpointStreamSource.createCheckpointStreamSource;
+import static com.splicemachine.orc.stream.CheckpointInputStreamSource.createCheckpointStreamSource;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
 public class StripeReader
 {
     private final OrcDataSource orcDataSource;
-    private final CompressionKind compressionKind;
+    private final Optional<OrcDecompressor> decompressor;
     private final List<OrcType> types;
-    private final int bufferSize;
     private final HiveWriterVersion hiveWriterVersion;
     private final Set<Integer> includedOrcColumns;
     private final int rowsInRowGroup;
     private final OrcPredicate predicate;
     private final MetadataReader metadataReader;
+    private final Optional<OrcWriteValidation> writeValidation;
 
     public StripeReader(OrcDataSource orcDataSource,
+<<<<<<< HEAD
             CompressionKind compressionKind,
             List<OrcType> types,
             int bufferSize,
@@ -68,18 +73,33 @@ public class StripeReader
             HiveWriterVersion hiveWriterVersion,
             MetadataReader metadataReader,
             List<Integer> partitionIds)
+=======
+                        Optional<OrcDecompressor> decompressor,
+                        List<OrcType> types,
+                        Set<Integer> includedColumns,
+                        int rowsInRowGroup,
+                        OrcPredicate predicate,
+                        HiveWriterVersion hiveWriterVersion,
+                        MetadataReader metadataReader,
+                        Optional<OrcWriteValidation> writeValidation)
+>>>>>>> 04f7add7c5... PAX, all commits combined into one.
     {
         this.orcDataSource = requireNonNull(orcDataSource, "orcDataSource is null");
-        this.compressionKind = requireNonNull(compressionKind, "compressionKind is null");
+        this.decompressor = requireNonNull(decompressor, "decompressor is null");
         this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
+<<<<<<< HEAD
         this.bufferSize = bufferSize;
         this.includedOrcColumns = getIncludedOrcColumns(types,
                 requireNonNull(includedColumns, "includedColumns is null"),
                 requireNonNull(partitionIds, "partitionIds is null"));
+=======
+        this.includedOrcColumns = getIncludedOrcColumns(types, requireNonNull(includedColumns, "includedColumns is null"));
+>>>>>>> 04f7add7c5... PAX, all commits combined into one.
         this.rowsInRowGroup = rowsInRowGroup;
         this.predicate = requireNonNull(predicate, "predicate is null");
         this.hiveWriterVersion = requireNonNull(hiveWriterVersion, "hiveWriterVersion is null");
         this.metadataReader = requireNonNull(metadataReader, "metadataReader is null");
+        this.writeValidation = requireNonNull(writeValidation, "writeValidation is null");
     }
 
     public Stripe readStripe(StripeInformation stripe, AggregatedMemoryContext systemMemoryUsage)
@@ -104,6 +124,7 @@ public class StripeReader
         }
 
         // handle stripes with more than one row group or a dictionary
+        boolean invalidCheckPoint = false;
         if ((stripe.getNumberOfRows() > rowsInRowGroup) || hasRowGroupDictionary) {
             // determine ranges of the stripe to read
             Map<StreamId, DiskRange> diskRanges = getDiskRanges(stripeFooter.getStreams());
@@ -117,6 +138,9 @@ public class StripeReader
 
             // read the row index for each column
             Map<Integer, List<RowGroupIndex>> columnIndexes = readColumnIndexes(streams, streamsData, bloomFilterIndexes);
+            if (writeValidation.isPresent()) {
+                writeValidation.get().validateRowGroupStatistics(orcDataSource.getId(), stripe.getOffset(), columnIndexes);
+            }
 
             // select the row groups matching the tuple domain
             Set<Integer> selectedRowGroups = selectRowGroups(stripe, columnIndexes);
@@ -151,8 +175,9 @@ public class StripeReader
                 // If the file does not have a row group dictionary, treat the stripe as a single row group. Otherwise,
                 // we must fail because the length of the row group dictionary is contained in the checkpoint stream.
                 if (hasRowGroupDictionary) {
-                    throw new OrcCorruptionException(e, "ORC file %s has corrupt checkpoints", orcDataSource);
+                    throw new OrcCorruptionException(e, orcDataSource.getId(), "Checkpoints are corrupt");
                 }
+                invalidCheckPoint = true;
             }
         }
 
@@ -160,7 +185,7 @@ public class StripeReader
         ImmutableMap.Builder<StreamId, DiskRange> diskRangesBuilder = ImmutableMap.builder();
         for (Entry<StreamId, DiskRange> entry : getDiskRanges(stripeFooter.getStreams()).entrySet()) {
             StreamId streamId = entry.getKey();
-            if (streamId.getStreamKind() != ROW_INDEX && streams.keySet().contains(streamId)) {
+            if (streams.keySet().contains(streamId)) {
                 diskRangesBuilder.put(entry);
             }
         }
@@ -168,6 +193,26 @@ public class StripeReader
 
         // read the file regions
         Map<StreamId, OrcInputStream> streamsData = readDiskRanges(stripe.getOffset(), diskRanges, systemMemoryUsage);
+
+        long minAverageRowBytes = 0;
+        for (Entry<StreamId, Stream> entry : streams.entrySet()) {
+            if (entry.getKey().getStreamKind() == ROW_INDEX) {
+                List<RowGroupIndex> rowGroupIndexes = metadataReader.readRowIndexes(hiveWriterVersion, streamsData.get(entry.getKey()));
+                checkState(rowGroupIndexes.size() == 1 || invalidCheckPoint, "expect a single row group or an invalid check point");
+                long totalBytes = 0;
+                long totalRows = 0;
+                for (RowGroupIndex rowGroupIndex : rowGroupIndexes) {
+                    ColumnStatistics columnStatistics = rowGroupIndex.getColumnStatistics();
+                    if (columnStatistics.hasMinAverageValueSizeInBytes()) {
+                        totalBytes += columnStatistics.getMinAverageValueSizeInBytes() * columnStatistics.getNumberOfValues();
+                        totalRows += columnStatistics.getNumberOfValues();
+                    }
+                }
+                if (totalRows > 0) {
+                    minAverageRowBytes += totalBytes / totalRows;
+                }
+            }
+        }
 
         // value streams
         Map<StreamId, ValueStream<?>> valueStreams = createValueStreams(streams, streamsData, columnEncodings);
@@ -180,7 +225,7 @@ public class StripeReader
         for (Entry<StreamId, ValueStream<?>> entry : valueStreams.entrySet()) {
             builder.put(entry.getKey(), new ValueStreamSource<>(entry.getValue()));
         }
-        RowGroup rowGroup = new RowGroup(0, 0, stripe.getNumberOfRows(), new StreamSources(builder.build()));
+        RowGroup rowGroup = new RowGroup(0, 0, stripe.getNumberOfRows(), minAverageRowBytes, new StreamSources(builder.build()));
 
         return new Stripe(stripe.getNumberOfRows(), columnEncodings, ImmutableList.of(rowGroup), dictionaryStreamSources);
     }
@@ -204,10 +249,9 @@ public class StripeReader
         Map<StreamId, FixedLengthSliceInput> streamsData = orcDataSource.readFully(diskRanges);
 
         // transform streams to OrcInputStream
-        String sourceName = orcDataSource.toString();
         ImmutableMap.Builder<StreamId, OrcInputStream> streamsBuilder = ImmutableMap.builder();
         for (Entry<StreamId, FixedLengthSliceInput> entry : streamsData.entrySet()) {
-            streamsBuilder.put(entry.getKey(), new OrcInputStream(sourceName, entry.getValue(), compressionKind, bufferSize, systemMemoryUsage));
+            streamsBuilder.put(entry.getKey(), new OrcInputStream(orcDataSource.getId(), entry.getValue(), decompressor, systemMemoryUsage));
         }
         return streamsBuilder.build();
     }
@@ -274,16 +318,24 @@ public class StripeReader
         ImmutableList.Builder<RowGroup> rowGroupBuilder = ImmutableList.builder();
 
         for (int rowGroupId : selectedRowGroups) {
-            Map<StreamId, StreamCheckpoint> checkpoints = getStreamCheckpoints(includedOrcColumns, types, compressionKind, rowGroupId, encodings, streams, columnIndexes);
+            Map<StreamId, StreamCheckpoint> checkpoints = getStreamCheckpoints(includedOrcColumns, types, decompressor.isPresent(), rowGroupId, encodings, streams, columnIndexes);
             int rowOffset = rowGroupId * rowsInRowGroup;
             int rowsInGroup = Math.min(rowsInStripe - rowOffset, rowsInRowGroup);
-            rowGroupBuilder.add(createRowGroup(rowGroupId, rowOffset, rowsInGroup, valueStreams, checkpoints));
+            long minAverageRowBytes = columnIndexes
+                    .entrySet()
+                    .stream()
+                    .mapToLong(e -> e.getValue()
+                            .get(rowGroupId)
+                            .getColumnStatistics()
+                            .getMinAverageValueSizeInBytes())
+                    .sum();
+            rowGroupBuilder.add(createRowGroup(rowGroupId, rowOffset, rowsInGroup, minAverageRowBytes, valueStreams, checkpoints));
         }
 
         return rowGroupBuilder.build();
     }
 
-    public static RowGroup createRowGroup(int groupId, int rowOffset, int rowCount, Map<StreamId, ValueStream<?>> valueStreams, Map<StreamId, StreamCheckpoint> checkpoints)
+    public static RowGroup createRowGroup(int groupId, int rowOffset, int rowCount, long minAverageRowBytes, Map<StreamId, ValueStream<?>> valueStreams, Map<StreamId, StreamCheckpoint> checkpoints)
     {
         ImmutableMap.Builder<StreamId, StreamSource<?>> builder = ImmutableMap.builder();
         for (Entry<StreamId, StreamCheckpoint> entry : checkpoints.entrySet()) {
@@ -299,7 +351,7 @@ public class StripeReader
             builder.put(streamId, createCheckpointStreamSource(valueStream, checkpoint));
         }
         StreamSources rowGroupStreams = new StreamSources(builder.build());
-        return new RowGroup(groupId, rowOffset, rowCount, rowGroupStreams);
+        return new RowGroup(groupId, rowOffset, rowCount, minAverageRowBytes, rowGroupStreams);
     }
 
     public StripeFooter readStripeFooter(StripeInformation stripe, AbstractAggregatedMemoryContext systemMemoryUsage)
@@ -307,12 +359,11 @@ public class StripeReader
     {
         long offset = stripe.getOffset() + stripe.getIndexLength() + stripe.getDataLength();
         int tailLength = toIntExact(stripe.getFooterLength());
-
         // read the footer
-        byte[] tailBuffer = new byte[tailLength];
-        orcDataSource.readFully(offset, tailBuffer);
-        try (InputStream inputStream = new OrcInputStream(orcDataSource.toString(), Slices.wrappedBuffer(tailBuffer).getInput(), compressionKind, bufferSize, systemMemoryUsage)) {
-            return metadataReader.readStripeFooter(hiveWriterVersion, types, inputStream);
+
+        ByteBuffer stripeFooter = orcDataSource.readFully(offset,tailLength);
+        try (InputStream inputStream = new OrcInputStream(orcDataSource.getId(), Slices.wrappedBuffer(stripeFooter).getInput(), decompressor, systemMemoryUsage)) {
+            return metadataReader.readStripeFooter(types, inputStream);
         }
     }
 
@@ -356,7 +407,7 @@ public class StripeReader
         return columnIndexes.build();
     }
 
-    private Set<Integer> selectRowGroups(StripeInformation stripe,  Map<Integer, List<RowGroupIndex>> columnIndexes)
+    private Set<Integer> selectRowGroups(StripeInformation stripe, Map<Integer, List<RowGroupIndex>> columnIndexes)
             throws IOException
     {
         int rowsInStripe = toIntExact(stripe.getNumberOfRows());
@@ -419,6 +470,12 @@ public class StripeReader
         Set<Integer> includes = new LinkedHashSet<>();
 
         OrcType root = types.get(0);
+<<<<<<< HEAD
+=======
+        for (int includedColumn : includedColumns) {
+            includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(includedColumn));
+        }
+>>>>>>> 04f7add7c5... PAX, all commits combined into one.
 
         if (partitionIds.isEmpty()) {
             // not a partitioned ORC table
