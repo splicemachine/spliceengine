@@ -78,14 +78,14 @@ public class DoubleStreamReader
             }
             if (readOffset > 0) {
                 if (dataStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(), "Value is not null but data stream is not present");
                 }
                 dataStream.skip(readOffset);
             }
         }
         if (presentStream == null) {
             if (dataStream == null) {
-                throw new OrcCorruptionException("Value is not null but data stream is not present");
+                throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(), "Value is not null but data stream is not present");
             }
             dataStream.nextVector(type, nextBatchSize, vector);
         }
@@ -96,7 +96,7 @@ public class DoubleStreamReader
             int nullValues = presentStream.getUnsetBits(nextBatchSize, nullVector);
             if (nullValues != nextBatchSize) {
                 if (dataStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(), "Value is not null but data stream is not present");
                 }
                 dataStream.nextVector(type, nextBatchSize, vector, nullVector);
             }

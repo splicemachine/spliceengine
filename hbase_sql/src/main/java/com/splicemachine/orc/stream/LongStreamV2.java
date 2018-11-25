@@ -21,7 +21,6 @@ import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
 import java.io.InputStream;
-import static com.splicemachine.orc.stream.OrcStreamUtils.MIN_REPEAT_SIZE;
 import static java.lang.Math.toIntExact;
 
 /**
@@ -31,6 +30,7 @@ import static java.lang.Math.toIntExact;
 public class LongStreamV2
         implements LongStream
 {
+    private static final int MIN_REPEAT_SIZE = 3;
     private static final int MAX_LITERAL_SIZE = 512;
 
     private enum EncodingType
@@ -64,7 +64,7 @@ public class LongStreamV2
         // read the first 2 bits and determine the encoding type
         int firstByte = input.read();
         if (firstByte < 0) {
-            throw new OrcCorruptionException("Read past end of RLE integer from %s", input);
+            throw new OrcCorruptionException(input.getOrcDataSourceId(),"Read past end of RLE integer from %s", input);
         }
 
         int enc = (firstByte >>> 6) & 0x03;
@@ -187,7 +187,7 @@ public class LongStreamV2
         long[] unpackedPatch = new long[patchListLength];
 
         if ((patchWidth + patchGapWidth) > 64 && !skipCorrupt) {
-            throw new OrcCorruptionException("ORC file is corrupt");
+            throw new OrcCorruptionException(input.getOrcDataSourceId(),"ORC file is corrupt");
         }
 
         int bitSize = LongDecode.getClosestFixedBits(patchWidth + patchGapWidth);

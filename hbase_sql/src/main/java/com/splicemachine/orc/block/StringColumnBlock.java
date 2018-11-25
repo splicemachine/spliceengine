@@ -13,6 +13,8 @@
  */
 package com.splicemachine.orc.block;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.orc.reader.SliceDictionary;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
@@ -53,6 +55,16 @@ public class StringColumnBlock extends AbstractColumnBlock {
             columnVector.getDictionaryIds().appendInts(size,0);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void setValue(DataValueDescriptor dvd) throws StandardException {
+        if (dvd.isNull())
+            columnVector.appendNull();
+        else {
+            byte[] bytes = dvd.getString().getBytes();
+            columnVector.appendByteArray(bytes, 0, bytes.length);
         }
     }
 

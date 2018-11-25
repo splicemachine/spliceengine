@@ -80,14 +80,14 @@ public class BooleanStreamReader
             }
             if (readOffset > 0) {
                 if (dataStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
                 }
                 dataStream.skip(readOffset);
             }
         }
         if (presentStream == null) {
             if (dataStream == null) {
-                throw new OrcCorruptionException("Value is not null but data stream is not present");
+                throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
             }
             dataStream.getSetBits(type, nextBatchSize, vector);
         }
@@ -98,7 +98,7 @@ public class BooleanStreamReader
             int nullValues = presentStream.getUnsetBits(nextBatchSize, nullVector);
             if (nullValues != nextBatchSize) {
                 if (dataStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
                 }
                 dataStream.getSetBits(type, nextBatchSize, vector, nullVector);
             }

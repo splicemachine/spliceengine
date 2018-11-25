@@ -13,7 +13,7 @@
  */
 package com.splicemachine.orc;
 
-import com.splicemachine.orc.metadata.ColumnStatistics;
+import com.splicemachine.orc.metadata.statistics.ColumnStatistics;
 
 import java.util.Map;
 

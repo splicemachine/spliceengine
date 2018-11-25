@@ -86,7 +86,7 @@ public class ListStreamReader
             }
             if (readOffset > 0) {
                 if (lengthStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
                 }
                 long elementSkipSize = lengthStream.sum(readOffset);
                 elementStreamReader.prepareNextRead(toIntExact(elementSkipSize));
@@ -101,7 +101,7 @@ public class ListStreamReader
         boolean[] nullVector = new boolean[nextBatchSize];
         if (presentStream == null) {
             if (lengthStream == null) {
-                throw new OrcCorruptionException("Value is not null but data stream is not present");
+                throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
             }
             lengthStream.nextIntVector(nextBatchSize, lengthVector);
         }
@@ -109,7 +109,7 @@ public class ListStreamReader
             int nullValues = presentStream.getUnsetBits(nextBatchSize, nullVector);
             if (nullValues != nextBatchSize) {
                 if (lengthStream == null) {
-                    throw new OrcCorruptionException("Value is not null but data stream is not present");
+                    throw new OrcCorruptionException(streamDescriptor.getOrcDataSourceId(),"Value is not null but data stream is not present");
                 }
                 lengthStream.nextIntVector(nextBatchSize, lengthVector, nullVector);
             }

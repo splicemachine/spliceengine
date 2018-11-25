@@ -21,7 +21,10 @@ import static com.google.common.collect.Lists.transform;
 import java.io.IOException;
 import java.util.List;
 
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.OlapConfigurations;
+import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import org.apache.commons.collections.ListUtils;
@@ -34,7 +37,11 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
+import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.hbase.*;
+import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
+import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
+import com.splicemachine.utils.BlockingProbeEndpoint;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HConstants;
@@ -43,12 +50,17 @@ import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.configuration.SQLConfiguration;
-import com.splicemachine.derby.hbase.SpliceIndexObserver;
-import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
-import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
-import com.splicemachine.utils.BlockingProbeEndpoint;
+import org.apache.hadoop.hbase.security.access.AccessController;
+import org.apache.hadoop.hbase.security.token.TokenProvider;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.ImmutableList;
+
+import java.util.List;
+
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.spark_project.guava.collect.Lists.transform;
 
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
@@ -132,6 +144,11 @@ class SpliceTestPlatformConfig {
         //
         // Networking
         //
+        config.setBoolean("hbase.defaults.for.version.skip",true);
+        config.setBoolean("hbase.ipc.client.fallback-to-simple-auth-allowed",true);
+        config.setBoolean("hbase.regionserver.safemode",false);
+        config.setBoolean("hbase.table.sanity.checks",false);
+        config.setLong("hbase.regionserver.msginterval",1000);
         config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
         config.setInt("hbase.master.port", masterPort);
         config.setInt("hbase.master.info.port", masterInfoPort);
@@ -186,13 +203,13 @@ class SpliceTestPlatformConfig {
         //
         // Threads, timeouts
         //
-        config.setLong("hbase.rpc.timeout", MINUTES.toMillis(5));
+        config.setLong("hbase.rpc.timeout", MINUTES.toMillis(20));  // msirek-temp
         config.setInt("hbase.client.max.perserver.tasks",50);
         config.setInt("hbase.client.ipc.pool.size",10);
         config.setInt("hbase.rowlock.wait.duration",0);
 
-        config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
-        config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
+        config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(20)); // hbase.regionserver.lease.period is deprecated  msirek-temp
+        config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(20));  // msirek-temp
         config.setLong("hbase.regionserver.handler.count", 50);
         config.setLong("hbase.regionserver.metahandler.count", 50);
         config.setInt("hbase.hconnection.threads.max", 128);
@@ -206,7 +223,7 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.balancer.period",5000);
 
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
-        config.setLong("hbase.client.pause", 100);
+        config.setLong("hbase.client.pause", 20);
 
         //
         // Compaction Controls

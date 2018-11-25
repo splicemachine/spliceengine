@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
+import org.roaringbitmap.RoaringBitmap;
 import scala.collection.Map;
 import scala.collection.Seq;
 import java.io.*;
@@ -422,5 +423,25 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	@Override
 	public void transfer(ExecRow execRow) throws StandardException {
 		valueRow.transfer(execRow);
+	}
+                                        /* msirek-temp->
+	public int getNonNullCount() throws StandardException {
+		return valueRow.getNonNullCount();
+	}
+
+	@Override
+	public byte[] generateRowKey(int[] columns) throws StandardException {
+		return valueRow.generateRowKey(columns);
+	}
+
+	@Override
+	public FormatableBitSet getVariableLengthBitSet() throws StandardException {
+		return valueRow.getVariableLengthBitSet();
+	}
+	                             <-msirek-temp */
+
+	@Override
+	public StructType createStructType() {
+		return valueRow.createStructType();
 	}
 }

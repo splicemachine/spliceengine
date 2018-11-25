@@ -20,8 +20,6 @@ import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
-import static com.splicemachine.orc.stream.OrcStreamUtils.readFully;
-import static com.splicemachine.orc.stream.OrcStreamUtils.skipFully;
 import static io.airlift.slice.SizeOf.SIZE_OF_DOUBLE;
 
 public class DoubleStream
@@ -54,13 +52,13 @@ public class DoubleStream
             throws IOException
     {
         long length = items * SIZE_OF_DOUBLE;
-        skipFully(input, length);
+        input.skipFully(length);
     }
 
     public double next()
             throws IOException
     {
-        readFully(input, buffer, 0, SIZE_OF_DOUBLE);
+        input.readFully( buffer, 0, SIZE_OF_DOUBLE);
         return slice.getDouble(0);
     }
 

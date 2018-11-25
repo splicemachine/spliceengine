@@ -13,6 +13,8 @@
  */
 package com.splicemachine.orc.block;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.spark.memory.MemoryMode;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
@@ -37,6 +39,15 @@ public class LongColumnBlock extends AbstractColumnBlock {
     public void setPartitionValue(String value, int size) {
         columnVector = ColumnVector.allocate(size, dataType, MemoryMode.ON_HEAP);
         columnVector.appendLongs(size,Long.parseLong(value));
+    }
+
+    @Override
+    public void setValue(DataValueDescriptor dvd) throws StandardException {
+        if (dvd.isNull()) {
+            columnVector.appendNull();
+        } else {
+            columnVector.appendLong(dvd.getLong());
+        }
     }
 
 }

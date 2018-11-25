@@ -13,6 +13,7 @@
  */
 package com.splicemachine.orc.block;
 
+import org.apache.derby.iapi.types.DataValueDescriptor;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 
@@ -35,4 +36,5 @@ public class TimestampColumnBlock extends AbstractColumnBlock {
     public void setPartitionValue(String value, int size) {
         throw new UnsupportedOperationException("Not Supported");
     }
+
 }
