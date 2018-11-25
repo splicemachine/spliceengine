@@ -13,6 +13,11 @@
  */
 package com.splicemachine.orc;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.splicemachine.orc.checkpoint.InvalidCheckpointException;
 import com.splicemachine.orc.checkpoint.StreamCheckpoint;
 import com.splicemachine.orc.memory.AbstractAggregatedMemoryContext;
@@ -25,11 +30,6 @@ import com.splicemachine.orc.metadata.Stream.StreamKind;
 import com.splicemachine.orc.metadata.statistics.ColumnStatistics;
 import com.splicemachine.orc.metadata.statistics.HiveBloomFilter;
 import com.splicemachine.orc.stream.*;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import io.airlift.slice.FixedLengthSliceInput;
 import io.airlift.slice.Slices;
 
@@ -39,14 +39,14 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.Map.Entry;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.splicemachine.orc.checkpoint.Checkpoints.getDictionaryStreamCheckpoint;
 import static com.splicemachine.orc.checkpoint.Checkpoints.getStreamCheckpoints;
 import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.DICTIONARY;
 import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.DICTIONARY_V2;
 import static com.splicemachine.orc.metadata.Stream.StreamKind.*;
 import static com.splicemachine.orc.stream.CheckpointInputStreamSource.createCheckpointStreamSource;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
@@ -63,17 +63,6 @@ public class StripeReader
     private final Optional<OrcWriteValidation> writeValidation;
 
     public StripeReader(OrcDataSource orcDataSource,
-<<<<<<< HEAD
-            CompressionKind compressionKind,
-            List<OrcType> types,
-            int bufferSize,
-            Set<Integer> includedColumns,
-            int rowsInRowGroup,
-            OrcPredicate predicate,
-            HiveWriterVersion hiveWriterVersion,
-            MetadataReader metadataReader,
-            List<Integer> partitionIds)
-=======
                         Optional<OrcDecompressor> decompressor,
                         List<OrcType> types,
                         Set<Integer> includedColumns,
@@ -81,20 +70,15 @@ public class StripeReader
                         OrcPredicate predicate,
                         HiveWriterVersion hiveWriterVersion,
                         MetadataReader metadataReader,
-                        Optional<OrcWriteValidation> writeValidation)
->>>>>>> 04f7add7c5... PAX, all commits combined into one.
+                        Optional<OrcWriteValidation> writeValidation,
+                        List<Integer> partitionIds)
     {
         this.orcDataSource = requireNonNull(orcDataSource, "orcDataSource is null");
         this.decompressor = requireNonNull(decompressor, "decompressor is null");
         this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
-<<<<<<< HEAD
-        this.bufferSize = bufferSize;
         this.includedOrcColumns = getIncludedOrcColumns(types,
                 requireNonNull(includedColumns, "includedColumns is null"),
                 requireNonNull(partitionIds, "partitionIds is null"));
-=======
-        this.includedOrcColumns = getIncludedOrcColumns(types, requireNonNull(includedColumns, "includedColumns is null"));
->>>>>>> 04f7add7c5... PAX, all commits combined into one.
         this.rowsInRowGroup = rowsInRowGroup;
         this.predicate = requireNonNull(predicate, "predicate is null");
         this.hiveWriterVersion = requireNonNull(hiveWriterVersion, "hiveWriterVersion is null");
@@ -470,12 +454,6 @@ public class StripeReader
         Set<Integer> includes = new LinkedHashSet<>();
 
         OrcType root = types.get(0);
-<<<<<<< HEAD
-=======
-        for (int includedColumn : includedColumns) {
-            includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(includedColumn));
-        }
->>>>>>> 04f7add7c5... PAX, all commits combined into one.
 
         if (partitionIds.isEmpty()) {
             // not a partitioned ORC table

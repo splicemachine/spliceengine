@@ -224,11 +224,8 @@ public class OrcRecordReader
                 predicate,
                 hiveWriterVersion,
                 metadataReader,
-<<<<<<< HEAD
+                writeValidation,
                 partitionIds);
-=======
-                writeValidation);
->>>>>>> 04f7add7c5... PAX, all commits combined into one.
 
         streamReaders = createStreamReaders(orcDataSource, types, hiveStorageTimeZone, presentColumnsAndTypes.build());
         maxBytesPerCell = new long[streamReaders.length];

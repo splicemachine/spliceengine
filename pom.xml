@@ -85,14 +85,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
-<<<<<<< HEAD
         <spark.version>2.1.0</spark.version>
         <netty-all.version>4.0.29.Final</netty-all.version>
-=======
-        <spark.version>2.1.0.cloudera1</spark.version>
         <hive.version>1.1.0-cdh5.12.0</hive.version>
-
->>>>>>> 04f7add7c5... PAX, all commits combined into one.
     </properties>
     <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
@@ -1166,11 +1161,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
-<<<<<<< HEAD
                 <module>assembly</module>
-=======
-
->>>>>>> 04f7add7c5... PAX, all commits combined into one.
             </modules>
         </profile>
         <profile>
