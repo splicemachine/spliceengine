@@ -270,6 +270,15 @@ public class UpdateOperationIT {
                         "-------------\n" +
                         " 102 |94114 |",
                 TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        updated = methodWatcher.getStatement().executeUpdate("update b1 X set (num, zip) =(select num, zip from LOCATION where LOCATION.zip = '94114')");
+        assertEquals("Incorrect num rows updated!", 1, updated);
+        rs = methodWatcher.executeQuery("select num, zip from b1");
+        assertEquals("" +
+                        "NUM | ZIP  |\n" +
+                        "-------------\n" +
+                        " 100 |94114 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     /* Regression test for Bug 682. */
