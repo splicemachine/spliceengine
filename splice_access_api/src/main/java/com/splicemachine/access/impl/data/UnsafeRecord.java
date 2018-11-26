@@ -494,7 +494,7 @@ public class UnsafeRecord implements Record<byte[]> {
     public boolean isActive() {
         return active;
     }
-
+                                                         /* msirek-temp->
     @Override
     public Record applyRedo(Iterator<Record<byte[]>> iterator, ExecRow rowDefinition) throws StandardException {
         return applyRedo(iterator,rowDefinition.getVariableLengthBitSet());
@@ -730,7 +730,7 @@ public class UnsafeRecord implements Record<byte[]> {
     public Record[] updateRecord(Record updatedRecord, ExecRow rowDefinition) throws StandardException {
         return updateRecord(updatedRecord, rowDefinition.getVariableLengthBitSet());
     }
-
+                            <- msirek-temp */
     @Override
     public String toString() {
         return "UnsafeRecord {key=" + Hex.encodeHexString(getKey()) +

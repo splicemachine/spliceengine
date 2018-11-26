@@ -719,11 +719,11 @@ public class ValueRow implements ExecRow, Externalizable {
 		return j;
 	}
 
-	@Override
+	// @Override msirek-temp
 	public byte[] generateRowKey(int[] columns) throws StandardException {
 		throw new UnsupportedOperationException("Not Implemented Yet");
 	}
-
+                               /* msirek-temp->
 	@Override
 	public FormatableBitSet getVariableLengthBitSet() throws StandardException {
 		FormatableBitSet fbs = new FormatableBitSet(ncols);
@@ -733,5 +733,6 @@ public class ValueRow implements ExecRow, Externalizable {
 		}
 		return fbs;
 	}
+	*/
 }
 

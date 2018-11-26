@@ -424,7 +424,7 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	public void transfer(ExecRow execRow) throws StandardException {
 		valueRow.transfer(execRow);
 	}
-
+                                        /* msirek-temp->
 	public int getNonNullCount() throws StandardException {
 		return valueRow.getNonNullCount();
 	}
@@ -438,6 +438,7 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	public FormatableBitSet getVariableLengthBitSet() throws StandardException {
 		return valueRow.getVariableLengthBitSet();
 	}
+	                             <-msirek-temp */
 
 	@Override
 	public StructType createStructType() {

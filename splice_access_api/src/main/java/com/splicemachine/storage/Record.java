@@ -7,7 +7,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.utils.ByteSlice;
-import java.util.Iterator;
 
 /**
  *
@@ -213,24 +212,24 @@ public interface Record<K> {
     void setActive(boolean active);
 
     boolean isActive();
-
+                                                   /* msirek-temp->
     Record applyRedo(Iterator<Record<K>> recordIterator, ExecRow rowDefinition) throws StandardException;
 
     Record applyRedo(Iterator<Record<K>> recordIterator, FormatableBitSet variableLength) throws StandardException;
-
+                                     <- msirek-temp */
     /**
      * Position 0 active Record, Position 1 redo record
      *
      * @param updatedRecord
      * @return
      */
-
+                                                   /* msirek-temp->
     Record applyRedo(Record<K> updatedRecord, FormatableBitSet variableLength, FormatableBitSet accessedColumns) throws StandardException;
 
     Record applyRedo(Record<K> updatedRecord, ExecRow recordDefinition) throws StandardException;
 
     Record applyRedo(Record<K> updatedRecord, FormatableBitSet variableLength) throws StandardException;
-
+                                     <- msirek-temp */
 
     /**
      * Position 0 active Record, Position 1 redo record
@@ -238,10 +237,11 @@ public interface Record<K> {
      * @param updatedRecord
      * @return
      */
+                                                   /* msirek-temp->
     Record[] updateRecord(Record<K> updatedRecord, ExecRow recordDefinition) throws StandardException;
 
     Record[] updateRecord(Record<K> updatedRecord, FormatableBitSet variableLength) throws StandardException;
-
+                                     <- msirek-temp */
     Record createIndexDelete(int[] mainColToIndexPosMap, boolean uniqueWithDuplicateNulls, boolean[] descending, ExecRow indexRow) throws StandardException;
 
     Record createIndexInsert(int[] mainColToIndexPosMap, boolean uniqueWithDuplicateNulls, boolean[] descending, ExecRow indexRow) throws StandardException;
