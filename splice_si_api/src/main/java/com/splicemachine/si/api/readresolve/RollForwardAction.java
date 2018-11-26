@@ -10,42 +10,15 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
-package com.splicemachine.si.data.hbase.rollforward;
+package com.splicemachine.si.api.readresolve;
 
 import com.splicemachine.storage.Partition;
-import com.splicemachine.utils.ByteSlice;
 
-import java.util.List;
-
-public class RFEvent {
-    private Partition partition;
-    private List<ByteSlice> keys;
-    private long txnId;
-    private long timestamp;
-
-    public RFEvent(Partition partition, List<ByteSlice> keys, long txnId, long timestamp) {
-        this.partition = partition;
-        this.keys = keys;
-        this.txnId = txnId;
-        this.timestamp = timestamp;
-    }
-
-    public List<ByteSlice> getKeys() {
-        return keys;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
-
-    public long getTxnId() {
-        return txnId;
-    }
-
-    public Partition getPartition() {
-        return partition;
-    }
+/**
+ * Created by jleach on 12/11/15.
+ */
+public interface RollForwardAction {
+    void submitAction(Partition region,byte[] startKey,byte[] stopKey);
 }
