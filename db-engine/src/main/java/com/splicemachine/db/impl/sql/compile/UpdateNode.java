@@ -1411,14 +1411,16 @@ public final class UpdateNode extends DMLModStatementNode
                 column.clearTableName();
             }
             else {
-                /* Make the column's table name to table's exposed name
+                /* Make the column reference's table name to target table's exposed name
                  which is consistent with getMatchingColumn in FromBaseTable
                 */
-                ValueNode expression = column.getExpression();
-                if (expression instanceof ColumnReference && expression.getColumnName().equals(column.getName()))
-                {
-                    ((ColumnReference) expression).setTableNameNode(tableNameNode);
-                }
+                String baseTableName = targetTable.getBaseTableName();
+                String exposedTableName = targetTable.getExposedName();
+                if (!baseTableName.equals(exposedTableName)) {
+      	          ValueNode expression = column.getExpression();
+					if (expression != null && expression instanceof ColumnReference && baseTableName.equals(expression.getTableName()))
+						((ColumnReference) expression).setTableNameNode(makeTableName(null,exposedTableName));
+				}
             }
 		}
 	}
