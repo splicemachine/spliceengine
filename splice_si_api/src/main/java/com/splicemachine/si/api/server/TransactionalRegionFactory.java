@@ -16,7 +16,7 @@ package com.splicemachine.si.api.server;
 
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.rollforward.RollForward;
+import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.server.SITransactor;

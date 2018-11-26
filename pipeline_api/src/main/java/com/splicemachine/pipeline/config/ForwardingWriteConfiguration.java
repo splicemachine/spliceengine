@@ -58,11 +58,6 @@ public class ForwardingWriteConfiguration implements WriteConfiguration {
     }
 
     @Override
-    public boolean rollForward() {
-        return delegate.rollForward();
-    }
-
-    @Override
     public int getMaximumRetries() {
         return delegate.getMaximumRetries();
     }

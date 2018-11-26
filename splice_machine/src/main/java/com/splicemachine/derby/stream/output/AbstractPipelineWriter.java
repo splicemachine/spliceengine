@@ -47,7 +47,6 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected WriteCoordinator writeCoordinator;
     protected DMLWriteOperation operation;
     protected OperationContext operationContext;
-    protected boolean rollforward;
 
     public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, OperationContext operationContext) {
         this.txn = txn;
@@ -126,9 +125,5 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     @Override
     public OperationContext getOperationContext() {
         return operationContext;
-    }
-
-    public void setRollforward(boolean rollforward) {
-        this.rollforward = rollforward;
     }
 }

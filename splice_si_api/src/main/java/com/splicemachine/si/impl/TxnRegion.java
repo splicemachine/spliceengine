@@ -18,7 +18,7 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.rollforward.RollForward;
+import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
@@ -115,13 +115,12 @@ public class TxnRegion<InternalScanner> implements TransactionalRegion<InternalS
     public Iterable<MutationStatus> bulkWrite(TxnView txn,
                                               byte[] family, byte[] qualifier,
                                               ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
-                                              Collection<KVPair> data, boolean skipConflictDetection,
-                                              boolean skipWAL, boolean rollforward) throws IOException{
+                                              Collection<KVPair> data, boolean skipConflictDetection, boolean skipWAL) throws IOException{
         /*
          * Designed for subclasses. Override this if you want to bypass transactional writes
          */
         final MutationStatus[] status = transactor.processKvBatch(region, rollForward, family, qualifier, data,txn,
-                constraintChecker,skipConflictDetection,skipWAL,rollforward);
+                constraintChecker,skipConflictDetection,skipWAL);
         return new Iterable<MutationStatus>(){
             @Override public Iterator<MutationStatus> iterator(){ return Iterators.forArray(status); }
         };

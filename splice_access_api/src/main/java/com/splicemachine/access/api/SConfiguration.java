@@ -180,12 +180,6 @@ public interface SConfiguration {
 
     int getReadResolverThreads();
 
-    int getRollforwardQueueSize();
-    int getRollforwardFirstWait();
-    int getRollforwardSecondWait();
-    int getRollforwardFirstThreads();
-    int getRollforwardSecondThreads();
-
     int getTimestampClientWaitTime();
 
     int getTimestampServerBindPort();

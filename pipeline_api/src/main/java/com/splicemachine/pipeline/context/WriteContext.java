@@ -114,8 +114,6 @@ public interface WriteContext {
     boolean skipConflictDetection();
 
     boolean skipWAL();
-    
-    boolean rollforward();
 
     TransactionalRegion txnRegion();
 
