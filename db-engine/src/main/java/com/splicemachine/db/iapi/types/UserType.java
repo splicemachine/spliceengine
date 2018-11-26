@@ -674,7 +674,7 @@ public class UserType extends DataType
 			isNull = false;
 			Object object = row.get(ordinal);
 			if (object instanceof byte[]) {
-				value = SerializationUtils.deserialize((byte[]) row.get(ordinal));
+				value = SerializationUtils.deserialize((byte[]) object);
 			} else {
 				value = object;
 			}
