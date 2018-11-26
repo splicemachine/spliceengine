@@ -74,6 +74,8 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         methodWatcher.executeUpdate("delete from A");
         methodWatcher.executeUpdate("insert into a values(1,1), (2,2)");
 
+        Thread.sleep(2000); // wait for commit markers to be written
+
         try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
             long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");
             TableName hTableName = TableName.valueOf("splice:" + Long.toString(conglomId[0]));
