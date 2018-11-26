@@ -658,7 +658,6 @@ public class ControlDataSet<V> implements DataSet<V> {
             public DataSetWriter build() throws StandardException{
                 assert txn!=null:"Txn is null";
                 DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom,operationContext);
-                dpw.setRollforward(true);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext);
             }
         };
@@ -681,7 +680,6 @@ public class ControlDataSet<V> implements DataSet<V> {
                         txn,
                         token, operationContext,
                         isUpsert);
-                ipw.setRollforward(true);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext);
             }
         }.operationContext(operationContext);
@@ -699,7 +697,6 @@ public class ControlDataSet<V> implements DataSet<V> {
                         formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
                         txn,token,execRowDefinition,heapList,operationContext);
 
-                upw.setRollforward(true);
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext);
             }
         };

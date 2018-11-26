@@ -147,11 +147,6 @@ public class ConfigurationBuilder {
     public String storageFactoryHome;
     public int nestedLoopJoinBatchSize;
     public int maxCheckTableErrors;
-    public int rollForwardQueueSize;
-    public int rollForwardFirstWait;
-    public int rollForwardSecondWait;
-    public int rollForwardFirstThreads;
-    public int rollForwardSecondThreads;
 
     // PipelineConfiguration
     public int coreWriterThreads;
@@ -187,7 +182,6 @@ public class ConfigurationBuilder {
     public long controlExecutionRowLimit;
     public int olapShufflePartitions;
     public String olapLog4jConfig;
-
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>
