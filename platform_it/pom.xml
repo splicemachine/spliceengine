@@ -1593,14 +1593,14 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_ee</artifactId>
                     <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
+                    <classifier>${envClassifier}-tests</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup</artifactId>
                     <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
+                    <classifier>${envClassifier}-tests</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>

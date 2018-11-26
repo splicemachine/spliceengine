@@ -33,8 +33,9 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
+            <artifactId>splicemachine</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
     </dependencies>
     <properties>
@@ -70,7 +71,7 @@
             splice_colperms,
             splice_encryption,
             akka-remote_${scala.binary.version},
-            splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
+            splicemachine,
             super-csv,
             c3p0,
             mchange-commons-java,
@@ -161,8 +162,12 @@
                                 <configuration>
                                     <includeArtifactIds>
                                         ${commonArtifacts},
-                                        splice_sentry-${envClassifier}
+                                        splice_sentry
                                     </includeArtifactIds>
+                                    <includeClassifiers>
+                                        ${envClassifier},
+                                        ${envClassifier}-tests
+                                    </includeClassifiers>
                                 </configuration>
                             </execution>
                         </executions>
@@ -333,8 +338,12 @@
                                         javax.servlet-api,
                                         javax.ws.rs-api,
                                         jython-standalone,
-                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}
+                                        splicemachine
                                     </includeArtifactIds>
+                                    <includeClassifiers>
+                                        ${envClassifier},
+                                        ${envClassifier}-tests
+                                    </includeClassifiers>
                                 </configuration>
                             </execution>
                         </executions>
@@ -569,6 +578,10 @@
                                         splice_ranger_service,
                                         splice_atlas
                                     </includeArtifactIds>
+                                    <includeClassifiers>
+                                        ${envClassifier},
+                                        ${envClassifier}-tests
+                                    </includeClassifiers>
                                 </configuration>
                             </execution>
                         </executions>
