@@ -249,7 +249,7 @@ public class UserType extends DataType
 	{
 		return value;
 	}
-		
+
 	public int getLength()
 	{
 		return TypeDescriptor.MAXIMUM_WIDTH_UNKNOWN;
