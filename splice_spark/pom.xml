@@ -248,6 +248,15 @@
                             <goal>testCompile</goal>
                         </goals>
                     </execution>
+                    <executions>
+                        <execution>
+                            <id>generate-scala-docs</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>doc-jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </executions>
             </plugin>
             <plugin>
