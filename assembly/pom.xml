@@ -739,6 +739,13 @@
             <id>standalone</id>
             <dependencies>
                 <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>platform_it</artifactId>
+                    <version>${project.version}</version>
+                    <type>test-jar</type>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
                     <groupId>org.apache.hbase</groupId>
                     <artifactId>hbase-testing-util</artifactId>
                     <version>${hbase.version}</version>
