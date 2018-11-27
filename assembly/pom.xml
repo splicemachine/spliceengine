@@ -21,13 +21,18 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.7.0.1846-SNAPSHOT</version>
+        <version>2.7.0.1847-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <!-- Get all projects and required dependencies transitively -->
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
@@ -327,7 +332,8 @@
                                         db-drda,
                                         javax.servlet-api,
                                         javax.ws.rs-api,
-                                        jython-standalone
+                                        jython-standalone,
+                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>

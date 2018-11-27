@@ -959,8 +959,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
-        return new SparkInsertTableWriterBuilder<>(((SparkPairDataSet) this.index(new EmptySparkPairDataSet<>()))
-                .wrapExceptions());
+        return new SparkInsertTableWriterBuilder<>(this);
     }
 
     @Override

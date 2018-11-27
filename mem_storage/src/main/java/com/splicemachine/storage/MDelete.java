@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
@@ -31,6 +32,10 @@ public class MDelete implements DataDelete{
     public MDelete(byte[] key){
         this.key=key;
         this.exactColsToDelete = new TreeSet<>();
+    }
+
+    public MDelete(ByteSlice rowKey) {
+        this(rowKey.getByteCopy());
     }
 
     @SuppressFBWarnings("EI_EXPOSE_REP")
@@ -64,6 +69,11 @@ public class MDelete implements DataDelete{
     @Override
     public Iterable<DataCell> cells(){
         return exactColsToDelete;
+    }
+
+    @Override
+    public void skipWAL() {
+        // no-op in mem
     }
 
     @Override
