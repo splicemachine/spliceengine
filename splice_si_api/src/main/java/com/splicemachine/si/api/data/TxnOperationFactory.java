@@ -43,7 +43,11 @@ public interface TxnOperationFactory{
 
     TxnView readTxn(ObjectInput oi) throws IOException;
 
+    TxnView readTxnStack(ObjectInput oi) throws IOException;
+
     void writeTxn(TxnView txn,ObjectOutput out) throws IOException;
+
+    void writeTxnStack(TxnView txn,ObjectOutput out) throws IOException;
 
     void writeScan(DataScan scan, ObjectOutput out) throws IOException;
 
