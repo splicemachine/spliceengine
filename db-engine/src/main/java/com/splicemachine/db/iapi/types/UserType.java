@@ -694,6 +694,10 @@ public class UserType extends DataType
 
 	@Override
 	public void setSparkObject(Object sparkObject) throws StandardException {
-		value = sparkObject;
+		if (sparkObject instanceof byte[]) {
+			value = SerializationUtils.deserialize((byte[]) sparkObject);
+		} else {
+			value = sparkObject;
+		}
 	}
 }
