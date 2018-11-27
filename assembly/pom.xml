@@ -816,13 +816,15 @@
 
                 <dependency>
                     <groupId>${project.groupId}</groupId>
-                    <artifactId>hbase_sql-${envClassifier}</artifactId>
+                    <artifactId>hbase_sql</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                 </dependency>
                 <dependency>
                     <groupId>${project.groupId}</groupId>
-                    <artifactId>hbase_sql-${envClassifier}</artifactId>
+                    <artifactId>hbase_sql</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                     <type>test-jar</type>
                     <scope>test</scope>
                 </dependency>
@@ -1115,15 +1117,16 @@
                 </dependency>
                 <dependency>
                     <groupId>${project.groupId}</groupId>
-                    <artifactId>hbase_storage-${envClassifier}</artifactId>
+                    <artifactId>hbase_storage</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                 </dependency>
                 <dependency>
                     <groupId>${project.groupId}</groupId>
-                    <artifactId>hbase_pipeline-${envClassifier}</artifactId>
+                    <artifactId>hbase_pipeline</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
                 </dependency>
-
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-yarn-common</artifactId>
