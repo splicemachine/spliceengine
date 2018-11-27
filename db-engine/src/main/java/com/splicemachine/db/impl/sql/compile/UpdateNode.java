@@ -522,8 +522,9 @@ public final class UpdateNode extends DMLModStatementNode
 		 */
 		// Splice fork: leave table names present in special case
         // of multi column update with single source select.
-        checkTableNameAndScrubResultColumns(resultColumnList,isUpdateWithSubquery);
-
+        if (!isUpdateWithSubquery) {
+			checkTableNameAndScrubResultColumns(resultColumnList);
+		}
 
 		/* Set the new result column list in the result set */
 		resultSet.setResultColumns(resultColumnList);
@@ -1356,35 +1357,30 @@ public final class UpdateNode extends DMLModStatementNode
 	 * 
 	 * @exception StandardExcepion if invalid column/table is specified.
 	 */
-	private void checkTableNameAndScrubResultColumns(ResultColumnList rcl, boolean isUpdateWithSubquery)
+	private void checkTableNameAndScrubResultColumns(ResultColumnList rcl) 
 			throws StandardException
 	{
 		int columnCount = rcl.size();
 		int tableCount = ((SelectNode)resultSet).fromList.size();
-        TableName tableNameNode = null; //Get table's exposed name
 
 		for ( int i = 0; i < columnCount; i++ )
 		{
 			boolean foundMatchingTable = false;			
 			ResultColumn	column = (ResultColumn) rcl.elementAt( i );
-			String columnTableName = column.getTableName();
 
-			if (columnTableName != null) {
+			if (column.getTableName() != null) {
 				for (int j = 0; j < tableCount; j++) {
 					FromTable fromTable = (FromTable) ((SelectNode)resultSet).
 							fromList.elementAt(j);
 					final String tableName;
-					if ( fromTable instanceof CurrentOfNode ) {
+					if ( fromTable instanceof CurrentOfNode ) { 
 						tableName = ((CurrentOfNode)fromTable).
 								getBaseCursorTargetTableName().getTableName();
-						tableNameNode = ((CurrentOfNode) fromTable).getExposedTableName();
-
-					} else {
+					} else { 
 						tableName = fromTable.getBaseTableName();
-                        tableNameNode = makeTableName( null, fromTable.getExposedName());
 					}
 
-					if (columnTableName.equals(tableName) || columnTableName.equals(tableNameNode.getTableName())) {
+					if (column.getTableName().equals(tableName)) {
 						foundMatchingTable = true;
 						break;
 					}
@@ -1397,31 +1393,16 @@ public final class UpdateNode extends DMLModStatementNode
 				}
 			}
 
-
-			if (!isUpdateWithSubquery) {
-                /* The table name is
-                 * unnecessary for an update.  More importantly, though, it
-                 * creates a problem in the degenerate case with a positioned
-                 * update.  The user must specify the base table name for a
-                 * positioned update.  If a correlation name was specified for
-                 * the cursor, then a match for the ColumnReference would not
-                 * be found if we didn't null out the name.  (Aren't you
-                 * glad you asked?)
-                 */
-                column.clearTableName();
-            }
-            else {
-                /* Make the column reference's table name to target table's exposed name
-                 which is consistent with getMatchingColumn in FromBaseTable
-                */
-                String baseTableName = targetTable.getBaseTableName();
-                String exposedTableName = targetTable.getExposedName();
-                if (!baseTableName.equals(exposedTableName)) {
-      	          ValueNode expression = column.getExpression();
-					if (expression != null && expression instanceof ColumnReference && baseTableName.equals(expression.getTableName()))
-						((ColumnReference) expression).setTableNameNode(makeTableName(null,exposedTableName));
-				}
-            }
+			/* The table name is
+			 * unnecessary for an update.  More importantly, though, it
+			 * creates a problem in the degenerate case with a positioned
+			 * update.  The user must specify the base table name for a
+			 * positioned update.  If a correlation name was specified for
+			 * the cursor, then a match for the ColumnReference would not
+			 * be found if we didn't null out the name.  (Aren't you
+			 * glad you asked?)
+			 */
+			column.clearTableName();
 		}
 	}
 	
