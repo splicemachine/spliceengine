@@ -214,7 +214,7 @@ public class JoinNode extends TableOperatorNode{
         // RESOLVE: NEED TO SET ROW ORDERING OF SOURCES IN THE ROW ORDERING
         // THAT WAS PASSED IN.
 
-        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),outerCost);
+        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),null);
 
 		/* Move all joinPredicates down to the right.
 		 * RESOLVE - When we consider the reverse join order then
