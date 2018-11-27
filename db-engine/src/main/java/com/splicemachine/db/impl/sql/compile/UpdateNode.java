@@ -1418,7 +1418,7 @@ public final class UpdateNode extends DMLModStatementNode
                 String exposedTableName = targetTable.getExposedName();
                 if (!baseTableName.equals(exposedTableName)) {
       	          ValueNode expression = column.getExpression();
-					if (expression != null && expression instanceof ColumnReference && expression.getTableName().equals(baseTableName))
+					if (expression != null && expression instanceof ColumnReference && baseTableName.equals(expression.getTableName()))
 						((ColumnReference) expression).setTableNameNode(makeTableName(null,exposedTableName));
 				}
             }
