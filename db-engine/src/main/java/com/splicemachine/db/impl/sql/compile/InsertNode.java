@@ -100,6 +100,7 @@ public final class InsertNode extends DMLModStatementNode {
 	public static final String SAMPLING_ONLY = "samplingOnly";
     public static final String OUTPUT_KEYS_ONLY = "outputKeysOnly";
     public static final String SKIP_SAMPLING = "skipSampling";
+	public static final String SAMPLE_FRACTION = "sampleFraction";
 	public static final String INDEX_NAME = "index";
 
 	public		ResultColumnList	targetColumnList;
@@ -119,6 +120,7 @@ public final class InsertNode extends DMLModStatementNode {
 	private     boolean             samplingOnly;
 	private     boolean             outputKeysOnly;
     private     boolean             skipSampling;
+	private     double              sampleFraction;
     private     String              indexName;
 
 	private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
@@ -739,6 +741,8 @@ public final class InsertNode extends DMLModStatementNode {
 		samplingOnly = Boolean.parseBoolean(targetProperties.getProperty(SAMPLING_ONLY));
         outputKeysOnly = Boolean.parseBoolean(targetProperties.getProperty(OUTPUT_KEYS_ONLY));
 		skipSampling = Boolean.parseBoolean(targetProperties.getProperty(SKIP_SAMPLING));
+		sampleFraction = targetProperties.getProperty(SAMPLE_FRACTION) != null ?
+                Double.parseDouble(targetProperties.getProperty(SAMPLE_FRACTION)) : 0;
 		indexName = targetProperties.getProperty(INDEX_NAME);
         String failBadRecordCountString = targetProperties.getProperty(BAD_RECORDS_ALLOWED);
         Boolean pin = Boolean.parseBoolean(targetProperties.getProperty(PIN));
@@ -1029,8 +1033,9 @@ public final class InsertNode extends DMLModStatementNode {
             mb.push(samplingOnly);
             mb.push(outputKeysOnly);
             mb.push(skipSampling);
+            mb.push(sampleFraction);
             BaseJoinStrategy.pushNullableString(mb, indexName);
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 24);
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 25);
 		}
 		else
 		{
