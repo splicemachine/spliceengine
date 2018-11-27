@@ -125,7 +125,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
             BlockingProbe.blockPreFlush();
             while (true) {
                 MemstoreAware latest = memstoreAware.get();
-                if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementFlushCount(latest)))
+                if(memstoreAware.compareAndSet(latest, MemstoreAware.changeFlush(latest, true)))
                     break;
             }
             return scanner;
@@ -140,7 +140,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
             BlockingProbe.blockPostFlush();
             while (true) {
                 MemstoreAware latest = memstoreAware.get();
-                if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementFlushCount(latest)))
+                if(memstoreAware.compareAndSet(latest, MemstoreAware.changeFlush(latest, false)))
                     break;
             }
         } catch (Throwable t) {
@@ -214,7 +214,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
 
                 while (true) {
                     MemstoreAware currentState = memstoreAware.get();
-                    if (currentState.splitMerge || currentState.currentCompactionCount>0 || currentState.currentFlushCount>0) {
+                    if (currentState.splitMerge || currentState.currentCompactionCount>0 || currentState.flush) {
                         SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s : %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString(), currentState);
                         throw new IOException("splitting, merging, or active compaction on scan on " + c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
                     }
