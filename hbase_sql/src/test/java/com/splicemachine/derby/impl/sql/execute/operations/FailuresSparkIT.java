@@ -36,6 +36,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -65,6 +66,27 @@ public class FailuresSparkIT {
 
     @Rule
     public SpliceWatcher methodWatcher=new SpliceWatcher(CLASS_NAME);
+
+
+    @Test
+    public void testSparkSerializesFullTxnStack() throws Throwable {
+        String uniqueName="veryUniqueTableNameNotUsedBefore";
+        try (Connection c = methodWatcher.createConnection()) {
+            c.setAutoCommit(false);
+
+            try(Statement s =c.createStatement()) {
+                s.executeUpdate("create table "+uniqueName+"(a int)");
+
+                c.setSavepoint("pt1");
+
+                try(ResultSet rs = s.executeQuery("select tablename from sys.systables --splice-properties useSpark=true \n" +
+                        "where tablename = '" + uniqueName.toUpperCase() +"'")) {
+                    assertTrue("Spark scan couldn't see table created on its own transaction", rs.next());
+                }
+            }
+            c.rollback();
+        }
+    }
 
     @Test
     public void testPKViolationIsRolledback() throws Throwable {
