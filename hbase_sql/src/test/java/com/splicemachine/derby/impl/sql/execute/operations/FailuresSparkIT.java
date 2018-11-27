@@ -18,6 +18,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -82,6 +83,19 @@ public class FailuresSparkIT {
             }
             try (ResultSet rs = s.executeQuery("select * from a")) {
                 Assert.assertFalse("Rows returned from query!", rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testSparkReadsSysColumns() throws Throwable {
+        try(Statement s =methodWatcher.getOrCreateConnection().createStatement()) {
+            String sql = "select a.columndatatype from sys.syscolumns a --splice-properties useSpark=true, joinStrategy=sortmerge\n" +
+            "join sys.syscolumns b on  a.columnname = b.columnname {limit 10}";
+            try(ResultSet rs = s.executeQuery(sql)) {
+                assertTrue(rs.next());
+                Object object = rs.getObject(1);
+                assertTrue(object instanceof TypeDescriptorImpl);
             }
         }
     }
