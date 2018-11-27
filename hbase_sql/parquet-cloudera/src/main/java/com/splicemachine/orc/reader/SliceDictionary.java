@@ -14,9 +14,9 @@
 package com.splicemachine.orc.reader;
 
 import io.airlift.slice.Slice;
-import parquet.column.Dictionary;
-import parquet.column.Encoding;
-import parquet.io.api.Binary;
+import org.apache.parquet.column.Dictionary;
+import org.apache.parquet.column.Encoding;
+import org.apache.parquet.io.api.Binary;
 
 import java.util.Arrays;
 
