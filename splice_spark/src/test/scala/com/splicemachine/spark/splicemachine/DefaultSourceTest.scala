@@ -17,9 +17,11 @@ import java.io.File
 import java.math.BigDecimal
 import java.nio.file.{Files, Path}
 import java.sql.{Time, Timestamp}
+import java.util.Date
 
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import org.apache.commons.io.FileUtils
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.sql.jdbc.JdbcDialects
 
@@ -92,7 +94,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     }finally {
       conn.close()
     }
-    
+
     val df = sqlContext.read.options(internalExecutionOptions).splicemachine
     df.printSchema()
     assert(splicemachineContext.getSchema(internalTN).equals(df.schema))
@@ -360,10 +362,51 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
       val results = sqlContext.sql(s"SELECT * FROM $table").collectAsList()
       assert(results.size() == rowCount)
       assert(results.get(1).get(5).equals(1))
-    }
-    test("table scan with projection") {
-      assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]", sqlContext.sql(s"""SELECT c6_int FROM $table""").collectAsList().toString)
-    }
+  }
+  
+  test("table scan with projection") {
+    assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]", sqlContext.sql(s"""SELECT c6_int FROM $table""").collectAsList().toString)
+  }
+
+  test("partitions shuffle") {
+    val rdd = generateRows(10, 5)
+
+    var i = 0
+
+    rdd.toLocalIterator.foreach ( r => {
+      assertEquals(i, r(5))
+      i += 1
+    })
+
+    i = 0
+    var same = true
+    ShuffleUtils.shuffle(rdd).toLocalIterator.foreach( r => {
+      if (i != r(5))
+        same = false
+      i += 1
+    })
+    assertFalse("Rows were in order", same)
+  }
+
+  def generateRows(rowCount: Int, batches: Int): RDD[Row] = {
+    val rows = Range(0, rowCount).map ( i => {
+      val a:Boolean = i % 2==0
+      val b:String = if (i < 8)"" + i else null
+      val c:Date = if (i % 2==0) java.sql.Date.valueOf("2013-09-04") else java.sql.Date.valueOf("2013-09-05")
+      val d:BigDecimal = new BigDecimal("" + i)
+      val e:Double = i
+      val f:Int = i
+      val g:Long = i
+      val h:Double = i
+      val j:Short = i.toShort
+      val k:Timestamp = new Timestamp(i)
+      val l:Timestamp = new Timestamp(i)
+      val m:String = if (i < 8) "sometestinfo" + i else null
+      Row(a,b,c,d,e,f,g,h,j,k,l,m)
+    })
+    sqlContext.sparkContext.parallelize(rows, batches)
+  }
+  
   test("table scan with projection and predicate bool") {
     assertEquals("[[true], [true], [true], [true], [true]]",
       sqlContext.sql(s"""SELECT c1_boolean FROM $table where c1_boolean = true""").collectAsList().toString)

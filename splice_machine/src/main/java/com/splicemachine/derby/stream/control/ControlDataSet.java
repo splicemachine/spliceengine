@@ -127,6 +127,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public DataSet<V> shufflePartitions() {
+        return this; //no-op
+    }
+
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
         return mapPartitions(f);
     }
