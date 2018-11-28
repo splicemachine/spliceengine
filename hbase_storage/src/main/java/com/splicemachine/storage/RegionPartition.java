@@ -181,7 +181,7 @@ public class RegionPartition implements Partition{
         g.setMaxVersions(1);
 
         try{
-            Result result=region.get(g);
+            Result result= Result.create(region.get(g, false));
             if(previous==null)
                 previous=new HResult(result);
             else{
