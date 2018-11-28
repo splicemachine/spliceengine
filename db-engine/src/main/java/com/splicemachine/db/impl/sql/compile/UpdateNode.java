@@ -522,9 +522,8 @@ public final class UpdateNode extends DMLModStatementNode
 		 */
 		// Splice fork: leave table names present in special case
         // of multi column update with single source select.
-        if (!isUpdateWithSubquery) {
-			checkTableNameAndScrubResultColumns(resultColumnList);
-		}
+        checkTableNameAndScrubResultColumns(resultColumnList,isUpdateWithSubquery);
+
 
 		/* Set the new result column list in the result set */
 		resultSet.setResultColumns(resultColumnList);
@@ -1368,7 +1367,7 @@ public final class UpdateNode extends DMLModStatementNode
 	 * 
 	 * @exception StandardExcepion if invalid column/table is specified.
 	 */
-	private void checkTableNameAndScrubResultColumns(ResultColumnList rcl) 
+	private void checkTableNameAndScrubResultColumns(ResultColumnList rcl, boolean isUpdateWithSubquery)
 			throws StandardException
 	{
 		int columnCount = rcl.size();
@@ -1378,20 +1377,25 @@ public final class UpdateNode extends DMLModStatementNode
 		{
 			boolean foundMatchingTable = false;			
 			ResultColumn	column = (ResultColumn) rcl.elementAt( i );
+			String columnTableName = column.getTableName();
 
-			if (column.getTableName() != null) {
+			if (columnTableName != null) {
 				for (int j = 0; j < tableCount; j++) {
 					FromTable fromTable = (FromTable) ((SelectNode)resultSet).
 							fromList.elementAt(j);
 					final String tableName;
-					if ( fromTable instanceof CurrentOfNode ) { 
+					final String exposedTableName;
+					if ( fromTable instanceof CurrentOfNode ) {
 						tableName = ((CurrentOfNode)fromTable).
 								getBaseCursorTargetTableName().getTableName();
-					} else { 
+						exposedTableName = ((CurrentOfNode) fromTable).getExposedTableName().getTableName();
+
+					} else {
 						tableName = fromTable.getBaseTableName();
+                        exposedTableName = fromTable.getExposedName();
 					}
 
-					if (column.getTableName().equals(tableName)) {
+					if (columnTableName.equals(tableName) || columnTableName.equals(exposedTableName)) {
 						foundMatchingTable = true;
 						break;
 					}
@@ -1404,16 +1408,31 @@ public final class UpdateNode extends DMLModStatementNode
 				}
 			}
 
-			/* The table name is
-			 * unnecessary for an update.  More importantly, though, it
-			 * creates a problem in the degenerate case with a positioned
-			 * update.  The user must specify the base table name for a
-			 * positioned update.  If a correlation name was specified for
-			 * the cursor, then a match for the ColumnReference would not
-			 * be found if we didn't null out the name.  (Aren't you
-			 * glad you asked?)
-			 */
-			column.clearTableName();
+
+			if (!isUpdateWithSubquery) {
+                /* The table name is
+                 * unnecessary for an update.  More importantly, though, it
+                 * creates a problem in the degenerate case with a positioned
+                 * update.  The user must specify the base table name for a
+                 * positioned update.  If a correlation name was specified for
+                 * the cursor, then a match for the ColumnReference would not
+                 * be found if we didn't null out the name.  (Aren't you
+                 * glad you asked?)
+                 */
+                column.clearTableName();
+            }
+            else {
+                /* Make the column reference's table name to target table's correlation name
+                 which is consistent with getMatchingColumn in FromBaseTable
+                */
+                String crn = targetTable.correlationName;
+                String baseTableName = targetTable.getBaseTableName();
+                if (crn != null) {
+      	          ValueNode expression = column.getExpression();
+					if (!column.updated() && expression != null && expression instanceof ColumnReference && baseTableName.equals(expression.getTableName()))
+						((ColumnReference) expression).setTableNameNode(makeTableName(null,crn));
+				}
+            }
 		}
 	}
 	
@@ -1434,7 +1453,7 @@ public final class UpdateNode extends DMLModStatementNode
         { 
             return; 
         }
-		
+
 		TableName tableNameNode;
 		if (fromTable instanceof CurrentOfNode)
 		{ 
