@@ -62,6 +62,7 @@
             concurrentlinkedhashmap-lru,
             kryo-serializers,
             lucene-core,
+	    scala_util,
             hbase_pipeline,
             hbase_storage,
             hbase_sql,
