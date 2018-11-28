@@ -64,6 +64,7 @@
             hbase_pipeline-${envClassifier},
             hbase_storage-${envClassifier},
             hbase_sql-${envClassifier},
+	    scala_util-${envClassifier}-${spark.version}_${scala.binary.version},
             splice_ee,
             splice_backup,
             splice_auth,
