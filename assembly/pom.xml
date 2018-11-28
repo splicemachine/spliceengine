@@ -164,10 +164,6 @@
                                         ${commonArtifacts},
                                         splice_sentry
                                     </includeArtifactIds>
-                                    <includeClassifiers>
-                                        ${envClassifier},
-                                        ${envClassifier}-tests
-                                    </includeClassifiers>
                                 </configuration>
                             </execution>
                         </executions>
@@ -340,10 +336,6 @@
                                         jython-standalone,
                                         splicemachine
                                     </includeArtifactIds>
-                                    <includeClassifiers>
-                                        ${envClassifier},
-                                        ${envClassifier}-tests
-                                    </includeClassifiers>
                                 </configuration>
                             </execution>
                         </executions>
@@ -578,10 +570,6 @@
                                         splice_ranger_service,
                                         splice_atlas
                                     </includeArtifactIds>
-                                    <includeClassifiers>
-                                        ${envClassifier},
-                                        ${envClassifier}-tests
-                                    </includeClassifiers>
                                 </configuration>
                             </execution>
                         </executions>
