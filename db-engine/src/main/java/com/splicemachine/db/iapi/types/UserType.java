@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
+
 import java.io.Serializable;
 import java.sql.Date;
 import java.sql.Time;
@@ -247,7 +248,16 @@ public class UserType extends DataType
 	{
 		return value;
 	}
-		
+
+	@Override
+	public Object getSparkObject() throws StandardException {
+		if (value instanceof Serializable) {
+			return SerializationUtils.serialize((Serializable) value);
+		} else {
+			return super.getSparkObject();
+		}
+	}
+
 	public int getLength()
 	{
 		return TypeDescriptor.MAXIMUM_WIDTH_UNKNOWN;
@@ -662,7 +672,12 @@ public class UserType extends DataType
 			setToNull();
 		else {
 			isNull = false;
-			value = row.get(ordinal);
+			Object object = row.get(ordinal);
+			if (object instanceof byte[]) {
+				value = SerializationUtils.deserialize((byte[]) object);
+			} else {
+				value = object;
+			}
 		}
 	}
 
@@ -679,6 +694,10 @@ public class UserType extends DataType
 
 	@Override
 	public void setSparkObject(Object sparkObject) throws StandardException {
-
+		if (sparkObject instanceof byte[]) {
+			value = SerializationUtils.deserialize((byte[]) sparkObject);
+		} else {
+			value = sparkObject;
+		}
 	}
 }
