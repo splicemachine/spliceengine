@@ -127,7 +127,7 @@ public class SQLChar
     private final static int GROWBY_FOR_CHAR = 64;
 
 
-    private static final int BASE_MEMORY_USAGE = 
+    private static final int BASE_MEMORY_USAGE =
         ClassSize.estimateBaseFromCatalog( SQLChar.class);
 
     /**
@@ -161,22 +161,22 @@ public class SQLChar
     private     String  value;
 
     // rawData holds the reusable array for reading in SQLChars. It contains a
-    // valid value if rawLength is greater than or equal to 0. See getString() 
+    // valid value if rawLength is greater than or equal to 0. See getString()
     // to see how it is converted to a String. Even when converted to a String
-    // object the rawData array remains for potential future use, unless 
+    // object the rawData array remains for potential future use, unless
     // rawLength is > 4096. In this case the rawData is set to null to avoid
     // huge memory use.
     private     char[]  rawData;
     private     int     rawLength = -1;
 
     // For null strings, cKey = null.
-    private CollationKey cKey; 
+    private CollationKey cKey;
 
     /**
      * The value as a user-created Clob
      */
     protected Clob _clobValue;
-    
+
     /**
      * The value as a stream in the on-disk format.
      */
@@ -237,7 +237,7 @@ public class SQLChar
             int length = val.length;
             char[]  localCopy = new char[ length ];
             System.arraycopy( val, 0, localCopy, 0, length );
-            
+
             copyState
                 (
                  null,
@@ -256,9 +256,9 @@ public class SQLChar
      **************************************************************************
      */
 
-    private static void appendBlanks(char[] ca, int offset, int howMany) 
+    private static void appendBlanks(char[] ca, int offset, int howMany)
     {
-        while (howMany > 0) 
+        while (howMany > 0)
         {
             int count = howMany > BLANKS.length ? BLANKS.length : howMany;
 
@@ -283,11 +283,11 @@ public class SQLChar
      */
     public  char[]  getRawDataAndZeroIt()
     {
-        if ( rawData == null ) { 
+        if ( rawData == null ) {
         	if (value != null) {
         		return value.toCharArray(); // Needs to be hidden
         	}
-        	
+
         	return null; }
 
         int length = rawData.length;
@@ -324,7 +324,7 @@ public class SQLChar
      * Get Boolean from a SQLChar.
      *
      * <p>
-     * Return false for only "0" or "false" for false. No case insensitivity. 
+     * Return false for only "0" or "false" for false. No case insensitivity.
      * Everything else is true.
      * <p>
      * The above matches JCC and the client driver.
@@ -337,7 +337,7 @@ public class SQLChar
     public boolean getBoolean()
         throws StandardException
     {
-        if (isNull()) 
+        if (isNull())
             return false;
 
         // Match JCC and the client driver. Match only "0" or "false" for
@@ -360,14 +360,14 @@ public class SQLChar
      **/
     public byte getByte() throws StandardException
     {
-        if (isNull()) 
+        if (isNull())
             return (byte)0;
 
-        try 
+        try
         {
             return Byte.parseByte(getString().trim());
-        } 
-        catch (NumberFormatException nfe) 
+        }
+        catch (NumberFormatException nfe)
         {
             throw StandardException.newException(
                     SQLState.LANG_FORMAT_EXCEPTION, "byte");
@@ -386,15 +386,15 @@ public class SQLChar
      **/
     public short getShort() throws StandardException
     {
-        if (isNull()) 
+        if (isNull())
             return (short)0;
 
-        try 
+        try
         {
             return Short.parseShort(getString().trim());
 
-        } 
-        catch (NumberFormatException nfe) 
+        }
+        catch (NumberFormatException nfe)
         {
             throw StandardException.newException(
                     SQLState.LANG_FORMAT_EXCEPTION, "short");
@@ -413,14 +413,14 @@ public class SQLChar
      **/
     public int  getInt() throws StandardException
     {
-        if (isNull()) 
+        if (isNull())
             return 0;
 
-        try 
+        try
         {
             return Integer.parseInt(getString().trim());
-        } 
-        catch (NumberFormatException nfe) 
+        }
+        catch (NumberFormatException nfe)
         {
             throw StandardException.newException(
                     SQLState.LANG_FORMAT_EXCEPTION, "int");
@@ -439,15 +439,15 @@ public class SQLChar
      **/
     public long getLong() throws StandardException
     {
-        if (isNull()) 
+        if (isNull())
             return 0;
 
-        try 
+        try
         {
             return Long.parseLong(getString().trim());
 
-        } 
-        catch (NumberFormatException nfe) 
+        }
+        catch (NumberFormatException nfe)
         {
             throw StandardException.newException(
                     SQLState.LANG_FORMAT_EXCEPTION, "long");
@@ -466,14 +466,14 @@ public class SQLChar
      **/
     public float getFloat() throws StandardException
     {
-        if (isNull()) 
+        if (isNull())
             return 0;
 
-        try 
+        try
         {
             return new Float(getString().trim());
-        } 
-        catch (NumberFormatException nfe) 
+        }
+        catch (NumberFormatException nfe)
         {
             throw StandardException.newException(
                     SQLState.LANG_FORMAT_EXCEPTION, "float");
@@ -492,14 +492,14 @@ public class SQLChar
      **/
     public double getDouble() throws StandardException
     {
-        if (isNull()) 
+        if (isNull())
             return 0;
 
-        try 
+        try
         {
             return new Double(getString().trim());
-        } 
-        catch (NumberFormatException nfe) 
+        }
+        catch (NumberFormatException nfe)
         {
             throw StandardException.newException(
                     SQLState.LANG_FORMAT_EXCEPTION, "double");
@@ -513,7 +513,7 @@ public class SQLChar
      *
      * @exception StandardException thrown on failure to convert
      **/
-    public Date getDate(Calendar cal) 
+    public Date getDate(Calendar cal)
         throws StandardException
     {
         return getDate(cal, getString(), getLocaleFinder());
@@ -528,12 +528,12 @@ public class SQLChar
      **/
     public DateTime getDateTime() throws StandardException {
         return getDate(getString(), getLocaleFinder());
-    }    
-    
-    
+    }
+
+
     public static DateTime getDate(
-    String              str, 
-    LocaleFinder        localeFinder) 
+    String              str,
+    LocaleFinder        localeFinder)
         throws StandardException
     {
         if( str == null)
@@ -552,9 +552,9 @@ public class SQLChar
      * @exception StandardException thrown on failure to convert
      **/
     public static Date getDate(
-    java.util.Calendar  cal, 
-    String              str, 
-    LocaleFinder        localeFinder) 
+    java.util.Calendar  cal,
+    String              str,
+    LocaleFinder        localeFinder)
         throws StandardException
     {
         if( str == null)
@@ -585,9 +585,9 @@ public class SQLChar
      * @exception StandardException thrown on failure to convert
      **/
     public static Time getTime(
-    Calendar        cal, 
-    String          str, 
-    LocaleFinder    localeFinder) 
+    Calendar        cal,
+    String          str,
+    LocaleFinder    localeFinder)
         throws StandardException
     {
         if( str == null)
@@ -616,15 +616,15 @@ public class SQLChar
      * @exception StandardException thrown on failure to convert
      **/
     public static Timestamp getTimestamp(
-    java.util.Calendar  cal, 
-    String              str, 
+    java.util.Calendar  cal,
+    String              str,
     LocaleFinder        localeFinder)
         throws StandardException
     {
         if( str == null)
             return null;
 
-        SQLTimestamp internalTimestamp = 
+        SQLTimestamp internalTimestamp =
             new SQLTimestamp( str, false, localeFinder, cal);
 
         return internalTimestamp.getTimestamp( cal);
@@ -690,7 +690,7 @@ public class SQLChar
     }
 
     /**
-     * CHAR/VARCHAR/LONG VARCHAR implementation. 
+     * CHAR/VARCHAR/LONG VARCHAR implementation.
      * Convert to a BigDecimal using getString.
      */
     public int typeToBigDecimal()  throws StandardException
@@ -752,8 +752,8 @@ public class SQLChar
 
     /**
      * If possible, use getCharArray() if you don't really
-     * need a string.  getString() will cause an extra 
-     * char array to be allocated when it calls the the String() 
+     * need a string.  getString() will cause an extra
+     * char array to be allocated when it calls the the String()
      * constructor (the first time through), so may be
      * cheaper to use getCharArray().
      *
@@ -784,7 +784,7 @@ public class SQLChar
                     _clobValue = null;
                 }
                 catch (SQLException se) { throw StandardException.plainWrapException( se ); }
-                
+
             } else if (stream != null) {
 
                 // data stored as a stream
@@ -804,8 +804,8 @@ public class SQLChar
                 } catch (IOException ioe) {
 
                     throw StandardException.newException(
-                            SQLState.LANG_STREAMING_COLUMN_I_O_EXCEPTION, 
-                            ioe, 
+                            SQLState.LANG_STREAMING_COLUMN_I_O_EXCEPTION,
+                            ioe,
                             String.class.getName());
                 }
             }
@@ -825,7 +825,7 @@ public class SQLChar
      * <b>WARNING</b>: may return a character array that has spare
      * characters at the end.  MUST be used in conjunction
      * with getLength() to be safe.
-     * 
+     *
      * @exception StandardException     Thrown on error
      */
     public char[] getCharArray() throws StandardException
@@ -841,7 +841,7 @@ public class SQLChar
         else
         {
             // this is expensive -- we are getting a
-            // copy of the char array that the 
+            // copy of the char array that the
             // String wrapper uses.
             getString();
 			char[] data = value.toCharArray();
@@ -906,15 +906,15 @@ public class SQLChar
 
 
         The UTF format:
-        Writes a string to the underlying output stream using UTF-8 
-        encoding in a machine-independent manner. 
+        Writes a string to the underlying output stream using UTF-8
+        encoding in a machine-independent manner.
         <p>
-        First, two bytes are written to the output stream as if by the 
-        <code>writeShort</code> method giving the number of bytes to 
-        follow. This value is the number of bytes actually written out, 
-        not the length of the string. Following the length, each character 
-        of the string is output, in sequence, using the UTF-8 encoding 
-        for the character. 
+        First, two bytes are written to the output stream as if by the
+        <code>writeShort</code> method giving the number of bytes to
+        follow. This value is the number of bytes actually written out,
+        not the length of the string. Following the length, each character
+        of the string is output, in sequence, using the UTF-8 encoding
+        for the character.
         @exception  IOException  if an I/O error occurs.
         @since      JDK1.0
 
@@ -939,7 +939,7 @@ public class SQLChar
             writeClobUTF( out );
             return;
         }
-        
+
         String lvalue = null;
         char[] data = null;
 
@@ -1070,10 +1070,10 @@ public class SQLChar
 
             Reader characterReader = null;
             if ( isUserClob ) { characterReader = _clobValue.getCharacterStream(); }
-            
+
             writeUTF(out, strLen, isRaw, characterReader );
             header.writeEOF(out, toEncodeLen);
-            
+
             if ( isUserClob ) { characterReader.close(); }
         }
         catch (SQLException se)
@@ -1092,18 +1092,18 @@ public class SQLChar
     }
 
     /**
-     * Reads in a string from the specified data input stream. The 
-     * string has been encoded using a modified UTF-8 format. 
+     * Reads in a string from the specified data input stream. The
+     * string has been encoded using a modified UTF-8 format.
      * <p>
-     * The first two bytes are read as if by 
-     * <code>readUnsignedShort</code>. This value gives the number of 
+     * The first two bytes are read as if by
+     * <code>readUnsignedShort</code>. This value gives the number of
      * following bytes that are in the encoded string, not
-     * the length of the resulting string. The following bytes are then 
-     * interpreted as bytes encoding characters in the UTF-8 format 
-     * and are converted into characters. 
+     * the length of the resulting string. The following bytes are then
+     * interpreted as bytes encoding characters in the UTF-8 format
+     * and are converted into characters.
      * <p>
-     * This method blocks until all the bytes are read, the end of the 
-     * stream is detected, or an exception is thrown. 
+     * This method blocks until all the bytes are read, the end of the
+     * stream is detected, or an exception is thrown.
      *
      * @param      in   a data input stream.
      * @exception  EOFException            if the input stream reaches the end
@@ -1112,7 +1112,7 @@ public class SQLChar
      * @exception  UTFDataFormatException  if the bytes do not represent a
      *               valid UTF-8 encoding of a Unicode string.
      * @see        java.io.DataInputStream#readUnsignedShort()
-     
+
      * @see java.io.Externalizable#readExternal
      */
     public void readExternalFromArray(ArrayInputStream in)
@@ -1196,14 +1196,14 @@ public class SQLChar
         int minGrowBy = growBy();
         if (utflen != 0)
         {
-            // the object was not stored as a streaming column 
+            // the object was not stored as a streaming column
             // we know exactly how long it is
             requiredLength = utflen;
         }
         else
         {
-            // the object was stored as a streaming column 
-            // and we have a clue how much we can read unblocked 
+            // the object was stored as a streaming column
+            // and we have a clue how much we can read unblocked
             // OR
             // The original string was a 0 length string.
             requiredLength = in.available();
@@ -1213,7 +1213,7 @@ public class SQLChar
 
         char str[];
         if ((rawData == null) || (requiredLength > rawData.length)) {
-            
+
             str = new char[requiredLength];
         } else {
             str = rawData;
@@ -1264,7 +1264,7 @@ public class SQLChar
             // change it to an unsigned byte
             //c &= 0xFF;
 
-            if (strlen >= arrayLength) // the char array needs to be grown 
+            if (strlen >= arrayLength) // the char array needs to be grown
             {
                 int growby = in.available();
                 // We know that the array needs to be grown by at least one.
@@ -1273,14 +1273,14 @@ public class SQLChar
                 // Note, for large data (clob > 32k), it is performant
                 // to grow the array by atleast 4k rather than a small amount
                 // Even better maybe to grow by 32k but then may be
-                // a little excess(?) for small data. 
+                // a little excess(?) for small data.
                 // hopefully in.available() will give a fair
-                // estimate of how much data can be read to grow the 
+                // estimate of how much data can be read to grow the
                 // array by larger and necessary chunks.
-                // This performance issue due to 
+                // This performance issue due to
                 // the slow growth of this array was noticed since inserts
                 // on clobs was taking a really long time as
-                // the array here grew previously by 64 bytes each time 
+                // the array here grew previously by 64 bytes each time
                 // till stream was drained.  (Derby-302)
                 // for char, growby 64 seems reasonable, but for varchar
                 // clob 4k or 32k is performant and hence
@@ -1296,7 +1296,7 @@ public class SQLChar
                 arrayLength = newstrlength;
             }
 
-            /// top fours bits of the first unsigned byte that maps to a 
+            /// top fours bits of the first unsigned byte that maps to a
             //  1,2 or 3 byte character
             //
             // 0000xxxx - 0 - 1 byte char
@@ -1325,22 +1325,22 @@ public class SQLChar
                 actualChar = (char) c;
             }
             else if ((c & 0x60) == 0x40) // we know the top bit is set here
-            { 
+            {
                 // two byte character
                 count += 2;
-                if (utflen != 0 && count > utflen) 
-                    throw new UTFDataFormatException();       
+                if (utflen != 0 && count > utflen)
+                    throw new UTFDataFormatException();
                 char2 = in.readUnsignedByte();
                 if ((char2 & 0xC0) != 0x80)
-                    throw new UTFDataFormatException();       
+                    throw new UTFDataFormatException();
                 actualChar = (char)(((c & 0x1F) << 6) | (char2 & 0x3F));
             }
             else if ((c & 0x70) == 0x60) // we know the top bit is set here
             {
                 // three byte character
                 count += 3;
-                if (utflen != 0 && count > utflen) 
-                    throw new UTFDataFormatException();       
+                if (utflen != 0 && count > utflen)
+                    throw new UTFDataFormatException();
                 char2 = in.readUnsignedByte();
                 char3 = in.readUnsignedByte();
                 if ((c == 0xE0) && (char2 == 0) && (char3 == 0)
@@ -1353,9 +1353,9 @@ public class SQLChar
                 }
 
                 if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80))
-                    throw new UTFDataFormatException();       
-                
-                
+                    throw new UTFDataFormatException();
+
+
                 actualChar = (char)(((c & 0x0F) << 12) |
                                            ((char2 & 0x3F) << 6) |
                                            ((char3 & 0x3F) << 0));
@@ -1373,8 +1373,8 @@ public class SQLChar
     }
 
     /**
-     * returns the reasonable minimum amount by 
-     * which the array can grow . See readExternal. 
+     * returns the reasonable minimum amount by
+     * which the array can grow . See readExternal.
      * when we know that the array needs to grow by at least
      * one byte, it is not performant to grow by just one byte
      * instead this amount is used to provide a resonable growby size.
@@ -1447,8 +1447,8 @@ public class SQLChar
      */
 
     /**
-     *  Shallow clone a StreamStorable without objectifying.  This is used to 
-     *  avoid unnecessary objectifying of a stream object.  The only 
+     *  Shallow clone a StreamStorable without objectifying.  This is used to
+     *  avoid unnecessary objectifying of a stream object.  The only
      *  difference of this method from cloneValue is this method does not
      *  objectify a stream.
      */
@@ -1496,7 +1496,7 @@ public class SQLChar
     {
         if (collatorForComparison == null)
         {//null collatorForComparison means use UCS_BASIC for collation
-            return this;            
+            return this;
         } else {
             //non-null collatorForComparison means use collator sensitive
             //implementation of SQLChar
@@ -1506,8 +1506,8 @@ public class SQLChar
         }
     }
 
-    /** 
-     * @see DataValueDescriptor#setValueFromResultSet 
+    /**
+     * @see DataValueDescriptor#setValueFromResultSet
      *
      * @exception SQLException      Thrown on error
      */
@@ -1522,9 +1522,9 @@ public class SQLChar
         Set the value into a PreparedStatement.
     */
     public final void setInto(
-    PreparedStatement   ps, 
-    int                 position) 
-        throws SQLException, StandardException 
+    PreparedStatement   ps,
+    int                 position)
+        throws SQLException, StandardException
     {
         ps.setString(position, getString());
 		isNull = evaluateNull();
@@ -1682,8 +1682,8 @@ public class SQLChar
 
     /** @exception StandardException        Thrown on error */
     public void setValue(
-    Timestamp   theValue, 
-    Calendar    cal) 
+    Timestamp   theValue,
+    Calendar    cal)
         throws StandardException
     {
         String strValue = null;
@@ -1747,8 +1747,8 @@ public class SQLChar
     {
         SQLTime.timeToString(
             cal.get(Calendar.HOUR_OF_DAY),
-            cal.get(Calendar.MINUTE), 
-            cal.get(Calendar.SECOND), 
+            cal.get(Calendar.MINUTE),
+            cal.get(Calendar.SECOND),
             sb);
     }
 
@@ -1763,20 +1763,20 @@ public class SQLChar
         setStream(theStream);
 		isNull = evaluateNull();
     }
-    
+
     /**
      * Allow any Java type to be cast to a character type using
      * Object.toString.
      * @see DataValueDescriptor#setObjectForCast
-     * 
+     *
      * @exception StandardException
      *                thrown on failure
      */
     public void setObjectForCast(
-    Object  theValue, 
+    Object  theValue,
     boolean instanceOfResultType,
-    String  resultTypeClassName) 
-        throws StandardException 
+    String  resultTypeClassName)
+        throws StandardException
     {
         if (theValue == null)
         {
@@ -1792,9 +1792,9 @@ public class SQLChar
 			isNull = evaluateNull();
 		}
     }
-    
-    protected void setFrom(DataValueDescriptor theValue) 
-        throws StandardException 
+
+    protected void setFrom(DataValueDescriptor theValue)
+        throws StandardException
     {
         if ( theValue instanceof SQLChar )
         {
@@ -1860,7 +1860,7 @@ public class SQLChar
 
             char[] ca;
             if ((rawData == null) || (desiredWidth > rawData.length)) {
-            
+
                 ca = rawData = new char[desiredWidth];
             } else {
                 ca = rawData;
@@ -1902,9 +1902,9 @@ public class SQLChar
             if (source.charAt(posn) != ' ')
             {
                 throw StandardException.newException(
-                    SQLState.LANG_STRING_TRUNCATION, 
-                    getTypeName(), 
-                    StringUtil.formatForPrint(source), 
+                    SQLState.LANG_STRING_TRUNCATION,
+                    getTypeName(),
+                    StringUtil.formatForPrint(source),
                     String.valueOf(start));
             }
         }
@@ -1915,7 +1915,7 @@ public class SQLChar
     // VariableSizeDataValue INTERFACE
     //
     ///////////////////////////////////////////////////////////////
-    
+
     /**
      * Set the width of the to the desired value.  Used
      * when CASTing.  Ideally we'd recycle normalize(), but
@@ -1960,12 +1960,12 @@ public class SQLChar
                 StringBuilder    strBuilder;
 
                 strBuilder = new StringBuilder(getString());
-    
+
                 for ( ; sourceWidth < desiredWidth-1; sourceWidth++)
                 {
                     strBuilder.append(' ');
                 }
-    
+
                 setValue(new String(strBuilder));
             }
         }
@@ -2343,7 +2343,7 @@ public class SQLChar
         // see getCharArray() for more info
         char[] evalCharArray = getCharArray();
         char[] patternCharArray = ((StringDataValue)pattern).getCharArray();
-        likeResult = Like.like(evalCharArray, 
+        likeResult = Like.like(evalCharArray,
                                getLength(),
                                    patternCharArray,
                                pattern.getLength(),
@@ -2378,9 +2378,9 @@ public class SQLChar
                              escape instanceof StringDataValue,
             "All three operands must be instances of StringDataValue");
 
-        // ANSI states a null escape yields 'unknown' results 
+        // ANSI states a null escape yields 'unknown' results
         //
-        // This method is only called when we have an escape clause, so this 
+        // This method is only called when we have an escape clause, so this
         // test is valid
 
         if (escape.isNull())
@@ -2403,7 +2403,7 @@ public class SQLChar
                     SQLState.LANG_INVALID_ESCAPE_CHARACTER,
                     new String(escapeCharArray));
         }
-        likeResult = Like.like(evalCharArray, 
+        likeResult = Like.like(evalCharArray,
                                getLength(),
                                    patternCharArray,
                                pattern.getLength(),
@@ -2439,7 +2439,7 @@ public class SQLChar
         {
             result = new SQLInteger();
         }
-        
+
         if( start.isNull() )
         {
             startVal = 1;
@@ -2462,11 +2462,11 @@ public class SQLChar
         if( startVal < 1 )
         {
             throw StandardException.newException(
-                    SQLState.LANG_INVALID_PARAMETER_FOR_SEARCH_POSITION, 
+                    SQLState.LANG_INVALID_PARAMETER_FOR_SEARCH_POSITION,
                     getString(), mySearchFrom,
                     startVal);
         }
-        
+
         if(mySearchFor.isEmpty())
         {
             result.setValue( startVal );
@@ -2508,12 +2508,12 @@ public class SQLChar
 
         stringResult = (StringDataValue) result;
 
-        /* The result is null if the receiver (this) is null or if the length 
+        /* The result is null if the receiver (this) is null or if the length
          * is negative.
          * We will return null, which is the only sensible thing to do.
          * (If user did not specify a length then length is not a user null.)
          */
-        if (this.isNull() || start.isNull() || 
+        if (this.isNull() || start.isNull() ||
                 (length != null && length.isNull()))
         {
             stringResult.setToNull();
@@ -2529,9 +2529,9 @@ public class SQLChar
         }
         else lengthInt = maxLen - startInt + 1;
 
-        /* DB2 Compatibility: Added these checks to match DB2. We currently 
-         * enforce these limits in both modes. We could do these checks in DB2 
-         * mode only, if needed, so leaving earlier code for out of range in 
+        /* DB2 Compatibility: Added these checks to match DB2. We currently
+         * enforce these limits in both modes. We could do these checks in DB2
+         * mode only, if needed, so leaving earlier code for out of range in
          * for now, though will not be exercised
          */
         if ((startInt <= 0 || lengthInt < 0 || startInt > maxLen ||
@@ -2540,7 +2540,7 @@ public class SQLChar
             throw StandardException.newException(
                     SQLState.LANG_SUBSTR_START_OR_LEN_OUT_OF_RANGE);
         }
-            
+
         // Return null if length is non-positive
         if (lengthInt < 0)
         {
@@ -2606,17 +2606,17 @@ public class SQLChar
 	    throws StandardException
 	{
 	    StringDataValue stringResult;
-	    
+
 	    if (result == null)
 	    {
 	        result = getNewVarchar();
 	    }
-	
+
 	    stringResult = (StringDataValue) result;
-		    
+
 	    // The result is null if the receiver (this) is null
 	    // or either operand is null.
-	    
+
 	    if (this.isNull() ||
 	        fromStr.isNull() || fromStr.getString() == null ||
 	        toStr.isNull() || toStr.getString() == null)
@@ -2626,7 +2626,7 @@ public class SQLChar
         }
 
 	    stringResult.setValue(getString().replace(fromStr.getString(), toStr.toString()));
-	    
+
 	    return stringResult;
 	}
 
@@ -2644,7 +2644,7 @@ public class SQLChar
         if (source == null) {
             return null;
         }
-        
+
         int len = source.length();
         int start = 0;
         if (trimType == LEADING || trimType == BOTH)
@@ -2679,10 +2679,10 @@ public class SQLChar
      * @return A StringDataValue containing the result of the trim.
      */
     public StringDataValue ansiTrim(
-    int             trimType, 
-    StringDataValue trimChar, 
+    int             trimType,
+    StringDataValue trimChar,
     StringDataValue result)
-            throws StandardException 
+            throws StandardException
     {
 
         if (result == null)
@@ -2700,13 +2700,13 @@ public class SQLChar
         if (trimChar.getString().length() != 1)
         {
             throw StandardException.newException(
-                    SQLState.LANG_INVALID_TRIM_CHARACTER, trimChar.getString());           
+                    SQLState.LANG_INVALID_TRIM_CHARACTER, trimChar.getString());
         }
 
         char trimCharacter = trimChar.getString().charAt(0);
 
         result.setValue(trimInternal(trimType, trimCharacter, getString()));
-        return result; 
+        return result;
     }
 
     /** @see StringDataValue#upper
@@ -2726,14 +2726,14 @@ public class SQLChar
             result.setToNull();
             return result;
         }
-        
+
         String upper = getString();
         upper = upper.toUpperCase(getLocale());
         result.setValue(upper);
         return result;
     }
 
-    /** @see StringDataValue#lower 
+    /** @see StringDataValue#lower
      *
      * @exception StandardException     Thrown on error
      */
@@ -2751,7 +2751,7 @@ public class SQLChar
             return result;
         }
 
-        
+
         String lower = getString();
         lower = lower.toLowerCase(getLocale());
         result.setValue(lower);
@@ -2843,7 +2843,7 @@ public class SQLChar
             ** Remaining characters are on the left.
             */
 
-            /* If a remaining character is less than a space, 
+            /* If a remaining character is less than a space,
              * return -1 (op1 < op2) */
             retvalIfLTSpace = -1;
             remainingString = op1;
@@ -2856,7 +2856,7 @@ public class SQLChar
             ** Remaining characters are on the right.
             */
 
-            /* If a remaining character is less than a space, 
+            /* If a remaining character is less than a space,
              * return 1 (op1 > op2) */
             retvalIfLTSpace = 1;
             remainingString = op2;
@@ -2888,15 +2888,15 @@ public class SQLChar
         return 0;
     }
 
-    /** 
-     * Compare two SQLChars.  
+    /**
+     * Compare two SQLChars.
      *
      * @exception StandardException     Thrown on error
      */
      protected int stringCompare(StringDataValue char1, StringDataValue char2)
          throws StandardException
      {
-         return stringCompare(char1.getCharArray(), char1.getLength(), 
+         return stringCompare(char1.getCharArray(), char1.getLength(),
                               char2.getCharArray(), char2.getLength());
      }
 
@@ -2911,9 +2911,9 @@ public class SQLChar
      *           1 - op1 > op2
      */
     protected static int stringCompare(
-    char[]  op1, 
-    int     leftlen, 
-    char[]  op2, 
+    char[]  op1,
+    int     leftlen,
+    char[]  op2,
     int     rightlen)
     {
         int         posn;
@@ -2972,7 +2972,7 @@ public class SQLChar
             ** Remaining characters are on the left.
             */
 
-            /* If a remaining character is less than a space, 
+            /* If a remaining character is less than a space,
              * return -1 (op1 < op2) */
             retvalIfLTSpace = -1;
             remainingString = op1;
@@ -2985,7 +2985,7 @@ public class SQLChar
             ** Remaining characters are on the right.
             */
 
-            /* If a remaining character is less than a space, 
+            /* If a remaining character is less than a space,
              * return 1 (op1 > op2) */
             retvalIfLTSpace = 1;
             remainingString = op2;
@@ -3016,14 +3016,14 @@ public class SQLChar
         */
         return 0;
     }
-        
+
     /**
      * This method gets called for the collation sensitive char classes ie
      * CollatorSQLChar, CollatorSQLVarchar, CollatorSQLLongvarchar,
-     * CollatorSQLClob. These collation sensitive chars need to have the 
+     * CollatorSQLClob. These collation sensitive chars need to have the
      * collation key in order to do string comparison. And the collation key
      * is obtained using the Collator object that these classes already have.
-     * 
+     *
      * @return CollationKey obtained using Collator on the string
      * @throws StandardException
      */
@@ -3041,14 +3041,14 @@ public class SQLChar
             if (tmpCharArray == null)
                 return null;
         }
-        
+
         int lastNonspaceChar = rawLength;
 
-        while (lastNonspaceChar > 0 && 
+        while (lastNonspaceChar > 0 &&
                rawData[lastNonspaceChar - 1] == '\u0020')
             lastNonspaceChar--;         // count off the trailing spaces.
 
-        RuleBasedCollator rbc = getCollatorForCollation();      
+        RuleBasedCollator rbc = getCollatorForCollation();
         cKey = rbc.getCollationKey(new String(rawData, 0, lastNonspaceChar));
 
         return cKey;
@@ -3102,9 +3102,9 @@ public class SQLChar
         }
 
 
-        /* value.hashCode() doesn't work because of the SQL blank padding 
+        /* value.hashCode() doesn't work because of the SQL blank padding
          * behavior.
-         * We want the hash code to be based on the value after the 
+         * We want the hash code to be based on the value after the
          * trailing blanks have been trimmed.  Calling trim() is too expensive
          * since it will create a new object, so here's what we do:
          *      o  Walk from the right until we've found the 1st
@@ -3152,7 +3152,7 @@ public class SQLChar
     }
 
     /**
-     * Get a SQLVarchar for a built-in string function.  
+     * Get a SQLVarchar for a built-in string function.
      *
      * @return a SQLVarchar.
      *
@@ -3176,7 +3176,7 @@ public class SQLChar
 		else return finder.getCurrentLocale();
     }
 
-    protected RuleBasedCollator getCollatorForCollation() 
+    protected RuleBasedCollator getCollatorForCollation()
         throws StandardException
     {
         if (SanityManager.DEBUG) {
@@ -3194,7 +3194,7 @@ public class SQLChar
         // though.  -  Jeff
         if (localeFinder == null)
         {
-            DatabaseContext dc = (DatabaseContext) 
+            DatabaseContext dc = (DatabaseContext)
                 ContextService.getContext(DatabaseContext.CONTEXT_ID);
             if( dc != null)
                 localeFinder = dc.getDatabase();
@@ -3208,7 +3208,7 @@ public class SQLChar
         int sz = BASE_MEMORY_USAGE + ClassSize.estimateMemoryUsage( value);
         if( null != rawData)
             sz += 2*rawData.length;
-        // Assume that cKey, stream, and localFinder are shared, 
+        // Assume that cKey, stream, and localFinder are shared,
         // so do not count their memory usage
         return sz;
 
@@ -3281,7 +3281,7 @@ public class SQLChar
     public void setStreamHeaderFormat(Boolean inSoftUpgradeMode) {
         // Ignore this for CHAR, VARCHAR and LONG VARCHAR.
     }
-    
+
     private int getClobLength() throws StandardException
     {
         try {
@@ -3407,7 +3407,7 @@ public class SQLChar
         if (sparkObject == null)
             setToNull();
         else {
-            value = (String) sparkObject; // Autobox, must be something better.
+            value = sparkObject.toString();
             setIsNull(false);
         }
     }
