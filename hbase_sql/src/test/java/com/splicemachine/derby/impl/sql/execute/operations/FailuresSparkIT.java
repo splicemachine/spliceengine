@@ -43,6 +43,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -106,6 +107,53 @@ public class FailuresSparkIT {
             try (ResultSet rs = s.executeQuery("select * from a")) {
                 Assert.assertFalse("Rows returned from query!", rs.next());
             }
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testDeletedCellsInMemstoreDontHangSparkScans() throws Throwable {
+        try (Connection con1 = methodWatcher.createConnection()) {
+            con1.setAutoCommit(false);
+            try (Connection con2 = methodWatcher.createConnection()) {
+                con2.setAutoCommit(false);
+
+                try (Statement s2 = con2.createStatement()) {
+                    // start con2 transaction
+                    try (ResultSet rs = s2.executeQuery("select * from a")) {
+                        rs.next();
+                    }
+
+
+                    try (Statement s1 = con1.createStatement()) {
+                        s1.executeUpdate("insert into a values 10");
+                    }
+                    con1.rollback();
+
+                    // force WW conflict to rollfoward (by deleting) the previous write
+                    try {
+                        s2.executeUpdate("insert into a values 10");
+                        fail("Expected WW conflict");
+                    } catch (SQLException se) {
+                        assertEquals("SE014", se.getSQLState());
+                    }
+
+
+                    con2.commit();
+
+
+                    // run Spark query
+                    try (Statement s1 = con1.createStatement()) {
+                        try (ResultSet rs = s1.executeQuery("select * from a --splice-properties useSpark=true")) {
+                            while (rs.next()) {
+                                // do nothing
+                            }
+                        }
+                    }
+
+                    con1.commit();
+                }
+            }
+
         }
     }
 
