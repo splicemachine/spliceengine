@@ -981,8 +981,8 @@
                 <module>assembly</module>
             </modules>
         </profile>
-	<profile>
-	    <id>hdp2.6.4</id>
+        <profile>
+	        <id>hdp2.6.4</id>
             <activation>
                 <property>
                     <name>env</name>
@@ -1001,6 +1001,38 @@
                 <kafka.version>0.10.1.2.6.4.0-91</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
                 <parquet.version>parquet-spark2</parquet.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>platform_it</module>
+                <module>splice_spark</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>hdp2.6.5</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>hdp2.6.5</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>hdp2.6.5</envClassifier>
+                <envHbase>hbase1.1.2.2.6</envHbase>
+                <hadoop.version>2.7.3.2.6.5.0-292</hadoop.version>
+                <hbase.version>1.1.2.2.6.5.0-292</hbase.version>
+                <hive.version>2.1.0.2.6.5.0-292</hive.version>
+                <zookeeper.version>3.4.6.2.6.5.0-292</zookeeper.version>
+                <spark.version>2.3.0.2.6.5.0-292</spark.version>
+                <spark.major.version>spark2.3</spark.major.version>
+                <kafka.version>1.0.0.2.6.5.0-292</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <parquet.version>orc-spark-2.3</parquet.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>

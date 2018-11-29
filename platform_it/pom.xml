@@ -639,11 +639,6 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.spark-project.hive</groupId>
-            <artifactId>hive-common</artifactId>
-            <version>1.2.1.spark2</version>
-        </dependency>
     </dependencies>
     <build>
         <extensions>
@@ -1458,6 +1453,14 @@
         </profile>
         <profile>
             <id>hdp2.6.4</id>
+            <properties>
+                <extraDependency>splice_ranger_service</extraDependency>
+                <extraDependency2>splice_ranger_admin</extraDependency2>
+                <extraDependency3>splice_atlas</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>hdp2.6.5</id>
             <properties>
                 <extraDependency>splice_ranger_service</extraDependency>
                 <extraDependency2>splice_ranger_admin</extraDependency2>
