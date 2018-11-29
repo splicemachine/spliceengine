@@ -151,7 +151,15 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
             }
             return HBasePlatformUtils.scannerEndReached(scannerContext);
         }
-        return directInternalNext(outResult,scannerContext);
+        if (directInternalNext(outResult,scannerContext))
+            return true;
+
+        // We don't have more rows but can't return null here
+        endRowNeedsToBeReturned = true;
+        if (outResult.isEmpty()) {
+            outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
+        }
+        return HBasePlatformUtils.scannerEndReached(scannerContext);
     }
 
     @Override
