@@ -870,6 +870,7 @@
             <modules>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
+                <module>scala_util</module>
                 <module>hbase_sql</module>
                 <module>splice_spark</module>
                 <module>assembly</module>
