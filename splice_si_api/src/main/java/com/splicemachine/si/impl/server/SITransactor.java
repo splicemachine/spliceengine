@@ -175,7 +175,6 @@ public class SITransactor implements Transactor{
                                              ConstraintChecker constraintChecker,
                                              boolean skipConflictDetection,
                                              boolean skipWAL) throws IOException{
-//                if (LOG.isTraceEnabled()) LOG.trace(String.format("processInternal: table = %s, txnId = %s", table.toString(), txn.getTxnId()));
         MutationStatus[] finalStatus=new MutationStatus[mutations.size()];
         Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
         SimpleTxnFilter constraintState=null;
@@ -572,18 +571,6 @@ public class SITransactor implements Transactor{
                     conflictResults.addChild(dataTransactionId);
                     break;
                 case ADDITIVE:
-                    if (dataTransaction.getState()==Txn.State.ACTIVE) {
-                        // check if it's a retry of the same task
-                        TaskId updateTaskId = txnSupplier.getTaskId(updateTransaction.getTxnId());
-                        TaskId dataTaskId = txnSupplier.getTaskId(dataTransactionId);
-                        if (updateTaskId != null && dataTaskId != null &&
-                                updateTaskId.sameTask(dataTaskId) &&
-                                updateTaskId.getTaskAttemptNumber() > dataTaskId.getTaskAttemptNumber()) {
-                            // this is a retry, rollback previous transaction and don't report a conflict
-                            SIDriver.driver().lifecycleManager().rollback(dataTransactionId);
-                            break;
-                        }
-                    }
                     if(conflictResults==null){
                         conflictResults=new ConflictResults();
                     }
