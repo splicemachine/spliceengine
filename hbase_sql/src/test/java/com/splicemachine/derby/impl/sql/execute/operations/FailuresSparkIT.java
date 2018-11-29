@@ -18,6 +18,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -68,6 +69,27 @@ public class FailuresSparkIT {
     @Rule
     public SpliceWatcher methodWatcher=new SpliceWatcher(CLASS_NAME);
 
+
+    @Test
+    public void testSparkSerializesFullTxnStack() throws Throwable {
+        String uniqueName="veryUniqueTableNameNotUsedBefore";
+        try (Connection c = methodWatcher.createConnection()) {
+            c.setAutoCommit(false);
+
+            try(Statement s =c.createStatement()) {
+                s.executeUpdate("create table "+uniqueName+"(a int)");
+
+                c.setSavepoint("pt1");
+
+                try(ResultSet rs = s.executeQuery("select tablename from sys.systables --splice-properties useSpark=true \n" +
+                        "where tablename = '" + uniqueName.toUpperCase() +"'")) {
+                    assertTrue("Spark scan couldn't see table created on its own transaction", rs.next());
+                }
+            }
+            c.rollback();
+        }
+    }
+
     @Test
     public void testPKViolationIsRolledback() throws Throwable {
         try(Statement s =methodWatcher.getOrCreateConnection().createStatement()) {
@@ -87,7 +109,6 @@ public class FailuresSparkIT {
             }
         }
     }
-
 
     @Test(timeout = 10000)
     public void testDeletedCellsInMemstoreDontHangSparkScans() throws Throwable {
@@ -136,4 +157,16 @@ public class FailuresSparkIT {
         }
     }
 
+    @Test
+    public void testSparkReadsSysColumns() throws Throwable {
+        try(Statement s =methodWatcher.getOrCreateConnection().createStatement()) {
+            String sql = "select a.columndatatype from sys.syscolumns a --splice-properties useSpark=true, joinStrategy=sortmerge\n" +
+            "join sys.syscolumns b on  a.columnname = b.columnname {limit 10}";
+            try(ResultSet rs = s.executeQuery(sql)) {
+                assertTrue(rs.next());
+                Object object = rs.getObject(1);
+                assertTrue(object instanceof TypeDescriptorImpl);
+            }
+        }
+    }
 }

@@ -364,7 +364,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 ((NormalizeOperation) source).setRequireNotNull(false);
             }
         }
-        DataSet set=source.getDataSet(dsp);
+        DataSet set=source.getDataSet(dsp).shufflePartitions();
         OperationContext operationContext=dsp.createOperationContext(this);
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
