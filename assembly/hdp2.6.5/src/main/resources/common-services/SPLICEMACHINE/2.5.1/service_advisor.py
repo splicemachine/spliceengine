@@ -54,7 +54,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         hbase_env = services["configurations"]["hbase-env"]["properties"]
         if "content" in hbase_env:
           content = hbase_env["content"]
-          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*:/usr/hdp/2.6.3.0-235/hadoop/lib/ranger-hdfs-plugin-impl/*"
+          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/2.6.5.0-292/spark2/jars/*:/usr/hdp/2.6.5.0-292/hadoop/lib/ranger-hdfs-plugin-impl/*"
           HBASE_MASTER_OPTS = "export HBASE_MASTER_OPTS=\"${HBASE_MASTER_OPTS} -D"+ " -D".join(self.getMasterDashDProperties()) + "\""
           HBASE_REGIONSERVER_OPTS = "export HBASE_REGIONSERVER_OPTS=\"${HBASE_REGIONSERVER_OPTS} -D"+ " -D".join(self.getRegionServerDashDProperties()) + "\""
           HBASE_CONF_DIR = "export HBASE_CONF_DIR=${HBASE_CONF_DIR}:/etc/splicemachine/conf/"
