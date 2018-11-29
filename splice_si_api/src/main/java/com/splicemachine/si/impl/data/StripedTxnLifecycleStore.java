@@ -50,7 +50,7 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
 
         NONEXISTENT_TXN=TxnMessage.Txn.newBuilder().setState(Txn.State.ROLLEDBACK.getId()).setInfo(nonExistentInfo).build();
 
-        NONEXISTENT_TASK_ID=TxnMessage.TaskId.newBuilder().setJtId("").setJobId(0).setStageId(0).setPartitionId(0).setTaskAttemptNumber(0).build();
+        NONEXISTENT_TASK_ID=TxnMessage.TaskId.newBuilder().setStageId(0).setPartitionId(0).setTaskAttemptNumber(0).build();
     }
 
     private final LongStripedSynchronizer<ReadWriteLock> lockStriper;
