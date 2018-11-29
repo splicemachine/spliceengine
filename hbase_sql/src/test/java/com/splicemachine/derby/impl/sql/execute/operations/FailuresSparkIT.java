@@ -37,11 +37,13 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -67,6 +69,27 @@ public class FailuresSparkIT {
     @Rule
     public SpliceWatcher methodWatcher=new SpliceWatcher(CLASS_NAME);
 
+
+    @Test
+    public void testSparkSerializesFullTxnStack() throws Throwable {
+        String uniqueName="veryUniqueTableNameNotUsedBefore";
+        try (Connection c = methodWatcher.createConnection()) {
+            c.setAutoCommit(false);
+
+            try(Statement s =c.createStatement()) {
+                s.executeUpdate("create table "+uniqueName+"(a int)");
+
+                c.setSavepoint("pt1");
+
+                try(ResultSet rs = s.executeQuery("select tablename from sys.systables --splice-properties useSpark=true \n" +
+                        "where tablename = '" + uniqueName.toUpperCase() +"'")) {
+                    assertTrue("Spark scan couldn't see table created on its own transaction", rs.next());
+                }
+            }
+            c.rollback();
+        }
+    }
+
     @Test
     public void testPKViolationIsRolledback() throws Throwable {
         try(Statement s =methodWatcher.getOrCreateConnection().createStatement()) {
@@ -84,6 +107,53 @@ public class FailuresSparkIT {
             try (ResultSet rs = s.executeQuery("select * from a")) {
                 Assert.assertFalse("Rows returned from query!", rs.next());
             }
+        }
+    }
+
+    @Test(timeout = 10000)
+    public void testDeletedCellsInMemstoreDontHangSparkScans() throws Throwable {
+        try (Connection con1 = methodWatcher.createConnection()) {
+            con1.setAutoCommit(false);
+            try (Connection con2 = methodWatcher.createConnection()) {
+                con2.setAutoCommit(false);
+
+                try (Statement s2 = con2.createStatement()) {
+                    // start con2 transaction
+                    try (ResultSet rs = s2.executeQuery("select * from a")) {
+                        rs.next();
+                    }
+
+
+                    try (Statement s1 = con1.createStatement()) {
+                        s1.executeUpdate("insert into a values 10");
+                    }
+                    con1.rollback();
+
+                    // force WW conflict to rollfoward (by deleting) the previous write
+                    try {
+                        s2.executeUpdate("insert into a values 10");
+                        fail("Expected WW conflict");
+                    } catch (SQLException se) {
+                        assertEquals("SE014", se.getSQLState());
+                    }
+
+
+                    con2.commit();
+
+
+                    // run Spark query
+                    try (Statement s1 = con1.createStatement()) {
+                        try (ResultSet rs = s1.executeQuery("select * from a --splice-properties useSpark=true")) {
+                            while (rs.next()) {
+                                // do nothing
+                            }
+                        }
+                    }
+
+                    con1.commit();
+                }
+            }
+
         }
     }
 
