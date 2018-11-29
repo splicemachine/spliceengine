@@ -254,7 +254,7 @@ public class V2TxnDecoder implements TxnDecoder{
         }
         long kaTime=decodeKeepAlive(keepAliveKv,false);
         return composeValue(destinationTables,level,txnId,beginTs,parentTxnId,hasAdditive,
-                isAdditive,commitTs,globalTs,state,kaTime,Collections.emptyList());
+                isAdditive,commitTs,globalTs,state,kaTime,Collections.emptyList(), null);
 
     }
 
