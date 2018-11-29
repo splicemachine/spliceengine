@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.8.0.1846-SNAPSHOT</version>
+        <version>2.8.0.1847-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -37,13 +37,15 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -381,13 +383,15 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_pipeline-${envClassifier}</artifactId>
+            <artifactId>hbase_pipeline</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -441,8 +445,9 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -644,8 +649,9 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -677,7 +683,7 @@
                  -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.10</version>
+                <version>3.1.1</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.splicetest.txn</groupId>
@@ -752,7 +758,7 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -788,7 +794,7 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -824,52 +830,6 @@
             <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <id>############### standalone build ###############</id>
-                        <!-- run as jenkins to build standalone. use deploy. mvn deploy. -->
-                        <phase>test</phase>
-                        <configuration>
-                            <tasks>
-                                <delete dir="../assembly/standalone/target"/>
-                                <mkdir dir="../assembly/standalone/target"/>
-                                <copydir src="../assembly/standalone/template"
-                                         dest="../assembly/standalone/target/splicemachine" includes="**/*"/>
-                                <chmod file="../assembly/standalone/target/splicemachine/bin/*.sh" perm="ugo+rx"/>
-                            </tasks>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>############### copy jars ###############</id>
-                        <phase>deploy</phase>
-                        <configuration>
-                            <target>
-                                <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                    <fileset dir="../assembly/standalone/template/conf" includes="yarn-site.xml"/>
-                                </copy>
-                                <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                    <fileset dir="target/dependency" includes="*.jar"/>
-                                </copy>
-                                <copy todir="../assembly/standalone/target/splicemachine/lib">
-                                    <fileset dir="target" includes="*.jar" excludes="*sources.jar"/>
-                                </copy>
-                                <copy todir="../assembly/standalone/target/splicemachine/jdbc-driver">
-                                    <fileset dir="target/dependency" includes="db-client*.jar"/>
-                                </copy>
-                                <tar compression="gzip"
-                                     destfile="../assembly/standalone/target/SPLICEMACHINE-${project.version}.standalone.tar.gz">
-                                    <tarfileset username="root" group="root" filemode="755"
-                                                dir="../assembly/standalone/target/splicemachine"
-                                                prefix="splicemachine"/>
-                                </tar>
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
                     <execution>
                         <id>############### start-splice-its ###############</id>
                         <phase>pre-integration-test</phase>
@@ -1603,6 +1563,15 @@
             </properties>
         </profile>
         <profile>
+            <id>cdh5.14.2</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
             <id>mapr6.0.0</id>
             <properties>
                 <extraDependency>splice_ee</extraDependency>
@@ -1627,14 +1596,14 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_ee</artifactId>
                     <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
+                    <classifier>${envClassifier}-tests</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup</artifactId>
                     <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
+                    <classifier>${envClassifier}-tests</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
@@ -1665,6 +1634,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                 </dependency>
                 <dependency>
@@ -1677,6 +1647,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>${extraDependency}</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                 </dependency>
                 <dependency>
@@ -1689,6 +1660,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>${extraDependency2}</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                 </dependency>
                 <dependency>
@@ -1701,6 +1673,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>${extraDependency3}</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                 </dependency>
             </dependencies>

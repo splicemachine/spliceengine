@@ -233,6 +233,13 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public void batchMutate(List<DataMutation> mutations) throws IOException {
+        for (DataMutation dm : mutations) {
+            mutate(dm);
+        }
+    }
+
+    @Override
     public boolean containsRow(byte[] row){
         return this.basePartition.containsRow(row);
     }

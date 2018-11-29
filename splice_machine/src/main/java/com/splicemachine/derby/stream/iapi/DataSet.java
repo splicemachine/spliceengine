@@ -88,6 +88,14 @@ public interface DataSet<V> extends //Iterable<V>,
      */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
 
+
+    /**
+     *
+     * Shuffle partitions in no-cost operation
+     * @return
+     */
+    DataSet<V> shufflePartitions();
+
     /**
      *
      * Perform a function on the entire partition and provide an iterator out of the function.

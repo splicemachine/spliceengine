@@ -467,7 +467,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def insert(dataFrame: DataFrame, schemaTableName: String): Unit = {
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
@@ -477,6 +477,27 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /**
+    *
+    * Sample the dataframe, split the table, and insert a dataFrame into a table (schema.table).  This corresponds to an
+    *
+    * insert into from select statement
+    *
+    * @param dataFrame
+    * @param schemaTableName
+    * @param sampleFraction
+    */
+  def splitAndInsert(dataFrame: DataFrame, schemaTableName: String, sampleFraction: Double): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = "insert into " + schemaTableName +
+      " (" + columnList + ") --splice-properties useSpark=true, sampleFraction=" +
+      sampleFraction + "\n select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
+      "as SpliceDatasetVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+  /**
     * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
     *
     * @param rdd
@@ -484,7 +505,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
@@ -510,7 +531,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param badRecordsAllowed
     */
   def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit = {
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ")" +
@@ -536,7 +557,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit = {
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ")" +
@@ -555,7 +576,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def upsert(dataFrame: DataFrame, schemaTableName: String): Unit = {
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties insertMode=UPSERT\n select " + columnList + " from " +
@@ -573,7 +594,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def upsert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties insertMode=UPSERT\n select " + columnList + " from " +
@@ -592,7 +613,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Deletes")
@@ -619,7 +640,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Deletes")
@@ -646,7 +667,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Updates")
@@ -677,7 +698,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Updates")

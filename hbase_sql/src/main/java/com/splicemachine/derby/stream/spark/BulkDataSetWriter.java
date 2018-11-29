@@ -209,32 +209,4 @@ public class BulkDataSetWriter  {
             }
         }
     }
-
-
-    /**
-     * Split a table using cut points
-     * @param cutPointsList
-     * @throws StandardException
-     */
-    protected void splitTables(List<Tuple2<Long, byte[][]>> cutPointsList) throws StandardException {
-        SIDriver driver=SIDriver.driver();
-        try(PartitionAdmin pa = driver.getTableFactory().getAdmin()){
-            for (Tuple2<Long, byte[][]> tuple : cutPointsList) {
-                String table = tuple._1.toString();
-                byte[][] cutpoints = tuple._2;
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "split keys for table %s", table);
-                    for(byte[] cutpoint : cutpoints) {
-                        SpliceLogUtils.debug(LOG, "%s", Bytes.toHex(cutpoint));
-                    }
-                }
-                pa.splitTable(table, cutpoints);
-            }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        }
-    }
-
 }

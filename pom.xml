@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>2.8.0.1846-SNAPSHOT</version>
+    <version>2.8.0.1847-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -102,13 +102,6 @@
         <system>jira</system>
         <url>https://splice.atlassian.net</url>
     </issueManagement>
-    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-   Fail the build if not using maven >= 3.3.0  Just a sanity check.  3.3.0 because this
-   is currently the min supported version by our plugins.
-   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-    <prerequisites>
-        <maven>3.3.0</maven>
-    </prerequisites>
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  dependencies - should be a very minimal set of dependencies here as it is difficult to
  predict what all inhering projects will want/need and they can't exclude things
@@ -497,6 +490,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
                     <version>2.8.2</version>
+                    <configuration>
+                        <retryFailedDeploymentCount>6</retryFailedDeploymentCount>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -612,6 +608,7 @@
                     <version>2.4</version>
                     <executions>
                         <execution>
+                            <id>attach-sources</id>
                             <goals>
                                 <goal>jar</goal>
                             </goals>
@@ -621,7 +618,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>2.6</version>
+                    <version>3.1.0</version>
                     <configuration>
                         <archive>
                             <manifestEntries>
@@ -640,14 +637,6 @@
                             <exclude>**/user-credentials.properties</exclude>
                         </excludes>
                     </configuration>
-                    <executions>
-                        <execution>
-                            <id>attach-sources</id>
-                            <goals>
-                                <goal>jar</goal>
-                            </goals>
-                        </execution>
-                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -910,6 +899,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -940,6 +930,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -970,6 +961,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1000,6 +992,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1062,6 +1055,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1093,6 +1087,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1124,6 +1119,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1155,6 +1151,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1187,6 +1184,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1218,6 +1216,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1249,6 +1248,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1281,6 +1281,40 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>cdh5.14.2</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.14.2</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.14.2</cdh.parcel.version>
+                <envClassifier>cdh5.14.2</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.14.2</hadoop.version>
+                <hbase.version>1.2.0-cdh5.14.2</hbase.version>
+                <hive.version>1.1.0-cdh5.14.2</hive.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <zookeeper.version>3.4.5-cdh5.14.2</zookeeper.version>
+                <spark.version>2.2.0.cloudera2</spark.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.2</spark-assembly-id>
+                <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+                <parquet.version>parquet-cloudera</parquet.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>platform_it</module>
+                <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1314,6 +1348,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>
@@ -1347,6 +1382,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>splice_spark</module>
+                <module>scala_util</module>
                 <module>assembly</module>
             </modules>
         </profile>

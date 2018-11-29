@@ -145,7 +145,7 @@ public class ActivationHolder implements Externalizable {
         }
         out.writeObject(operationsList);
         out.writeObject(soi);
-        SIDriver.driver().getOperationFactory().writeTxn(txn,out);
+        SIDriver.driver().getOperationFactory().writeTxnStack(txn,out);
     }
 
     public void init(){
@@ -183,7 +183,7 @@ public class ActivationHolder implements Externalizable {
             addSubOperations(operationsMap, so);
         }
         soi = (SpliceObserverInstructions) in.readObject();
-        txn = SIDriver.driver().getOperationFactory().readTxn(in);
+        txn = SIDriver.driver().getOperationFactory().readTxnStack(in);
     }
 
     public void setActivation(Activation activation) {

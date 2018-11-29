@@ -28,6 +28,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Asynchronous element for "resolving" transaction elements.
@@ -142,7 +143,12 @@ public class TransactionResolver{
     }
     
     public void shutdown() {
-        disruptor.shutdown();
+        try {
+            disruptor.shutdown(10, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            LOG.warn("Disruptor shutdown timed out", e);
+            disruptor.halt();
+        }
         consumerThreads.shutdownNow();
     }
 
