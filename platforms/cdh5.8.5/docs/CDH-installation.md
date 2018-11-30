@@ -499,8 +499,9 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>hbase.ipc.warn.response.size</name><value>-1</value></property>
    <property><name>hbase.ipc.warn.response.time</name><value>-1</value></property>
    <property><name>hbase.master.loadbalance.bytable</name><value>true</value></property>
+   <property><name>hbase.master.balancer.stochastic.regionCountCost</name><value>1500</value></property>
    <property><name>hbase.mvcc.impl</name><value>org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl</value></property>
-   <property><name>hbase.regions.slop</name><value>0.01</value></property>
+   <property><name>hbase.regions.slop</name><value>0</value></property>
    <property><name>hbase.regionserver.global.memstore.size.lower.limit</name><value>0.9</value></property>
    <property><name>hbase.regionserver.global.memstore.size</name><value>0.25</value></property>
    <property><name>hbase.regionserver.maxlogs</name><value>48</value></property>
@@ -525,10 +526,9 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>splice.txn.activeTxns.cacheSize</name><value>10240</value></property>
    <property><name>splice.txn.completedTxns.concurrency</name><value>128</value></property>
    <property><name>splice.txn.concurrencyLevel</name><value>4096</value></property>
-   <property><name>hbase.hstore.compaction.max.size</name><value>260046848</value></property>
-   <property><name>hbase.hstore.compaction.min.size</name><value>16777216</value></property>
-   <property><name>hbase.hstore.compaction.min</name><value>5</value></property>
-   <property><name>hbase.regionserver.thread.compaction.large</name><value>1</value></property>
+   <property><name>hbase.hstore.compaction.min.size</name><value>136314880</value></property>
+   <property><name>hbase.hstore.compaction.min</name><value>3</value></property>
+   <property><name>hbase.regionserver.thread.compaction.large</name><value>4</value></property>
    <property><name>splice.authentication.native.algorithm</name><value>SHA-512</value></property>
    <property><name>splice.authentication</name><value>NATIVE</value></property>
    <property><name>splice.olap_server.memory</name><value>8196</value></property>   

@@ -15,6 +15,7 @@
 package com.splicemachine.si.impl.txn;
 
 import com.splicemachine.si.api.txn.ConflictType;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.Txn.IsolationLevel;
 import com.splicemachine.si.api.txn.TxnView;
@@ -213,6 +214,13 @@ public abstract class AbstractTxnView implements TxnView {
             TxnView myParent = getParentTxnView();
             TxnView otherParent = otherTxn.getParentTxnView();
             if(!myParent.equals(Txn.ROOT_TRANSACTION) && myParent.equivalent(otherParent)){
+                // If we are a retry then we don't conflict
+                if (getTaskId() != null && otherTxn.getTaskId() != null) {
+                    if (getTaskId().isRetry(otherTxn.getTaskId())) {
+                        return ConflictType.NONE;
+                    }
+                }
+
                 /*
                  * We are additive. Normally, we don't care about additive conflicts, and
                  * unless special circumstances are met, we will ignore this, but
@@ -365,5 +373,10 @@ public abstract class AbstractTxnView implements TxnView {
     @Override
     public boolean allowsSubtransactions() {
         return false;
+    }
+
+    @Override
+    public TaskId getTaskId() {
+        return null;
     }
 }
