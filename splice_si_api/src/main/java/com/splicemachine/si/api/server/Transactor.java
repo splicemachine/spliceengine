@@ -52,4 +52,5 @@ public interface Transactor{
                                     boolean skipConflictDetection,
                                     boolean skipWAL) throws IOException;
 
+    void setDefaultConstraintChecker(ConstraintChecker constraintChecker);
 }
