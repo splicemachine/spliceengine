@@ -61,6 +61,7 @@ public class SITransactor implements Transactor{
     private final OperationFactory opFactory;
     private final OperationStatusFactory operationStatusLib;
     private final ExceptionFactory exceptionLib;
+    private ConstraintChecker defaultConstraintChecker;
 
     private final TxnOperationFactory txnOperationFactory;
     private final TxnSupplier txnSupplier;
@@ -75,6 +76,7 @@ public class SITransactor implements Transactor{
         this.opFactory= opFactory;
         this.operationStatusLib = operationStatusLib;
         this.exceptionLib = exceptionFactory;
+        this.defaultConstraintChecker = operationStatusLib.getNoOpConstraintChecker();
     }
 
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
@@ -115,7 +117,7 @@ public class SITransactor implements Transactor{
                             return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
                         }
                     }));
-                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,operationStatusLib.getNoOpConstraintChecker());
+                    MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,defaultConstraintChecker);
                     for(int i=0;i<statuses.length;i++){
                         byte[] row=kvPairs.get(i).getRowKey();
                         MutationStatus status=statuses[i];
@@ -161,6 +163,11 @@ public class SITransactor implements Transactor{
                                            boolean skipWAL) throws IOException{
         ensureTransactionAllowsWrites(txn);
         return processInternal(table,rollForward,txn,defaultFamilyBytes,packedColumnBytes,toProcess,constraintChecker,skipConflictDetection,skipWAL);
+    }
+
+    @Override
+    public void setDefaultConstraintChecker(ConstraintChecker constraintChecker) {
+        this.defaultConstraintChecker = constraintChecker;
     }
 
     private MutationStatus getCorrectStatus(MutationStatus status,MutationStatus oldStatus){
