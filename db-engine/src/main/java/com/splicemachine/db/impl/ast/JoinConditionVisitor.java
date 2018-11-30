@@ -339,20 +339,16 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     	if (LOG.isDebugEnabled())
     		LOG.debug(String.format("joinScoped joinScoped=%s",joinScoped));
 
-        ResultSetNode parent = null;
         for (ResultSetNode rsn: rightsUntilBinary) {
         	if (LOG.isDebugEnabled())
         		LOG.debug(String.format("rewriteNLJColumnRefs rightsUntilBinary=%s",rsn));
         	// Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
-            if (!(rsn instanceof FromBaseTable && parent != null && parent instanceof IndexToBaseRowNode)) {
-                org.spark_project.guava.base.Predicate<Predicate> predOfInterest =
-                        Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
-                joinPreds.addAll(Collections2
-                        .filter(RSUtils.collectExpressionNodes(rsn, Predicate.class),
-                                predOfInterest));
-            }
-            parent = rsn;
+            org.spark_project.guava.base.Predicate<Predicate> predOfInterest =
+                    Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
+            joinPreds.addAll(Collections2
+                     .filter(RSUtils.collectExpressionNodes(rsn, Predicate.class),
+                             predOfInterest));
         }
 
       //  joinChainMap = j.rsnChainMapV2();

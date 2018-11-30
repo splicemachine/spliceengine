@@ -28,7 +28,7 @@ import java.util.List;
 public class TXNDecoderUtils {
 
     public static TxnMessage.Txn composeValue(Cell destinationTables, IsolationLevel level, long txnId, long beginTs, long parentTs, boolean hasAdditive,
-                                              boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime, List<Long> rollbackSubIds) {
+                                              boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime, List<Long> rollbackSubIds, TxnMessage.TaskId taskId) {
         ByteString destTableBuffer = null;
         if(destinationTables!=null){
             destTableBuffer = ZeroCopyLiteralByteString.wrap(CellUtil.cloneValue(destinationTables));
@@ -41,6 +41,9 @@ public class TXNDecoderUtils {
         	info.setDestinationTables(destTableBuffer);
         if(hasAdditive)
             info = info.setIsAdditive(additive);
+        if(taskId != null) {
+            info = info.setTaskId(taskId);
+        }
         return TxnMessage.Txn.newBuilder().setInfo(info.build())
                 .setCommitTs(commitTs).setGlobalCommitTs(globalCommitTs).setState(state.getId())
                 .setLastKeepAliveTime(kaTime).addAllRollbackSubIds(rollbackSubIds).build();

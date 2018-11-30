@@ -37,13 +37,15 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_sql-${envClassifier}</artifactId>
+            <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -381,13 +383,15 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_pipeline-${envClassifier}</artifactId>
+            <artifactId>hbase_pipeline</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -441,8 +445,9 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -644,8 +649,9 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
+            <artifactId>hbase_storage</artifactId>
             <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -682,7 +688,7 @@
                  -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.10</version>
+                <version>3.1.1</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.splicetest.txn</groupId>
@@ -757,7 +763,7 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -793,7 +799,7 @@
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
                                 <dependency>com.splicemachine:splice_machine</dependency>
-                                <dependency>com.splicemachine:hbase_sql-${envClassifier}</dependency>
+                                <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -1587,14 +1593,14 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_ee</artifactId>
                     <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
+                    <classifier>${envClassifier}-tests</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup</artifactId>
                     <version>${project.version}</version>
-                    <classifier>${envClassifier}</classifier>
+                    <classifier>${envClassifier}-tests</classifier>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
@@ -1625,6 +1631,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>splice_backup</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                 </dependency>
                 <dependency>
@@ -1637,6 +1644,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>${extraDependency}</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                 </dependency>
                 <dependency>
@@ -1649,6 +1657,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>${extraDependency2}</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                 </dependency>
                 <dependency>
@@ -1661,6 +1670,7 @@
                     <groupId>com.splicemachine</groupId>
                     <artifactId>${extraDependency3}</artifactId>
                     <version>${project.version}</version>
+                    <classifier>${envClassifier}-tests</classifier>
                     <type>test-jar</type>
                 </dependency>
             </dependencies>

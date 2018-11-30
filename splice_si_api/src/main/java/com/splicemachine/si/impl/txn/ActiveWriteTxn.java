@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.txn;
 
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 
@@ -28,6 +29,7 @@ import java.io.ObjectOutput;
 public class ActiveWriteTxn extends AbstractTxnView{
     private TxnView parentTxn;
     private boolean additive;
+    private TaskId taskId;
 
     public ActiveWriteTxn(){
         super();
@@ -37,12 +39,26 @@ public class ActiveWriteTxn extends AbstractTxnView{
                           long beginTimestamp,
                           TxnView parentTxn,
                           boolean additive,
-                          Txn.IsolationLevel isolationLevel){
-        super(txnId,beginTimestamp,isolationLevel);
-        this.parentTxn=parentTxn;
-        this.additive=additive;
+                          Txn.IsolationLevel isolationLevel) {
+        this(txnId, beginTimestamp, parentTxn, additive, isolationLevel, null);
     }
 
+    public ActiveWriteTxn(long txnId,
+                          long beginTimestamp,
+                          TxnView parentTxn,
+                          boolean additive,
+                          Txn.IsolationLevel isolationLevel,
+                          TaskId taskId) {
+        super(txnId, beginTimestamp, isolationLevel);
+        this.parentTxn = parentTxn;
+        this.additive = additive;
+        this.taskId = taskId;
+    }
+
+    @Override
+    public TaskId getTaskId() {
+        return taskId;
+    }
 
     @Override
     public long getCommitTimestamp(){

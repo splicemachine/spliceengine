@@ -84,7 +84,7 @@ public class DeleteOperation extends DMLWriteOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        DataSet set = source.getDataSet(dsp);
+        DataSet set = source.getDataSet(dsp).shufflePartitions();
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
 		operationContext.pushScope();
