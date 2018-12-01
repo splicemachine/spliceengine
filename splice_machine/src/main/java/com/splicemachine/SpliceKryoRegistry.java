@@ -19,29 +19,7 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
-import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
-import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.sql.execute.*;
-import com.splicemachine.derby.impl.sql.execute.operations.*;
-import com.splicemachine.derby.stream.ActivationHolder;
-import com.splicemachine.derby.stream.control.ControlOperationContext;
-import com.splicemachine.derby.stream.function.ExternalizableFlatMapFunction;
-import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
-import com.splicemachine.derby.stream.function.StatisticsFlatMapFunction;
-import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-import com.splicemachine.db.catalog.types.AggregateAliasInfo;
-import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
-import com.splicemachine.db.catalog.types.DecimalTypeIdImpl;
-import com.splicemachine.db.catalog.types.DefaultInfoImpl;
-import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
-import com.splicemachine.db.catalog.types.RowMultiSetImpl;
-import com.splicemachine.db.catalog.types.SynonymAliasInfo;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
-import com.splicemachine.db.catalog.types.UDTAliasInfo;
-import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
+import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -77,6 +55,8 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.control.ControlOperationContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
@@ -446,6 +426,31 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         },42);
         // Note that serialization of SQLRef as part of an ExecRow is handled by RefDescriptorSerializer
         instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER,43);
+        instance.register(ListDataType.class, new DataValueDescriptorSerializer<ListDataType>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, ListDataType object) throws StandardException {
+                int forLim = object.getLength();
+                output.writeInt(forLim);
+                for (int i = 0; i < forLim; i++) {
+                    kryo.writeClassAndObject(output, object.getDVD(i));
+                }
+            }
+        
+            @Override
+            protected void readValue(Kryo kryo, Input input, ListDataType dvd) {
+                int forLim = input.readInt();
+                dvd.setLength(forLim);
+                for (int i=0; i < forLim; i++) {
+                    DataValueDescriptor inputDVD;
+                    inputDVD = (DataValueDescriptor)kryo.readClassAndObject(input);
+                    try {
+                        dvd.setFrom(inputDVD, i);
+                    } catch (StandardException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }, 44);
         /*instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {

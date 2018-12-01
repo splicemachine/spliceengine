@@ -362,6 +362,42 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             }
         });
         instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ListDataType.class, new DataValueDescriptorSerializer<ListDataType>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, ListDataType object) throws StandardException {
+                output.writeFloat(object.getFloat());
+            }
+        
+            @Override
+            protected void readValue(Kryo kryo, Input input, ListDataType dvd) throws StandardException {
+                dvd.setValue(input.readFloat());
+            }
+        });
+        instance.register(ListDataType.class, new DataValueDescriptorSerializer<ListDataType>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, ListDataType object) throws StandardException {
+                int forLim = object.getLength();
+                output.writeInt(forLim);
+                for (int i = 0; i < forLim; i++) {
+                    kryo.writeClassAndObject(output, object.getDVD(i));
+                }
+            }
+    
+            @Override
+            protected void readValue(Kryo kryo, Input input, ListDataType dvd) {
+                int forLim = input.readInt();
+                dvd.setLength(forLim);
+                for (int i = 0; i < forLim; i++) {
+                    DataValueDescriptor inputDVD;
+                    inputDVD = (DataValueDescriptor)kryo.readClassAndObject(input);
+                    try {
+                        dvd.setFrom(inputDVD, i);
+                    } catch (StandardException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        });
         //register Activation-related classes
         instance.register(ActivationSerializer.ArrayFieldStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ActivationSerializer.DataValueStorage.class,EXTERNALIZABLE_SERIALIZER);
