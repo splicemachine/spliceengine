@@ -91,10 +91,12 @@ public interface ClassName
 	String CursorResultSet = "com.splicemachine.db.iapi.sql.execute.CursorResultSet";
 
 	String ExecIndexRow = "com.splicemachine.db.iapi.sql.execute.ExecIndexRow";
-
+	String ListDataType = "com.splicemachine.db.iapi.types.ListDataType";
+	
 	String ExecPreparedStatement = "com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement";
 
 	String ExecRow = "com.splicemachine.db.iapi.sql.execute.ExecRow";
+	String ValueRow = "com.splicemachine.db.impl.sql.execute.ValueRow";
 	String Activation = "com.splicemachine.db.iapi.sql.Activation";
 
 	String ResultSet = "com.splicemachine.db.iapi.sql.ResultSet";

@@ -139,6 +139,7 @@ public class CompilerContextImpl extends ContextImpl
         skipStatsTableList.clear();
         selectivityEstimationIncludingSkewedDefault = false;
         projectionPruningEnabled = false;
+        maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
 	}
 
 	//
@@ -214,6 +215,21 @@ public class CompilerContextImpl extends ContextImpl
 	public void setProjectionPruningEnabled(boolean onOff) {
 		projectionPruningEnabled = onOff;
 	}
+	
+	public int getMaxMulticolumnProbeValues() {
+		return maxMulticolumnProbeValues;
+	}
+	
+	public void setMaxMulticolumnProbeValues(int newValue) {
+		maxMulticolumnProbeValues = newValue;
+	}
+	
+	public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue) {
+		multicolumnInlistProbeOnSparkEnabled = newValue;
+	}
+	
+	public boolean getMulticolumnInlistProbeOnSparkEnabled() { return multicolumnInlistProbeOnSparkEnabled; }
+	
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
@@ -1034,6 +1050,8 @@ public class CompilerContextImpl extends ContextImpl
 	private int                 maximalPossibleTableCount;
 	private boolean             selectivityEstimationIncludingSkewedDefault = false;
 	private boolean             projectionPruningEnabled;
+	private int                 maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+	private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
 
 	/**
 	 * Saved execution time default schema, if we need to change it

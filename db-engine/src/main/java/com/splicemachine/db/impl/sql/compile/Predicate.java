@@ -1203,7 +1203,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * If this predicate does not correspond to an IN-list in any way,
      * this method will return null.
      */
-    public InListOperatorNode getSourceInList(){
+    public InListOperatorNode getSourceInList() throws StandardException{
         return getSourceInList(false);
     }
 
@@ -1221,7 +1221,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * the value of probePredOnly), or null if this predicate does
      * not correspond to an IN-list in any way.
      */
-    protected InListOperatorNode getSourceInList(boolean probePredOnly){
+    protected InListOperatorNode getSourceInList(boolean probePredOnly) throws StandardException{
         ValueNode vn=andNode.getLeftOperand();
         if(isInListProbePredicate())
             return ((BinaryRelationalOperatorNode)vn).getInListOp();
@@ -1234,6 +1234,15 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         return null;
     }
+    
+    /**
+     * Returns the number of columns represented in a predicate if the predicate is a probe predicate,
+     * otherwise returns 1.
+     */
+    protected int numColumnsInPred () throws StandardException {
+        InListOperatorNode ilon = getSourceInList();
+        return (ilon == null) ? 1 : ilon.leftOperandList.size();
+    }
 
     /**
      * Returns true if the predicate is a multi-probe qualifier.
@@ -1244,16 +1253,18 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      *
      * With DB-6231's enhancement, inlist does not need to be on the first index column anymore
      */
-    public boolean isMultiProbeQualifier(int[] keyColumns){
+    public boolean isMultiProbeQualifier(int[] keyColumns) throws StandardException{
         if(keyColumns==null)
             return false; //can't be a MPQ if there are no keyed columns
         InListOperatorNode sourceInList=getSourceInList();
         if(sourceInList==null)
             return false; //not a multi-probe predicate
-        ValueNode lo = sourceInList.getLeftOperand();
-        //if it doesn't refer to a column, then it can't be a qualifier
-        if(!(lo instanceof ColumnReference))
-            return false;
+        for (int i = 0; i < sourceInList.leftOperandList.size(); i++) {
+            ValueNode lo = (ValueNode) sourceInList.leftOperandList.elementAt(i);
+            //if it doesn't refer to a column, then it can't be a qualifier
+            if (!(lo instanceof ColumnReference))
+                return false;
+        }
 
         //if inlist is eligible for multiprobe index scan, its indexPosition will be set(>=0) and
         //this predicate can be pushed down to base table
@@ -1276,24 +1287,31 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * 2. It is applied against the first keyed column
      * 3. There are only constant nodes in the IN list
      */
-    public boolean isInQualifier(BitSet bitSet){
+    public boolean isInQualifier(BitSet bitSet) throws StandardException {
         if (bitSet == null)
             return false;
         InListOperatorNode sourceInList=getSourceInList();
         if(sourceInList==null)
             return false; //not a multi-probe predicate
-        ValueNode lo = sourceInList.getLeftOperand();
-        //if it doesn't refer to a column, then it can't be a qualifier
-        if(!(lo instanceof ColumnReference))
-            return false;
-        ColumnReference colRef = (ColumnReference)lo;
-        int colNum = colRef.getColumnNumber();
-        if (!bitSet.get(colNum)) // Miss
-            return false;
+        for (Object o : sourceInList.getLeftOperandList()) {
+            ValueNode lo = (ValueNode) o;
+            //if it doesn't refer to a column, then it can't be a qualifier
+            if (!(lo instanceof ColumnReference))
+                return false;
+            ColumnReference colRef = (ColumnReference) lo;
+            int colNum = colRef.getColumnNumber();
+            if (!bitSet.get(colNum)) // Miss
+                return false;
+        }
         ValueNodeList rightOperandList=sourceInList.getRightOperandList();
         for(Object o:rightOperandList){
-            if(!(o instanceof ConstantNode))
+            if(!(o instanceof ConstantNode)) {
+                if (o instanceof ListValueNode) {
+                    if (!((ListValueNode)o).allConstantsNodesInList())
+                        return false;
+                }
                 return false; //not all constants in the IN list
+            }
         }
         return true;
     }
@@ -1337,5 +1355,28 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                         andNode,
                         newJBitSet,
                         cm);
+    }
+    
+
+    public boolean matchesSingleValue() throws StandardException {
+        RelationalOperator relop = getRelop();
+        if (relop == null)
+            return false;
+    
+        if (!isRelationalOpPredicate())
+            return false;
+    
+        if (!(relop.getOperator() == RelationalOperator.EQUALS_RELOP ||
+              relop.getOperator() == RelationalOperator.IS_NULL_RELOP))
+            return false;
+        
+        if (getSourceInList() != null) {
+            if (isInListProbePredicate())
+                return true;
+            else
+                return false;
+        }
+        
+        return true;
     }
 }

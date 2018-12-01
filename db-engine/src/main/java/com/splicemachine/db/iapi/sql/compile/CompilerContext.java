@@ -154,6 +154,8 @@ public interface CompilerContext extends Context
 	int			AGGREGATE_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
 	int			CONDITIONAL_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
 	int			GROUP_BY_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
+	int         DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES              = 10000;
+	boolean     DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -651,5 +653,13 @@ public interface CompilerContext extends Context
 	public boolean isProjectionPruningEnabled();
 
 	public void setProjectionPruningEnabled(boolean onOff);
+	
+	public int getMaxMulticolumnProbeValues();
+	
+	public void setMaxMulticolumnProbeValues(int newValue);
+	
+	public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue);
+	
+	public boolean getMulticolumnInlistProbeOnSparkEnabled();
 
 }
