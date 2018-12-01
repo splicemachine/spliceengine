@@ -220,6 +220,7 @@ public class TypeId{
     public static final int LONGVARCHAR_PRECEDENCE=12;
     public static final int VARCHAR_PRECEDENCE=10;
     public static final int CHAR_PRECEDENCE=0;
+    public static final int LIST_PRECEDENCE=2000;
 
     /*
     ** Static runtime fields for typeIds
