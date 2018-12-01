@@ -216,6 +216,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
 		  case C_NodeTypes.BOOLEAN_CONSTANT_NODE:
 		  	return C_NodeNames.BOOLEAN_CONSTANT_NODE_NAME;
+			
+		  case C_NodeTypes.LIST_VALUE_NODE:
+		    return C_NodeNames.LIST_VALUE_NODE_NAME;
 
 		  case C_NodeTypes.AND_NODE:
 		  	return C_NodeNames.AND_NODE_NAME;

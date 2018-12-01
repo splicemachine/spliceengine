@@ -25,29 +25,39 @@ import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.catalog.types.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.*;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
-import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
-import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
-import com.splicemachine.derby.ddl.TentativeDropPKConstraintDesc;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
-import com.splicemachine.derby.serialization.ActivationSerializer;
-import com.splicemachine.derby.serialization.SpliceObserverInstructions;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.db.impl.sql.*;
+import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
+import com.splicemachine.db.impl.sql.catalog.DD_Version;
+import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
+import com.splicemachine.db.impl.sql.execute.*;
+import com.splicemachine.db.impl.store.access.PC_XenaVersion;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.kryo.SparkValueRowSerializer;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
+import com.splicemachine.derby.serialization.ActivationSerializer;
+import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
+import com.splicemachine.derby.utils.kryo.ListDataTypeSerializer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.stream.ResultStreamer;
@@ -59,19 +69,6 @@ import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.UUIDSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-import com.splicemachine.db.catalog.types.*;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.*;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.*;
-import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
-import com.splicemachine.db.impl.sql.catalog.DD_Version;
-import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
-import com.splicemachine.db.impl.sql.execute.*;
-import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
 
@@ -362,6 +359,36 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             }
         });
         instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ListDataType.class, new ListDataTypeSerializer<ListDataType>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, ListDataType object) throws StandardException {
+                int forLim = object.getLength();
+                output.writeInt(forLim);
+                for (int i = 0; i < forLim; i++) {
+                    boolean dvdPresent = (object.getDVD(i) != null);
+                    output.writeBoolean(dvdPresent);
+                    if (dvdPresent)
+                        kryo.writeClassAndObject(output, object.getDVD(i));
+                }
+            }
+    
+            @Override
+            protected void readValue(Kryo kryo, Input input, ListDataType dvd) {
+                int forLim = input.readInt();
+                dvd.setLength(forLim);
+                for (int i = 0; i < forLim; i++) {
+                    DataValueDescriptor inputDVD;
+                    if (input.readBoolean()) {
+                        inputDVD = (DataValueDescriptor) kryo.readClassAndObject(input);
+                        try {
+                            dvd.setFrom(inputDVD, i);
+                        } catch (StandardException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            }
+        });
         //register Activation-related classes
         instance.register(ActivationSerializer.ArrayFieldStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ActivationSerializer.DataValueStorage.class,EXTERNALIZABLE_SERIALIZER);

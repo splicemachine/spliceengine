@@ -307,4 +307,40 @@ public class AndNode extends BinaryLogicalOperatorNode{
     void postBindFixup() throws StandardException{
         setType(resolveLogicalBinaryOperator(leftOperand.getTypeServices(),rightOperand.getTypeServices()));
     }
+    
+    /**
+     * Is this a set of AND nodes that should not be broken up because they
+     * are part of a set of probe qualifiers?
+     */
+    boolean isGroupedMultiprobePreds() throws StandardException {
+        if (this.getLeftOperand().isInListProbeNode() &&
+            this.getRightOperand() instanceof AndNode &&
+            ((AndNode) (this.getRightOperand())).getLeftOperand().isInListProbeNode()) {
+            InListOperatorNode inListOp1 =
+                ((BinaryRelationalOperatorNode) (this.getLeftOperand())).getInListOp();
+            InListOperatorNode inListOp2 =
+                ((BinaryRelationalOperatorNode) (((AndNode) (this.getRightOperand())).
+                    getLeftOperand())).getInListOp();
+            return inListOp1.isEquivalent(inListOp2);
+        }
+        return false;
+    }
+    
+    /**
+     * Are the current node and next node in the AND chain both IN list probe
+     * predicates deriving from the same original IN list?
+     */
+    boolean isNextAndedPredInSameMultiprobeSet() throws StandardException {
+        if (this.getLeftOperand().isInListProbeNode() &&
+            this.getRightOperand() instanceof AndNode &&
+            ((AndNode) (this.getRightOperand())).getLeftOperand().isInListProbeNode()) {
+            InListOperatorNode inListOp1 =
+                ((BinaryRelationalOperatorNode) (this.getLeftOperand())).getInListOp();
+            InListOperatorNode inListOp2 =
+                ((BinaryRelationalOperatorNode) (((AndNode) (this.getRightOperand())).
+                    getLeftOperand())).getInListOp();
+            return inListOp1.isEquivalent(inListOp2);
+        }
+        return false;
+    }
 }

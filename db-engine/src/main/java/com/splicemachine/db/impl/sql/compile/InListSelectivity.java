@@ -45,14 +45,65 @@ public class InListSelectivity extends AbstractSelectivityHolder {
     private Predicate p;
     private StoreCostController storeCost;
     private double selectivityFactor;
+    private int colNo [];
+    private final double DEFAULT_SINGLE_VALUE_SELECTIVITY = 0.5d;
     private boolean useExtrapolation = false;
 
-    public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor){
-        super( ( (ColumnReference) p.getSourceInList().getLeftOperand()).getColumnNumber(),phase);
+    public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor)
+        throws StandardException {
+        super(((ColumnReference) p.getSourceInList().leftOperandList.elementAt(0)).getColumnNumber(), phase);
+        
+        colNo = new int[p.getSourceInList().leftOperandList.size()];
+        int i = 0;
+        for (Object v : p.getSourceInList().leftOperandList) {
+            colNo[i] = ((ColumnReference) v).getColumnNumber();
+            i++;
+        }
         this.p = p;
         this.storeCost = storeCost;
         this.selectivityFactor = selectivityFactor;
         this.useExtrapolation = isExtrapolationEnabled();
+    }
+    
+    private double multiplySelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) {
+        if (vn instanceof ConstantNode) {
+            ConstantNode cn = (ConstantNode)vn;
+            if (localSelectivity == -1.0d)
+                localSelectivity = storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true, useExtrapolation);
+            else
+                localSelectivity *= storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true, useExtrapolation);
+        }
+        else
+            localSelectivity *= DEFAULT_SINGLE_VALUE_SELECTIVITY;
+        
+        return localSelectivity;
+    }
+    private double addSelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) {
+        double tempSel = -1.0d;
+        if (vn instanceof ListValueNode) {
+            ListValueNode lvn = (ListValueNode)vn;
+
+            for (int i = 0; i < lvn.numValues(); i++) {
+                ValueNode tempConst = lvn.getValue(i);
+                tempSel = multiplySelectivity(tempConst, colNo[i], tempSel, useExtrapolation);
+            }
+        }
+        else {
+            if (vn instanceof ConstantNode) {
+                ConstantNode cn = (ConstantNode) vn;
+                tempSel = storeCost.getSelectivity(columnNumber, cn.getValue(), true,
+                                                   cn.getValue(), true, useExtrapolation);
+            }
+            else {
+                tempSel = DEFAULT_SINGLE_VALUE_SELECTIVITY;
+            }
+        }
+        if (localSelectivity == -1.0d)
+            localSelectivity = tempSel;
+        else
+            localSelectivity += tempSel;
+    
+        return localSelectivity;
     }
 
     public double getSelectivity() throws StandardException {
@@ -60,11 +111,8 @@ public class InListSelectivity extends AbstractSelectivityHolder {
             InListOperatorNode sourceInList=p.getSourceInList();
             ValueNodeList rightOperandList=sourceInList.getRightOperandList();
             for(Object o: rightOperandList){
-                ConstantNode cn = (ConstantNode)o;
-                if (selectivity==-1.0d)
-                    selectivity = storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true, useExtrapolation);
-                else
-                    selectivity+=storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true, useExtrapolation);
+                ValueNode vn = (ValueNode)o;
+                selectivity = addSelectivity(vn, getColNum(), selectivity, useExtrapolation);
             }
             if (selectivityFactor > 0)
                 selectivity *= selectivityFactor;
@@ -75,7 +123,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         return selectivity;
     }
 
-    private boolean isExtrapolationEnabled() {
+    private boolean isExtrapolationEnabled() throws StandardException {
         InListOperatorNode sourceInList = p.getSourceInList();
         if(sourceInList==null)
             return false;
