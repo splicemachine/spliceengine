@@ -88,7 +88,7 @@ public final class ListDataType extends DataType {
 
 	public void setLength(int len) {
         numElements = len;
-        dvd = new DataValueDescriptor[3];
+        dvd = new DataValueDescriptor[len];
     }
 
 
