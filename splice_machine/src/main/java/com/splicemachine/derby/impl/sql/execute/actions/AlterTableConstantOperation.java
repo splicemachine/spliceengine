@@ -76,6 +76,7 @@ import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -660,6 +661,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                         TransactionController.ISOLATION_SERIALIZABLE);
         Properties properties = getIndexProperties(newBaseConglom, index, cd, indexCC);
 
+        properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, td.getSchemaName());
+        properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, td.getName());
+        properties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, td.getIndexLister().getIndexNames()[index]);
 
         // We can finally drain the sorter and rebuild the index
         DataValueDescriptor[] rowArray = indexRows[index].getRowArray();
