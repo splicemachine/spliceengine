@@ -51,6 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -67,6 +68,7 @@ public class VacuumIT extends SpliceUnitTest{
     protected static String TABLEE = "E";
     protected static String TABLEG = "G";
     protected static String TABLEH = "H";
+    protected static String TABLEI = "I";
 
 	private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	@ClassRule
@@ -91,6 +93,8 @@ public class VacuumIT extends SpliceUnitTest{
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableHWatcher = new SpliceTableWatcher(TABLEH, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableIWatcher = new SpliceTableWatcher(TABLEI, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
@@ -99,7 +103,8 @@ public class VacuumIT extends SpliceUnitTest{
             .around(spliceTableDWatcher)
             .around(spliceTableEWatcher)
             .around(spliceTableGWatcher)
-            .around(spliceTableHWatcher);
+            .around(spliceTableHWatcher)
+            .around(spliceTableIWatcher);
 
 	@Test
 	public void testVacuumDoesNotBreakStuff() throws Exception {
@@ -461,6 +466,48 @@ public class VacuumIT extends SpliceUnitTest{
                 for (long congId : conglomerates) {
                     // make sure the table doesn't exists in HBase anymore
                     assertFalse("Dropped table didnt get vacuumed",admin.tableExists(TableName.valueOf("splice:" + congId)));
+                }
+            }
+
+        } finally {
+            connection.commit();
+        }
+    }
+
+
+    @Test
+    public void testVacuumRemovesConglomeratesAfterTruncateTable() throws Exception {
+
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+
+        try {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute(String.format("create index %s.iname on %s.i (name)", CLASS_NAME, CLASS_NAME));
+            }
+            long[] conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "I");
+
+            assertEquals(2, conglomerates.length);
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                    admin.getTableDescriptor(TableName.valueOf("splice:" + congId));
+                }
+            }
+
+            // now truncate the table
+            try (CallableStatement callableStatement = connection.prepareCall(String.format("truncate table %s.I", CLASS_NAME))) {
+                callableStatement.execute();
+            }
+
+            try (CallableStatement callableStatement = connection.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                callableStatement.execute();
+            }
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table doesn't exists in HBase anymore
+                    assertFalse("Truncated table didnt get vacuumed",admin.tableExists(TableName.valueOf("splice:" + congId)));
                 }
             }
 
