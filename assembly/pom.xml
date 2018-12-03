@@ -72,7 +72,7 @@
             splice_colperms,
             splice_encryption,
             akka-remote_${scala.binary.version},
-            splicemachine,
+            splice_spark,
             super-csv,
             c3p0,
             mchange-commons-java,
@@ -335,7 +335,7 @@
                                         javax.servlet-api,
                                         javax.ws.rs-api,
                                         jython-standalone,
-                                        splicemachine
+                                        splice_spark
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
