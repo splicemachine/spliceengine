@@ -56,16 +56,16 @@ private[spark] class ShuffledPartition[T: ClassTag](
       block
     } catch {
       case e: IOException =>
-        Holder.log.error("Exception encountered", e)
+        LogHolder.log.error("Exception encountered", e)
         throw e
       case NonFatal(e) =>
-        Holder.log.error("Exception encountered", e)
+        LogHolder.log.error("Exception encountered", e)
         throw new IOException(e)
     }
   }
 }
 
 
-object Holder extends Serializable {
+object LogHolder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 }
