@@ -31,6 +31,8 @@ import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import static org.apache.spark.sql.functions.*;
@@ -51,6 +53,16 @@ public class SparkDataSetTest extends AbstractDataSetTest{
         super();
     }
 
+    @BeforeClass
+    public static void startSpark() {
+        SpliceSpark.getContextUnsafe();
+    }
+
+    @AfterClass
+    public static void stopSpark() {
+        SpliceSpark.getContextUnsafe().stop();
+    }
+    
     @Override
     protected DataSet<ExecRow> getTenRowsTwoDuplicateRecordsDataSet() {
         return new SparkDataSet<>(SpliceSpark.getContextUnsafe().parallelize(tenRowsTwoDuplicateRecords));
