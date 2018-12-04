@@ -165,6 +165,11 @@ public class WriteNode implements WriteContext {
     }
 
     @Override
+    public boolean rollforward() {
+        return pipelineWriteContext.rollforward();
+    }
+
+    @Override
     public TransactionalRegion txnRegion(){
         return pipelineWriteContext.txnRegion();
     }

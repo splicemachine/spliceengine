@@ -58,6 +58,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     private final PipelineExceptionFactory pef;
     private final boolean skipConflictDetection;
     private final boolean skipWAL;
+    private final boolean rollforward;
 
     private WriteNode tail;
 
@@ -69,6 +70,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
                                  boolean skipIndexWrites,
                                  boolean skipConflictDetection,
                                  boolean skipWAL,
+                                 boolean rollforward,
                                  ServerControl env,
                                 PipelineExceptionFactory pef) {
         this.indexSharedCallBuffer = indexSharedCallBuffer;
@@ -83,6 +85,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
         this.pef = pef;
         this.skipConflictDetection = skipConflictDetection;
         this.skipWAL = skipWAL;
+        this.rollforward = rollforward;
     }
 
     public void addLast(WriteHandler handler) {
@@ -249,6 +252,11 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public boolean skipWAL() {
         return this.skipWAL;
+    }
+
+    @Override
+    public boolean rollforward() {
+        return rollforward;
     }
 
     @Override

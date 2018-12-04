@@ -67,7 +67,8 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
     Iterable<MutationStatus> bulkWrite(TxnView txn,
                                        byte[] family, byte[] qualifier,
                                        ConstraintChecker constraintChecker,
-                                       Collection<KVPair> data, boolean skipConflictDetection, boolean skipWAL) throws IOException;
+                                       Collection<KVPair> data, boolean skipConflictDetection,
+                                       boolean skipWAL, boolean rollforward) throws IOException;
 
     String getRegionName();
 
