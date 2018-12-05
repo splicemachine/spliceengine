@@ -5620,6 +5620,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 			 */
             conglomIDOrderable=getIDValueAsCHAR(cd.getUUID());
 
+            tc.markConglomerateDropped(cd.getConglomerateNumber());
+
 			/* Set up the start/stop position for the scan */
             keyRow1=exFactory.getIndexableRow(1);
             keyRow1.setColumn(1,conglomIDOrderable);
