@@ -165,7 +165,8 @@ public class PartitionWriteHandler implements WriteHandler {
                 constraintChecker,
                 toProcess,
                 ctx.skipConflictDetection(),
-                ctx.skipWAL()
+                ctx.skipWAL(),
+                ctx.rollforward()
         );
 
         int i = 0;
