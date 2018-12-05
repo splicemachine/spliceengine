@@ -1203,7 +1203,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * If this predicate does not correspond to an IN-list in any way,
      * this method will return null.
      */
-    protected InListOperatorNode getSourceInList(){
+    protected InListOperatorNode getSourceInList() throws StandardException{
         return getSourceInList(false);
     }
 
@@ -1221,7 +1221,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * the value of probePredOnly), or null if this predicate does
      * not correspond to an IN-list in any way.
      */
-    protected InListOperatorNode getSourceInList(boolean probePredOnly){
+    protected InListOperatorNode getSourceInList(boolean probePredOnly) throws StandardException{
         ValueNode vn=andNode.getLeftOperand();
         if(isInListProbePredicate())
             return ((BinaryRelationalOperatorNode)vn).getInListOp();
@@ -1244,7 +1244,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      *
      * With DB-6231's enhancement, inlist does not need to be on the first index column anymore
      */
-    public boolean isMultiProbeQualifier(int[] keyColumns){
+    public boolean isMultiProbeQualifier(int[] keyColumns) throws StandardException{
         if(keyColumns==null)
             return false; //can't be a MPQ if there are no keyed columns
         InListOperatorNode sourceInList=getSourceInList();
@@ -1276,7 +1276,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * 2. It is applied against the first keyed column
      * 3. There are only constant nodes in the IN list
      */
-    public boolean isInQualifier(BitSet bitSet){
+    public boolean isInQualifier(BitSet bitSet) throws StandardException {
         if (bitSet == null)
             return false;
         InListOperatorNode sourceInList=getSourceInList();

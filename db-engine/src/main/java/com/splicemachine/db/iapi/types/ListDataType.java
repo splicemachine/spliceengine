@@ -92,19 +92,10 @@ public final class ListDataType extends DataType {
     }
 
 
-	// this is for DataType's error generator
+    // this is for DataType's error generator
     @Override
-    public String getTypeName()
-    {
-        String typeString = new String();
-        typeString.concat("( ");
-        for (int i = 0; i < numElements; i++) {
-            typeString.concat(dvd[i].getTypeName());
-            if (i != numElements - 1)
-                typeString.concat(", ");
-        }
-        typeString.concat(")");
-        return typeString;
+    public String getTypeName() {
+        return TypeId.LIST_NAME;
     }
 
     @Override
@@ -203,7 +194,7 @@ public final class ListDataType extends DataType {
 	 * DataValueDescriptor interface
 	 */
 
-    protected void setFrom(DataValueDescriptor theValue, int index)
+    public void setFrom(DataValueDescriptor theValue, int index)
         throws StandardException
     {
         if (index >= numElements || index < 0)
@@ -404,7 +395,7 @@ public final class ListDataType extends DataType {
     }
     
 
-    // ListDataType cannot be in a ResultSet, so do nothing (for now).
+    // ListDataType cannot be in a ResultSet, so do nothing (for now).  msirek-temp
     public void setValueFromResultSet(ResultSet resultSet, int colNumber,
                                       boolean isNullable) {
 

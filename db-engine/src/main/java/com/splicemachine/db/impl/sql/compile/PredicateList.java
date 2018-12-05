@@ -3118,7 +3118,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     private static final int QUALIFIER_ORDER_OR_CLAUSE=5;
     private static final int QUALIFIER_NUM_CATEGORIES=6;
 
-    private void orderQualifiers(){
+    private void orderQualifiers() throws StandardException{
         // Sort the predicates into buckets, sortList[0] is the most 
         // selective, while sortList[4] is the least restrictive.
         //

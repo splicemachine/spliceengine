@@ -1366,7 +1366,13 @@ public interface StoredFormatIds {
 
     int LIST_ID =
         (MIN_ID_2 + 478);
-
+    
+    int LIST_TYPE_ID_IMPL =
+        (MIN_ID_2 + 480);
+    
+    int LIST_TYPE_ID =
+        (MIN_ID_2 + 481);
+    
     //public static final int SQL_USERTYPE_ID = 
     //      (MIN_ID_2 + 86);
 
@@ -1754,7 +1760,7 @@ public interface StoredFormatIds {
      * Make sure this is updated when a new module is added
      */
    int MAX_ID_2 =
-    		(MIN_ID_2 + 478);
+    		(MIN_ID_2 + 481);
 
     // DO NOT USE 4 BYTE IDS ANYMORE
     int MAX_ID_4 =

@@ -31,20 +31,23 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.ListDataType;
+import com.splicemachine.db.iapi.types.TypeId;
 
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 
 /**
  * An InListOperatorNode represents an IN list.
@@ -63,7 +66,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	 * @param rightOperandList	The right operand list of the node
 	 */
 
-	public void init(Object leftOperand, Object rightOperandList)
+	public void init(Object leftOperand, Object rightOperandList) throws StandardException
 	{
 		init(leftOperand, rightOperandList, "IN", "in");
 	}
@@ -98,7 +101,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		InListOperatorNode ilon =
 			 (InListOperatorNode)getNodeFactory().getNode(
 				C_NodeTypes.IN_LIST_OPERATOR_NODE,
-				leftOperand,
+				leftOperandList,
 				rightOperandList,
 				getContextManager());
 
@@ -133,34 +136,35 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 								PredicateList outerPredicateList) 
 					throws StandardException
 	{
-		super.preprocess(numTables,
-						 outerFromList, outerSubqueryList,
-						 outerPredicateList);
+      super.preprocess(numTables,
+					   outerFromList, outerSubqueryList,
+					   outerPredicateList);
 
 		/* Check for the degenerate case of a single element in the IN list.
 		 * If found, then convert to "=".
 		 */
-		if (rightOperandList.size() == 1)
+		if (rightOperandList.size() == 1 && singleLeftOperand)  // msirek-temp
 		{
 			ValueNode value = (ValueNode)rightOperandList.elementAt(0);
-            if ((value instanceof CharConstantNode) && (leftOperand instanceof ColumnReference)) {
-				DataTypeDescriptor targetType = leftOperand.getTypeServices();
+            if ((value instanceof CharConstantNode) && (getLeftOperand() instanceof ColumnReference)) {
+				DataTypeDescriptor targetType = getLeftOperand().getTypeServices();
 				if (targetType.getTypeName().equals(TypeId.CHAR_NAME)) {
-					int maxSize = leftOperand.getTypeServices().getMaximumWidth();
+					int maxSize = getLeftOperand().getTypeServices().getMaximumWidth();
 					ValueNodeList.rightPadCharConstantNode((CharConstantNode) value, maxSize);
 				}
 			}
 			BinaryComparisonOperatorNode equal =
 				(BinaryComparisonOperatorNode) getNodeFactory().getNode(
 						C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-						leftOperand, 
+						getLeftOperand(),
 						value,
 						getContextManager());
 			/* Set type info for the operator node */
 			equal.bindComparisonOperator();
 			return equal;
 		}
-		else if ((leftOperand instanceof ColumnReference) &&
+		else if ((getLeftOperand() instanceof ColumnReference ||
+                  singleLeftOperand) &&  // msirek-temp
 				 rightOperandList.containsOnlyConstantAndParamNodes())
 		{
 			/* At this point we have an IN-list made up of constant and/or
@@ -245,42 +249,51 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 				 * would lead to comparisons with truncated values and could
 				 * therefore lead to an incorrect sort order. DERBY-2256.
 				 */
-				DataTypeDescriptor targetType = leftOperand.getTypeServices();
-				TypeId judgeTypeId = targetType.getTypeId();
-
-				if (!rightOperandList.allSamePrecendence(
-					judgeTypeId.typePrecedence()))
-				{
-					/* Iterate through the entire list of values to find out
-					 * what the dominant type is.
-					 */
-					ClassFactory cf = getClassFactory();
-					int sz = rightOperandList.size();
-					for (int i = 0; i < sz; i++)
-					{
-						ValueNode vn = (ValueNode)rightOperandList.elementAt(i);
-						targetType =
-							targetType.getDominantType(
-								vn.getTypeServices(), cf);
-					}
-				}
-				rightOperandList.eliminateDuplicates(targetType);
+                ArrayList targetTypes = new ArrayList<DataTypeDescriptor>();
+                
+				for (int j = 0; j < leftOperandList.size(); j++) {
+				    ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(j);
+                    DataTypeDescriptor targetType = leftOperand.getTypeServices();
+                    
+                    TypeId judgeTypeId = targetType.getTypeId();
+                    
+                    if (!rightOperandList.allSamePrecendence(
+                        judgeTypeId.typePrecedence(), j)) {
+                        /* Iterate through the entire list of values to find out
+                         * what the dominant type is.
+                         */
+                        ClassFactory cf = getClassFactory();
+                        int sz = rightOperandList.size();
+                        for (int i = 0; i < sz; i++) {
+                            ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
+                            if (!singleLeftOperand)
+                                vn = ((ListConstantNode) vn).getValue(j);
+                            targetType =
+                                targetType.getDominantType(
+                                    vn.getTypeServices(), cf);
+                        }
+                    }
+                    targetTypes.add(targetType);
+                }
+				rightOperandList.eliminateDuplicates(targetTypes);
 
 				/* Now sort the list in ascending order using the dominant
 				 * type found above.
 				 */
-				DataValueDescriptor judgeODV = targetType.getNull();
+
+				DataValueDescriptor judgeODV = singleLeftOperand ?
+                    ((DataTypeDescriptor)targetTypes.get(0)).getNull() : new ListDataType();
 
 				rightOperandList.sortInAscendingOrder(judgeODV);
 				isOrdered = true;
 
-				if (rightOperandList.size() == 1)
+				if (rightOperandList.size() == 1 && singleLeftOperand)
 				{
 					ValueNode value = (ValueNode)rightOperandList.elementAt(0);
 					BinaryComparisonOperatorNode equal =
 						(BinaryComparisonOperatorNode)getNodeFactory().getNode(
 							C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-							leftOperand, 
+							getLeftOperand(),
 							value,
 							getContextManager());
 					/* Set type info for the operator node */
@@ -345,10 +358,12 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			 * probing, we can revert it back to its original form (i.e.
 			 * to "this").
 			 */
+			// msirek-temp :  need to build an AND'ed term here if
+            // equality on multiple columns.
 			BinaryComparisonOperatorNode equal = 
 				(BinaryComparisonOperatorNode) getNodeFactory().getNode(
 					C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-					leftOperand, 
+					getLeftOperand(),
 					pNode,
 					this,
 					getContextManager());
@@ -396,6 +411,9 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		{
 			return this;
 		}
+		
+		if (!singleLeftOperand)
+            throw StandardException.newException(SQLState.LANG_UNKNOWN);
 
 		/* we want to convert the IN List into = OR = ... as
 		 * described below.  
@@ -414,7 +432,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		/* If leftOperand is a ColumnReference, it may be remapped during optimization, and that
 		 * requires each <> node to have a separate object.
 		 */
-		ValueNode leftClone = (leftOperand instanceof ColumnReference) ? leftOperand.getClone() : leftOperand;
+		ValueNode leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
 		leftBCO = (BinaryComparisonOperatorNode) 
 					getNodeFactory().getNode(
 						C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
@@ -430,7 +448,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		{
 
 			/* leftO <> rightOList.elementAt(elemsDone) */
-			leftClone = (leftOperand instanceof ColumnReference) ? leftOperand.getClone() : leftOperand;
+			leftClone = (getLeftOperand() instanceof ColumnReference) ? getLeftOperand().getClone() : getLeftOperand();
 			rightBCO = (BinaryComparisonOperatorNode) 
 						getNodeFactory().getNode(
 							C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE,
@@ -528,8 +546,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		** method, which is in the new method's return statement.  We then return a call
 		** to the new method.
 		*/
-
-		receiver = leftOperand;
+        // Need to fill in the code for this...  msirek-temp
+		receiver = getLeftOperand();
 
 		/* Figure out the result type name */
 		resultTypeName = getTypeCompiler().interfaceName();
@@ -551,7 +569,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		//LocalField receiverField =
 		//	acb.newFieldDeclaration(Modifier.PRIVATE, receiverType);
 
-		leftOperand.generateExpression(acb, mb);
+		getLeftOperand().generateExpression(acb, mb);
 		mb.dup();
 		//mb.putField(receiverField); // instance for method call
 		/*mb.getField(receiverField);*/ mb.upCast(leftInterfaceType); // first arg
@@ -667,9 +685,10 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		 * the min/max value of the operands on the right side.  Judge's type
 		 * is important for us, and is input parameter to min/maxValue.
 		 */
-		int leftTypeFormatId = leftOperand.getTypeId().getTypeFormatId();
-		int leftJDBCTypeId = leftOperand.getTypeId().isUserDefinedTypeId() ?
-								leftOperand.getTypeId().getJDBCTypeId() : -1;
+		// TODO:  msirek-temp
+		int leftTypeFormatId = getLeftOperand().getTypeId().getTypeFormatId();
+		int leftJDBCTypeId = getLeftOperand().getTypeId().isUserDefinedTypeId() ?
+								getLeftOperand().getTypeId().getJDBCTypeId() : -1;
 
 		int listSize = rightOperandList.size();
 		int numLoops, numValInLastLoop, currentOpnd = 0;
@@ -776,7 +795,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	public int hashCode(){
 		int result=(isOrdered?1:0);
 		result=31*result+(sortDescending?1:0);
-		result = 31*result + leftOperand.hashCode();
+		result = 31*result + leftOperandList.hashCode();
 		result = 31*result + rightOperandList.hashCode();
 		return result;
 	}

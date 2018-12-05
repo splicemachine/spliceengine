@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import static java.lang.String.format;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+
+import static java.lang.String.format;
 
 /**
  * Utility to get the string representation of a given operator.
@@ -90,11 +90,16 @@ public class OperatorToString {
             return format("%s(%s)",uop.getOperatorString(),opToString(uop.getOperand()));
         }else if(operand instanceof BinaryRelationalOperatorNode){
             BinaryRelationalOperatorNode bron=(BinaryRelationalOperatorNode)operand;
-            InListOperatorNode inListOp=bron.getInListOp();
-            if(inListOp!=null) return opToString(inListOp);
-
-            return format("(%s %s %s)",opToString(bron.getLeftOperand()),
-                          bron.getOperatorString(),opToString(bron.getRightOperand()));
+            try {
+                InListOperatorNode inListOp = bron.getInListOp();
+                if (inListOp != null) return opToString(inListOp);
+    
+                return format("(%s %s %s)", opToString(bron.getLeftOperand()),
+                    bron.getOperatorString(), opToString(bron.getRightOperand()));
+            }
+            catch (StandardException e) {
+                return "PARSE_ERROR_WHILE_CONVERTING_OPERATOR";
+            }
         }else if(operand instanceof BinaryListOperatorNode){
             BinaryListOperatorNode blon = (BinaryListOperatorNode)operand;
             StringBuilder inList = new StringBuilder("(").append(opToString(blon.getLeftOperand()))

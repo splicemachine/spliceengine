@@ -45,7 +45,8 @@ public class InListSelectivity extends AbstractSelectivityHolder {
     private StoreCostController storeCost;
     private double selectivityFactor;
 
-    public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor){
+    public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor)
+        throws StandardException {
         super( ( (ColumnReference) p.getSourceInList().getLeftOperand()).getColumnNumber(),phase);
         this.p = p;
         this.storeCost = storeCost;

@@ -1,4 +1,4 @@
-/*
+ /*
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
  * GNU Affero General Public License as published by the Free Software Foundation, either
@@ -157,7 +157,7 @@ public class BinaryRelationalOperatorNode
      * left operand of the inListProbeSource is set correctly before
      * returning it.
      */
-    public InListOperatorNode getInListOp(){
+    public InListOperatorNode getInListOp() throws StandardException {
         if(inListProbeSource!=null){
             /* Depending on where this probe predicate currently sits
 			 * in the query tree, this.leftOperand *may* have been

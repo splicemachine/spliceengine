@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -57,8 +58,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     String rightInterfaceType;
 
     ValueNode receiver; // used in generation
-    ValueNode leftOperand;
+    
+    // Left could have more than one column.
+    //ValueNode leftOperand;
+    ValueNodeList leftOperandList;
     ValueNodeList rightOperandList;
+    
+    boolean singleLeftOperand = false;
 
     /**
      * Initializer for a BinaryListOperatorNode
@@ -69,13 +75,36 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      */
 
     public void init(Object leftOperand,Object rightOperandList,
-                     Object operator,Object methodName){
-        this.leftOperand=(ValueNode)leftOperand;
+                     Object operator,Object methodName) throws StandardException{
+        singleLeftOperand = false;
+        if (leftOperand != null) {
+            if (leftOperand instanceof ValueNode) {
+                ValueNodeList vnl = (ValueNodeList) getNodeFactory().getNode(
+                                     C_NodeTypes.VALUE_NODE_LIST,
+                                     getContextManager());
+                vnl.addValueNode((ValueNode)leftOperand);
+                singleLeftOperand = true;
+            }
+            else {
+                this.leftOperandList = (ValueNodeList) leftOperand;
+                if (this.leftOperandList.size() == 1)
+                    singleLeftOperand = true;
+            }
+        }
+        else
+            this.leftOperandList=null;
         this.rightOperandList=(ValueNodeList)rightOperandList;
         this.operator=(String)operator;
         this.methodName=(String)methodName;
     }
 
+    public ValueNode getLeftOperand() {
+        return (ValueNode) (singleLeftOperand ? leftOperandList.elementAt(0) : null);
+    }
+    
+    private ValueNodeList getLeftOperandList() {
+        return leftOperandList;
+    }
     public String getOperator(){return operator;}
     /**
      * Convert this object to a String.  See comments in QueryTreeNode.java
@@ -105,9 +134,15 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         if(SanityManager.DEBUG){
             super.printSubNodes(depth);
 
-            if(leftOperand!=null){
-                printLabel(depth,"leftOperand: ");
-                leftOperand.treePrint(depth+1);
+            if(leftOperandList!=null){
+                if (leftOperandList.size() == 1) {
+                    printLabel(depth, "leftOperand: ");
+                    getLeftOperand().treePrint(depth + 1);
+                }
+                else {
+                    printLabel(depth, "leftOperandList: ");
+                    leftOperandList.treePrint(depth + 1);
+                }
             }
 
             if(rightOperandList!=null){
@@ -132,34 +167,37 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException{
-        leftOperand=leftOperand.bindExpression(fromList,subqueryList,aggregateVector);
+        leftOperandList.bindExpression(fromList,subqueryList,aggregateVector);
         rightOperandList.bindExpression(fromList,subqueryList,aggregateVector);
 
 		/* Is there a ? parameter on the left? */
-        if(leftOperand.requiresTypeFromContext()){
-            /*
-			** It's an error if both operands are all ? parameters.
-			*/
-            if(rightOperandList.containsAllParameterNodes()){
-                throw StandardException.newException(SQLState.LANG_BINARY_OPERANDS_BOTH_PARMS,
+        if (singleLeftOperand)  // msirek-temp
+        {
+            if (getLeftOperand().requiresTypeFromContext()) {
+                /*
+                 ** It's an error if both operands are all ? parameters.
+                 */
+                if (rightOperandList.containsAllParameterNodes()) {
+                    throw StandardException.newException(SQLState.LANG_BINARY_OPERANDS_BOTH_PARMS,
                         operator);
+                }
+        
+                /* Set the left operand to the type of right parameter. */
+                getLeftOperand().setType(rightOperandList.getTypeServices());
             }
-
-			/* Set the left operand to the type of right parameter. */
-            leftOperand.setType(rightOperandList.getTypeServices());
-        }
-
-		/* Is there a ? parameter on the right? */
-        if(rightOperandList.containsParameterNode()){
-			/* Set the right operand to the type of the left parameter. */
-            rightOperandList.setParameterDescriptor(leftOperand.getTypeServices());
-        }
-
-		/* If the left operand is not a built-in type, then generate a conversion
-		 * tree to a built-in type.
-		 */
-        if(leftOperand.getTypeId().userType()){
-            leftOperand=leftOperand.genSQLJavaSQLTree();
+    
+            /* Is there a ? parameter on the right? */
+            if (rightOperandList.containsParameterNode()) {
+                /* Set the right operand to the type of the left parameter. */
+                rightOperandList.setParameterDescriptor(getLeftOperand().getTypeServices());
+            }
+            
+            /* If the left operand is not a built-in type, then generate a conversion
+             * tree to a built-in type.
+             */
+            if (getLeftOperand().getTypeId().userType()) {
+                leftOperandList.setElementAt(getLeftOperand().genSQLJavaSQLTree(), 0);
+            }
         }
 
 		/* Generate bound conversion trees for those elements in the rightOperandList
@@ -184,7 +222,9 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         boolean nullableResult;
 
 		/* Can the types be compared to each other? */
-        rightOperandList.comparable(leftOperand);
+        /* Multicolumn IN list cannot currently be constructed before bind time. */
+        if (singleLeftOperand)
+            rightOperandList.comparable(getLeftOperand());
 
 		/*
 		** Set the result type of this comparison operator based on the
@@ -194,7 +234,15 @@ public abstract class BinaryListOperatorNode extends ValueNode{
 		** nullable, the result of the comparison must be nullable, too, so
 		** we can represent the unknown truth value.
 		*/
-        nullableResult=leftOperand.getTypeServices().isNullable() ||
+		boolean leftNullable = false;
+        for (int index = 0; index < leftOperandList.size(); index++) {
+            ValueNode ln = (ValueNode) leftOperandList.elementAt(index);
+            if (ln.getTypeServices().isNullable()) {
+                leftNullable = true;
+                break;
+            }
+        }
+        nullableResult= leftNullable ||
                 rightOperandList.isNullable();
         setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID,nullableResult));
     }
@@ -217,7 +265,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
                                 FromList outerFromList,
                                 SubqueryList outerSubqueryList,
                                 PredicateList outerPredicateList) throws StandardException{
-        leftOperand=leftOperand.preprocess(numTables,
+        leftOperandList.preprocess(numTables,
                 outerFromList,outerSubqueryList,
                 outerPredicateList);
         rightOperandList.preprocess(numTables,
@@ -231,17 +279,10 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      *
      * @param newLeftOperand The new leftOperand
      */
-    public void setLeftOperand(ValueNode newLeftOperand){
-        leftOperand=newLeftOperand;
-    }
-
-    /**
-     * Get the leftOperand
-     *
-     * @return The current leftOperand.
-     */
-    public ValueNode getLeftOperand(){
-        return leftOperand;
+    public void setLeftOperand(ValueNode newLeftOperand) throws StandardException{
+        if (!singleLeftOperand)
+            throw StandardException.newException(SQLState.LANG_UNKNOWN);
+        leftOperandList.setElementAt(newLeftOperand, 0);
     }
 
     /**
@@ -288,9 +329,11 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      */
     @Override
     public boolean categorize(JBitSet referencedTabs,boolean simplePredsOnly) throws StandardException{
-        boolean pushable;
-        pushable=leftOperand.categorize(referencedTabs,simplePredsOnly);
-        pushable=(rightOperandList.categorize(referencedTabs,simplePredsOnly) && pushable);
+        boolean pushable = false;
+        if (singleLeftOperand) {  // msirek-temp :   Need to support multi-column for pushdown?
+            pushable = getLeftOperand().categorize(referencedTabs, simplePredsOnly);
+            pushable = (rightOperandList.categorize(referencedTabs, simplePredsOnly) && pushable);
+        }
         return pushable;
     }
 
@@ -304,7 +347,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     @Override
     public ValueNode remapColumnReferencesToExpressions() throws StandardException{
         // we need to assign back because a new object may be returned, beetle 4983
-        leftOperand=leftOperand.remapColumnReferencesToExpressions();
+        leftOperandList.remapColumnReferencesToExpressions();
         rightOperandList.remapColumnReferencesToExpressions();
         return this;
     }
@@ -316,12 +359,12 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      */
     @Override
     public boolean isConstantExpression(){
-        return (leftOperand.isConstantExpression() && rightOperandList.isConstantExpression());
+        return (leftOperandList.isConstantExpression() && rightOperandList.isConstantExpression());
     }
 
     @Override
     public boolean constantExpression(PredicateList whereClause){
-        return (leftOperand.constantExpression(whereClause) &&
+        return (leftOperandList.constantExpression(whereClause) &&
                 rightOperandList.constantExpression(whereClause));
     }
 
@@ -340,7 +383,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      */
     @Override
     protected int getOrderableVariantType() throws StandardException{
-        int leftType=leftOperand.getOrderableVariantType();
+        int leftType=leftOperandList.getOrderableVariantType();
         int rightType=rightOperandList.getOrderableVariantType();
 
         return Math.min(leftType,rightType);
@@ -350,8 +393,8 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
 
-        if(leftOperand!=null){
-            leftOperand=(ValueNode)leftOperand.accept(v, this);
+        if(leftOperandList!=null){
+            leftOperandList=(ValueNodeList)leftOperandList.accept(v, this);
         }
 
         if(rightOperandList!=null){
@@ -365,13 +408,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
             return false;
         }
         BinaryListOperatorNode other = (BinaryListOperatorNode) o;
-        return !(!operator.equals(other.operator) || !leftOperand.isEquivalent(other.getLeftOperand())) && rightOperandList.isEquivalent(other.rightOperandList);
+        return !(!operator.equals(other.operator) || !leftOperandList.isEquivalent(other.getLeftOperandList())) && rightOperandList.isEquivalent(other.rightOperandList);
 
     }
 
     public List getChildren(){
         return new LinkedList(){{
-            add(leftOperand);
+            addAll(leftOperandList.getNodes());
             addAll(rightOperandList.getNodes());
         }};
     }

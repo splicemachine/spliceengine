@@ -53,7 +53,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 	 * @param betweenValues		The between values in list form
 	 */
 
-	public void init(Object leftOperand, Object betweenValues)
+	public void init(Object leftOperand, Object betweenValues) throws StandardException
 	{
 		if (SanityManager.DEBUG)
 		{
@@ -121,7 +121,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		leftBCO = (BinaryComparisonOperatorNode) 
 					nodeFactory.getNode(
 									C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE,
-									leftOperand, 
+									getLeftOperand(),
 								 	rightOperandList.elementAt(0),
 									cm);
 		/* Set type info for the operator node */
@@ -130,8 +130,8 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
         // DERBY-4388: If leftOperand is a ColumnReference, it may be remapped
         // during optimization, and that requires the less-than node and the
         // greater-than node to have separate objects.
-        ValueNode leftClone = (leftOperand instanceof ColumnReference) ?
-            leftOperand.getClone() : leftOperand;
+        ValueNode leftClone = (getLeftOperand() instanceof ColumnReference) ?
+            getLeftOperand().getClone() : getLeftOperand();
 
 		/* leftO > rightOList.elementAt(1) */
 		rightBCO = (BinaryComparisonOperatorNode) 
@@ -191,7 +191,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		 * c1 BETWEEN value1 AND value2 -> c1 >= value1 AND c1 <= value2
 		 * This transformation is only done if the leftOperand is a ColumnReference.
 		 */
-		if (!(leftOperand instanceof ColumnReference))
+		if (!(getLeftOperand() instanceof ColumnReference))
 		{
 			return this;
 		}
@@ -200,7 +200,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		 * a ColumnReference because reusing them in Qualifiers for a scan
 		 * does not work.  
 		 */
-		leftClone1 = leftOperand.getClone();
+		leftClone1 = getLeftOperand().getClone();
 
 		/* The transformed tree has to be normalized:
 		 *				AND
@@ -241,7 +241,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		BinaryComparisonOperatorNode greaterEqual = 
 			(BinaryComparisonOperatorNode) nodeFactory.getNode(
 					C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
-					leftOperand, 
+					getLeftOperand(),
 					rightOperandList.elementAt(0),
 					cm);
 
@@ -300,7 +300,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		leftBCO = (BinaryComparisonOperatorNode) 
 					nodeFactory.getNode(
 							C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE,
-							leftOperand, 
+							getLeftOperand(),
 							rightOperandList.elementAt(0),
 							cm);
 		/* Set type info for the operator node */
@@ -310,7 +310,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		rightBCO = (BinaryComparisonOperatorNode) 
 					nodeFactory.getNode(
 						C_NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE,
-						leftOperand, 
+						getLeftOperand(),
 						rightOperandList.elementAt(1),
 						cm);
 		/* Set type info for the operator node */
@@ -327,7 +327,7 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 	}
 	
 	public int hashCode(){
-		int result = leftOperand==null? 0: leftOperand.hashCode();
+		int result = getLeftOperand()==null? 0: getLeftOperand().hashCode();
 		result = 31*result+(rightOperandList==null?0:rightOperandList.hashCode());
 		return result;
 	}

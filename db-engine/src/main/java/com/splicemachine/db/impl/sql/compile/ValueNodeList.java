@@ -31,15 +31,16 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -61,7 +62,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void addValueNode(ValueNode valueNode) throws StandardException
+	public void addValueNode(ValueNode valueNode)
 	{
 		addElement(valueNode);
 	}
@@ -253,11 +254,12 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 * type precendence as the specified value.
 	 *
 	 * @param precedence	The specified precedence.
+	 * @param cidx         The index into the ListConstantNode, if present.
 	 *
 	 * @return	Whether or not all of the entries in the list have the same
 	 *			type precendence as the specified value.
 	 */
-	boolean allSamePrecendence(int precedence)
+	boolean allSamePrecendence(int precedence, int cidx)
 	throws StandardException
 	{
 		boolean allSame = true;
@@ -268,6 +270,8 @@ public class ValueNodeList extends QueryTreeNodeVector
 			ValueNode			valueNode;
 
 			valueNode = (ValueNode) elementAt(index);
+			if (valueNode instanceof ListConstantNode)
+				valueNode = ((ListConstantNode)valueNode).getValue(cidx);
 			DataTypeDescriptor valueNodeDTS = valueNode.getTypeServices();
 
 			if (valueNodeDTS == null)
@@ -466,6 +470,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
+	// Need to use something other than bubble sort.  msirek-temp
 	void sortInAscendingOrder(DataValueDescriptor judgeODV)
 		throws StandardException
 	{
@@ -738,23 +743,44 @@ public class ValueNodeList extends QueryTreeNodeVector
 
 	/**
 	 * Eliminate duplicates from the IN list and adjust the CharConstantNode with correct padding
-	 * @param dtd dataTypeDescriptor
+	 * @param dtdList dataTypeDescriptor list
 	 * @throws StandardException
 	 */
-	public void eliminateDuplicates(DataTypeDescriptor dtd) throws StandardException {
-		int maxSize = dtd.getMaximumWidth();
-		String typeid = dtd.getTypeName();
+	public void eliminateDuplicates(ArrayList<DataTypeDescriptor> dtdList) throws StandardException {
+		int numNodes = dtdList.size();
+		int [] maxSize = new int[numNodes];
+		String [] typeid = new String[numNodes];
 
+		
+		for (int i = 0; i < numNodes; i++) {
+			DataTypeDescriptor dtd = dtdList.get(i);
+			maxSize[i] = dtd.getMaximumWidth();
+			typeid[i] = dtd.getTypeName();
+		}
+		
 		HashSet<ValueNode> vset = new HashSet<ValueNode>(getNodes());
 		removeAllElements();
 		Iterator iterator = vset.iterator();
+
+		ValueNode valueNode = null;
 		while (iterator.hasNext())
 		{
-			ValueNode valueNode = (ValueNode) iterator.next();
-			if (valueNode instanceof CharConstantNode && typeid.equals(TypeId.CHAR_NAME)) {
-				rightPadCharConstantNode((CharConstantNode) valueNode, maxSize);
+
+			ValueNode constant = (ValueNode) iterator.next();
+			for (int i = 0; i < numNodes; i++) {
+				if (numNodes == 1)
+					valueNode = constant;
+				else
+					valueNode = ((ListConstantNode)constant).getValue(i);
+
+    			if (valueNode instanceof CharConstantNode && typeid[i].equals(TypeId.CHAR_NAME)) {
+				    rightPadCharConstantNode((CharConstantNode) valueNode, maxSize[i]);
+			    }
 			}
-			addElement(valueNode);
+			if (numNodes == 1)
+			    addElement(valueNode);
+			else
+				addElement(constant);
 		}
 
 	}

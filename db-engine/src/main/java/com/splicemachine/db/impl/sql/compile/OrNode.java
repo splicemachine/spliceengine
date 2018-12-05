@@ -92,7 +92,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
 	
 	private boolean canConvertToInList(ValueNode vn, ArrayList<Integer> columnNumbers,
                                        ArrayList<Integer> compareNumbers,
-                                       ArrayList<ColumnReference> columns,
+                                       HashMap<Integer, ColumnReference> columns,
                                        MutableInt tableNumber, boolean firstTime) {
 		boolean convert = false;
         ColumnReference cr = null;
@@ -158,7 +158,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
             else if (cr.getTableNumber() != tableNumber.intValue())
                 return false;
             columnNumbers.add(cr.getColumnNumber());
-            columns.add(cr);
+            columns.put(cr.getColumnNumber(), cr);
         } else if (tableNumber.intValue() != cr.getTableNumber() ||
                    !columnNumbers.contains(cr.getColumnNumber())) {
             return false;
@@ -171,20 +171,40 @@ public class OrNode extends BinaryLogicalOperatorNode {
     
     private void addNewInListNode(ValueNode vn, HashMap<Integer, Integer> columnMap, ValueNodeList vnl)
         throws StandardException {
+        
+        HashMap constNodes = new HashMap<Integer, ValueNode>();
+        
         ListDataType newListDataTypeNode = null;
         if (columnMap.size() > 1)
             newListDataTypeNode = new ListDataType(columnMap.size());
-        constructNodeForInList(vn, newListDataTypeNode, columnMap, vnl);
-        //vnl.addValueNode(newListDataTypeNode);  msirek-temp
+        
+        constructNodeForInList(vn, newListDataTypeNode, columnMap, vnl, constNodes);
+    
+        if (columnMap.size() > 1) {
+            ValueNodeList constList = (ValueNodeList) getNodeFactory().getNode(
+                C_NodeTypes.VALUE_NODE_LIST,
+                getContextManager());
+            for (int i = 0; i < columnMap.size(); i++) {
+                constList.addValueNode((ValueNode)constNodes.get(i));
+            }
+            
+            ValueNode lcn = (ListConstantNode) getNodeFactory().getNode(
+                C_NodeTypes.LIST_CONSTANT_NODE,
+                newListDataTypeNode,
+                constList,
+                getContextManager());
+            vnl.addValueNode(lcn);
+        }
     }
     
     private void constructNodeForInList(ValueNode vn, ListDataType nodeToAdd,
-                                        HashMap<Integer, Integer> columnMap, ValueNodeList vnl)
+                                        HashMap<Integer, Integer> columnMap, ValueNodeList vnl,
+                                        HashMap<Integer, ValueNode> constNodes)
         throws StandardException {
         
         if (vn instanceof AndNode) {
-            constructNodeForInList(((AndNode) vn).leftOperand, nodeToAdd, columnMap, vnl);
-            constructNodeForInList(((AndNode) vn).rightOperand, nodeToAdd, columnMap, vnl);
+            constructNodeForInList(((AndNode) vn).leftOperand, nodeToAdd, columnMap, vnl, constNodes);
+            constructNodeForInList(((AndNode) vn).rightOperand, nodeToAdd, columnMap, vnl, constNodes);
             return;
         }
         else if (vn instanceof BooleanConstantNode) {
@@ -211,17 +231,19 @@ public class OrNode extends BinaryLogicalOperatorNode {
             if (nodeToAdd == null)
                 vnl.addValueNode(bron.getRightOperand());
             else {
-                vnl.addValueNode(bron.getRightOperand());
-                //                nodeToAdd.setFrom(bron.getRightOperand(),  msirek-temp
-                //                    columnMap.get(((ColumnReference)bron.getLeftOperand()).getColumnNumber()));
+                nodeToAdd.setFrom(((ConstantNode)bron.getRightOperand()).getValue(),
+                                   columnMap.get(((ColumnReference)bron.getLeftOperand()).getColumnNumber()));
+                constNodes.put(columnMap.get(((ColumnReference) bron.getLeftOperand()).getColumnNumber()),
+                               (ConstantNode)bron.getRightOperand());
             }
         } else {
             if (nodeToAdd == null)
                 vnl.addValueNode(bron.getLeftOperand());
             else {
-                vnl.addValueNode(bron.getLeftOperand());
-                //                nodeToAdd.setFrom(bron.getLeftOperand(),  msirek-temp
-                //                    columnMap.get(((ColumnReference) bron.getRightOperand()).getColumnNumber()));
+                nodeToAdd.setFrom(((ConstantNode) bron.getLeftOperand()).getValue(),
+                    columnMap.get(((ColumnReference) bron.getRightOperand()).getColumnNumber()));
+                constNodes.put(columnMap.get(((ColumnReference) bron.getRightOperand()).getColumnNumber()),
+                    (ConstantNode) bron.getLeftOperand());
             }
         }
     }
@@ -283,7 +305,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
 		if (firstOr)
 		{
 			boolean			convert = true;
-			ArrayList       columns = new ArrayList<ColumnReference>();
+            HashMap         columns = new HashMap<Integer, ColumnReference>();
 			ArrayList       columnNumbers = new ArrayList<Integer>();
 			HashMap         columnMap = new HashMap<Integer, Integer>();
             MutableInt	    tableNumber = new MutableInt(-1);
@@ -318,9 +340,14 @@ public class OrNode extends BinaryLogicalOperatorNode {
 			/* So, can we convert the OR chain? */
 			if (convert)
 			{
+			    ValueNodeList crList = (ValueNodeList) getNodeFactory().getNode(
+                    C_NodeTypes.VALUE_NODE_LIST,
+                    getContextManager());
+			    
 			    for (int i = 0; i < columnNumbers.size(); i++) {
 			        Integer colNum = (Integer)columnNumbers.get(i);
 			        columnMap.put(colNum, i);
+			        crList.addValueNode((ValueNode)columns.get(colNum));
                 }
                 
 				ValueNodeList vnl = (ValueNodeList) getNodeFactory().getNode(
@@ -339,7 +366,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
 				InListOperatorNode ilon =
 							(InListOperatorNode) getNodeFactory().getNode(
 											C_NodeTypes.IN_LIST_OPERATOR_NODE,
-											columns.get(0),
+                                            crList,
 											vnl,
 											getContextManager());
 

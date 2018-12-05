@@ -880,4 +880,9 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     public Visitable visit(SetSessionPropertyNode node) throws StandardException {
         return defaultVisit(node);
     }
+    
+    @Override
+    public Visitable visit(ListConstantNode node) throws StandardException {
+        return defaultVisit(node);
+    }
 }

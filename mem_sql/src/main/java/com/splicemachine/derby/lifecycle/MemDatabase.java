@@ -24,6 +24,7 @@ import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.concurrent.ConcurrentTicker;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -46,6 +47,18 @@ public class MemDatabase{
         MemSIEnvironment.INSTANCE = env;
         SConfiguration config = new ConfigurationBuilder().build(new HConfigurationDefaultsList().addConfig(new MemDatabaseTestConfig()),
                                                                  new ReflectingConfigurationSource());
+        if (config.debugDumpClassFile()) {
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
+            SanityManager.DEBUG_SET("DumpClassFile");
+        }
+        if (config.debugDumpBindTree()) {
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
+            SanityManager.DEBUG_SET("DumpBindTree");
+        }
+        if (config.debugDumpOptimizedTree()) {
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
+            SanityManager.DEBUG_SET("DumpOptimizedTree");
+        }
 
         SIDriver.loadDriver(env);
         final SIDriver driver = env.getSIDriver();
@@ -102,6 +115,7 @@ public class MemDatabase{
             builder.maxDependentWriteThreads = 50;
             builder.partitionserverPort = 16020;
             builder.storageFactoryHome = System.getProperty("user.dir");
+            builder.debugDumpClassFile = true;  //msirek-temp
         }
     }
 }
