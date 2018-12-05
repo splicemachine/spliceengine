@@ -1438,6 +1438,7 @@ public class SITransactorTest {
         }
     }
 
+    @Ignore
     @Test
     public void taskRetryConflict() throws IOException {
         CountingConstraintChecker ccc = new CountingConstraintChecker(testEnv.getOperationStatusFactory());
