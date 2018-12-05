@@ -55,6 +55,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -729,6 +730,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                         TransactionController.ISOLATION_SERIALIZABLE);
         Properties properties = getIndexProperties(newBaseConglom, index, cd, indexCC);
 
+        properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, td.getSchemaName());
+        properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, td.getName());
+        // this handles both normal indexes and foreign keys/unique constraints
+        properties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, td.getConglomerateDescriptors()[index + 1].getConglomerateName());
 
         // We can finally drain the sorter and rebuild the index
         DataValueDescriptor[] rowArray = indexRows[index].getRowArray();
