@@ -53,6 +53,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 /**
@@ -125,6 +126,11 @@ public class Vacuum{
             }
 
             for(TableDescriptor table:hTableDescriptors){
+                boolean restoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
+                if (restoreMode) {
+                    SpliceLogUtils.info(LOG, "The database is in restore mode, exiting...");
+                    break;
+                }
                 try{
                     String[] tableName = parseTableName(table.getTableName());
                     if (tableName.length < 2) {
