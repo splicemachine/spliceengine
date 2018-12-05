@@ -186,6 +186,11 @@ public class Vacuum{
                         }
                     } else if (requiresDroppedId) {
                         // This table must have a dropped transaction id before we can process it for vacuum
+                        if(!activeConglomerates.contains(tableConglom)){
+                            LOG.info("Ignoring table without dropped id, even though is not in activeConglomerates list: " + tableConglom);
+                        } else if (LOG.isTraceEnabled()) {
+                            LOG.trace("Ignoring table without dropped id: " + table.getTableName());
+                        }
                         continue;
                     }
                     if(!activeConglomerates.contains(tableConglom)){
