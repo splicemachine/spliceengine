@@ -26,9 +26,6 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
-import com.splicemachine.pipeline.config.WriteConfiguration;
-import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import java.io.IOException;
 import java.util.Iterator;
@@ -57,10 +54,7 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         super.open(triggerHandler, operation);
         try{
-            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
-            if(rollforward)
-                writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);
-            writeBuffer=writeCoordinator.writeBuffer(destinationTable,txn,null, PipelineUtils.noOpFlushHook, writeConfiguration, Metrics.noOpMetricFactory());
+            writeBuffer=writeCoordinator.writeBuffer(destinationTable,txn,null,Metrics.noOpMetricFactory());
             encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
             flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
         }catch(IOException ioe){
