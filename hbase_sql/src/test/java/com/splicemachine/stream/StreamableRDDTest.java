@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -50,6 +51,16 @@ public class StreamableRDDTest extends BaseStreamTest implements Serializable {
     public static void setup() throws StandardException {
         server = new StreamListenerServer(0);
         server.start();
+    }
+
+    @BeforeClass
+    public static void startSpark() {
+        SpliceSpark.getContextUnsafe();
+    }
+
+    @AfterClass
+    public static void stopSpark() {
+        SpliceSpark.getContextUnsafe().stop();
     }
 
     @Test
