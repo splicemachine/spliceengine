@@ -191,7 +191,7 @@ public class TestCachingOrcDataSource
         assertEquals(orcDataSource.getReadCount(), 1);
         List<StripeInformation> stripes = orcReader.getFooter().getStripes();
         // Sanity check number of stripes. This can be three or higher because of orc writer low memory mode.
-        Assert.assertTrue(stripes.size() >= 3);
+        Assert.assertTrue(stripes.size() > 1);
         //verify wrapped by CachingOrcReader
         Assert.assertTrue(wrapWithCacheIfTinyStripes(orcDataSource, stripes, maxMergeDistance, maxReadSize) instanceof CachingOrcDataSource);
 

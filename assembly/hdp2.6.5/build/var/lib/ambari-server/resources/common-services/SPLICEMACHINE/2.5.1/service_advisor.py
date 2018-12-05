@@ -51,7 +51,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
     #Update HBase Classpath
     print "getServiceConfigurationRecommendations",services
     splice_jars = ":".join([jar for jar in glob.glob('/var/lib/splicemachine/*.jar')])
-    spark_jars = ":".join([jar for jar in glob.glob('/usr/hdp/2.6.3.0-235/spark2/jars/*.jar')])
+    spark_jars = ":".join([jar for jar in glob.glob('/usr/hdp/2.6.5.0-292/spark2/jars/*.jar')])
     master_jars = ":".join([jar for jar in glob.glob('/usr/hdp/current/hbase-master/lib/*.jar')])
     if "hbase-env" in services["configurations"]:
         hbase_env = services["configurations"]["hbase-env"]["properties"]
@@ -184,7 +184,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
 
   def getHBaseSiteDesiredValues(self):
     hbase_site_desired_values = {
-        "hbase.coprocessor.master.classes" : "org.apache.ranger.authorization.hbase.RangerAuthorizationCoprocessor,com.splicemachine.hbase.SpliceMasterObserver",
+        "hbase.coprocessor.master.classes" : "com.splicemachine.hbase.SpliceMasterObserver",
         "hbase.regionserver.global.memstore.size" : "0.25",
         "hfile.block.cache.size" : "0.25",
         "hbase.regionserver.handler.count" : "200",
@@ -194,19 +194,19 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "hbase.balancer.period" : "60000",
         "hbase.client.ipc.pool.size" : "10",
         "hbase.client.max.perregion.tasks" : "100",
-        "hbase.coprocessor.regionserver.classes" : "org.apache.ranger.authorization.hbase.RangerAuthorizationCoprocessor,com.splicemachine.hbase.RegionServerLifecycleObserver",
-        "hbase.hstore.compaction.max.size" : "260046848",
-        "hbase.hstore.compaction.min.size" : "16777216",
-        "hbase.hstore.compaction.min" : "5",
+        "hbase.coprocessor.regionserver.classes" : "com.splicemachine.hbase.RegionServerLifecycleObserver",
+        "hbase.hstore.compaction.min.size" : "136314880",
+        "hbase.hstore.compaction.min" : "3",
         "hbase.hstore.defaultengine.compactionpolicy" : "com.splicemachine.compactions.SpliceDefaultCompactionPolicy",
         "hbase.hstore.defaultengine.compactor" : "com.splicemachine.compactions.SpliceDefaultCompactor",
-        "hbase.coprocessor.region.classes" : "org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,org.apache.ranger.authorization.hbase.RangerAuthorizationCoprocessor,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver",
+        "hbase.coprocessor.region.classes" : "org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver",
         "hbase.htable.threads.max" : "96",
         "hbase.ipc.warn.response.size" : "-1",
         "hbase.ipc.warn.response.time" : "-1",
         "hbase.master.loadbalance.bytable" : "true",
         "hbase.htable.threads.max" : "96",
-        "hbase.regions.slop" : "0.01",
+        "hbase.master.balancer.stochastic.regionCountCost" : "1500",
+        "hbase.regions.slop" : "0",
         "hbase.regionserver.global.memstore.size.lower.limit" : "0.9",
         "hbase.client.scanner.timeout.period" : "1200000",
         "hbase.regionserver.maxlogs" : "48",

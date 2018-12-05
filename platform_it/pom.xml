@@ -192,6 +192,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <exclusions>
@@ -270,6 +275,13 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_${scala.binary.version}</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -283,7 +295,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-server</artifactId>
@@ -627,11 +638,6 @@
             <artifactId>hbase_storage-${envClassifier}</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.spark-project.hive</groupId>
-            <artifactId>hive-common</artifactId>
-            <version>1.2.1.spark2</version>
         </dependency>
     </dependencies>
     <build>
@@ -1458,6 +1464,14 @@
         </profile>
         <profile>
             <id>hdp2.6.4</id>
+            <properties>
+                <extraDependency>splice_ranger_service</extraDependency>
+                <extraDependency2>splice_ranger_admin</extraDependency2>
+                <extraDependency3>splice_atlas</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>hdp2.6.5</id>
             <properties>
                 <extraDependency>splice_ranger_service</extraDependency>
                 <extraDependency2>splice_ranger_admin</extraDependency2>
