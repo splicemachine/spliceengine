@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.client.Table;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -127,6 +128,7 @@ public class TransactionResolutionIT {
     }
 
     @Test
+    @Ignore("DB-7735")
     public void testTransactionResolutionFlush() throws Exception {
         try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
 
