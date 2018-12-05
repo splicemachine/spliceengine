@@ -141,28 +141,6 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String RESOLUTION_ON_FLUSHES = "splice.txn.resolution.flushes";
     public static final boolean DEFAULT_RESOLUTION_ON_FLUSHES = true;
 
-    public static final String ROLLFORWARD_QUEUE_SIZE = "splice.txn.rollforward.queueSize";
-    public static final int DEFAULT_ROLLFORWARD_QUEUE_SIZE = 4096;
-
-
-    // Wait time for first resolution attempt in ms
-    public static final String ROLLFORWARD_FIRST_WAIT = "splice.txn.rollforward.firstQueueWait";
-    public static final int DEFAULT_ROLLFORWARD_FIRST_WAIT = 1000;
-
-    // Wait time for second resolution attempt in ms
-    public static final String ROLLFORWARD_SECOND_WAIT = "splice.txn.rollforward.secondQueueWait";
-    public static final int DEFAULT_ROLLFORWARD_SECOND_WAIT = 10000;
-
-    // Threads processing first queue
-    public static final String ROLLFORWARD_FIRST_THREADS = "splice.txn.rollforward.firstQueueThreads";
-    public static final int DEFAULT_ROLLFORWARD_FIRST_THREADS = 10;
-
-    // Threads processing second queue
-    public static final String ROLLFORWARD_SECOND_THREADS = "splice.txn.rollforward.secondQueueThreads";
-    public static final int DEFAULT_ROLLFORWARD_SECOND_THREADS = 1;
-
-
-
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.completedTxnConcurrency  = configurationSource.getInt(completedTxnConcurrency, DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY);
@@ -196,11 +174,5 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.olapCompactionResolutionBufferSize = configurationSource.getInt(COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_COMPACTION_RESOLUTION_BUFFER_SIZE);
         builder.olapCompactionBlocking = configurationSource.getBoolean(COMPACTION_BLOCKING, DEFAULT_COMPACTION_BLOCKING);
         builder.resolutionOnFlushes = configurationSource.getBoolean(RESOLUTION_ON_FLUSHES, DEFAULT_RESOLUTION_ON_FLUSHES);
-
-        builder.rollForwardQueueSize  = configurationSource.getInt(ROLLFORWARD_QUEUE_SIZE, DEFAULT_ROLLFORWARD_QUEUE_SIZE);
-        builder.rollForwardFirstWait  = configurationSource.getInt(ROLLFORWARD_FIRST_WAIT, DEFAULT_ROLLFORWARD_FIRST_WAIT);
-        builder.rollForwardSecondWait  = configurationSource.getInt(ROLLFORWARD_SECOND_WAIT, DEFAULT_ROLLFORWARD_SECOND_WAIT);
-        builder.rollForwardFirstThreads  = configurationSource.getInt(ROLLFORWARD_FIRST_THREADS, DEFAULT_ROLLFORWARD_FIRST_THREADS);
-        builder.rollForwardSecondThreads = configurationSource.getInt(ROLLFORWARD_SECOND_THREADS, DEFAULT_ROLLFORWARD_SECOND_THREADS);
     }
 }

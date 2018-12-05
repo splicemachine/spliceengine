@@ -14,53 +14,19 @@
 
 package com.splicemachine.si.impl.rollforward;
 
-import com.splicemachine.si.api.rollforward.RollForward;
-import com.splicemachine.storage.Partition;
+import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.utils.ByteSlice;
-
-import java.util.List;
 
 /**
  * @author Scott Fines
- * Date: 7/1/14
+ *         Date: 7/1/14
  */
-public class NoopRollForward implements RollForward {
-    public static final RollForward INSTANCE = new NoopRollForward();
+public class NoopRollForward implements RollForward{
+		public static final RollForward INSTANCE = new NoopRollForward();
 
-    private NoopRollForward() {
-    }
+		private NoopRollForward(){}
 
-    @Override
-    public void submitForResolution(Partition partition, long txnId, List<ByteSlice> rowKey) {
-    }
+	@Override public void submitForResolution(ByteSlice rowKey, long txnId) {  }
+		@Override public void recordResolved(ByteSlice rowKey, long txnId) {  }
 
-    @Override
-    public int getFirstQueueSize() {
-        return 0;
-    }
-
-    @Override
-    public int getSecondQueueSize() {
-        return 0;
-    }
-
-    @Override
-    public long getFirstQueueResolutions() {
-        return 0;
-    }
-
-    @Override
-    public long getSecondQueueResolutions() {
-        return 0;
-    }
-
-    @Override
-    public long getFirstQueueActive() {
-        return 0;
-    }
-
-    @Override
-    public long getSecondQueueActive() {
-        return 0;
-    }
 }

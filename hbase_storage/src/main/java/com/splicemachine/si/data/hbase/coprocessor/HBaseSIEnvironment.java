@@ -19,14 +19,15 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import com.splicemachine.access.api.FilesystemAdmin;
+import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HFilesystemAdmin;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.hbase.ZkServiceDiscovery;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.api.server.ClusterHealth;
-import com.splicemachine.si.data.hbase.rollforward.HBaseRollForward;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.HClusterHealthFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -43,7 +44,7 @@ import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.rollforward.RollForward;
+import com.splicemachine.si.api.readresolve.RollForward;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -57,6 +58,7 @@ import com.splicemachine.si.impl.TxnNetworkLayerFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
+import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
 import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.HFilterFactory;
@@ -87,7 +89,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
     private final SnowflakeFactory snowflakeFactory;
     private final HClusterHealthFactory clusterHealthFactory;
     private final HFilesystemAdmin filesystemAdmin;
-    private final HBaseRollForward rollForward;
     private SIDriver siDriver;
 
 
@@ -133,8 +134,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
                 config.getTransactionKeepAliveThreads(),
                 txnStore);
         this.clusterHealthFactory = new HClusterHealthFactory(ZkUtils.getRecoverableZooKeeper());
-        this.rollForward = new HBaseRollForward(txnSupplier, config);
-        this.rollForward.start();
         siDriver = SIDriver.loadDriver(this);
     }
 
@@ -165,8 +164,6 @@ public class HBaseSIEnvironment implements SIEnvironment{
                 config.getTransactionTimeout(),
                 config.getTransactionKeepAliveThreads(),
                 txnStore);
-        this.rollForward = new HBaseRollForward(txnSupplier, config);
-        this.rollForward.start();
         siDriver = SIDriver.loadDriver(this);
     }
 
@@ -210,7 +207,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
 
     @Override
     public RollForward rollForward(){
-        return rollForward;
+        return NoopRollForward.INSTANCE;
     }
 
     @Override

@@ -56,6 +56,4 @@ public interface WriteConfiguration {
     boolean skipConflictDetection();
 
     boolean skipWAL();
-
-    boolean rollForward();
 }
