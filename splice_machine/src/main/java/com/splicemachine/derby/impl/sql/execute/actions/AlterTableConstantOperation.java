@@ -732,7 +732,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
         properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, td.getSchemaName());
         properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, td.getName());
-        properties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, td.getIndexLister().getIndexNames()[index]);
+        // this handles both normal indexes and foreign keys/unique constraints
+        properties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, td.getConglomerateDescriptors()[index + 1].getConglomerateName());
 
         // We can finally drain the sorter and rebuild the index
         DataValueDescriptor[] rowArray = indexRows[index].getRowArray();
