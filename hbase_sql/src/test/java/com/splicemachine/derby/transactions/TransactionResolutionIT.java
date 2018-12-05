@@ -127,7 +127,6 @@ public class TransactionResolutionIT {
     }
 
     @Test
-    @Ignore("DB-7735")
     public void testTransactionResolutionFlush() throws Exception {
         try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
 
