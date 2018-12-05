@@ -15,8 +15,11 @@
 package com.splicemachine.si;
 
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
+import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.constants.SIConstants;
@@ -26,6 +29,9 @@ import com.splicemachine.si.impl.txn.DDLTxnView;
 import com.splicemachine.si.impl.txn.InheritingTxnView;
 import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.si.testenv.*;
+import com.splicemachine.storage.DataPut;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.utils.ByteSlice;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.*;
@@ -37,6 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 @SuppressWarnings("unchecked")
@@ -1388,6 +1395,70 @@ public class SITransactorTest {
             testUtility.assertWriteConflict(e);
         } finally {
             other.rollback();
+        }
+    }
+
+    @Test
+    public void taskRetryTest() throws IOException {
+        CountingConstraintChecker ccc = new CountingConstraintChecker(testEnv.getOperationStatusFactory());
+        transactorSetup.transactor.setDefaultConstraintChecker(ccc);
+        try {
+            Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+            TaskId task1 = new TaskId(1, 1, 0);
+            Txn t11 = control.beginChildTransaction(t1, t1.getIsolationLevel(), true, DESTINATION_TABLE, false, task1);
+            testUtility.insertAge(t11, "joe43", 20);
+            TaskId task2 = new TaskId(1, 1, 1);
+            Txn t12 = control.beginChildTransaction(t1, t1.getIsolationLevel(), true, DESTINATION_TABLE, false, task2);
+            testUtility.insertAge(t12, "joe43", 25);
+            t11.rollback();
+            t12.commit();
+
+            assertEquals("Constraints checked, transactions 'conflicted'",0,  ccc.count);
+
+            Assert.assertEquals("joe43 age=25 job=null", testUtility.read(t1, "joe43"));
+            t1.commit();
+        } finally {
+            transactorSetup.transactor.setDefaultConstraintChecker(testEnv.getOperationStatusFactory().getNoOpConstraintChecker());
+        }
+    }
+
+    private static class CountingConstraintChecker implements ConstraintChecker {
+
+        private final OperationStatusFactory opFactory;
+        private int count = 0;
+
+        CountingConstraintChecker(OperationStatusFactory opFactory) {
+            this.opFactory = opFactory;
+        }
+
+        @Override
+        public MutationStatus checkConstraint(KVPair mutation, DataResult existingRow) throws IOException {
+            count++;
+            return opFactory.success();
+        }
+    }
+
+    @Test
+    public void taskRetryConflict() throws IOException {
+        CountingConstraintChecker ccc = new CountingConstraintChecker(testEnv.getOperationStatusFactory());
+        transactorSetup.transactor.setDefaultConstraintChecker(ccc);
+        try {
+            Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+            TaskId task2 = new TaskId(1, 1, 1);
+            Txn t12 = control.beginChildTransaction(t1, t1.getIsolationLevel(), true, DESTINATION_TABLE, false, task2);
+            testUtility.insertAge(t12, "joe133", 25);
+            TaskId task1 = new TaskId(1, 1, 0);
+            Txn t11 = control.beginChildTransaction(t1, t1.getIsolationLevel(), true, DESTINATION_TABLE, false, task1);
+            testUtility.insertAge(t11, "joe133", 20);
+            t12.commit();
+            t11.rollback();
+
+            assertEquals("No constraints checked, transactions didn't 'conflict'",1, ccc.count);
+
+            Assert.assertEquals("joe133 age=25 job=null", testUtility.read(t1, "joe133"));
+            t1.commit();
+        } finally {
+            transactorSetup.transactor.setDefaultConstraintChecker(testEnv.getOperationStatusFactory().getNoOpConstraintChecker());
         }
     }
 
