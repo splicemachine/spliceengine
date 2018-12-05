@@ -29,7 +29,9 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.spark.SparkException;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.function.PairFunction;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import scala.Tuple2;
 import scala.util.Either;
@@ -37,6 +39,16 @@ import scala.util.Either;
 import java.io.*;
 
 public class SMOutputFormatTest extends BaseStreamTest {
+
+    @BeforeClass
+    public static void startSpark() {
+        SpliceSpark.getContextUnsafe();
+    }
+
+    @AfterClass
+    public static void stopSpark() {
+        SpliceSpark.getContextUnsafe().stop();
+    }
 
     @Test
     public void readExceptionsCauseAbort() throws StandardException, IOException {
