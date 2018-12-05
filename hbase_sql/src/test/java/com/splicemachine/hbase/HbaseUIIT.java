@@ -42,6 +42,7 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -75,7 +76,7 @@ public class HbaseUIIT extends SpliceUnitTest{
                 Arrays.sort(conglomerates);
 
                 // Make sure display names are set for each conglomerate
-                checkDisplayNames(conglomerates);
+                checkDisplayNames(conglomerates, "A", "AI");
 
                 s.execute("truncate table a");
 
@@ -86,27 +87,92 @@ public class HbaseUIIT extends SpliceUnitTest{
                 assertFalse(Arrays.equals(conglomerates, newConglomerates));
 
                 // Make sure display names are set for the new conglomerates too
-                checkDisplayNames(newConglomerates);
+                checkDisplayNames(conglomerates, "A", "AI");
             }
         }
     }
 
-    private void checkDisplayNames(long[] conglomerates) throws IOException {
+
+    @Test
+    public void testTruncateForeighnKey() throws Exception {
+        try (Connection c = methodWatcher.getOrCreateConnection()) {
+            try (Statement s = c.createStatement()) {
+                s.execute("create table b (i int primary key, j int)");
+                s.execute("create table c (i int primary key, j int references b(i))");
+
+                long[] conglomerates = SpliceAdmin.getConglomNumbers(c, CLASS_NAME, "C");
+
+                assertEquals(2, conglomerates.length);
+
+                Arrays.sort(conglomerates);
+
+                // Make sure display names are set for each conglomerate
+                checkDisplayNames(conglomerates, "C", "SQL");
+
+                s.execute("truncate table c");
+
+                long[] newConglomerates = SpliceAdmin.getConglomNumbers(c, CLASS_NAME, "C");
+
+                Arrays.sort(newConglomerates);
+
+                assertFalse(Arrays.equals(conglomerates, newConglomerates));
+
+                // Make sure display names are set for the new conglomerates too
+                checkDisplayNames(conglomerates, "C", "SQL");
+            }
+        }
+    }
+
+
+    @Test
+    public void testTruncateUniqueConstraint() throws Exception {
+        try (Connection c = methodWatcher.getOrCreateConnection()) {
+            try (Statement s = c.createStatement()) {
+                s.execute("create table d (i int unique)");
+
+                long[] conglomerates = SpliceAdmin.getConglomNumbers(c, CLASS_NAME, "D");
+
+                assertEquals(2, conglomerates.length);
+
+                Arrays.sort(conglomerates);
+
+                // Make sure display names are set for each conglomerate
+                checkDisplayNames(conglomerates, "D", "SQL");
+
+                s.execute("truncate table d");
+
+                long[] newConglomerates = SpliceAdmin.getConglomNumbers(c, CLASS_NAME, "D");
+
+                Arrays.sort(newConglomerates);
+
+                assertFalse(Arrays.equals(conglomerates, newConglomerates));
+
+                // Make sure display names are set for the new conglomerates too
+                checkDisplayNames(conglomerates, "D", "SQL");
+            }
+        }
+    }
+
+    private void checkDisplayNames(long[] conglomerates, String tableName, String indexName) throws IOException {
         try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
 
             TableName tn = TableName.valueOf("splice:" + conglomerates[0]);
             HTableDescriptor baseTable = admin.getTableDescriptor(tn);
 
             assertEquals(CLASS_NAME, baseTable.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR));
-            assertEquals("A", baseTable.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR));
+            assertEquals(tableName, baseTable.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR));
 
 
             tn = TableName.valueOf("splice:" + conglomerates[1]);
             HTableDescriptor indexTable = admin.getTableDescriptor(tn);
 
             assertEquals(CLASS_NAME, indexTable.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR));
-            assertEquals("A", indexTable.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR));
-            assertEquals("AI", indexTable.getValue(SIConstants.INDEX_DISPLAY_NAME_ATTR));
+            assertEquals(tableName, indexTable.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR));
+            if (indexName.equals("SQL")) {
+                assertTrue(indexTable.getValue(SIConstants.INDEX_DISPLAY_NAME_ATTR).startsWith("SQL"));
+            } else {
+                assertEquals(indexName, indexTable.getValue(SIConstants.INDEX_DISPLAY_NAME_ATTR));
+            }
 
         }
     }
