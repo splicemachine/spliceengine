@@ -19,7 +19,6 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTestDataSource;
-import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
@@ -128,7 +127,6 @@ public class TransactionResolutionIT {
     }
 
     @Test
-    @Ignore("DB-7735")
     public void testTransactionResolutionFlush() throws Exception {
         try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
 
@@ -149,6 +147,8 @@ public class TransactionResolutionIT {
                 for (int i = 0; i < 256; ++i) {
                     ps.execute();
                 }
+
+                Thread.sleep(12000); // make sure rollforward won't kick in
 
                 conn1.commit();
 
@@ -177,7 +177,8 @@ public class TransactionResolutionIT {
 
                     hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
 
-                    Thread.sleep(2000);
+                    Thread.sleep(4000);
+                    
                     try (ResultScanner rs = table.getScanner(scan)) {
 
                         Result result;
