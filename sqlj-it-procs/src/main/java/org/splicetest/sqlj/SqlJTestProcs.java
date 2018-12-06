@@ -150,4 +150,31 @@ public class SqlJTestProcs {
 			throw new RuntimeException(e);
 		}
 	}
+
+	/**
+	 * Truncates a string to the number of words specified.  An input of
+	 * "Today is a wonderful day and I am looking forward to going to the beach.", 5
+	 * will return "Today is a wonderful day".
+	 *
+	 * @param inboundSentence
+	 * @param numberOfWords
+	 * @return
+	 */
+	public static String wordLimiter(String inboundSentence, int numberOfWords) {
+		String truncatedString = "";
+		if(inboundSentence != null) {
+			String[] splitBySpace = inboundSentence.split("\\s+");
+			if(splitBySpace.length <= numberOfWords) {
+				truncatedString = inboundSentence;
+			} else {
+				StringBuilder sb = new StringBuilder();
+				for(int i=0; i<numberOfWords; i++) {
+					if(i > 0) sb.append(" ");
+					sb.append(splitBySpace[i]);
+				}
+				truncatedString = sb.toString();
+			}
+		}
+		return truncatedString;
+	}
 }
