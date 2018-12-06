@@ -362,14 +362,8 @@ public class StatementColumnPermission extends StatementTablePermission
 		//If table permission found for authorizationid, then simply return that
 		if (oneAuthHasPermissionOnTable( dd, authid, false) == AUTHORIZED)
 			return dd.getTablePermissions(tableUUID, authid);
-		//If table permission found for PUBLIC, then simply return that
-		if (oneAuthHasPermissionOnTable( dd, Authorizer.PUBLIC_AUTHORIZATION_ID, false) == AUTHORIZED)
-			return dd.getTablePermissions(tableUUID, Authorizer.PUBLIC_AUTHORIZATION_ID);
 
 		if (oneAuthHasPermissionOnSchema( dd, authid, false) == AUTHORIZED)
-			return dd.getSchemaPermissions(schemaUUID, authid);
-
-		if (oneAuthHasPermissionOnSchema( dd, Authorizer.PUBLIC_AUTHORIZATION_ID, false) == AUTHORIZED)
 			return dd.getSchemaPermissions(schemaUUID, authid);
 		
 		//If table level permission not found, then we have to find permissions 
