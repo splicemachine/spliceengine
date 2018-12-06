@@ -138,6 +138,16 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         if (isSplitting.get() || isFlushing.get() || isCompacting.get()) {
             SpliceLogUtils.info(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
                     tableName , regionName, isSplitting.get(), isCompacting.get(), isFlushing.get());
+
+            // If the region is flush, wait until it is done. Check the flag. If it is still true and the region
+            // gets stuck in split state, flush it to reset the flag
+            if (isFlushing.get()) {
+                region.waitForFlushesAndCompactions();
+                if (isFlushing.get()) {
+                    SpliceLogUtils.warn(LOG, "The region may be stuck in split state, flush it to reset flag");
+                    HBasePlatformUtils.flush(region);
+                }
+            }
             // return false to client if the region is being split
             responseBuilder.setReadyForBackup(false);
         } else {
@@ -256,8 +266,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     @Override
     public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
         try {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush(): %s", regionName);
+            SpliceLogUtils.info(LOG, "BackupEndpointObserver.preFlush(): %s", regionName);
             if (!BackupUtils.isSpliceTable(namespace, tableName))
                 return;
             BackupUtils.waitForBackupToComplete(tableName, regionName);
@@ -273,12 +282,13 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         try {
             // Register HFiles for incremental backup
             String filePath =  resultFile != null?resultFile.getFileInfo().getFileStatus().getPath().toString():null;
-            SpliceLogUtils.info(LOG, "Flushing store file %s", filePath);
+            SpliceLogUtils.info(LOG, "Flushed store file %s", filePath);
             if (!BackupUtils.isSpliceTable(namespace, tableName))
                 return;
 
             BackupUtils.captureIncrementalChanges(conf, region, fs, rootDir, backupDir,
                     tableName, resultFile.getPath().getName(), preparing.get());
+            isFlushing.set(false);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
