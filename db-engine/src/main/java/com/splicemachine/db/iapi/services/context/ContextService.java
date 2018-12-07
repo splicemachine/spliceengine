@@ -179,7 +179,8 @@ public final class ContextService{
      * @see #newContextManager()
      * @see SystemContext#cleanupOnError(Throwable)
      */
-    private final Set<ContextManager> allContexts = new HashSet<>();
+    private final Set<ContextManager> allContexts = Collections.newSetFromMap(
+            new WeakHashMap<ContextManager, Boolean>());
 
     // TODO: remove duplicate
     public static ContextService getService(){
