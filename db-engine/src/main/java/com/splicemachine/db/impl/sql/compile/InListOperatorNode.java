@@ -49,6 +49,8 @@ import com.splicemachine.db.iapi.types.TypeId;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
+import static com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode.isKnownConstant;
+
 /**
  * An InListOperatorNode represents an IN list.
  *
@@ -577,8 +579,120 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		mb.push(isOrdered); // third arg
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultTypeName, 3);
 	}
+    
+    
+    private void generateSetColumn(ExpressionClassBuilder acb,
+                                   MethodBuilder exprFun,
+                                   int columnNumber,
+                                   //ValueNode keyExp,
+                                   ValueNode dataLiteral,
+                                  // Optimizable optTable,
+                                   LocalField rowField
+                                   //boolean isStartKey
+                                   ) throws StandardException {
+        MethodBuilder mb;
+        
+        /* Code gets generated in constructor if comparison against
+         * a constant, otherwise gets generated in the current
+         * statement block.
+         */
+        boolean withKnownConstant = false;
+        if (isKnownConstant(dataLiteral, true)) {
+            withKnownConstant = true;
+            mb = acb.getConstructor();
+        } else {
+            mb = exprFun;
+        }
+        
+        /*
+        int[] baseColumns;
+        boolean[] isAscending;
+        if (pred.isRowId()) {
+            baseColumns = new int[1];
+            baseColumns[0] = 1;
+            
+            isAscending = new boolean[1];
+            isAscending[0] = true;
+        } else {
+            baseColumns = optTable.getTrulyTheBestAccessPath()
+                .getConglomerateDescriptor()
+                .getIndexDescriptor().baseColumnPositions();
+            isAscending = optTable.getTrulyTheBestAccessPath().
+                getConglomerateDescriptor().
+                getIndexDescriptor().isAscending();
+        }
+        */
+        /* If the predicate is an IN-list probe predicate then we are
+         * using it as a start/stop key "placeholder", to be over-ridden
+         * at execution time.  Put differently, we want to generate
+         * "column = ?" as a start/stop key and then use the "?" value
+         * as a placeholder into which we'll plug the various IN values
+         * at execution time.
+         *
+         * In that case "isIn" will be false here, which is fine: there's
+         * no need to generate dynamic start/stop keys like we do for
+         * "normal" IN lists because we're just using the key as a place-
+         * holder.  So by generating the probe predicate ("column = ?")
+         * as a normal one-sided start/stop key, we get our requisite
+         * execution-time placeholder and that's that.  For more on how
+         * we use this "placeholder", see MultiProbeTableScanResultSet.
+         *
+         * Note that we generate the corresponding IN-list values
+         * separately (see generateInListValues() in this class).
+         */
+        boolean isIn = true;
+        
+        /*
+         * Generate statements of the form
+         *
+         * r.setColumn(columnNumber, columnExpression);
+         *
+         * and put the generated statement in the allocator function.
+         */
+        mb.getField(rowField);
+        mb.push(columnNumber + 1);
+        
+        // second arg
+        /*
+        if (isIn) {
+            pred.getSourceInList().generateStartStopKey(columnNumber+1, isStartKey, acb, mb);
+        } else
+            pred.generateExpressionOperand(optTable, columnNumber+1, acb, mb);
+            */
+        dataLiteral.generateExpression(acb,mb);
+        
+        mb.upCast(ClassName.DataValueDescriptor);
+        
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
+        /* msirek-temp->
+        // Also tell the row if this column uses ordered null semantics
+        if (!isIn) {
+            RelationalOperator relop = pred.getRelop();
+            assert relop != null;
+            boolean setOrderedNulls = relop.orderedNulls();
+ 
+            if ((!setOrderedNulls) && !relop.getColumnOperand(optTable).getTypeServices().isNullable()) {
+                if (withKnownConstant)
+                    setOrderedNulls = true;
+                else {
+                    ValueNode keyExp =
+                        relop.getExpressionOperand(optTable.getTableNumber(), baseColumns[columnNumber], (FromTable) optTable);
+                    
+                    if (keyExp instanceof ColumnReference)
+                        setOrderedNulls = !keyExp.getTypeServices().isNullable();
+                }
+            }
+            if (setOrderedNulls) {
+                mb.getField(rowField);
+                mb.push(columnNumber);
+                mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.ExecIndexRow, "orderedNulls", "void", 1);
+            }
+        }
+        */
+    }
 
-	/**
+    
+    /**
 	 * Generate the code to create an array of DataValueDescriptors that
 	 * will hold the IN-list values at execution time.  The array gets
 	 * created in the constructor.  All constant elements in the array
@@ -593,22 +707,31 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	{
 		int listSize = rightOperandList.size();
 		LocalField arrayField = acb.newFieldDeclaration(
-			Modifier.PRIVATE, ClassName.DataValueDescriptor + "[]");
+			Modifier.PRIVATE, ClassName.ExecIndexRow + "[]");
+        LocalField rowField[listSize];
 
 		/* Assign the initializer to the DataValueDescriptor[] field */
 		MethodBuilder cb = acb.getConstructor();
-		cb.pushNewArray(ClassName.DataValueDescriptor, listSize);
+		cb.pushNewArray(ClassName.ExecIndexRow, listSize);
 		cb.setField(arrayField);
-
+        
+        ValueNode constants = (ValueNode)rightOperandList.elementAt(0);
+		
 		/* Set the array elements that are constant */
-		int numConstants = 0;
-		MethodBuilder nonConstantMethod = null;
+		int numValsInSet = constants instanceof ListConstantNode ?
+                            ((ListConstantNode)constants).numConstants() : 1;
+        int numConstants = 0;
+        MethodBuilder nonConstantMethod = null;
 		MethodBuilder currentConstMethod = cb;
 		for (int index = 0; index < listSize; index++)
 		{
 			MethodBuilder setArrayMethod;
-	
-			if (rightOperandList.elementAt(index) instanceof ConstantNode)
+            ValueNode dataLiteral = (ValueNode) rightOperandList.elementAt(index);
+            int constIdx = 0;
+            if (dataLiteral instanceof ListConstantNode)
+                dataLiteral = ((ListConstantNode)dataLiteral).getValue(constIdx);
+            
+            if (dataLiteral instanceof ConstantNode)
 			{
 				numConstants++;
 		
@@ -642,11 +765,43 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 				setArrayMethod = nonConstantMethod;
 
 			}
+            //MethodBuilder exprFun = acb.newExprFun();
+            rowField[index] = PredicateList.generateIndexableRow(acb, numValsInSet);
+            
+            // Push the newly-generated ExecIndexRow on the stack
+            setArrayMethod.getField(rowField[index]);
+            setArrayMethod.upCast(ClassName.ExecIndexRow);
+            
+            // Push the ExecIndexRow array on the stack
+            setArrayMethod.getField(arrayField);
 
-			setArrayMethod.getField(arrayField); // first arg
+            // Store the row in the ExecIndexRow array.
+            setArrayMethod.setArrayElement(index);
+            
+
+            //generateSetColumn(acb, exprFun, colNum, dataLiteral, rowField);
+            
+            // Push the ExecIndexRow in preparation of calling an instance method.
+            setArrayMethod.getField(rowField[index]);
+            
+            // Push the column number to update.
+            // constIdx vals are 0,1,2.. and corresponding to column numbers 1,2,3... in the row.
+            setArrayMethod.push(constIdx + 1);
+            
+            // Build the DVD to add to the row, pushing it to the stack
+            // cast as a DataValueDescriptor.
+            dataLiteral.generateExpression(acb, setArrayMethod);
+            setArrayMethod.upCast(ClassName.DataValueDescriptor);
+            
+            // Store the DVD in the row.
+            setArrayMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
+            
+            /*
+            setArrayMethod.getField(arrayField); // first arg
 			((ValueNode) rightOperandList.elementAt(index)).generateExpression(acb, setArrayMethod);
 			setArrayMethod.upCast(ClassName.DataValueDescriptor); // second arg
-			setArrayMethod.setArrayElement(index);
+			*/
+			//setArrayMethod.setArrayElement(index);
 		}
 
 		//if a generated function was created to reduce the size of the methods close the functions.
