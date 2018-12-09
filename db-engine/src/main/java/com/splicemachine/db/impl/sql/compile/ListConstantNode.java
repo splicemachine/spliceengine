@@ -49,6 +49,8 @@ public final class ListConstantNode extends ConstantNode
             return null;
         return (ValueNode) constantsList.elementAt(index);
     }
+    
+    public int numConstants() { return constantsList.size(); }
 
 	/**
 	 * Initializer for a ListConstantNode.

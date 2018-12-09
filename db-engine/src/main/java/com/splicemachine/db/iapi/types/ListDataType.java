@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
@@ -201,6 +202,17 @@ public final class ListDataType extends DataType {
             throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "LIST");
 
         dvd[index] = theValue;
+        setIsNull(false);
+    }
+    
+    public void setFrom(ExecRow row)
+        throws StandardException {
+        if (row.size() != numElements)
+            throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT);
+        
+        for (int i = 0; i < row.size(); i++)
+            dvd[i] = row.getColumn(i+1);
+
         setIsNull(false);
     }
 
@@ -534,5 +546,5 @@ public final class ListDataType extends DataType {
     public void updateThetaSketch(UpdateSketch updateSketch) {
     
     }
-   
+
 }

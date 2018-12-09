@@ -3275,7 +3275,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * @param numberOfColumns The number of columns in the key
      * @return The field that holds the indexable row
      */
-    private LocalField generateIndexableRow(ExpressionClassBuilder acb,int numberOfColumns){
+    public static LocalField generateIndexableRow(ExpressionClassBuilder acb,int numberOfColumns){
         MethodBuilder mb=acb.getConstructor();
     		/*
 	  	   * Generate a call to get an indexable row
@@ -3294,6 +3294,28 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         mb.setField(field);
 
+        return field;
+    }
+    
+    
+    /**
+     * Generate a new ListDataType with n values.
+     *
+     * @param acb            The ActivationClassBuilder for the class we're building
+     * @param numberOfValues The number of values in grouped data type.
+     * @return The field that holds the list data
+     */
+    public static LocalField generateListData(ExpressionClassBuilder acb, int numberOfValues) {
+        MethodBuilder mb = acb.getConstructor();
+        
+        acb.pushGetExecutionFactoryExpression(mb); // instance
+        mb.push(numberOfValues);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.ExecutionFactory, "getListData", ClassName.ListDataType, 1);
+        
+        LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, ClassName.ListDataType);
+        
+        mb.setField(field);
+        
         return field;
     }
 
@@ -3431,7 +3453,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * @param exprFun  The MethodBuilder for the method we're building
      * @param rowField The name of the field that holds the indexable row
      */
-    private void finishKey(ExpressionClassBuilder acb, MethodBuilder mb, MethodBuilder exprFun, LocalField rowField){
+    public static void finishKey(ExpressionClassBuilder acb, MethodBuilder mb, MethodBuilder exprFun, LocalField rowField){
 		/* Generate return statement and add to exprFun */
         exprFun.getField(rowField);
         exprFun.methodReturn();

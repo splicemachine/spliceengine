@@ -1019,7 +1019,7 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    private boolean isKnownConstant(ValueNode node, boolean considerParameters) {
+    public static boolean isKnownConstant(ValueNode node, boolean considerParameters) {
         if (node instanceof CastNode)
             node = ((CastNode) node).castOperand;
 

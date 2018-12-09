@@ -549,7 +549,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		** to the new method.
 		*/
         // Need to fill in the code for this...  msirek-temp
-		receiver = getLeftOperand();
 
 		/* Figure out the result type name */
 		resultTypeName = getTypeCompiler().interfaceName();
@@ -571,7 +570,37 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		//LocalField receiverField =
 		//	acb.newFieldDeclaration(Modifier.PRIVATE, receiverType);
 
-		getLeftOperand().generateExpression(acb, mb);
+        if (leftOperandList.size() == 1) {
+            getLeftOperand().generateExpression(acb, mb);
+        }
+        else {
+            // Build a new ListDataType
+            LocalField vals = PredicateList.generateListData(acb,
+                                                             leftOperandList.size());
+    
+            for (int i = 0; i < leftOperandList.size(); i++) {
+    
+                ValueNode colRef = (ValueNode)leftOperandList.elementAt(i);
+                
+                // Call instance method setFrom to populate an entry in
+                // the new ListDataType node with a data value from the
+                // ValueNodeList (in this case these are column references).
+                mb.getField(vals);
+                colRef.generateExpression(acb, mb);
+                mb.upCast(ClassName.DataValueDescriptor);
+                // Populate the "i"th value.
+                mb.push(i);
+    
+                mb.callMethod(VMOpcode.INVOKEVIRTUAL,
+                    ClassName.ListDataType,
+                    "setFrom",
+                    "void", 2);
+            }
+            // Push the ListDataType on the stack as a DataValueDescriptor.
+            mb.getField(vals);
+            mb.upCast(ClassName.ExecRow);
+            
+        }
 		mb.dup();
 		//mb.putField(receiverField); // instance for method call
 		/*mb.getField(receiverField);*/ mb.upCast(leftInterfaceType); // first arg
@@ -707,101 +736,138 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	{
 		int listSize = rightOperandList.size();
 		LocalField arrayField = acb.newFieldDeclaration(
-			Modifier.PRIVATE, ClassName.ExecIndexRow + "[]");
-        LocalField rowField[listSize];
+			Modifier.PRIVATE, ClassName.DataValueDescriptor + "[]");
+        LocalField rowArray = acb.newFieldDeclaration(
+            Modifier.PRIVATE, ClassName.ExecIndexRow + "[]");
+        LocalField rowField = null;
 
 		/* Assign the initializer to the DataValueDescriptor[] field */
 		MethodBuilder cb = acb.getConstructor();
-		cb.pushNewArray(ClassName.ExecIndexRow, listSize);
+		cb.pushNewArray(ClassName.DataValueDescriptor, listSize);
 		cb.setField(arrayField);
+  
+		// Declare the rowArray in the constructor.
+        cb.pushNewArray(ClassName.ExecIndexRow, listSize);
+        cb.setField(rowArray);
         
+        // Count the number of "constants" in each group.
         ValueNode constants = (ValueNode)rightOperandList.elementAt(0);
-		
+        int numValsInSet = constants instanceof ListConstantNode ?
+            ((ListConstantNode) constants).numConstants() : 1;
+        
 		/* Set the array elements that are constant */
-		int numValsInSet = constants instanceof ListConstantNode ?
-                            ((ListConstantNode)constants).numConstants() : 1;
         int numConstants = 0;
         MethodBuilder nonConstantMethod = null;
 		MethodBuilder currentConstMethod = cb;
+
 		for (int index = 0; index < listSize; index++)
 		{
-			MethodBuilder setArrayMethod;
-            ValueNode dataLiteral = (ValueNode) rightOperandList.elementAt(index);
-            int constIdx = 0;
-            if (dataLiteral instanceof ListConstantNode)
-                dataLiteral = ((ListConstantNode)dataLiteral).getValue(constIdx);
+            ValueNode topLevelLiteral = (ValueNode) rightOperandList.elementAt(index);
+            ValueNode dataLiteral;
+            MethodBuilder setArrayMethod = null;
             
-            if (dataLiteral instanceof ConstantNode)
-			{
-				numConstants++;
-		
-				/*if too many statements are added  to a  method, 
-				*size of method can hit  65k limit, which will
-				*lead to the class format errors at load time.
-				*To avoid this problem, when number of statements added 
-				*to a method is > 2048, remaing statements are added to  a new function
-				*and called from the function which created the function.
-				*See Beetle 5135 or 4293 for further details on this type of problem.
-				*/
-				if(currentConstMethod.statementNumHitLimit(1))
-				{
-					MethodBuilder genConstantMethod = acb.newGeneratedFun("void", Modifier.PRIVATE);
-					currentConstMethod.pushThis();
-					currentConstMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
-												  (String) null, 
-												  genConstantMethod.getName(),
-												  "void", 0);
-					//if it is a generate function, close the metod.
-					if(currentConstMethod != cb){
-						currentConstMethod.methodReturn();
-						currentConstMethod.complete();
-					}
-					currentConstMethod = genConstantMethod;
-				}
-				setArrayMethod = currentConstMethod;
-			} else {
-				if (nonConstantMethod == null)
-					nonConstantMethod = acb.newGeneratedFun("void", Modifier.PROTECTED);
-				setArrayMethod = nonConstantMethod;
+            rowField = PredicateList.generateIndexableRow(acb, numValsInSet);
+            
+            for (int constIdx = 0; constIdx < numValsInSet; constIdx++) {
 
-			}
-            //MethodBuilder exprFun = acb.newExprFun();
-            rowField[index] = PredicateList.generateIndexableRow(acb, numValsInSet);
-            
-            // Push the newly-generated ExecIndexRow on the stack
-            setArrayMethod.getField(rowField[index]);
-            setArrayMethod.upCast(ClassName.ExecIndexRow);
-            
-            // Push the ExecIndexRow array on the stack
-            setArrayMethod.getField(arrayField);
+                if (topLevelLiteral instanceof ListConstantNode)
+                    dataLiteral = ((ListConstantNode) topLevelLiteral).getValue(constIdx);
+                else
+                    dataLiteral = topLevelLiteral;
+    
+                if (dataLiteral instanceof ConstantNode) {
+                    numConstants++;
+        
+                    /*if too many statements are added  to a  method,
+                     *size of method can hit  65k limit, which will
+                     *lead to the class format errors at load time.
+                     *To avoid this problem, when number of statements added
+                     *to a method is > 2048, remaing statements are added to  a new function
+                     *and called from the function which created the function.
+                     *See Beetle 5135 or 4293 for further details on this type of problem.
+                     */
+                    if (currentConstMethod.statementNumHitLimit(1)) {
+                        MethodBuilder genConstantMethod = acb.newGeneratedFun("void", Modifier.PRIVATE);
+                        currentConstMethod.pushThis();
+                        currentConstMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
+                            (String) null,
+                            genConstantMethod.getName(),
+                            "void", 0);
+                        //if it is a generate function, close the metod.
+                        if (currentConstMethod != cb) {
+                            currentConstMethod.methodReturn();
+                            currentConstMethod.complete();
+                        }
+                        currentConstMethod = genConstantMethod;
+                    }
+                    setArrayMethod = currentConstMethod;
+                } else {
+                    if (nonConstantMethod == null)
+                        nonConstantMethod = acb.newGeneratedFun("void", Modifier.PROTECTED);
+                    setArrayMethod = nonConstantMethod;
+        
+                }
+                //MethodBuilder exprFun = acb.newExprFun();
 
-            // Store the row in the ExecIndexRow array.
-            setArrayMethod.setArrayElement(index);
-            
-
-            //generateSetColumn(acb, exprFun, colNum, dataLiteral, rowField);
-            
-            // Push the ExecIndexRow in preparation of calling an instance method.
-            setArrayMethod.getField(rowField[index]);
-            
-            // Push the column number to update.
-            // constIdx vals are 0,1,2.. and corresponding to column numbers 1,2,3... in the row.
-            setArrayMethod.push(constIdx + 1);
-            
-            // Build the DVD to add to the row, pushing it to the stack
-            // cast as a DataValueDescriptor.
-            dataLiteral.generateExpression(acb, setArrayMethod);
-            setArrayMethod.upCast(ClassName.DataValueDescriptor);
-            
-            // Store the DVD in the row.
-            setArrayMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
+                // Push the newly-generated ExecIndexRow on the stack
+                setArrayMethod.getField(rowField);
+                setArrayMethod.upCast(ClassName.ExecIndexRow);
+    
+                // Push the ExecIndexRow array on the stack
+                setArrayMethod.getField(rowArray);
+    
+                // Store the row in the ExecIndexRow array.
+                setArrayMethod.setArrayElement(index);
+    
+    
+                //generateSetColumn(acb, exprFun, colNum, dataLiteral, rowField);
+    
+                // Push the ExecIndexRow in preparation of calling an instance method.
+                setArrayMethod.getField(rowField);
+    
+                // Push the column number to update.
+                // constIdx vals are 0,1,2.. and correspond to
+                // column numbers 1,2,3... in the row.
+                setArrayMethod.push(constIdx + 1);
+    
+                // Build the DVD to add to the row, pushing it to the stack
+                // cast as a DataValueDescriptor.
+                dataLiteral.generateExpression(acb, setArrayMethod);
+                setArrayMethod.upCast(ClassName.DataValueDescriptor);
+    
+                // Store the DVD in the row.
+                setArrayMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
             
             /*
             setArrayMethod.getField(arrayField); // first arg
 			((ValueNode) rightOperandList.elementAt(index)).generateExpression(acb, setArrayMethod);
 			setArrayMethod.upCast(ClassName.DataValueDescriptor); // second arg
 			*/
-			//setArrayMethod.setArrayElement(index);
+                //setArrayMethod.setArrayElement(index);
+            }
+            if (numValsInSet > 1)
+            {
+                LocalField vals = PredicateList.generateListData(acb, numValsInSet);
+                // Push the ExecIndexRow in preparation of calling an instance method.
+                
+                // Push the ListDataType instance in prep for calling setFrom.
+                setArrayMethod.getField(vals);
+                
+                // Push the row as argument to setFrom.
+                setArrayMethod.getField(rowField);
+                setArrayMethod.upCast(ClassName.ExecRow);
+                
+                setArrayMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
+                                          ClassName.ListDataType,
+                              "setFrom",
+                                "void", 1);
+    
+                // Now put the ListDataType into the DVD array.
+                setArrayMethod.getField(arrayField);
+                setArrayMethod.getField(vals);
+                setArrayMethod.upCast(ClassName.DataValueDescriptor);
+                setArrayMethod.setArrayElement(index);
+            }
 		}
 
 		//if a generated function was created to reduce the size of the methods close the functions.
