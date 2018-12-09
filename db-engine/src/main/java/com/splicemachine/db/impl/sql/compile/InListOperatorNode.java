@@ -766,8 +766,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             ValueNode dataLiteral;
             MethodBuilder setArrayMethod = null;
             
-            rowField = PredicateList.generateIndexableRow(acb, numValsInSet);
-            
+
             for (int constIdx = 0; constIdx < numValsInSet; constIdx++) {
 
                 if (topLevelLiteral instanceof ListConstantNode)
@@ -807,19 +806,12 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     setArrayMethod = nonConstantMethod;
         
                 }
+                if (constIdx == 0) {
+                    rowField = PredicateList.generateIndexableRow(acb, numValsInSet);
+                }
+                
                 //MethodBuilder exprFun = acb.newExprFun();
 
-                // Push the newly-generated ExecIndexRow on the stack
-                setArrayMethod.getField(rowField);
-                setArrayMethod.upCast(ClassName.ExecIndexRow);
-    
-                // Push the ExecIndexRow array on the stack
-                setArrayMethod.getField(rowArray);
-    
-                // Store the row in the ExecIndexRow array.
-                setArrayMethod.setArrayElement(index);
-    
-    
                 //generateSetColumn(acb, exprFun, colNum, dataLiteral, rowField);
     
                 // Push the ExecIndexRow in preparation of calling an instance method.
@@ -845,6 +837,18 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			*/
                 //setArrayMethod.setArrayElement(index);
             }
+            
+            // Push the ExecIndexRow array on the stack
+            setArrayMethod.getField(rowArray);
+            
+            // Push the newly-generated ExecIndexRow on the stack
+            setArrayMethod.getField(rowField);
+            setArrayMethod.upCast(ClassName.ExecIndexRow);
+            
+            // Store the row in the ExecIndexRow array.
+            setArrayMethod.setArrayElement(index);
+            
+            
             if (numValsInSet > 1)
             {
                 LocalField vals = PredicateList.generateListData(acb, numValsInSet);
