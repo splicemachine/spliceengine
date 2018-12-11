@@ -58,9 +58,9 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
  */
 
 public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
-    static final String		TABLENAME_STRING = "SYSCOLUMNS";
+    public static final String		TABLENAME_STRING = "SYSCOLUMNS";
 
-    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 11;
+    protected static final int		SYSCOLUMNS_COLUMN_COUNT = 13;
 	/* Column #s for syscolumns (1 based) */
 
     //TABLEID is an obsolete name, it is better to use
@@ -78,6 +78,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     protected static final int		SYSCOLUMNS_AUTOINCREMENTINC = 10;
     protected static final int		SYSCOLUMNS_COLLECTSTATS = 11;
     protected static final int		SYSCOLUMNS_PARTITION_POSITION = 12;
+    public static final int         SYSCOLUMNS_USEEXTRAPOLATION = 13;
 
 
     protected static final int		SYSCOLUMNS_INDEX1_ID = 0;
@@ -163,6 +164,10 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         long autoinc_create_or_modify_Start_Increment = -1;
         boolean collectStats = false;
 
+        //add useExtrapolation as a byte int instead of boolean to accommodate for future extension
+        // currently, value 0 means extraploation is not allowed, non-zero means extrapolation is allowed
+        byte    useExtrapolation = 0;
+
         if (td != null) {
             ColumnDescriptor  column = (ColumnDescriptor)td;
 		
@@ -188,6 +193,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             }
             collectStats = column.collectStatistics();
             partitionPosition = column.getPartitionPosition();
+            useExtrapolation = column.getUseExtrapolation();
         }
 
 		/* Insert info into syscolumns */
@@ -254,6 +260,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         }
         row.setColumn(SYSCOLUMNS_COLLECTSTATS,new SQLBoolean(collectStats));
         row.setColumn(SYSCOLUMNS_PARTITION_POSITION,new SQLInteger(partitionPosition));
+        row.setColumn(SYSCOLUMNS_USEEXTRAPOLATION, new SQLTinyint(useExtrapolation));
         return row;
     }
 
@@ -389,10 +396,16 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
 
         DataValueDescriptor columnPosition = row.getColumn(SYSCOLUMNS_PARTITION_POSITION);
 
+        DataValueDescriptor useExtrapolationColumn = row.getColumn(SYSCOLUMNS_USEEXTRAPOLATION);
+        byte useExtrapolation = 0;
+        if (useExtrapolationColumn != null && !useExtrapolationColumn.isNull())
+            useExtrapolation = useExtrapolationColumn.getByte();
+
         colDesc = new ColumnDescriptor(columnName, columnNumber,storageNumber,
                 dataTypeServices, defaultValue, defaultInfo, uuid,
                 defaultUUID, autoincStart, autoincInc,
-                autoincValue,collectStats, columnPosition!=null?columnPosition.getInt():-1);
+                autoincValue,collectStats, columnPosition!=null?columnPosition.getInt():-1,
+                useExtrapolation);
         return colDesc;
     }
 
@@ -428,7 +441,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("AUTOINCREMENTSTART", Types.BIGINT, true),
                 SystemColumnImpl.getColumn("AUTOINCREMENTINC", Types.BIGINT, true),
                 SystemColumnImpl.getColumn("COLLECTSTATS", Types.BOOLEAN, true),
-                SystemColumnImpl.getColumn("PARTITIONPOSITION", Types.INTEGER, true)
+                SystemColumnImpl.getColumn("PARTITIONPOSITION", Types.INTEGER, true),
+                SystemColumnImpl.getColumn("USEEXTRAPOLATION", Types.TINYINT, true)
         };
     }
 }

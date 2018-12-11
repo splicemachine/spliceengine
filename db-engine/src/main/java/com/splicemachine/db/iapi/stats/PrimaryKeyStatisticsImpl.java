@@ -97,11 +97,17 @@ public class PrimaryKeyStatisticsImpl implements ItemStatistics<ExecRow> {
     }
 
     @Override
-    public long rangeSelectivity(ExecRow start, ExecRow stop, boolean includeStart, boolean includeStop) {
+    public long rangeSelectivity(ExecRow start, ExecRow stop, boolean includeStart, boolean includeStop, boolean useExtrapolation) {
         double startSelectivity = start==null?0.0d:quantilesSketch.getCDF(new ExecRow[]{start})[0];
         double stopSelectivity = stop==null?1.0d:quantilesSketch.getCDF(new ExecRow[]{stop})[0];
         return (long) ((stopSelectivity-startSelectivity)*quantilesSketch.getN());
     }
+
+    @Override
+    public long rangeSelectivity(ExecRow start, ExecRow stop, boolean includeStart, boolean includeStop) {
+        return rangeSelectivity(start, stop, includeStart, includeStop, false);
+    }
+
     /*
     @Override
     public ColumnStatisticsMerge<ExecRow> mergeInto(ColumnStatisticsMerge<ExecRow> itemStatisticsBuilder) throws StandardException {

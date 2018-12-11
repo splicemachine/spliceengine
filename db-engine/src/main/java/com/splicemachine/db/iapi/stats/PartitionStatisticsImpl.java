@@ -157,12 +157,12 @@ public class PartitionStatisticsImpl implements PartitionStatistics {
     }
 
     @Override
-    public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
+    public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber, boolean useExtrapolation) {
         ItemStatistics stats = positionNumber >= itemStatistics.size()?null:itemStatistics.get(positionNumber);
         if (stats == null)
             return (long) (extraQualifierMultiplier * (double) rowCount());
         else
-            return stats.rangeSelectivity((T) start, (T) stop, includeStart, includeStop);
+            return stats.rangeSelectivity((T) start, (T) stop, includeStart, includeStop, useExtrapolation);
     }
 
     @Override

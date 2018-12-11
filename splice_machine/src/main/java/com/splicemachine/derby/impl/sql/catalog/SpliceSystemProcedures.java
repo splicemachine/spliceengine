@@ -594,6 +594,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disableStatsForAllColumns);
 
+                    Procedure setStatsExtrapolationForColumn = Procedure.newBuilder().name("SET_STATS_EXTRAPOLATION_FOR_COLUMN")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .modifiesSql()
+                            .varchar("schema",1024)
+                            .varchar("table",1024)
+                            .varchar("column",1024)
+                            .smallint("useExtrapolation")
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(setStatsExtrapolationForColumn);
+
         			/*
         			 * Procedure to get the session details
         			 */

@@ -220,8 +220,8 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public double getSelectivity(int columnNumber, DataValueDescriptor start, boolean includeStart, DataValueDescriptor stop, boolean includeStop) {
-        return tableStatistics.rangeSelectivity(start,stop,includeStart,includeStop,columnNumber-1);
+    public double getSelectivity(int columnNumber, DataValueDescriptor start, boolean includeStart, DataValueDescriptor stop, boolean includeStop, boolean useExtrapolation) {
+        return tableStatistics.rangeSelectivity(start,stop,includeStart,includeStop,columnNumber-1, useExtrapolation);
     }
 
     @Override

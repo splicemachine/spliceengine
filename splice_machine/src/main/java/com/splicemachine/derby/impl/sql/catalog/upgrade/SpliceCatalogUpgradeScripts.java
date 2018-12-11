@@ -68,6 +68,8 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,5,0, 1824),new SourceCodeUpgradeScript(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,5,0, 1842), new UpgradeScriptForDroppedConglomerates(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,5,0, 1849), new UpgradeScriptToRemoveFKDependencyOnPrivileges(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,5,0, 1851), new UpgradeScriptToAddUseExtrapolationInSysColumns(sdd,tc));
+
     }
 
     public void run() throws StandardException{

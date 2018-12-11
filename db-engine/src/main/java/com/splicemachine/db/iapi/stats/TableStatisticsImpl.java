@@ -275,11 +275,12 @@ public class TableStatisticsImpl implements TableStatistics {
      *     Do we want to do do effectivePartitionStatistics for performance?
      */
     @Override
-    public <T extends Comparator<T>> double rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
+    public <T extends Comparator<T>> double rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber, boolean useExtrapolation) {
         long selectivity = 0l;
         long rowCount = 0l;
+
         for (PartitionStatistics partitionStatistic :partitionStatistics) {
-            selectivity += partitionStatistic.rangeSelectivity(start,stop,includeStart,includeStop,positionNumber);
+            selectivity += partitionStatistic.rangeSelectivity(start,stop,includeStart,includeStop,positionNumber,useExtrapolation);
             rowCount += partitionStatistic.rowCount();
         }
         if (rowCount == 0)
