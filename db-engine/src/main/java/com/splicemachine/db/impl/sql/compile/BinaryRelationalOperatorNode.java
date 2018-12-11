@@ -1581,7 +1581,7 @@ public class BinaryRelationalOperatorNode
         if (startKey!= null && minInnerColumn != null && startKey.compare(minInnerColumn) > 0 ||
                 endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
             selectivity *= innerTableCostController.getSelectivity(innerColumn.getSource().getColumnPosition(),
-                    startKey, true, endKey, true);
+                    startKey, true, endKey, true, false);
         }
 
         return selectivity;

@@ -7750,7 +7750,38 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ti.updateRow(keyRow,row,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID,bArray,colsToUpdate,tc);
     }
 
+    /**
+     * sets whether extrapolation is allowed for a column
+     *
+     * @param tc              Transaction Controller to use.
+     * @param tableUUID
+     * @param columnName      Name of the column.
+     * @param useExtrapolation   Value to write to SYSCOLUMNS.
+     */
+    @Override
+    public void setUseExtrapolation(TransactionController tc,
+                                UUID tableUUID,
+                                String columnName,
+                                byte useExtrapolation) throws StandardException{
+        TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
+        ExecIndexRow keyRow;
 
+        keyRow=exFactory.getIndexableRow(2);
+        keyRow.setColumn(1,getIDValueAsCHAR(tableUUID));
+        keyRow.setColumn(2,new SQLChar(columnName));
+
+        SYSCOLUMNSRowFactory rf=(SYSCOLUMNSRowFactory)ti.getCatalogRowFactory();
+        ExecRow row=rf.makeEmptyRow();
+
+        boolean[] bArray=new boolean[2];
+        for(int index=0;index<2;index++){
+            bArray[index]=false;
+        }
+        int[] colsToUpdate=new int[1];
+        colsToUpdate[0]=SYSCOLUMNSRowFactory.SYSCOLUMNS_USEEXTRAPOLATION;
+        row.setColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_USEEXTRAPOLATION,new SQLTinyint(useExtrapolation));
+        ti.updateRow(keyRow,row,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID,bArray,colsToUpdate,tc);
+    }
 
     /**
      * Computes the RowLocation in SYSCOLUMNS for a particular

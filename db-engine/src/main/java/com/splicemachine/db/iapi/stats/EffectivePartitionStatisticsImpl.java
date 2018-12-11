@@ -254,11 +254,12 @@ public class EffectivePartitionStatisticsImpl implements PartitionStatistics {
      * @param includeStart if {@code true}, then include entries which are equal to {@code start}
      * @param includeStop if {@code true}, then include entries which are <em>equal</em> to {@code stop}
      * @param positionNumber
+     * @param useExtrapolation if {@code true}, then do extrapolation if the range falls beyond the min-max range recorded in stats
      * @param <T>
      * @return
      */
     @Override
-    public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
+    public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber, boolean useExtrapolation) {
         throw new UnsupportedOperationException("Use Range Selectivity on the table vs. agains the effective partition.");
     }
 
