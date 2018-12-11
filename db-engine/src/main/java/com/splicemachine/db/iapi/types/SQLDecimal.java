@@ -383,9 +383,11 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 *
 	 */
 	public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-        if (isNull)
-            return;
+		out.writeBoolean(isNull);
+		out.writeByte(precision);
+		out.writeByte(scale);
+		if (isNull)
+			return;
 
 		int scale;
 		byte[] byteArray;
@@ -443,11 +445,14 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 * @see java.io.Externalizable#readExternal
 	 */
 	public void readExternal(ObjectInput in) throws IOException {
+		boolean nullValue = in.readBoolean();
+		precision = in.readByte();
+		scale = in.readByte();
 
-        if (in.readBoolean()) {
-            setCoreValue(null);
-            return;
-        }
+		if (nullValue) {
+			setCoreValue(null);
+			return;
+		}
 
 		// clear the previous value to ensure that the
 		// rawData value will be used
