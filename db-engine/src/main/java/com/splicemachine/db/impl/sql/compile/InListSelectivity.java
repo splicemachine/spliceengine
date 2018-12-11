@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 
  /**
@@ -44,12 +45,14 @@ public class InListSelectivity extends AbstractSelectivityHolder {
     private Predicate p;
     private StoreCostController storeCost;
     private double selectivityFactor;
+    private boolean useExtrapolation = false;
 
     public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor){
         super( ( (ColumnReference) p.getSourceInList().getLeftOperand()).getColumnNumber(),phase);
         this.p = p;
         this.storeCost = storeCost;
         this.selectivityFactor = selectivityFactor;
+        this.useExtrapolation = isExtrapolationEnabled();
     }
 
     public double getSelectivity() throws StandardException {
@@ -59,9 +62,9 @@ public class InListSelectivity extends AbstractSelectivityHolder {
             for(Object o: rightOperandList){
                 ConstantNode cn = (ConstantNode)o;
                 if (selectivity==-1.0d)
-                    selectivity = storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true);
+                    selectivity = storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true, useExtrapolation);
                 else
-                    selectivity+=storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true);
+                    selectivity+=storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true, useExtrapolation);
             }
             if (selectivityFactor > 0)
                 selectivity *= selectivityFactor;
@@ -70,5 +73,23 @@ public class InListSelectivity extends AbstractSelectivityHolder {
                 selectivity = 0.9d;
         }
         return selectivity;
+    }
+
+    private boolean isExtrapolationEnabled() {
+        InListOperatorNode sourceInList = p.getSourceInList();
+        if(sourceInList==null)
+            return false;
+        ValueNode lo = sourceInList.getLeftOperand();
+        if(!(lo instanceof ColumnReference))
+            return false;
+        ColumnReference cr = (ColumnReference)lo;
+        if (cr == null)
+            return false;
+        ColumnDescriptor columnDescriptor = cr.getSource().getTableColumnDescriptor();
+        if (columnDescriptor != null)
+            return columnDescriptor.getUseExtrapolation()!=0;
+
+        return false;
+
     }
 }

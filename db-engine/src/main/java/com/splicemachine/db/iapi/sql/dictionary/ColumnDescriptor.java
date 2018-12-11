@@ -58,6 +58,7 @@ import com.splicemachine.db.catalog.UUID;
  * <li>isAutoincrement</li>
  * <li>setColumnName</li>
  * <li>setPosition</li>
+ * <li>useExtrapolation</li>
  *</ol>
  */
 
@@ -79,6 +80,7 @@ public final class ColumnDescriptor extends TupleDescriptor
     private long				autoincValue;
     private boolean collectStatistics;
     private int partitionPosition = -1;
+    private byte  useExtrapolation = 0;
     /* Used for Serde */
     //Following variable is used to see if the user is adding an autoincrement
     //column, or if user is altering the existing autoincrement column to change
@@ -111,6 +113,8 @@ public final class ColumnDescriptor extends TupleDescriptor
      * @param userChangedWhat		Adding an autoincrement column OR
      *						changing increment value or start value of
      *						the autoincrement column.
+     * @param partitionPosition
+     * @param useExtrapolation indicates whether we want to do extrapolation for stats estimation
      */
 
     public ColumnDescriptor(String columnName, int columnPosition, int storagePosition,
@@ -119,11 +123,12 @@ public final class ColumnDescriptor extends TupleDescriptor
                             TableDescriptor table,
                             UUID defaultUUID, long autoincStart, long autoincInc,
                             long userChangedWhat,
-                            int partitionPosition)
+                            int partitionPosition,
+                            byte useExtrapolation)
     {
         this(columnName, columnPosition, storagePosition, columnType, columnDefault,
                 columnDefaultInfo, table, defaultUUID, autoincStart,
-                autoincInc,partitionPosition);
+                autoincInc,partitionPosition, useExtrapolation);
         autoinc_create_or_modify_Start_Increment = userChangedWhat;
     }
 
@@ -144,13 +149,15 @@ public final class ColumnDescriptor extends TupleDescriptor
      * @param defaultUUID			The UUID for the default, if any.
      * @param autoincStart	Start value for an autoincrement column.
      * @param autoincInc	Increment for autoincrement column
+     * @param partitionPosition
+     * @param useExtrapolation indicates whether we want to do extrapolation for stats estimation
      */
 
     public ColumnDescriptor(String columnName, int columnPosition, int storagePosition,
                             DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
                             DefaultInfo columnDefaultInfo,
                             TableDescriptor table,
-                            UUID defaultUUID, long autoincStart, long autoincInc, int partitionPosition)
+                            UUID defaultUUID, long autoincStart, long autoincInc, int partitionPosition, byte useExtrapolation)
     {
         this.columnName = columnName;
         this.columnPosition = columnPosition;
@@ -174,6 +181,26 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincInc = autoincInc;
         this.collectStatistics = allowsStatistics(columnType);
         this.partitionPosition = partitionPosition;
+        this.useExtrapolation = useExtrapolation;
+    }
+
+    public ColumnDescriptor(String columnName, int columnPosition, int storagePosition,
+                            DataTypeDescriptor columnType, DataValueDescriptor columnDefault,
+                            DefaultInfo columnDefaultInfo,
+                            TableDescriptor table,
+                            UUID defaultUUID, long autoincStart, long autoincInc, int partitionPosition) {
+         this(columnName,
+              columnPosition,
+              storagePosition,
+              columnType,
+              columnDefault,
+              columnDefaultInfo,
+              table,
+              defaultUUID,
+              autoincStart,
+              autoincInc,
+              partitionPosition,
+              (byte)0);
     }
 
     /**
@@ -215,7 +242,7 @@ public final class ColumnDescriptor extends TupleDescriptor
                     autoincInc,
                     autoincValue,
                     allowsStatistics(columnType),
-                    -1);
+                    -1, (byte)0);
     }
 
     public ColumnDescriptor(String columnName,
@@ -230,7 +257,8 @@ public final class ColumnDescriptor extends TupleDescriptor
                             long autoincInc,
                             long autoincValue,
                             boolean collectStats,
-                            int partitionPosition){
+                            int partitionPosition,
+                            byte useExtrapolation){
         this.columnName = columnName;
         this.columnPosition = columnPosition;
         this.storagePosition = storagePosition;
@@ -245,6 +273,7 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincValue = autoincValue;
         this.autoincInc = autoincInc;
         this.partitionPosition = partitionPosition;
+        this.useExtrapolation = useExtrapolation;
     }
 
     public boolean collectStatistics(){
@@ -253,6 +282,14 @@ public final class ColumnDescriptor extends TupleDescriptor
 
     public void setCollectStatistics(boolean collectStatistics){
         this.collectStatistics = collectStatistics;
+    }
+
+    public byte getUseExtrapolation() {
+        return useExtrapolation;
+    }
+
+    public void setUseExtrapolation(byte useExtrapolation) {
+        this.useExtrapolation = useExtrapolation;
     }
 
     /**
@@ -519,7 +556,8 @@ public final class ColumnDescriptor extends TupleDescriptor
                     "columnType: " + columnType + "\n" +
                     "columnDefault: " + columnDefault + "\n" +
                     "uuid: " + uuid + "\n" +
-                    "defaultUUID: " + defaultUUID ;
+                    "defaultUUID: " + defaultUUID + "\n" +
+                    "useExtrapolation: " + useExtrapolation;
         }
         else
         {
@@ -610,6 +648,32 @@ public final class ColumnDescriptor extends TupleDescriptor
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {
         return getTableDescriptor()==null?null:getTableDescriptor().getBaseConglomerateDescriptor();
+    }
+
+    public static boolean allowsExtrapolation(int typeFormatId){
+        switch(typeFormatId){
+            case StoredFormatIds.SQL_TINYINT_ID:
+            case StoredFormatIds.SQL_SMALLINT_ID:
+            case StoredFormatIds.SQL_INTEGER_ID:
+            case StoredFormatIds.SQL_LONGINT_ID:
+            case StoredFormatIds.SQL_REAL_ID:
+            case StoredFormatIds.SQL_DOUBLE_ID:
+            case StoredFormatIds.SQL_DECIMAL_ID:
+            case StoredFormatIds.SQL_DATE_ID:
+            case StoredFormatIds.SQL_TIMESTAMP_ID:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public static boolean allowsExtrapolation(DataTypeDescriptor columnType) {
+        try {
+            return allowsExtrapolation(columnType.getNull().getTypeFormatId());
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
+        }
+
     }
 
 }
