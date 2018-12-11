@@ -2826,4 +2826,20 @@ public class ExternalTableIT extends SpliceUnitTest{
         String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
         Assert.assertEquals(actual, expected, actual);
     }
+
+    @Test
+    public void testAnalyzeOrcExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"orc_ext";
+        methodWatcher.execute(String.format("create external table orc_ext (col1 decimal(5,2), col2 varchar(5))" +
+                " STORED AS ORC LOCATION '%s'", tablePath));
+        methodWatcher.execute("insert into orc_ext values (0.11, 'C')");
+        ResultSet rs = methodWatcher.executeQuery("analyze table orc_ext");
+        int count = 0;
+        while (rs.next()) {
+            ++count;
+            String colName = rs.getString(2);
+            Assert.assertTrue(colName.compareToIgnoreCase("orc_ext") == 0);
+        }
+        Assert.assertEquals(1, count);
+    }
 }
