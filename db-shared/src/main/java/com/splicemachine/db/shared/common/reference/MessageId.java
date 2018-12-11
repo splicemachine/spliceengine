@@ -272,4 +272,5 @@ public interface MessageId {
     String IMPORT_MISSING_NOT_NULL_KEY                   = "SE019";
     String LANG_COLUMN_STATISTICS_NOT_POSSIBLE           = "SE020";
     String LANG_DISABLE_STATS_FOR_KEYED_COLUMN           = "SE021";
+    String LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED        = "SE026";
 }

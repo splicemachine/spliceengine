@@ -285,6 +285,40 @@ public class SelectivityIT extends SpliceUnitTest {
                 "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T1B', false)",
                 spliceSchemaWatcher.schemaName));
 
+        new TableCreator(conn)
+                .withCreate("create table t5 (a5 int, b5 decimal(10,2), c5 date, d5 timestamp, e5 varchar(10), a55 int, c55 date)")
+                .withInsert("insert into t5 values(?,?,?,?,?,?,?)")
+                .withRows(rows(
+                        row(1,1.0,"2018-01-01","2018-01-01 09:45:00","A1",1,"2018-12-01"),
+                        row(2,2.0,"2018-01-02","2018-01-02 09:45:00","A2",2,"2018-12-02"),
+                        row(3,3.0,"2018-01-03","2018-01-03 09:45:00","A3",3,"2018-12-03"),
+                        row(4,4.0,"2018-01-04","2018-01-04 09:45:00","A4",4,"2018-12-04"),
+                        row(5,5.0,"2018-01-05","2018-01-05 09:45:00","A5",5,"2018-12-05"),
+                        row(6,6.0,"2018-01-06","2018-01-06 09:45:00","A6",6,"2018-12-06"),
+                        row(7,7.0,"2018-01-07","2018-01-07 09:45:00","A7",7,"2018-12-07"),
+                        row(8,8.0,"2018-01-08","2018-01-08 09:45:00","A8",8,"2018-12-08"),
+                        row(9,9.0,"2018-01-09","2018-01-09 09:45:00","A9",9,"2018-12-09"),
+                        row(10,10.0,"2018-01-10","2018-01-10 09:45:00","A10",10,"2018-12-10")))
+                .create();
+
+        int increase = 10;
+        for (int i = 0; i < 5; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t5 select a5+%1$d, b5+%1$d, c5+%1$d,d5+%1$d, 'A'||char(a5+%1$d), a5+%1$d, c5+%1$d from t5", increase));
+            increase = increase*2;
+        }
+        for (int i=0; i<4; i++)
+            spliceClassWatcher.executeUpdate(format("insert into t5 select * from t5"));
+
+
+        /* enable extrapolation for a5, c5, e5, g5, h5, i5 */
+        spliceClassWatcher.execute(format("call syscs_util.set_stats_extrapolation_for_column('%s', '%s', '%s', 1)", spliceSchemaWatcher.schemaName, "T5", "A5"));
+        spliceClassWatcher.execute(format("call syscs_util.set_stats_extrapolation_for_column('%s', '%s', '%s', 1)", spliceSchemaWatcher.schemaName, "T5", "B5"));
+        spliceClassWatcher.execute(format("call syscs_util.set_stats_extrapolation_for_column('%s', '%s', '%s', 1)", spliceSchemaWatcher.schemaName, "T5", "C5"));
+        spliceClassWatcher.execute(format("call syscs_util.set_stats_extrapolation_for_column('%s', '%s', '%s', 1)", spliceSchemaWatcher.schemaName, "T5", "D5"));
+
+        spliceClassWatcher.executeQuery(format(
+                "call SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T5', false)",
+                spliceSchemaWatcher.schemaName));
         conn.commit();
     }
 
@@ -574,4 +608,177 @@ public class SelectivityIT extends SpliceUnitTest {
     public void testZeroRowAntiJoinSelectivity() throws  Exception {
         rowContainsQuery(8,"explain select t1a.a1 from t1a,t1b where not exists (select 1 from t1b where t1a.a1 = t1b.a1)","outputRows=1,",methodWatcher);
     }
+
+    @Test
+    public void testIntPointRangeWithExtrapolation() throws Exception {
+        /* column with extrapolation enabled, a5 is between [1,320] */
+        /* value inside min-max range */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a5=10", methodWatcher));
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
+        /* value outside min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a5=1000", methodWatcher));
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
+
+        /* column with extrapolation disabled a55 has the same value as a5 */
+        /* value inside min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a55=10", methodWatcher));
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
+        /* value outside min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a55=1000", methodWatcher));
+        /* estimation should be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==1);
+    }
+
+    @Test
+    public void testDatePointRangeWithExtrapolation() throws Exception {
+        /* column with extrapolation enabled, c5 is between ['2018-01-01,2018-11-16] */
+        /* value inside min-max range */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5='2018-01-30'", methodWatcher));
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
+        /* value outside min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5='2019-01-01'", methodWatcher));
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
+
+        /* column with extrapolation disabled a55 has the same value as c55 */
+        /* value inside min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5='2018-01-30'", methodWatcher));
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
+        /* value outside min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c55='2019-01-01'", methodWatcher));
+                /* estimation should be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount == 1);
+    }
+
+    @Test
+    public void testTimestampPointRangeWithExtrapolation() throws Exception {
+        /* column with extrapolation enabled, d5 is between ['2018-01-01 09:45:00.0,2018-11-16 09:45:00.0] */
+        /* value inside min-max range */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where d5='2018-01-30 09:45:00.0'", methodWatcher));
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
+        /* value outside min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where d5='2019-01-01 09:45:00.0'", methodWatcher));
+        /* accurate number is 16, but due to inaccuracy in stats, it could be somewhat off, but it should not be 1 */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount >=8);
+    }
+
+    @Test
+    public void testNumberRangeWithExtrapolation() throws Exception {
+        /* column with extrapolation enabled, b5 is between [1.0, 320.0] */
+        /* start < min */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where b5 > -5.0", methodWatcher));
+        /* estimation is bound by the total not-null rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==5120);
+
+        /* stop > max */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where b5 < 1000.0", methodWatcher));
+        /* estimation is bound by the total not-null rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==5120);
+
+        /* range partially fall-out of range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where b5 between 300.0 and 480.0", methodWatcher));
+        /* this should be projected to around half of the total rows */
+        Assert.assertEquals("Estimation wrong, actual rowCount="+rowCount, 2560, rowCount, 1000);
+
+        /* range completely fall out of range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where b5 between 400.0 and 560.0", methodWatcher));
+        /* this should be projected to around half of the total rows */
+        Assert.assertEquals("Estimation wrong, actual rowCount="+rowCount, 2560, rowCount, 1000);
+    }
+
+    @Test
+    public void testDateRangeWithExtrapolation() throws Exception {
+        /* column with extrapolation enabled, c5 between ['2018-01-01','2018-11-16'] */
+        /* start < min */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5 > '2017-12-01'", methodWatcher));
+        /* estimation is bound by the total not-null rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==5120);
+
+        /* stop > max */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5 < '2018-12-31'", methodWatcher));
+        /* estimation is bound by the total not-null rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==5120);
+
+        /* range partially fall-out of range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5 between '2018-11-01' and '2019-05-30'", methodWatcher));
+        /* this should be projected to around half of the total rows */
+        Assert.assertEquals("Estimation wrong, actual rowCount="+rowCount, 2560, rowCount, 1000);
+
+        /* range completely fall out of range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5 between '2015-01-01' and '2015-06-15'", methodWatcher));
+        /* this should be projected to around half of the total rows */
+        Assert.assertEquals("Estimation wrong, actual rowCount="+rowCount, 2560, rowCount, 1000);
+
+        /******************************************************************/
+        /*compare to column c55 with same data but extrapolation disabled */
+        /******************************************************************/
+        /* start < min */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c55 > '2017-12-01'", methodWatcher));
+        /* estimation is bound by the total not-null rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==5120);
+
+        /* stop > max */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c55 < '2018-12-31'", methodWatcher));
+        /* estimation is bound by the total not-null rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==5120);
+
+        /* range partially fall-out of range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c55 between '2018-11-01' and '2019-05-30'", methodWatcher));
+        /* without extrapolation, only the range ['2018-11-01', '2018-11-16'] contribute to the estimation */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount<1000);
+
+        /* range completely fall out of range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c55 between '2015-01-01' and '2015-06-15'", methodWatcher));
+        /* this should be projected to around half of the total rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount ==1);
+    }
+
+    @Test
+    public void testInlistWithExtrapolation() throws Exception {
+        /* element fall out of the min-max range */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c5 in ('2017-12-01', '2017-12-02')", methodWatcher));
+        /* we use average rows per value to extrapolate for each element in the inlist even if it falls out of the min-max range */
+        Assert.assertEquals("Estimation wrong, actual rowCount="+rowCount, rowCount, 32, 16);
+
+        /******************************************************************/
+        /*compare to column c55 with same data but extrapolation disabled */
+        /******************************************************************/
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where c55 in ('2017-12-01', '2017-12-02')", methodWatcher));
+        /* no row will qualify with elements out side the min-max range */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount==1);
+    }
+
+    @Test
+    public void testNotEqualsWithExtrapolation() throws Exception {
+        /********************************************/
+        /*test column a5 with extrapolation enabled */
+        /********************************************/
+        /* element fall in the min-max range */
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a5 != 30", methodWatcher));
+        /* estimation should be less than the total rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount<5120);
+
+        /* element fall out of the min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a5 != 1000", methodWatcher));
+        /* with extrapolation, estimation should be less than the total rows */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount<5120);
+        /******************************************************************/
+        /*compare to column a55 with same data but extrapolation disabled */
+        /******************************************************************/
+        /* element within the min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a55 != 30", methodWatcher));
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount<5120);
+
+        /* element fall out of the min-max range */
+        rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t5 where a55 != 1000", methodWatcher));
+        /* estimation should be the same as the total rows, as no rows should be excluded */
+        Assert.assertTrue("Estimation wrong, actual rowCount="+rowCount, rowCount==5120);
+    }
+
 }
