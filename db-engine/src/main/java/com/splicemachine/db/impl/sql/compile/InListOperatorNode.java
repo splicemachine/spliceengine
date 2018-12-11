@@ -49,8 +49,6 @@ import com.splicemachine.db.iapi.types.TypeId;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
-import static com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode.isKnownConstant;
-
 /**
  * An InListOperatorNode represents an IN list.
  *
@@ -165,8 +163,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			equal.bindComparisonOperator();
 			return equal;
 		}
-		else if ((getLeftOperand() instanceof ColumnReference ||
-                  singleLeftOperand) &&  // msirek-temp
+		else if (allLeftOperandsColumnReferences() &&
 				 rightOperandList.containsOnlyConstantAndParamNodes())
 		{
 			/* At this point we have an IN-list made up of constant and/or
@@ -362,6 +359,18 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			 */
 			// msirek-temp :  need to build an AND'ed term here if
             // equality on multiple columns.
+            /* msirek-temp->
+            if (!isSingleLeftOperand()) {
+                ListDataType newListDataTypeNode;
+                newListDataTypeNode = new ListDataType(leftOperandList.size());
+                
+                ValueNode lcn = (ListConstantNode) getNodeFactory().getNode(
+                    C_NodeTypes.LIST_CONSTANT_NODE,
+                    newListDataTypeNode,
+                    constList,
+                    getContextManager());
+                vnl.addValueNode(lcn);
+            } */
 			BinaryComparisonOperatorNode equal = 
 				(BinaryComparisonOperatorNode) getNodeFactory().getNode(
 					C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
@@ -548,7 +557,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		** method, which is in the new method's return statement.  We then return a call
 		** to the new method.
 		*/
-        // Need to fill in the code for this...  msirek-temp
 
 		/* Figure out the result type name */
 		resultTypeName = getTypeCompiler().interfaceName();
@@ -576,6 +584,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
         else {
             // Build a new ListDataType
             LocalField vals = PredicateList.generateListData(acb,
+                                                             mb,
                                                              leftOperandList.size());
     
             for (int i = 0; i < leftOperandList.size(); i++) {
@@ -609,117 +618,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultTypeName, 3);
 	}
     
-    
-    private void generateSetColumn(ExpressionClassBuilder acb,
-                                   MethodBuilder exprFun,
-                                   int columnNumber,
-                                   //ValueNode keyExp,
-                                   ValueNode dataLiteral,
-                                  // Optimizable optTable,
-                                   LocalField rowField
-                                   //boolean isStartKey
-                                   ) throws StandardException {
-        MethodBuilder mb;
-        
-        /* Code gets generated in constructor if comparison against
-         * a constant, otherwise gets generated in the current
-         * statement block.
-         */
-        boolean withKnownConstant = false;
-        if (isKnownConstant(dataLiteral, true)) {
-            withKnownConstant = true;
-            mb = acb.getConstructor();
-        } else {
-            mb = exprFun;
-        }
-        
-        /*
-        int[] baseColumns;
-        boolean[] isAscending;
-        if (pred.isRowId()) {
-            baseColumns = new int[1];
-            baseColumns[0] = 1;
-            
-            isAscending = new boolean[1];
-            isAscending[0] = true;
-        } else {
-            baseColumns = optTable.getTrulyTheBestAccessPath()
-                .getConglomerateDescriptor()
-                .getIndexDescriptor().baseColumnPositions();
-            isAscending = optTable.getTrulyTheBestAccessPath().
-                getConglomerateDescriptor().
-                getIndexDescriptor().isAscending();
-        }
-        */
-        /* If the predicate is an IN-list probe predicate then we are
-         * using it as a start/stop key "placeholder", to be over-ridden
-         * at execution time.  Put differently, we want to generate
-         * "column = ?" as a start/stop key and then use the "?" value
-         * as a placeholder into which we'll plug the various IN values
-         * at execution time.
-         *
-         * In that case "isIn" will be false here, which is fine: there's
-         * no need to generate dynamic start/stop keys like we do for
-         * "normal" IN lists because we're just using the key as a place-
-         * holder.  So by generating the probe predicate ("column = ?")
-         * as a normal one-sided start/stop key, we get our requisite
-         * execution-time placeholder and that's that.  For more on how
-         * we use this "placeholder", see MultiProbeTableScanResultSet.
-         *
-         * Note that we generate the corresponding IN-list values
-         * separately (see generateInListValues() in this class).
-         */
-        boolean isIn = true;
-        
-        /*
-         * Generate statements of the form
-         *
-         * r.setColumn(columnNumber, columnExpression);
-         *
-         * and put the generated statement in the allocator function.
-         */
-        mb.getField(rowField);
-        mb.push(columnNumber + 1);
-        
-        // second arg
-        /*
-        if (isIn) {
-            pred.getSourceInList().generateStartStopKey(columnNumber+1, isStartKey, acb, mb);
-        } else
-            pred.generateExpressionOperand(optTable, columnNumber+1, acb, mb);
-            */
-        dataLiteral.generateExpression(acb,mb);
-        
-        mb.upCast(ClassName.DataValueDescriptor);
-        
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
-        /* msirek-temp->
-        // Also tell the row if this column uses ordered null semantics
-        if (!isIn) {
-            RelationalOperator relop = pred.getRelop();
-            assert relop != null;
-            boolean setOrderedNulls = relop.orderedNulls();
- 
-            if ((!setOrderedNulls) && !relop.getColumnOperand(optTable).getTypeServices().isNullable()) {
-                if (withKnownConstant)
-                    setOrderedNulls = true;
-                else {
-                    ValueNode keyExp =
-                        relop.getExpressionOperand(optTable.getTableNumber(), baseColumns[columnNumber], (FromTable) optTable);
-                    
-                    if (keyExp instanceof ColumnReference)
-                        setOrderedNulls = !keyExp.getTypeServices().isNullable();
-                }
-            }
-            if (setOrderedNulls) {
-                mb.getField(rowField);
-                mb.push(columnNumber);
-                mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.ExecIndexRow, "orderedNulls", "void", 1);
-            }
-        }
-        */
-    }
-
     
     /**
 	 * Generate the code to create an array of DataValueDescriptors that
@@ -851,7 +749,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             
             if (numValsInSet > 1)
             {
-                LocalField vals = PredicateList.generateListData(acb, numValsInSet);
+                LocalField vals = PredicateList.generateListData(acb, setArrayMethod, numValsInSet);
                 // Push the ExecIndexRow in preparation of calling an instance method.
                 
                 // Push the ListDataType instance in prep for calling setFrom.
