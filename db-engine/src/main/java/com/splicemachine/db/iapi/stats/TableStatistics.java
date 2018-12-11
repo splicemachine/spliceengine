@@ -147,10 +147,11 @@ public interface TableStatistics {
      *             in the entire data set.
      * @param includeStart if {@code true}, then include entries which are equal to {@code start}
      * @param includeStop if {@code true}, then include entries which are <em>equal</em> to {@code stop}
+     * @param useExtrapolation if {@code true}, then do extrapolation if the range falls beyond the min-max range recorded in stats
      * @return the number of rows which fall in the range {@code start},{@code stop}, with
      * inclusion determined by {@code includeStart} and {@code includeStop}
      */
-    <T extends Comparator<T>> double rangeSelectivity(T start,T stop, boolean includeStart,boolean includeStop,int positionNumber);
+    <T extends Comparator<T>> double rangeSelectivity(T start,T stop, boolean includeStart,boolean includeStop,int positionNumber,boolean useExtrapolation);
 
     <T extends Comparator<T>> double selectivityExcludingValueIfSkewed(T element, int positionNumber);
 }

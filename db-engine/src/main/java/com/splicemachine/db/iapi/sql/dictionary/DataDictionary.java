@@ -792,6 +792,19 @@ public interface DataDictionary{
                          boolean collectStats) throws StandardException;
 
     /**
+     * sets whether extrapolation is allowed for a column
+     *
+     * @param tc              Transaction Controller to use.
+     * @param tableUUID
+     * @param columnName      Name of the column.
+     * @param useExtrapolation   Value to write to SYSCOLUMNS.
+     */
+    void setUseExtrapolation(TransactionController tc,
+                         UUID tableUUID,
+                         String columnName,
+                         byte useExtrapolation) throws StandardException;
+
+    /**
      * Removes Table Statistics from SYSTABLESTATS.
      *
      * @param conglomerate

@@ -104,6 +104,38 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
+    public static void SET_STATS_EXTRAPOLATION_FOR_COLUMN(String schema,
+                                                 String table,
+                                                 String columnName,
+                                                 short useExtrapolation) throws SQLException {
+        schema = EngineUtils.validateSchema(schema);
+        table = EngineUtils.validateTable(table);
+        columnName = EngineUtils.validateColumnName(columnName);
+        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        try {
+            TableDescriptor td = verifyTableExists(conn, schema, table);
+            //verify that that column exists
+            ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
+            for (ColumnDescriptor descriptor : columnDescriptorList) {
+                if (descriptor.getColumnName().equalsIgnoreCase(columnName)) {
+                    byte value = (byte)(useExtrapolation==0 ? 0 : 1);
+                    // make sure the column type can support extrapolation
+                    if ((value == 1) && !ColumnDescriptor.allowsExtrapolation(descriptor.getType()))
+                        throw ErrorState.LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED.newException(columnName, descriptor.getType());
+                    descriptor.setUseExtrapolation(value);
+                    LanguageConnectionContext languageConnection=conn.getLanguageConnection();
+                    TransactionController transactionCompile=languageConnection.getTransactionCompile();
+                    transactionCompile.elevate("dictionary");
+                    languageConnection.getDataDictionary().setUseExtrapolation(transactionCompile, td.getUUID(), columnName, value);
+                    return;
+                }
+            }
+            throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName, schema + "." + table);
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
+    }
+
     @SuppressWarnings("UnusedDeclaration")
     public static void DISABLE_ALL_COLUMN_STATISTICS(String schema,
                                                  String table) throws SQLException {
