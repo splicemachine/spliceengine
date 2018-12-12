@@ -163,7 +163,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			equal.bindComparisonOperator();
 			return equal;
 		}
-		else if (allLeftOperandsColumnReferences() &&
+		else if ( false && // msirek-temp
+		    allLeftOperandsColumnReferences() &&
 				 rightOperandList.containsOnlyConstantAndParamNodes())
 		{
 			/* At this point we have an IN-list made up of constant and/or
@@ -584,7 +585,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
         else {
             // Build a new ListDataType
             LocalField vals = PredicateList.generateListData(acb,
-                                                             mb,
                                                              leftOperandList.size());
     
             for (int i = 0; i < leftOperandList.size(); i++) {
@@ -607,7 +607,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             }
             // Push the ListDataType on the stack as a DataValueDescriptor.
             mb.getField(vals);
-            mb.upCast(ClassName.ExecRow);
+            mb.upCast(ClassName.DataValueDescriptor);
             
         }
 		mb.dup();
@@ -636,8 +636,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		LocalField arrayField = acb.newFieldDeclaration(
 			Modifier.PRIVATE, ClassName.DataValueDescriptor + "[]");
         LocalField rowArray = acb.newFieldDeclaration(
-            Modifier.PRIVATE, ClassName.ExecIndexRow + "[]");
-        LocalField rowField = null;
+            Modifier.PRIVATE, ClassName.ExecRow + "[]");
 
 		/* Assign the initializer to the DataValueDescriptor[] field */
 		MethodBuilder cb = acb.getConstructor();
@@ -645,7 +644,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		cb.setField(arrayField);
   
 		// Declare the rowArray in the constructor.
-        cb.pushNewArray(ClassName.ExecIndexRow, listSize);
+        cb.pushNewArray(ClassName.ExecRow, listSize);
         cb.setField(rowArray);
         
         // Count the number of "constants" in each group.
@@ -705,7 +704,28 @@ public final class InListOperatorNode extends BinaryListOperatorNode
         
                 }
                 if (constIdx == 0) {
-                    rowField = PredicateList.generateIndexableRow(acb, numValsInSet);
+                    // Push the ExecIndexRow array reference on the stack
+                    setArrayMethod.getField(rowArray);
+    
+                    // Build a new ValueRow, and place on the stack.
+                    LocalField rowField = PredicateList.generateValueRow(acb, numValsInSet);
+                    setArrayMethod.getField(rowField);
+                    setArrayMethod.upCast(ClassName.ExecRow);
+    
+                    // Store the row in the ExecIndexRow array.
+                    setArrayMethod.setArrayElement(index);
+    
+                    // Push the DVD array reference on the stack
+                    setArrayMethod.getField(arrayField);
+                    
+                    // Build a new ListDataType, and place on the stack.
+                    LocalField dvdField = PredicateList.generateListData(acb, numValsInSet);
+                    setArrayMethod.getField(dvdField);
+                    setArrayMethod.upCast(ClassName.DataValueDescriptor);
+    
+                    // Store the list data in the DVD array.
+                    setArrayMethod.setArrayElement(index);
+    
                 }
                 
                 //MethodBuilder exprFun = acb.newExprFun();
@@ -713,7 +733,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 //generateSetColumn(acb, exprFun, colNum, dataLiteral, rowField);
     
                 // Push the ExecIndexRow in preparation of calling an instance method.
-                setArrayMethod.getField(rowField);
+                setArrayMethod.getField(rowArray);
+                setArrayMethod.getArrayElement(index);
     
                 // Push the column number to update.
                 // constIdx vals are 0,1,2.. and correspond to
@@ -736,38 +757,46 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 //setArrayMethod.setArrayElement(index);
             }
             
-            // Push the ExecIndexRow array on the stack
-            setArrayMethod.getField(rowArray);
             
-            // Push the newly-generated ExecIndexRow on the stack
-            setArrayMethod.getField(rowField);
-            setArrayMethod.upCast(ClassName.ExecIndexRow);
-            
-            // Store the row in the ExecIndexRow array.
-            setArrayMethod.setArrayElement(index);
-            
-            
-            if (numValsInSet > 1)
+            if (numValsInSet > 1)  //msirek-temp
             {
-                LocalField vals = PredicateList.generateListData(acb, setArrayMethod, numValsInSet);
+                //LocalField vals = PredicateList.generateListData(acb, numValsInSet);
+/* msirek-temp->
+                // Build a new ListDataType and place into the DVD array.
+                setArrayMethod.getField(arrayField);
+                PredicateList.generateListDataOnStack(acb, numValsInSet);
+                setArrayMethod.upCast(ClassName.DataValueDescriptor);
+                setArrayMethod.setArrayElement(index);
+*/
                 // Push the ExecIndexRow in preparation of calling an instance method.
                 
                 // Push the ListDataType instance in prep for calling setFrom.
-                setArrayMethod.getField(vals);
+                setArrayMethod.getField(arrayField);
+                setArrayMethod.getArrayElement(index);
+                setArrayMethod.cast(ClassName.ListDataType);
                 
                 // Push the row as argument to setFrom.
-                setArrayMethod.getField(rowField);
+                setArrayMethod.getField(rowArray);
+                setArrayMethod.getArrayElement(index);
                 setArrayMethod.upCast(ClassName.ExecRow);
                 
                 setArrayMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
-                                          ClassName.ListDataType,
+                                          (String) null,
                               "setFrom",
                                 "void", 1);
-    
-                // Now put the ListDataType into the DVD array.
+            }
+            else {
+                // Push the row as argument to setFrom.
+                // Push the ExecIndexRow in preparation of calling an instance method.
                 setArrayMethod.getField(arrayField);
-                setArrayMethod.getField(vals);
-                setArrayMethod.upCast(ClassName.DataValueDescriptor);
+                setArrayMethod.getField(rowArray);
+                setArrayMethod.getArrayElement(index);
+                setArrayMethod.cast(ClassName.ValueRow);
+                setArrayMethod.push(1);
+                setArrayMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
+                    (String) null,
+                    "getColumn",
+                    ClassName.DataValueDescriptor, 1);
                 setArrayMethod.setArrayElement(index);
             }
 		}
