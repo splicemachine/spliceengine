@@ -149,33 +149,42 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		 */
 		if (! leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId())
 		{
-			DataTypeDescriptor rightTypeServices = rightOperand.getTypeServices();
-
-			rightOperand =  (ValueNode)
-				getNodeFactory().getNode(
-					C_NodeTypes.CAST_NODE,
-					rightOperand, 
-					new DataTypeDescriptor(
-							rightTypeId,
-							true, 
-							rightTypeServices.getMaximumWidth()),
-					getContextManager());
-			((CastNode) rightOperand).bindCastNodeOnly();
+			if (leftTypeId.isBooleanTypeId() || leftTypeId.isDateTimeTimeStampTypeId()) {
+				rightOperand = (ValueNode)
+						getNodeFactory().getNode(
+								C_NodeTypes.CAST_NODE,
+								rightOperand,
+								new DataTypeDescriptor(
+										leftTypeId,
+										true,leftOperand.getTypeServices().getMaximumWidth()),
+								getContextManager());
+				((CastNode) rightOperand).bindCastNodeOnly();
+			}
+			else {
+				throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
+						leftOperand.getTypeServices().getSQLTypeNameWithCollation() ,
+						rightOperand.getTypeServices().getSQLTypeNameWithCollation());
+			}
 		}
 		else if (! rightTypeId.isStringTypeId() && leftTypeId.isStringTypeId())
 		{
-			DataTypeDescriptor leftTypeServices = leftOperand.getTypeServices();
-
-			leftOperand =  (ValueNode)
-				getNodeFactory().getNode(
-					C_NodeTypes.CAST_NODE,
-					leftOperand, 
-					new DataTypeDescriptor(
-							leftTypeId,
-							true, 
-							leftTypeServices.getMaximumWidth()),
-					getContextManager());
-			((CastNode) leftOperand).bindCastNodeOnly();
+			if (rightTypeId.isBooleanTypeId() || rightTypeId.isDateTimeTimeStampTypeId()) {
+				leftOperand =  (ValueNode)
+						getNodeFactory().getNode(
+								C_NodeTypes.CAST_NODE,
+								leftOperand,
+								new DataTypeDescriptor(
+										rightTypeId,
+										true,
+										rightOperand.getTypeServices().getMaximumWidth()),
+								getContextManager());
+				((CastNode) leftOperand).bindCastNodeOnly();
+			}
+			else {
+				throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
+						leftOperand.getTypeServices().getSQLTypeNameWithCollation() ,
+						rightOperand.getTypeServices().getSQLTypeNameWithCollation());
+			}
 		}
 		else if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
                 (leftTypeId.isDecimalTypeId() && rightTypeId.isIntegerNumericTypeId())) {
