@@ -29,6 +29,7 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLDataException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collection;
@@ -490,6 +491,19 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
 
         rs.close();
+    }
+
+    @Test
+    public void testIllegalFormatCharDateColumnsBroadCastJoin() throws Exception {
+        String sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s1.b1 = s2.c2" , useSpark
+        ) ;
+        try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
+            Assert.fail("Exception not thrown");
+        } catch (SQLDataException e) {
+            assertEquals("22007", e.getSQLState());
+        }
     }
 
     @Test

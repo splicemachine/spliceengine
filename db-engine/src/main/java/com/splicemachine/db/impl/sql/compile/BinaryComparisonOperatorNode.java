@@ -149,12 +149,16 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		 */
 		if (! leftTypeId.isStringTypeId() && rightTypeId.isStringTypeId())
 		{
-			DataTypeDescriptor rightTypeServices = rightOperand.getTypeServices();
 			TypeId targetTypeId;
-			if (leftTypeId.isBooleanTypeId() || leftTypeId.isDateTimeTimeStampTypeId())
+			DataTypeDescriptor targetTypeServices;
+			if (leftTypeId.isBooleanTypeId() || leftTypeId.isDateTimeTimeStampTypeId()) {
 				targetTypeId = leftTypeId;
-			else
+				targetTypeServices = leftOperand.getTypeServices();
+			}
+			else {
 				targetTypeId = rightTypeId;
+				targetTypeServices = rightOperand.getTypeServices();
+			}
 
 			rightOperand = (ValueNode)
 					getNodeFactory().getNode(
@@ -163,19 +167,23 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 							new DataTypeDescriptor(
 									targetTypeId,
 									true,
-									rightTypeServices.getMaximumWidth()),
+									targetTypeServices.getMaximumWidth()),
 							getContextManager());
 			((CastNode) rightOperand).bindCastNodeOnly();
 
 		}
 		else if (! rightTypeId.isStringTypeId() && leftTypeId.isStringTypeId())
 		{
-			DataTypeDescriptor leftTypeServices = leftOperand.getTypeServices();
 			TypeId targetTypeId;
-			if (rightTypeId.isBooleanTypeId() || rightTypeId.isDateTimeTimeStampTypeId())
+			DataTypeDescriptor targetTypeServices;
+			if (rightTypeId.isBooleanTypeId() || rightTypeId.isDateTimeTimeStampTypeId()) {
 				targetTypeId = rightTypeId;
-			else
+				targetTypeServices = rightOperand.getTypeServices();
+			}
+			else {
 				targetTypeId = leftTypeId;
+				targetTypeServices = leftOperand.getTypeServices();
+			}
 			leftOperand =  (ValueNode)
 				getNodeFactory().getNode(
 					C_NodeTypes.CAST_NODE,
@@ -183,7 +191,7 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 					new DataTypeDescriptor(
 							targetTypeId,
 							true, 
-							leftTypeServices.getMaximumWidth()),
+							targetTypeServices.getMaximumWidth()),
 					getContextManager());
 			((CastNode) leftOperand).bindCastNodeOnly();
 		}
