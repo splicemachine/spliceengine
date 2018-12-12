@@ -13,7 +13,7 @@ SPLICELOG="${ROOT_DIR}"/splice_it.log
 KAFKALOG="${ROOT_DIR}"/kafka.log
 
 CHAOS="false"
-PROFILE="cdh5.8.3"  # default hbase platform profile
+PROFILE="cdh5_8_3"  # default hbase platform profile
 HBASE_PROFILE=${PROFILE}
 
 MAVEN_OPTS="$MAVEN_OPTS -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40"
