@@ -43,6 +43,10 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
 
 /**
@@ -158,5 +162,59 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                  */
                 double range = stats.selectivityExcludingValueIfSkewed(sqlDecimal);
                 Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
+
+        @Test
+        public void serdeValueDataExternal() throws Exception {
+                SQLDecimal value = new SQLDecimal(new BigDecimal(100.0d));
+                SQLDecimal valueA = new SQLDecimal(null, value.precision, value.getScale());
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                value.writeExternal(objectOutputStream);
+                objectOutputStream.flush();
+
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                valueA.readExternal(objectInputStream);
+                Assert.assertEquals("SerdeIncorrect", new BigDecimal("100"), valueA.getBigDecimal());
+
+                objectInputStream.close();
+                objectOutputStream.close();
+        }
+
+        @Test
+        public void serdeNullValueDataExternal() throws Exception {
+                SQLDecimal value = new SQLDecimal();
+                SQLDecimal valueA = new SQLDecimal();
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                value.writeExternal(objectOutputStream);
+                objectOutputStream.flush();
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                valueA.readExternal(objectInputStream);
+                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
+
+                objectInputStream.close();
+                objectOutputStream.close();
+        }
+
+        @Test
+        public void serdeNullValueDataExternalWithPrecisionScale() throws Exception {
+                SQLDecimal value = new SQLDecimal(null,5,2);
+                SQLDecimal valueA = new SQLDecimal();
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
+                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                value.writeExternal(objectOutputStream);
+                objectOutputStream.flush();
+                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                valueA.readExternal(objectInputStream);
+                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
+                Assert.assertEquals("Incorrect Precision", 5, valueA.precision);
+                Assert.assertEquals("Incorrect Scale", 2, valueA.scale);
+
+                objectInputStream.close();
+                objectOutputStream.close();
         }
 }

@@ -383,9 +383,13 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 *
 	 */
 	public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-        if (isNull)
-            return;
+		out.writeBoolean(isNull);
+
+		if (isNull) {
+			out.writeByte(precision);
+			out.writeByte(scale);
+			return;
+		}
 
 		int scale;
 		byte[] byteArray;
@@ -444,10 +448,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 */
 	public void readExternal(ObjectInput in) throws IOException {
 
-        if (in.readBoolean()) {
-            setCoreValue(null);
-            return;
-        }
+		if (in.readBoolean()) {
+			precision = in.readByte();
+			scale = in.readByte();
+			setCoreValue(null);
+			return;
+		}
 
 		// clear the previous value to ensure that the
 		// rawData value will be used
