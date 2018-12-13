@@ -125,6 +125,14 @@ class SpliceTestPlatformConfig {
             config.set("hbase.master.keytab.file", keytab);
             config.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
             config.set("yarn.resourcemanager.principal", "yarn/example.com@EXAMPLE.COM");
+            config.set("splicemachine.enterprise.key",EE_KEY);
+            config.set("splice.authentication","LDAP");
+            config.set("splice.authentication.ldap.server","ldap://localhost:4016");
+            config.set("splice.authentication.ldap.searchAuthDN","uid=admin,ou=system");
+            config.set("splice.authentication.ldap.searchAuth.password","secret");
+            config.set("splice.authentication.ldap.searchBase","ou=users,dc=example,dc=com");
+            config.set("splice.authentication.ldap.searchFilter","(&(objectClass=inetOrgPerson)(uid=%USERNAME%))");
+
         }
 
 //        UserGroupInformation.setLoginUser(Us);
