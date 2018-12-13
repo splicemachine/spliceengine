@@ -59,6 +59,8 @@ public final class SConfigurationImpl implements SConfiguration {
     public int authenticationTokenLength;
     public int authenticationTokenMaxLifetime;
     public int authenticationTokenRenewInterval;
+    public boolean authenticationImpersonationEnabled;
+    public String authenticationImpersonationUsers;
     public boolean authenticationTokenEnabled;
     public boolean authenticationTokenDebugConnections;
     public int authenticationTokenMaxConnections;
@@ -275,6 +277,14 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getAuthenticationTokenRenewInterval() {
         return authenticationTokenRenewInterval;
+    }
+    @Override
+    public String getAuthenticationImpersonationUsers() {
+        return authenticationImpersonationUsers;
+    }
+    @Override
+    public boolean getAuthenticationImpersonationEnabled() {
+        return authenticationImpersonationEnabled;
     }
     @Override
     public boolean getAuthenticationTokenEnabled() {
@@ -798,6 +808,8 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationTokenMaxConnections = builder.authenticationTokenMaxConnections;
         authenticationTokenPermissionCacheSize = builder.authenticationTokenPermissionCacheSize;
         authenticationTokenMaxLifetime = builder.authenticationTokenMaxLifetime;
+        authenticationImpersonationEnabled = builder.authenticationImpersonationEnabled;
+        authenticationImpersonationUsers = builder.authenticationImpersonationUsers;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;
         cardinalityPrecision = builder.cardinalityPrecision;
