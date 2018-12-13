@@ -872,15 +872,16 @@
             </modules>
         </profile>
         <profile>
-            <id>hdp2_5_5</id>
+            <id>hdp2.5.5</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>hdp2_5_5</value>
+                    <value>hdp2.5.5</value>
                 </property>
             </activation>
             <properties>
                 <envClassifier>hdp2_5_5</envClassifier>
+                <assemClassifier>hdp2.5.5</assemClassifier>
                 <envHbase>hbase1.1.2.2.5</envHbase>
                 <hadoop.version>2.7.3.2.5.5.7-1</hadoop.version>
                 <hbase.version>1.1.2.2.5.5.7-1</hbase.version>
@@ -904,15 +905,16 @@
             </modules>
         </profile>
         <profile>
-            <id>hdp2_6_1</id>
+            <id>hdp2.6.1</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>hdp2_6_1</value>
+                    <value>hdp2.6.1</value>
                 </property>
             </activation>
             <properties>
                 <envClassifier>hdp2_6_1</envClassifier>
+                <assemClassifier>hdp2.6.1</assemClassifier>
                 <envHbase>hbase1.1.2.2.6</envHbase>
                 <hadoop.version>2.7.3.2.6.1.0-129</hadoop.version>
                 <hbase.version>1.1.2.2.6.1.0-129</hbase.version>
@@ -935,15 +937,16 @@
             </modules>
         </profile>
         <profile>
-            <id>hdp2_6_3</id>
+            <id>hdp2.6.3</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>hdp2_6_3</value>
+                    <value>hdp2.6.3</value>
                 </property>
             </activation>
             <properties>
                 <envClassifier>hdp2_6_3</envClassifier>
+                <assemClassifier>hdp2.6.3</assemClassifier>
                 <envHbase>hbase1.1.2.2.6</envHbase>
                 <hadoop.version>2.7.3.2.6.3.0-235</hadoop.version>
                 <hbase.version>1.1.2.2.6.3.0-235</hbase.version>
@@ -966,15 +969,16 @@
             </modules>
         </profile>
         <profile>
-            <id>hdp2_6_4</id>
+            <id>hdp2.6.4</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>hdp2_6_4</value>
+                    <value>hdp2.6.4</value>
                 </property>
             </activation>
             <properties>
                 <envClassifier>hdp2_6_4</envClassifier>
+                <assemClassifier>hdp2.6.4</assemClassifier>
                 <envHbase>hbase1.1.2.2.6</envHbase>
                 <hadoop.version>2.7.3.2.6.4.0-91</hadoop.version>
                 <hbase.version>1.1.2.2.6.4.0-91</hbase.version>
@@ -997,15 +1001,16 @@
             </modules>
         </profile>
         <profile>
-            <id>hdp2_6_5</id>
+            <id>hdp2.6.5</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>hdp2_6_5</value>
+                    <value>hdp2.6.5</value>
                 </property>
             </activation>
             <properties>
                 <envClassifier>hdp2_6_5</envClassifier>
+                <assemClassifier>hdp2.6.5</assemClassifier>
                 <envHbase>hbase1.1.2.2.6</envHbase>
                 <hadoop.version>2.7.3.2.6.5.0-292</hadoop.version>
                 <hbase.version>1.1.2.2.6.5.0-292</hbase.version>
@@ -1029,16 +1034,17 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_8_3</id>
+            <id>cdh5.8.3</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>cdh5_8_3</value>
+                    <value>cdh5.8.3</value>
                 </property>
             </activation>
             <properties>
                 <cdh.parcel.version>5.8.3</cdh.parcel.version>
                 <envClassifier>cdh5_8_3</envClassifier>
+                <assemClassifier>cdh5.8.3</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.8.3</hadoop.version>
                 <hbase.version>1.2.0-cdh5.8.3</hbase.version>
@@ -1061,16 +1067,17 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_8_5</id>
+            <id>cdh5.8.5</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>cdh5_8_5</value>
+                    <value>cdh5.8.5</value>
                 </property>
             </activation>
             <properties>
                 <cdh.parcel.version>5.8.5</cdh.parcel.version>
                 <envClassifier>cdh5_8_5</envClassifier>
+                <assemClassifier>cdh5.8.5</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.8.5</hadoop.version>
                 <hbase.version>1.2.0-cdh5.8.5</hbase.version>
@@ -1093,16 +1100,17 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_12_0</id>
+            <id>cdh5.12.0</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>cdh5_12_0</value>
+                    <value>cdh5.12.0</value>
                 </property>
             </activation>
             <properties>
                 <cdh.parcel.version>5.12.0</cdh.parcel.version>
                 <envClassifier>cdh5_12_0</envClassifier>
+                <assemClassifier>cdh5.12.0</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.12.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.12.0</hbase.version>
@@ -1125,16 +1133,17 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_12_2</id>
+            <id>cdh5.12.2</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>cdh5_12_2</value>
+                    <value>cdh5.12.2</value>
                 </property>
             </activation>
             <properties>
                 <cdh.parcel.version>5.12.2</cdh.parcel.version>
                 <envClassifier>cdh5_12_2</envClassifier>
+                <assemClassifier>cdh5.12.2</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.12.2</hadoop.version>
                 <hbase.version>1.2.0-cdh5.12.2</hbase.version>
@@ -1157,16 +1166,17 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_13_0</id>
+            <id>cdh5.13.0</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>cdh5_13_0</value>
+                    <value>cdh5.13.0</value>
                 </property>
             </activation>
             <properties>
                 <cdh.parcel.version>5.13.0</cdh.parcel.version>
                 <envClassifier>cdh5_13_0</envClassifier>
+                <assemClassifier>cdh5.13.0</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.13.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.13.0</hbase.version>
@@ -1190,7 +1200,7 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_13_2</id>
+            <id>cdh5.13.2</id>
             <activation>
                 <property>
                     <name>env</name>
@@ -1200,6 +1210,7 @@
             <properties>
                 <cdh.parcel.version>5.13.2</cdh.parcel.version>
                 <envClassifier>cdh5_13_2</envClassifier>
+                <assemClassifier>cdh5.13.2</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.13.2</hadoop.version>
                 <hbase.version>1.2.0-cdh5.13.2</hbase.version>
@@ -1222,16 +1233,17 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_13_3</id>
+            <id>cdh5.13.3</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>cdh5_13_3</value>
+                    <value>cdh5.13.3</value>
                 </property>
             </activation>
             <properties>
                 <cdh.parcel.version>5.13.3</cdh.parcel.version>
                 <envClassifier>cdh5_13_3</envClassifier>
+                <assemClassifier>cdh5.13.3</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.13.3</hadoop.version>
                 <hbase.version>1.2.0-cdh5.13.3</hbase.version>
@@ -1254,16 +1266,17 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_14_0</id>
+            <id>cdh5.14.0</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>cdh5_14_0</value>
+                    <value>cdh5.14.0</value>
                 </property>
             </activation>
             <properties>
                 <cdh.parcel.version>5.14.0</cdh.parcel.version>
                 <envClassifier>cdh5_14_0</envClassifier>
+                <assemClassifier>cdh5.14.0</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.14.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.14.0</hbase.version>
@@ -1287,16 +1300,17 @@
             </modules>
         </profile>
         <profile>
-            <id>cdh5_14_2</id>
+            <id>cdh5.14.2</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>cdh5_14_2</value>
+                    <value>cdh5.14.2</value>
                 </property>
             </activation>
             <properties>
                 <cdh.parcel.version>5_14_2</cdh.parcel.version>
                 <envClassifier>cdh5_14_2</envClassifier>
+                <assemClassifier>cdh5.14.2</assemClassifier>
                 <envHbase>hbase1.2.0</envHbase>
                 <hadoop.version>2.6.0-cdh5.14.2</hadoop.version>
                 <hbase.version>1.2.0-cdh5.14.2</hbase.version>
@@ -1320,15 +1334,16 @@
             </modules>
         </profile>
         <profile>
-            <id>mapr5_2_0</id>
+            <id>mapr5.2.0</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>mapr5_2_0</value>
+                    <value>mapr5.2.0</value>
                 </property>
             </activation>
             <properties>
                 <envClassifier>mapr5_2_0</envClassifier>
+                <assemClassifier>mapr5.2.0</assemClassifier>
                 <envHbase>hbase1.1.1</envHbase>
                 <hadoop.version>2.7.0-mapr-1607</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
@@ -1354,15 +1369,16 @@
             </modules>
         </profile>
         <profile>
-            <id>mapr6_0_0</id>
+            <id>mapr6.0.0</id>
             <activation>
                 <property>
                     <name>env</name>
-                    <value>mapr6_0_0</value>
+                    <value>mapr6.0.0</value>
                 </property>
             </activation>
             <properties>
                 <envClassifier>mapr6_0_0</envClassifier>
+                <assemClassifier>mapr6.0.0</assemClassifier>
                 <envHbase>hbase1.1.8</envHbase>
                 <hadoop.version>2.7.0-mapr-1710</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>

@@ -856,14 +856,14 @@
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
                                             <arg value="-c"/>
-                                            <arg value="-p ${envClassifier}${ee_out}${jacoco_out}"/>
+                                            <arg value="-p ${assemClassifier}${ee_out}${jacoco_out}"/>
                                         </exec>
                                     </then>
                                     <else>
                                         <!-- chaos monkey overridden: -DfailTasksRandomly=false -->
                                         <exec executable="${shell.command}" dir="${basedir}" spawn="false">
                                             <arg value="${start.script}"/>
-                                            <arg value="-p ${envClassifier}${ee_out}${jacoco_out}"/>
+                                            <arg value="-p ${assemClassifier}${ee_out}${jacoco_out}"/>
                                         </exec>
                                     </else>
                                 </if>
@@ -1281,7 +1281,7 @@
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>
-                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Xmx2g</argument>
                                 <argument>-Xms64m</argument>
@@ -1307,13 +1307,13 @@
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}:${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
                                 <argument>
-                                    -Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}
+                                    -Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}
                                 </argument>
                                 <argument>
                                     -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
                                 </argument>
                                 <argument>
-                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2000M</argument>
@@ -1362,7 +1362,7 @@
                                     -Dsplice.olapServer.classpath=${project.build.directory}:${project.build.directory}/dependency/javax.servlet-api-3.1.0.jar:${project.build.directory}/classes
                                 </argument>
                                 <argument>-Dsplice.olapServer.extraJavaOptions=
-                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                     ${hbase.rootdir}
                                     -Dlog4j.configuration=${log4j.config.uri}
                                     -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025
@@ -1436,7 +1436,7 @@
                                 <argument>-Dlog4j.configuration=${log4j.config.uri}</argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>
-                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Xmx2g</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
@@ -1521,7 +1521,7 @@
             </properties>
         </profile>
         <profile>
-            <id>cdh5_12_2</id>
+            <id>cdh5.12.2</id>
             <properties>
                 <!--extraDependency>splice_sentry</extraDependency-->
                 <extraDependency>splice_ee</extraDependency>
@@ -1741,7 +1741,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
                                 <argument>
-                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>org.apache.spark.deploy.history.HistoryServer</argument>
                                 <argument>${project.build.directory}/SpliceTestYarnPlatform/</argument>
@@ -1832,7 +1832,7 @@
                         <configuration>
                             <additionalClasspathElements>
                                 <additionalClasspathElement>
-                                    ${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}
+                                    ${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}
                                 </additionalClasspathElement>
                             </additionalClasspathElements>
                         </configuration>
@@ -1880,7 +1880,7 @@
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>
-                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Xmx2g</argument>
                                 <argument>-Xms64m</argument>
@@ -1904,13 +1904,13 @@
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
                                 <argument>
-                                    -Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}
+                                    -Dspark.executor.extraLibraryPath=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}
                                 </argument>
                                 <argument>
                                     -Dspark.yarn.jars=${project.build.directory}/classes,${project.build.directory}/dependency/*
                                 </argument>
                                 <argument>
-                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${assemClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
                                 <argument>-Dsplice.spark.executor.memory=2g</argument>
