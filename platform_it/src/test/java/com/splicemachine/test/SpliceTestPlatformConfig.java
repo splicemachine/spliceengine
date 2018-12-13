@@ -16,7 +16,7 @@ package com.splicemachine.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static com.google.common.collect.Lists.transform;
+import static org.spark_project.guava.collect.Lists.transform;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,9 +30,9 @@ import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import org.apache.hadoop.hbase.security.token.TokenProvider;
 import org.apache.hadoop.security.UserGroupInformation;
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import org.spark_project.guava.base.Function;
+import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.collect.ImmutableList;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.hbase.*;
 import org.apache.hadoop.conf.Configuration;
@@ -125,7 +125,7 @@ class SpliceTestPlatformConfig {
             config.set("hbase.master.keytab.file", keytab);
             config.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
             config.set("yarn.resourcemanager.principal", "yarn/example.com@EXAMPLE.COM");
-            config.set("splicemachine.enterprise.key","EE_KEY");
+            config.set("splicemachine.enterprise.key",EE_KEY);
             config.set("splice.authentication","LDAP");
             config.set("splice.authentication.ldap.server","ldap://localhost:4016");
             config.set("splice.authentication.ldap.searchAuthDN","uid=admin,ou=system");
