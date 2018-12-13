@@ -26,8 +26,13 @@ import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLDataException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -62,6 +67,9 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     public static final SpliceTableWatcher date_dim= new SpliceTableWatcher("date_dim",schemaWatcher.schemaName,"(d_year int, d_qoy int)");
     public static final SpliceTableWatcher t1= new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(a1 int, b1 int, c1 int)");
     public static final SpliceTableWatcher t2= new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(a2 int, b2 int)");
+    public static final SpliceTableWatcher s1= new SpliceTableWatcher("s1",schemaWatcher.schemaName,"(a1 int, b1 char(2), c1 char(10), d1 char(10), e1 char(20))");
+    public static final SpliceTableWatcher s2= new SpliceTableWatcher("s2",schemaWatcher.schemaName,"(a2 int, b2 boolean, c2 date, d2 time, e2 timestamp)");
+
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
     @ClassRule
@@ -72,6 +80,8 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             .around(date_dim)
             .around(t1)
             .around(t2)
+            .around(s1)
+            .around(s2)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description){
@@ -133,7 +143,26 @@ public class BroadcastJoinIT extends SpliceUnitTest {
                         throw new RuntimeException(e);
                     }
                 }
-            });
+            }).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + s1 + "(a1, b1, c1, d1, e1) values (?,?,?,?,?)")) {
+                        ps.setInt(1, 1);ps.setString(2, "1");ps.setString(3, "2018-11-11");
+                        ps.setString(4, "13:00:00");ps.setString(5, "2018-12-24 11:11:11");ps.execute();
+                    } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            }}).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + s2 + "(a2, b2, c2, d2, e2) values (?,?,?,?,?)")) {
+                        ps.setInt(1, 1);ps.setBoolean(2,true);ps.setDate(3, Date.valueOf("2018-11-11"));
+                        ps.setTime(4, Time.valueOf("13:00:00"));ps.setTimestamp(5, Timestamp.valueOf("2018-12-24 11:11:11"));ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }})
+            ;
 
     private static TestConnection conn;
     private static final int numIterations = 30;
@@ -413,5 +442,131 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         Assert.assertEquals("Wrong Count", 2554, rs.getInt(1));
 
         rs.close();
+    }
+
+    @Test
+    public void testCharBooleanColumnsBroadCastJoin() throws Exception {
+        String sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s1.b1 = s2.b2" , useSpark
+        ) ;
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        int c = rs.getInt(1);
+        Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
+
+        sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s2.b2 = s1.b1" , useSpark
+        ) ;
+        rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        c = rs.getInt(1);
+        Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
+
+        rs.close();
+    }
+
+    @Test
+    public void testCharDateColumnsBroadCastJoin() throws Exception {
+        String sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s1.c1 = s2.c2" , useSpark
+        ) ;
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        int c = rs.getInt(1);
+        Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
+
+        sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s2.c2 = s1.c1" , useSpark
+        ) ;
+        rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        c = rs.getInt(1);
+        Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
+
+        rs.close();
+    }
+
+    @Test
+    public void testCharTimeColumnsBroadCastJoin() throws Exception {
+        String sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s1.d1 = s2.d2" , useSpark
+        ) ;
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        int c = rs.getInt(1);
+        Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
+
+        sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s2.d2 = s1.d1" , useSpark
+        ) ;
+        rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        c = rs.getInt(1);
+        Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
+
+        rs.close();
+    }
+
+    @Test
+    public void testCharTimestampColumnsBroadCastJoin() throws Exception {
+        String sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s1.e1 = s2.e2" , useSpark
+        ) ;
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        int c = rs.getInt(1);
+        Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
+
+        sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s2.e2 = s1.e1" , useSpark
+        ) ;
+        rs = classWatcher.executeQuery(sqlText);
+
+        Assert.assertTrue("rs.next() failed", rs.next());
+        c = rs.getInt(1);
+        Assert.assertTrue("count(s1.a1) returned incorrect number of rows:", (c == 1));
+
+        rs.close();
+    }
+
+    @Test
+    public void testIllegalFormatCharDateColumnsBroadCastJoin() throws Exception {
+        String sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s1.b1 = s2.c2" , useSpark
+        ) ;
+        try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
+            Assert.fail("Exception not thrown");
+        } catch (SQLDataException e) {
+            assertEquals("22007", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testUncomparableCharColumnsBroadCastJoin() throws Exception {
+        String sqlText = format("select count(s1.a1) from " + s1 +
+                " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+                " on s1.b1 = s2.a2" , useSpark
+        ) ;
+        try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
+            Assert.fail("Exception not thrown");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("42818", e.getSQLState());
+        }
     }
 }
