@@ -125,7 +125,7 @@ class SpliceTestPlatformConfig {
             config.set("hbase.master.keytab.file", keytab);
             config.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
             config.set("yarn.resourcemanager.principal", "yarn/example.com@EXAMPLE.COM");
-            config.set("splicemachine.enterprise.key",EE_KEY);
+            config.set("splicemachine.enterprise.key","EE_KEY");
             config.set("splice.authentication","LDAP");
             config.set("splice.authentication.ldap.server","ldap://localhost:4016");
             config.set("splice.authentication.ldap.searchAuthDN","uid=admin,ou=system");
