@@ -590,8 +590,15 @@ public abstract class IdUtil
 	 */
 	public static String getUserNameFromURLProps(Properties params)
 	{
+
+		String proxyUserName = params.getProperty(Attribute.PROXY_USER_ATTR);
+
+		if (proxyUserName != null)
+			return proxyUserName;
+
 		String userName = params.getProperty(Attribute.USERNAME_ATTR,
 							Property.DEFAULT_USER_NAME);
+
 		if (userName.isEmpty())
 			userName = Property.DEFAULT_USER_NAME;
 

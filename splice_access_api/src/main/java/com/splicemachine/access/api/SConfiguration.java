@@ -72,6 +72,8 @@ public interface SConfiguration {
     int getAuthenticationTokenLength();
     int getAuthenticationTokenMaxLifetime();
     int getAuthenticationTokenRenewInterval();
+    boolean getAuthenticationImpersonationEnabled();
+    String getAuthenticationImpersonationUsers();
     boolean getAuthenticationTokenEnabled();
     boolean getAuthenticationTokenDebugConnections();
     int getAuthenticationTokenMaxConnections();
