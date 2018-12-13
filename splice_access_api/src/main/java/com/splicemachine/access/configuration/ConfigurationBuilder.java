@@ -66,6 +66,8 @@ public class ConfigurationBuilder {
     public boolean authenticationTokenDebugConnections;
     public int authenticationTokenMaxConnections;
     public int authenticationTokenPermissionCacheSize;
+    public boolean authenticationImpersonationEnabled;
+    public String authenticationImpersonationUsers;
 
     // Authorization Configuration
     public String authorizationScheme;

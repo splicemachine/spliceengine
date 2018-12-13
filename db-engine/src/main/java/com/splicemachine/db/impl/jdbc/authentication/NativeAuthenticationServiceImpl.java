@@ -326,14 +326,21 @@ public final class NativeAuthenticationServiceImpl
             // authentication in this database.
             //
 
+            String authenticatedUser;
             if ( (databaseName == null) || !authenticatingInThisDatabase( databaseName ) )
             {
-                return (authenticateRemotely(  userName, userPassword, databaseName ) ? userName : null);
+                authenticatedUser = (authenticateRemotely(  userName, userPassword, databaseName ) ? userName : null);
             }
             else
             {
-                return (authenticateLocally( userName, userPassword, databaseName ) ? userName : null);
+                authenticatedUser = (authenticateLocally( userName, userPassword, databaseName ) ? userName : null);
             }
+
+            String proxyUser = info.getProperty(Attribute.PROXY_USER_ATTR);
+            if (proxyUser != null) {
+                authenticatedUser = impersonate(authenticatedUser, proxyUser);
+            }
+            return authenticatedUser;
         }
         catch (StandardException se)
         {

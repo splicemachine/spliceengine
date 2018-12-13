@@ -221,6 +221,12 @@ public class SpliceDatabase extends BasicDatabase{
             default:// Default is Native with warning:
                 configureNative(configuration,true);
         }
+        configureImpersonation(configuration);
+    }
+
+    private void configureImpersonation(SConfiguration configuration) {
+        System.setProperty("derby.authentication.impersonation.enabled",Boolean.toString(configuration.getAuthenticationImpersonationEnabled()));
+        System.setProperty("derby.authentication.impersonation.users",configuration.getAuthenticationImpersonationUsers());
     }
 
     private void configureKerberosAuth(SConfiguration config){
