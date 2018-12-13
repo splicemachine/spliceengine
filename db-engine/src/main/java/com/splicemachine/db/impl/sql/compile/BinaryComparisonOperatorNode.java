@@ -160,11 +160,6 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 								getContextManager());
 				((CastNode) rightOperand).bindCastNodeOnly();
 			}
-			else {
-				throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
-						leftOperand.getTypeServices().getSQLTypeNameWithCollation() ,
-						rightOperand.getTypeServices().getSQLTypeNameWithCollation());
-			}
 		}
 		else if (! rightTypeId.isStringTypeId() && leftTypeId.isStringTypeId())
 		{
@@ -179,11 +174,6 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 										rightOperand.getTypeServices().getMaximumWidth()),
 								getContextManager());
 				((CastNode) leftOperand).bindCastNodeOnly();
-			}
-			else {
-				throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
-						leftOperand.getTypeServices().getSQLTypeNameWithCollation() ,
-						rightOperand.getTypeServices().getSQLTypeNameWithCollation());
 			}
 		}
 		else if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
