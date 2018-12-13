@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.jdbc.authentication;
 
+import com.google.common.base.Splitter;
 import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.catalog.UUID;
@@ -58,6 +59,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Dictionary;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -137,10 +139,36 @@ public abstract class AuthenticationServiceBase
     */
     protected static final int SECMEC_USRSSBPWD = 8;
 
+	private static final String IMPERSIONATION_ENABLED = "derby.authentication.impersonation.enabled";
+	private static final String IMPERSIONATION_USERS = "derby.authentication.impersonation.users";
+
 	//
 	// constructor
 	//
 	public AuthenticationServiceBase() {
+	}
+
+	protected String impersonate(String userName, String proxyUser) {
+		if (!Boolean.parseBoolean(getProperty(IMPERSIONATION_ENABLED))) {
+			 return null;
+		}
+
+		String allPermissions = getProperty(IMPERSIONATION_USERS);
+
+		Map<String, String> map = Splitter.on(';').withKeyValueSeparator("=").split(allPermissions);
+		String userPermissions = map.get(userName);
+
+		if (userPermissions == null) {
+			return null;
+		}
+
+		Iterable<String> perms = Splitter.on(',').split(userPermissions);
+		for (String p : perms) {
+			if (p.equals("*") || p.equals(proxyUser))
+				return proxyUser;
+		}
+
+		return null;
 	}
 
 	protected void setAuthenticationService(UserAuthenticator aScheme) {

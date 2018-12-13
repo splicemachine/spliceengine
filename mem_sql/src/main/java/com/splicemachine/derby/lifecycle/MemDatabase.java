@@ -42,10 +42,10 @@ public class MemDatabase{
         //load SI
         SpliceClient.isRegionServer = true;
         MPipelinePartitionFactory tableFactory=new MPipelinePartitionFactory(new MTxnPartitionFactory(new MPartitionFactory()));
-        MemSIEnvironment env=new MemSIEnvironment(tableFactory,new ConcurrentTicker(0L));
-        MemSIEnvironment.INSTANCE = env;
         SConfiguration config = new ConfigurationBuilder().build(new HConfigurationDefaultsList().addConfig(new MemDatabaseTestConfig()),
                                                                  new ReflectingConfigurationSource());
+        MemSIEnvironment env=new MemSIEnvironment(tableFactory,new ConcurrentTicker(0L),config);
+        MemSIEnvironment.INSTANCE = env;
 
         SIDriver.loadDriver(env);
         final SIDriver driver = env.getSIDriver();
@@ -102,6 +102,8 @@ public class MemDatabase{
             builder.maxDependentWriteThreads = 50;
             builder.partitionserverPort = 16020;
             builder.storageFactoryHome = System.getProperty("user.dir");
+            builder.authenticationImpersonationEnabled = true;
+            builder.authenticationImpersonationUsers = "dgf=splice;splice=*";
         }
     }
 }
