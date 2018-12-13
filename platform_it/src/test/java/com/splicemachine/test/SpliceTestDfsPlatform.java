@@ -17,7 +17,9 @@ package com.splicemachine.test;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
@@ -85,7 +87,10 @@ public class SpliceTestDfsPlatform {
             conf.set(DFSConfigKeys.IGNORE_SECURE_PORTS_FOR_TESTING_KEY, "true");
 
             dfsCluster = new MiniDFSCluster.Builder(conf).clusterId("localDfs").format(true).numDataNodes(nodeCount).nameNodePort(58878).build();
+
             dfsCluster.waitActive();
+
+            System.out.println("liprais" + dfsCluster.getHttpUri(0));
 
             conf = dfsCluster.getConfiguration(0);
             ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
@@ -108,6 +113,8 @@ public class SpliceTestDfsPlatform {
             Path spliceUser = new Path("/user/splice");
             fileSystem.mkdirs(spliceUser);
             fileSystem.setOwner(spliceUser, "splice", "splice");
+
+
         }
         LOG.info("HDFS cluster started, listening on port " + dfsCluster.getNameNodePort() + " writing to " + dfsCluster.getDataDirectory());
         LOG.info("Configuration " + dfsCluster.getConfiguration(0));
