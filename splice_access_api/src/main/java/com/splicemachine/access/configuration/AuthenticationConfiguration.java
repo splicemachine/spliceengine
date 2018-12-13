@@ -93,6 +93,12 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public static final String AUTHENTICATION_TOKEN_PERMISSION_CACHE_SIZE = "splice.authentication.permission.cache.size";
     public static final int DEFAULT_AUTHENTICATION_PERMISSION_CACHE_SIZE = 10000;
 
+    public static final String AUTHENTICATION_IMPERSONATION_ENABLED = "splice.authentication.impersonation.enabled";
+    public static final boolean DEFAULT_AUTHENTICATION_IMPERSONATION_ENABLED = false;
+
+    public static final String AUTHENTICATION_IMPERSONATION_USERS = "splice.authentication.impersonation.users";
+    public static final String DEFAULT_AUTHENTICATION_IMPERSONATION_USERS = "";
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.authentication = configurationSource.getString(AUTHENTICATION, DEFAULT_AUTHENTICATION);
@@ -123,6 +129,8 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
         builder.authenticationTokenEnabled =  configurationSource.getBoolean(AUTHENTICATION_TOKEN_ENABLED, DEFAULT_AUTHENTICATION_TOKEN_ENABLED);
         builder.authenticationTokenDebugConnections =  configurationSource.getBoolean(AUTHENTICATION_TOKEN_DEBUG_CONNECTIONS, DEFAULT_AUTHENTICATION_DEBUG_CONNECTIONS);
         builder.authenticationTokenMaxConnections =  configurationSource.getInt(AUTHENTICATION_TOKEN_MAX_CONNECTIONS, DEFAULT_AUTHENTICATION_MAX_CONNECTIONS);
-        builder.authenticationTokenPermissionCacheSize = configurationSource.getInt(AUTHENTICATION_TOKEN_PERMISSION_CACHE_SIZE, DEFAULT_AUTHENTICATION_PERMISSION_CACHE_SIZE);;
+        builder.authenticationTokenPermissionCacheSize = configurationSource.getInt(AUTHENTICATION_TOKEN_PERMISSION_CACHE_SIZE, DEFAULT_AUTHENTICATION_PERMISSION_CACHE_SIZE);
+        builder.authenticationImpersonationEnabled = configurationSource.getBoolean(AUTHENTICATION_IMPERSONATION_ENABLED, DEFAULT_AUTHENTICATION_IMPERSONATION_ENABLED);
+        builder.authenticationImpersonationUsers = configurationSource.getString(AUTHENTICATION_IMPERSONATION_USERS, DEFAULT_AUTHENTICATION_IMPERSONATION_USERS);
     }
 }

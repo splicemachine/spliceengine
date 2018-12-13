@@ -76,14 +76,10 @@ public class MemSIEnvironment implements SIEnvironment{
     private transient SIDriver siDriver;
     private final DistributedFileSystem fileSystem = new MemFileSystem(FileSystems.getDefault().provider());
 
-    public MemSIEnvironment(PartitionFactory tableFactory){
-       this(tableFactory,new ConcurrentTicker(0l));
-    }
-
-    public MemSIEnvironment(PartitionFactory tableFactory,Clock clock){
+    public MemSIEnvironment(PartitionFactory tableFactory, Clock clock, SConfiguration config){
         this.tableFactory = tableFactory;
         this.txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
-        this.config=new ConfigurationBuilder().build(new HConfigurationDefaultsList(), new ReflectingConfigurationSource());
+        this.config=config;
         this.opFactory = new MOperationFactory(clock);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
         this.kaScheduler = new ManualKeepAliveScheduler(txnStore);

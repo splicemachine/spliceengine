@@ -188,6 +188,10 @@ public interface Attribute {
 	*/
 	String USERNAME_ATTR = "user";
 
+	/**
+	 The attribute that is used to set the proxied user name.
+	 */
+	String PROXY_USER_ATTR = "impersonate";
 
 	/**
 		The attribute that is used to set the user password.
