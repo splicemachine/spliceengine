@@ -105,7 +105,7 @@
                         <configuration>
                             <resources>
                                 <resource>
-                                    <directory>${envClassifier}/src/main/resources</directory>
+                                    <directory>${assemClassifier}/src/main/resources</directory>
                                     <filtering>true</filtering>
                                 </resource>
                             </resources>
@@ -633,7 +633,7 @@
                                     <targetOS>linux</targetOS>
                                     <classifier>splicemachine_ambari_service</classifier>
                                     <name>splicemachine_ambari_service</name>
-                                    <version>${envClassifier}.${project.version}.${parcel.patch}</version>
+                                    <version>${assemClassifier}.${project.version}.${parcel.patch}</version>
                                     <group>Applications/Internet</group>
                                     <license>Copyright © 2018 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <requires>
