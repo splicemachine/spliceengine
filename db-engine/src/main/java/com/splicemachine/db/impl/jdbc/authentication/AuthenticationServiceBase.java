@@ -139,8 +139,8 @@ public abstract class AuthenticationServiceBase
     */
     protected static final int SECMEC_USRSSBPWD = 8;
 
-	private static final String IMPERSIONATION_ENABLED = "derby.authentication.impersonation.enabled";
-	private static final String IMPERSIONATION_USERS = "derby.authentication.impersonation.users";
+	private static final String IMPERSONATION_ENABLED = "derby.authentication.impersonation.enabled";
+	private static final String IMPERSONATION_USERS = "derby.authentication.impersonation.users";
 
 	//
 	// constructor
@@ -149,11 +149,11 @@ public abstract class AuthenticationServiceBase
 	}
 
 	protected String impersonate(String userName, String proxyUser) {
-		if (!Boolean.parseBoolean(getProperty(IMPERSIONATION_ENABLED))) {
+		if (!Boolean.parseBoolean(getProperty(IMPERSONATION_ENABLED))) {
 			 return null;
 		}
 
-		String allPermissions = getProperty(IMPERSIONATION_USERS);
+		String allPermissions = getProperty(IMPERSONATION_USERS);
 
 		Map<String, String> map = Splitter.on(';').withKeyValueSeparator("=").split(allPermissions);
 		String userPermissions = map.get(userName);
