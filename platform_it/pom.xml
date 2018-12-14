@@ -45,7 +45,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
-            <classifier>${envClassifier}</classifier>
+            <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
