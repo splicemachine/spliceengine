@@ -44,13 +44,49 @@ public class InListSelectivity extends AbstractSelectivityHolder {
     private Predicate p;
     private StoreCostController storeCost;
     private double selectivityFactor;
+     private int colNo [];
 
     public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor)
         throws StandardException {
-        super( ( (ColumnReference) p.getSourceInList().getLeftOperand()).getColumnNumber(),phase);
+        super(((ColumnReference) p.getSourceInList().leftOperandList.elementAt(0)).getColumnNumber(), phase);
+        
+        colNo = new int[p.getSourceInList().leftOperandList.size()];
+        int i = 0;
+        for (Object v : p.getSourceInList().leftOperandList) {
+            colNo[i] = ((ColumnReference) v).getColumnNumber();
+            i++;
+        }
         this.p = p;
         this.storeCost = storeCost;
         this.selectivityFactor = selectivityFactor;
+    }
+    
+    private double multiplySelectivity(ConstantNode cn, int columnNumber, double localSelectivity) {
+        if (localSelectivity == -1.0d)
+            localSelectivity = storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true);
+        else
+            localSelectivity *= storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true);
+        return localSelectivity;
+    }
+    private double addSelectivity(ConstantNode cn, int columnNumber, double localSelectivity) {
+        double tempSel = -1.0d;
+        if (cn instanceof ListConstantNode) {
+            ListConstantNode lcn = (ListConstantNode)cn;
+
+            for (int i = 0; i < lcn.numConstants(); i++) {
+                ConstantNode tempConst = (ConstantNode) lcn.getValue(i);
+                tempSel = multiplySelectivity(tempConst, colNo[i], tempSel);
+            }
+        }
+        else
+            tempSel = storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true);
+        
+        if (localSelectivity == -1.0d)
+            localSelectivity = tempSel;
+        else
+            localSelectivity += tempSel;
+    
+        return localSelectivity;
     }
 
     public double getSelectivity() throws StandardException {
@@ -59,10 +95,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
             ValueNodeList rightOperandList=sourceInList.getRightOperandList();
             for(Object o: rightOperandList){
                 ConstantNode cn = (ConstantNode)o;
-                if (selectivity==-1.0d)
-                    selectivity = storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true);
-                else
-                    selectivity+=storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true);
+                selectivity = addSelectivity(cn, getColNum(), selectivity);
             }
             if (selectivityFactor > 0)
                 selectivity *= selectivityFactor;

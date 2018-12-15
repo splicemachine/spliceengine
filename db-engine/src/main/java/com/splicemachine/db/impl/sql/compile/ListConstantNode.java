@@ -32,7 +32,10 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -99,21 +102,47 @@ public final class ListConstantNode extends ConstantNode
 		return value.getLength();
 	}*/
 
-	/**
-	 * Return an Object representing the bind time value of this
-	 * expression tree.  If the expression tree does not evaluate to
-	 * a constant at bind time then we return null.
-	 * This is useful for bind time resolution of VTIs.
-	 * RESOLVE: What do we do for primitives?
-	 *
-	 * @return	An Object representing the bind time value of this expression tree.
-	 *			(null if not a bind time constant.)
-	 *
-	 */
+
+    //
 	Object getConstantValueAsObject()
 	{
+		
 		return value;  // msirek-temp:  Do we need to scan the ListDataType to make sure all values are known?
 	}
+	
+	// Push a ListDataType DVD on the stack.
+	@Override
+	public void generateExpression
+		(
+			ExpressionClassBuilder acb,
+			MethodBuilder mb
+		) throws StandardException {
+		/* Are we generating a SQL null value? */
+		if (isNull()) {
+			acb.generateNull(mb, getTypeCompiler(),
+				getTypeServices());
+		} else {
+			// Build a new ListDataType, and place on the stack.
+			int numValsInSet = this.numConstants();
+			LocalField dvdField = PredicateList.generateListData(acb, numValsInSet);
+			ValueNode dataLiteral;
+			for (int constIdx = 0; constIdx < numValsInSet; constIdx++) {
+				mb.getField(dvdField);
+				dataLiteral = this.getValue(constIdx);
+				dataLiteral.generateExpression(acb, mb);
+				mb.upCast(ClassName.DataValueDescriptor);
+				mb.push(constIdx);
+				mb.callMethod(VMOpcode.INVOKEVIRTUAL,
+					(String) null,
+					"setFrom",
+					"void", 2);
+				 
+			}
+			mb.getField(dvdField);
+			mb.upCast(ClassName.DataValueDescriptor);
+		}
+	}
+	
 
 	/**
 	 * Return the value as a string.
@@ -144,17 +173,12 @@ public final class ListConstantNode extends ConstantNode
 	}
 
  
-	/**
-	 * This generates the proper constant.  It is implemented
-	 * by every specific constant node (e.g. IntConstantNode).
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class being built
-	 * @param mb	The method the code to place the code
-	 *
-	 */
+	// We don't expect generateConstant to be called, because there is no
+	// actual constant value associated with a ListDataType.  It is just
+	// a logical grouping.  Instead, we override generateExpression which
+	// calls generateConstant on all of the constants in the set.
 	void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
 	{
-		 // msirek-temp  TODO
 	}
 
 	

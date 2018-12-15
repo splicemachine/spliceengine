@@ -96,6 +96,7 @@ public interface ClassName
 	String ExecPreparedStatement = "com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement";
 
 	String ExecRow = "com.splicemachine.db.iapi.sql.execute.ExecRow";
+	String ValueRow = "com.splicemachine.db.impl.sql.execute.ValueRow";
 	String Activation = "com.splicemachine.db.iapi.sql.Activation";
 
 	String ResultSet = "com.splicemachine.db.iapi.sql.ResultSet";

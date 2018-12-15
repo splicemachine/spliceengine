@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -134,12 +135,17 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 								FromList outerFromList,
 								SubqueryList outerSubqueryList,
 								PredicateList outerPredicateList) 
+					throws StandardException {
+        super.preprocess(numTables,
+            outerFromList, outerSubqueryList,
+            outerPredicateList);
+        
+        return convertToEqualityPredOrMuiltiProbeBinaryComparisonOp();
+    }
+    
+    public ValueNode convertToEqualityPredOrMuiltiProbeBinaryComparisonOp()
 					throws StandardException
-	{
-      super.preprocess(numTables,
-					   outerFromList, outerSubqueryList,
-					   outerPredicateList);
-
+    {
 		/* Check for the degenerate case of a single element in the IN list.
 		 * If found, then convert to "=".
 		 */
@@ -163,8 +169,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			equal.bindComparisonOperator();
 			return equal;
 		}
-		else if ( false && // msirek-temp
-		    allLeftOperandsColumnReferences() &&
+		else if (allLeftOperandsColumnReferences() &&
 				 rightOperandList.containsOnlyConstantAndParamNodes())
 		{
 			/* At this point we have an IN-list made up of constant and/or
@@ -233,26 +238,25 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			 * will have.  In that case we'll sort the values at execution
 			 * time. 
 			 */
-			if (allConstants)
-			{
-				/* When sorting or choosing min/max in the list, if types
-				 * are not an exact match then we have to use the *dominant*
-				 * type across all values, where "all values" includes the
-				 * left operand.  Otherwise we can end up with incorrect
-				 * results.
-				 *
-				 * Note that it is *not* enough to just use the left operand's
-				 * type as the judge because we have no guarantee that the
-				 * left operand has the dominant type.  If, for example, the
-				 * left operand has type INTEGER and all (or any) values in
-				 * the IN list have type DECIMAL, use of the left op's type
-				 * would lead to comparisons with truncated values and could
-				 * therefore lead to an incorrect sort order. DERBY-2256.
-				 */
+			if (allConstants) {
+                /* When sorting or choosing min/max in the list, if types
+                 * are not an exact match then we have to use the *dominant*
+                 * type across all values, where "all values" includes the
+                 * left operand.  Otherwise we can end up with incorrect
+                 * results.
+                 *
+                 * Note that it is *not* enough to just use the left operand's
+                 * type as the judge because we have no guarantee that the
+                 * left operand has the dominant type.  If, for example, the
+                 * left operand has type INTEGER and all (or any) values in
+                 * the IN list have type DECIMAL, use of the left op's type
+                 * would lead to comparisons with truncated values and could
+                 * therefore lead to an incorrect sort order. DERBY-2256.
+                 */
                 ArrayList targetTypes = new ArrayList<DataTypeDescriptor>();
                 
-				for (int j = 0; j < leftOperandList.size(); j++) {
-				    ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(j);
+                for (int j = 0; j < leftOperandList.size(); j++) {
+                    ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(j);
                     DataTypeDescriptor targetType = leftOperand.getTypeServices();
                     
                     TypeId judgeTypeId = targetType.getTypeId();
@@ -275,14 +279,24 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     }
                     targetTypes.add(targetType);
                 }
-				rightOperandList.eliminateDuplicates(targetTypes);
-
-				/* Now sort the list in ascending order using the dominant
-				 * type found above.
-				 */
-
-				DataValueDescriptor judgeODV = singleLeftOperand ?
-                    ((DataTypeDescriptor)targetTypes.get(0)).getNull() : new ListDataType();
+                rightOperandList.eliminateDuplicates(targetTypes);
+                
+                /* Now sort the list in ascending order using the dominant
+                 * type found above.
+                 */
+                
+                DataValueDescriptor judgeODV = null;
+                
+                if (singleLeftOperand) {
+                    judgeODV = ((DataTypeDescriptor) targetTypes.get(0)).getNull();
+                }
+                else {
+                    ListDataType ldt = new ListDataType(leftOperandList.size());
+                    for (int j = 0; j < leftOperandList.size(); j++) {
+                        ldt.setFrom(((DataTypeDescriptor) targetTypes.get(j)).getNull(), j);
+                    }
+                    judgeODV = ldt;
+                }
 
 				rightOperandList.sortInAscendingOrder(judgeODV);
 				isOrdered = true;
@@ -301,65 +315,73 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 					return equal;
 				}
 			}
+            
+            BinaryComparisonOperatorNode equal = null;
+            ValueNode andNode = null;
+            ValueNode lastAnd = null;
+            for (int i = 0; i < leftOperandList.size(); i++) {
 
-			/* Create a parameter node to serve as the right operand of
-			 * the probe predicate.  We intentionally use a parameter node
-			 * instead of a constant node because the IN-list has more than
-			 * one value (some of which may be unknown at compile time, i.e.
-			 * if they are parameters), so we don't want an estimate based
-			 * on any single literal.  Instead we want a generic estimate
-			 * of the cost to retrieve the rows matching some _unspecified_
-			 * value (namely, one of the values in the IN-list, but we
-			 * don't know which one).  That's exactly what a parameter
-			 * node gives us.
-			 *
-			 * Note: If the IN-list only had a single value then we would
-			 * have taken the "if (rightOperandList.size() == 1)" branch
-			 * above and thus would not be here.
-			 *
-			 * We create the parameter node based on the first value in
-			 * the list.  This is arbitrary and should not matter in the
-			 * big picture.
-			 */
-			ValueNode srcVal = (ValueNode) rightOperandList.elementAt(0);
-			ParameterNode pNode =
-				(ParameterNode) getNodeFactory().getNode(
-					C_NodeTypes.PARAMETER_NODE,
+                /* Create a parameter node to serve as the right operand of
+                 * the probe predicate.  We intentionally use a parameter node
+                 * instead of a constant node because the IN-list has more than
+                 * one value (some of which may be unknown at compile time, i.e.
+                 * if they are parameters), so we don't want an estimate based
+                 * on any single literal.  Instead we want a generic estimate
+                 * of the cost to retrieve the rows matching some _unspecified_
+                 * value (namely, one of the values in the IN-list, but we
+                 * don't know which one).  That's exactly what a parameter
+                 * node gives us.
+                 *
+                 * Note: If the IN-list only had a single value then we would
+                 * have taken the "if (rightOperandList.size() == 1)" branch
+                 * above and thus would not be here.
+                 *
+                 * We create the parameter node based on the first value in
+                 * the list.  This is arbitrary and should not matter in the
+                 * big picture.
+                 */
+                ValueNode srcVal = (ValueNode) rightOperandList.elementAt(0);
+                ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(i);
+                if (srcVal instanceof ListConstantNode)
+                    srcVal = ((ListConstantNode)srcVal).getValue(i);
+                ParameterNode pNode =
+                    (ParameterNode) getNodeFactory().getNode(
+                        C_NodeTypes.PARAMETER_NODE,
                         0,
-					null, // default value
-					getContextManager());
-
-			DataTypeDescriptor pType = srcVal.getTypeServices();
-			pNode.setType(pType);
-
-			/* If we choose to use the new predicate for execution-time
-			 * probing then the right operand will function as a start-key
-			 * "place-holder" into which we'll store the different IN-list
-			 * values as we iterate through them.  This means we have to
-			 * generate a valid value for the parameter node--i.e. for the
-			 * right side of the probe predicate--in order to have a valid
-			 * execution-time placeholder.  To do that we pass the source
-			 * value from which we found the type down to the new, "fake"
-			 * parameter node.  Then, when it comes time to generate the
-			 * parameter node, we'll just generate the source value as our
-			 * place-holder.  See ParameterNode.generateExpression().
-			 *
-			 * Note: the actual value of the "place-holder" does not matter
-			 * because it will be clobbered by the various IN-list values
-			 * (which includes "srcVal" itself) as we iterate through them
-			 * during execution.
-			 */
-			pNode.setValueToGenerate(srcVal);
-
-			/* Finally, create the "column = ?" equality that serves as the
-			 * basis for the probe predicate.  We store a reference to "this"
-			 * node inside the probe predicate so that, if we later decide
-			 * *not* to use the probe predicate for execution time index
-			 * probing, we can revert it back to its original form (i.e.
-			 * to "this").
-			 */
-			// msirek-temp :  need to build an AND'ed term here if
-            // equality on multiple columns.
+                        null, // default value
+                        getContextManager());
+    
+                DataTypeDescriptor pType = srcVal.getTypeServices();
+                pNode.setType(pType);
+    
+                /* If we choose to use the new predicate for execution-time
+                 * probing then the right operand will function as a start-key
+                 * "place-holder" into which we'll store the different IN-list
+                 * values as we iterate through them.  This means we have to
+                 * generate a valid value for the parameter node--i.e. for the
+                 * right side of the probe predicate--in order to have a valid
+                 * execution-time placeholder.  To do that we pass the source
+                 * value from which we found the type down to the new, "fake"
+                 * parameter node.  Then, when it comes time to generate the
+                 * parameter node, we'll just generate the source value as our
+                 * place-holder.  See ParameterNode.generateExpression().
+                 *
+                 * Note: the actual value of the "place-holder" does not matter
+                 * because it will be clobbered by the various IN-list values
+                 * (which includes "srcVal" itself) as we iterate through them
+                 * during execution.
+                 */
+                pNode.setValueToGenerate(srcVal);
+    
+                /* Finally, create the "column = ?" equality that serves as the
+                 * basis for the probe predicate.  We store a reference to "this"
+                 * node inside the probe predicate so that, if we later decide
+                 * *not* to use the probe predicate for execution time index
+                 * probing, we can revert it back to its original form (i.e.
+                 * to "this").
+                 */
+                // msirek-temp :  need to build an AND'ed term here if
+                // equality on multiple columns.
             /* msirek-temp->
             if (!isSingleLeftOperand()) {
                 ListDataType newListDataTypeNode;
@@ -372,17 +394,55 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     getContextManager());
                 vnl.addValueNode(lcn);
             } */
-			BinaryComparisonOperatorNode equal = 
-				(BinaryComparisonOperatorNode) getNodeFactory().getNode(
-					C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
-					getLeftOperand(),
-					pNode,
-					this,
-					getContextManager());
-
-			/* Set type info for the operator node */
-			equal.bindComparisonOperator();
-			return equal;
+                boolean leftNullable =
+                    leftOperandList.getTypeServices().isNullable();
+                //QueryTreeNode leftOperand = ((QueryTreeNode) (((ColumnReference) leftOperandList.elementAt(0))).getClone());
+            /* msirek-temp->
+            if (leftOperandList.size() > 1) {
+                ((ColumnReference)leftOperand).setSource((ResultColumn)((ColumnReference) leftOperand).getSource().getClone());
+                ((ColumnReference) leftOperand).setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, leftNullable));
+                ((ColumnReference) leftOperand).getSource().setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, leftNullable));
+            } */
+                equal =
+                    (BinaryComparisonOperatorNode) getNodeFactory().getNode(
+                        C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+                        leftOperand,
+                        pNode,
+                        this,
+                        getContextManager());
+    
+                /* Set type info for the operator node */
+                /* if (leftOperandList.size() > 1) {   msirek-temp
+                    boolean nullableResult = leftNullable ||
+                        rightOperandList.getTypeServices().isNullable();
+                    equal.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
+                } else */
+                equal.bindComparisonOperator();
+    
+                // Build a chain of AND'ed binary comparisons for each
+                // of the columns in a multicolumn IN list.
+                if (!isSingleLeftOperand()) {
+                    NodeFactory nodeFactory = getNodeFactory();
+                    QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
+                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                        Boolean.TRUE,
+                        getContextManager());
+                    ValueNode temp;
+                    temp = (AndNode) nodeFactory.getNode(
+                        C_NodeTypes.AND_NODE,
+                        equal,
+                        trueNode,
+                        getContextManager());
+                    ((AndNode) temp).postBindFixup();
+                    if (lastAnd != null)
+                        ((AndNode) lastAnd).setRightOperand(temp);
+        
+                    lastAnd = temp;
+                    if (andNode == null)
+                        andNode = temp;
+                }
+            }
+            return (andNode == null) ? equal : andNode;
 		}
 		else
 		{
@@ -704,35 +764,29 @@ public final class InListOperatorNode extends BinaryListOperatorNode
         
                 }
                 if (constIdx == 0) {
-                    // Push the ExecIndexRow array reference on the stack
+                    // Push the ExecRow array reference on the stack
                     setArrayMethod.getField(rowArray);
     
                     // Build a new ValueRow, and place on the stack.
-                    LocalField rowField = PredicateList.generateValueRow(acb, numValsInSet);
-                    setArrayMethod.getField(rowField);
+                    PredicateList.generateValueRowOnStack(acb, numValsInSet);
                     setArrayMethod.upCast(ClassName.ExecRow);
     
-                    // Store the row in the ExecIndexRow array.
+                    // Store the row in the ExecRow array.
                     setArrayMethod.setArrayElement(index);
     
                     // Push the DVD array reference on the stack
                     setArrayMethod.getField(arrayField);
                     
                     // Build a new ListDataType, and place on the stack.
-                    LocalField dvdField = PredicateList.generateListData(acb, numValsInSet);
-                    setArrayMethod.getField(dvdField);
+                    PredicateList.generateListDataOnStack(acb, numValsInSet);
                     setArrayMethod.upCast(ClassName.DataValueDescriptor);
     
                     // Store the list data in the DVD array.
                     setArrayMethod.setArrayElement(index);
     
                 }
-                
-                //MethodBuilder exprFun = acb.newExprFun();
 
-                //generateSetColumn(acb, exprFun, colNum, dataLiteral, rowField);
-    
-                // Push the ExecIndexRow in preparation of calling an instance method.
+                // Push the ExecRow in preparation of calling an instance method.
                 setArrayMethod.getField(rowArray);
                 setArrayMethod.getArrayElement(index);
     
@@ -748,28 +802,12 @@ public final class InListOperatorNode extends BinaryListOperatorNode
     
                 // Store the DVD in the row.
                 setArrayMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
-            
-            /*
-            setArrayMethod.getField(arrayField); // first arg
-			((ValueNode) rightOperandList.elementAt(index)).generateExpression(acb, setArrayMethod);
-			setArrayMethod.upCast(ClassName.DataValueDescriptor); // second arg
-			*/
-                //setArrayMethod.setArrayElement(index);
+
             }
             
             
-            if (numValsInSet > 1)  //msirek-temp
+            if (numValsInSet > 1)
             {
-                //LocalField vals = PredicateList.generateListData(acb, numValsInSet);
-/* msirek-temp->
-                // Build a new ListDataType and place into the DVD array.
-                setArrayMethod.getField(arrayField);
-                PredicateList.generateListDataOnStack(acb, numValsInSet);
-                setArrayMethod.upCast(ClassName.DataValueDescriptor);
-                setArrayMethod.setArrayElement(index);
-*/
-                // Push the ExecIndexRow in preparation of calling an instance method.
-                
                 // Push the ListDataType instance in prep for calling setFrom.
                 setArrayMethod.getField(arrayField);
                 setArrayMethod.getArrayElement(index);
@@ -786,9 +824,10 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                                 "void", 1);
             }
             else {
-                // Push the row as argument to setFrom.
-                // Push the ExecIndexRow in preparation of calling an instance method.
+                // Push the DVD array field in preparation of calling setArrayElement.
                 setArrayMethod.getField(arrayField);
+                
+                // Push the ExecRow in preparation of calling getColumn.
                 setArrayMethod.getField(rowArray);
                 setArrayMethod.getArrayElement(index);
                 setArrayMethod.cast(ClassName.ValueRow);
@@ -838,68 +877,68 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		 * is important for us, and is input parameter to min/maxValue.
 		 */
 		// TODO:  msirek-temp
-		int leftTypeFormatId = getLeftOperand().getTypeId().getTypeFormatId();
-		int leftJDBCTypeId = getLeftOperand().getTypeId().isUserDefinedTypeId() ?
-								getLeftOperand().getTypeId().getJDBCTypeId() : -1;
-
-		int listSize = rightOperandList.size();
-		int numLoops, numValInLastLoop, currentOpnd = 0;
-
-		/* We first calculate how many times (loops) we generate a call to
-		 * min/maxValue function accumulatively, since each time it at most
-		 * takes 4 input values.  An example of the calls generated will be:
-		 * minVal(minVal(...minVal(minVal(v1,v2,v3,v4,judge), v5,v6,v7,judge),
-		 *        ...), vn-1, vn, NULL, judge)
-		 * Unused value parameters in the last call are filled with NULLs.
-		 */
-		if (listSize < 5)
-		{
-			numLoops = 1;
-			numValInLastLoop = (listSize - 1) % 4 + 1;
-		}
-		else
-		{
-			numLoops = (listSize - 5) / 3 + 2;
-			numValInLastLoop = (listSize - 5) % 3 + 1;
-		}
-
-		for (int i = 0; i < numLoops; i++)
-		{
-			/* generate value parameters of min/maxValue
-			 */
-			int numVals = (i == numLoops - 1) ? numValInLastLoop :
-							  ((i == 0) ? 4 : 3);
-			for (int j = 0; j < numVals; j++)
-			{
-				ValueNode vn = (ValueNode) rightOperandList.elementAt(currentOpnd++);
-				vn.generateExpression(acb, mb);
-				mb.upCast(ClassName.DataValueDescriptor);
-			}
-
-			/* since we have fixed number of input values (4), unused ones
-			 * in the last loop are filled with NULLs
-			 */
-			int numNulls = (i < numLoops - 1) ? 0 :
-							((i == 0) ? 4 - numValInLastLoop : 3 - numValInLastLoop);
-			for (int j = 0; j < numNulls; j++)
-				mb.pushNull(ClassName.DataValueDescriptor);
-
-			/* have to put judge's types in the end
-			 */
-			mb.push(leftTypeFormatId);
-			mb.push(leftJDBCTypeId);
-
-			/* decide to get min or max value
-			 */
-			String methodName;
-			if ((isAsc && isStartKey) || (! isAsc && ! isStartKey))
-				methodName = "minValue";
-			else
-				methodName = "maxValue";
-		
-			mb.callMethod(VMOpcode.INVOKESTATIC, ClassName.BaseExpressionActivation, methodName, ClassName.DataValueDescriptor, 6);
-
-		}
+        for (int listIdx = 0; listIdx < leftOperandList.size(); listIdx++) {
+            ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(listIdx);
+            int leftTypeFormatId = leftOperand.getTypeId().getTypeFormatId();
+            int leftJDBCTypeId = leftOperand.getTypeId().isUserDefinedTypeId() ?
+                leftOperand.getTypeId().getJDBCTypeId() : -1;
+    
+            int listSize = rightOperandList.size();
+            int numLoops, numValInLastLoop, currentOpnd = 0;
+    
+            /* We first calculate how many times (loops) we generate a call to
+             * min/maxValue function accumulatively, since each time it at most
+             * takes 4 input values.  An example of the calls generated will be:
+             * minVal(minVal(...minVal(minVal(v1,v2,v3,v4,judge), v5,v6,v7,judge),
+             *        ...), vn-1, vn, NULL, judge)
+             * Unused value parameters in the last call are filled with NULLs.
+             */
+            if (listSize < 5) {
+                numLoops = 1;
+                numValInLastLoop = (listSize - 1) % 4 + 1;
+            } else {
+                numLoops = (listSize - 5) / 3 + 2;
+                numValInLastLoop = (listSize - 5) % 3 + 1;
+            }
+    
+            for (int i = 0; i < numLoops; i++) {
+                /* generate value parameters of min/maxValue
+                 */
+                int numVals = (i == numLoops - 1) ? numValInLastLoop :
+                    ((i == 0) ? 4 : 3);
+                for (int j = 0; j < numVals; j++) {
+                    ValueNode vn = (ValueNode) rightOperandList.elementAt(currentOpnd++);
+                    //if (vn instanceof ListConstantNode)
+                    //    vn = ((ListConstantNode)vn).getValue(listIdx);
+                    vn.generateExpression(acb, mb);
+                    mb.upCast(ClassName.DataValueDescriptor);
+                }
+        
+                /* since we have fixed number of input values (4), unused ones
+                 * in the last loop are filled with NULLs
+                 */
+                int numNulls = (i < numLoops - 1) ? 0 :
+                    ((i == 0) ? 4 - numValInLastLoop : 3 - numValInLastLoop);
+                for (int j = 0; j < numNulls; j++)
+                    mb.pushNull(ClassName.DataValueDescriptor);
+        
+                /* have to put judge's types in the end
+                 */
+                mb.push(leftTypeFormatId);
+                mb.push(leftJDBCTypeId);
+        
+                /* decide to get min or max value
+                 */
+                String methodName;
+                if ((isAsc && isStartKey) || (!isAsc && !isStartKey))
+                    methodName = "minValue";
+                else
+                    methodName = "maxValue";
+        
+                mb.callMethod(VMOpcode.INVOKESTATIC, ClassName.BaseExpressionActivation, methodName, ClassName.DataValueDescriptor, 6);
+        
+            }
+        }
 	}
 
 	/**

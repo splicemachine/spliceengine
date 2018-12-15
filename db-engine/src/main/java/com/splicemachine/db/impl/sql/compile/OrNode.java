@@ -371,7 +371,13 @@ public class OrNode extends BinaryLogicalOperatorNode {
 											getContextManager());
 
 				// Transfer the result type info to the IN list
-				ilon.setType(getTypeServices());
+		/*		if (crList.size() > 1) {   msirek-temp
+					boolean nullableResult = crList.getTypeServices().isNullable() ||
+					                     	 vnl.getTypeServices().isNullable();
+					ilon.setType(new DataTypeDescriptor(TypeId.LIST_ID, nullableResult));
+				}
+				else */
+				    ilon.setType(getTypeServices());
 
 				/* We return the result of preprocess() on the
 				 * IN list so that any compilation time transformations

@@ -257,7 +257,16 @@ public final class ListDataType extends DataType {
         isNull = true;
         setLength(numElements);
 	}
-
+ 
+	/* msirek-temp->
+    public ListDataType(ValueNodeList vnl) {
+        isNull = true;
+        setLength(vnl.size());
+        int i = 0;
+        for (Object obj:vnl){
+            dvd[i] =
+        }
+    }  */
 	
 	public DataValueDescriptor getDVD(int index) {
         return dvd[index];

@@ -102,10 +102,21 @@ public class OperatorToString {
             }
         }else if(operand instanceof BinaryListOperatorNode){
             BinaryListOperatorNode blon = (BinaryListOperatorNode)operand;
-            StringBuilder inList = new StringBuilder("(").append(opToString(blon.getLeftOperand()))
-                                                         .append(" ")
-                                                         .append(blon.getOperator())
-                                                         .append(" (");
+            StringBuilder inList = new StringBuilder("(");
+            if (!blon.isSingleLeftOperand()) {
+                ValueNodeList vnl = blon.leftOperandList;
+                inList.append("(");
+                for (int i = 0; i < vnl.size(); i++) {
+                    ValueNode vn = (ValueNode) vnl.elementAt(i);
+                    if (i != 0)
+                        inList.append(",");
+                    inList.append(opToString(vn));
+                }
+                inList.append(")");
+            }
+            else
+                inList.append(opToString(blon.getLeftOperand()));
+            inList.append(" ").append(blon.getOperator()).append(" (");
             ValueNodeList rightOperandList=blon.getRightOperandList();
             boolean isFirst = true;
             for(Object qtn: rightOperandList){
@@ -140,6 +151,18 @@ public class OperatorToString {
                 i++;
             }
             builder.append("]");
+            return builder.toString();
+        } else if (operand instanceof ListConstantNode) {
+            ListConstantNode lcn = (ListConstantNode) operand;
+            StringBuilder builder = new StringBuilder();
+            builder.append("(");
+            for (int i = 0; i < lcn.numConstants(); i++) {
+                ValueNode vn = lcn.getValue(i);
+                if (i != 0)
+                    builder.append(",");
+                builder.append(opToString(vn));
+            }
+            builder.append(")");
             return builder.toString();
         }
         else if (operand instanceof ColumnReference) {

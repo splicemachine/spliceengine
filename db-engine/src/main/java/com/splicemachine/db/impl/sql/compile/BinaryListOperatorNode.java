@@ -83,6 +83,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
                                      C_NodeTypes.VALUE_NODE_LIST,
                                      getContextManager());
                 vnl.addValueNode((ValueNode)leftOperand);
+                this.leftOperandList = vnl;
                 singleLeftOperand = true;
             }
             else {
@@ -101,6 +102,16 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     public ValueNode getLeftOperand() {
         return (ValueNode) (singleLeftOperand ? leftOperandList.elementAt(0) : null);
     }
+    
+    public boolean allLeftOperandsColumnReferences() {
+        for (Object obj:leftOperandList) {
+            if (!(obj instanceof  ColumnReference))
+                return false;
+        }
+        return true;
+    }
+    
+    public boolean isSingleLeftOperand() { return singleLeftOperand; }
     
     private ValueNodeList getLeftOperandList() {
         return leftOperandList;
@@ -280,8 +291,8 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      * @param newLeftOperand The new leftOperand
      */
     public void setLeftOperand(ValueNode newLeftOperand) throws StandardException{
-        if (!singleLeftOperand)
-            throw StandardException.newException(SQLState.LANG_UNKNOWN);
+        //if (!singleLeftOperand)  msirek-temp
+        //    throw StandardException.newException(SQLState.LANG_UNKNOWN);
         leftOperandList.setElementAt(newLeftOperand, 0);
     }
 
