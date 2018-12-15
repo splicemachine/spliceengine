@@ -186,7 +186,9 @@ public class BinaryRelationalOperatorNode
 			 * to ensure the underlying InListOperatorNode also has an
 			 * up-to-date leftOperand is to set it to this.leftOperand.
 			 */
-            inListProbeSource.setLeftOperand(this.leftOperand);
+            // No remapping of multicolumn IN list for now.
+            if (inListProbeSource.leftOperandList.size() == 1)
+                inListProbeSource.setLeftOperand(this.leftOperand);
         }
 
         return inListProbeSource;

@@ -1189,7 +1189,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * If this predicate corresponds to an IN-list, return the underlying
      * InListOperatorNode from which it was built.  There are two forms
      * to check for:
-     * <p/>∫
+     * <p/>
      * 1. This predicate is an IN-list "probe predicate", in which case
      * the underlying InListOpNode is stored within the binary relational
      * operator that is the left operand of this predicate's AND node.
@@ -1234,6 +1234,15 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         return null;
     }
+    
+    /**
+     * Returns the number of columns represented in a predicate if the predicate is a probe predicate,
+     * otherwise returns 1.
+     */
+    protected int numColumnsInPred () throws StandardException {
+        InListOperatorNode ilon = getSourceInList(true);
+        return (ilon == null) ? 1 : ilon.leftOperandList.size();
+    }
 
     /**
      * Returns true if the predicate is a multi-probe qualifier.
@@ -1250,10 +1259,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         InListOperatorNode sourceInList=getSourceInList();
         if(sourceInList==null)
             return false; //not a multi-probe predicate
-        ValueNode lo = sourceInList.getLeftOperand();
-        //if it doesn't refer to a column, then it can't be a qualifier
-        if(!(lo instanceof ColumnReference))
-            return false;
+        for (int i = 0; i < sourceInList.leftOperandList.size(); i++) {
+            ValueNode lo = (ValueNode) sourceInList.leftOperandList.elementAt(i);
+            //if it doesn't refer to a column, then it can't be a qualifier
+            if (!(lo instanceof ColumnReference))
+                return false;
+        }
 
         //if inlist is eligible for multiprobe index scan, its indexPosition will be set(>=0) and
         //this predicate can be pushed down to base table

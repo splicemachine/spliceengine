@@ -291,8 +291,8 @@ public abstract class BinaryListOperatorNode extends ValueNode{
      * @param newLeftOperand The new leftOperand
      */
     public void setLeftOperand(ValueNode newLeftOperand) throws StandardException{
-        //if (!singleLeftOperand)  msirek-temp
-        //    throw StandardException.newException(SQLState.LANG_UNKNOWN);
+        if (!singleLeftOperand)
+            throw StandardException.newException(SQLState.LANG_UNKNOWN);
         leftOperandList.setElementAt(newLeftOperand, 0);
     }
 
