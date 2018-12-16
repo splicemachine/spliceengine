@@ -154,7 +154,9 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 						DataValueDescriptor dvd = probeValue;
 						if (numColumns != 1)
 							dvd = ((ListDataType)dvd).getDVD(i);
-					  	qual.getOrderable().setValue(dvd);
+						// A dvd could be null if the source is a parameter value.
+						if (dvd != null)
+					  	    qual.getOrderable().setValue(dvd);
 					}
 				}
 			}

@@ -3608,6 +3608,21 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.ExecutionFactory, "getListData", ClassName.ListDataType, 1);
     }
     
+    /**
+     * Generate a new ListDataType with "numberOfValues" values and place it on the stack.
+     *
+     * @param acb            The ActivationClassBuilder for the class we're building
+     * @param numberOfValues The number of values in grouped data type.
+     * @param mb             The method build whose stack to place the ListDataType on.
+     * @return The field that holds the list data
+     */
+    public static void generateListDataOnStack(ExpressionClassBuilder acb, int numberOfValues, MethodBuilder mb) {
+        
+        acb.pushGetExecutionFactoryExpression(mb); // instance
+        mb.push(numberOfValues);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.ExecutionFactory, "getListData", ClassName.ListDataType, 1);
+    }
+    
     
     /**
      * Generate the code to set the value from a predicate in an index column.

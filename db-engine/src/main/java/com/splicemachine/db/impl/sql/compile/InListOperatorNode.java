@@ -677,8 +677,44 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		mb.push(isOrdered); // third arg
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultTypeName, 3);
 	}
-    
-    
+	
+	
+	protected void buildDVDInArray(MethodBuilder mb, LocalField arrayField, int index,
+								   LocalField rowArray, int numValsInSet) throws StandardException {
+		if (mb != null) {
+			if (numValsInSet > 1) {
+				// Push the ListDataType instance in prep for calling setFrom.
+				mb.getField(arrayField);
+				mb.getArrayElement(index);
+				mb.cast(ClassName.ListDataType);
+				
+				// Push the row as argument to setFrom.
+				mb.getField(rowArray);
+				mb.getArrayElement(index);
+				mb.upCast(ClassName.ExecRow);
+				
+				mb.callMethod(VMOpcode.INVOKEVIRTUAL,
+					(String) null,
+					"setFrom",
+					"void", 1);
+			} else {
+				// Push the DVD array field in preparation of calling setArrayElement.
+				mb.getField(arrayField);
+				
+				// Push the ExecRow in preparation of calling getColumn.
+				mb.getField(rowArray);
+				mb.getArrayElement(index);
+				mb.cast(ClassName.ValueRow);
+				mb.push(1);
+				mb.callMethod(VMOpcode.INVOKEVIRTUAL,
+					(String) null,
+					"getColumn",
+					ClassName.DataValueDescriptor, 1);
+				mb.setArrayElement(index);
+			}
+		}
+	}
+	
     /**
 	 * Generate the code to create an array of DataValueDescriptors that
 	 * will hold the IN-list values at execution time.  The array gets
@@ -765,24 +801,24 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 }
                 if (constIdx == 0) {
                     // Push the ExecRow array reference on the stack
-                    setArrayMethod.getField(rowArray);
+                    cb.getField(rowArray);
     
                     // Build a new ValueRow, and place on the stack.
                     PredicateList.generateValueRowOnStack(acb, numValsInSet);
-                    setArrayMethod.upCast(ClassName.ExecRow);
+                    cb.upCast(ClassName.ExecRow);
     
                     // Store the row in the ExecRow array.
-                    setArrayMethod.setArrayElement(index);
+                    cb.setArrayElement(index);
     
                     // Push the DVD array reference on the stack
-                    setArrayMethod.getField(arrayField);
+                    cb.getField(arrayField);
                     
                     // Build a new ListDataType, and place on the stack.
                     PredicateList.generateListDataOnStack(acb, numValsInSet);
-                    setArrayMethod.upCast(ClassName.DataValueDescriptor);
+                    cb.upCast(ClassName.DataValueDescriptor);
     
                     // Store the list data in the DVD array.
-                    setArrayMethod.setArrayElement(index);
+                    cb.setArrayElement(index);
     
                 }
 
@@ -804,40 +840,12 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 setArrayMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
 
             }
-            
-            
-            if (numValsInSet > 1)
-            {
-                // Push the ListDataType instance in prep for calling setFrom.
-                setArrayMethod.getField(arrayField);
-                setArrayMethod.getArrayElement(index);
-                setArrayMethod.cast(ClassName.ListDataType);
-                
-                // Push the row as argument to setFrom.
-                setArrayMethod.getField(rowArray);
-                setArrayMethod.getArrayElement(index);
-                setArrayMethod.upCast(ClassName.ExecRow);
-                
-                setArrayMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
-                                          (String) null,
-                              "setFrom",
-                                "void", 1);
-            }
-            else {
-                // Push the DVD array field in preparation of calling setArrayElement.
-                setArrayMethod.getField(arrayField);
-                
-                // Push the ExecRow in preparation of calling getColumn.
-                setArrayMethod.getField(rowArray);
-                setArrayMethod.getArrayElement(index);
-                setArrayMethod.cast(ClassName.ValueRow);
-                setArrayMethod.push(1);
-                setArrayMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
-                    (String) null,
-                    "getColumn",
-                    ClassName.DataValueDescriptor, 1);
-                setArrayMethod.setArrayElement(index);
-            }
+			if (numConstants > 0) {
+				buildDVDInArray(cb, arrayField, index, rowArray, numValsInSet);
+				if (cb != currentConstMethod)
+				    buildDVDInArray(currentConstMethod, arrayField, index, rowArray, numValsInSet);
+			}
+			buildDVDInArray(nonConstantMethod, arrayField, index, rowArray, numValsInSet);
 		}
 
 		//if a generated function was created to reduce the size of the methods close the functions.
