@@ -183,7 +183,13 @@ public final class ListConstantNode extends ConstantNode
 
 	
 	public int hashCode(){
-        return value.hashCode();
+		final int prime = 37;
+		int result = 17;
+		
+		for (int i = 0; i < numConstants(); i++) {
+			result = result * prime + constantsList.elementAt(i).hashCode();
+		}
+		return result;
 	}
 
     @Override

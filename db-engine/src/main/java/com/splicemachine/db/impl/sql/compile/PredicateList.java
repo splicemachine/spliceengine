@@ -620,7 +620,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 ListDataType newListDataTypeNode = new ListDataType(predList.size());
                 int i = 0;
                 for (Object obj:localConstList) {
-                    newListDataTypeNode.setFrom(((ConstantNode)obj).getValue(), i);
+                    if (obj instanceof ConstantNode)
+                        newListDataTypeNode.setFrom(((ConstantNode)obj).getValue(), i);
                     i++;
                 }
             

@@ -128,7 +128,7 @@ public final class ListDataType extends DataType {
         if (numElements <= 0)
             return true;
         for (int i = 0; i < numElements; i++) {
-            if (dvd[i].isNull())
+            if (dvd[i] == null || dvd[i].isNull())
                 return true;
         }
         return false;
