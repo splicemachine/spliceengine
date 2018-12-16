@@ -1193,8 +1193,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			     * We're not pushing the predicates down, so put them at the
 			     * beginning of this predicate list in index order.
 			     */
-                removeOptPredicate(thisPred);
-                addOptPredicate(thisPred,i);
+                if (thisPred != multiColumnInListPred) {
+                    removeOptPredicate(thisPred);
+                    addOptPredicate(thisPred, i);
+                }
             }
         }
     }
