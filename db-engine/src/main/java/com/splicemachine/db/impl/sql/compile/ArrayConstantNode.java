@@ -398,6 +398,12 @@ public class ArrayConstantNode extends ValueNode {
 		return c;
 	}
 
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		if (argumentsList!= null && !argumentsList.containsOnlyConstantAndParamNodes())
+			return false;
+		return true;
+	}
 }
 
 
