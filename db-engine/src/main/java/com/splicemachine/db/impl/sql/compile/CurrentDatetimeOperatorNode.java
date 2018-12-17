@@ -198,4 +198,8 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 	public long nonZeroCardinality(long numberOfRows) throws StandardException {
 		return 1;
 	}
+
+	public boolean isConstantOrParameterTreeNode() {
+		return true;
+	}
 }
