@@ -54,6 +54,26 @@ public final class ListConstantNode extends ConstantNode
     }
     
     public int numConstants() { return constantsList.size(); }
+	
+    @Override
+	public boolean isConstantExpression() {
+		final int listLen = constantsList.size();
+    	for (int i=0; i < listLen; i++) {
+    		if (!((ValueNode) constantsList.elementAt(i)).isConstantExpression())
+    			return false;
+		}
+		return true;
+	}
+	
+	public boolean containsAllConstantNodes() {
+		
+		final int listLen = constantsList.size();
+		for (int i = 0; i < listLen; i++) {
+			if (!(constantsList.elementAt(i) instanceof ConstantNode))
+				return false;
+		}
+		return true;
+	}
 
 	/**
 	 * Initializer for a ListConstantNode.

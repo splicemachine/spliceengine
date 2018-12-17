@@ -301,5 +301,10 @@ public abstract class ConstantNode extends ValueNode
 	public long nonZeroCardinality(long numberOfRows) throws StandardException {
 		return 1;
 	}
+	
+	@Override
+	public int hashCode() {
+		return value.hashCode();
+	}
 
 }

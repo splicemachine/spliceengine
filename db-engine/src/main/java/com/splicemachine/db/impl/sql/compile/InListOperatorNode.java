@@ -749,7 +749,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             ((ListConstantNode) constants).numConstants() : 1;
         
 		/* Set the array elements that are constant */
-        int numConstants = 0;
+
         MethodBuilder nonConstantMethod = null;
 		MethodBuilder currentConstMethod = cb;
 
@@ -758,7 +758,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             ValueNode topLevelLiteral = (ValueNode) rightOperandList.elementAt(index);
             ValueNode dataLiteral;
             MethodBuilder setArrayMethod = null;
-            
+			int numConstants = 0;
+			int numNonConstants = 0;
 
             for (int constIdx = 0; constIdx < numValsInSet; constIdx++) {
 
@@ -778,7 +779,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                      *and called from the function which created the function.
                      *See Beetle 5135 or 4293 for further details on this type of problem.
                      */
-                    if (currentConstMethod.statementNumHitLimit(1)) {
+                    if (constIdx == 0 &&
+						currentConstMethod.statementNumHitLimit(numConstants)) {
                         MethodBuilder genConstantMethod = acb.newGeneratedFun("void", Modifier.PRIVATE);
                         currentConstMethod.pushThis();
                         currentConstMethod.callMethod(VMOpcode.INVOKEVIRTUAL,
@@ -794,6 +796,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     }
                     setArrayMethod = currentConstMethod;
                 } else {
+					numNonConstants++;
                     if (nonConstantMethod == null)
                         nonConstantMethod = acb.newGeneratedFun("void", Modifier.PROTECTED);
                     setArrayMethod = nonConstantMethod;
@@ -840,12 +843,10 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 setArrayMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
 
             }
-			if (numConstants > 0) {
-				buildDVDInArray(cb, arrayField, index, rowArray, numValsInSet);
-				if (cb != currentConstMethod)
-				    buildDVDInArray(currentConstMethod, arrayField, index, rowArray, numValsInSet);
-			}
-			buildDVDInArray(nonConstantMethod, arrayField, index, rowArray, numValsInSet);
+			if (numNonConstants > 0)
+				buildDVDInArray(nonConstantMethod, arrayField, index, rowArray, numValsInSet);
+			else
+				buildDVDInArray(currentConstMethod, arrayField, index, rowArray, numValsInSet);
 		}
 
 		//if a generated function was created to reduce the size of the methods close the functions.
