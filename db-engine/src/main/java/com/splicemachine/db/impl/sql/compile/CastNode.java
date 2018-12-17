@@ -1133,6 +1133,11 @@ public class CastNode extends ValueNode
 	public int getTableNumber() {
 		return castOperand.getTableNumber();
 	}
+
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		return castOperand.isConstantOrParameterTreeNode();
+	}
 }
 
 
