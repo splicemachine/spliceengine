@@ -379,4 +379,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         }};
     }
 
+    public boolean isConstantOrParameterTreeNode() {
+        if (leftOperand != null && !leftOperand.isConstantOrParameterTreeNode())
+            return false;
+
+        if (rightOperandList != null && !rightOperandList.containsOnlyConstantAndParamNodes())
+            return false;
+
+        return true;
+    }
 }

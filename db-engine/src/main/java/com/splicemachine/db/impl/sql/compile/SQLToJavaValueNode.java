@@ -527,4 +527,9 @@ public class SQLToJavaValueNode extends JavaValueNode {
 				value.setHashableJoinColumnReference(cr);
 		}
 	}
+
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		return value.isConstantOrParameterTreeNode();
+	}
 }

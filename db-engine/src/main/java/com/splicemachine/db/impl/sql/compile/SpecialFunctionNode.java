@@ -304,4 +304,9 @@ public class SpecialFunctionNode extends ValueNode
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         return 1;
     }
+
+    @Override
+	public boolean isConstantOrParameterTreeNode() {
+		return true;
+	}
 }

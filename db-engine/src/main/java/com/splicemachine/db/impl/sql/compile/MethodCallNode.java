@@ -1315,4 +1315,12 @@ abstract class MethodCallNode extends JavaValueNode
         }
 	}
 
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		for (JavaValueNode methodParm : methodParms) {
+			if (!methodParm.isConstantOrParameterTreeNode())
+				return false;
+		}
+		return true;
+	}
 }

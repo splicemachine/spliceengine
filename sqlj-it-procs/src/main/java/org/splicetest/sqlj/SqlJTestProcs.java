@@ -177,4 +177,10 @@ public class SqlJTestProcs {
 		}
 		return truncatedString;
 	}
+
+	// a simple udf function
+	public static int MySum(int a, int b) {
+		return a+b;
+	}
+
 }

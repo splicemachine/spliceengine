@@ -453,4 +453,9 @@ public class CoalesceFunctionNode extends ValueNode
 		return c;
 	}
 
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+    	return argumentsList.containsOnlyConstantAndParamNodes();
+	}
+
 }

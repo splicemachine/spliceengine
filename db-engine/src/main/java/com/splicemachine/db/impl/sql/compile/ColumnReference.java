@@ -1487,6 +1487,9 @@ public class ColumnReference extends ValueNode {
 		return getSourceResultColumn();
 	}
 
-
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		return false;
+	}
 
 }

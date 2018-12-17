@@ -302,4 +302,8 @@ public abstract class ConstantNode extends ValueNode
 		return 1;
 	}
 
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		return true;
+	}
 }

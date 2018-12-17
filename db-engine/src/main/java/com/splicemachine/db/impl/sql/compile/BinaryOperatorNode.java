@@ -951,5 +951,10 @@ public class BinaryOperatorNode extends OperatorNode
 		else return l;
 	}
 
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		return leftOperand.isConstantOrParameterTreeNode() && rightOperand.isConstantOrParameterTreeNode();
+	}
+
 }
 

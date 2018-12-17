@@ -826,4 +826,8 @@ public class UnaryOperatorNode extends OperatorNode
 			operand.setHashableJoinColumnReference(cr);
 	}
 
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+    	return operand.isConstantOrParameterTreeNode();
+	}
 }

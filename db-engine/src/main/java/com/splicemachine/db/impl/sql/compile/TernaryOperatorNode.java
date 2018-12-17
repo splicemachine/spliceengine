@@ -1149,4 +1149,17 @@ public class TernaryOperatorNode extends OperatorNode
 		else
 			receiver.setHashableJoinColumnReference(cr);
 	}
+
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		if (leftOperand != null && !leftOperand.isConstantOrParameterTreeNode())
+			return false;
+		if (rightOperand != null && !rightOperand.isConstantOrParameterTreeNode())
+			return false;
+
+		if (receiver != null && !receiver.isConstantOrParameterTreeNode())
+			return false;
+
+		return true;
+	}
 }
