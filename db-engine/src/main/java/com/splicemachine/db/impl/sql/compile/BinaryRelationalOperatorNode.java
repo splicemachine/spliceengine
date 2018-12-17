@@ -1423,7 +1423,18 @@ public class BinaryRelationalOperatorNode
                 return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
             }
         } else if (leftOperand instanceof ColumnReference && rightOperand instanceof ParameterNode) {
-            return ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
+            // it is possible that this is a special case that actually represents an inlist condition, then it is better to facter in the
+            // number of inlist elements in the selectivity estimation
+            int factor = 1;
+            if (inListProbeSource != null) {
+                factor = inListProbeSource.getRightOperandList().size();
+            }
+            double sel = factor * ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
+            // avoid the estimation to go over 1, in case it happens, round down to 0.9 to be consistent with the logic in
+            // InListSelectivity.getSelectivity()
+            if (sel > 1.0d)
+                sel = 0.9d;;
+            return sel;
         } else if (rightOperand instanceof ColumnReference && leftOperand instanceof ParameterNode) {
             return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
         }

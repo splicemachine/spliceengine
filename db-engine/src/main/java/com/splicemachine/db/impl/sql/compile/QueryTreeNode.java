@@ -1937,4 +1937,8 @@ public abstract class QueryTreeNode implements Node, Visitable{
             }
         }
     }
+
+    public boolean isConstantOrParameterTreeNode() {
+        return false;
+    }
 }

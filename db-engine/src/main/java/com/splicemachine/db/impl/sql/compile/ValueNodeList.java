@@ -448,13 +448,11 @@ public class ValueNodeList extends QueryTreeNodeVector
 		for (int index = 0; index < size; index++)
 		{
 			ValueNode vNode = (ValueNode)elementAt(index);
-			if (!vNode.requiresTypeFromContext() &&
-			    !(vNode instanceof ConstantNode))
+			if (!vNode.isConstantOrParameterTreeNode())
 			{
 				return false;
 			}
 		}
-
 		return true;
 	}
 

@@ -23,10 +23,7 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -203,6 +200,53 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
             spliceClassWatcher.executeUpdate(format("insert into t4 select a4, b4+%d, c4, d4 from t4", increment));
             increment *= 2;
         }
+
+        new TableCreator(conn)
+                .withCreate("create table t5 (a5 varchar(10), b5 int, c5 date, primary key(a5, b5,c5))")
+                .withIndex("create index idx_t5 on t5(c5)")
+                .withInsert("insert into t5 values (?,?,?)")
+                .withRows(rows(
+                        row("abcde", 1, "2018-12-01"),
+                        row("abcde", 1, "2018-12-02"),
+                        row("abcde", 1, "2018-12-03"),
+                        row("abcde", 1, "2018-12-04"),
+                        row("abcde", 1, "2018-12-05"),
+                        row("abcde", 2, "2018-12-01"),
+                        row("abcde", 2, "2018-12-02"),
+                        row("abcde", 2, "2018-12-03"),
+                        row("abcde", 2, "2018-12-04"),
+                        row("abcde", 2, "2018-12-05"),
+                        row("hijkl", 1, "2018-12-01"),
+                        row("hijkl", 1, "2018-12-02"),
+                        row("hijkl", 1, "2018-12-03"),
+                        row("hijkl", 1, "2018-12-04"),
+                        row("hijkl", 1, "2018-12-05"),
+                        row("hijkl", 2, "2018-12-01"),
+                        row("hijkl", 2, "2018-12-02"),
+                        row("hijkl", 2, "2018-12-03"),
+                        row("hijkl", 2, "2018-12-04"),
+                        row("hijkl", 2, "2018-12-05"),
+                        row("opqrs", 1, "2018-12-01"),
+                        row("opqrs", 1, "2018-12-02"),
+                        row("opqrs", 1, "2018-12-03"),
+                        row("opqrs", 1, "2018-12-04"),
+                        row("opqrs", 1, "2018-12-05"),
+                        row("opqrs", 2, "2018-12-01"),
+                        row("opqrs", 2, "2018-12-02"),
+                        row("opqrs", 2, "2018-12-03"),
+                        row("opqrs", 2, "2018-12-04"),
+                        row("opqrs", 2, "2018-12-05"),
+                        row("splice", 1, "2018-12-01"),
+                        row("splice", 1, "2018-12-02"),
+                        row("splice", 1, "2018-12-03"),
+                        row("splice", 1, "2018-12-04"),
+                        row("splice", 1, "2018-12-05"),
+                        row("splice", 2, "2018-12-01"),
+                        row("splice", 2, "2018-12-02"),
+                        row("splice", 2, "2018-12-03"),
+                        row("splice", 2, "2018-12-04"),
+                        row("splice", 2, "2018-12-05")))
+                .create();
     }
 
     @BeforeClass
@@ -838,15 +882,13 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
     }
 
-
-    // negative test case, multi-probe scan is not qualified
-    // min/max value in the inlist can still be used as the start/stop key
+    // With DB-7482, we now allow inlist with constant expression for multi-probe scan
     @Test
     public void testInListWithExpressionsOnPK() throws Exception {
         //Q1: non-parameterized sql with inlist condition only
         String sqlText = "select * from t4 --splice-properties useSpark=false\n where a4 in (add_months('2014-01-03',12), add_months('2014-12-05',1))";
 
-        rowContainsQuery(4, "explain " + sqlText, "TableScan", methodWatcher);
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
 
         String expected1 =
                 "A4     |B4 |C4  | D4  |\n" +
@@ -893,14 +935,35 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-        // Q2: non-parameterized sql with multiple conditions on PK
-        rowContainsQuery(4, "explain " + sqlText, "TableScan", methodWatcher);
-
-        sqlText = "select * from t4 --splice-properties useSpark=false\n where a4=add_months('2014-01-03',12) and b4 in (1+2, 11+2)";
+        // Q2-1: non-parameterized sql with multiple conditions on PK
         String expected2 = "A4     |B4 |C4 |D4  |\n" +
                 "-------------------------\n" +
                 "2015-01-03 |13 |30 |300 |\n" +
                 "2015-01-03 | 3 |30 |300 |";
+
+        /* disable this test for now due to intermittent wrong result tracked in DB-7778 */
+        /*
+        sqlText = "select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (1+2, 11+2)";
+
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        */
+
+        sqlText = "select * from t4 --splice-properties useSpark=true\n where a4='2015-01-03' and b4 in (1+2, 11+2)";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q2-2: negative test case, multi-probe scan is not qualified as the leading index is not
+        // equal to a known constant
+        // min/max value in the inlist can still be used as the start/stop key
+        sqlText = "select * from t4 --splice-properties useSpark=false\n where a4=add_months('2014-01-03',12) and b4 in (1+2, 11+2)";
+
+        rowContainsQuery(4, "explain " + sqlText, "TableScan", methodWatcher);
+
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
@@ -931,7 +994,27 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
         ps.close();
 
-        // Q4: prepare statement - inlist condition + other conditions
+        // Q4-1: prepare statement - inlist condition + other conditions
+        /* disable this test for now due to intermittent wrong result tracked in DB-7778 */
+        /*
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (?+2, ?+2)");
+        ps.setInt(1, 1);
+        ps.setInt(2, 11);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+        */
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=true\n where a4='2015-01-03' and b4 in (?+2, ?+2)");
+        ps.setInt(1, 1);
+        ps.setInt(2, 11);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        // Q4-2: leading index columns is equal to a constant expression but not a known constant
         ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n where a4=add_months('2014-01-03',12) and b4 in (?+2, ?+2)");
         ps.setInt(1, 1);
         ps.setInt(2, 11);
@@ -954,7 +1037,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         //Q1: non-parameterized sql with inlist condition only
         String sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4 in (add_months('2014-01-03',12), add_months('2014-12-05',1))";
 
-        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
+        rowContainsQuery(4, "explain " + sqlText, "MultiProbeIndexScan", methodWatcher);
 
         String expected1 =
                 "A4     |B4 |C4  | D4  |\n" +
@@ -1001,9 +1084,9 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-        // Q2: non-parameterized sql with multiple conditions on index
-        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
-        sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4=add_months('2014-01-03',12) and c4 in (10+20, 110+20)";
+        // Q2-1: non-parameterized sql with multiple conditions on index
+        sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4='2015-01-03' and c4 in (10+20, 110+20)";
+        rowContainsQuery(4, "explain " + sqlText, "MultiProbeIndexScan", methodWatcher);
         String expected2 = "A4     |B4 |C4 |D4  |\n" +
                 "-------------------------\n" +
                 "2015-01-03 |13 |30 |300 |\n" +
@@ -1014,6 +1097,21 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                 "2015-01-03 |53 |30 |300 |\n" +
                 "2015-01-03 |63 |30 |300 |\n" +
                 "2015-01-03 |73 |30 |300 |";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=true\n where a4='2015-01-03' and c4 in (10+20, 110+20)";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q2-2: negative test case, multi-probe scan is not qualified as the leading index is not
+        // equal to a known constant
+        // min/max value in the inlist can still be used as the start/stop key
+        sqlText = "select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4=add_months('2014-01-03',12) and c4 in (10+20, 110+20)";
+        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
+
         rs = methodWatcher.executeQuery(sqlText);
         assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
@@ -1044,7 +1142,24 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
         ps.close();
 
-        // Q4: prepare statement - inlist condition + other conditions
+        // Q4-1: prepare statement - inlist condition + other conditions
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4='2015-01-03' and c4 in (?+20, ?+20)");
+        ps.setInt(1, 10);
+        ps.setInt(2, 110);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx1, useSpark=true\n where a4='2015-01-03' and c4 in (?+20, ?+20)");
+        ps.setInt(1, 10);
+        ps.setInt(2, 110);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        // Q4-2: leading index columns is equal to a constant expression but not a known constant
         ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx1, useSpark=false\n where a4=add_months('2014-01-03',12) and c4 in (?+20, ?+20)");
         ps.setInt(1, 10);
         ps.setInt(2, 110);
@@ -1067,7 +1182,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         //Q1: non-parameterized sql with inlist condition only
         String sqlText = "select * from t4 --splice-properties index=t4_idx2, useSpark=false\n where c4 in (20+30, 50+20)";
 
-        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
+        rowContainsQuery(4, "explain " + sqlText, "MultiProbeIndexScan", methodWatcher);
 
         String expected1 =
                 "A4     |B4 |C4 |D4  |\n" +
@@ -1099,7 +1214,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
 
         // Q2: non-parameterized sql with multiple conditions on index
-        rowContainsQuery(5, "explain " + sqlText, "IndexScan", methodWatcher);
+        rowContainsQuery(4, "explain " + sqlText, "MultiProbeIndexScan", methodWatcher);
         sqlText = "select * from t4 --splice-properties index=t4_idx2, useSpark=false\n where c4=30 and b4 in (2+1, 30+3)";
         String expected2 = "A4     |B4 |C4 |D4  |\n" +
                 "-------------------------\n" +
@@ -1152,4 +1267,220 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
         ps.close();
     }
+
+    @Test
+    public void TestInListWithVariousExpressions() throws Exception {
+        // Q1: test ternaryOperator, coalesce function, sql function,
+        String sqlText = "select * from t5 where a5 in (substr('Aabcde', 2), substr('Ahijkl',2))";
+
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
+
+        String expected =
+                "A5   |B5 |    C5     |\n" +
+                        "-----------------------\n" +
+                        "abcde | 1 |2018-12-01 |\n" +
+                        "abcde | 1 |2018-12-02 |\n" +
+                        "abcde | 1 |2018-12-03 |\n" +
+                        "abcde | 1 |2018-12-04 |\n" +
+                        "abcde | 1 |2018-12-05 |\n" +
+                        "abcde | 2 |2018-12-01 |\n" +
+                        "abcde | 2 |2018-12-02 |\n" +
+                        "abcde | 2 |2018-12-03 |\n" +
+                        "abcde | 2 |2018-12-04 |\n" +
+                        "abcde | 2 |2018-12-05 |\n" +
+                        "hijkl | 1 |2018-12-01 |\n" +
+                        "hijkl | 1 |2018-12-02 |\n" +
+                        "hijkl | 1 |2018-12-03 |\n" +
+                        "hijkl | 1 |2018-12-04 |\n" +
+                        "hijkl | 1 |2018-12-05 |\n" +
+                        "hijkl | 2 |2018-12-01 |\n" +
+                        "hijkl | 2 |2018-12-02 |\n" +
+                        "hijkl | 2 |2018-12-03 |\n" +
+                        "hijkl | 2 |2018-12-04 |\n" +
+                        "hijkl | 2 |2018-12-05 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q2: test cast function, coalesce
+        sqlText = "select * from t5 where a5='abcde' and b5 in (cast('3' as integer), coalesce(1, 5))";
+
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
+
+        expected =
+                "A5   |B5 |    C5     |\n" +
+                        "-----------------------\n" +
+                        "abcde | 1 |2018-12-01 |\n" +
+                        "abcde | 1 |2018-12-02 |\n" +
+                        "abcde | 1 |2018-12-03 |\n" +
+                        "abcde | 1 |2018-12-04 |\n" +
+                        "abcde | 1 |2018-12-05 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q3: test current_user
+        sqlText = "select * from t5 where a5 in (LOWER(CURRENT_USER), LOWER('OPQRS'))";
+
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
+
+        expected =
+                "A5   |B5 |    C5     |\n" +
+                        "------------------------\n" +
+                        " opqrs | 1 |2018-12-01 |\n" +
+                        " opqrs | 1 |2018-12-02 |\n" +
+                        " opqrs | 1 |2018-12-03 |\n" +
+                        " opqrs | 1 |2018-12-04 |\n" +
+                        " opqrs | 1 |2018-12-05 |\n" +
+                        " opqrs | 2 |2018-12-01 |\n" +
+                        " opqrs | 2 |2018-12-02 |\n" +
+                        " opqrs | 2 |2018-12-03 |\n" +
+                        " opqrs | 2 |2018-12-04 |\n" +
+                        " opqrs | 2 |2018-12-05 |\n" +
+                        "splice | 1 |2018-12-01 |\n" +
+                        "splice | 1 |2018-12-02 |\n" +
+                        "splice | 1 |2018-12-03 |\n" +
+                        "splice | 1 |2018-12-04 |\n" +
+                        "splice | 1 |2018-12-05 |\n" +
+                        "splice | 2 |2018-12-01 |\n" +
+                        "splice | 2 |2018-12-02 |\n" +
+                        "splice | 2 |2018-12-03 |\n" +
+                        "splice | 2 |2018-12-04 |\n" +
+                        "splice | 2 |2018-12-05 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q4: test current_date
+        sqlText = "select * from t5 --splice-properties index=idx_t5\n where c5 in (current_date, '2018-12-04')";
+
+        rowContainsQuery(4, "explain " + sqlText, "MultiProbeIndexScan", methodWatcher);
+
+        expected =
+                "A5   |B5 |    C5     |\n" +
+                        "------------------------\n" +
+                        " abcde | 1 |2018-12-04 |\n" +
+                        " abcde | 2 |2018-12-04 |\n" +
+                        " hijkl | 1 |2018-12-04 |\n" +
+                        " hijkl | 2 |2018-12-04 |\n" +
+                        " opqrs | 1 |2018-12-04 |\n" +
+                        " opqrs | 2 |2018-12-04 |\n" +
+                        "splice | 1 |2018-12-04 |\n" +
+                        "splice | 2 |2018-12-04 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q5: case expression, binary relational operator, conditional expression
+        sqlText = "select * from t4 --splice-properties index=t4_idx2\n" +
+                "                where c4 in (case when 2>=2 and 3>4 then 40 else 50 end, 110, 90)";
+
+        rowContainsQuery(4, "explain " + sqlText, "MultiProbeIndexScan", methodWatcher);
+
+        expected =
+                "A4     |B4 |C4 |D4  |\n" +
+                        "-------------------------\n" +
+                        "2015-01-04 |19 |90 |900 |\n" +
+                        "2015-01-04 |29 |90 |900 |\n" +
+                        "2015-01-04 |39 |90 |900 |\n" +
+                        "2015-01-04 |49 |90 |900 |\n" +
+                        "2015-01-04 |59 |90 |900 |\n" +
+                        "2015-01-04 |69 |90 |900 |\n" +
+                        "2015-01-04 |79 |90 |900 |\n" +
+                        "2015-01-04 | 9 |90 |900 |\n" +
+                        "2015-01-05 |15 |50 |500 |\n" +
+                        "2015-01-05 |25 |50 |500 |\n" +
+                        "2015-01-05 |35 |50 |500 |\n" +
+                        "2015-01-05 |45 |50 |500 |\n" +
+                        "2015-01-05 | 5 |50 |500 |\n" +
+                        "2015-01-05 |55 |50 |500 |\n" +
+                        "2015-01-05 |65 |50 |500 |\n" +
+                        "2015-01-05 |75 |50 |500 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q5-2: test parameterized query
+        PreparedStatement ps = methodWatcher.prepareStatement("select * from t4 --splice-properties index=t4_idx2\n" +
+                "                where c4 in (case when ?>=2 and 3>? then ? else 50 end, 110, 90)");
+        ps.setInt(1, 2);
+        ps.setInt(2, 4);
+        ps.setInt(3, 40);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+    }
+    @Test
+    public void testInListWithUdfExpressionsOnPK() throws Exception {
+        // step 1: create user defined function and load library
+        // install jar file and set classpath
+        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
+        String JAR_FILE_SQL_NAME = CLASS_NAME + "." + "SQLJ_IT_PROCS_JAR";
+        methodWatcher.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
+        methodWatcher.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
+        try {
+            methodWatcher.execute("DROP FUNCTION SPLICE.MySum");
+        } catch (SQLSyntaxErrorException e) {
+            // the function may not exists, ignore this exception
+        }
+
+        // TEST deterministic function
+        methodWatcher.execute("CREATE FUNCTION SPLICE.MySum(\n" +
+                "                    a int,\n" +
+                "                    b int) RETURNS int\n" +
+                "LANGUAGE JAVA\n" +
+                "PARAMETER STYLE JAVA\n" +
+                "DETERMINISTIC\n" +
+                "NO SQL\n" +
+                "EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.MySum'");
+
+        String sqlText = "select * from t2 where a2 in (splice.mysum(1,2), splice.mysum(3,4), splice.mysum(2,6))";
+
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
+
+        String expected =
+                "A2 |B2 |C2 |\n" +
+                        "------------\n" +
+                        " 3 | 3 | 3 |\n" +
+                        " 7 | 7 | 2 |\n" +
+                        " 8 | 8 | 3 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Test nondeterminstic function
+        methodWatcher.execute("DROP FUNCTION SPLICE.MySum");
+
+        methodWatcher.execute("CREATE FUNCTION SPLICE.MySum(\n" +
+                "                    a int,\n" +
+                "                    b int) RETURNS int\n" +
+                "LANGUAGE JAVA\n" +
+                "PARAMETER STYLE JAVA\n" +
+                "NOT DETERMINISTIC\n" +
+                "NO SQL\n" +
+                "EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.MySum'");
+
+        sqlText = "select * from t2 where a2 in (splice.mysum(1,2), splice.mysum(3,4), splice.mysum(2,6))";
+
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // clean up the udfs
+        methodWatcher.execute("DROP FUNCTION SPLICE.MySum");
+        methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)");
+        methodWatcher.execute(format("CALL SQLJ.REMOVE_JAR('%s', 0)", JAR_FILE_SQL_NAME));
+
+    }
+
 }
