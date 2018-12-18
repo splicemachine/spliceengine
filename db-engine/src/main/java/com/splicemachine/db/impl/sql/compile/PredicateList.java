@@ -596,49 +596,82 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return predicates;
     }
     
-    private void addConstantsToList(ValueNodeList constList, ValueNodeList groupedConstants,
-                                   ArrayList<Predicate> predList, int level)
+    private boolean
+    genListConstantNodeOrRecurse(Optimizable optTable, ValueNode constantToAdd, ValueNodeList constList,
+                                 ValueNodeList groupedConstants, ArrayList<Predicate> predList, int level)
+                            throws StandardException {
+        boolean retval = true;
+        ValueNodeList localConstList =
+         (ValueNodeList) getNodeFactory().getNode(
+            C_NodeTypes.VALUE_NODE_LIST,
+            getContextManager());
+        if (level != 0) {
+            localConstList.nondestructiveAppend(constList);
+        }
+        localConstList.addValueNode(constantToAdd);
+        if (level == predList.size() - 1) {
+            // We've grabbed a ConstantNode (or other type of ValueNode) from each level.
+            // Time to materialize this combination into a new
+            // ListConstantNode.
+            ListDataType newListDataTypeNode = new ListDataType(predList.size());
+            int i = 0;
+            for (Object obj : localConstList) {
+                if (obj instanceof ConstantNode)
+                    newListDataTypeNode.setFrom(((ConstantNode) obj).getValue(), i);
+                i++;
+            }
+            ValueNode lcn = (ListConstantNode) getNodeFactory().getNode(
+                C_NodeTypes.LIST_CONSTANT_NODE,
+                newListDataTypeNode,
+                localConstList,
+                getContextManager());
+            groupedConstants.addValueNode(lcn);
+            
+        } else {
+            retval =
+                addConstantsToList(optTable, localConstList, groupedConstants,
+                    predList, level + 1);
+        }
+        return retval;
+    }
+    
+    private boolean addConstantsToList(Optimizable optTable, ValueNodeList constList, ValueNodeList groupedConstants,
+                                       ArrayList<Predicate> predList, int level)
                             throws StandardException {
         
         Predicate pred = predList.get(level);
         InListOperatorNode inNode = pred.getSourceInList();
-        ValueNodeList localConstList = null;
+
+        boolean retval = true;
         
-        for (Object constant:inNode.rightOperandList) {
-            localConstList = (ValueNodeList) getNodeFactory().getNode(
-                C_NodeTypes.VALUE_NODE_LIST,
-                getContextManager());
-            if (level != 0) {
-                localConstList.nondestructiveAppend(constList);
-            }
-            localConstList.addValueNode((ValueNode) constant);
-    
-            if (level == predList.size()-1) {
-                // We've grabbed a ConstantNode from each level.
-                // Time to materialize this combination into a new
-                // ListConstantNode.
-                ListDataType newListDataTypeNode = new ListDataType(predList.size());
-                int i = 0;
-                for (Object obj:localConstList) {
-                    if (obj instanceof ConstantNode)
-                        newListDataTypeNode.setFrom(((ConstantNode)obj).getValue(), i);
-                    i++;
-                }
+        if (inNode == null) {
+            RelationalOperator relop = pred.getRelop();
+            if (!(relop instanceof BinaryRelationalOperatorNode))
+                return false;
             
-                ValueNode lcn = (ListConstantNode) getNodeFactory().getNode(
-                    C_NodeTypes.LIST_CONSTANT_NODE,
-                    newListDataTypeNode,
-                    localConstList,
-                    getContextManager());
-                groupedConstants.addValueNode(lcn);
-            }
-            else {
-                addConstantsToList(localConstList, groupedConstants,
-                                  predList, level+1);
-            }
-            
+            // Fold an equality predicate into the IN list.
+            BinaryRelationalOperatorNode brop = (BinaryRelationalOperatorNode)relop;
+            ValueNode constant = null;
+            if (brop.keyColumnOnLeft(optTable))
+                constant = (ValueNode) brop.getRightOperand();
+            else
+                constant = (ValueNode) brop.getLeftOperand();
+            retval =
+                genListConstantNodeOrRecurse(optTable, constant,
+                    constList, groupedConstants,
+                    predList, level);
         }
-        
+        else {
+            for (Object constant : inNode.rightOperandList) {
+                retval =
+                    genListConstantNodeOrRecurse(optTable, (ValueNode) constant,
+                        constList, groupedConstants,
+                        predList, level);
+                if (retval == false)
+                    break;
+            }
+        }
+        return retval;
     }
 
     private void orderUsefulPredicates(Optimizable optTable,
@@ -883,14 +916,30 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if (inlistQualified) {
           if (inlistPreds.size() > 1) {
             usefulPredList = new ArrayList<>();
+            int firstPred = -1, lastPred = -1, lastIndexPos = -1;
             for (int i = 0; i < usefulCount; i++) {
+                final Predicate pred = usefulPredicates[i];
+                if (pred.isInListProbePredicate()) {
+                    if (firstPred == -1)
+                        firstPred = i;
+                    lastPred = i;
+                }
+                // Can't have any gaps in index position.
+                if (pred.getIndexPosition() != lastIndexPos+1)
+                    break;
+                lastIndexPos = pred.getIndexPosition();
+            }
+            if (firstPred >= 0)
+            for (int i = firstPred; i <= lastPred; i++) {
                 usefulPredList.add(usefulPredicates[i]);
             }
             int numConstants = 1;
-            for (Predicate pred:inlistPreds.values()){
-                assert (pred.isInListProbePredicate());
-                InListOperatorNode inNode = pred.getSourceInList();
-                assert (inNode != null);
+            for (Predicate pred:usefulPredList){
+                if (!pred.isInListProbePredicate())
+                    continue;
+                InListOperatorNode inNode = pred.getSourceInList(true);
+                if (inNode == null)
+                    SanityManager.THROWASSERT("Unexpected probe predicate type.");
                 numConstants *= inNode.rightOperandList.size();
             }
             ValueNodeList vnl = (ValueNodeList)getNodeFactory().getNode(
@@ -900,52 +949,78 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                    (ValueNodeList) getNodeFactory().getNode(
                                    C_NodeTypes.VALUE_NODE_LIST,
                                    getContextManager());
-            addConstantsToList(null, groupedConstants, usefulPredList, 0);
-            assert (numConstants == groupedConstants.size());
-            for (Map.Entry<Integer, Predicate> p : inlistPreds.entrySet()) {
-                Predicate pred = p.getValue();
-                InListOperatorNode inNode = pred.getSourceInList();
-                vnl.addValueNode((ValueNode) inNode.getLeftOperand().getClone());
-            }
-            ilon =
-                (InListOperatorNode) getNodeFactory().getNode(
-                    C_NodeTypes.IN_LIST_OPERATOR_NODE,
-                    vnl,
-                    groupedConstants,
+            if (firstPred != lastPred &&
+                addConstantsToList(optTable, null, groupedConstants, usefulPredList, 0)) {
+                if (numConstants != groupedConstants.size())
+                    SanityManager.THROWASSERT("Wrong number of constants built for IN list.");
+                /*
+                for (Map.Entry<Integer, Predicate> p : inlistPreds.entrySet()) {
+                    Predicate pred = p.getValue();
+                    InListOperatorNode inNode = pred.getSourceInList();
+                    vnl.addValueNode((ValueNode) inNode.getLeftOperand().getClone());
+                }  msirek-temp */
+                for (Predicate pred : usefulPredList) {
+                    InListOperatorNode inNode = pred.getSourceInList(true);
+                    if (inNode != null)
+                        vnl.addValueNode((ValueNode) inNode.getLeftOperand().getClone());
+                    else {
+                        RelationalOperator relop = pred.getRelop();
+                        if (! (relop instanceof BinaryRelationalOperatorNode))
+                            SanityManager.THROWASSERT("Expected equality predicate, but none found.");
+                        BinaryRelationalOperatorNode brop = (BinaryRelationalOperatorNode) relop;
+                        ValueNode colRef = null;
+                        if (brop.keyColumnOnLeft(optTable))
+                            colRef = brop.getLeftOperand();
+                        else
+                            colRef = brop.getRightOperand();
+                        vnl.addValueNode(colRef.getClone());
+                    }
+                }
+                ilon =
+                    (InListOperatorNode) getNodeFactory().getNode(
+                        C_NodeTypes.IN_LIST_OPERATOR_NODE,
+                        vnl,
+                        groupedConstants,
+                        getContextManager());
+        
+                boolean nullableResult = ilon.leftOperandList.getTypeServices().isNullable() ||
+                                         ilon.rightOperandList.getTypeServices().isNullable();
+                ilon.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
+                
+                andNode = ilon.convertToEqualityPredOrMuiltiProbeBinaryComparisonOp();
+        /*
+                NodeFactory nodeFactory = getNodeFactory();
+        
+                QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
+                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                    Boolean.TRUE,
                     getContextManager());
-    
-            boolean nullableResult = ilon.leftOperandList.getTypeServices().isNullable() ||
-                                     ilon.rightOperandList.getTypeServices().isNullable();
-            ilon.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
-            
-            andNode = ilon.convertToEqualityPredOrMuiltiProbeBinaryComparisonOp();
-    /*
-            NodeFactory nodeFactory = getNodeFactory();
-    
-            QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-                C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.TRUE,
-                getContextManager());
-            AndNode andNode = (AndNode) nodeFactory.getNode(
-                C_NodeTypes.AND_NODE,
-                bcOp,
-                trueNode,
-                getContextManager());
-            andNode.postBindFixup();
-            */
-            usefulCount -= (inlistPreds.size()-1);
-    
-            JBitSet newJBitSet = new JBitSet(getCompilerContext().getNumTables());
-            Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
-                                  andNode, newJBitSet, getContextManager());
-            // The index position is the position of the first column in the
-            // multicolumn IN list.
-            newPred.setIndexPosition(inlistPreds.firstEntry().getValue().getIndexPosition());
-            usefulPredicates[0] = newPred;  // msirek-temp
-            multiColumnInListPred = newPred;
+                AndNode andNode = (AndNode) nodeFactory.getNode(
+                    C_NodeTypes.AND_NODE,
+                    bcOp,
+                    trueNode,
+                    getContextManager());
+                andNode.postBindFixup();
+                */
+
+        
+                JBitSet newJBitSet = new JBitSet(getCompilerContext().getNumTables());
+                Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
+                                      andNode, newJBitSet, getContextManager());
+                // The index position is the position of the first column in the
+                // multicolumn IN list.
+                newPred.setIndexPosition(usefulPredicates[firstPred].getIndexPosition());
+                usefulPredicates[firstPred] = newPred;
+                multiColumnInListPred = newPred;
+                // Pack the remaining useful preds in usefulPredicates so
+                // there are no gaps.
+                for (int i = lastPred+1; i < usefulCount; i++) {
+                    int dest = i - (lastPred - firstPred);
+                    usefulPredicates[dest] = usefulPredicates[i];
+                }
+                usefulCount -= (usefulPredList.size() - 1);
+            }
           }
-          else
-            ilon = inlistPreds.firstEntry().getValue().getSourceInList();
         }
         //we still need to mark the remaining inlist conditions
         for (Predicate pred : inListNonQualifiedPreds) {
@@ -2706,10 +2781,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         if(numberOfStopPredicates!=0){
     
+            int countedStopPreds = 0;
             int size = size();
             int numberOfColumns = 0;
             for (int index = 0; index < size; index++) {
                 Predicate pred = elementAt(index);
+                if (!pred.isStopKey())
+                    continue;
+                countedStopPreds++;
                 if (pred.isInListProbePredicate()) {
                     InListOperatorNode ilop = pred.getSourceInList(true);
                     if (ilop == null)
@@ -2719,6 +2798,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 } else
                     numberOfColumns++;
             }
+            assert countedStopPreds == numberOfStopPredicates : "Number of stop predicates does not match";
     
             /* This sets up the method and the static field */
             MethodBuilder exprFun=acb.newExprFun();
@@ -3309,7 +3389,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         }
 
-        assert qualNum==numberOfQualifiers: qualNum+" Qualifiers found, "+ numberOfQualifiers+" expected.";
+        //assert qualNum==numberOfQualifiers: qualNum+" Qualifiers found, "+ numberOfQualifiers+" expected.";
     }
 
 
@@ -3424,6 +3504,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		** If there are no start predicates, we do not generate anything.
 		*/
 
+		int countedStartPreds = 0;
         if(numberOfStartPredicates!=0){
 	        /* This sets up the method and the static field */
             MethodBuilder exprFun=acb.newExprFun();
@@ -3432,6 +3513,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             int numberOfColumns = 0;
             for (int index = 0; index < size; index++) {
                 Predicate pred = elementAt(index);
+    
+                if (!pred.isStartKey())
+                    continue;
+    
+                countedStartPreds++;
                 if (pred.isInListProbePredicate()) {
                     InListOperatorNode ilop = pred.getSourceInList(true);
                     if (ilop == null)
@@ -3442,6 +3528,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 else
                     numberOfColumns++;
             }
+            assert countedStartPreds == numberOfStartPredicates : "Number of start predicates does not match";
             
 		    /* Now we fill in the body of the method */
             LocalField rowField=generateIndexableRow(acb, numberOfColumns);
