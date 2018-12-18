@@ -249,4 +249,8 @@ public final class FormatIdInputStream extends DataInputStream
 
         return(new FormatIdInputStream(new_input_stream));
     }
+
+    public InputStream getStream() {
+        return in;
+    }
 }

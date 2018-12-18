@@ -1167,7 +1167,14 @@ public class SQLChar
 
         // Read the stored length in the stream header.
         int utflen = in.readUnsignedShort();
-        readExternal(in, utflen, 0);
+        if (utflen == 0) {
+            resetForMaterialization();
+            char str[] = new char[1];
+            setRaw(str, utflen);
+        }
+        else {
+            readExternal(in, utflen, 0);
+        }
 		isNull = evaluateNull();
     }
 
@@ -1219,13 +1226,7 @@ public class SQLChar
         // Set these to null to allow GC of the array if required.
         rawData = null;
         resetForMaterialization();
-
-        // if it is a zero-length string, don't bother to read more
-        if (utflen == 0) {
-            setRaw(str, utflen);
-            return;
-        }
-
+        
         int count = 0;
         int strlen = 0;
 
