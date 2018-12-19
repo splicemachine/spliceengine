@@ -7,10 +7,10 @@
 SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )/" && pwd)
 ROOT_DIR=$(pwd)
 
-ZOOLOG="${ROOT_DIR}"/zoo_it.log
-YARNLOG="${ROOT_DIR}"/yarn_it.log
-SPLICELOG="${ROOT_DIR}"/splice_it.log
-KAFKALOG="${ROOT_DIR}"/kafka.log
+ZOOLOG="${ROOT_DIR}"/target/zoo_it.log
+YARNLOG="${ROOT_DIR}"/target/yarn_it.log
+SPLICELOG="${ROOT_DIR}"/target/splice_it.log
+KAFKALOG="${ROOT_DIR}"/target/kafka.log
 
 CHAOS="false"
 PROFILE="cdh5.6.0"  # default hbase platform profile
