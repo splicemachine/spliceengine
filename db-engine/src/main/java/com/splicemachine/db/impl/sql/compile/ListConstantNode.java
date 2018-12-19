@@ -37,30 +37,33 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.ListDataType;
 import com.splicemachine.db.iapi.types.TypeId;
 
-public final class ListConstantNode extends ConstantNode
-{
-    
-    ValueNodeList constantsList = null;
-    
-    public ValueNode getValue(int index) {
-        if (index < 0 || index > constantsList.size())
-            return null;
-        return (ValueNode) constantsList.elementAt(index);
-    }
-    
-    public int numConstants() { return constantsList.size(); }
+public final class ListConstantNode extends ConstantNode {
 	
-    @Override
+	ValueNodeList constantsList = null;
+	
+	public ValueNode getValue(int index) {
+		if (index < 0 || index > constantsList.size())
+			return null;
+		return (ValueNode) constantsList.elementAt(index);
+	}
+	
+	public int numConstants() {
+		return constantsList.size();
+	}
+	
+	@Override
 	public boolean isConstantExpression() {
 		final int listLen = constantsList.size();
-    	for (int i=0; i < listLen; i++) {
-    		if (!((ValueNode) constantsList.elementAt(i)).isConstantExpression())
-    			return false;
+		for (int i = 0; i < listLen; i++) {
+			if (!((ValueNode) constantsList.elementAt(i)).isConstantExpression())
+				return false;
 		}
 		return true;
 	}
@@ -74,58 +77,50 @@ public final class ListConstantNode extends ConstantNode
 		}
 		return true;
 	}
-
+	
 	/**
 	 * Initializer for a ListConstantNode.
 	 *
-	 * @param arg1	A ListDataType containing the values of the constant.
-	 *
-	 * @exception StandardException
+	 * @param arg1 A ListDataType containing the values of the constant.
+	 * @throws StandardException
 	 */
 	public void init(Object arg1, Object arg2)
-		throws StandardException
-	{
-		if ( arg1 == null )
-		{
-            throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT);
-		}
-		else if ( arg1 instanceof ListDataType)
-		{
+		throws StandardException {
+		if (arg1 == null) {
+			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT);
+		} else if (arg1 instanceof ListDataType) {
 			/* Fill in the type information in the parent ValueNode */
 			super.init(TypeId.BOOLEAN_ID,
 				((ListDataType) arg1).isNull(),
-			 Integer.MAX_VALUE);
-
-			super.setValue((DataValueDescriptor)arg1);
-		}
-		else
+				Integer.MAX_VALUE);
+			
+			super.setValue((DataValueDescriptor) arg1);
+		} else
 			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT);
 		
 		if (arg2 == null || !(arg2 instanceof ValueNodeList))
-            throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT);
-        
-        constantsList = (ValueNodeList)arg2;
+			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT);
+		
+		constantsList = (ValueNodeList) arg2;
 	}
- 
-
+	
+	
 	/**
 	 * Return the length
 	 *
-	 * @return	The length of the values this node represents
-	 *
-	 * @exception StandardException		Thrown on error
+	 * @throws StandardException Thrown on error
+	 * @return The length of the values this node represents
 	 */
-// msirek-temp
+	// msirek-temp
 /*	public int	getLength() throws StandardException
 	{
 
 		return value.getLength();
 	}*/
-
-
-    //
-	Object getConstantValueAsObject()
-	{
+	
+	
+	//
+	Object getConstantValueAsObject() {
 		
 		return value;  // msirek-temp:  Do we need to scan the ListDataType to make sure all values are known?
 	}
@@ -133,10 +128,10 @@ public final class ListConstantNode extends ConstantNode
 	// Push a ListDataType DVD on the stack.
 	@Override
 	public void generateExpression
-		(
-			ExpressionClassBuilder acb,
-			MethodBuilder mb
-		) throws StandardException {
+	(
+		ExpressionClassBuilder acb,
+		MethodBuilder mb
+	) throws StandardException {
 		/* Are we generating a SQL null value? */
 		if (isNull()) {
 			acb.generateNull(mb, getTypeCompiler(),
@@ -156,53 +151,49 @@ public final class ListConstantNode extends ConstantNode
 					(String) null,
 					"setFrom",
 					"void", 2);
-				 
+				
 			}
 			mb.getField(dvdField);
 			mb.upCast(ClassName.DataValueDescriptor);
 		}
 	}
 	
-
+	
 	/**
 	 * Return the value as a string.
 	 *
 	 * @return The value as a string.
-	 *
 	 */
-	String getValueAsString()
-	{
+	String getValueAsString() {
 		return value.toString();
 	}
-
-
-    @Override
+	
+	
+	@Override
 	public double selectivity(Optimizable optTable) {
-    	double sel = 0;
-    	try {
-            sel = value.getLength() * .0001;
-        }
-        catch (Exception e) {
-    	    sel = .001;
-        }
-    	if (sel > .2)
-    		sel = .2;
-    	if (sel < .001)
-    		sel = .001;
+		double sel = 0;
+		try {
+			sel = value.getLength() * .0001;
+		} catch (Exception e) {
+			sel = .001;
+		}
+		if (sel > .2)
+			sel = .2;
+		if (sel < .001)
+			sel = .001;
 		return sel;  // msirek-temp   Find a better formula.
 	}
-
- 
+	
+	
 	// We don't expect generateConstant to be called, because there is no
 	// actual constant value associated with a ListDataType.  It is just
 	// a logical grouping.  Instead, we override generateExpression which
 	// calls generateConstant on all of the constants in the set.
-	void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
-	{
+	void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb) {
 	}
-
 	
-	public int hashCode(){
+	
+	public int hashCode() {
 		final int prime = 37;
 		int result = 17;
 		
@@ -211,9 +202,76 @@ public final class ListConstantNode extends ConstantNode
 		}
 		return result;
 	}
-
-    @Override
-    public String toHTMLString() {
-        return "value: " + getValueAsString() + "<br>" + super.toHTMLString();
-    }
+	
+	@Override
+	public String toHTMLString() {
+		return "value: " + getValueAsString() + "<br>" + super.toHTMLString();
+	}
+	
+	
+	/**
+	 * Accept the visitor for all visitable children of this node.
+	 *
+	 * @param v the visitor
+	 */
+	@Override
+	public void acceptChildren(Visitor v) throws StandardException {
+		super.acceptChildren(v);
+		
+		if (constantsList != null) {
+			constantsList = (ValueNodeList)constantsList.accept(v, this);
+		}
+	}
+	
+	@Override
+	protected boolean isEquivalent(ValueNode o) throws StandardException {
+		if (isSameNodeType(o)) {
+			ListConstantNode other = (ListConstantNode) o;
+			
+			if (constantsList == other.constantsList)
+				return true;
+			
+			if (constantsList.size() != other.constantsList.size())
+				return false;
+			
+			for (int i = 0; i < constantsList.size(); i++) {
+				if (!((ValueNode) constantsList.elementAt(i)).
+					isEquivalent((ValueNode) other.constantsList.elementAt(i)))
+					return false;
+			}
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
+	 * how tree printing is supposed to work.
+	 *
+	 * @param depth The depth of this node in the tree
+	 */
+	
+	public void printSubNodes(int depth) {
+		if (SanityManager.DEBUG) {
+			super.printSubNodes(depth);
+			
+			if (constantsList != null) {
+				printLabel(depth, "Constants list: ");
+				constantsList.treePrint(depth + 1);
+			}
+		}
+	}
+	
+	/**
+	 * Remap all ColumnReferences in this tree to be clones of the
+	 * underlying expression.
+	 *
+	 * @return ValueNode            The remapped expression tree.
+	 * @throws StandardException Thrown on error
+	 */
+	public ValueNode remapColumnReferencesToExpressions()
+		throws StandardException {
+		constantsList = constantsList.remapColumnReferencesToExpressions();
+		return this;
+	}
 }

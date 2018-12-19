@@ -1240,7 +1240,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * otherwise returns 1.
      */
     protected int numColumnsInPred () throws StandardException {
-        InListOperatorNode ilon = getSourceInList(true);
+        InListOperatorNode ilon = getSourceInList();
         return (ilon == null) ? 1 : ilon.leftOperandList.size();
     }
 
@@ -1348,5 +1348,28 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                         andNode,
                         newJBitSet,
                         cm);
+    }
+    
+
+    public boolean matchesSingleValue() throws StandardException {
+        RelationalOperator relop = getRelop();
+        if (relop == null)
+            return false;
+    
+        if (!isRelationalOpPredicate())
+            return false;
+    
+        if (!(relop.getOperator() == RelationalOperator.EQUALS_RELOP ||
+              relop.getOperator() == RelationalOperator.IS_NULL_RELOP))
+            return false;
+        
+        if (getSourceInList() != null) {
+            if (isInListProbePredicate())
+                return true;
+            else
+                return false;
+        }
+        
+        return true;
     }
 }

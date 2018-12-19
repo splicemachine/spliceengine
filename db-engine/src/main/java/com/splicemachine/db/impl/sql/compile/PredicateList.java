@@ -687,7 +687,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         int usefulCount=0;
         Predicate predicate;
         boolean rowIdScan;
-        boolean[] isEquality = new boolean[size];
 
         if(cd!=null && !cd.isIndex() && !cd.isConstraint()){
             List<ConglomerateDescriptor> cdl=optTable.getTableDescriptor().getConglomerateDescriptorList();
@@ -809,7 +808,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		 * to generate a hash join.
 		 */
         boolean skipProbePreds=pushPreds && optTable.getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin();
-
+        boolean[] isEquality =
+            new boolean[baseColumnPositions != null ?
+                        (size > baseColumnPositions.length ? size : baseColumnPositions.length) :size];
 		/*
 		** Create an array of useful predicates.  Also, count how many
 		** useful predicates there are.
@@ -825,7 +826,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(position!=null){
                 if (pred.isInListProbePredicate()) {
                     inlistPreds.put(position, pred);
-                    isEquality[position] = true;
+                    if (position >= 0)
+                        isEquality[position] = true;
                     //we keep track of the inlist at highest index position excluding rowid whose position is -1
                     if (inlistPosition == -2 || inlistPosition < position) {
                         inlistPosition = position;
@@ -2830,8 +2832,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
                 if (forLim > 1)
                     pred.setAndNode(origAndNode);
-
-                colNum++;
             }
 
             assert colNum==numberOfColumns: "Number of stop predicates does not match";

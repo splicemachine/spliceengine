@@ -59,6 +59,11 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 {
 	private boolean isOrdered;
 	private boolean sortDescending;
+	
+	// Does the right operand list have all constant expressions,
+	// ie. constants, parameters, UDFs or expressions with no column references,
+	// no scalar subqueries?
+	private boolean inListAllConstantExpressions;
 
 	/**
 	 * Initializer for a InListOperatorNode
@@ -70,6 +75,11 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	public void init(Object leftOperand, Object rightOperandList) throws StandardException
 	{
 		init(leftOperand, rightOperandList, "IN", "in");
+		
+		FindNonConstantsVisitor nonConstantsVisitor = new FindNonConstantsVisitor();
+		
+		this.rightOperandList.accept(nonConstantsVisitor);
+		inListAllConstantExpressions = !nonConstantsVisitor.getNonConstantsFound();
 	}
 
 	/**
@@ -112,7 +122,10 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
 		if (sortDescending)
 			ilon.markSortDescending();
-
+		
+		if (inListAllConstantExpressions)
+		    ilon.markInListAllConstantExpressions();
+		
 		return ilon;
 	}
 
@@ -170,7 +183,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			return equal;
 		}
 		else if (allLeftOperandsColumnReferences() &&
-				 rightOperandList.containsOnlyConstantAndParamNodes())
+			     rightSideOfInListHasAllConstantExpressions())
 		{
 			/* At this point we have an IN-list made up of constant and/or
 			 * parameter values.  Ex.:
@@ -949,7 +962,15 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             }
         }
 	}
-
+	
+	protected void markInListAllConstantExpressions() {
+		inListAllConstantExpressions = true;
+	}
+	
+	protected boolean rightSideOfInListHasAllConstantExpressions() {
+		return inListAllConstantExpressions;
+	}
+	
 	/**
 	 * Indicate that the IN-list values for this node are ordered (i.e. they
 	 * are all constants and they have been sorted).
