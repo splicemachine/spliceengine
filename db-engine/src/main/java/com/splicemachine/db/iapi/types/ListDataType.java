@@ -26,7 +26,7 @@
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
  * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
- * and are licensed t∫o you under the GNU Affero General Public License.
+ * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.iapi.types;

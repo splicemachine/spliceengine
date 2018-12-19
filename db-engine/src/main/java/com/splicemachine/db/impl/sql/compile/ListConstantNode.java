@@ -103,27 +103,7 @@ public final class ListConstantNode extends ConstantNode {
 		
 		constantsList = (ValueNodeList) arg2;
 	}
-	
-	
-	/**
-	 * Return the length
-	 *
-	 * @throws StandardException Thrown on error
-	 * @return The length of the values this node represents
-	 */
-	// msirek-temp
-/*	public int	getLength() throws StandardException
-	{
 
-		return value.getLength();
-	}*/
-	
-	
-	//
-	Object getConstantValueAsObject() {
-		
-		return value;  // msirek-temp:  Do we need to scan the ListDataType to make sure all values are known?
-	}
 	
 	// Push a ListDataType DVD on the stack.
 	@Override
@@ -181,7 +161,7 @@ public final class ListConstantNode extends ConstantNode {
 			sel = .2;
 		if (sel < .001)
 			sel = .001;
-		return sel;  // msirek-temp   Find a better formula.
+		return sel;  // TODO   Find a better formula for selectivity.
 	}
 	
 	

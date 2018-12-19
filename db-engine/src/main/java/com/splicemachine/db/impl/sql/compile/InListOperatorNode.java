@@ -826,15 +826,17 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     // Store the row in the ExecRow array.
                     cb.setArrayElement(index);
     
-                    // Push the DVD array reference on the stack
-                    cb.getField(arrayField);
-                    
-                    // Build a new ListDataType, and place on the stack.
-                    PredicateList.generateListDataOnStack(acb, numValsInSet);
-                    cb.upCast(ClassName.DataValueDescriptor);
-    
-                    // Store the list data in the DVD array.
-                    cb.setArrayElement(index);
+                    if (numValsInSet > 1) {
+						// Push the DVD array reference on the stack
+						cb.getField(arrayField);
+	
+						// Build a new ListDataType, and place on the stack.
+						PredicateList.generateListDataOnStack(acb, numValsInSet);
+						cb.upCast(ClassName.DataValueDescriptor);
+	
+						// Store the list data in the DVD array.
+						cb.setArrayElement(index);
+					}
     
                 }
 

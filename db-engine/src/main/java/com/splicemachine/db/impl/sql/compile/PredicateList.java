@@ -816,8 +816,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		** useful predicates there are.
 		*/
 		Integer inlistPosition = -2;
-		Predicate inlistPred = null;
-		// List<Predicate> inlistPreds = new ArrayList<>(); msirek-temp
+
         TreeMap<Integer, Predicate> inlistPreds = new TreeMap<>();
         List<Predicate> predicates=new ArrayList<>();
         for(int index=0;index<size;index++){
@@ -831,7 +830,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     //we keep track of the inlist at highest index position excluding rowid whose position is -1
                     if (inlistPosition == -2 || inlistPosition < position) {
                         inlistPosition = position;
-                        inlistPred = pred;
                     }
                 } else {
                     pred.setIndexPosition(position);
@@ -955,12 +953,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 addConstantsToList(optTable, null, groupedConstants, usefulPredList, 0)) {
                 if (numConstants != groupedConstants.size())
                     SanityManager.THROWASSERT("Wrong number of constants built for IN list.");
-                /*
-                for (Map.Entry<Integer, Predicate> p : inlistPreds.entrySet()) {
-                    Predicate pred = p.getValue();
-                    InListOperatorNode inNode = pred.getSourceInList();
-                    vnl.addValueNode((ValueNode) inNode.getLeftOperand().getClone());
-                }  msirek-temp */
+
                 for (Predicate pred : usefulPredList) {
                     InListOperatorNode inNode = pred.getSourceInList(true);
                     if (inNode != null)
@@ -990,30 +983,17 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 ilon.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
                 
                 andNode = ilon.convertToEqualityPredOrMuiltiProbeBinaryComparisonOp();
-        /*
-                NodeFactory nodeFactory = getNodeFactory();
-        
-                QueryTreeNode trueNode = (QueryTreeNode) nodeFactory.getNode(
-                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                    Boolean.TRUE,
-                    getContextManager());
-                AndNode andNode = (AndNode) nodeFactory.getNode(
-                    C_NodeTypes.AND_NODE,
-                    bcOp,
-                    trueNode,
-                    getContextManager());
-                andNode.postBindFixup();
-                */
 
-        
                 JBitSet newJBitSet = new JBitSet(getCompilerContext().getNumTables());
                 Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
                                       andNode, newJBitSet, getContextManager());
+                
                 // The index position is the position of the first column in the
                 // multicolumn IN list.
                 newPred.setIndexPosition(usefulPredicates[firstPred].getIndexPosition());
                 usefulPredicates[firstPred] = newPred;
                 multiColumnInListPred = newPred;
+                
                 // Pack the remaining useful preds in usefulPredicates so
                 // there are no gaps.
                 for (int i = lastPred+1; i < usefulCount; i++) {
@@ -1022,8 +1002,36 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
                 usefulCount -= (usefulPredList.size() - 1);
             }
+            else {
+                // At this point, we found only the first IN list predicate
+                // to be useful.  Put the rest into inListNonQualifiedPreds
+                // so they may be possibly pushed as qualifiers.
+                boolean copyNeeded = false;
+                int oldUsefulCount = usefulCount;
+                for (int i = firstPred+1; i < oldUsefulCount; i++) {
+                    final Predicate pred = usefulPredicates[i];
+                    if (pred.isInListProbePredicate()) {
+                        inListNonQualifiedPreds.add(pred);
+                        usefulPredicates[i] = null;
+                        copyNeeded = true;
+                        usefulCount--;
+                    }
+                }
+                if (copyNeeded) {
+                    Predicate [] newUsefulPredicates = new Predicate[usefulCount];
+                    int j = 0;
+                    for (int i = 0; i < oldUsefulCount; i++) {
+                        final Predicate pred = usefulPredicates[i];
+                        if (pred != null) {
+                            newUsefulPredicates[j++] = pred;
+                        }
+                    }
+                    usefulPredicates = newUsefulPredicates;
+                }
+            }
           }
         }
+
         //we still need to mark the remaining inlist conditions
         for (Predicate pred : inListNonQualifiedPreds) {
             if (!inlistQualified || pred.getIndexPosition() < 0) {
@@ -1197,7 +1205,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 					/* If we get here for an IN-list probe pred then we know
 					 * that we are *not* using the probe predicate as a
 					 * start/stop key.  We also know that we're in the middle
-					 * of modifying access paths (becaus∫e pushPreds is true),
+					 * of modifying access paths (because pushPreds is true),
 					 * which means we are preparing to generate code.  Those
 					 * two facts together mean we have to "revert" the
 					 * probe predicate back to its original state so that
@@ -3032,24 +3040,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			       * list.  Remove it now.
 			       */
             removeOptPredicate(pred);
-
-			/* This list is a store restriction list for a specific base
-			 * table, and we can only have one probe predicate per base
-			 * table (any others, if any, will be "reverted" back to
-			 * their original InListOperatorNodes and generated as
-			 * qualifiers). So make sure there are no other probe preds
-			 * in this list.
-			 */
-			/* msirek-temp->
-            if(SanityManager.DEBUG){
-                for(int i=0;i<index;i++){
-                    if(elementAt(i).isInListProbePredicate()){
-                        SanityManager.THROWASSERT("Found multiple probe "+
-                                "predicates for IN-list when only one was "+
-                                "expected.");
-                    }
-                }
-            } */
 
             InListOperatorNode ilon=pred.getSourceInList();
             /* create a new method to get the probeValues*/
