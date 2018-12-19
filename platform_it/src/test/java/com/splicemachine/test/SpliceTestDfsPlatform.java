@@ -89,9 +89,6 @@ public class SpliceTestDfsPlatform {
             dfsCluster = new MiniDFSCluster.Builder(conf).clusterId("localDfs").format(true).numDataNodes(nodeCount).nameNodePort(58878).build();
 
             dfsCluster.waitActive();
-
-            System.out.println("liprais" + dfsCluster.getHttpUri(0));
-
             conf = dfsCluster.getConfiguration(0);
             ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
             conf.writeXml(bytesOut);
