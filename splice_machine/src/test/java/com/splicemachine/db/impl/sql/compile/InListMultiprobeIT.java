@@ -935,31 +935,13 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected1, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-        // Q2-1: non-parameterized sql with multiple conditions on PK
+        // Q2-2: negative test case, multi-probe scan is not qualified as the leading index is not
+        // equal to a known constant
+        // min/max value in the inlist can still be used as the start/stop key
         String expected2 = "A4     |B4 |C4 |D4  |\n" +
                 "-------------------------\n" +
                 "2015-01-03 |13 |30 |300 |\n" +
                 "2015-01-03 | 3 |30 |300 |";
-
-        /* disable this test for now due to intermittent wrong result tracked in DB-7778 */
-        /*
-        sqlText = "select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (1+2, 11+2)";
-
-        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
-
-        rs = methodWatcher.executeQuery(sqlText);
-        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
-        */
-
-        sqlText = "select * from t4 --splice-properties useSpark=true\n where a4='2015-01-03' and b4 in (1+2, 11+2)";
-        rs = methodWatcher.executeQuery(sqlText);
-        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
-
-        // Q2-2: negative test case, multi-probe scan is not qualified as the leading index is not
-        // equal to a known constant
-        // min/max value in the inlist can still be used as the start/stop key
         sqlText = "select * from t4 --splice-properties useSpark=false\n where a4=add_months('2014-01-03',12) and b4 in (1+2, 11+2)";
 
         rowContainsQuery(4, "explain " + sqlText, "TableScan", methodWatcher);
@@ -994,26 +976,6 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
         ps.close();
 
-        // Q4-1: prepare statement - inlist condition + other conditions
-        /* disable this test for now due to intermittent wrong result tracked in DB-7778 */
-        /*
-        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (?+2, ?+2)");
-        ps.setInt(1, 1);
-        ps.setInt(2, 11);
-        rs = ps.executeQuery();
-        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
-        ps.close();
-        */
-
-        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=true\n where a4='2015-01-03' and b4 in (?+2, ?+2)");
-        ps.setInt(1, 1);
-        ps.setInt(2, 11);
-        rs = ps.executeQuery();
-        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
-        ps.close();
-
         // Q4-2: leading index columns is equal to a constant expression but not a known constant
         ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n where a4=add_months('2014-01-03',12) and b4 in (?+2, ?+2)");
         ps.setInt(1, 1);
@@ -1024,6 +986,48 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         ps.close();
 
         ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=true\n where a4=add_months('2014-01-03',12) and b4 in (?+2, ?+2)");
+        ps.setInt(1, 1);
+        ps.setInt(2, 11);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+    }
+
+    @Ignore("DB-7778")
+    @Test
+    public void testInListWithExpressionsOnPK2() throws Exception {
+        // Q2-1: non-parameterized sql with multiple conditions on PK
+        String expected2 = "A4     |B4 |C4 |D4  |\n" +
+                "-------------------------\n" +
+                "2015-01-03 |13 |30 |300 |\n" +
+                "2015-01-03 | 3 |30 |300 |";
+
+        String sqlText = "select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (1+2, 11+2)";
+
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+
+        sqlText = "select * from t4 --splice-properties useSpark=true\n where a4='2015-01-03' and b4 in (1+2, 11+2)";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q4-1: prepare statement - inlist condition + other conditions
+        /* disable this test for now due to intermittent wrong result tracked in DB-7778 */
+        PreparedStatement ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (?+2, ?+2)");
+        ps.setInt(1, 1);
+        ps.setInt(2, 11);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=true\n where a4='2015-01-03' and b4 in (?+2, ?+2)");
         ps.setInt(1, 1);
         ps.setInt(2, 11);
         rs = ps.executeQuery();
