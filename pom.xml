@@ -1191,11 +1191,12 @@
                 <hbase.version>1.2.0-cdh5.13.0</hbase.version>
                 <hive.version>1.1.0-cdh5.13.0</hive.version>
                 <zookeeper.version>3.4.5-cdh5.13.0</zookeeper.version>
-                <spark.major.version>spark2.2</spark.major.version>
-                <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.major.version>spark2.3</spark.major.version>
+                <spark.version>2.3.0.cloudera3</spark.version>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-                <parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>orc-cds-2.3</parquet.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1254,13 +1255,12 @@
                 <hadoop.version>2.6.0-cdh5.13.3</hadoop.version>
                 <hbase.version>1.2.0-cdh5.13.3</hbase.version>
                 <hive.version>1.1.0-cdh5.13.3</hive.version>
-                <spark.major.version>spark2.3</spark.major.version>
+                <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.13.3</zookeeper.version>
-                <spark.version>2.3.0.cloudera3</spark.version>
+                <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-                <parquet.version>orc-cds-2.3</parquet.version>
-                <netty-all.version>4.1.17.Final</netty-all.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
