@@ -597,7 +597,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     }
     
     private boolean
-    genListConstantNodeOrRecurse(Optimizable optTable, ValueNode constantToAdd, ValueNodeList constList,
+    genListValueNodeOrRecurse(Optimizable optTable, ValueNode constantToAdd, ValueNodeList constList,
                                  ValueNodeList groupedConstants, ArrayList<Predicate> predList, int level)
                             throws StandardException {
         boolean retval = true;
@@ -612,17 +612,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if (level == predList.size() - 1) {
             // We've grabbed a ConstantNode (or other type of ValueNode) from each level.
             // Time to materialize this combination into a new
-            // ListConstantNode.
-            ListDataType newListDataTypeNode = new ListDataType(predList.size());
-            int i = 0;
-            for (Object obj : localConstList) {
-                if (obj instanceof ConstantNode)
-                    newListDataTypeNode.setFrom(((ConstantNode) obj).getValue(), i);
-                i++;
-            }
-            ValueNode lcn = (ListConstantNode) getNodeFactory().getNode(
-                C_NodeTypes.LIST_CONSTANT_NODE,
-                newListDataTypeNode,
+            // ListValueNode.
+            ValueNode lcn = (ListValueNode) getNodeFactory().getNode(
+                C_NodeTypes.LIST_VALUE_NODE,
                 localConstList,
                 getContextManager());
             groupedConstants.addValueNode(lcn);
@@ -657,14 +649,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             else
                 constant = (ValueNode) brop.getLeftOperand();
             retval =
-                genListConstantNodeOrRecurse(optTable, constant,
+                genListValueNodeOrRecurse(optTable, constant,
                     constList, groupedConstants,
                     predList, level);
         }
         else {
             for (Object constant : inNode.rightOperandList) {
                 retval =
-                    genListConstantNodeOrRecurse(optTable, (ValueNode) constant,
+                    genListValueNodeOrRecurse(optTable, (ValueNode) constant,
                         constList, groupedConstants,
                         predList, level);
                 if (retval == false)
@@ -1623,10 +1615,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * false} otherwise
      */
     private static boolean isConstantOrParameterNode(ValueNode node){
-        if (node instanceof ListConstantNode)
+        if (node instanceof ListValueNode)
         {
-            ListConstantNode lcn = (ListConstantNode)node;
-            for (int i = 0; i < lcn.numConstants();i++){
+            ListValueNode lcn = (ListValueNode)node;
+            for (int i = 0; i < lcn.numValues(); i++){
                 if (!(lcn.getValue(i) instanceof ConstantNode) &&
                     !(lcn.getValue(i) instanceof ParameterNode))
                     return false;

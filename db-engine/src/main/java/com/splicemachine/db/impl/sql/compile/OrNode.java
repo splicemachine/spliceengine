@@ -34,7 +34,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.types.ListDataType;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.ArrayList;
@@ -174,11 +173,11 @@ public class OrNode extends BinaryLogicalOperatorNode {
         
         HashMap constNodes = new HashMap<Integer, ValueNode>();
         
-        ListDataType newListDataTypeNode = null;
+        boolean multiColumn = false;
         if (columnMap.size() > 1)
-            newListDataTypeNode = new ListDataType(columnMap.size());
+			multiColumn = true;
         
-        constructNodeForInList(vn, newListDataTypeNode, columnMap, vnl, constNodes);
+        constructNodeForInList(vn, multiColumn, columnMap, vnl, constNodes);
     
         if (columnMap.size() > 1) {
             ValueNodeList constList = (ValueNodeList) getNodeFactory().getNode(
@@ -188,23 +187,22 @@ public class OrNode extends BinaryLogicalOperatorNode {
                 constList.addValueNode((ValueNode)constNodes.get(i));
             }
             
-            ValueNode lcn = (ListConstantNode) getNodeFactory().getNode(
-                C_NodeTypes.LIST_CONSTANT_NODE,
-                newListDataTypeNode,
+            ValueNode lcn = (ListValueNode) getNodeFactory().getNode(
+                C_NodeTypes.LIST_VALUE_NODE,
                 constList,
                 getContextManager());
             vnl.addValueNode(lcn);
         }
     }
     
-    private void constructNodeForInList(ValueNode vn, ListDataType nodeToAdd,
+    private void constructNodeForInList(ValueNode vn, boolean multiColumn,
                                         HashMap<Integer, Integer> columnMap, ValueNodeList vnl,
                                         HashMap<Integer, ValueNode> constNodes)
         throws StandardException {
         
         if (vn instanceof AndNode) {
-            constructNodeForInList(((AndNode) vn).leftOperand, nodeToAdd, columnMap, vnl, constNodes);
-            constructNodeForInList(((AndNode) vn).rightOperand, nodeToAdd, columnMap, vnl, constNodes);
+            constructNodeForInList(((AndNode) vn).leftOperand, multiColumn, columnMap, vnl, constNodes);
+            constructNodeForInList(((AndNode) vn).rightOperand, multiColumn, columnMap, vnl, constNodes);
             return;
         }
         else if (vn instanceof BooleanConstantNode) {
@@ -228,20 +226,16 @@ public class OrNode extends BinaryLogicalOperatorNode {
             vnl.destructiveAppend(
                 bron.getInListOp().getRightOperandList());
         } else if (bron.getLeftOperand() instanceof ColumnReference) {
-            if (nodeToAdd == null)
+            if (!multiColumn)
                 vnl.addValueNode(bron.getRightOperand());
             else {
-                nodeToAdd.setFrom(((ConstantNode)bron.getRightOperand()).getValue(),
-                                   columnMap.get(((ColumnReference)bron.getLeftOperand()).getColumnNumber()));
                 constNodes.put(columnMap.get(((ColumnReference) bron.getLeftOperand()).getColumnNumber()),
                                (ConstantNode)bron.getRightOperand());
             }
         } else {
-            if (nodeToAdd == null)
+            if (!multiColumn)
                 vnl.addValueNode(bron.getLeftOperand());
             else {
-                nodeToAdd.setFrom(((ConstantNode) bron.getLeftOperand()).getValue(),
-                    columnMap.get(((ColumnReference) bron.getRightOperand()).getColumnNumber()));
                 constNodes.put(columnMap.get(((ColumnReference) bron.getRightOperand()).getColumnNumber()),
                     (ConstantNode) bron.getLeftOperand());
             }

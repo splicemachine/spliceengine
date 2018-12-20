@@ -152,11 +152,11 @@ public class OperatorToString {
             }
             builder.append("]");
             return builder.toString();
-        } else if (operand instanceof ListConstantNode) {
-            ListConstantNode lcn = (ListConstantNode) operand;
+        } else if (operand instanceof ListValueNode) {
+            ListValueNode lcn = (ListValueNode) operand;
             StringBuilder builder = new StringBuilder();
             builder.append("(");
-            for (int i = 0; i < lcn.numConstants(); i++) {
+            for (int i = 0; i < lcn.numValues(); i++) {
                 ValueNode vn = lcn.getValue(i);
                 if (i != 0)
                     builder.append(",");

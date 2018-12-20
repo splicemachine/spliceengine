@@ -254,7 +254,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 * type precendence as the specified value.
 	 *
 	 * @param precedence	The specified precedence.
-	 * @param cidx         The index into the ListConstantNode, if present.
+	 * @param cidx         The index into the ListValueNode, if present.
 	 *
 	 * @return	Whether or not all of the entries in the list have the same
 	 *			type precendence as the specified value.
@@ -270,8 +270,8 @@ public class ValueNodeList extends QueryTreeNodeVector
 			ValueNode			valueNode;
 
 			valueNode = (ValueNode) elementAt(index);
-			if (valueNode instanceof ListConstantNode)
-				valueNode = ((ListConstantNode)valueNode).getValue(cidx);
+			if (valueNode instanceof ListValueNode)
+				valueNode = ((ListValueNode)valueNode).getValue(cidx);
 			DataTypeDescriptor valueNodeDTS = valueNode.getTypeServices();
 
 			if (valueNodeDTS == null)
@@ -436,8 +436,8 @@ public class ValueNodeList extends QueryTreeNodeVector
 			{
 				return false;
 			}
-			else if (literalVal instanceof ListConstantNode) {
-				if (! ((ListConstantNode)literalVal).containsAllConstantNodes())
+			else if (literalVal instanceof ListValueNode) {
+				if (! ((ListValueNode)literalVal).containsAllConstantNodes())
 					return false;
 			}
 		}
@@ -776,7 +776,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 				if (numNodes == 1)
 					valueNode = constant;
 				else
-					valueNode = ((ListConstantNode)constant).getValue(i);
+					valueNode = ((ListValueNode)constant).getValue(i);
 
     			if (valueNode instanceof CharConstantNode && typeid[i].equals(TypeId.CHAR_NAME)) {
 				    rightPadCharConstantNode((CharConstantNode) valueNode, maxSize[i]);

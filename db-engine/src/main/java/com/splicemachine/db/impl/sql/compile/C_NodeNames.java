@@ -73,7 +73,7 @@ public interface C_NodeNames
 
 	String BOOLEAN_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BooleanConstantNode";
 	
-	String LIST_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ListConstantNode";
+	String LIST_VALUE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ListValueNode";
 
 	String CALL_STATEMENT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CallStatementNode";
 

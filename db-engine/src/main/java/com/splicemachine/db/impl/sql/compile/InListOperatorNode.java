@@ -284,7 +284,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                         for (int i = 0; i < sz; i++) {
                             ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
                             if (!singleLeftOperand)
-                                vn = ((ListConstantNode) vn).getValue(j);
+                                vn = ((ListValueNode) vn).getValue(j);
                             targetType =
                                 targetType.getDominantType(
                                     vn.getTypeServices(), cf);
@@ -355,8 +355,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                  */
                 ValueNode srcVal = (ValueNode) rightOperandList.elementAt(0);
                 ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(i);
-                if (srcVal instanceof ListConstantNode)
-                    srcVal = ((ListConstantNode)srcVal).getValue(i);
+                if (srcVal instanceof ListValueNode)
+                    srcVal = ((ListValueNode)srcVal).getValue(i);
                 ParameterNode pNode =
                     (ParameterNode) getNodeFactory().getNode(
                         C_NodeTypes.PARAMETER_NODE,
@@ -393,29 +393,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                  * probing, we can revert it back to its original form (i.e.
                  * to "this").
                  */
-                // msirek-temp :  need to build an AND'ed term here if
-                // equality on multiple columns.
-            /* msirek-temp->
-            if (!isSingleLeftOperand()) {
-                ListDataType newListDataTypeNode;
-                newListDataTypeNode = new ListDataType(leftOperandList.size());
-                
-                ValueNode lcn = (ListConstantNode) getNodeFactory().getNode(
-                    C_NodeTypes.LIST_CONSTANT_NODE,
-                    newListDataTypeNode,
-                    constList,
-                    getContextManager());
-                vnl.addValueNode(lcn);
-            } */
-                boolean leftNullable =
-                    leftOperandList.getTypeServices().isNullable();
-                //QueryTreeNode leftOperand = ((QueryTreeNode) (((ColumnReference) leftOperandList.elementAt(0))).getClone());
-            /* msirek-temp->
-            if (leftOperandList.size() > 1) {
-                ((ColumnReference)leftOperand).setSource((ResultColumn)((ColumnReference) leftOperand).getSource().getClone());
-                ((ColumnReference) leftOperand).setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, leftNullable));
-                ((ColumnReference) leftOperand).getSource().setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, leftNullable));
-            } */
+
                 equal =
                     (BinaryComparisonOperatorNode) getNodeFactory().getNode(
                         C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
@@ -425,11 +403,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                         getContextManager());
     
                 /* Set type info for the operator node */
-                /* if (leftOperandList.size() > 1) {   msirek-temp
-                    boolean nullableResult = leftNullable ||
-                        rightOperandList.getTypeServices().isNullable();
-                    equal.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
-                } else */
                 equal.bindComparisonOperator();
     
                 // Build a chain of AND'ed binary comparisons for each
@@ -758,8 +731,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
         
         // Count the number of "constants" in each group.
         ValueNode constants = (ValueNode)rightOperandList.elementAt(0);
-        int numValsInSet = constants instanceof ListConstantNode ?
-            ((ListConstantNode) constants).numConstants() : 1;
+        int numValsInSet = constants instanceof ListValueNode ?
+            ((ListValueNode) constants).numValues() : 1;
         
 		/* Set the array elements that are constant */
 
@@ -776,8 +749,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
             for (int constIdx = 0; constIdx < numValsInSet; constIdx++) {
 
-                if (topLevelLiteral instanceof ListConstantNode)
-                    dataLiteral = ((ListConstantNode) topLevelLiteral).getValue(constIdx);
+                if (topLevelLiteral instanceof ListValueNode)
+                    dataLiteral = ((ListValueNode) topLevelLiteral).getValue(constIdx);
                 else
                     dataLiteral = topLevelLiteral;
     
@@ -932,8 +905,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                     ((i == 0) ? 4 : 3);
                 for (int j = 0; j < numVals; j++) {
                     ValueNode vn = (ValueNode) rightOperandList.elementAt(currentOpnd++);
-                    //if (vn instanceof ListConstantNode)
-                    //    vn = ((ListConstantNode)vn).getValue(listIdx);
+                    //if (vn instanceof ListValueNode)
+                    //    vn = ((ListValueNode)vn).getValue(listIdx);
                     vn.generateExpression(acb, mb);
                     mb.upCast(ClassName.DataValueDescriptor);
                 }

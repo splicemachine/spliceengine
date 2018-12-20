@@ -882,7 +882,7 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
     
     @Override
-    public Visitable visit(ListConstantNode node) throws StandardException {
+    public Visitable visit(ListValueNode node) throws StandardException {
         return defaultVisit(node);
     }
 }
