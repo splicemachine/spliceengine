@@ -295,8 +295,18 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
     }
 
     @Override
+    public void delete(List<DataDelete> delete) throws IOException {
+        delegate.delete(delete);
+    }
+
+    @Override
     public void mutate(DataMutation put) throws IOException {
         delegate.mutate(put);
+    }
+
+    @Override
+    public void batchMutate(List<DataMutation> mutations) throws IOException {
+        delegate.batchMutate(mutations);
     }
 
     @Override

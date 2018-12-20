@@ -31,12 +31,14 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.derby.stream.utils.BulkLoadUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -62,6 +64,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
     private boolean outputKeysOnly;
     private boolean skipSampling;
     private String indexName;
+    private double sampleFraction;
 
     public BulkInsertDataSetWriter(){
     }
@@ -79,7 +82,8 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                                    boolean samplingOnly,
                                    boolean outputKeysOnly,
                                    boolean skipSampling,
-                                   String indexName) {
+                                   String indexName,
+                                   double sampleFraction) {
         super(dataSet, operationContext, heapConglom, txn);
         this.tableVersion = tableVersion;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
@@ -158,7 +162,6 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                     DataValueDescriptor dvd =
                             td.getColumnDescriptor(
                                     searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
-                    ValueRow defaultRow = new ValueRow(new DataValueDescriptor[]{dvd});
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
@@ -190,8 +193,10 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             }
             List<Tuple2<Long, byte[][]>> cutPoints = null;
             if (!skipSampling) {
-                SConfiguration sConfiguration = HConfiguration.getConfiguration();
-                double sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                if (sampleFraction == 0) {
+                    SConfiguration sConfiguration = HConfiguration.getConfiguration();
+                    sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                }
                 DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
 
                 // encode key/vale pairs for table and indexes
@@ -208,17 +213,17 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                 List<Tuple2<Long, Tuple2<Double, ColumnStatisticsImpl>>> result = keyStatistics.collect();
 
                 // Calculate cut points for main table and index tables
-                cutPoints = getCutPoints(sampleFraction, result);
+                cutPoints = BulkLoadUtils.getCutPoints(sampleFraction, result);
 
                 // dump cut points to file system for reference
-                dumpCutPoints(cutPoints, bulkImportDirectory);
+                ImportUtils.dumpCutPoints(cutPoints, bulkImportDirectory);
                 operationContext.reset();
             }
             if (!samplingOnly && !outputKeysOnly) {
 
                 // split table and indexes using the calculated cutpoints
                 if (cutPoints != null && !cutPoints.isEmpty()) {
-                    splitTables(cutPoints);
+                    BulkLoadUtils.splitTables(cutPoints);
                 }
 
                 // get the actual start/end key for each partition after split

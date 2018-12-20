@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.constants.SIConstants;
 
 import java.util.Properties;
 
@@ -78,7 +79,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         //tell the data dictionary that we are going to be writing some data
         dd.startWriting(lcc);
 
-        TableDescriptor td = getTableDescriptor(lcc);
+        TableDescriptor td = getUncachedTableDescriptor(lcc);
         dd.getDependencyManager().invalidateFor(td, DependencyManager.TRUNCATE_TABLE,lcc);
         activation.setDDLTableDescriptor(td);
 
@@ -173,7 +174,8 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         DDLMessage.DDLChange change = ProtoUtil.createTruncateTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) tableId);
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(change));
 
-
+        properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, td.getSchemaName());
+        properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, td.getName());
 
         //create new conglomerate
         newHeapConglom =

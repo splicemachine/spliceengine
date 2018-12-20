@@ -75,6 +75,12 @@ public class PipelinePartitionCreator implements PartitionCreator{
         return this;
     }
 
+    @Override
+    public PartitionCreator withSplitKeys(byte[][] splitKeys) {
+        baseCreator = baseCreator.withSplitKeys(splitKeys);
+        return this;
+    }
+
     public Partition create() throws IOException{
         Partition p =baseCreator.create(); //create the base table
         long cId;

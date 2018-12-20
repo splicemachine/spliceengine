@@ -19,13 +19,19 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Table;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -38,9 +44,13 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -56,6 +66,8 @@ public class VacuumIT extends SpliceUnitTest{
     protected static String TABLED = "D";
     protected static String TABLEE = "E";
     protected static String TABLEG = "G";
+    protected static String TABLEH = "H";
+    protected static String TABLEI = "I";
 
 	private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	@ClassRule
@@ -78,6 +90,10 @@ public class VacuumIT extends SpliceUnitTest{
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableGWatcher = new SpliceTableWatcher(TABLEG, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableHWatcher = new SpliceTableWatcher(TABLEH, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
+    protected static SpliceTableWatcher spliceTableIWatcher = new SpliceTableWatcher(TABLEI, spliceSchemaWatcher
+            .schemaName, "(name varchar(40), title varchar(40), age int)");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
@@ -85,7 +101,9 @@ public class VacuumIT extends SpliceUnitTest{
             .around(spliceTableAWatcher)
             .around(spliceTableDWatcher)
             .around(spliceTableEWatcher)
-            .around(spliceTableGWatcher);
+            .around(spliceTableGWatcher)
+            .around(spliceTableHWatcher)
+            .around(spliceTableIWatcher);
 
 	@Test
 	public void testVacuumDoesNotBreakStuff() throws Exception {
@@ -378,6 +396,117 @@ public class VacuumIT extends SpliceUnitTest{
                 for (long congId : conglomerates) {
                     // make sure the table doesn't exists in HBase anymore
                     assertFalse("Dropped table didnt get vacuumed",admin.tableExists(TableName.valueOf("splice:" + congId)));
+                }
+            }
+
+        } finally {
+            connection.commit();
+        }
+    }
+
+    @Test
+    public void testVacuumRemovesTablesWithDroppedTransactionIdInDescriptor() throws Exception {
+
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+
+        long[] conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "H");
+
+        try {
+            try (CallableStatement callableStatement = connection.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                callableStatement.execute();
+            }
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                    admin.getTableDescriptor(TableName.valueOf("splice:" + congId));
+                }
+            }
+
+            // now drop the table
+            try (CallableStatement callableStatement = connection.prepareCall(String.format("drop table %s.H", CLASS_NAME))) {
+                callableStatement.execute();
+            }
+
+            // Get transaction Id and remove the row from splice:DROPPED_CONGLOMERATES
+            long txnId = -1;
+            String name = "splice:"+ com.splicemachine.access.configuration.HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME;
+            try (Table droppedConglomerates = ConnectionFactory.createConnection(new Configuration()).getTable(TableName.valueOf(name))) {
+                List<Delete> deletes = new ArrayList<>();
+                Get get;
+                for (long congId : conglomerates) {
+                    deletes.add(new Delete(Bytes.toBytes(congId)));
+                    Result result = droppedConglomerates.get(new Get(Bytes.toBytes(congId)));
+                    byte[] value = result.getValue(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+                    txnId = Bytes.toLong(value);
+                }
+                droppedConglomerates.delete(deletes);
+            }
+
+            // Mark them as dropped on the table descriptor
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                    TableName tn = TableName.valueOf("splice:" + congId);
+                    HTableDescriptor td = admin.getTableDescriptor(tn);
+                    admin.disableTable(tn);
+                    admin.deleteTable(tn);
+                    td.setValue(SIConstants.DROPPED_TRANSACTION_ID_ATTR, Long.toString(txnId));
+                    admin.createTable(td);
+                }
+            }
+
+
+            try (CallableStatement callableStatement = connection.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                callableStatement.execute();
+            }
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table doesn't exists in HBase anymore
+                    assertFalse("Dropped table didnt get vacuumed",admin.tableExists(TableName.valueOf("splice:" + congId)));
+                }
+            }
+
+        } finally {
+            connection.commit();
+        }
+    }
+
+
+    @Test
+    public void testVacuumRemovesConglomeratesAfterTruncateTable() throws Exception {
+
+        Connection connection = spliceClassWatcher.getOrCreateConnection();
+
+        try {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute(String.format("create index %s.iname on %s.i (name)", CLASS_NAME, CLASS_NAME));
+            }
+            long[] conglomerates = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, "I");
+
+            assertEquals(2, conglomerates.length);
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table exists in HBase and hasn't been dropped by VACUUM
+                    admin.getTableDescriptor(TableName.valueOf("splice:" + congId));
+                }
+            }
+
+            // now truncate the table
+            try (CallableStatement callableStatement = connection.prepareCall(String.format("truncate table %s.I", CLASS_NAME))) {
+                callableStatement.execute();
+            }
+
+            try (CallableStatement callableStatement = connection.prepareCall("call SYSCS_UTIL.VACUUM()")) {
+                callableStatement.execute();
+            }
+
+            try (Admin admin = ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+                for (long congId : conglomerates) {
+                    // make sure the table doesn't exists in HBase anymore
+                    assertFalse("Truncated table didnt get vacuumed",admin.tableExists(TableName.valueOf("splice:" + congId)));
                 }
             }
 

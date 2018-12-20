@@ -980,16 +980,17 @@ public class ColumnReference extends ValueNode {
 				// inside a join tree, which can have many columns in the rcl
 				// with the same name, so looking up via column name can give
 				// the wrong column. DERBY-4679.
+				boolean markIfReferenced = !getCompilerContext().isProjectionPruningEnabled();
 				ftRC = rcl.getResultColumn(
 						tableNumberBeforeFlattening,
 						columnNumberBeforeFlattening,
-						columnName);
+						columnName, markIfReferenced);
 
 				if (ftRC == null) {
 					// The above lookup won't work for references to a base
 					// column, so fall back on column name, which is unique
 					// then.
-					ftRC = rcl.getResultColumn(columnName);
+					ftRC = rcl.getResultColumn(columnName, markIfReferenced);
                     tableNumber = ft.getTableNumber();
 				}
 				else {
@@ -1290,8 +1291,18 @@ public class ColumnReference extends ValueNode {
 			return false;
 		}
 		ColumnReference other = (ColumnReference)o;
-		return (tableNumber == other.tableNumber
-				&& columnName.equals(other.getColumnName()));
+		if (tableNumber != other.tableNumber)
+			return false;
+        if (columnName.equals(other.getColumnName())) {
+            // A ColumnReference with zero-length column name may be an expression.
+            // Compare the source trees in this case to see if they really
+            // are equivalent.
+            if (columnName.length() == 0)
+                return this.getSource().isEquivalent(other.getSource());
+            else
+                return true;
+        }
+        return false;
 	}
 
 	@Override

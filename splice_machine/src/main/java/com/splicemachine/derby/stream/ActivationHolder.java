@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.derby.utils.StatisticsOperation;
@@ -60,9 +61,7 @@ public class ActivationHolder implements Externalizable {
     private SpliceObserverInstructions soi;
     private TxnView txn;
     private boolean initialized = false;
-    private int reinitCount = 0;
-    private SpliceTransactionResourceImpl impl;
-    private boolean prepared = false;
+    private static ThreadLocal<SpliceTransactionResourceImpl> impl = new ThreadLocal<>();
 
     public ActivationHolder() {
 
@@ -129,8 +128,12 @@ public class ActivationHolder implements Externalizable {
         }
     }
 
-    public Activation getActivation() {
-        init();
+    public synchronized Activation getActivation() {
+        // Only directly instantiated ActivationHolders have initialized == true
+        // Those deserialized will check if impl.get() and activation are both set
+        if (!initialized) {
+            init(txn, true);
+        }
         return activation;
     }
 
@@ -145,33 +148,34 @@ public class ActivationHolder implements Externalizable {
         }
         out.writeObject(operationsList);
         out.writeObject(soi);
-        SIDriver.driver().getOperationFactory().writeTxn(txn,out);
+        SIDriver.driver().getOperationFactory().writeTxnStack(txn,out);
     }
 
-    public void init(){
-        init(txn);
-    }
-
-    public synchronized void init(TxnView txn){
-        if(initialized)
-            return;
-        initialized = true;
+    private void init(TxnView txn, boolean reinit){
         try {
-            impl = new SpliceTransactionResourceImpl();
-            prepared =  impl.marshallTransaction(txn);
-            activation = soi.getActivation(this, impl.getLcc());
+            SpliceTransactionResourceImpl txnResource = impl.get();
+            if (txnResource != null) {
+                if (activation != null) return;
+                txnResource.close();
+            }
 
-            SpliceOperationContext context = SpliceOperationContext.newContext(activation);
-            for(SpliceOperation so: operationsList){
-                so.init(context);
+            txnResource = new SpliceTransactionResourceImpl();
+            txnResource.marshallTransaction(txn);
+            impl.set(txnResource);
+            activation = soi.getActivation(this, txnResource.getLcc());
+
+            // Push internal connection to the current context manager
+            EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
+            new EmbedConnectionContext(ContextService.getService().getCurrentContextManager(), internalConnection);
+
+            if (reinit) {
+                SpliceOperationContext context = SpliceOperationContext.newContext(activation);
+                for (SpliceOperation so : operationsList) {
+                    so.init(context);
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            if (prepared) {
-                impl.close();
-                prepared = false;
-            }
         }
     }
 
@@ -183,7 +187,7 @@ public class ActivationHolder implements Externalizable {
             addSubOperations(operationsMap, so);
         }
         soi = (SpliceObserverInstructions) in.readObject();
-        txn = SIDriver.driver().getOperationFactory().readTxn(in);
+        txn = SIDriver.driver().getOperationFactory().readTxnStack(in);
     }
 
     public void setActivation(Activation activation) {
@@ -199,40 +203,15 @@ public class ActivationHolder implements Externalizable {
     }
 
     public synchronized void reinitialize(TxnView otherTxn, boolean reinit) {
-        TxnView txnView = otherTxn!=null ? otherTxn : this.txn;
-        initialized = true;
-        reinitCount += 1;
-        try {
-            if (prepared) {
-                impl.close();
-                prepared = false;
-            }
-
-            impl = new SpliceTransactionResourceImpl();
-            prepared =  impl.marshallTransaction(txnView);
-            activation = soi.getActivation(this, impl.getLcc());
-
-            // Push internal connection to the current context manager
-            EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
-            new EmbedConnectionContext(impl.getLcc().getContextManager(), internalConnection);
-
-            if (reinit) {
-                SpliceOperationContext context = SpliceOperationContext.newContext(activation);
-                for (SpliceOperation so : operationsList) {
-                    so.init(context);
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        close();
+        init(otherTxn != null ? otherTxn : txn, reinit);
     }
 
-    public synchronized void close() {
-        if (--reinitCount == 0) {
-            if (prepared) {
-                impl.close();
-                prepared = false;
-            }
+    public void close() {
+        SpliceTransactionResourceImpl txnResource = impl.get();
+        if (txnResource != null) {
+            txnResource.close();
+            impl.set(null);
         }
     }
 }

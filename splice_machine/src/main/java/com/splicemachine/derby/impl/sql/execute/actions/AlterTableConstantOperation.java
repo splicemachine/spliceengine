@@ -55,6 +55,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -184,7 +185,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // concurrent thread doing add/drop column.
 
         // older version (or at target) has to get td first, potential deadlock
-        TableDescriptor td = getTableDescriptor(lcc);
+        TableDescriptor td = getUncachedTableDescriptor(lcc);
 
         if (td!=null && td.getTableType()==TableDescriptor.EXTERNAL_TYPE) {
             throw StandardException.newException(
@@ -539,7 +540,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         // of nullability of the columns.
         TableDescriptor updatedTd = td;
         if (hasColumnUpdate) {
-            updatedTd = getTableDescriptor(lcc);
+            updatedTd = getUncachedTableDescriptor(lcc);
             // update the TableDescriptor in the Activation
             activation.setDDLTableDescriptor(updatedTd);
         }
@@ -581,7 +582,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
         // How were the columns ordered before?
-        int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+         int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
 
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
@@ -729,6 +730,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                         TransactionController.ISOLATION_SERIALIZABLE);
         Properties properties = getIndexProperties(newBaseConglom, index, cd, indexCC);
 
+        properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, td.getSchemaName());
+        properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, td.getName());
+        // this handles both normal indexes and foreign keys/unique constraints
+        properties.setProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR, td.getConglomerateDescriptors()[index + 1].getConglomerateName());
 
         // We can finally drain the sorter and rebuild the index
         DataValueDescriptor[] rowArray = indexRows[index].getRowArray();
@@ -867,6 +872,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         return numIndexes;
     }
 
+    protected TableDescriptor getUncachedTableDescriptor(LanguageConnectionContext lcc) throws StandardException {
+        TableDescriptor td;
+        td = DataDictionaryUtils.getUncachedTableDescriptor(lcc, tableId);
+        if (td == null) {
+            throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
+        }
+        return td;
+    }
+
     protected TableDescriptor getTableDescriptor(LanguageConnectionContext lcc) throws StandardException {
         TableDescriptor td;
         td = DataDictionaryUtils.getTableDescriptor(lcc, tableId);
@@ -953,6 +967,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
             // add the newly crated conglomerate to the table descriptor
             conglomerateList.add(cgd);
+
+            // set heap conglomerate Id to new one
+            tableDescriptor.setHeapConglomNumber(newConglomNum);
 
             // update the conglomerate in the data dictionary so that, when asked for TableDescriptor,
             // it's built with the new PK conglomerate

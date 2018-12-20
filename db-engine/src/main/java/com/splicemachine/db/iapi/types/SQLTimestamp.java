@@ -85,7 +85,6 @@ import java.util.GregorianCalendar;
 public final class SQLTimestamp extends DataType
 						implements DateTimeDataValue
 {
-
     static final int MAX_FRACTION_DIGITS = 9; // Only nanosecond resolution on conversion to/from strings
     static final int FRACTION_TO_NANO = 1; // 10**(9 - MAX_FRACTION_DIGITS)
 
@@ -1093,8 +1092,8 @@ public final class SQLTimestamp extends DataType
 		if (value != null)
 		{
             if( cal == null) {
-				cal = Calendar.getInstance();
-			}
+                cal = SQLDate.GREGORIAN_CALENDAR.get();
+            }
 			setValue(computeEncodedDate(value, cal), computeEncodedTime(value, cal), value.getNanos());
 
 		}
@@ -1326,7 +1325,9 @@ public final class SQLTimestamp extends DataType
         try
         {
             cal.add( calIntervalType, count);
-            tsResult.setValue(SQLDate.computeEncodedDate(cal), SQLTime.computeEncodedTime(cal));
+            tsResult.setValue(SQLDate.computeEncodedDate(cal),
+			                  SQLTime.computeEncodedTime(cal),
+			                  tsResult.getNanos());
         }
         catch( StandardException se)
         {
@@ -1606,7 +1607,7 @@ public final class SQLTimestamp extends DataType
 		        Platform.putInt(holder.buffer, holder.cursor + 4, encodedTime);
 		        Platform.putInt(holder.buffer, holder.cursor + 8, nanos);
 		        unsafeRowWriter.setOffsetAndSize(ordinal, 12);
-				holder.cursor = 12;
+				holder.cursor += 12;
 			}
 	    }
 
@@ -1707,4 +1708,5 @@ public final class SQLTimestamp extends DataType
 		}
 	}
 
+	public int getNanos() { return nanos; }
 }

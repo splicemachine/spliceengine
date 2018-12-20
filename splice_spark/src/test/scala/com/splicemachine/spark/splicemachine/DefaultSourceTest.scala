@@ -15,12 +15,16 @@ package com.splicemachine.spark.splicemachine
 
 import java.io.File
 import java.math.BigDecimal
+import java.nio.file.{Files, Path}
 import java.sql.{Time, Timestamp}
+import java.util.Date
 
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import org.apache.commons.io.FileUtils
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.sql.jdbc.JdbcDialects
+
 import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql._
 import org.junit.runner.RunWith
@@ -43,7 +47,14 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     if (splicemachineContext.tableExists(internalTN)) {
       splicemachineContext.dropTable(internalTN)
     }
+    if (splicemachineContext.tableExists(schema+"."+"T")) {
+      splicemachineContext.dropTable(schema+"."+"T")
+    }
+    if (splicemachineContext.tableExists(schema+"."+"T2")) {
+      splicemachineContext.dropTable(schema+"."+"T2")
+    }
     insertInternalRows(rowCount)
+    splicemachineContext.getConnection().commit()
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
 
@@ -64,12 +75,67 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(result.length == 10)
   }
 
+  test("read from internal execution with non-escaped characters") {
+    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    try {
+      val ps = conn.prepareStatement("insert into " + internalTN + allTypesInsertString + allTypesInsertStringValues)
+      ps.setBoolean(1, false)
+      ps.setString(2, "\n")
+      ps.setDate(3, java.sql.Date.valueOf("2013-09-05"))
+      ps.setBigDecimal(4, new BigDecimal("11"))
+      ps.setDouble(5, 11)
+      ps.setInt(6, 11)
+      ps.setInt(7, 11)
+      ps.setFloat(8, 11)
+      ps.setShort(9, 11.toShort)
+      ps.setTime(10, new Time(11))
+      ps.setTimestamp(11, new Timestamp(11))
+      ps.setString(12, "somet\nestinfo" + 11)
+      ps.execute()
+    }finally {
+      conn.close()
+    }
+
+    val df = sqlContext.read.options(internalExecutionOptions).splicemachine
+    df.printSchema()
+    assert(splicemachineContext.getSchema(internalTN).equals(df.schema))
+    assert(splicemachineContext.tableExists(internalTN))
+    assert(df.count == 11)
+    val result = df.collect()
+    assert(result.length == 11)
+  }
+
   test("insertion") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val changedDF = df.withColumn("C6_INT", when(col("C6_INT").leq(10), col("C6_INT").plus(10)) )
     splicemachineContext.insert(changedDF, internalTN)
     val newDF = sqlContext.read.options(internalOptions).splicemachine
     assert(newDF.count == 20)
+  }
+
+  test("insertion with sampling") {
+    val userDir: String = System.getProperty("user.dir")
+    val dataDir = userDir+"/src/test/data/lineitem.csv";
+    val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
+    conn.createStatement().execute("create table TestContext.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
+    conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");
+    for (i <- 0 to 20) {
+      conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) select c1,c2,c3 from TestContext.t")
+    }
+    conn.createStatement().execute("create table TestContext.T2(id int, c1 double, c2 double, c3 double, primary key(id))")
+    val options = Map(
+      JDBCOptions.JDBC_TABLE_NAME -> (schema+"."+"T"),
+      JDBCOptions.JDBC_URL -> defaultJDBCURL
+    )
+    val df = sqlContext.read.options(options).splicemachine
+
+    val options2 = Map(
+      JDBCOptions.JDBC_TABLE_NAME -> (schema+"."+"T2"),
+      JDBCOptions.JDBC_URL -> defaultJDBCURL
+    )
+    splicemachineContext.splitAndInsert(df, schema+"."+"T2", 0.001)
+    val newDF = sqlContext.read.options(options2).splicemachine
+    assert(newDF.count == 8388608)
   }
 
   test("insertion using RDD") {
@@ -219,7 +285,20 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
     assert(newDF.count == 20)
   }
 
-  //TODO - re-enable tests until Daniel fixes problem with broadcast join changes
+
+  test("binary export") {
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val outDirectory: Path = Files.createTempDirectory("exportBinary")
+
+
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    splicemachineContext.exportBinary(df, outDirectory.toString, false, "parquet")
+
+
+    val newDF = sqlContext.read.parquet(outDirectory.toString)
+    assert(newDF.count == 10)
+  }
+
   test ("deletion") {
     val df = sqlContext.read.options(internalOptions).splicemachine
     val deleteDF = df.filter("c6_int < 5").select("C6_INT","C7_BIGINT")
@@ -320,10 +399,51 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
       val results = sqlContext.sql(s"SELECT * FROM $table").collectAsList()
       assert(results.size() == rowCount)
       assert(results.get(1).get(5).equals(1))
-    }
-    test("table scan with projection") {
-      assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]", sqlContext.sql(s"""SELECT c6_int FROM $table""").collectAsList().toString)
-    }
+  }
+  
+  test("table scan with projection") {
+    assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]", sqlContext.sql(s"""SELECT c6_int FROM $table""").collectAsList().toString)
+  }
+
+  test("partitions shuffle") {
+    val rdd = generateRows(10, 5)
+
+    var i = 0
+
+    rdd.toLocalIterator.foreach ( r => {
+      assertEquals(i, r(5))
+      i += 1
+    })
+
+    i = 0
+    var same = true
+    ShuffleUtils.shuffle(rdd).toLocalIterator.foreach( r => {
+      if (i != r(5))
+        same = false
+      i += 1
+    })
+    assertFalse("Rows were in order", same)
+  }
+
+  def generateRows(rowCount: Int, batches: Int): RDD[Row] = {
+    val rows = Range(0, rowCount).map ( i => {
+      val a:Boolean = i % 2==0
+      val b:String = if (i < 8)"" + i else null
+      val c:Date = if (i % 2==0) java.sql.Date.valueOf("2013-09-04") else java.sql.Date.valueOf("2013-09-05")
+      val d:BigDecimal = new BigDecimal("" + i)
+      val e:Double = i
+      val f:Int = i
+      val g:Long = i
+      val h:Double = i
+      val j:Short = i.toShort
+      val k:Timestamp = new Timestamp(i)
+      val l:Timestamp = new Timestamp(i)
+      val m:String = if (i < 8) "sometestinfo" + i else null
+      Row(a,b,c,d,e,f,g,h,j,k,l,m)
+    })
+    sqlContext.sparkContext.parallelize(rows, batches)
+  }
+  
   test("table scan with projection and predicate bool") {
     assertEquals("[[true], [true], [true], [true], [true]]",
       sqlContext.sql(s"""SELECT c1_boolean FROM $table where c1_boolean = true""").collectAsList().toString)
@@ -429,6 +549,15 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
 
     assertEquals("[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]]",
       sqlContext.sql(s"""SELECT c6_int FROM $table where c6_int is NOT NULL""").collectAsList().toString)
+  }
+
+  test("export") {
+    val tmpDir: String = System.getProperty("java.io.tmpdir");
+    val outDirectory: Path = Files.createTempDirectory("export")
+    val df = sqlContext.read.options(internalOptions).splicemachine
+    splicemachineContext.export(df, outDirectory.toString, false, 1, null, null, null)
+    val newDF = sqlContext.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(outDirectory.toString)
+    assert(newDF.count == 10)
   }
 
   def createBadDirectory(directoryName: String): File = {

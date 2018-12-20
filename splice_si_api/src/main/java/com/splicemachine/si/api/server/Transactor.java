@@ -15,7 +15,7 @@
 package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.MutationStatus;
@@ -50,6 +50,7 @@ public interface Transactor{
                                     TxnView txn,
                                     ConstraintChecker constraintChecker,
                                     boolean skipConflictDetection,
-                                    boolean skipWAL) throws IOException;
+                                    boolean skipWAL, boolean rollforward) throws IOException;
 
+    void setDefaultConstraintChecker(ConstraintChecker constraintChecker);
 }

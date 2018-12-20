@@ -520,6 +520,11 @@ public class SQLToJavaValueNode extends JavaValueNode {
 
 	@Override
 	public void setHashableJoinColumnReference(ColumnReference cr) {
-		value = cr;
+		if (value != null) {
+			if (value instanceof ColumnReference)
+				value = cr;
+			else
+				value.setHashableJoinColumnReference(cr);
+		}
 	}
 }

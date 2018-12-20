@@ -142,6 +142,7 @@ public interface ResultSetFactory {
 								 boolean samplingOnly,
                                  boolean outputKeysOnly,
 								 boolean skipSampling,
+								 double sampleFraction,
 								 String indexName)
         throws StandardException;
 
@@ -1776,6 +1777,17 @@ public interface ResultSetFactory {
 									  String quoteChar,
 									  int srcResultDescriptionSavedObjectNum) throws StandardException;
 
+
+	/**
+	 * Binary Export
+	 */
+	NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
+									  Activation activation,
+									  int resultSetNumber,
+									  String exportPath,
+									  boolean compression,
+									  String format,
+									  int srcResultDescriptionSavedObjectNum) throws StandardException;
     /**
      * Batch Once
      */

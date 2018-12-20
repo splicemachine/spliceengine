@@ -59,6 +59,8 @@ public final class SConfigurationImpl implements SConfiguration {
     public int authenticationTokenLength;
     public int authenticationTokenMaxLifetime;
     public int authenticationTokenRenewInterval;
+    public boolean authenticationImpersonationEnabled;
+    public String authenticationImpersonationUsers;
     public boolean authenticationTokenEnabled;
     public boolean authenticationTokenDebugConnections;
     public int authenticationTokenMaxConnections;
@@ -127,6 +129,11 @@ public final class SConfigurationImpl implements SConfiguration {
     private final double bulkImportSampleFraction;
     private final int bulkImportTasksPerRegion;
     private final int regionToLoadPerTask;
+    private final int rollForwardQueueSize;
+    private final int rollForwardFirstWait;
+    private final int rollForwardSecondWait;
+    private final int rollForwardFirstThreads;
+    private final int rollForwardSecondThreads;
 
     // OLAP client/server configurations
     private final int olapClientWaitTime;
@@ -276,6 +283,14 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getAuthenticationTokenRenewInterval() {
         return authenticationTokenRenewInterval;
+    }
+    @Override
+    public String getAuthenticationImpersonationUsers() {
+        return authenticationImpersonationUsers;
+    }
+    @Override
+    public boolean getAuthenticationImpersonationEnabled() {
+        return authenticationImpersonationEnabled;
     }
     @Override
     public boolean getAuthenticationTokenEnabled() {
@@ -494,6 +509,32 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getReadResolverThreads() {
         return readResolverThreads;
     }
+
+    @Override
+    public int getRollforwardQueueSize() {
+        return rollForwardQueueSize;
+    }
+
+    @Override
+    public int getRollforwardFirstWait() {
+        return rollForwardFirstWait;
+    }
+
+    @Override
+    public int getRollforwardSecondWait() {
+        return rollForwardSecondWait;
+    }
+
+    @Override
+    public int getRollforwardFirstThreads() {
+        return rollForwardFirstThreads;
+    }
+
+    @Override
+    public int getRollforwardSecondThreads() {
+        return rollForwardSecondThreads;
+    }
+
     @Override
     public int getOlapClientWaitTime() {
         return olapClientWaitTime;
@@ -800,6 +841,8 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationTokenMaxConnections = builder.authenticationTokenMaxConnections;
         authenticationTokenPermissionCacheSize = builder.authenticationTokenPermissionCacheSize;
         authenticationTokenMaxLifetime = builder.authenticationTokenMaxLifetime;
+        authenticationImpersonationEnabled = builder.authenticationImpersonationEnabled;
+        authenticationImpersonationUsers = builder.authenticationImpersonationUsers;
         authorizationScheme = builder.authorizationScheme;
         rangerServiceName = builder.rangerServiceName;
         sentryPollingInterval = builder.sentryPollingInterval;
@@ -905,6 +948,11 @@ public final class SConfigurationImpl implements SConfiguration {
         regionToLoadPerTask = builder.regionToLoadPerTask;
         ignoreMissingTxns = builder.ignoreMissingTxns;
         maxCheckTableErrors = builder.maxCheckTableErrors;
+        rollForwardQueueSize = builder.rollForwardQueueSize;
+        rollForwardFirstWait = builder.rollForwardFirstWait;
+        rollForwardSecondWait = builder.rollForwardSecondWait;
+        rollForwardFirstThreads = builder.rollForwardFirstThreads;
+        rollForwardSecondThreads = builder.rollForwardSecondThreads;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

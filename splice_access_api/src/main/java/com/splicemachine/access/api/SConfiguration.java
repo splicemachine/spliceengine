@@ -72,6 +72,8 @@ public interface SConfiguration {
     int getAuthenticationTokenLength();
     int getAuthenticationTokenMaxLifetime();
     int getAuthenticationTokenRenewInterval();
+    boolean getAuthenticationImpersonationEnabled();
+    String getAuthenticationImpersonationUsers();
     boolean getAuthenticationTokenEnabled();
     boolean getAuthenticationTokenDebugConnections();
     int getAuthenticationTokenMaxConnections();
@@ -179,6 +181,12 @@ public interface SConfiguration {
     int getReadResolverQueueSize();
 
     int getReadResolverThreads();
+
+    int getRollforwardQueueSize();
+    int getRollforwardFirstWait();
+    int getRollforwardSecondWait();
+    int getRollforwardFirstThreads();
+    int getRollforwardSecondThreads();
 
     int getTimestampClientWaitTime();
 

@@ -257,7 +257,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @return the column that matches that name.
      */
 
-    public ResultColumn getResultColumn(String columnName){
+    public ResultColumn getResultColumn(String columnName) {
         return getResultColumn(columnName,true);
     }
 
@@ -323,7 +323,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @param columnNumber the column number to look for
      * @param columnName   name of the desired column
      */
-    public ResultColumn getResultColumn(int tableNumber, int columnNumber, String columnName){
+    public ResultColumn getResultColumn(int tableNumber, int columnNumber, String columnName, boolean markIfReferenced){
         int size=size();
 
         for(int index=0;index<size;index++){
@@ -373,7 +373,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                                 // name is correct. Remove when DERBY-4695 is
                                 // fixed.
                                 if(columnName.equals(vcn.getSourceColumn().getName())){
-                                    resultColumn.setReferenced();
+                                    if (markIfReferenced) {
+                                        resultColumn.setReferenced();
+                                    }
                                     return resultColumn;
                                 }else{
                                     if(SanityManager.DEBUG){
@@ -400,7 +402,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                     if(cr.getTableNumber()==tableNumber && cr.getColumnNumber()==columnNumber){
                         // Found matching (t,c) within this top resultColumn
-                        resultColumn.setReferenced();
+                        if (markIfReferenced) {
+                            resultColumn.setReferenced();
+                        }
                         return resultColumn;
                     }else{
                         rc=null;
@@ -425,7 +429,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @return the column that matches that name.
      */
 
-    public ResultColumn getResultColumn(String columnsTableName,String columnName){
+    public ResultColumn getResultColumn(String columnsTableName,String columnName, boolean markIfReferenced){
         int size=size();
         for(int index=0;index<size;index++){
             ResultColumn resultColumn=elementAt(index);
@@ -444,8 +448,10 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 }
             }
             if(columnName.equals(resultColumn.getName())){
-				/* Mark ResultColumn as referenced and return it */
-                resultColumn.setReferenced();
+                if (markIfReferenced) {
+                    /* Mark ResultColumn as referenced and return it */
+                    resultColumn.setReferenced();
+                }
                 return resultColumn;
             }
         }
@@ -471,7 +477,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
     public ResultColumn getAtMostOneResultColumn(ColumnReference cr,
                                                  String exposedTableName,
-                                                 boolean considerGeneratedColumns) throws StandardException{
+                                                 boolean considerGeneratedColumns,
+                                                 boolean markIfReferenced) throws StandardException{
         int size=size();
         ResultColumn retRC=null;
         String columnName=cr.getColumnName();
@@ -488,8 +495,10 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     throw StandardException.newException(SQLState.LANG_AMBIGUOUS_COLUMN_NAME_IN_TABLE,
                             columnName,exposedTableName);
                 }
-				/* Mark ResultColumn as referenced and return it */
-                resultColumn.setReferenced();
+                if (markIfReferenced) {
+				    /* Mark ResultColumn as referenced and return it */
+                    resultColumn.setReferenced();
+                }
                 retRC=resultColumn;
             }
         }
@@ -837,7 +846,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 }
             }
 
-            matchRC=fullRCL.getResultColumn(null,rc.getName());
+            matchRC=fullRCL.getResultColumn(null,rc.getName(), true);
             if(matchRC==null){
                 throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
                         rc.getName(),
@@ -3028,7 +3037,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     if (isIndex)
                     newReferencedCols.set(index);
                     else
-                        newReferencedCols.set(this.getResultColumn(index).getStoragePosition()-1);
+                        newReferencedCols.set(this.getResultColumn(index+1).getStoragePosition()-1);
                 }
 
                 return newReferencedCols;

@@ -147,7 +147,7 @@ public class SqlJTestProcs {
 	}
 
 	public static void JPROC_TYPE_UNIT_TEST(ResultSet[] rs)
-			throws Exception{
+			throws Exception {
 		//-- Declare and execute the procedure in ij.
 		//CREATE PROCEDURE SPLICE.JPROC_TYPE_UNIT_TEST() PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 EXTERNAL NAME 'com.splicemachine.derby.impl.sql.pyprocedure.PyStoredProcedureResultSetFactoryIT.JPROC_TYPE_UNIT_TEST';
 		//CALL SPLICE.JPROC_TYPE_UNIT_TEST();
@@ -155,5 +155,32 @@ public class SqlJTestProcs {
 		Statement stmt = conn.createStatement();
 		rs[0] = stmt.executeQuery("SELECT * FROM TEST_TABLE {limit 1}");
 		conn.close();
+	}
+
+	/**
+	 * Truncates a string to the number of words specified.  An input of
+	 * "Today is a wonderful day and I am looking forward to going to the beach.", 5
+	 * will return "Today is a wonderful day".
+	 *
+	 * @param inboundSentence
+	 * @param numberOfWords
+	 * @return
+	 */
+	public static String wordLimiter(String inboundSentence, int numberOfWords) {
+		String truncatedString = "";
+		if(inboundSentence != null) {
+			String[] splitBySpace = inboundSentence.split("\\s+");
+			if(splitBySpace.length <= numberOfWords) {
+				truncatedString = inboundSentence;
+			} else {
+				StringBuilder sb = new StringBuilder();
+				for(int i=0; i<numberOfWords; i++) {
+					if(i > 0) sb.append(" ");
+					sb.append(splitBySpace[i]);
+				}
+				truncatedString = sb.toString();
+			}
+		}
+		return truncatedString;
 	}
 }

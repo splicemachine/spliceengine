@@ -103,6 +103,6 @@ public class SIConstants {
     public static final String SCHEMA_DISPLAY_NAME_ATTR = "schemaDisplayName";
     public static final String TABLE_DISPLAY_NAME_ATTR = "tableDisplayName";
     public static final String INDEX_DISPLAY_NAME_ATTR = "indexDisplayName";
-    public static final String TRANSACTION_ID_ATTR = "transactionId";
+    public static final String TRANSACTION_ID_ATTR = "createTransactionId";
     public static final String DROPPED_TRANSACTION_ID_ATTR = "droppedTransactionId";
 }

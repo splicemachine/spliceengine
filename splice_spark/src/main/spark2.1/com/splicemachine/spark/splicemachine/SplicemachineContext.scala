@@ -49,6 +49,17 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
 object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
+
+  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
+
+  def broadcastCreds(credentials: Credentials) : Unit = this.synchronized {
+    if (broadcastCredentials != null)
+      return
+
+      SpliceSpark.logCredentialsInformation(credentials)
+    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
+    SpliceSpark.setCredentials(broadcastCredentials)
+  }
 }
 
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
@@ -59,7 +70,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
-  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   private[this] def initConnection() = {
@@ -110,8 +120,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
           // Add it to credentials and broadcast them
           credentials.addToken(getUniqueAlias(token), token)
-          broadcastCreds
-          SpliceSpark.setCredentials(broadcastCredentials)
+          Holder.broadcastCreds(credentials)
 
           Holder.log.debug(f"Broadcasted credentials")
 
@@ -123,11 +132,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
       initConnection()
     }
-  }
-
-  def broadcastCreds = {
-    SpliceSpark.logCredentialsInformation(credentials)
-    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
   }
 
   def tableExists(schemaTableName: String): Boolean = {
@@ -287,23 +291,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       fs.setPermission(new Path(tempDirectory, id), FsPermission.createImmutable(Integer.parseInt("777", 8).toShort))
 
       val schema = resolveQuery(connection, sql, false)
-      val schemaNoTime = resolveQuery(connection, sql, true)
 
-      connection.prepareStatement(s"EXPORT('$tempDirectory/$id', true, 1, null, null, null) " + sql).execute()
+      connection.prepareStatement(s"EXPORT_BINARY('$tempDirectory/$id', false, 'parquet') " + sql).execute()
       // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-      var df = SpliceSpark.getSession.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").schema(schemaNoTime).csv(fs.getUri + s"$tempDirectory/$id")
-
-      // Columns of type TIME are serialized with a HH:mm:ss format, which is incompatible with the Timestamp format
-      // Deserialize them as Strings and parse the strings into Timestamps here
-      if (!schema.equals(schemaNoTime)) {
-        for ((ft, f) <- schema.fields zip schemaNoTime.fields) {
-          if (!ft.equals(f)) {
-            import org.apache.spark.sql.functions._
-            val name = ft.name
-            df = df.withColumn(name, unix_timestamp(col(name), "HH:mm:ss").cast(TimestampType))
-          }
-        }
-      }
+      var df = SpliceSpark.getSession.read.option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").schema(schema).parquet(fs.getUri + s"$tempDirectory/$id")
       df
     } finally {
       connection.close()
@@ -325,7 +316,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   def insert(dataFrame: DataFrame, schemaTableName: String): Unit = {
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
@@ -334,8 +325,30 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     internalConnection.createStatement().executeUpdate(sqlText)
   }
 
+  /**
+    *
+    * Sample the dataframe, split the table, and insert a dataFrame into a table (schema.table).  This corresponds to an
+    *
+    * insert into from select statement
+    *
+    * @param dataFrame
+    * @param schemaTableName
+    * @param sampleFraction
+    */
+  def splitAndInsert(dataFrame: DataFrame, schemaTableName: String, sampleFraction: Double): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = "insert into " + schemaTableName +
+      " (" + columnList + ") --splice-properties useSpark=true, sampleFraction=" +
+      sampleFraction + "\n select " + columnList + " from " +
+      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
+      "as SpliceDatasetVTI (" + schemaString + ")"
+    internalConnection.createStatement().executeUpdate(sqlText)
+  }
+
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
@@ -354,7 +367,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit = {
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ")" +
@@ -373,7 +386,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit = {
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ")" +
@@ -385,7 +398,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   def upsert(dataFrame: DataFrame, schemaTableName: String): Unit = {
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties insertMode=UPSERT\n select " + columnList + " from " +
@@ -395,7 +408,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   def upsert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "insert into " + schemaTableName + " (" + columnList + ") --splice-properties insertMode=UPSERT\n select " + columnList + " from " +
@@ -408,7 +421,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Deletes")
@@ -428,7 +441,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Deletes")
@@ -448,7 +461,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Updates")
@@ -471,7 +484,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val jdbcOptions = new JDBCOptions(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
+    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Updates")
@@ -557,6 +570,23 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /**
+  * Export a dataFrame in binary format
+  *
+  * @param location  - Destination directory
+  * @param compression - Whether to compress the output or not
+  * @param format - Binary format to be used, currently only 'parquet' is supported
+  */
+  def exportBinary(dataFrame: DataFrame, location: String,
+                   compression: Boolean, format: String): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val sqlText = s"export_binary ( '$location', $compression, '$format') select " + columnList + " from " +
+       s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
+    internalConnection.createStatement().execute(sqlText)
+  }
+
+  /**
     * Prune all but the specified columns from the specified Catalyst schema.
     *
     * @param schema  - The Catalyst schema of the master table
@@ -567,6 +597,36 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val fieldMap = Map(schema.fields.map(x => x.metadata.getString("name") -> x): _*)
     new StructType(columns.map(name => fieldMap(name)))
   }
+  
+  /**
+    * Export a dataFrame in CSV
+    *
+    * @param location  - Destination directory
+    * @param compression - Whether to compress the output or not
+    * @param replicationCount - Replication used for HDFS write
+    * @param fileEncoding - fileEncoding or null, defaults to UTF-8
+    * @param fieldSeparator - fieldSeparator or null, defaults to ','
+    * @param quoteCharacter - quoteCharacter or null, defaults to '"'
+    *
+    */
+  def export(dataFrame: DataFrame, location: String,
+             compression: Boolean, replicationCount: Int,
+             fileEncoding: String,
+             fieldSeparator: String,
+             quoteCharacter: String): Unit = {
+    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
+    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
+    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
+    val encoding = quotedOrNull(fileEncoding)
+    val separator = quotedOrNull(fieldSeparator)
+    val quoteChar = quotedOrNull(quoteCharacter)
+    val sqlText = s"export ( '$location', $compression, $replicationCount, $encoding, $separator, $quoteChar) select " + columnList + " from " +
+      s"new com.splicemachine.derby.vti.SpliceDatasetVTI() as SpliceDatasetVTI ($schemaString)"
+    internalConnection.createStatement().execute(sqlText)
+  }
 
+  private[this] def quotedOrNull(value: String) = {
+    if (value == null) "null" else s"'$value"
+  }
 
 }

@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -49,6 +50,7 @@ import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
+import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.utils.ByteDataInput;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -66,6 +68,7 @@ import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -80,6 +83,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 import java.util.zip.GZIPOutputStream;
 
 import static org.apache.spark.sql.functions.broadcast;
@@ -159,6 +163,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
         return new SparkDataSet<>(rdd.mapPartitions(new SparkFlatMapFunction<>(f)),f.getSparkName());
+    }
+
+    @Override
+    public DataSet<V> shufflePartitions() {
+        return new SparkDataSet(ShuffleUtils.shuffleSplice((JavaRDD<ExecRow>) rdd));
     }
 
     /**
@@ -747,12 +756,27 @@ public class SparkDataSet<V> implements DataSet<V> {
                                              String location,
                                              String compression,
                                              OperationContext context) {
-        try{
+        try {
             StructType dataSchema = null;
 
             //Generate Table Schema
-            String[] colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
-            DataValueDescriptor[] dvds = context.getOperation().getExecRowDefinition().getRowArray();
+            String[] colNames;
+            DataValueDescriptor[] dvds;
+            if (context.getOperation() instanceof DMLWriteOperation) {
+                dvds  = context.getOperation().getExecRowDefinition().getRowArray();
+                colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
+            } else if (context.getOperation() instanceof ExportOperation) {
+                dvds = context.getOperation().getLeftOperation().getLeftOperation().getExecRowDefinition().getRowArray();
+                ExportOperation export = (ExportOperation) context.getOperation();
+                ResultColumnDescriptor[] descriptors = export.getSourceResultColumnDescriptors();
+                colNames = new String[descriptors.length];
+                int i = 0;
+                for (ResultColumnDescriptor rcd : export.getSourceResultColumnDescriptors()) {
+                    colNames[i++] = rcd.getName();
+                }
+            } else {
+                throw new IllegalArgumentException("Unsupported operation type: " + context.getOperation());
+            }
             StructField[] fields = new StructField[colNames.length];
             for (int i=0 ; i<colNames.length ; i++){
                 fields[i] = dvds[i].getStructField(colNames[i]);
@@ -942,8 +966,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException{
-        return new SparkInsertTableWriterBuilder<>(((SparkPairDataSet) this.index(new EmptySparkPairDataSet<>()))
-                .wrapExceptions());
+        return new SparkInsertTableWriterBuilder<>(this);
     }
 
     @Override
@@ -952,4 +975,8 @@ public class SparkDataSet<V> implements DataSet<V> {
                 .wrapExceptions());
     }
 
+    @Override
+    public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
+        return new SparkTableSamplerBuilder(this);
+    }
 }

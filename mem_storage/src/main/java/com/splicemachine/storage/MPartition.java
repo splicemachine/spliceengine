@@ -332,10 +332,25 @@ public class MPartition implements Partition{
     }
 
     @Override
+    public void delete(List<DataDelete> delete) throws IOException {
+        for (DataDelete dd : delete) {
+            assert dd instanceof MDelete:"Programmer error: incorrect delete type for memory access!";
+            delete((MDelete)dd,getRowLock(dd.key(),0,dd.key().length));
+        }
+    }
+
+    @Override
     public void mutate(DataMutation put) throws IOException{
         if(put instanceof DataPut)
             put((DataPut)put);
         else delete((DataDelete)put);
+    }
+
+    @Override
+    public void batchMutate(List<DataMutation> mutations) throws IOException {
+        for (DataMutation dm : mutations) {
+            mutate(dm);
+        }
     }
 
     @Override

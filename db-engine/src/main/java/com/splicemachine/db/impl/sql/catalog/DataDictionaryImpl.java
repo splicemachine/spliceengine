@@ -1388,6 +1388,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
             return retval;
         }
+        if (schemaUUID == null)
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, sd.getSchemaName());
         retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
         if (retval!=null) {
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
@@ -1433,13 +1435,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     /**
      * This method can get called from the DataDictionary cache.
      *
-     * @param tableKey The TableKey of the table
+     * @param tableId The UUID of the table
      * @return The descriptor for the table, null if the table does
      * not exist.
      * @throws StandardException Thrown on failure
      */
-    TableDescriptor getUncachedTableDescriptor(TableKey tableKey) throws StandardException{
-        return getTableDescriptorIndex1Scan(tableKey.getTableName(),tableKey.getSchemaId().toString());
+    public TableDescriptor getUncachedTableDescriptor(UUID tableId) throws StandardException{
+        return getTableDescriptorIndex2Scan(tableId.toString());
     }
 
     /**
@@ -1522,7 +1524,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 getColumnDescriptorsScan(td);
                 getConglomerateDescriptorsScan(td);
                 markSystemTablesAsVersion1(td);
-            }
+                td.getHeapConglomerateId(); // populate heapConglomerateId
+             }
         }
 
         return td;
@@ -5632,6 +5635,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 			 */
             conglomIDOrderable=getIDValueAsCHAR(cd.getUUID());
 
+            tc.markConglomerateDropped(cd.getConglomerateNumber());
+
 			/* Set up the start/stop position for the scan */
             keyRow1=exFactory.getIndexableRow(1);
             keyRow1.setColumn(1,conglomIDOrderable);
@@ -9190,6 +9195,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return (SchemaPermsDescriptor)getPermissions(key);
     }
 
+    @Override
+    public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID) throws StandardException{
+        SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,schemaPermsUUID);
+        return getUncachedSchemaPermsDescriptor(key);
+    }
+
     public Object getPermissions(PermissionsDescriptor key) throws StandardException{
 
         Optional<PermissionsDescriptor> optional = dataDictionaryCache.permissionCacheFind(key);
@@ -9505,7 +9516,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no table-level permissions have been granted to him on the table.
      * @throws StandardException
      */
-    TablePermsDescriptor getUncachedTablePermsDescriptor(TablePermsDescriptor key) throws StandardException{
+    public TablePermsDescriptor getUncachedTablePermsDescriptor(TablePermsDescriptor key) throws StandardException{
         if(key.getObjectID()==null){
             //the TABLEPERMSID for SYSTABLEPERMS is not known, so use
             //table id, grantor and granteee to find TablePermsDescriptor
@@ -9531,7 +9542,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no schema-table permissions have been granted to him on the schema
      * @throws StandardException
      */
-    SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key) throws StandardException{
+    public SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key) throws StandardException{
         if(key.getObjectID()==null){
             //the SCHEMAPERMSID for SYSTABLEPERMS is not known, so use
             //table id, grantor and granteee to find SchemaPermsDescriptor

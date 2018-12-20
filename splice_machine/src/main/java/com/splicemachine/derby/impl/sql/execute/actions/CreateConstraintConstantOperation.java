@@ -289,13 +289,18 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				
 				/* Create stored dependency on the referenced constraint */
 				dm.addDependency(conDesc, referencedConstraint, lcc.getContextManager());
+				/**
+				 * It is problematic to make the FK constraint depend on a privileges or role definition,
+				 * as when the depended privilege or role is dropped, the FK constraint will be dropped too
+				 *
+
 				//store constraint's dependency on REFERENCES privileges in the dependency system
 				storeConstraintDependenciesOnPrivileges
 					(activation,
 					 conDesc,
 					 referencedConstraint.getTableId(),
 					 providerInfo);
-
+			    */
 
                 // Use the task framework to add FK Write handler on remote nodes.
                 new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY,lcc).submit();

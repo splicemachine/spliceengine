@@ -116,7 +116,7 @@ public class ExportFile {
                 if (file != null && !file.isEmpty())
                     fileSystem.delete(exportParams.getDirectory(), file, false);
             } catch(NoSuchFileException e) {
-                SpliceLogUtils.warn(LOG, "Unable to delete file %s, but that won't prevent export.");
+                SpliceLogUtils.warn(LOG, "Unable to delete file %s/%s, but that won't prevent export.", exportParams.getDirectory(), file);
             }
         }
     }

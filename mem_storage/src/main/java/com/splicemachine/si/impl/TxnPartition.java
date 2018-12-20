@@ -22,7 +22,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -220,11 +220,23 @@ public class TxnPartition implements Partition{
     }
 
     @Override
+    public void delete(List<DataDelete> delete) throws IOException {
+        throw new UnsupportedOperationException("multi delete not supported");
+    }
+
+    @Override
     public void mutate(DataMutation put) throws IOException{
         if(put instanceof DataPut)
             put((DataPut)put);
         else delete((DataDelete)put);
 
+    }
+
+    @Override
+    public void batchMutate(List<DataMutation> mutations) throws IOException {
+        for (DataMutation dm : mutations) {
+            mutate(dm);
+        }
     }
 
     @Override

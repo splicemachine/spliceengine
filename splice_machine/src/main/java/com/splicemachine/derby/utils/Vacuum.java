@@ -19,9 +19,20 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.carrotsearch.hppc.LongHashSet;
 
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.storage.DataCell;
+import com.splicemachine.storage.DataDelete;
+import com.splicemachine.storage.DataScanner;
+import com.splicemachine.storage.Partition;
 import org.spark_project.guava.collect.Iterables;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
@@ -42,6 +53,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 /**
@@ -87,8 +99,26 @@ public class Vacuum{
         }
         LOG.info("Found " + activeConglomerates.size() + " active conglomerates.");
 
-        //get all the tables from HBaseAdmin
-        try {
+        //get all dropped conglomerates
+        Map<Long, Long> droppedConglomerates = new HashMap<>();
+        List<Long> toDelete = new ArrayList<>();
+        SIDriver driver = SIDriver.driver();
+        try (Partition dropped = driver.getTableFactory().getTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME)) {
+            try (DataScanner scanner = dropped.openScanner(driver.baseOperationFactory().newScan())) {
+                while (true) {
+                    List<DataCell> res = scanner.next(0);
+                    if (res.isEmpty())
+                        break;
+                    for (DataCell dc : res) {
+                        long conglomerateId = Bytes.toLong(dc.key());
+                        long txnId = Bytes.toLong(dc.value());
+
+                        droppedConglomerates.putIfAbsent(conglomerateId, txnId);
+                    }
+                }
+            }
+
+            //get all the tables from HBaseAdmin
             Iterable<TableDescriptor> hTableDescriptors = partitionAdmin.listTables();
 
             if (LOG.isTraceEnabled()) {
@@ -96,6 +126,11 @@ public class Vacuum{
             }
 
             for(TableDescriptor table:hTableDescriptors){
+                boolean restoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
+                if (restoreMode) {
+                    SpliceLogUtils.info(LOG, "The database is in restore mode, exiting...");
+                    break;
+                }
                 try{
                     String[] tableName = parseTableName(table.getTableName());
                     if (tableName.length < 2) {
@@ -130,8 +165,16 @@ public class Vacuum{
                             requiresDroppedId = true;
                         }
                     }
-                    if (!ignoreDroppedId && table.getDroppedTransactionId() != null) {
-                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(Long.parseLong(table.getDroppedTransactionId()));
+                    boolean hasDroppedId = table.getDroppedTransactionId() != null || droppedConglomerates.containsKey(tableConglom);
+                    if (!ignoreDroppedId && hasDroppedId) {
+                        long txnId;
+                        // The first case deals with conglomerates dropped before DB-7501 got merged
+                        if (table.getDroppedTransactionId() != null) 
+                            txnId = Long.parseLong(table.getDroppedTransactionId());
+                        else
+                            txnId = droppedConglomerates.get(tableConglom);
+
+                        TxnView txn = SIDriver.driver().getTxnSupplier().getTransaction(txnId);
                         if (txn.getEffectiveCommitTimestamp() == -1 || txn.getEffectiveCommitTimestamp() >= oldestActiveTransaction) {
                             // This conglomerate was dropped by an active, rolled back or "recent" transaction
                             // (newer than the oldest active txn) ignore it in case it's still in use
@@ -143,11 +186,17 @@ public class Vacuum{
                         }
                     } else if (requiresDroppedId) {
                         // This table must have a dropped transaction id before we can process it for vacuum
+                        if(!activeConglomerates.contains(tableConglom)){
+                            LOG.info("Ignoring table without dropped id, even though is not in activeConglomerates list: " + tableConglom);
+                        } else if (LOG.isTraceEnabled()) {
+                            LOG.trace("Ignoring table without dropped id: " + table.getTableName());
+                        }
                         continue;
                     }
                     if(!activeConglomerates.contains(tableConglom)){
                         LOG.info("Deleting inactive table: " + table.getTableName());
                         partitionAdmin.deleteTable(tableName[1]);
+                        toDelete.add(tableConglom);
                     } else if(LOG.isTraceEnabled()) {
                         LOG.trace("Skipping still active table: " + table.getTableName());
                     }
@@ -158,6 +207,13 @@ public class Vacuum{
                     LOG.info("Ignoring non-numeric table name: " + table.getTableName());
                 }
             }
+
+            List<DataDelete> deletes = new ArrayList<>();
+            for (long removed : toDelete) {
+                DataDelete delete = driver.baseOperationFactory().newDelete(Bytes.toBytes(removed));
+                deletes.add(delete);
+            }
+            dropped.delete(deletes);
         } catch (IOException e) {
             LOG.error("Vacuum Unexpected exception", e);
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));

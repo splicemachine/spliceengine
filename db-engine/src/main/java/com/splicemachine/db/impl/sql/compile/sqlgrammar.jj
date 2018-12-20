@@ -2864,9 +2864,10 @@ TOKEN [IGNORE_CASE] :
 |	<LOCKS: "locks">
 |	<LOCKSIZE: "locksize">
 |	<LOGGED: "logged">
+|   <LOGICAL: "logical">
 |	<MAXVALUE: "maxvalue">
 |	<MINVALUE: "minvalue">
-|       <MOD: "mod">
+|   <MOD: "mod">
 |	<MODIFIES: "modifies">
 |	<MODIFY: "modify">
 |	<MONTH: "month">
@@ -2881,6 +2882,7 @@ TOKEN [IGNORE_CASE] :
 |	<OBJECT: "object">
 |	<OFFSET: "offset">
 |	<PASCAL: "pascal">
+|   <PHYSICAL: "physical">
 |	<PLI: "pli">
 |	<PRECISION: "precision">
 |	<RELEASE: "release">
@@ -2971,6 +2973,7 @@ TOKEN [IGNORE_CASE] :
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
 |	<EXPORT: "export">
+|	<EXPORT_BINARY: "export_binary">
 |	<FIRSTVALUE: "first_value">
 |	<LAG: "lag">
 |	<LASTVALUE: "last_value">
@@ -3023,6 +3026,7 @@ TOKEN [IGNORE_CASE] :
 |   <ESTIMATE: "estimate">
 |	<EXCLUSIVE: "exclusive">
 |	<FN: "fn">
+|   <FRACTION: "fraction">
 |	<INDEX: "index">
 |	<INPLACE: "inplace">
 |	<JAVA: "java">
@@ -3512,6 +3516,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 		statementNode = execStatement() |
 		statementNode = explainStatement() |
 		statementNode = exportStatement() |
+		statementNode = binaryExportStatement() |
 		statementNode = pinStatement() |
 		statementNode = dropPinStatement()
     )
@@ -3891,6 +3896,22 @@ exportStatement() throws StandardException :
     <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                   statementNode,
+                                   parameterList,
+                                   getContextManager());
+    }
+}
+
+StatementNode
+binaryExportStatement() throws StandardException :
+{
+    StatementNode   statementNode;
+    Vector parameterList = new Vector();
+}
+{
+    <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+    {
+        return (BinaryExportNode) nodeFactory.getNode(C_NodeTypes.BINARY_EXPORT_NODE,
                                    statementNode,
                                    parameterList,
                                    getContextManager());
@@ -11835,6 +11856,14 @@ tableDefinition() throws StandardException :
 	OrderByList orderCols = null;
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
 	ValueNode[] topNOut = new ValueNode[ 1 ];
+	Boolean     isLogicalKey = Boolean.TRUE;
+	Boolean     presplit = Boolean.FALSE;
+	ValueNode   splitKeysPath = null;
+	ValueNode   columnDelimiter = null;
+    ValueNode   characterDelimiter = null;
+    ValueNode   timestampFormat = null;
+    ValueNode   dateFormat = null;
+    ValueNode   timeFormat = null;
 }
 {
     [ isExternal = isExternal() ]
@@ -11846,23 +11875,50 @@ tableDefinition() throws StandardException :
 	                   getToken(3).kind != RIGHT_PAREN})
 			tableElementList = tableElementList()
 			[ properties = propertyList(false)<CHECK_PROPERTIES>]
-			[<COMMA>]
-			[ <COMPRESSED> <WITH> compression =compressedAs() ]
-			[<COMMA>]
-            [ <PARTITIONED> <BY> <LEFT_PAREN> partitionedResultColumns = tableColumnList() <RIGHT_PAREN> ]
-            [<COMMA>]
-            [ <ROW> <FORMAT> <DELIMITED>
+			([<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
+			  <SPLITKEYS> {presplit = Boolean.TRUE;}
+              <LOCATION> {splitKeysPath = literal();}
+              [<COLUMNDELIMITER> {columnDelimiter = literal();}]
+              [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
+              [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
+              [<DATEFORMAT> {dateFormat = literal();}]
+              [<TIMEFORMAT> {timeFormat = literal();}]
+              {
+              		validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
+                                linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
+              			return (StatementNode) nodeFactory.getNode(
+              								C_NodeTypes.CREATE_TABLE_NODE,
+              								tableName,
+              								tableElementList,
+              								properties,
+              								new Character(lockGranularity),
+              								presplit,
+              								isLogicalKey,
+              								splitKeysPath,
+              								columnDelimiter,
+              								characterDelimiter,
+              								timestampFormat,
+              								dateFormat,
+              								timeFormat,
+              								getContextManager());
+              			}
+            |[<COMMA>]
+             [ <COMPRESSED> <WITH> compression =compressedAs() ]
+             [<COMMA>]
+             [ <PARTITIONED> <BY> <LEFT_PAREN> partitionedResultColumns = tableColumnList() <RIGHT_PAREN> ]
+             [<COMMA>]
+             [ <ROW> <FORMAT> <DELIMITED>
                 [ <FIELDS> <TERMINATED> <BY> { terminationChar=literal(); }  [
                 [<COMMA>]
                 <ESCAPED> <BY> { escapedByChar=literal(); } ] ]
                 [<COMMA>]
                 [ <LINES> <TERMINATED> <BY> { linesTerminatedByChar=literal(); } ]
-            ]
-			[<COMMA>]
-            [<STORED> <AS> storageFormat = storedAs() ]
-			[<COMMA>]
-            [<LOCATION> {location = literal();}]
-            [<MERGE> <SCHEMA> {mergeSchema = Boolean.TRUE;}]
+             ]
+             [<COMMA>]
+             [<STORED> <AS> storageFormat = storedAs() ]
+             [<COMMA>]
+             [<LOCATION> {location = literal();}]
+             [<MERGE> <SCHEMA> {mergeSchema = Boolean.TRUE;}]
 			{
 			validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                         linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
@@ -11882,7 +11938,7 @@ tableDefinition() throws StandardException :
 										compression,
 										mergeSchema,
 										getContextManager());
-			}
+			})
 		|
 			[ <LEFT_PAREN> resultColumns = tableColumnList() <RIGHT_PAREN> ]
 						[<COMMA>]
@@ -11945,6 +12001,7 @@ tableDefinition() throws StandardException :
 			}
 	)
 }
+
 
 void
 validateParameters(boolean isExternal, String storageFormat, ValueNode terminationChar, ValueNode escapedByChar,
@@ -12129,9 +12186,11 @@ indexDefinition() throws StandardException :
     ValueNode   timestampFormat = null;
     ValueNode   dateFormat = null;
     ValueNode   timeFormat = null;
+    ValueNode   sampleFraction = null;
     Boolean     sampling = Boolean.FALSE;
     Boolean     preSplit = Boolean.FALSE;
-	Vector	indexColumnList = new Vector();
+	Vector	    indexColumnList = new Vector();
+	Boolean     isLogicalKey = Boolean.TRUE;
 }
 {
 	/*
@@ -12146,17 +12205,20 @@ indexDefinition() throws StandardException :
 		    [ <NULL> <KEYS> { excludeNulls = true;} ]
 		    [ <_DEFAULT> <KEYS> { excludeDefaults = true;} ]
 		]
-		[   <SPLITKEYS> {preSplit = Boolean.TRUE;}
-		        [ <AUTO> {sampling = Boolean.TRUE; } |
-		          <LOCATION> {splitKeysPath = literal();}
-		          [<COLUMNDELIMITER> {columnDelimiter = literal();}]
-		          [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
-                  [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
-                  [<DATEFORMAT> {dateFormat = literal();}]
-                  [<TIMEFORMAT> {timeFormat = literal();}]
-		        ]
-		    <HFILE> <LOCATION> {hfilePath = literal();}
+		[   [<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
+		    <SPLITKEYS> {preSplit = Boolean.TRUE;}
+		        <LOCATION> {splitKeysPath = literal();}
+		         [<COLUMNDELIMITER> {columnDelimiter = literal();}]
+		         [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
+                 [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
+                 [<DATEFORMAT> {dateFormat = literal();}]
+                 [<TIMEFORMAT> {timeFormat = literal();}]
+
+		    |<AUTO> {sampling = Boolean.TRUE;}
+		     <SPLITKEYS> {preSplit = Boolean.TRUE;}
+		     [ <SAMPLE><FRACTION> {sampleFraction = literal();}]
 		]
+		[<HFILE> <LOCATION> {hfilePath = literal();}]
 
 	{
 		/* User allowed to specify schema name on table and index.
@@ -12196,7 +12258,9 @@ indexDefinition() throws StandardException :
 								excludeNulls,
 								excludeDefaults,
 								preSplit,
+								isLogicalKey,
 								sampling,
+								sampleFraction,
 								splitKeysPath,
 								columnDelimiter,
 								characterDelimiter,
@@ -16718,6 +16782,7 @@ nonReservedKeyword()  :
 	|	tok = <FIRSTVALUE>
 	|	tok = <FN>
 	|	tok = <FORTRAN>
+	|   tok = <FRACTION>
 	|	tok = <GENERATED>
 	|   tok = <HFILE>
 	|	tok = <IDENTITY_VAL_LOCAL>

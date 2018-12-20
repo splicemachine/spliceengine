@@ -101,6 +101,18 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                 .withCreate("CREATE TABLE TABLE_C (ACCOUNT VARCHAR(75),CATEGORY VARCHAR(75),SUB_CATEGORY VARCHAR(75),SOURCE VARCHAR(75),TYPE VARCHAR(500))")
                 .withInsert("insert into table_c values(?,?,?,?,?)")
                 .withRows(rows(row("ACCOUNT", "CATEGORY", "SUB_CATEGORY", "PBD_SMARTWORKS", "A"))).create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("CREATE TABLE CFTC1(col1 DATE)")
+                .withInsert("insert into CFTC1 values (?)")
+                .withRows(rows(row("2018-08-02")))
+                .create();
+
+        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+                .withCreate("CREATE TABLE CFTC2(col2 char(8))")
+                .withInsert("insert into CFTC2 values (?)")
+                .withRows(rows(row("02.08.18")))
+                .create();
     }
 
     @Test
@@ -285,5 +297,21 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
         } catch (SQLException se) {
             Assert.assertTrue(!this.joinStrategy.equals("NESTEDLOOP") && se.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
         }
+    }
+
+    @Test
+    public void testJoinExpressionWithSQLFunctionWithOneColumnReference() throws Exception {
+        String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "CFTC1\n" +
+                ", CFTC2  --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                "where TO_CHAR(col1,'dd.mm.yy') = col2", joinStrategy, joinStrategy);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+        String expected =
+                "COL1    |  COL2   |\n" +
+                        "----------------------\n" +
+                        "2018-08-02 |02.08.18 |";
+        assertEquals(s, expected, s);
     }
 }
