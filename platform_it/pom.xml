@@ -119,6 +119,7 @@
             </exclusions>
         </dependency>
         <dependency>
+            <!-- org.apache.hive.jdbc.HiveDriver -->
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-jdbc</artifactId>
             <version>${hive.version}</version>
@@ -163,8 +164,23 @@
             <artifactId>spark-sql_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-hadoop</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-column</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-avro</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
+            <!-- com.databricks.spark.avro -->
             <groupId>com.databricks</groupId>
             <artifactId>spark-avro_${scala.binary.version}</artifactId>
             <version>4.0.0</version>
