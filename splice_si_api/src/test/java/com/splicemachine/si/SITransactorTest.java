@@ -1838,17 +1838,41 @@ public class SITransactorTest {
         }
     }
 
+
     @Test
-    public void testRolledBackTxnDoesntMaskEarlierConflcits() throws IOException, InterruptedException {
+    public void testRolledBackTxnDoesntMaskEarlierConflicts() throws IOException, InterruptedException {
         try {
             final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
             final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
             final Txn t3 = control.beginTransaction(DESTINATION_TABLE);
             testUtility.insertAge(t2, "joe66", 20);
-
             t2.rollback();
             testUtility.insertAge(t1, "joe66", 22);
             testUtility.insertAge(t3, "joe66", 23);
+
+            fail("Expected WW conflict");
+        } catch (IOException e) {
+            testUtility.assertWriteConflict(e);
+        }
+    }
+
+
+    @Test
+    public void testRolledBackTxnDoesntMaskConflictsWithChildTxn() throws IOException, InterruptedException {
+        try {
+            final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+            final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
+            testUtility.insertAge(t1, "joe66", 22);
+            t1.commit();
+
+            final Txn t3 = control.beginTransaction(DESTINATION_TABLE);
+            testUtility.insertAge(t3, "joe66", 23);
+            t3.rollback();
+
+            final Txn t22 = control.beginChildTransaction(t2, DESTINATION_TABLE);
+
+            testUtility.insertAge(t22, "joe66", 20);
+            t2.commit();
 
             fail("Expected WW conflict");
         } catch (IOException e) {
