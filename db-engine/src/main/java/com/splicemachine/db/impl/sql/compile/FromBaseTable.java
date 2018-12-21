@@ -2070,7 +2070,7 @@ public class FromBaseTable extends FromTable {
      *
      * @return The final CostEstimate for this ResultSetNode.
      */
-    public CostEstimate getFinalCostEstimate(){
+    public CostEstimate getFinalCostEstimate(boolean useSelf){
         return getTrulyTheBestAccessPath().getCostEstimate();
     }
 
@@ -2117,7 +2117,7 @@ public class FromBaseTable extends FromTable {
 		*/
     private void generateMaxSpecialResultSet ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
-        CostEstimate costEstimate=getFinalCostEstimate();
+        CostEstimate costEstimate=getFinalCostEstimate(false);
         int colRefItem=(referencedCols==null)?
                 -1:
                 acb.addItem(referencedCols);
@@ -2153,7 +2153,7 @@ public class FromBaseTable extends FromTable {
 
     private void generateDistinctScan ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
-        CostEstimate costEstimate=getFinalCostEstimate();
+        CostEstimate costEstimate=getFinalCostEstimate(false);
         int colRefItem=(referencedCols==null)? -1: acb.addItem(referencedCols);
         boolean tableLockGranularity=tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY;
 
@@ -2943,7 +2943,7 @@ public class FromBaseTable extends FromTable {
     @Override
     void markForDistinctScan() throws StandardException {
         distinctScan=true;
-        resultColumns.computeDistinctCardinality(getFinalCostEstimate());
+        resultColumns.computeDistinctCardinality(getFinalCostEstimate(false));
     }
 
 
@@ -3336,7 +3336,7 @@ public class FromBaseTable extends FromTable {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
         sb.append(getClassName(indexName)).append("(")
-                .append(",").append(getFinalCostEstimate().prettyFromBaseTableString());
+                .append(",").append(getFinalCostEstimate(false).prettyFromBaseTableString());
         if (indexName != null)
             sb.append(",baseTable=").append(getPrettyTableName());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
@@ -3353,7 +3353,7 @@ public class FromBaseTable extends FromTable {
         sb.append(spaceToLevel());
         sb.append(getClassName(indexName)).append("(");
         sb.append("n=").append(order).append(attrDelim);
-        sb.append(getFinalCostEstimate().prettyFromBaseTableString(attrDelim));
+        sb.append(getFinalCostEstimate(false).prettyFromBaseTableString(attrDelim));
         if (indexName != null)
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
         List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);

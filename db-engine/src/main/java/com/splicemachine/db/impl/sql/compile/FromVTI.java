@@ -1355,7 +1355,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         int				numSet = 0;
 
         // Get our final cost estimate.
-        costEstimate = getFinalCostEstimate();
+        costEstimate = getFinalCostEstimate(false);
 
         for (int index = 0; index < rclSize; index++)
         {
@@ -1770,7 +1770,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         return spaceToLevel() +
                 "VTI:" + getName() + "(" +
                 "n=" + order +
-                attrDelim + getFinalCostEstimate().prettyProcessingString(attrDelim) +
+                attrDelim + getFinalCostEstimate(false).prettyProcessingString(attrDelim) +
                 ")";
     }
 

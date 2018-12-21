@@ -819,7 +819,7 @@ public class CursorNode extends DMLStatementNode{
                     sb.append(attrDelim).append("name=").append(name);
                 }
                 if (this.resultSet!=null) {
-                    sb.append(",rows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+                    sb.append(",rows=").append(this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
                 }
                 sb.append(attrDelim).append("updateMode=").append(updateModeString(updateMode))
                 .append(")");

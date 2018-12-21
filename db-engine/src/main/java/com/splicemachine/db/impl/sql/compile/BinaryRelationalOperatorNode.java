@@ -1432,7 +1432,7 @@ public class BinaryRelationalOperatorNode
             double sel = factor * ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
             // avoid the estimation to go over 1, in case it happens, round down to 0.9 to be consistent with the logic in
             // InListSelectivity.getSelectivity()
-            if (sel > 1.0d)
+            if (sel > 0.9d)
                 sel = 0.9d;;
             return sel;
         } else if (rightOperand instanceof ColumnReference && leftOperand instanceof ParameterNode) {

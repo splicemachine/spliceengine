@@ -1051,7 +1051,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         assignResultSetNumber();
 
         // Get the final cost estimate from the child.
-        costEstimate = childResult.getFinalCostEstimate();
+        costEstimate = childResult.getFinalCostEstimate(true);
 
 		/*
 		** We have aggregates, so save the windowInfoList
@@ -1543,7 +1543,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
         return spaceToLevel() + "WindowFunction" + "(" + "n=" + order + attrDelim +
-            getFinalCostEstimate().prettyProjectionString(attrDelim) + ")";
+            getFinalCostEstimate(false).prettyProjectionString(attrDelim) + ")";
     }
 
     @Override

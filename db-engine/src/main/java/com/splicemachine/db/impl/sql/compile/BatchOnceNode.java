@@ -133,7 +133,7 @@ public class BatchOnceNode extends SingleChildResultSetNode {
         return spaceToLevel() +
                 "BatchOnce" + "(" +
                 "n=" + order +
-                attrDelim + getFinalCostEstimate().prettyProcessingString(attrDelim) +
+                attrDelim + getFinalCostEstimate(false).prettyProcessingString(attrDelim) +
                 ")";
     }
     @Override

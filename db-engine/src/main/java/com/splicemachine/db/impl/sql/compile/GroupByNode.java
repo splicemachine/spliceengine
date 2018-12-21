@@ -257,7 +257,7 @@ public class GroupByNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         if(costEstimate==null){
             throw new RuntimeException("Should not be null");
         }
@@ -419,7 +419,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         assignResultSetNumber();
 
         // Get the final cost estimate from the child.
-        costEstimate=childResult.getFinalCostEstimate();
+        childResult.getFinalCostEstimate(true);
 
 		/*
 		** Get the column ordering for the sort.  Note that
@@ -1247,7 +1247,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         sb = sb.append(spaceToLevel())
                 .append("GroupBy").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
+        sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }
