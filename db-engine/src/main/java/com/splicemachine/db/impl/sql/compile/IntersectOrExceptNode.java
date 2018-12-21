@@ -363,7 +363,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
 		assignResultSetNumber();
 
 		// Get our final cost estimate based on the child estimates.
-		costEstimate = getFinalCostEstimate();
+		costEstimate = getFinalCostEstimate(false);
 
 		// build up the tree.
 
@@ -412,14 +412,14 @@ public class IntersectOrExceptNode extends SetOperatorNode
 	 *  rows depends on whether this is an INTERSECT or EXCEPT (see
 	 *  getRowCountEstimate() in this class for more).
 	 */
-	public CostEstimate getFinalCostEstimate()
+	public CostEstimate getFinalCostEstimate(boolean useSelf)
 		throws StandardException
 	{
 		if (finalCostEstimate != null)
 			return finalCostEstimate;
 
-		CostEstimate leftCE = leftResultSet.getFinalCostEstimate();
-		CostEstimate rightCE = rightResultSet.getFinalCostEstimate();
+		CostEstimate leftCE = leftResultSet.getFinalCostEstimate(true);
+		CostEstimate rightCE = rightResultSet.getFinalCostEstimate(true);
 
 		finalCostEstimate = getNewCostEstimate();
 		finalCostEstimate.setCost(
@@ -478,7 +478,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
         sb = sb.append(spaceToLevel())
                 .append(getExplainDisplay()).append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
+        sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

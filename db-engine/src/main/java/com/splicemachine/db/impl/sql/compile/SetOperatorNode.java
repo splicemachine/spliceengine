@@ -173,7 +173,7 @@ abstract class SetOperatorNode extends TableOperatorNode
 
 		// Get the cost estimate for this node so that we can put it in
 		// the new ProjectRestrictNode, if one is needed.
-		CostEstimate ce = getFinalCostEstimate();
+		CostEstimate ce = getFinalCostEstimate(false);
 
 		// Modify this node's access paths.
 		ResultSetNode topNode = (ResultSetNode)modifyAccessPath(outerTables);

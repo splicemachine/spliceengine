@@ -980,13 +980,16 @@ public class JoinNode extends TableOperatorNode{
      * Get the final CostEstimate for this JoinNode.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
+        if (useSelf && trulyTheBestAccessPath != null) {
+            return getTrulyTheBestAccessPath().getCostEstimate();
+        }
         // If we already found it, just return it.
         if(finalCostEstimate!=null)
             return finalCostEstimate;
 
 //        CostEstimate leftCE=leftResultSet.getFinalCostEstimate();
-        CostEstimate rightCE=rightResultSet.getFinalCostEstimate();
+        CostEstimate rightCE=rightResultSet.getFinalCostEstimate(true);
         finalCostEstimate=getNewCostEstimate();
         finalCostEstimate.setCost(rightCE);
         finalCostEstimate.setBase(null);
@@ -1839,7 +1842,7 @@ public class JoinNode extends TableOperatorNode{
 
         }
         // Get our final cost estimate based on child estimates.
-        costEstimate=getFinalCostEstimate();
+        costEstimate=getFinalCostEstimate(false);
 
         // for the join clause, we generate an exprFun
         // that evaluates the expression of the clause
@@ -1961,7 +1964,7 @@ public class JoinNode extends TableOperatorNode{
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
+                .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (joinPreds != null && !joinPreds.isEmpty())

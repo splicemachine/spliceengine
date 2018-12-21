@@ -867,8 +867,8 @@ public final class UpdateNode extends DMLModStatementNode
         if( null != targetVTI)
         {
 			targetVTI.assignCostEstimate(resultSet.getNewCostEstimate());
-            mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
-            mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+            mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
+            mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
             mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateVTIResultSet", ClassName.ResultSet, 3);
 		}
         else
@@ -887,8 +887,8 @@ public final class UpdateNode extends DMLModStatementNode
                               ClassName.ResultSet, 5);
             }else
             {
-                mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
-                mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+                mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
+                mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
                 mb.push(targetTableDescriptor.getVersion());
                 mb.push(this.printExplainInformationForActivation());
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getUpdateResultSet",
@@ -1535,7 +1535,7 @@ public final class UpdateNode extends DMLModStatementNode
 			.append("Update").append("(")
 			.append("n=").append(order).append(attrDelim);
 		if (this.resultSet!=null) {
-			sb.append(this.resultSet.getFinalCostEstimate().prettyDmlStmtString("updatedRows"));
+			sb.append(this.resultSet.getFinalCostEstimate(false).prettyDmlStmtString("updatedRows"));
 		}
 		sb.append(attrDelim).append("targetTable=").append(targetTableName).append(")");
         return sb.toString();

@@ -1107,7 +1107,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * the final cost estimate for the child node.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         if(finalCostEstimate!=null)
             // we already set it, so just return it.
             return finalCostEstimate;
@@ -1121,7 +1121,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         // hold "trulyTheBestAccessPath" for it's child so we pull
         // the final cost from there.
         if(childResult instanceof Optimizable)
-            finalCostEstimate=childResult.getFinalCostEstimate();
+            finalCostEstimate = childResult.getFinalCostEstimate(true);
         else
             finalCostEstimate=getTrulyTheBestAccessPath().getCostEstimate();
 
@@ -1193,7 +1193,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 childResult.generateResultSet(acb,mb);
             else
                 childResult.generate((ActivationClassBuilder)acb,mb);
-            costEstimate=childResult.getFinalCostEstimate();
+            costEstimate=childResult.getFinalCostEstimate(true);
             return;
         }
 
@@ -1286,7 +1286,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         assignResultSetNumber();
 
         // Load our final cost estimate.
-        costEstimate=getFinalCostEstimate();
+        costEstimate=getFinalCostEstimate(false);
 
         // if there is no restriction, we just want to pass null.
         if(restriction==null){
@@ -1668,7 +1668,13 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         sb.append(spaceToLevel())
                 .append("ProjectRestrict").append("(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProjectionString(attrDelim));
+                .append(attrDelim);
+
+        if (childResult instanceof FromBaseTable || childResult instanceof FromVTI || childResult instanceof IndexToBaseRowNode) {
+            sb.append(getFinalCostEstimate(false).prettyProjectionString(attrDelim));
+        } else
+            sb.append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
+
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && !qualifiers.isEmpty()) //add
             sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");

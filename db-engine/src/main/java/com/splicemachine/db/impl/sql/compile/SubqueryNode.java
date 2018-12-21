@@ -1068,7 +1068,7 @@ public class SubqueryNode extends ValueNode{
         }
 
         // Get cost estimate for underlying subquery
-        CostEstimate costEstimate=resultSet.getFinalCostEstimate();
+        CostEstimate costEstimate=resultSet.getFinalCostEstimate(false);
 
 		/* Generate a new method.  It's only used within the other
 		 * exprFuns, so it could be private. but since we don't
@@ -1109,7 +1109,7 @@ public class SubqueryNode extends ValueNode{
                 ResultSetNode materialSubNode=new MaterializeSubqueryNode(subRS);
 
                 // Propagate the resultSet's cost estimate to the new node.
-                materialSubNode.costEstimate=resultSet.getFinalCostEstimate();
+                materialSubNode.costEstimate=resultSet.getFinalCostEstimate(false);
 
                 ((ProjectRestrictNode)resultSet).setChildResult(materialSubNode);
 
@@ -2450,7 +2450,7 @@ public class SubqueryNode extends ValueNode{
                 .append("Subquery(")
                 .append("n=").append(order);
                 if (resultSet!=null) {
-                    sb.append(attrDelim).append(resultSet.getFinalCostEstimate().prettyScrollInsensitiveString(attrDelim));
+                    sb.append(attrDelim).append(resultSet.getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
                 }
                 sb.append(attrDelim).append(String.format("correlated=%b%sexpression=%b%sinvariant=%b",
                         hasCorrelatedCRs(),attrDelim,getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY,attrDelim,isInvariant()))

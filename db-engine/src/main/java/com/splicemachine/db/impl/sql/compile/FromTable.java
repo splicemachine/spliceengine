@@ -573,7 +573,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * we just return the value stored in costEstimate as a default.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         // If we already found it, just return it.
         if(finalCostEstimate!=null)
             return finalCostEstimate;
