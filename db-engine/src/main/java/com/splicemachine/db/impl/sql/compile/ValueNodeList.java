@@ -475,7 +475,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	// Need to use something other than bubble sort.  msirek-temp
+
 	void sortInAscendingOrder(DataValueDescriptor judgeODV)
 		throws StandardException
 	{

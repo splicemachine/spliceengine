@@ -43,6 +43,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.splicemachine.db.shared.common.sanity.SanityManager.THROWASSERT;
+
 /**
  * A BinaryListOperatorNode represents a built-in "binary" operator with a single
  * operand on the left of the operator and a list of operands on the right.
@@ -113,7 +115,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     
     public boolean isSingleLeftOperand() { return singleLeftOperand; }
     
-    private ValueNodeList getLeftOperandList() {
+    public ValueNodeList getLeftOperandList() {
         return leftOperandList;
     }
     public String getOperator(){return operator;}
@@ -182,7 +184,10 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         rightOperandList.bindExpression(fromList,subqueryList,aggregateVector);
 
 		/* Is there a ? parameter on the left? */
-        if (singleLeftOperand)  // msirek-temp
+        /* Can't specify multicolumn IN list in SQL currently, so only the
+           single-column case is handled for now.
+         */
+        if (singleLeftOperand)
         {
             if (getLeftOperand().requiresTypeFromContext()) {
                 /*
@@ -210,6 +215,8 @@ public abstract class BinaryListOperatorNode extends ValueNode{
                 leftOperandList.setElementAt(getLeftOperand().genSQLJavaSQLTree(), 0);
             }
         }
+        else
+            THROWASSERT("Multicolumn IN list in SQL statement not currently supported.");
 
 		/* Generate bound conversion trees for those elements in the rightOperandList
 		 * that are not built-in types.
@@ -341,10 +348,10 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     @Override
     public boolean categorize(JBitSet referencedTabs,boolean simplePredsOnly) throws StandardException{
         boolean pushable = false;
-        if (singleLeftOperand) {  // msirek-temp :   Need to support multi-column for pushdown?
-            pushable = getLeftOperand().categorize(referencedTabs, simplePredsOnly);
-            pushable = (rightOperandList.categorize(referencedTabs, simplePredsOnly) && pushable);
-        }
+
+        pushable = leftOperandList.categorize(referencedTabs, simplePredsOnly);
+        pushable = (rightOperandList.categorize(referencedTabs, simplePredsOnly) && pushable);
+
         return pushable;
     }
 

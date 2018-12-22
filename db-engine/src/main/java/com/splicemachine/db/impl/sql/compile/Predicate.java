@@ -1293,18 +1293,25 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         InListOperatorNode sourceInList=getSourceInList();
         if(sourceInList==null)
             return false; //not a multi-probe predicate
-        ValueNode lo = sourceInList.getLeftOperand();
-        //if it doesn't refer to a column, then it can't be a qualifier
-        if(!(lo instanceof ColumnReference))
-            return false;
-        ColumnReference colRef = (ColumnReference)lo;
-        int colNum = colRef.getColumnNumber();
-        if (!bitSet.get(colNum)) // Miss
-            return false;
+        for (Object o : sourceInList.getLeftOperandList()) {
+            ValueNode lo = (ValueNode) o;
+            //if it doesn't refer to a column, then it can't be a qualifier
+            if (!(lo instanceof ColumnReference))
+                return false;
+            ColumnReference colRef = (ColumnReference) lo;
+            int colNum = colRef.getColumnNumber();
+            if (!bitSet.get(colNum)) // Miss
+                return false;
+        }
         ValueNodeList rightOperandList=sourceInList.getRightOperandList();
         for(Object o:rightOperandList){
-            if(!(o instanceof ConstantNode))
+            if(!(o instanceof ConstantNode)) {
+                if (o instanceof ListValueNode) {
+                    if (!((ListValueNode)o).allConstantsNodesInList())
+                        return false;
+                }
                 return false; //not all constants in the IN list
+            }
         }
         return true;
     }

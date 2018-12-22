@@ -263,6 +263,18 @@
                 </executions>
                 <configuration>
                     <mainClass>com.splicemachine.derby.lifecycle.MemDatabase</mainClass>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>com.splicemachine.enableLegacyAsserts</key>
+                            <value>true</value>
+                        </systemProperty>
+                     <!-- Uncomment the following to dump executor class files for mem platform to the mem_sql directory.
+                        <systemProperty>
+                            <key>splice.debug.dumpClassFile</key>
+                            <value>true</value>
+                        </systemProperty>
+                      -->
+                    </systemProperties>
                 </configuration>
             </plugin>
             <plugin>

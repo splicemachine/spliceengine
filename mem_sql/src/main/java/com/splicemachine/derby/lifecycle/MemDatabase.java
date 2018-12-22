@@ -115,7 +115,10 @@ public class MemDatabase{
             builder.maxDependentWriteThreads = 50;
             builder.partitionserverPort = 16020;
             builder.storageFactoryHome = System.getProperty("user.dir");
-            builder.debugDumpClassFile = true;  //msirek-temp
+    
+            if (System.getProperty("splice.debug.dumpClassFile").equals("true") ||
+                System.getProperty("derby.debug.true").equals("DumpClassFile"))
+              builder.debugDumpClassFile = true;
         }
     }
 }

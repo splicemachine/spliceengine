@@ -970,8 +970,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         groupedConstants,
                         getContextManager());
         
-                boolean nullableResult = ilon.leftOperandList.getTypeServices().isNullable() ||
-                                         ilon.rightOperandList.getTypeServices().isNullable();
+                boolean nullableResult = ilon.leftOperandList.isNullable() ||
+                                         ilon.rightOperandList.isNullable();
                 ilon.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
                 
                 andNode = ilon.convertToEqualityPredOrMuiltiProbeBinaryComparisonOp();
@@ -3316,6 +3316,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     consMB.callMethod(VMOpcode.INVOKESTATIC, acb.getBaseClassName(), "allocateQualArray", "void", 3);
 
                     // get inlist column
+                    // TODO-msirek Can't currently push an OR'ed multicolumn in list qualifier.
+                    //  Need to handle all operands in leftOperandList if we support
+                    //  this in the future.
                     ColumnReference cr = (ColumnReference)inListNode.getLeftOperand().getHashableJoinColumnReference().get(0);
 
                     ConglomerateDescriptor bestCD = optTable.getTrulyTheBestAccessPath().

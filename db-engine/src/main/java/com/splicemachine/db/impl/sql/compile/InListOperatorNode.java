@@ -162,7 +162,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		/* Check for the degenerate case of a single element in the IN list.
 		 * If found, then convert to "=".
 		 */
-		if (rightOperandList.size() == 1 && singleLeftOperand)  // msirek-temp
+		if (rightOperandList.size() == 1 && singleLeftOperand)
 		{
 			ValueNode value = (ValueNode)rightOperandList.elementAt(0);
             if ((value instanceof CharConstantNode) && (getLeftOperand() instanceof ColumnReference)) {
@@ -873,7 +873,9 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		 * the min/max value of the operands on the right side.  Judge's type
 		 * is important for us, and is input parameter to min/maxValue.
 		 */
-		// TODO:  msirek-temp
+		// TODO-msirek: Handle multiple start/stop keys for multicolumn in list.
+		if (leftOperandList.size() > 1)
+			SanityManager.THROWASSERT("Not expecting multiple start/stop keys on multicolumn in list.");
         for (int listIdx = 0; listIdx < leftOperandList.size(); listIdx++) {
             ValueNode leftOperand = (ValueNode) leftOperandList.elementAt(listIdx);
             int leftTypeFormatId = leftOperand.getTypeId().getTypeFormatId();

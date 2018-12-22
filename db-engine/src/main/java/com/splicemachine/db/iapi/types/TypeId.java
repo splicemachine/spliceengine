@@ -238,7 +238,7 @@ public class TypeId{
     public static final TypeId DOUBLE_ID=create(StoredFormatIds.DOUBLE_TYPE_ID,StoredFormatIds.DOUBLE_TYPE_ID_IMPL);
     
     public static final TypeId LIST_ID = create(StoredFormatIds.LIST_TYPE_ID, StoredFormatIds.LIST_TYPE_ID_IMPL);
-
+    
         /*
         ** Others are created on demand by the getBuiltInTypeId(int),
         ** if they are built-in (i.e.? Part of JDBC .Types),
@@ -267,7 +267,7 @@ public class TypeId{
     private static final TypeId BLOB_ID=create(StoredFormatIds.BLOB_TYPE_ID,StoredFormatIds.BLOB_TYPE_ID_IMPL);
     private static final TypeId CLOB_ID=create(StoredFormatIds.CLOB_TYPE_ID,StoredFormatIds.CLOB_TYPE_ID_IMPL);
     private static final TypeId XML_ID=create(StoredFormatIds.XML_TYPE_ID,StoredFormatIds.XML_TYPE_ID_IMPL);
-
+    
     
     private static final TypeId[] ALL_BUILTIN_TYPE_IDS= {
                     BOOLEAN_ID,
@@ -291,7 +291,7 @@ public class TypeId{
                     LONGVARBIT_ID,
                     BLOB_ID,
                     CLOB_ID,
-                    XML_ID,
+                    XML_ID
             };
 
     /**

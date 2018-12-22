@@ -43,6 +43,8 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import java.util.Collections;
 import java.util.List;
 
+import static com.splicemachine.db.iapi.types.TypeId.LIST_ID;
+
 /**
  * A ListValue node holds a fixed number of ValueNodes, which may be constants, parameters,
  * column references, UDFs, etc.  The order of the values in the list matters, so
@@ -77,6 +79,15 @@ public final class ListValueNode extends ValueNode {
         return true;
     }
     
+    public boolean allConstantsNodesInList() {
+        final int listLen = valuesList.size();
+        for (int i = 0; i < listLen; i++) {
+            if (!(valuesList.elementAt(i) instanceof ConstantNode))
+                return false;
+        }
+        return true;
+    }
+    
     public boolean containsAllConstantNodes() {
         
         final int listLen = valuesList.size();
@@ -87,6 +98,18 @@ public final class ListValueNode extends ValueNode {
         return true;
     }
     
+    public int getMaximumWidth() {
+        int size = valuesList.size();
+        int maxWidth = 0;
+        for (int index = 0; index < size; index++) {
+            int tempWidth = ((ValueNode) valuesList.elementAt(index)).getTypeServices().getMaximumWidth();
+            if ((tempWidth + maxWidth) > Integer.MAX_VALUE) {
+                return Integer.MAX_VALUE;
+            }
+            maxWidth += tempWidth;
+        }
+        return maxWidth;
+    }
     /**
      * Initializer for a ListValueNode.
      *
@@ -100,6 +123,7 @@ public final class ListValueNode extends ValueNode {
             throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT);
         
         valuesList = (ValueNodeList) arg1;
+        setType(LIST_ID, valuesList.isNullable(), getMaximumWidth());
     }
 
     public boolean isNull() {
