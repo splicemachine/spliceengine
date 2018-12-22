@@ -116,8 +116,8 @@ public class MemDatabase{
             builder.partitionserverPort = 16020;
             builder.storageFactoryHome = System.getProperty("user.dir");
     
-            if (System.getProperty("splice.debug.dumpClassFile").equals("true") ||
-                System.getProperty("derby.debug.true").equals("DumpClassFile"))
+            if ("true".equals(System.getProperty("splice.debug.dumpClassFile")) ||
+                "DumpClassFile".equals(System.getProperty("derby.debug.true")))
               builder.debugDumpClassFile = true;
         }
     }

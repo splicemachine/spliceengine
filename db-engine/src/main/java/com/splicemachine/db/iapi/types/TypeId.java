@@ -291,7 +291,7 @@ public class TypeId{
                     LONGVARBIT_ID,
                     BLOB_ID,
                     CLOB_ID,
-                    XML_ID
+                    XML_ID,
             };
 
     /**
