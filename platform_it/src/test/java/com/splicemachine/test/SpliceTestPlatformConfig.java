@@ -18,8 +18,12 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.spark_project.guava.collect.Lists.transform;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.splicemachine.access.configuration.OlapConfigurations;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
@@ -116,6 +120,24 @@ class SpliceTestPlatformConfig {
         // Security
 
         if (secure) {
+
+            //read ee_key from a resource file
+            ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+            try (InputStream is = classloader.getResourceAsStream("ee.txt")) {
+                if (is != null) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                    String eeKey = reader.lines().collect(Collectors.joining(System.lineSeparator()));
+                    config.set("splicemachine.enterprise.key", eeKey);
+                    config.set("splice.authentication", "LDAP");
+                    config.set("splice.authentication.ldap.server", "ldap://localhost:4016");
+                    config.set("splice.authentication.ldap.searchAuthDN", "uid=admin,ou=system");
+                    config.set("splice.authentication.ldap.searchAuth.password", "secret");
+                    config.set("splice.authentication.ldap.searchBase", "ou=users,dc=example,dc=com");
+                    config.set("splice.authentication.ldap.searchFilter", "(&(objectClass=inetOrgPerson)(uid=%USERNAME%))");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             String keytab = hbaseRootDirUri + "/splice.keytab";
             config.set("hadoop.security.authentication", "kerberos");
             config.set("hbase.security.authentication", "kerberos");
@@ -125,13 +147,6 @@ class SpliceTestPlatformConfig {
             config.set("hbase.master.keytab.file", keytab);
             config.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
             config.set("yarn.resourcemanager.principal", "yarn/example.com@EXAMPLE.COM");
-            config.set("splicemachine.enterprise.key","EE_KEY");
-            config.set("splice.authentication","LDAP");
-            config.set("splice.authentication.ldap.server","ldap://localhost:4016");
-            config.set("splice.authentication.ldap.searchAuthDN","uid=admin,ou=system");
-            config.set("splice.authentication.ldap.searchAuth.password","secret");
-            config.set("splice.authentication.ldap.searchBase","ou=users,dc=example,dc=com");
-            config.set("splice.authentication.ldap.searchFilter","(&(objectClass=inetOrgPerson)(uid=%USERNAME%))");
 
         }
 
