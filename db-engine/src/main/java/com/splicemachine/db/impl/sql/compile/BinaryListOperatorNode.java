@@ -47,8 +47,12 @@ import static com.splicemachine.db.shared.common.sanity.SanityManager.THROWASSER
 
 /**
  * A BinaryListOperatorNode represents a built-in "binary" operator with a single
- * operand on the left of the operator and a list of operands on the right.
- * This covers operators such as IN and BETWEEN.
+ * operand on the left of the operator, either as a single ValueNode under leftOperandList,
+ * or a list of ValueNodes in the case of a multicolumn IN operator, e.g.
+ * (col1, col2) IN ((1,2), (3,4), (3,5)), and a list of operands on the right.
+ * This covers operators such as IN and BETWEEN.  There is no multicolumn
+ * BETWEEN operator currently, and multicolumn IN can only be generated
+ * internally by the parser, not specified in SQL.
  */
 
 public abstract class BinaryListOperatorNode extends ValueNode{
@@ -62,7 +66,6 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     ValueNode receiver; // used in generation
     
     // Left could have more than one column.
-    //ValueNode leftOperand;
     ValueNodeList leftOperandList;
     ValueNodeList rightOperandList;
     
@@ -71,7 +74,8 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     /**
      * Initializer for a BinaryListOperatorNode
      *
-     * @param leftOperand      The left operand of the node
+     * @param leftOperand      The left operand of the node, either a single ValueNode, or
+     *                         a ValueNodeList in the case of multicolumn IN.
      * @param rightOperandList The right operand list of the node
      * @param operator         String representation of operator
      */
@@ -438,7 +442,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     }
 
     public boolean isConstantOrParameterTreeNode() {
-        if (leftOperand != null && !leftOperand.isConstantOrParameterTreeNode())
+        if (leftOperandList != null && !leftOperandList.isConstantOrParameterTreeNode())
             return false;
 
         if (rightOperandList != null && !rightOperandList.containsOnlyConstantAndParamNodes())
