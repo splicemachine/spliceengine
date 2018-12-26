@@ -663,7 +663,33 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		mb.push(isOrdered); // third arg
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, receiverType, methodName, resultTypeName, 3);
 	}
-	
+
+	// It is expected that a DVD to move into the array has been pushed to the stack
+	// before this method is called.
+	protected void setDVDItemInArray(MethodBuilder mb, LocalField arrayField, int index,
+								     int constIdx, int numValsInSet) throws StandardException {
+		if (mb != null) {
+			if (numValsInSet > 1) {
+				// Push the ListDataType instance in prep for calling setFrom.
+				mb.getField(arrayField);
+				mb.getArrayElement(index);
+				mb.cast(ClassName.ListDataType);
+
+				mb.swap();
+				mb.push(constIdx);
+
+				mb.callMethod(VMOpcode.INVOKEVIRTUAL,
+						(String) null,
+						"setFrom",
+						"void", 2);
+			} else {
+				// Push the DVD array field in preparation of calling setArrayElement.
+				mb.getField(arrayField);
+				mb.swap();
+				mb.setArrayElement(index);
+			}
+		}
+	}
 	
 	protected void buildDVDInArray(MethodBuilder mb, LocalField arrayField, int index,
 								   LocalField rowArray, int numValsInSet) throws StandardException {
@@ -717,25 +743,18 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		int listSize = rightOperandList.size();
 		LocalField arrayField = acb.newFieldDeclaration(
 			Modifier.PRIVATE, ClassName.DataValueDescriptor + "[]");
-        LocalField rowArray = acb.newFieldDeclaration(
-            Modifier.PRIVATE, ClassName.ExecRow + "[]");
 
 		/* Assign the initializer to the DataValueDescriptor[] field */
 		MethodBuilder cb = acb.getConstructor();
 		cb.pushNewArray(ClassName.DataValueDescriptor, listSize);
 		cb.setField(arrayField);
-  
-		// Declare the rowArray in the constructor.
-        cb.pushNewArray(ClassName.ExecRow, listSize);
-        cb.setField(rowArray);
-        
+
         // Count the number of "constants" in each group.
         ValueNode constants = (ValueNode)rightOperandList.elementAt(0);
         int numValsInSet = constants instanceof ListValueNode ?
             ((ListValueNode) constants).numValues() : 1;
         
 		/* Set the array elements that are constant */
-
         MethodBuilder nonConstantMethod = null;
 		MethodBuilder currentConstMethod = cb;
 
@@ -789,16 +808,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
         
                 }
                 if (constIdx == 0) {
-                    // Push the ExecRow array reference on the stack
-                    cb.getField(rowArray);
-    
-                    // Build a new ValueRow, and place on the stack.
-                    PredicateList.generateValueRowOnStack(acb, numValsInSet);
-                    cb.upCast(ClassName.ExecRow);
-    
-                    // Store the row in the ExecRow array.
-                    cb.setArrayElement(index);
-    
                     if (numValsInSet > 1) {
 						// Push the DVD array reference on the stack
 						cb.getField(arrayField);
@@ -810,31 +819,20 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 						// Store the list data in the DVD array.
 						cb.setArrayElement(index);
 					}
-    
                 }
 
-                // Push the ExecRow in preparation of calling an instance method.
-                setArrayMethod.getField(rowArray);
-                setArrayMethod.getArrayElement(index);
-    
-                // Push the column number to update.
-                // constIdx vals are 0,1,2.. and correspond to
-                // column numbers 1,2,3... in the row.
-                setArrayMethod.push(constIdx + 1);
-    
-                // Build the DVD to add to the row, pushing it to the stack
-                // cast as a DataValueDescriptor.
-                dataLiteral.generateExpression(acb, setArrayMethod);
-                setArrayMethod.upCast(ClassName.DataValueDescriptor);
-    
-                // Store the DVD in the row.
-                setArrayMethod.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "setColumn", "void", 2);
+				// Build the DVD to add to the DVD array, pushing it to the stack
+				// cast as a DataValueDescriptor.
+				dataLiteral.generateExpression(acb, setArrayMethod);
+				setArrayMethod.upCast(ClassName.DataValueDescriptor);
 
+				// Move the built DVD into the DVD array, using the proper
+				// constant or non-constant method.
+				if (numNonConstants > 0)
+				    setDVDItemInArray(nonConstantMethod, arrayField, index, constIdx, numValsInSet);
+				else
+					setDVDItemInArray(currentConstMethod, arrayField, index, constIdx, numValsInSet);
             }
-			if (numNonConstants > 0)
-				buildDVDInArray(nonConstantMethod, arrayField, index, rowArray, numValsInSet);
-			else
-				buildDVDInArray(currentConstMethod, arrayField, index, rowArray, numValsInSet);
 		}
 
 		//if a generated function was created to reduce the size of the methods close the functions.
