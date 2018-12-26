@@ -1203,7 +1203,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * If this predicate does not correspond to an IN-list in any way,
      * this method will return null.
      */
-    protected InListOperatorNode getSourceInList() throws StandardException{
+    public InListOperatorNode getSourceInList() throws StandardException{
         return getSourceInList(false);
     }
 

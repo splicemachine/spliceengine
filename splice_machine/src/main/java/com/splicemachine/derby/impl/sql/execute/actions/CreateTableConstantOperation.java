@@ -394,7 +394,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         columnInfo[ix].autoincStart,
                         columnInfo[ix].autoincInc,
                         columnInfo[ix].autoinc_create_or_modify_Start_Increment,
-                        columnInfo[ix].partitionPosition
+                        columnInfo[ix].partitionPosition,
+                        (byte)0
                 );
             else {
                 columnDescriptor = new ColumnDescriptor(

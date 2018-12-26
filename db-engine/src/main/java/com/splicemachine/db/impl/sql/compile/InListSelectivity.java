@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 
  /**
@@ -46,6 +47,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
     private double selectivityFactor;
     private int colNo [];
     private final double DEFAULT_SINGLE_VALUE_SELECTIVITY = 0.5d;
+    private boolean useExtrapolation = false;
 
     public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor)
         throws StandardException {
@@ -60,35 +62,37 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         this.p = p;
         this.storeCost = storeCost;
         this.selectivityFactor = selectivityFactor;
+        this.useExtrapolation = isExtrapolationEnabled();
     }
     
-    private double multiplySelectivity(ValueNode vn, int columnNumber, double localSelectivity) {
+    private double multiplySelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) {
         if (vn instanceof ConstantNode) {
             ConstantNode cn = (ConstantNode)vn;
             if (localSelectivity == -1.0d)
-                localSelectivity = storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true);
+                localSelectivity = storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true, useExtrapolation);
             else
-                localSelectivity *= storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true);
+                localSelectivity *= storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true, useExtrapolation);
         }
         else
             localSelectivity *= DEFAULT_SINGLE_VALUE_SELECTIVITY;
         
         return localSelectivity;
     }
-    private double addSelectivity(ValueNode vn, int columnNumber, double localSelectivity) {
+    private double addSelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) {
         double tempSel = -1.0d;
         if (vn instanceof ListValueNode) {
             ListValueNode lcn = (ListValueNode)vn;
 
             for (int i = 0; i < lcn.numValues(); i++) {
                 ConstantNode tempConst = (ConstantNode) lcn.getValue(i);
-                tempSel = multiplySelectivity(tempConst, colNo[i], tempSel);
+                tempSel = multiplySelectivity(tempConst, colNo[i], tempSel, useExtrapolation);
             }
         }
         else {
             if (vn instanceof ConstantNode) {
                 ConstantNode cn = (ConstantNode) vn;
-                tempSel = storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true);
+                tempSel = storeCost.getSelectivity(columnNumber, cn.getValue(), true,
+                                                   cn.getValue(), true, useExtrapolation);
             }
             else {
                 tempSel = DEFAULT_SINGLE_VALUE_SELECTIVITY;
@@ -108,7 +112,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
             ValueNodeList rightOperandList=sourceInList.getRightOperandList();
             for(Object o: rightOperandList){
                 ValueNode vn = (ConstantNode)o;
-                selectivity = addSelectivity(vn, getColNum(), selectivity);
+                selectivity = addSelectivity(vn, getColNum(), selectivity, useExtrapolation);
             }
             if (selectivityFactor > 0)
                 selectivity *= selectivityFactor;
@@ -117,5 +121,23 @@ public class InListSelectivity extends AbstractSelectivityHolder {
                 selectivity = 0.9d;
         }
         return selectivity;
+    }
+
+    private boolean isExtrapolationEnabled() {
+        InListOperatorNode sourceInList = p.getSourceInList();
+        if(sourceInList==null)
+            return false;
+        ValueNode lo = sourceInList.getLeftOperand();
+        if(!(lo instanceof ColumnReference))
+            return false;
+        ColumnReference cr = (ColumnReference)lo;
+        if (cr == null)
+            return false;
+        ColumnDescriptor columnDescriptor = cr.getSource().getTableColumnDescriptor();
+        if (columnDescriptor != null)
+            return columnDescriptor.getUseExtrapolation()!=0;
+
+        return false;
+
     }
 }
