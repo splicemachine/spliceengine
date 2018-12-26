@@ -158,7 +158,7 @@ public final class ListDataType extends DataType {
         out.writeBoolean(isNull);
 		out.writeInt(numElements);
         for (int i = 0; i < numElements; i++)
-            dvd[i].writeExternal(out);
+            out.writeObject(dvd[i]);
 	}
 
 	/** @see java.io.Externalizable#readExternal */
@@ -168,7 +168,7 @@ public final class ListDataType extends DataType {
         setLength(in.readInt());
         try {
             for (int i = 0; i < numElements; i++) {
-                dvd[i].readExternal(in);
+                dvd[i] = (DataValueDescriptor) in.readObject();
             }
         }
         catch (ClassNotFoundException e) {
@@ -183,7 +183,7 @@ public final class ListDataType extends DataType {
         numElements = in.readInt();
         try {
             for (int i = 0; i < numElements; i++)
-                dvd[i].readExternal(in);
+                dvd[i] = (DataValueDescriptor) in.readObject();
         }
         catch(ClassNotFoundException e) {
             throw new IOException(

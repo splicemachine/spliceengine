@@ -824,8 +824,6 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         while (rs.next()) {
             String resultString = rs.getString(1);
             if (level == 3) {
-                Assert.assertTrue("Inlist condition is expected", resultString.contains("IN (1,3,5)"));
-            } else if (level == 4) {
                 Assert.assertTrue("MultiProbeTableScan is expected", resultString.contains("MultiProbeTableScan"));
             }
             level ++;
@@ -1425,7 +1423,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     public void testInListWithUdfExpressionsOnPK() throws Exception {
         // step 1: create user defined function and load library
         // install jar file and set classpath
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
+        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/../platform_it/target/sql-it/sql-it.jar";
         String JAR_FILE_SQL_NAME = CLASS_NAME + "." + "SQLJ_IT_PROCS_JAR";
         methodWatcher.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
         methodWatcher.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));

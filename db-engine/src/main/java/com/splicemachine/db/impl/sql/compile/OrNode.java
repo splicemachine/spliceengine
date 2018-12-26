@@ -143,10 +143,16 @@ public class OrNode extends BinaryLogicalOperatorNode {
 		
 		BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) vn;
         
-        if (bron.getLeftOperand() instanceof ColumnReference)
-            cr = (ColumnReference) bron.getLeftOperand();
-        else if (bron.getRightOperand() instanceof ColumnReference)
-            cr = (ColumnReference) bron.getRightOperand();
+        if (bron.getLeftOperand() instanceof ColumnReference) {
+			cr = (ColumnReference) bron.getLeftOperand();
+			if (!bron.getRightOperand().isConstantOrParameterTreeNode())
+				return false;
+		}
+        else if (bron.getRightOperand() instanceof ColumnReference) {
+			cr = (ColumnReference) bron.getRightOperand();
+			if (!bron.getLeftOperand().isConstantOrParameterTreeNode())
+				return false;
+		}
         else {
             return false;
         }
@@ -230,14 +236,14 @@ public class OrNode extends BinaryLogicalOperatorNode {
                 vnl.addValueNode(bron.getRightOperand());
             else {
                 constNodes.put(columnMap.get(((ColumnReference) bron.getLeftOperand()).getColumnNumber()),
-                               (ConstantNode)bron.getRightOperand());
+                               bron.getRightOperand());
             }
         } else {
             if (!multiColumn)
                 vnl.addValueNode(bron.getLeftOperand());
             else {
                 constNodes.put(columnMap.get(((ColumnReference) bron.getRightOperand()).getColumnNumber()),
-                    (ConstantNode) bron.getLeftOperand());
+                               bron.getLeftOperand());
             }
         }
     }

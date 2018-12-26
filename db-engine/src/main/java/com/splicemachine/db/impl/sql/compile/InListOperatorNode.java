@@ -153,10 +153,10 @@ public final class InListOperatorNode extends BinaryListOperatorNode
             outerFromList, outerSubqueryList,
             outerPredicateList);
         
-        return convertToEqualityPredOrMuiltiProbeBinaryComparisonOp();
+        return convertToAndedEqualityProbePredicate();
     }
     
-    public ValueNode convertToEqualityPredOrMuiltiProbeBinaryComparisonOp()
+    public ValueNode convertToAndedEqualityProbePredicate()
 					throws StandardException
     {
 		/* Check for the degenerate case of a single element in the IN list.

@@ -974,25 +974,27 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                          ilon.rightOperandList.isNullable();
                 ilon.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
                 
-                andNode = ilon.convertToEqualityPredOrMuiltiProbeBinaryComparisonOp();
+                andNode = ilon.convertToAndedEqualityProbePredicate();
 
-                JBitSet newJBitSet = new JBitSet(getCompilerContext().getNumTables());
-                Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
-                                      andNode, newJBitSet, getContextManager());
-                
-                // The index position is the position of the first column in the
-                // multicolumn IN list.
-                newPred.setIndexPosition(usefulPredicates[firstPred].getIndexPosition());
-                usefulPredicates[firstPred] = newPred;
-                multiColumnInListPred = newPred;
-                
-                // Pack the remaining useful preds in usefulPredicates so
-                // there are no gaps.
-                for (int i = lastPred+1; i < usefulCount; i++) {
-                    int dest = i - (lastPred - firstPred);
-                    usefulPredicates[dest] = usefulPredicates[i];
+                if (andNode instanceof AndNode) {
+                    JBitSet newJBitSet = new JBitSet(getCompilerContext().getNumTables());
+                    Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
+                            andNode, newJBitSet, getContextManager());
+
+                    // The index position is the position of the first column in the
+                    // multicolumn IN list.
+                    newPred.setIndexPosition(usefulPredicates[firstPred].getIndexPosition());
+                    usefulPredicates[firstPred] = newPred;
+                    multiColumnInListPred = newPred;
+
+                    // Pack the remaining useful preds in usefulPredicates so
+                    // there are no gaps.
+                    for (int i = lastPred + 1; i < usefulCount; i++) {
+                        int dest = i - (lastPred - firstPred);
+                        usefulPredicates[dest] = usefulPredicates[i];
+                    }
+                    usefulCount -= (usefulPredList.size() - 1);
                 }
-                usefulCount -= (usefulPredList.size() - 1);
             }
             else {
                 // At this point, we found only the first IN list predicate

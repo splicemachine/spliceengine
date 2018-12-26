@@ -275,4 +275,13 @@ public final class ListValueNode extends ValueNode {
     public List getChildren() {
         return Collections.EMPTY_LIST;
     }
+
+    @Override
+    public boolean isConstantOrParameterTreeNode() {
+        for (Object ob:valuesList) {
+            if (!((ValueNode)ob).isConstantOrParameterTreeNode())
+                return false;
+        }
+        return true;
+    }
 }
