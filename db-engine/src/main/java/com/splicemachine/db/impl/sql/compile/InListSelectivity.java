@@ -123,7 +123,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         return selectivity;
     }
 
-    private boolean isExtrapolationEnabled() {
+    private boolean isExtrapolationEnabled() throws StandardException {
         InListOperatorNode sourceInList = p.getSourceInList();
         if(sourceInList==null)
             return false;
