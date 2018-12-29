@@ -828,10 +828,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
 				// Move the built DVD into the DVD array, using the proper
 				// constant or non-constant method.
-				if (numNonConstants > 0)
-				    setDVDItemInArray(nonConstantMethod, arrayField, index, constIdx, numValsInSet);
-				else
-					setDVDItemInArray(currentConstMethod, arrayField, index, constIdx, numValsInSet);
+				setDVDItemInArray(setArrayMethod, arrayField, index, constIdx, numValsInSet);
             }
 		}
 

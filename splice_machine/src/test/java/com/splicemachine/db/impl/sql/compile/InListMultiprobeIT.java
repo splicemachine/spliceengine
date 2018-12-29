@@ -88,7 +88,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                         row(null, null, null, null, null),
                         row(null, null, null, null, null),
                         row(null, null, null, null, null)))
-                .withIndex("create index ix_float on ts_float(f, n)")
+                .withIndex("create index ix_float on ts_float(f, n, c)")
                 .create();
 
         new TableCreator(conn)
@@ -122,7 +122,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                         row(null, null, null),
                         row(null, null, null),
                         row(null, null, null)))
-                .withIndex("create index ix_date on ts_datetime(d)")
+                .withIndex("create index ix_date on ts_datetime(d,t)")
                 .create();
 
         new TableCreator(conn)
@@ -291,6 +291,34 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    
+    
+        sqlText = "select i,l from ts_int where i in (1,2,3,3,3,4,2,4,2,1,1) and l in (7,4,5,4,2,2) order by 1,2";
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+    
+        /** explain should look like the following:
+         Cursor(n=3,rows=17,updateMode=READ_ONLY (1),engine=control)
+         ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
+         ->  MultiProbeIndexScan[IX_INT(3937)](n=1,totalCost=4.028,scannedRows=17,outputRows=17,outputHeapSize=34 B,partitions=1,baseTable=TS_INT(3920),preds=[((I[0:1],L[0:2]) IN ((1,2),(1,4),(1,5),(1,7),(2,2),(2,4),(2,5),(2,7),(3,2),(3,4),(3,5),(3,7),(4,2),(4,4),(4,5),(4,7)))])         */
+        int level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+        
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "I | L |\n" +
+                "--------\n" +
+                " 2 | 2 |\n" +
+                " 4 | 4 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
@@ -309,6 +337,123 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sqlText);
 
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        
+        sqlText = "select f,n,c from ts_float where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
+            "n in (1,4,1,3,5) and c in (4.0, 3.0, 9.0, -1.0, 1.0) order by 1,2,3 ";
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+    
+        /** explain should look like the following:
+         Cursor(n=3,rows=17,updateMode=READ_ONLY (1),engine=control)
+         ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
+         ->  MultiProbeIndexScan[IX_FLOAT(2049)](n=1,totalCost=4.027,scannedRows=17,outputRows=17,outputHeapSize=49 B,partitions=1,baseTable=TS_FLOAT(2032),preds=[((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,-1.0),(1.0,1,1.0),(1.0,1,3.0),(1.0,1,4.0),(1.0,1,9.0),(1.0,3,-1.0),(1.0,3,1.0),(1.0,3,3.0),(1.0,3,4.0),(1.0,3,9.0),(1.0,4,-1.0),(1.0,4,1.0),(1.0,4,3.0),(1.0,4,4.0),(1.0,4,9.0),(1.0,5,-1.0),(1.0,5,1.0),(1.0,5,3.0),(1.0,5,4.0),(1.0,5,9.0),(2.0,1,-1.0),(2.0,1,1.0),(2.0,1,3.0),(2.0,1,4.0),(2.0,1,9.0),(2.0,3,-1.0),(2.0,3,1.0),(2.0,3,3.0),(2.0,3,4.0),(2.0,3,9.0),(2.0,4,-1.0),(2.0,4,1.0),(2.0,4,3.0),(2.0,4,4.0),(2.0,4,9.0),(2.0,5,-1.0),(2.0,5,1.0),(2.0,5,3.0),(2.0,5,4.0),(2.0,5,9.0),(3.0,1,-1.0),(3.0,1,1.0),(3.0,1,3.0),(3.0,1,4.0),(3.0,1,9.0),(3.0,3,-1.0),(3.0,3,1.0),(3.0,3,3.0),(3.0,3,4.0),(3.0,3,9.0),(3.0,4,-1.0),(3.0,4,1.0),(3.0,4,3.0),(3.0,4,4.0),(3.0,4,9.0),(3.0,5,-1.0),(3.0,5,1.0),(3.0,5,3.0),(3.0,5,4.0),(3.0,5,9.0),(4.0,1,-1.0),(4.0,1,1.0),(4.0,1,3.0),(4.0,1,4.0),(4.0,1,9.0),(4.0,3,-1.0),(4.0,3,1.0),(4.0,3,3.0),(4.0,3,4.0),(4.0,3,9.0),(4.0,4,-1.0),(4.0,4,1.0),(4.0,4,3.0),(4.0,4,4.0),(4.0,4,9.0),(4.0,5,-1.0),(4.0,5,1.0),(4.0,5,3.0),(4.0,5,4.0),(4.0,5,9.0)))]) */
+        int level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "F  | N  |  C   |\n" +
+                "-----------------\n" +
+                "1.0 |1.0 |1.000 |\n" +
+                "3.0 |3.0 |3.000 |\n" +
+                "4.0 |4.0 |4.000 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = "select f,n,c from ts_float where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
+            "n=1 and c in (4.0, 3.0, 9.0, -1.0, 1.0) order by 1,2,3 ";
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+    
+        /** explain should look like the following:
+         Cursor(n=3,rows=17,updateMode=READ_ONLY (1),engine=control)
+         ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
+         ->  MultiProbeIndexScan[IX_FLOAT(2369)](n=1,totalCost=4.027,scannedRows=17,outputRows=17,outputHeapSize=49 B,partitions=1,baseTable=TS_FLOAT(2352),preds=[((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,-1.0),(1.0,1,1.0),(1.0,1,3.0),(1.0,1,4.0),(1.0,1,9.0),(2.0,1,-1.0),(2.0,1,1.0),(2.0,1,3.0),(2.0,1,4.0),(2.0,1,9.0),(3.0,1,-1.0),(3.0,1,1.0),(3.0,1,3.0),(3.0,1,4.0),(3.0,1,9.0),(4.0,1,-1.0),(4.0,1,1.0),(4.0,1,3.0),(4.0,1,4.0),(4.0,1,9.0)))]) */
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "F  | N  |  C   |\n" +
+                "-----------------\n" +
+                "1.0 |1.0 |1.000 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+    
+        sqlText = "select f,n,c from ts_float where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
+            "n in (1,4,1,3,5) and c = 4.0 order by 1,2,3 ";
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+    
+        /** explain should look like the following:
+         Cursor(n=3,rows=17,updateMode=READ_ONLY (1),engine=control)
+         ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
+         ->  MultiProbeIndexScan[IX_FLOAT(2689)](n=1,totalCost=4.027,scannedRows=17,outputRows=17,outputHeapSize=49 B,partitions=1,baseTable=TS_FLOAT(2672),preds=[((F[0:1],N[0:2]) IN ((1.0,1),(1.0,3),(1.0,4),(1.0,5),(2.0,1),(2.0,3),(2.0,4),(2.0,5),(3.0,1),(3.0,3),(3.0,4),(3.0,5),(4.0,1),(4.0,3),(4.0,4),(4.0,5))),(C[0:3] = 4.0)]) */
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "F  | N  |  C   |\n" +
+                "-----------------\n" +
+                "4.0 |4.0 |4.000 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = "select f,n,c from ts_float where (f = 1.0 and n = 1 and c=1.0) or " +
+            "(f = 2.0 and n = 2 and c=2.0) or (f = 3.0 and n = 3 and c=3.0) order by 1,2,3 ";
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+    
+        /** explain should look like the following:
+         Cursor(n=4,rows=1,updateMode=READ_ONLY (1),engine=control)
+         ->  ScrollInsensitive(n=3,totalCost=8.035,outputRows=1,outputHeapSize=1 B,partitions=1)
+         ->  ProjectRestrict(n=2,totalCost=4.032,outputRows=1,outputHeapSize=1 B,partitions=1,preds=[((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,1.0),(2.0,2,2.0),(3.0,3,3.0))),((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,1.0),(2.0,2,2.0),(3.0,3,3.0))),((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,1.0),(2.0,2,2.0),(3.0,3,3.0)))])
+         */
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is not expected", !resultString.contains("MultiProbeIndexScan"));
+                Assert.assertTrue("MultiProbeTableScan is not expected", !resultString.contains("MultiProbeTableScan"));
+                Assert.assertTrue("Should have converted the OR'ed conditions to IN.", resultString.contains(" IN "));
+            }
+            level++;
+        }
+        rs.close();
+    
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "F  | N  |  C   |\n" +
+                "-----------------\n" +
+                "1.0 |1.0 |1.000 |\n" +
+                "2.0 |2.0 |2.000 |\n" +
+                "3.0 |3.0 |3.000 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
@@ -811,7 +956,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
-        /* case 10, negative test case 2, more than one inlist, only the first one can be pushed down */
+        /* case 10, test case 2, more than one inlist, both can be pushed down */
         sqlText = "select * from t3 --splice-properties useSpark=true\n where a3='A' and b3 in (11, 21, 31) and c3 in (1, 3, 5)";
 
         rs = methodWatcher.executeQuery("explain " + sqlText);
@@ -1423,7 +1568,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     public void testInListWithUdfExpressionsOnPK() throws Exception {
         // step 1: create user defined function and load library
         // install jar file and set classpath
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/../platform_it/target/sql-it/sql-it.jar";
+        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
         String JAR_FILE_SQL_NAME = CLASS_NAME + "." + "SQLJ_IT_PROCS_JAR";
         methodWatcher.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
         methodWatcher.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
