@@ -1650,7 +1650,7 @@ public class BinaryRelationalOperatorNode
      * inListProbeSource's leftOperand through this method.
      */
     @Override
-    public boolean isInListProbeNode(){
+    public boolean  isInListProbeNode(){
         return (inListProbeSource!=null);
     }
 

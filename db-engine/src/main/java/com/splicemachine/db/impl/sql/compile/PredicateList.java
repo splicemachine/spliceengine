@@ -917,7 +917,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     lastPred = i;
                 }
                 // Can't have any gaps in index position.
-                if (pred.getIndexPosition() != lastIndexPos+1)
+                if (pred.getIndexPosition() > lastIndexPos+1)
                     break;
                 lastIndexPos = pred.getIndexPosition();
             }
@@ -1572,19 +1572,34 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             BooleanConstantNode trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                     Boolean.TRUE,contextManager);
 
+            AndNode firstAndInProbeSet = null, prevAnd = null;
             while(topAnd.getRightOperand() instanceof AndNode){
                 /* Break out the next top AndNode */
                 thisAnd=topAnd;
-                topAnd=(AndNode)topAnd.getRightOperand();
-                thisAnd.setRightOperand(null);
+                topAnd = (AndNode) topAnd.getRightOperand();
+                if (!thisAnd.isNextAndedPredInSameMultiprobeSet()) {
+                    /* Set the rightOperand to true */
+                    thisAnd.setRightOperand(trueNode);
 
-                /* Set the rightOperand to true */
-                thisAnd.setRightOperand(trueNode);
-
-                /* Add the top AndNode to the PredicateList */
-                newJBitSet=new JBitSet(numTables);
-                newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,thisAnd,newJBitSet, contextManager);
-                addPredicate(newPred);
+                    /* Add the top AndNode to the PredicateList */
+                    newJBitSet=new JBitSet(numTables);
+                    newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,thisAnd,newJBitSet, contextManager);
+                    addPredicate(newPred);
+                    
+                    if (firstAndInProbeSet != null) {
+                        // Add the chain of And'ed nodes in the probe set as a single predicate.
+                        prevAnd.setRightOperand(trueNode);
+                        newJBitSet = new JBitSet(numTables);
+                        newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE, firstAndInProbeSet, newJBitSet, contextManager);
+                        addPredicate(newPred);
+                        firstAndInProbeSet = prevAnd = null;
+                    }
+                }
+                else {
+                    if (firstAndInProbeSet == null)
+                        firstAndInProbeSet = thisAnd;
+                    prevAnd = thisAnd;
+                }
             }
 			
 			      /* Add the last top AndNode to the PredicateList */

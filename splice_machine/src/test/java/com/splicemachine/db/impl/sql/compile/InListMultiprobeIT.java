@@ -22,8 +22,12 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.*;
+import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -32,8 +36,18 @@ import static org.junit.Assert.assertEquals;
 /**
  * Test the IN list predicates with the multiprobe index scan
  */
+@RunWith(Parameterized.class)
 public class InListMultiprobeIT  extends SpliceUnitTest {
-
+    
+    private Boolean useSpark;
+    
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{true});
+        params.add(new Object[]{false});
+        return params;
+    }
     public static final String CLASS_NAME = InListMultiprobeIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
@@ -43,7 +57,11 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
             .around(spliceSchemaWatcher);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
-
+    
+    public InListMultiprobeIT(Boolean useSpark) {
+        this.useSpark = useSpark;
+    }
+    
     public static void createData(Connection conn, String schemaName) throws Exception {
 
         new TableCreator(conn)
@@ -88,7 +106,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                         row(null, null, null, null, null),
                         row(null, null, null, null, null),
                         row(null, null, null, null, null)))
-                .withIndex("create index ix_float on ts_float(f, n, c)")
+                .withIndex("create index ix_float on ts_float(f, n, r)")
                 .create();
 
         new TableCreator(conn)
@@ -276,7 +294,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
     @Test
     public void testInListWithIntIT() throws Exception {
-        String sqlText = "select count(*) from ts_int where i in (1,2,3,4)";
+        String sqlText = format("select count(*) from ts_int  --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where i in (1,2,3,4)", useSpark);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "1 |\n" +
@@ -286,14 +305,16 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
-        sqlText = "select count(*) from ts_int where i in (1,2,3,3,3,4,2,4,2,1,1)";
+        sqlText = format("select count(*) from ts_int  --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where i in (1,2,3,3,3,4,2,4,2,1,1)", useSpark);
         rs = methodWatcher.executeQuery(sqlText);
 
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     
     
-        sqlText = "select i,l from ts_int where i in (1,2,3,3,3,4,2,4,2,1,1) and l in (7,4,5,4,2,2) order by 1,2";
+        sqlText = format("select i,l from ts_int  --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where i in (1,2,3,3,3,4,2,4,2,1,1) and l in (7,4,5,4,2,2) order by 1,2", useSpark);
         rs = methodWatcher.executeQuery("explain " + sqlText);
     
         /** explain should look like the following:
@@ -323,7 +344,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
     @Test
     public void testInListWithFloatIT() throws Exception {
-        String sqlText = "select count(*) from ts_float where f in (1.0,2.0,3.0,4.0)";
+        String sqlText = format("select count(*) from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where f in (1.0,2.0,3.0,4.0)", useSpark);
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "1 |\n" +
@@ -333,19 +355,21 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
-        sqlText = "select count(*) from ts_float where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0)";
+        sqlText = format("select count(*) from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0)", useSpark);
         rs = methodWatcher.executeQuery(sqlText);
 
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     
         
-        sqlText = "select f,n,c from ts_float where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
-            "n in (1,4,1,3,5) and c in (4.0, 3.0, 9.0, -1.0, 1.0) order by 1,2,3 ";
+        sqlText = format("select f,n,r from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
+            "n in (1,4,1,3,5) and r in (4.0, 3.0, 9.0, -1.0, 1.0) order by 1,2,3 ", useSpark);
         rs = methodWatcher.executeQuery("explain " + sqlText);
     
         /** explain should look like the following:
-         Cursor(n=3,rows=17,updateMode=READ_ONLY (1),engine=control)
+         Cursor(n=6,rows=17,updateMode=READ_ONLY (1),engine=control)
          ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
          ->  MultiProbeIndexScan[IX_FLOAT(2049)](n=1,totalCost=4.027,scannedRows=17,outputRows=17,outputHeapSize=49 B,partitions=1,baseTable=TS_FLOAT(2032),preds=[((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,-1.0),(1.0,1,1.0),(1.0,1,3.0),(1.0,1,4.0),(1.0,1,9.0),(1.0,3,-1.0),(1.0,3,1.0),(1.0,3,3.0),(1.0,3,4.0),(1.0,3,9.0),(1.0,4,-1.0),(1.0,4,1.0),(1.0,4,3.0),(1.0,4,4.0),(1.0,4,9.0),(1.0,5,-1.0),(1.0,5,1.0),(1.0,5,3.0),(1.0,5,4.0),(1.0,5,9.0),(2.0,1,-1.0),(2.0,1,1.0),(2.0,1,3.0),(2.0,1,4.0),(2.0,1,9.0),(2.0,3,-1.0),(2.0,3,1.0),(2.0,3,3.0),(2.0,3,4.0),(2.0,3,9.0),(2.0,4,-1.0),(2.0,4,1.0),(2.0,4,3.0),(2.0,4,4.0),(2.0,4,9.0),(2.0,5,-1.0),(2.0,5,1.0),(2.0,5,3.0),(2.0,5,4.0),(2.0,5,9.0),(3.0,1,-1.0),(3.0,1,1.0),(3.0,1,3.0),(3.0,1,4.0),(3.0,1,9.0),(3.0,3,-1.0),(3.0,3,1.0),(3.0,3,3.0),(3.0,3,4.0),(3.0,3,9.0),(3.0,4,-1.0),(3.0,4,1.0),(3.0,4,3.0),(3.0,4,4.0),(3.0,4,9.0),(3.0,5,-1.0),(3.0,5,1.0),(3.0,5,3.0),(3.0,5,4.0),(3.0,5,9.0),(4.0,1,-1.0),(4.0,1,1.0),(4.0,1,3.0),(4.0,1,4.0),(4.0,1,9.0),(4.0,3,-1.0),(4.0,3,1.0),(4.0,3,3.0),(4.0,3,4.0),(4.0,3,9.0),(4.0,4,-1.0),(4.0,4,1.0),(4.0,4,3.0),(4.0,4,4.0),(4.0,4,9.0),(4.0,5,-1.0),(4.0,5,1.0),(4.0,5,3.0),(4.0,5,4.0),(4.0,5,9.0)))]) */
         int level = 1;
@@ -360,17 +384,18 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     
         rs = methodWatcher.executeQuery(sqlText);
         expected =
-            "F  | N  |  C   |\n" +
-                "-----------------\n" +
-                "1.0 |1.0 |1.000 |\n" +
-                "3.0 |3.0 |3.000 |\n" +
-                "4.0 |4.0 |4.000 |";
+            "F  | N  | R  |\n" +
+                "---------------\n" +
+                "1.0 |1.0 |1.0 |\n" +
+                "3.0 |3.0 |3.0 |\n" +
+                "4.0 |4.0 |4.0 |";
     
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     
-        sqlText = "select f,n,c from ts_float where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
-            "n=1 and c in (4.0, 3.0, 9.0, -1.0, 1.0) order by 1,2,3 ";
+        sqlText = format("select f,n,r from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
+            "n=1 and r in (4.0, 3.0, 9.0, -1.0, 1.0) order by 1,2,3 ", useSpark);
         rs = methodWatcher.executeQuery("explain " + sqlText);
     
         /** explain should look like the following:
@@ -389,22 +414,135 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     
         rs = methodWatcher.executeQuery(sqlText);
         expected =
-            "F  | N  |  C   |\n" +
-                "-----------------\n" +
-                "1.0 |1.0 |1.000 |";
+            "F  | N  | R  |\n" +
+                "---------------\n" +
+                "1.0 |1.0 |1.0 |";
     
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     
     
-        sqlText = "select f,n,c from ts_float where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
-            "n in (1,4,1,3,5) and c = 4.0 order by 1,2,3 ";
+        sqlText = format("select f,n,r from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
+            "n in (1,4,1,3,5) and r = 4.0  and f not in (6,7,8) and r not in (33,44,55) order by 1,2,3 ", useSpark);
         rs = methodWatcher.executeQuery("explain " + sqlText);
     
         /** explain should look like the following:
          Cursor(n=3,rows=17,updateMode=READ_ONLY (1),engine=control)
          ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
          ->  MultiProbeIndexScan[IX_FLOAT(2689)](n=1,totalCost=4.027,scannedRows=17,outputRows=17,outputHeapSize=49 B,partitions=1,baseTable=TS_FLOAT(2672),preds=[((F[0:1],N[0:2]) IN ((1.0,1),(1.0,3),(1.0,4),(1.0,5),(2.0,1),(2.0,3),(2.0,4),(2.0,5),(3.0,1),(3.0,3),(3.0,4),(3.0,5),(4.0,1),(4.0,3),(4.0,4),(4.0,5))),(C[0:3] = 4.0)]) */
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 4) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "F  | N  | R  |\n" +
+                "---------------\n" +
+                "4.0 |4.0 |4.0 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = format("select count(*) from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where ((f = 1.0 and r=1.0) or " +
+            "(f = 2.0 and r=2.0) or (r=3.0 and f = 3.0 )) and f not in (7+1,8+2,9)", useSpark);
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+    
+        /** explain should look like the following:
+         Cursor(n=7,rows=1,updateMode=READ_ONLY (1),engine=Spark)
+         ->  ScrollInsensitive(n=6,totalCost=10.068,outputRows=1,outputHeapSize=0 B,partitions=1)
+         ->  ProjectRestrict(n=5,totalCost=4.032,outputRows=2,outputHeapSize=0 B,partitions=1)
+         ->  GroupBy(n=4,totalCost=4.032,outputRows=2,outputHeapSize=4 B,partitions=1)
+         ->  ProjectRestrict(n=3,totalCost=4.032,outputRows=2,outputHeapSize=4 B,partitions=1)
+         ->  ProjectRestrict(n=2,totalCost=4.032,outputRows=2,outputHeapSize=4 B,partitions=1,preds=[((F[0:1],R[0:2]) IN ((1.0,1.0),(2.0,2.0),(3.0,3.0)))])
+         */
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 6) {
+                Assert.assertTrue("MultiProbeIndexScan is not expected", !resultString.contains("MultiProbeIndexScan"));
+                Assert.assertTrue("MultiProbeTableScan is not expected", !resultString.contains("MultiProbeTableScan"));
+                Assert.assertTrue("Should have converted the OR'ed conditions to IN.", resultString.contains(" IN "));
+            }
+            level++;
+        }
+        rs.close();
+    
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "1 |\n" +
+                "----\n" +
+                " 3 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testInListWithCharIT() throws Exception {
+        String sqlText = format("select count(*) from ts_char --SPLICE-PROPERTIES useSpark=%s \n"+
+                "where c in ('a', 'b', 'c', 'd')", useSpark);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "1 |\n" +
+                        "----\n" +
+                        " 4 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = format("select count(*) from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where c in ('a', 'b', 'b', 'c', 'a', 'c', 'd')", useSpark);
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = format("select count(*) from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+                "where c in ('c')", useSpark);
+        expected =
+                "1 |\n" +
+                        "----\n" +
+                        " 1 |";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = format("select c,v from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where c in ('a', 'c', 'b', 'b') and v in ('aaaa', 'bbbbb', 'cc', 'asdfasdfasdfasdfsafsda')", useSpark);
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+    
+        int level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "C |  V   |\n" +
+                "-----------\n" +
+                " a |aaaa  |\n" +
+                " b |bbbbb |\n" +
+                " c | cc   |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = format("select c,v from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where c in ('a', 'c', 'b', 'b') and v in ('aaaa', 'bbbbb', 'cc', 'asdfasdfasdfasdfsafsda')", useSpark);
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+    
         level = 1;
         while (rs.next()) {
             String resultString = rs.getString(1);
@@ -417,70 +555,13 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     
         rs = methodWatcher.executeQuery(sqlText);
         expected =
-            "F  | N  |  C   |\n" +
-                "-----------------\n" +
-                "4.0 |4.0 |4.000 |";
+            "C |  V   |\n" +
+                "-----------\n" +
+                " a |aaaa  |\n" +
+                " b |bbbbb |\n" +
+                " c | cc   |";
     
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
-    
-        sqlText = "select f,n,c from ts_float where (f = 1.0 and n = 1 and c=1.0) or " +
-            "(f = 2.0 and n = 2 and c=2.0) or (f = 3.0 and n = 3 and c=3.0) order by 1,2,3 ";
-        rs = methodWatcher.executeQuery("explain " + sqlText);
-    
-        /** explain should look like the following:
-         Cursor(n=4,rows=1,updateMode=READ_ONLY (1),engine=control)
-         ->  ScrollInsensitive(n=3,totalCost=8.035,outputRows=1,outputHeapSize=1 B,partitions=1)
-         ->  ProjectRestrict(n=2,totalCost=4.032,outputRows=1,outputHeapSize=1 B,partitions=1,preds=[((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,1.0),(2.0,2,2.0),(3.0,3,3.0))),((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,1.0),(2.0,2,2.0),(3.0,3,3.0))),((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,1.0),(2.0,2,2.0),(3.0,3,3.0)))])
-         */
-        level = 1;
-        while (rs.next()) {
-            String resultString = rs.getString(1);
-            if (level == 3) {
-                Assert.assertTrue("MultiProbeIndexScan is not expected", !resultString.contains("MultiProbeIndexScan"));
-                Assert.assertTrue("MultiProbeTableScan is not expected", !resultString.contains("MultiProbeTableScan"));
-                Assert.assertTrue("Should have converted the OR'ed conditions to IN.", resultString.contains(" IN "));
-            }
-            level++;
-        }
-        rs.close();
-    
-        rs = methodWatcher.executeQuery(sqlText);
-        expected =
-            "F  | N  |  C   |\n" +
-                "-----------------\n" +
-                "1.0 |1.0 |1.000 |\n" +
-                "2.0 |2.0 |2.000 |\n" +
-                "3.0 |3.0 |3.000 |";
-    
-        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
-    }
-
-    @Test
-    public void testInListWithCharIT() throws Exception {
-        String sqlText = "select count(*) from ts_char where c in ('a', 'b', 'c', 'd')";
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        String expected =
-                "1 |\n" +
-                        "----\n" +
-                        " 4 |";
-
-        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
-
-        sqlText = "select count(*) from ts_char where c in ('a', 'b', 'b', 'c', 'a', 'c', 'd')";
-        rs = methodWatcher.executeQuery(sqlText);
-        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
-
-        sqlText = "select count(*) from ts_char where c in ('c')";
-        expected =
-                "1 |\n" +
-                        "----\n" +
-                        " 1 |";
-        rs = methodWatcher.executeQuery(sqlText);
-        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
