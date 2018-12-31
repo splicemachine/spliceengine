@@ -454,6 +454,21 @@ public class GenericStatement implements Statement{
                 projectionPruningOptimizationDisabled = Boolean.valueOf(projectionPruningOptimizationString);
 
             cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
+    
+            // User can specify the max length of multicolumn IN list the optimizer may build for
+            // use as a probe predicate.  Single-column IN lists can be combined up until the point
+            // where adding in the next IN predicate would push us over the limit.
+            String maxMulticolumnProbeValuesString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MAX_MULTICOLUMN_PROBE_VALUES);
+            int maxMulticolumnProbeValues = CompilerContext.DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+            try {
+                if (maxMulticolumnProbeValuesString != null)
+                    maxMulticolumnProbeValues = Integer.valueOf(maxMulticolumnProbeValuesString);
+            }
+            catch (Exception e) {
+                // If the property value failed to convert to an int, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setMaxMulticolumnProbeValues(maxMulticolumnProbeValues);
 
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){

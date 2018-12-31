@@ -1348,5 +1348,12 @@ public interface Property {
 	 */
 	String MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED =
 			"derby.database.matchStmtCacheIgnoreCommentOptimizationEnabled";
-
+	
+	/**
+	 * True if we want to enable the ProjectionPruning. By default it is false or NULL(which is
+	 * the same as false)
+	 */
+	String MAX_MULTICOLUMN_PROBE_VALUES =
+		"derby.database.maxMulticolumnProbeValues";
+	
 }

@@ -14,12 +14,15 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -37,6 +40,7 @@ import static org.junit.Assert.assertEquals;
  * Test the IN list predicates with the multiprobe index scan
  */
 @RunWith(Parameterized.class)
+@Category(SerialTest.class)
 public class InListMultiprobeIT  extends SpliceUnitTest {
     
     private Boolean useSpark;
@@ -216,7 +220,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                 row(10, "1902-09-24 11:11:52.32", 1, 1)))
             .create();
         increment = 1;
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 5; i++) {
             spliceClassWatcher.executeUpdate(format("insert into t22 select a1, timestampadd(SQL_TSI_MINUTE, %d, b1),c1+%d,d1+%d from t22",
                                       10*increment, increment, increment));
             increment *= 2;
@@ -291,6 +295,9 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                         row("splice", 2, "2018-12-04"),
                         row("splice", 2, "2018-12-05")))
                 .create();
+    
+        // Reset derby.database.maxMulticolumnProbeValues to the default setting.
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MAX_MULTICOLUMN_PROBE_VALUES + "', null)");
     }
 
     @BeforeClass
@@ -498,6 +505,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     
+        
+        // Test conversion of equality DNF conditions to an IN list.
         sqlText = format("select count(*) from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
                 "where ((f = 1.0 and r=1.0) or " +
             "(f = 2.0 and r=2.0) or (r=3.0 and f = 3.0 )) and f not in (7+1,8+2,9)", useSpark);
@@ -517,7 +526,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
             if (level == 6) {
                 Assert.assertTrue("MultiProbeIndexScan is not expected", !resultString.contains("MultiProbeIndexScan"));
                 Assert.assertTrue("MultiProbeTableScan is not expected", !resultString.contains("MultiProbeTableScan"));
-                Assert.assertTrue("Should have converted the OR'ed conditions to IN.", resultString.contains(" IN "));
+                Assert.assertTrue("Should have converted the OR'ed conditions to IN.", resultString.contains("(F[0:1],R[0:2]) IN "));
             }
             level++;
         }
@@ -905,22 +914,24 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
-    
+
         sqlText = format("select b1,a1 from t22 --splice-properties useSpark=%s \n" +
             "where b1 in \n" +
             "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
             " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
             " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
             " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" +
-
+        
             " and \n" +
             "      a1 in \n" +
-            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) " +
+            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, " +
+            "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, " +
+            "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) " +
             "order by 1,2", useSpark);
         ps = methodWatcher.prepareStatement("explain " + sqlText);
         Timestamp ts = Timestamp.valueOf("1902-09-24 11:11:43.32");
         int increment = 0;
-        for (int i=0; i < 20; i++) {
+        for (int i = 0; i < 20; i++) {
             ps.setTimestamp(1 + i * 10, new Timestamp(ts.getTime() + increment * 1000 * 60));
             ps.setTimestamp(2 + i * 10, new Timestamp(ts.getTime() + 1000 + increment * 1000 * 60));
             ps.setTimestamp(3 + i * 10, new Timestamp(ts.getTime() + 2000 + increment * 1000 * 60));
@@ -933,18 +944,25 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
             ps.setTimestamp(10 + i * 10, new Timestamp(ts.getTime() + 9000 + increment * 1000 * 60));
             increment += 10;
         }
-        for (int i = 1; i <= 20; i++) {
-            ps.setInt(i+200, i);
+        for (int i = 1; i <= 60; i++) {
+            ps.setInt(i + 200, i);
         }
-
+    
         rs = ps.executeQuery();
     
         level = 1;
+        boolean multiProbeFound = false, multiColINFound = false;
         while (rs.next()) {
             String resultString = rs.getString(1);
-            if (level == 4) {
-                Assert.assertTrue("MultiProbeTableScan is expected", resultString.contains("MultiProbeTableScan"));
-                Assert.assertTrue("Multicolumn IN predicate expected", resultString.contains("preds=[((B1[0:2],A1[0:1]) IN "));
+            if (level == 4 || level == 5) {
+                if (!multiProbeFound)
+                    multiProbeFound = resultString.contains("MultiProbeTableScan");
+                if (!multiColINFound)
+                    multiColINFound = resultString.contains("preds=[((B1[0:2],A1[0:1]) IN ");
+            }
+            if (level > 4) {
+                Assert.assertTrue("MultiProbeTableScan is expected", multiProbeFound);
+                Assert.assertTrue("Multicolumn IN predicate not expected", !multiColINFound);
             }
             level++;
         }
@@ -965,7 +983,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
             ps.setTimestamp(10 + i * 10, new Timestamp(ts.getTime() + 9000 + increment * 1000 * 60));
             increment += 10;
         }
-        for (int i = 1; i <= 20; i++) {
+        for (int i = 1; i <= 60; i++) {
             ps.setInt(i + 200, i);
         }
         rs = ps.executeQuery();
@@ -1175,6 +1193,88 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+        
+        // Bump up the max allowed entries in the probe IN list, and verify multicolumn IN with MultiProbe is picked.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MAX_MULTICOLUMN_PROBE_VALUES + "', '12000')");
+        
+        sqlText = format("select b1,a1 from t22 --splice-properties useSpark=%s \n" +
+            "where b1 in \n" +
+            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
+            " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
+            " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
+            " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" +
+
+            " and \n" +
+            "      a1 in \n" +
+            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, " +
+            "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, " +
+            "?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) " +
+            "order by 1,2", useSpark);
+        ps = methodWatcher.prepareStatement("explain " + sqlText);
+        increment = 0;
+        for (int i=0; i < 20; i++) {
+            ps.setTimestamp(1 + i * 10, new Timestamp(ts.getTime() + increment * 1000 * 60));
+            ps.setTimestamp(2 + i * 10, new Timestamp(ts.getTime() + 1000 + increment * 1000 * 60));
+            ps.setTimestamp(3 + i * 10, new Timestamp(ts.getTime() + 2000 + increment * 1000 * 60));
+            ps.setTimestamp(4 + i * 10, new Timestamp(ts.getTime() + 3000 + increment * 1000 * 60));
+            ps.setTimestamp(5 + i * 10, new Timestamp(ts.getTime() + 4000 + increment * 1000 * 60));
+            ps.setTimestamp(6 + i * 10, new Timestamp(ts.getTime() + 5000 + increment * 1000 * 60));
+            ps.setTimestamp(7 + i * 10, new Timestamp(ts.getTime() + 6000 + increment * 1000 * 60));
+            ps.setTimestamp(8 + i * 10, new Timestamp(ts.getTime() + 7000 + increment * 1000 * 60));
+            ps.setTimestamp(9 + i * 10, new Timestamp(ts.getTime() + 8000 + increment * 1000 * 60));
+            ps.setTimestamp(10 + i * 10, new Timestamp(ts.getTime() + 9000 + increment * 1000 * 60));
+            increment += 10;
+        }
+        for (int i = 1; i <= 60; i++) {
+            ps.setInt(i+200, i);
+        }
+
+        rs = ps.executeQuery();
+    
+        level = 1;
+        multiProbeFound = false;
+        multiColINFound = false;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 4 || level == 5) {
+                if (!multiProbeFound)
+                    multiProbeFound = resultString.contains("MultiProbeTableScan");
+                if (!multiColINFound)
+                    multiColINFound = resultString.contains("preds=[((B1[0:2],A1[0:1]) IN ");
+            }
+            if (level > 4) {
+                Assert.assertTrue("MultiProbeTableScan is expected", multiProbeFound);
+                Assert.assertTrue("Multicolumn IN predicate expected", multiColINFound);
+            }
+            level++;
+        }
+        rs.close();
+    
+        ps = methodWatcher.prepareStatement(sqlText);
+        increment = 0;
+        for (int i = 0; i < 20; i++) {
+            ps.setTimestamp(1 + i * 10, new Timestamp(ts.getTime() + increment * 1000 * 60));
+            ps.setTimestamp(2 + i * 10, new Timestamp(ts.getTime() + 1000 + increment * 1000 * 60));
+            ps.setTimestamp(3 + i * 10, new Timestamp(ts.getTime() + 2000 + increment * 1000 * 60));
+            ps.setTimestamp(4 + i * 10, new Timestamp(ts.getTime() + 3000 + increment * 1000 * 60));
+            ps.setTimestamp(5 + i * 10, new Timestamp(ts.getTime() + 4000 + increment * 1000 * 60));
+            ps.setTimestamp(6 + i * 10, new Timestamp(ts.getTime() + 5000 + increment * 1000 * 60));
+            ps.setTimestamp(7 + i * 10, new Timestamp(ts.getTime() + 6000 + increment * 1000 * 60));
+            ps.setTimestamp(8 + i * 10, new Timestamp(ts.getTime() + 7000 + increment * 1000 * 60));
+            ps.setTimestamp(9 + i * 10, new Timestamp(ts.getTime() + 8000 + increment * 1000 * 60));
+            ps.setTimestamp(10 + i * 10, new Timestamp(ts.getTime() + 9000 + increment * 1000 * 60));
+            increment += 10;
+        }
+        for (int i = 1; i <= 60; i++) {
+            ps.setInt(i + 200, i);
+        }
+        rs = ps.executeQuery();
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        // Reset derby.database.maxMulticolumnProbeValues to the default setting.
+        methodWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MAX_MULTICOLUMN_PROBE_VALUES + "', null)");
     }
 
     public void testInListNotOnLeadingIndexColumnControlPath() throws Exception {

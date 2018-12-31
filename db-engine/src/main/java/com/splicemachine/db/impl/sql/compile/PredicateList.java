@@ -911,14 +911,27 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             int firstPred = -1, lastPred = -1, lastIndexPos = -1;
 
             boolean foundPred[] = new boolean[usefulCount];
+            int numConstants = 1;
+            int maxMulticolumnProbeValues = getCompilerContext().getMaxMulticolumnProbeValues();
             for (int i = 0; i < usefulCount; i++) {
                 final Predicate pred = usefulPredicates[i];
 
                 if (pred.getIndexPosition() == lastIndexPos + 1) {
                     BinaryRelationalOperatorNode bron =
                         (BinaryRelationalOperatorNode) pred.getRelop();
-                    if (pred.isInListProbePredicate() ||
+                    boolean inList = pred.isInListProbePredicate();
+                    if (inList ||
                         (bron != null && bron.getOperator() == RelationalOperator.EQUALS_RELOP)) {
+                        if (inList) {
+                            InListOperatorNode inNode = pred.getSourceInList(true);
+
+                            // A max setting of -1 means there is no limit to the size of
+                            // IN list that we generate.
+                            if (maxMulticolumnProbeValues != -1 &&
+                                (numConstants * inNode.rightOperandList.size()) > maxMulticolumnProbeValues)
+                                break;
+                            numConstants *= inNode.rightOperandList.size();
+                        }
                         if (firstPred == -1)
                             firstPred = i;
                         lastPred = i;
@@ -932,15 +945,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     break;
             }
 
-            int numConstants = 1;
-            for (Predicate pred:predsForNewInList){
-                if (!pred.isInListProbePredicate())
-                    continue;
-                InListOperatorNode inNode = pred.getSourceInList(true);
-                if (inNode == null)
-                    SanityManager.THROWASSERT("Unexpected probe predicate type.");
-                numConstants *= inNode.rightOperandList.size();
-            }
             ValueNodeList vnl = (ValueNodeList)getNodeFactory().getNode(
                                  C_NodeTypes.VALUE_NODE_LIST,
                                   getContextManager());
