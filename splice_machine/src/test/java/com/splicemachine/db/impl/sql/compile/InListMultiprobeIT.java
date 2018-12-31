@@ -195,6 +195,32 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                         row(9, 9, 4),
                         row(10, 10,0)))
                 .create();
+    
+        new TableCreator(conn)
+            .withCreate("create table t22 (a1 bigint,\n" +
+                "                          b1 timestamp,\n" +
+                "                          c1 int,\n" +
+                "                          d1 int, primary key(b1,a1,c1,d1))")
+            .withIndex("create index t22_idx on t22(b1)")
+            .withInsert("insert into t22 values (?,?,?,?)")
+            .withRows(rows(
+                row(1, "1902-09-24 11:11:43.32", 1, 1),
+                row(2, "1902-09-24 11:11:44.32", 1, 1),
+                row(3, "1902-09-24 11:11:45.32", 1, 1),
+                row(4, "1902-09-24 11:11:46.32", 1, 1),
+                row(5, "1902-09-24 11:11:47.32", 1, 1),
+                row(6, "1902-09-24 11:11:48.32", 1, 1),
+                row(7, "1902-09-24 11:11:49.32", 1, 1),
+                row(8, "1902-09-24 11:11:50.32", 1, 1),
+                row(9, "1902-09-24 11:11:51.32", 1, 1),
+                row(10, "1902-09-24 11:11:52.32", 1, 1)))
+            .create();
+        increment = 1;
+        for (int i = 0; i < 16; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t22 select a1, timestampadd(SQL_TSI_MINUTE, %d, b1),c1+%d,d1+%d from t22",
+                                      10*increment, increment, increment));
+            increment *= 2;
+        }
 
         new TableCreator(conn)
                 .withCreate("create table t4 (a4 date, b4 int, c4 int, d4 int, primary key (a4, b4))")
@@ -450,6 +476,28 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     
+        sqlText = format("select f,n,r from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
+            "n in (1,4,1,3,5) and r = 4.0  and f not in (6,7,8) and r not in (4, 33,44,55) order by 1,2,3 ", useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = format("select f,n,r from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where f in (1.0,2.0,3.0,3.0,3.0,4.0,2.0,4.0,2.0,1.0,1.0) and " +
+            "n in (1,4,1,3,5) and r = 4.0  and f not in (4,6,7,8) and r not in (33,44,55) order by 1,2,3 ", useSpark);
+    
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+            "";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
         sqlText = format("select count(*) from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
                 "where ((f = 1.0 and r=1.0) or " +
             "(f = 2.0 and r=2.0) or (r=3.0 and f = 3.0 )) and f not in (7+1,8+2,9)", useSpark);
@@ -541,6 +589,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     
         sqlText = format("select c,v from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
             "where c in ('a', 'c', 'b', 'b') and v in ('aaaa', 'bbbbb', 'cc', 'asdfasdfasdfasdfsafsda')", useSpark);
+        
         rs = methodWatcher.executeQuery("explain " + sqlText);
     
         level = 1;
@@ -613,7 +662,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
     @Test
     public void testInListWithDynamicParamsIT() throws Exception {
-        String sqlText = "select count(*) from ts_char where c IN ( ?, ?, ?, ? )";
+        String sqlText = format("select count(*) from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where c IN ( ?, ?, ?, ? )", useSpark);
         PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
         ps.setString(1, "c");
         ps.setString(2, "d");
@@ -626,7 +676,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         Assert.assertEquals("Incorrect value returned!", 2, val);
         rs.close();
 
-        sqlText = "select count(*) from ts_char where c IN ( ?, ?, ?, ? )";
+        sqlText = format("select count(*) from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where c IN ( ?, ?, ?, ? )", useSpark);
         ps = methodWatcher.prepareStatement(sqlText);
         ps.setString(1, "c");
         ps.setString(2, "c");
@@ -637,6 +688,492 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.next();
         val = rs.getInt(1);
         Assert.assertEquals("Incorrect value returned!", 1, val);
+        rs.close();
+    
+        sqlText = format("select c,v from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where c in (?,?,?,?) and v in ('aaaa', ?, 'bbbbb', ?, 'asdfasdfasdfasdfsafsda')", useSpark);
+        ps = methodWatcher.prepareStatement("explain " + sqlText);
+        ps.setString(1, "a");
+        ps.setString(2, "c");
+        ps.setString(3, "b");
+        ps.setString(4, "b");
+        ps.setString(5, "bbbbb");
+        ps.setString(6, "cc");
+        rs = ps.executeQuery();
+    
+        int level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "a");
+        ps.setString(2, "c");
+        ps.setString(3, "b");
+        ps.setString(4, "b");
+        ps.setString(5, "bbbbb");
+        ps.setString(6, "cc");
+        rs = ps.executeQuery();
+        String expected =
+            "C |  V   |\n" +
+                "-----------\n" +
+                " a |aaaa  |\n" +
+                " b |bbbbb |\n" +
+                " c | cc   |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = format("select c,v from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where c in (?,?,?,?) and v in ('aaaa', ?, 'bbbbb', ?, 'asdfasdfasdfasdfsafsda') and v > 'bb' and c < 'c'", useSpark);
+        ps = methodWatcher.prepareStatement("explain " + sqlText);
+        ps.setString(1, "a");
+        ps.setString(2, "c");
+        ps.setString(3, "b");
+        ps.setString(4, "b");
+        ps.setString(5, "bbbbb");
+        ps.setString(6, "cc");
+        rs = ps.executeQuery();
+    
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 4) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "a");
+        ps.setString(2, "c");
+        ps.setString(3, "b");
+        ps.setString(4, "b");
+        ps.setString(5, "bbbbb");
+        ps.setString(6, "cc");
+        rs = ps.executeQuery();
+        expected =
+            "C |  V   |\n" +
+                "-----------\n" +
+                " b |bbbbb |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = format("select c,v from ts_char --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where c in (?,?,?,?) and v = ? and v > 'bb' and c < 'c'", useSpark);
+        ps = methodWatcher.prepareStatement("explain " + sqlText);
+        ps.setString(1, "a");
+        ps.setString(2, "c");
+        ps.setString(3, "b");
+        ps.setString(4, "b");
+        ps.setString(5, "bbbbb");
+        rs = ps.executeQuery();
+    
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 4) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "a");
+        ps.setString(2, "c");
+        ps.setString(3, "b");
+        ps.setString(4, "b");
+        ps.setString(5, "bbbbb");
+        rs = ps.executeQuery();
+        expected =
+            "C |  V   |\n" +
+                "-----------\n" +
+                " b |bbbbb |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+    
+        sqlText = format("select f,n,r from ts_float --SPLICE-PROPERTIES useSpark=%s \n" +
+            "where f in (?,?,?,?,?,?,?,?) and " +
+            "n in (?,?,?,?,?) and r in (?,?,?,?,?) order by 1,2,3 ", useSpark);
+        ps = methodWatcher.prepareStatement("explain " + sqlText);
+        ps.setDouble(1, 1.0);
+        ps.setDouble(2, 2.0);
+        ps.setDouble(3, 3.0);
+        ps.setDouble(4, 3.0);
+        ps.setDouble(5, 4.0);
+        ps.setDouble(6, 2.0);
+        ps.setDouble(7, 1.0);
+        ps.setDouble(8, 1.0);
+        ps.setInt(9, 1);
+        ps.setInt(10, 4);
+        ps.setInt(11, 1);
+        ps.setInt(12, 3);
+        ps.setInt(13, 5);
+        ps.setDouble(14, 4.0);
+        ps.setDouble(15, 3.0);
+        ps.setDouble(16, 9.0);
+        ps.setDouble(17, -1.0);
+        ps.setDouble(18, 1.0);
+        rs = ps.executeQuery();
+    
+        /** explain should look like the following:
+         Cursor(n=6,rows=17,updateMode=READ_ONLY (1),engine=control)
+         ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
+         ->  MultiProbeIndexScan[IX_FLOAT(2049)](n=1,totalCost=4.027,scannedRows=17,outputRows=17,outputHeapSize=49 B,partitions=1,baseTable=TS_FLOAT(2032),preds=[((F[0:1],N[0:2],C[0:3]) IN ((1.0,1,-1.0),(1.0,1,1.0),(1.0,1,3.0),(1.0,1,4.0),(1.0,1,9.0),(1.0,3,-1.0),(1.0,3,1.0),(1.0,3,3.0),(1.0,3,4.0),(1.0,3,9.0),(1.0,4,-1.0),(1.0,4,1.0),(1.0,4,3.0),(1.0,4,4.0),(1.0,4,9.0),(1.0,5,-1.0),(1.0,5,1.0),(1.0,5,3.0),(1.0,5,4.0),(1.0,5,9.0),(2.0,1,-1.0),(2.0,1,1.0),(2.0,1,3.0),(2.0,1,4.0),(2.0,1,9.0),(2.0,3,-1.0),(2.0,3,1.0),(2.0,3,3.0),(2.0,3,4.0),(2.0,3,9.0),(2.0,4,-1.0),(2.0,4,1.0),(2.0,4,3.0),(2.0,4,4.0),(2.0,4,9.0),(2.0,5,-1.0),(2.0,5,1.0),(2.0,5,3.0),(2.0,5,4.0),(2.0,5,9.0),(3.0,1,-1.0),(3.0,1,1.0),(3.0,1,3.0),(3.0,1,4.0),(3.0,1,9.0),(3.0,3,-1.0),(3.0,3,1.0),(3.0,3,3.0),(3.0,3,4.0),(3.0,3,9.0),(3.0,4,-1.0),(3.0,4,1.0),(3.0,4,3.0),(3.0,4,4.0),(3.0,4,9.0),(3.0,5,-1.0),(3.0,5,1.0),(3.0,5,3.0),(3.0,5,4.0),(3.0,5,9.0),(4.0,1,-1.0),(4.0,1,1.0),(4.0,1,3.0),(4.0,1,4.0),(4.0,1,9.0),(4.0,3,-1.0),(4.0,3,1.0),(4.0,3,3.0),(4.0,3,4.0),(4.0,3,9.0),(4.0,4,-1.0),(4.0,4,1.0),(4.0,4,3.0),(4.0,4,4.0),(4.0,4,9.0),(4.0,5,-1.0),(4.0,5,1.0),(4.0,5,3.0),(4.0,5,4.0),(4.0,5,9.0)))]) */
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        ps = methodWatcher.prepareStatement(sqlText);
+        ps.setDouble(1, 1.0);
+        ps.setDouble(2, 2.0);
+        ps.setDouble(3, 3.0);
+        ps.setDouble(4, 3.0);
+        ps.setDouble(5, 4.0);
+        ps.setDouble(6, 2.0);
+        ps.setDouble(7, 1.0);
+        ps.setDouble(8, 1.0);
+        ps.setInt(9, 1);
+        ps.setInt(10, 4);
+        ps.setInt(11, 1);
+        ps.setInt(12, 3);
+        ps.setInt(13, 5);
+        ps.setDouble(14, 4.0);
+        ps.setDouble(15, 3.0);
+        ps.setDouble(16, 9.0);
+        ps.setDouble(17, -1.0);
+        ps.setDouble(18, 1.0);
+        rs = ps.executeQuery();
+        expected =
+            "F  | N  | R  |\n" +
+                "---------------\n" +
+                "1.0 |1.0 |1.0 |\n" +
+                "3.0 |3.0 |3.0 |\n" +
+                "4.0 |4.0 |4.0 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+    }
+    
+    @Test
+    public void testManyProbeValues() throws Exception {
+        String sqlText = format("select * from t22 --splice-properties useSpark=%s \n" +
+            "where b1 in (?, {ts'1902-09-24 21:51:52.32'}, {ts'1902-09-25 03:11:52.32'}) and \n" +
+            "      b1 in (?, {ts'1902-09-24 21:51:52.32'}, {ts'1902-09-25 03:11:52.32'}) and \n" +
+            "      a1 in (1,2,3) and \n" +
+            "      c1 = 1", useSpark);
+        PreparedStatement ps = methodWatcher.prepareStatement("explain " + sqlText);
+        ps.setTimestamp(1, Timestamp.valueOf("1902-09-24 11:11:43.32"));
+        ps.setTimestamp(2, Timestamp.valueOf("1902-09-24 11:11:43.32"));
+        ResultSet rs = ps.executeQuery();
+    
+        int level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 4) {
+                Assert.assertTrue("MultiProbeTableScan is expected", resultString.contains("MultiProbeTableScan"));
+            }
+            level++;
+        }
+        rs.close();
+    
+        ps = methodWatcher.prepareStatement(sqlText);
+        ps.setTimestamp(1, Timestamp.valueOf("1902-09-24 11:11:43.32"));
+        ps.setTimestamp(2, Timestamp.valueOf("1902-09-24 11:11:43.32"));
+        rs = ps.executeQuery();
+        String expected =
+            "A1 |          B1           |C1 |D1 |\n" +
+                "------------------------------------\n" +
+                " 1 |1902-09-24 11:11:43.32 | 1 | 1 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    
+        sqlText = format("select b1,a1 from t22 --splice-properties useSpark=%s \n" +
+            "where b1 in \n" +
+            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
+            " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
+            " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?," +
+            " ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" +
+
+            " and \n" +
+            "      a1 in \n" +
+            "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) " +
+            "order by 1,2", useSpark);
+        ps = methodWatcher.prepareStatement("explain " + sqlText);
+        Timestamp ts = Timestamp.valueOf("1902-09-24 11:11:43.32");
+        int increment = 0;
+        for (int i=0; i < 20; i++) {
+            ps.setTimestamp(1 + i * 10, new Timestamp(ts.getTime() + increment * 1000 * 60));
+            ps.setTimestamp(2 + i * 10, new Timestamp(ts.getTime() + 1000 + increment * 1000 * 60));
+            ps.setTimestamp(3 + i * 10, new Timestamp(ts.getTime() + 2000 + increment * 1000 * 60));
+            ps.setTimestamp(4 + i * 10, new Timestamp(ts.getTime() + 3000 + increment * 1000 * 60));
+            ps.setTimestamp(5 + i * 10, new Timestamp(ts.getTime() + 4000 + increment * 1000 * 60));
+            ps.setTimestamp(6 + i * 10, new Timestamp(ts.getTime() + 5000 + increment * 1000 * 60));
+            ps.setTimestamp(7 + i * 10, new Timestamp(ts.getTime() + 6000 + increment * 1000 * 60));
+            ps.setTimestamp(8 + i * 10, new Timestamp(ts.getTime() + 7000 + increment * 1000 * 60));
+            ps.setTimestamp(9 + i * 10, new Timestamp(ts.getTime() + 8000 + increment * 1000 * 60));
+            ps.setTimestamp(10 + i * 10, new Timestamp(ts.getTime() + 9000 + increment * 1000 * 60));
+            increment += 10;
+        }
+        for (int i = 1; i <= 20; i++) {
+            ps.setInt(i+200, i);
+        }
+
+        rs = ps.executeQuery();
+    
+        level = 1;
+        while (rs.next()) {
+            String resultString = rs.getString(1);
+            if (level == 4) {
+                Assert.assertTrue("MultiProbeTableScan is expected", resultString.contains("MultiProbeTableScan"));
+                Assert.assertTrue("Multicolumn IN predicate expected", resultString.contains("preds=[((B1[0:2],A1[0:1]) IN "));
+            }
+            level++;
+        }
+        rs.close();
+    
+        ps = methodWatcher.prepareStatement(sqlText);
+        increment = 0;
+        for (int i = 0; i < 20; i++) {
+            ps.setTimestamp(1 + i * 10, new Timestamp(ts.getTime() + increment * 1000 * 60));
+            ps.setTimestamp(2 + i * 10, new Timestamp(ts.getTime() + 1000 + increment * 1000 * 60));
+            ps.setTimestamp(3 + i * 10, new Timestamp(ts.getTime() + 2000 + increment * 1000 * 60));
+            ps.setTimestamp(4 + i * 10, new Timestamp(ts.getTime() + 3000 + increment * 1000 * 60));
+            ps.setTimestamp(5 + i * 10, new Timestamp(ts.getTime() + 4000 + increment * 1000 * 60));
+            ps.setTimestamp(6 + i * 10, new Timestamp(ts.getTime() + 5000 + increment * 1000 * 60));
+            ps.setTimestamp(7 + i * 10, new Timestamp(ts.getTime() + 6000 + increment * 1000 * 60));
+            ps.setTimestamp(8 + i * 10, new Timestamp(ts.getTime() + 7000 + increment * 1000 * 60));
+            ps.setTimestamp(9 + i * 10, new Timestamp(ts.getTime() + 8000 + increment * 1000 * 60));
+            ps.setTimestamp(10 + i * 10, new Timestamp(ts.getTime() + 9000 + increment * 1000 * 60));
+            increment += 10;
+        }
+        for (int i = 1; i <= 20; i++) {
+            ps.setInt(i + 200, i);
+        }
+        rs = ps.executeQuery();
+        expected =
+            "B1           |A1 |\n" +
+                "----------------------------\n" +
+                "1902-09-24 11:11:43.32 | 1 |\n" +
+                "1902-09-24 11:11:44.32 | 2 |\n" +
+                "1902-09-24 11:11:45.32 | 3 |\n" +
+                "1902-09-24 11:11:46.32 | 4 |\n" +
+                "1902-09-24 11:11:47.32 | 5 |\n" +
+                "1902-09-24 11:11:48.32 | 6 |\n" +
+                "1902-09-24 11:11:49.32 | 7 |\n" +
+                "1902-09-24 11:11:50.32 | 8 |\n" +
+                "1902-09-24 11:11:51.32 | 9 |\n" +
+                "1902-09-24 11:11:52.32 |10 |\n" +
+                "1902-09-24 11:21:43.32 | 1 |\n" +
+                "1902-09-24 11:21:44.32 | 2 |\n" +
+                "1902-09-24 11:21:45.32 | 3 |\n" +
+                "1902-09-24 11:21:46.32 | 4 |\n" +
+                "1902-09-24 11:21:47.32 | 5 |\n" +
+                "1902-09-24 11:21:48.32 | 6 |\n" +
+                "1902-09-24 11:21:49.32 | 7 |\n" +
+                "1902-09-24 11:21:50.32 | 8 |\n" +
+                "1902-09-24 11:21:51.32 | 9 |\n" +
+                "1902-09-24 11:21:52.32 |10 |\n" +
+                "1902-09-24 11:31:43.32 | 1 |\n" +
+                "1902-09-24 11:31:44.32 | 2 |\n" +
+                "1902-09-24 11:31:45.32 | 3 |\n" +
+                "1902-09-24 11:31:46.32 | 4 |\n" +
+                "1902-09-24 11:31:47.32 | 5 |\n" +
+                "1902-09-24 11:31:48.32 | 6 |\n" +
+                "1902-09-24 11:31:49.32 | 7 |\n" +
+                "1902-09-24 11:31:50.32 | 8 |\n" +
+                "1902-09-24 11:31:51.32 | 9 |\n" +
+                "1902-09-24 11:31:52.32 |10 |\n" +
+                "1902-09-24 11:41:43.32 | 1 |\n" +
+                "1902-09-24 11:41:44.32 | 2 |\n" +
+                "1902-09-24 11:41:45.32 | 3 |\n" +
+                "1902-09-24 11:41:46.32 | 4 |\n" +
+                "1902-09-24 11:41:47.32 | 5 |\n" +
+                "1902-09-24 11:41:48.32 | 6 |\n" +
+                "1902-09-24 11:41:49.32 | 7 |\n" +
+                "1902-09-24 11:41:50.32 | 8 |\n" +
+                "1902-09-24 11:41:51.32 | 9 |\n" +
+                "1902-09-24 11:41:52.32 |10 |\n" +
+                "1902-09-24 11:51:43.32 | 1 |\n" +
+                "1902-09-24 11:51:44.32 | 2 |\n" +
+                "1902-09-24 11:51:45.32 | 3 |\n" +
+                "1902-09-24 11:51:46.32 | 4 |\n" +
+                "1902-09-24 11:51:47.32 | 5 |\n" +
+                "1902-09-24 11:51:48.32 | 6 |\n" +
+                "1902-09-24 11:51:49.32 | 7 |\n" +
+                "1902-09-24 11:51:50.32 | 8 |\n" +
+                "1902-09-24 11:51:51.32 | 9 |\n" +
+                "1902-09-24 11:51:52.32 |10 |\n" +
+                "1902-09-24 12:01:43.32 | 1 |\n" +
+                "1902-09-24 12:01:44.32 | 2 |\n" +
+                "1902-09-24 12:01:45.32 | 3 |\n" +
+                "1902-09-24 12:01:46.32 | 4 |\n" +
+                "1902-09-24 12:01:47.32 | 5 |\n" +
+                "1902-09-24 12:01:48.32 | 6 |\n" +
+                "1902-09-24 12:01:49.32 | 7 |\n" +
+                "1902-09-24 12:01:50.32 | 8 |\n" +
+                "1902-09-24 12:01:51.32 | 9 |\n" +
+                "1902-09-24 12:01:52.32 |10 |\n" +
+                "1902-09-24 12:11:43.32 | 1 |\n" +
+                "1902-09-24 12:11:44.32 | 2 |\n" +
+                "1902-09-24 12:11:45.32 | 3 |\n" +
+                "1902-09-24 12:11:46.32 | 4 |\n" +
+                "1902-09-24 12:11:47.32 | 5 |\n" +
+                "1902-09-24 12:11:48.32 | 6 |\n" +
+                "1902-09-24 12:11:49.32 | 7 |\n" +
+                "1902-09-24 12:11:50.32 | 8 |\n" +
+                "1902-09-24 12:11:51.32 | 9 |\n" +
+                "1902-09-24 12:11:52.32 |10 |\n" +
+                "1902-09-24 12:21:43.32 | 1 |\n" +
+                "1902-09-24 12:21:44.32 | 2 |\n" +
+                "1902-09-24 12:21:45.32 | 3 |\n" +
+                "1902-09-24 12:21:46.32 | 4 |\n" +
+                "1902-09-24 12:21:47.32 | 5 |\n" +
+                "1902-09-24 12:21:48.32 | 6 |\n" +
+                "1902-09-24 12:21:49.32 | 7 |\n" +
+                "1902-09-24 12:21:50.32 | 8 |\n" +
+                "1902-09-24 12:21:51.32 | 9 |\n" +
+                "1902-09-24 12:21:52.32 |10 |\n" +
+                "1902-09-24 12:31:43.32 | 1 |\n" +
+                "1902-09-24 12:31:44.32 | 2 |\n" +
+                "1902-09-24 12:31:45.32 | 3 |\n" +
+                "1902-09-24 12:31:46.32 | 4 |\n" +
+                "1902-09-24 12:31:47.32 | 5 |\n" +
+                "1902-09-24 12:31:48.32 | 6 |\n" +
+                "1902-09-24 12:31:49.32 | 7 |\n" +
+                "1902-09-24 12:31:50.32 | 8 |\n" +
+                "1902-09-24 12:31:51.32 | 9 |\n" +
+                "1902-09-24 12:31:52.32 |10 |\n" +
+                "1902-09-24 12:41:43.32 | 1 |\n" +
+                "1902-09-24 12:41:44.32 | 2 |\n" +
+                "1902-09-24 12:41:45.32 | 3 |\n" +
+                "1902-09-24 12:41:46.32 | 4 |\n" +
+                "1902-09-24 12:41:47.32 | 5 |\n" +
+                "1902-09-24 12:41:48.32 | 6 |\n" +
+                "1902-09-24 12:41:49.32 | 7 |\n" +
+                "1902-09-24 12:41:50.32 | 8 |\n" +
+                "1902-09-24 12:41:51.32 | 9 |\n" +
+                "1902-09-24 12:41:52.32 |10 |\n" +
+                "1902-09-24 12:51:43.32 | 1 |\n" +
+                "1902-09-24 12:51:44.32 | 2 |\n" +
+                "1902-09-24 12:51:45.32 | 3 |\n" +
+                "1902-09-24 12:51:46.32 | 4 |\n" +
+                "1902-09-24 12:51:47.32 | 5 |\n" +
+                "1902-09-24 12:51:48.32 | 6 |\n" +
+                "1902-09-24 12:51:49.32 | 7 |\n" +
+                "1902-09-24 12:51:50.32 | 8 |\n" +
+                "1902-09-24 12:51:51.32 | 9 |\n" +
+                "1902-09-24 12:51:52.32 |10 |\n" +
+                "1902-09-24 13:01:43.32 | 1 |\n" +
+                "1902-09-24 13:01:44.32 | 2 |\n" +
+                "1902-09-24 13:01:45.32 | 3 |\n" +
+                "1902-09-24 13:01:46.32 | 4 |\n" +
+                "1902-09-24 13:01:47.32 | 5 |\n" +
+                "1902-09-24 13:01:48.32 | 6 |\n" +
+                "1902-09-24 13:01:49.32 | 7 |\n" +
+                "1902-09-24 13:01:50.32 | 8 |\n" +
+                "1902-09-24 13:01:51.32 | 9 |\n" +
+                "1902-09-24 13:01:52.32 |10 |\n" +
+                "1902-09-24 13:11:43.32 | 1 |\n" +
+                "1902-09-24 13:11:44.32 | 2 |\n" +
+                "1902-09-24 13:11:45.32 | 3 |\n" +
+                "1902-09-24 13:11:46.32 | 4 |\n" +
+                "1902-09-24 13:11:47.32 | 5 |\n" +
+                "1902-09-24 13:11:48.32 | 6 |\n" +
+                "1902-09-24 13:11:49.32 | 7 |\n" +
+                "1902-09-24 13:11:50.32 | 8 |\n" +
+                "1902-09-24 13:11:51.32 | 9 |\n" +
+                "1902-09-24 13:11:52.32 |10 |\n" +
+                "1902-09-24 13:21:43.32 | 1 |\n" +
+                "1902-09-24 13:21:44.32 | 2 |\n" +
+                "1902-09-24 13:21:45.32 | 3 |\n" +
+                "1902-09-24 13:21:46.32 | 4 |\n" +
+                "1902-09-24 13:21:47.32 | 5 |\n" +
+                "1902-09-24 13:21:48.32 | 6 |\n" +
+                "1902-09-24 13:21:49.32 | 7 |\n" +
+                "1902-09-24 13:21:50.32 | 8 |\n" +
+                "1902-09-24 13:21:51.32 | 9 |\n" +
+                "1902-09-24 13:21:52.32 |10 |\n" +
+                "1902-09-24 13:31:43.32 | 1 |\n" +
+                "1902-09-24 13:31:44.32 | 2 |\n" +
+                "1902-09-24 13:31:45.32 | 3 |\n" +
+                "1902-09-24 13:31:46.32 | 4 |\n" +
+                "1902-09-24 13:31:47.32 | 5 |\n" +
+                "1902-09-24 13:31:48.32 | 6 |\n" +
+                "1902-09-24 13:31:49.32 | 7 |\n" +
+                "1902-09-24 13:31:50.32 | 8 |\n" +
+                "1902-09-24 13:31:51.32 | 9 |\n" +
+                "1902-09-24 13:31:52.32 |10 |\n" +
+                "1902-09-24 13:41:43.32 | 1 |\n" +
+                "1902-09-24 13:41:44.32 | 2 |\n" +
+                "1902-09-24 13:41:45.32 | 3 |\n" +
+                "1902-09-24 13:41:46.32 | 4 |\n" +
+                "1902-09-24 13:41:47.32 | 5 |\n" +
+                "1902-09-24 13:41:48.32 | 6 |\n" +
+                "1902-09-24 13:41:49.32 | 7 |\n" +
+                "1902-09-24 13:41:50.32 | 8 |\n" +
+                "1902-09-24 13:41:51.32 | 9 |\n" +
+                "1902-09-24 13:41:52.32 |10 |\n" +
+                "1902-09-24 13:51:43.32 | 1 |\n" +
+                "1902-09-24 13:51:44.32 | 2 |\n" +
+                "1902-09-24 13:51:45.32 | 3 |\n" +
+                "1902-09-24 13:51:46.32 | 4 |\n" +
+                "1902-09-24 13:51:47.32 | 5 |\n" +
+                "1902-09-24 13:51:48.32 | 6 |\n" +
+                "1902-09-24 13:51:49.32 | 7 |\n" +
+                "1902-09-24 13:51:50.32 | 8 |\n" +
+                "1902-09-24 13:51:51.32 | 9 |\n" +
+                "1902-09-24 13:51:52.32 |10 |\n" +
+                "1902-09-24 14:01:43.32 | 1 |\n" +
+                "1902-09-24 14:01:44.32 | 2 |\n" +
+                "1902-09-24 14:01:45.32 | 3 |\n" +
+                "1902-09-24 14:01:46.32 | 4 |\n" +
+                "1902-09-24 14:01:47.32 | 5 |\n" +
+                "1902-09-24 14:01:48.32 | 6 |\n" +
+                "1902-09-24 14:01:49.32 | 7 |\n" +
+                "1902-09-24 14:01:50.32 | 8 |\n" +
+                "1902-09-24 14:01:51.32 | 9 |\n" +
+                "1902-09-24 14:01:52.32 |10 |\n" +
+                "1902-09-24 14:11:43.32 | 1 |\n" +
+                "1902-09-24 14:11:44.32 | 2 |\n" +
+                "1902-09-24 14:11:45.32 | 3 |\n" +
+                "1902-09-24 14:11:46.32 | 4 |\n" +
+                "1902-09-24 14:11:47.32 | 5 |\n" +
+                "1902-09-24 14:11:48.32 | 6 |\n" +
+                "1902-09-24 14:11:49.32 | 7 |\n" +
+                "1902-09-24 14:11:50.32 | 8 |\n" +
+                "1902-09-24 14:11:51.32 | 9 |\n" +
+                "1902-09-24 14:11:52.32 |10 |\n" +
+                "1902-09-24 14:21:43.32 | 1 |\n" +
+                "1902-09-24 14:21:44.32 | 2 |\n" +
+                "1902-09-24 14:21:45.32 | 3 |\n" +
+                "1902-09-24 14:21:46.32 | 4 |\n" +
+                "1902-09-24 14:21:47.32 | 5 |\n" +
+                "1902-09-24 14:21:48.32 | 6 |\n" +
+                "1902-09-24 14:21:49.32 | 7 |\n" +
+                "1902-09-24 14:21:50.32 | 8 |\n" +
+                "1902-09-24 14:21:51.32 | 9 |\n" +
+                "1902-09-24 14:21:52.32 |10 |";
+    
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 

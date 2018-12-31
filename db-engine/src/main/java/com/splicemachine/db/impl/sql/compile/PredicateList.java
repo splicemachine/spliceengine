@@ -903,30 +903,37 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         ValueNode andNode = null;
         InListOperatorNode ilon = null;
         Predicate multiColumnInListPred = null;
-        ArrayList<Predicate> usefulPredList = null;
+        ArrayList<Predicate> predsForNewInList = null;
     
         if (inlistQualified) {
           if (inlistPreds.size() > 1) {
-            usefulPredList = new ArrayList<>();
+            predsForNewInList = new ArrayList<>();
             int firstPred = -1, lastPred = -1, lastIndexPos = -1;
+
+            boolean foundPred[] = new boolean[usefulCount];
             for (int i = 0; i < usefulCount; i++) {
                 final Predicate pred = usefulPredicates[i];
-                if (pred.isInListProbePredicate()) {
-                    if (firstPred == -1)
-                        firstPred = i;
-                    lastPred = i;
+
+                if (pred.getIndexPosition() == lastIndexPos + 1) {
+                    BinaryRelationalOperatorNode bron =
+                        (BinaryRelationalOperatorNode) pred.getRelop();
+                    if (pred.isInListProbePredicate() ||
+                        (bron != null && bron.getOperator() == RelationalOperator.EQUALS_RELOP)) {
+                        if (firstPred == -1)
+                            firstPred = i;
+                        lastPred = i;
+                        predsForNewInList.add(usefulPredicates[i]);
+                        lastIndexPos = pred.getIndexPosition();
+                        foundPred[i] = true;
+                    }
                 }
                 // Can't have any gaps in index position.
                 if (pred.getIndexPosition() > lastIndexPos+1)
                     break;
-                lastIndexPos = pred.getIndexPosition();
             }
-            if (firstPred >= 0)
-            for (int i = firstPred; i <= lastPred; i++) {
-                usefulPredList.add(usefulPredicates[i]);
-            }
+
             int numConstants = 1;
-            for (Predicate pred:usefulPredList){
+            for (Predicate pred:predsForNewInList){
                 if (!pred.isInListProbePredicate())
                     continue;
                 InListOperatorNode inNode = pred.getSourceInList(true);
@@ -942,20 +949,20 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                    C_NodeTypes.VALUE_NODE_LIST,
                                    getContextManager());
             if (firstPred != lastPred &&
-                addConstantsToList(optTable, null, groupedConstants, usefulPredList, 0)) {
+                addConstantsToList(optTable, null, groupedConstants, predsForNewInList, 0)) {
                 if (numConstants != groupedConstants.size())
                     SanityManager.THROWASSERT("Wrong number of constants built for IN list.");
 
-                for (Predicate pred : usefulPredList) {
+                for (Predicate pred : predsForNewInList) {
                     InListOperatorNode inNode = pred.getSourceInList(true);
                     if (inNode != null)
-                        vnl.addValueNode((ValueNode) inNode.getLeftOperand().getClone());
+                        vnl.addValueNode(inNode.getLeftOperand().getClone());
                     else {
                         RelationalOperator relop = pred.getRelop();
                         if (! (relop instanceof BinaryRelationalOperatorNode))
                             SanityManager.THROWASSERT("Expected equality predicate, but none found.");
                         BinaryRelationalOperatorNode brop = (BinaryRelationalOperatorNode) relop;
-                        ValueNode colRef = null;
+                        ValueNode colRef;
                         if (brop.keyColumnOnLeft(optTable))
                             colRef = brop.getLeftOperand();
                         else
@@ -989,11 +996,16 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                     // Pack the remaining useful preds in usefulPredicates so
                     // there are no gaps.
-                    for (int i = lastPred + 1; i < usefulCount; i++) {
-                        int dest = i - (lastPred - firstPred);
-                        usefulPredicates[dest] = usefulPredicates[i];
+                    int j = firstPred + 1;
+                    for (int i = firstPred + 1; i < usefulCount; i++) {
+                        while(i < usefulCount && foundPred[i])
+                            i++;
+                        if (i != j && i < usefulCount) {
+                            usefulPredicates[j] = usefulPredicates[i];
+                            j++;
+                        }
                     }
-                    usefulCount -= (usefulPredList.size() - 1);
+                    usefulCount -= (predsForNewInList.size() - 1);
                 }
             }
             else {
@@ -1258,7 +1270,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 					           */
                     if(!isIn || thisPred.isInListProbePredicate()) {
                         if (thisPred == multiColumnInListPred) {
-                            for (Predicate predToRemove:usefulPredList) {
+                            for (Predicate predToRemove:predsForNewInList) {
                                 removeOptPredicate(predToRemove);
                             }
                         }
