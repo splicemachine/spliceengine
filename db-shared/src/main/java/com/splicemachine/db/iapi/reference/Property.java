@@ -1350,8 +1350,8 @@ public interface Property {
 			"derby.database.matchStmtCacheIgnoreCommentOptimizationEnabled";
 	
 	/**
-	 * True if we want to enable the ProjectionPruning. By default it is false or NULL(which is
-	 * the same as false)
+	 * The maximum number of IN list items the optimizer is allowed to generate by combining
+	 * IN lists involving index or primary key columns into a single multicolumn IN list.
 	 */
 	String MAX_MULTICOLUMN_PROBE_VALUES =
 		"derby.database.maxMulticolumnProbeValues";

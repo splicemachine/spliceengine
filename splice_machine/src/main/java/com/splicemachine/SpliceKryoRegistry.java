@@ -59,6 +59,7 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.control.ControlOperationContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
+import com.splicemachine.derby.utils.kryo.ListDataTypeSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
@@ -426,13 +427,16 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         },42);
         // Note that serialization of SQLRef as part of an ExecRow is handled by RefDescriptorSerializer
         instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER,43);
-        instance.register(ListDataType.class, new DataValueDescriptorSerializer<ListDataType>() {
+        instance.register(ListDataType.class, new ListDataTypeSerializer<ListDataType>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, ListDataType object) throws StandardException {
                 int forLim = object.getLength();
                 output.writeInt(forLim);
                 for (int i = 0; i < forLim; i++) {
-                    kryo.writeClassAndObject(output, object.getDVD(i));
+                    boolean dvdPresent = (object.getDVD(i) != null);
+                    output.writeBoolean(dvdPresent);
+                    if (dvdPresent)
+                        kryo.writeClassAndObject(output, object.getDVD(i));
                 }
             }
         
@@ -442,11 +446,13 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 dvd.setLength(forLim);
                 for (int i=0; i < forLim; i++) {
                     DataValueDescriptor inputDVD;
-                    inputDVD = (DataValueDescriptor)kryo.readClassAndObject(input);
-                    try {
-                        dvd.setFrom(inputDVD, i);
-                    } catch (StandardException e) {
-                        throw new RuntimeException(e);
+                    if (input.readBoolean()) {
+                        inputDVD = (DataValueDescriptor) kryo.readClassAndObject(input);
+                        try {
+                            dvd.setFrom(inputDVD, i);
+                        } catch (StandardException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 }
             }

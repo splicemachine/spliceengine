@@ -15,38 +15,35 @@
 package com.splicemachine.derby.utils.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
- * @author Scott Fines
- *         Created on: 10/9/13
+ * @author Mark Sirek
+ *         Created on: 12/31/18
  */
-public abstract class DataValueDescriptorSerializer<T extends DataValueDescriptor> extends Serializer<T> {
-
+public abstract class ListDataTypeSerializer<T extends DataValueDescriptor> extends DataValueDescriptorSerializer<T> {
+    
+    
+    // Always read and write a ListDataType object because isNull
+    // just means, "at least one of the items in the list is null",
+    // not "all items in the list are null".
     @Override
     public void write(Kryo kryo, Output output, T object) {
-        output.writeBoolean(object.isNull());
-        if(!object.isNull()){
-            try{
-                writeValue(kryo, output, object);
-            }catch(StandardException se){
-                throw new RuntimeException(se);
-            }
+        try {
+            writeValue(kryo, output, object);
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
         }
     }
-
-    protected abstract void writeValue(Kryo kryo, Output output, T object) throws StandardException;
-
+    
     @Override
     public T read(Kryo kryo, Input input, Class<T> type) {
         try {
             T dvd = type.newInstance();
-            if(!input.readBoolean())
-                readValue(kryo,input,dvd);
+            readValue(kryo, input, dvd);
             return dvd;
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
@@ -56,6 +53,4 @@ public abstract class DataValueDescriptorSerializer<T extends DataValueDescripto
             throw new RuntimeException(e);
         }
     }
-
-    protected abstract void readValue(Kryo kryo, Input input, T dvd) throws StandardException;
 }

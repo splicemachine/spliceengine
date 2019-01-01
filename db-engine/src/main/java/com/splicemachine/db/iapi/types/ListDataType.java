@@ -56,8 +56,9 @@ import java.sql.ResultSet;
  * interfaces (i.e., OrderableDataType). It implements a list of
  * DataValueDescriptors, for example (SQLLongint, SQLTimestamp, SQLChar).
  * <p>
- * The main purpose for this class is for conversion of equality
- * predicates in DNF form,
+ * The main purpose for this class is to facilitate representation
+ * of multicolumn IN lists, e.g. (col_1, col2) IN ((1,2), (3,4))
+ * One use of this is the conversion of equality predicates in DNF form,
  * e.g.  (c1 = 1 and c2 = 2) or (c1 = 2 and c2 = 3)
  * ... into an IN list predicate:  (c1,c2) in ((1,2), (2,3))
  * in order to enable optimizations such as MultiProbeTableScan.
@@ -72,7 +73,7 @@ import java.sql.ResultSet;
  * (1 = 1) AND ('2001-01-01' = '2001-01-01') and 'Widget' = 'Sprocket'
  * <p>
  * If any of the elements of the ListDataType holds a null, the
- * ListDataType item itself is considered as a null value since
+ * ListDataType item itself can be considered as a null value since
  * (null OP X) AND (A OP B) and (C OP D) ... is always UNKNOWN.
  * <p>
  */
@@ -120,27 +121,30 @@ public final class ListDataType extends DataType {
         return getString();
     }
 
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
     @Override
     public boolean isNull() {
-        if (numElements <= 0)
-            return true;
-        for (int i = 0; i < numElements; i++) {
-            if (dvd[i] == null || dvd[i].isNull())
-                return true;
+        boolean localIsNull = true;
+        
+        if (numElements > 1) {
+            int i;
+            for (i = 0; i < numElements; i++) {
+                if (dvd[i] == null || dvd[i].isNull())
+                    break;
+            }
+            if (i == numElements)
+                localIsNull = false;
         }
-        return false;
+        setIsNull(localIsNull);
+        return localIsNull;
     }
 
     @Override
     public void restoreToNull()
     {
         for (int i = 0; i < numElements; i++) {
-            restoreToNull();
+            dvd[i].restoreToNull();
         }
-        isNull = true;
+        setIsNull(true);
     }
 
 	/**
@@ -157,8 +161,11 @@ public final class ListDataType extends DataType {
 	public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(isNull);
 		out.writeInt(numElements);
-        for (int i = 0; i < numElements; i++)
-            out.writeObject(dvd[i]);
+        for (int i = 0; i < numElements; i++) {
+            out.writeBoolean(dvd[i] != null);
+            if (dvd[i] != null)
+                out.writeObject(dvd[i]);
+        }
 	}
 
 	/** @see java.io.Externalizable#readExternal */
@@ -168,7 +175,8 @@ public final class ListDataType extends DataType {
         setLength(in.readInt());
         try {
             for (int i = 0; i < numElements; i++) {
-                dvd[i] = (DataValueDescriptor) in.readObject();
+                if (in.readBoolean())
+                    dvd[i] = (DataValueDescriptor) in.readObject();
             }
         }
         catch (ClassNotFoundException e) {
@@ -183,7 +191,8 @@ public final class ListDataType extends DataType {
         numElements = in.readInt();
         try {
             for (int i = 0; i < numElements; i++)
-                dvd[i] = (DataValueDescriptor) in.readObject();
+                if (in.readBoolean())
+                    dvd[i] = (DataValueDescriptor) in.readObject();
         }
         catch(ClassNotFoundException e) {
             throw new IOException(
@@ -202,7 +211,6 @@ public final class ListDataType extends DataType {
             throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, "LIST");
 
         dvd[index] = theValue;
-        setIsNull(false);
     }
     
     public void setFrom(ExecRow row)
@@ -210,10 +218,9 @@ public final class ListDataType extends DataType {
         if (row.size() != numElements)
             throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARGUMENT);
         
-        for (int i = 0; i < row.size(); i++)
-            dvd[i] = row.getColumn(i+1);
-
-        setIsNull(false);
+        for (int i = 0; i < row.size(); i++) {
+            dvd[i] = row.getColumn(i + 1);
+        }
     }
 
 	/** @see DataValueDescriptor#cloneValue */
@@ -224,7 +231,8 @@ public final class ListDataType extends DataType {
         ldt.setLength(numElements);
         ldt.setIsNull(getIsNull());
         for (int i = 0; i < numElements; i++)
-            ldt.dvd[i] = dvd[i].cloneValue(forceMaterialization);
+            if (dvd[i] != null)
+                ldt.dvd[i] = dvd[i].cloneValue(forceMaterialization);
 		return ldt;
 	}
 
@@ -259,7 +267,7 @@ public final class ListDataType extends DataType {
 	}
 
 	
-	public DataValueDescriptor getDVD(int index) {
+    public DataValueDescriptor getDVD(int index) {
         return dvd[index];
     }
     
@@ -363,7 +371,7 @@ public final class ListDataType extends DataType {
         return true;
     }
 	/*
-	 * String display of value
+	 * String display of values
 	 */
 
 	public String toString()
@@ -422,7 +430,9 @@ public final class ListDataType extends DataType {
                 out.writeBoolean(isNull);
                 out.write(numElements);
                 for (int i = 0; i < numElements; i++) {
-                    out.writeObject(dvd[i]);
+                    out.writeBoolean(dvd[i] != null);
+                    if (dvd[i] != null)
+                        out.writeObject(dvd[i]);
                 }
                 out.close();
                 theBytes = bout.toByteArray();
@@ -441,7 +451,10 @@ public final class ListDataType extends DataType {
                 isNull = in.readBoolean();
                 setLength(in.read());
                 for (int i = 0; i < numElements; i++) {
-                    dvd[i] = (DataValueDescriptor) in.readObject();
+                    if (in.readBoolean())
+                        dvd[i] = (DataValueDescriptor) in.readObject();
+                    else
+                        dvd[i] = null;
                 }
                 in.close();
             }
