@@ -906,7 +906,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         ArrayList<Predicate> predsForNewInList = null;
     
         if (inlistQualified) {
-          if (inlistPreds.size() > 1) {
+          // Only combine multiple IN lists if not using Spark.
+          // Adding extra RDDs and unioning them together hinders performance.
+          if (inlistPreds.size() > 1 &&
+              (optTable instanceof FromBaseTable &&
+               ! ((FromBaseTable)optTable).isSpark(((FromBaseTable) optTable).getDataSetProcessorType()))) {
             predsForNewInList = new ArrayList<>();
             int firstPred = -1, lastPred = -1, lastIndexPos = -1;
 
