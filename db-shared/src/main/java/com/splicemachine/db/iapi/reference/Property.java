@@ -1356,4 +1356,14 @@ public interface Property {
 	String MAX_MULTICOLUMN_PROBE_VALUES =
 		"derby.database.maxMulticolumnProbeValues";
 	
+	/**
+	 * If true, allow conversion of single-column IN lists into a multicolumn IN list
+	 * for use as a probe predicate when executing on Spark.  By default, this
+	 * optimization is only used on control because the greater number of union
+	 * operations on Spark leads to worse performance.
+	 *
+	 */
+	String MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED =
+		"derby.database.multicolumnInlistProbeOnSparkEnabled";
+	
 }

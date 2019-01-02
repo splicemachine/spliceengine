@@ -224,6 +224,12 @@ public class CompilerContextImpl extends ContextImpl
 		maxMulticolumnProbeValues = newValue;
 	}
 	
+	public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue) {
+		multicolumnInlistProbeOnSparkEnabled = newValue;
+	}
+	
+	public boolean getMulticolumnInlistProbeOnSparkEnabled() { return multicolumnInlistProbeOnSparkEnabled; }
+	
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
@@ -1045,6 +1051,7 @@ public class CompilerContextImpl extends ContextImpl
 	private boolean             selectivityEstimationIncludingSkewedDefault = false;
 	private boolean             projectionPruningEnabled;
 	private int                 maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+	private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
 
 	/**
 	 * Saved execution time default schema, if we need to change it

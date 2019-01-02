@@ -874,15 +874,18 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 if (!isEquality[pos])
                     unsetRemainder = true;
             }
-            for (Map.Entry<Integer, Predicate> p : inlistPreds.entrySet()) {
+            TreeMap<Integer, Predicate> inlistPredsCopy = (TreeMap < Integer, Predicate>)inlistPreds.clone();
+            for (Map.Entry<Integer, Predicate> p : inlistPredsCopy.entrySet()) {
                 if (isEquality[p.getKey()]) {
                     p.getValue().setIndexPosition(p.getKey());
                     inlistQualified = true;
                     /* Remember the useful predicate */
                     usefulPredicates[usefulCount++] = p.getValue();
                 }
-                else
+                else {
                     inListNonQualifiedPreds.add(p.getValue());
+                    inlistPreds.remove(p.getKey());
+                }
             }
         } else
             inlistQualified = false;
@@ -908,11 +911,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if (inlistQualified) {
           // Only combine multiple IN lists if not using Spark.
           // Adding extra RDDs and unioning them together hinders performance.
-          if (inlistPreds.size() > 1 &&
-              (optTable instanceof FromBaseTable &&
-               ! ((FromBaseTable)optTable).isSpark(((FromBaseTable) optTable).getDataSetProcessorType()))) {
+          if (inlistPreds.size() > 1) {
             predsForNewInList = new ArrayList<>();
-            int firstPred = -1, lastPred = -1, lastIndexPos = -1;
+            int firstPred = -1, lastPred = -1, lastIndexPos = -1, firstInListPred = -1;
 
             boolean foundPred[] = new boolean[usefulCount];
             int numConstants = 1;
@@ -928,7 +929,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         (bron != null && bron.getOperator() == RelationalOperator.EQUALS_RELOP)) {
                         if (inList) {
                             InListOperatorNode inNode = pred.getSourceInList(true);
-
+    
+                            if (firstInListPred == -1)
+                                firstInListPred = i;
+                            
                             // A max setting of -1 means there is no limit to the size of
                             // IN list that we generate.
                             if (maxMulticolumnProbeValues != -1 &&
@@ -956,7 +960,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                    (ValueNodeList) getNodeFactory().getNode(
                                    C_NodeTypes.VALUE_NODE_LIST,
                                    getContextManager());
-            if (firstPred != lastPred &&
+            boolean multiColumnInListBuilt = false;
+            if (optTable instanceof FromBaseTable &&
+                (!((FromBaseTable) optTable).isSpark(((FromBaseTable) optTable).getDataSetProcessorType()) ||
+                   getCompilerContext().getMulticolumnInlistProbeOnSparkEnabled()) &&
+                  firstPred != lastPred &&
                 addConstantsToList(optTable, null, groupedConstants, predsForNewInList, 0)) {
                 if (numConstants != groupedConstants.size())
                     SanityManager.THROWASSERT("Wrong number of constants built for IN list.");
@@ -992,6 +1000,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 andNode = ilon.convertToAndedEqualityProbePredicate();
 
                 if (andNode instanceof AndNode) {
+                    multiColumnInListBuilt = true;
                     JBitSet newJBitSet = new JBitSet(getCompilerContext().getNumTables());
                     Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
                             andNode, newJBitSet, getContextManager());
@@ -1016,32 +1025,39 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     usefulCount -= (predsForNewInList.size() - 1);
                 }
             }
-            else {
-                // At this point, we found only the first IN list predicate
-                // to be useful.  Put the rest into inListNonQualifiedPreds
-                // so they may be possibly pushed as qualifiers.
-                boolean copyNeeded = false;
-                int oldUsefulCount = usefulCount;
-                for (int i = firstPred+1; i < oldUsefulCount; i++) {
+
+            // At this point, we have multiple IN list predicates in the
+            // usefulPredicates array, but we might not have combined them
+            // all into a single multicolumn IN list predicate.
+            // Put the rest into inListNonQualifiedPreds
+            // so they may be possibly pushed as qualifiers, but more
+            // importantly, remove them from the usefulPredicates so they
+            // are not considered for use as probe predicates, as this may
+            // cause wrong results.
+            boolean copyNeeded = false;
+            int oldUsefulCount = usefulCount;
+            if (firstInListPred == -1)
+                SanityManager.THROWASSERT("Logic failure in building multicolumn IN list.");
+            int firstUnusedPred = multiColumnInListBuilt ? firstInListPred + 1 : lastPred + 1;
+            for (int i = firstUnusedPred; i < oldUsefulCount; i++) {
+                final Predicate pred = usefulPredicates[i];
+                if (pred != null && pred.isInListProbePredicate()) {
+                    inListNonQualifiedPreds.add(pred);
+                    usefulPredicates[i] = null;
+                    copyNeeded = true;
+                    usefulCount--;
+                }
+            }
+            if (copyNeeded) {
+                Predicate [] newUsefulPredicates = new Predicate[usefulCount];
+                int j = 0;
+                for (int i = 0; i < oldUsefulCount; i++) {
                     final Predicate pred = usefulPredicates[i];
-                    if (pred.isInListProbePredicate()) {
-                        inListNonQualifiedPreds.add(pred);
-                        usefulPredicates[i] = null;
-                        copyNeeded = true;
-                        usefulCount--;
+                    if (pred != null) {
+                        newUsefulPredicates[j++] = pred;
                     }
                 }
-                if (copyNeeded) {
-                    Predicate [] newUsefulPredicates = new Predicate[usefulCount];
-                    int j = 0;
-                    for (int i = 0; i < oldUsefulCount; i++) {
-                        final Predicate pred = usefulPredicates[i];
-                        if (pred != null) {
-                            newUsefulPredicates[j++] = pred;
-                        }
-                    }
-                    usefulPredicates = newUsefulPredicates;
-                }
+                usefulPredicates = newUsefulPredicates;
             }
           }
         }

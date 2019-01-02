@@ -450,9 +450,13 @@ public class GenericStatement implements Statement{
             String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.PROJECTION_PRUNING_DISABLED);
             // if database property is not set, treat it as false
             Boolean projectionPruningOptimizationDisabled = false;
-            if (projectionPruningOptimizationString != null)
-                projectionPruningOptimizationDisabled = Boolean.valueOf(projectionPruningOptimizationString);
-
+            try {
+                if (projectionPruningOptimizationString != null)
+                    projectionPruningOptimizationDisabled = Boolean.valueOf(projectionPruningOptimizationString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
             cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
     
             // User can specify the max length of multicolumn IN list the optimizer may build for
@@ -469,6 +473,17 @@ public class GenericStatement implements Statement{
                 // just use the default setting.
             }
             cc.setMaxMulticolumnProbeValues(maxMulticolumnProbeValues);
+    
+            String multicolumnInlistProbeOnSparkEnabledString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED);
+            boolean multicolumnInlistProbeOnSparkEnabled = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+            try {
+                if (multicolumnInlistProbeOnSparkEnabledString != null)
+                    multicolumnInlistProbeOnSparkEnabled = Boolean.valueOf(multicolumnInlistProbeOnSparkEnabledString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setMulticolumnInlistProbeOnSparkEnabled(multicolumnInlistProbeOnSparkEnabled);
 
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){

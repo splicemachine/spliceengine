@@ -298,11 +298,20 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     
         // Reset derby.database.maxMulticolumnProbeValues to the default setting.
         spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MAX_MULTICOLUMN_PROBE_VALUES + "', null)");
+    
+        // Allow multicolumn IN list probing on Spark for testing purposes.
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED + "', 'true')");
     }
 
     @BeforeClass
     public static void createDataSet() throws Exception {
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
+    }
+    
+    @AfterClass
+    public static void resetProperties() throws Exception {
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MAX_MULTICOLUMN_PROBE_VALUES + "', null)");
+        spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED + "', null)");
     }
 
 
