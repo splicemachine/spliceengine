@@ -821,9 +821,21 @@ public class SQLClob
      */
     public void readExternal(ObjectInput in)
             throws IOException {
-        if (in.readBoolean()) {
-            setIsNull(true);
-            return;
+        if (in instanceof FormatIdInputStream) {
+            InputStream stream = ((FormatIdInputStream) in).getStream();
+            // There is no null indicator in the user-provided clob data
+            if (!(stream instanceof ReaderToUTF8Stream)) {
+                if (in.readBoolean()) {
+                    setIsNull(true);
+                    return;
+                }
+            }
+        }
+        else {
+            if (in.readBoolean()) {
+                setIsNull(true);
+                return;
+            }
         }
         HeaderInfo hdrInfo;
         if (csd != null) {
