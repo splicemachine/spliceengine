@@ -246,7 +246,7 @@ public class ImportErrorIT extends SpliceUnitTest {
     public void testCannotInsertAPoorlyFormattedDate() throws Exception {
         final String importFileName = "bad_date.csv";
         final String expectedErrorCode = "22007";
-        final String expectedErrorMsg = "Error parsing datetime 201301-01 with pattern: yyyy-MM-dd";
+        final String expectedErrorMsg = "Error parsing datetime 201301-01 with pattern: yyyy-M-d";
         helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 
