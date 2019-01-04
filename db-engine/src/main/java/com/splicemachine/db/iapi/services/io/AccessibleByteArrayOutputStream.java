@@ -79,7 +79,7 @@ public class AccessibleByteArrayOutputStream extends ByteArrayOutputStream {
         
         for(;;)
         {
-            int read = in.read(buffer, 0, buf.length);
+            int read = in.read(buffer, 0, buffer.length);
             if (read == -1)
                 break;
             write(buffer, 0, read);
