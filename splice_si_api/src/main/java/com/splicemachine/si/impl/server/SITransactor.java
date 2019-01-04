@@ -557,8 +557,8 @@ public class SITransactor implements Transactor{
         if(updateTransaction.getTxnId()!=dataTransactionId){
             final TxnView dataTransaction=txnSupplier.getTransaction(dataTransactionId);
             if(dataTransaction.getState()==Txn.State.ROLLEDBACK){
-                if (dataTransaction.getBeginTimestamp() > updateTransaction.getBeginTimestamp()) {
-                    // If we ignore this transaction it could mask other writes with which we do conflict, see DB-7582 for details
+                if (dataTransaction.getEffectiveBeginTimestamp() > updateTransaction.getEffectiveBeginTimestamp()) {
+                    // If we ignore this transaction it could mask other writes with which we do conflict, see DB-7582 and DB-7779 for details
                     if(LOG.isTraceEnabled()){
                         SpliceLogUtils.trace(LOG,"Write conflict on row "
                                 +Bytes.toHex(cell.keyArray(),cell.keyOffset(),cell.keyLength()));
