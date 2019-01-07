@@ -69,7 +69,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
             if (selectivityFactor > 0)
                 selectivity *= selectivityFactor;
 
-            if (selectivity > 1.0d)
+            if (selectivity > 0.9d)
                 selectivity = 0.9d;
         }
         return selectivity;

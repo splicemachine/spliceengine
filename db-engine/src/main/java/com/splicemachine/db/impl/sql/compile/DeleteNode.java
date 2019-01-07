@@ -31,53 +31,35 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-
-
-import com.splicemachine.db.iapi.sql.StatementType;
-
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.reference.ClassName;
-
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableProperties;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-
+import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.vti.DeferModification;
 
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-
-import com.splicemachine.db.impl.sql.execute.FKInfo;
-
 import java.lang.reflect.Modifier;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import com.splicemachine.db.iapi.services.io.FormatableProperties;
-
-import java.util.Vector;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.Properties;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.util.ReuseFactory;
-import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
+import java.util.Vector;
 
 
 /**
@@ -680,8 +662,8 @@ public class DeleteNode extends DMLModStatementNode
 
 		}
 
-        mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
-        mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+        mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
+        mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
         mb.push(targetTableDescriptor.getVersion());
         if ("getDeleteResultSet".equals(resultSetGetter)) {
 			mb.push(this.printExplainInformationForActivation());
@@ -1097,7 +1079,7 @@ public class DeleteNode extends DMLModStatementNode
 			.append("Delete").append("(")
 			.append("n=").append(order).append(attrDelim);
 		if (this.resultSet!=null) {
-			sb.append(this.resultSet.getFinalCostEstimate().prettyDmlStmtString("deletedRows"));
+			sb.append(this.resultSet.getFinalCostEstimate(false).prettyDmlStmtString("deletedRows"));
 		}
 		sb.append(attrDelim).append("targetTable=").append(targetTableName).append(")");
         return sb.toString();

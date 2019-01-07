@@ -1805,7 +1805,7 @@ public class SelectNode extends ResultSetNode{
      * this SelectNode's optimizer.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         return optimizer.getFinalCost();
     }
 

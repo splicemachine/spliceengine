@@ -193,7 +193,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      *
      * @return The final CostEstimate for this ResultSetNode.
      */
-    public CostEstimate getFinalCostEstimate()
+    public CostEstimate getFinalCostEstimate(boolean useSelf)
             throws StandardException{
         if(SanityManager.DEBUG){
             if(finalCostEstimate==null){

@@ -120,9 +120,9 @@ public class OrderByNode extends SingleChildResultSetNode {
     }
 
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         if(costEstimate==null) {
-            costEstimate = childResult.getFinalCostEstimate().cloneMe();
+            costEstimate = childResult.getFinalCostEstimate(true).cloneMe();
             orderByList.estimateCost(optimizer, null, costEstimate);
         }
         return costEstimate;
@@ -132,7 +132,7 @@ public class OrderByNode extends SingleChildResultSetNode {
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
         // Get the cost estimate for the child
         if (costEstimate == null) {
-            costEstimate = getFinalCostEstimate();
+            costEstimate = getFinalCostEstimate(false);
         }
 
         orderByList.generate(acb, mb, this, childResult,costEstimate);

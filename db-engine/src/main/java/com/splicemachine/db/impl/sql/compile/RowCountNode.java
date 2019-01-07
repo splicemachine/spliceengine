@@ -131,7 +131,7 @@ public final class RowCountNode extends SingleChildResultSetNode{
      * the final cost estimate for the child node.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
 		/*
 		** The cost estimate will be set here if either optimize() or
 		** optimizeIt() was called on this node.  It's also possible
@@ -139,7 +139,7 @@ public final class RowCountNode extends SingleChildResultSetNode{
 		** in which case the cost estimate will be null here.
 		*/
         if(costEstimate==null) {
-            costEstimate = childResult.getFinalCostEstimate().cloneMe();
+            costEstimate = childResult.getFinalCostEstimate(true).cloneMe();
             fixCost();
             return costEstimate;
         }
@@ -164,7 +164,8 @@ public final class RowCountNode extends SingleChildResultSetNode{
          */
         assignResultSetNumber();
 
-        costEstimate=getFinalCostEstimate();childResult.getFinalCostEstimate();
+        costEstimate=getFinalCostEstimate(false);
+        childResult.getFinalCostEstimate(true);
 
         acb.pushGetResultSetFactoryExpression(mb);
 
@@ -242,7 +243,7 @@ public final class RowCountNode extends SingleChildResultSetNode{
         sb.append(spaceToLevel())
                 .append("Limit(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
+                .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
                 if (offset != null && offset instanceof NumericConstantNode) {
                     sb.append(attrDelim).append("offset=").append( ((NumericConstantNode)offset).getValue());
                 }
