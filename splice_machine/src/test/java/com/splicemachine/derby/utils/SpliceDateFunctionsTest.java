@@ -157,7 +157,7 @@ public class SpliceDateFunctionsTest {
             assertEquals(date, SpliceDateFunctions.TO_DATE(source));
             fail("Expected to get an exception for parsing the wrong date pattern.");
         } catch (SQLException e) {
-           assertEquals("Error parsing datetime 2014/06/24 with pattern: yyyy-MM-dd. Try using an ISO8601 pattern such " +
+           assertEquals("Error parsing datetime 2014/06/24 with pattern: yyyy-M-d. Try using an ISO8601 pattern such " +
                             "as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                         e.getLocalizedMessage());
         }
