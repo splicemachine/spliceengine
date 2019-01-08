@@ -261,8 +261,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "1 |\n" +
-                "----\n" +
-                " 2 |";
+                        "----\n" +
+                        " 2 |";
 
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -994,7 +994,6 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         ps.close();
     }
 
-    @Ignore("DB-7778")
     @Test
     public void testInListWithExpressionsOnPK2() throws Exception {
         // Q2-1: non-parameterized sql with multiple conditions on PK
@@ -1018,7 +1017,6 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         rs.close();
 
         // Q4-1: prepare statement - inlist condition + other conditions
-        /* disable this test for now due to intermittent wrong result tracked in DB-7778 */
         PreparedStatement ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (?+2, ?+2)");
         ps.setInt(1, 1);
         ps.setInt(2, 11);
