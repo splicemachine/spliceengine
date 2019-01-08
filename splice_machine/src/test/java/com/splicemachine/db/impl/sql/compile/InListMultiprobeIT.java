@@ -217,8 +217,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "1 |\n" +
-                "----\n" +
-                " 2 |";
+                        "----\n" +
+                        " 2 |";
 
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
@@ -921,6 +921,46 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         ps.close();
     }
 
+    @Test
+    public void testInListWithExpressionsOnPK2() throws Exception {
+        // Q2-1: non-parameterized sql with multiple conditions on PK
+        String expected2 = "A4     |B4 |C4 |D4  |\n" +
+                "-------------------------\n" +
+                "2015-01-03 |13 |30 |300 |\n" +
+                "2015-01-03 | 3 |30 |300 |";
+
+        String sqlText = "select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (3, 13)";
+
+        rowContainsQuery(3, "explain " + sqlText, "MultiProbeTableScan", methodWatcher);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+
+        sqlText = "select * from t4 --splice-properties useSpark=true\n where a4='2015-01-03' and b4 in (3, 13)";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q4-1: prepare statement - inlist condition + other conditions
+        PreparedStatement ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=false\n where a4='2015-01-03' and b4 in (?, ?)");
+        ps.setInt(1, 3);
+        ps.setInt(2, 13);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+
+        ps = methodWatcher.prepareStatement("select * from t4 --splice-properties useSpark=true\n where a4='2015-01-03' and b4 in (?, ?)");
+        ps.setInt(1, 3);
+        ps.setInt(2, 13);
+        rs = ps.executeQuery();
+        assertEquals("\n"+sqlText+"\n", expected2, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        ps.close();
+    }
+    
     @Test
     public void testInListWithExpressionsOnIndex() throws Exception {
         //Q1: non-parameterized sql with inlist condition only
