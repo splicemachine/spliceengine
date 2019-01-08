@@ -441,29 +441,29 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public void testRepetivePredicate() throws Exception {
 
         // predicates that repeat in all sub-clauses are all extracted as hashable join predicates
-        thirdRowContainsQuery(
+        rowContainsQuery(4,
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)",
                 BROADCAST_JOIN, methodWatcher);
 
-        thirdRowContainsQuery(
+        rowContainsQuery(4,
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)",
-                "preds=[(A.I[4:1] = B.I[4:3])]", methodWatcher);
+                "preds=[(A.I[4:3] = B.I[4:1])]", methodWatcher);
 
         rowContainsQuery(5,
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)",
-                "preds=[(A.J[0:2] IN (1,2))]", methodWatcher);
+                "preds=[(A.J[2:2] IN (1,2))]", methodWatcher);
 
-        thirdRowContainsQuery(
+        rowContainsQuery(4,
                 "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
                 BROADCAST_JOIN, methodWatcher);
 
-        thirdRowContainsQuery(
+        rowContainsQuery(4,
                 "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
-                "preds=[(A.J[4:2] = B.J[4:4]),(A.I[4:1] = B.I[4:3])]", methodWatcher);
+                "preds=[(A.J[4:4] = B.J[4:2]),(A.I[4:3] = B.I[4:1])]", methodWatcher);
 
         rowContainsQuery(5,
                 "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
-                "preds=[(A.J[0:2] IN (1,2))]", methodWatcher);
+                "preds=[(A.J[2:2] IN (1,2))]", methodWatcher);
 
         // Negative test: predicate does not repeat in all clauses
         thirdRowContainsQuery(

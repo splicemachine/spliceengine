@@ -500,7 +500,7 @@ public abstract class SingleChildResultSetNode extends FromTable{
      * the final cost estimate for the child node.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
 		/*
 		** The cost estimate will be set here if either optimize() or
 		** optimizeIt() was called on this node.  It's also possible
@@ -508,7 +508,7 @@ public abstract class SingleChildResultSetNode extends FromTable{
 		** in which case the cost estimate will be null here.
 		*/
         if(costEstimate==null)
-            return childResult.getFinalCostEstimate();
+            return childResult.getFinalCostEstimate(true);
         else{
             return costEstimate;
         }

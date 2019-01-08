@@ -728,7 +728,8 @@ public abstract class TableOperatorNode extends FromTable{
 			*/
 
             // Encapsulate this transfer logic.
-            optimizer.transferOuterCost(outerCost);
+            if (outerCost != null)
+                optimizer.transferOuterCost(outerCost);
 
 			/* Optimize the underlying result set */
             while(optimizer.nextJoinOrder()){
@@ -743,7 +744,7 @@ public abstract class TableOperatorNode extends FromTable{
             retval=sourceResultSet.optimize(
                     optimizer.getDataDictionary(),
                     predList,
-                    outerCost.rowCount());
+                    outerCost == null? 1.0 : outerCost.rowCount());
         }
 
         return retval;

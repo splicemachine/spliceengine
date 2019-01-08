@@ -88,7 +88,7 @@ public class ScrollInsensitiveResultSetNode  extends SingleChildResultSetNode
 		// Generate the child ResultSet
 
 		// Get the cost estimate for the child
-		costEstimate = childResult.getFinalCostEstimate();
+		costEstimate = childResult.getFinalCostEstimate(true);
 
 		int erdNumber = acb.addItem(makeResultDescription());
 
@@ -117,7 +117,7 @@ public class ScrollInsensitiveResultSetNode  extends SingleChildResultSetNode
         sb = sb.append(spaceToLevel())
                 .append("ScrollInsensitive").append("(")
                 .append("n=").append(order);
-            sb.append(attrDelim).append(getFinalCostEstimate().prettyScrollInsensitiveString(attrDelim));
+            sb.append(attrDelim).append(getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

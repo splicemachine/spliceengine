@@ -116,8 +116,8 @@ public class IndexToBaseRowNode extends FromTable{
     }
 
     @Override
-    public CostEstimate getFinalCostEstimate(){
-        return source.getFinalCostEstimate();
+    public CostEstimate getFinalCostEstimate(boolean useSelf){
+        return source.getFinalCostEstimate(true);
     }
 
     /**
@@ -158,7 +158,7 @@ public class IndexToBaseRowNode extends FromTable{
         assignResultSetNumber();
 
         // Get the CostEstimate info for the underlying scan
-        costEstimate=getFinalCostEstimate();
+        costEstimate=getFinalCostEstimate(false);
 
 		/* Put the predicates back into the tree */
         if(restrictionList!=null){
@@ -407,7 +407,7 @@ public class IndexToBaseRowNode extends FromTable{
         return spaceToLevel() +
                 "IndexLookup" + "(" +
                 "n=" + order +
-                attrDelim + getFinalCostEstimate().prettyIndexLookupString(attrDelim) +
+                attrDelim + getFinalCostEstimate(false).prettyIndexLookupString(attrDelim) +
                 ")";
     }
 }

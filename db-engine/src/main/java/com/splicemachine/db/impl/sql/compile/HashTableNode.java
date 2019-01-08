@@ -299,7 +299,7 @@ public class HashTableNode extends SingleChildResultSetNode
 		assignResultSetNumber();
 
 		// Get the final cost estimate based on child's cost.
-		costEstimate = childResult.getFinalCostEstimate();
+		costEstimate = childResult.getFinalCostEstimate(true);
 
 		// if there is no searchClause, we just want to pass null.
 		if (searchClause == null)

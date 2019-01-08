@@ -97,7 +97,7 @@ public class MaterializeResultSetNode extends SingleChildResultSetNode
 		assignResultSetNumber();
 
 		// Get the cost estimate from the child if we don't have one yet
-		costEstimate = childResult.getFinalCostEstimate();
+		costEstimate = childResult.getFinalCostEstimate(true);
 
 		// build up the tree.
 

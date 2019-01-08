@@ -218,7 +218,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level) throws StandardException {
         Map<String,Object> info = new HashMap<>();
-        CostEstimate co = rsn.getFinalCostEstimate().getBase();
+        CostEstimate co = rsn.getFinalCostEstimate(false).getBase();
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);

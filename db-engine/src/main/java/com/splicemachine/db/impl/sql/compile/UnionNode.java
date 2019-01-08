@@ -584,7 +584,7 @@ public class UnionNode extends SetOperatorNode{
         assignResultSetNumber();
 
         // Get our final cost estimate based on the child estimates.
-        costEstimate=getFinalCostEstimate();
+        costEstimate=getFinalCostEstimate(false);
 
         // build up the tree.
 
@@ -637,13 +637,13 @@ public class UnionNode extends SetOperatorNode{
      * Get the final CostEstimate for this UnionNode.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         // If we already found it, just return it.
         if(finalCostEstimate!=null)
             return finalCostEstimate;
 
-        CostEstimate leftCE=leftResultSet.getFinalCostEstimate();
-        CostEstimate rightCE=rightResultSet.getFinalCostEstimate();
+        CostEstimate leftCE=leftResultSet.getFinalCostEstimate(true);
+        CostEstimate rightCE=rightResultSet.getFinalCostEstimate(true);
 
         finalCostEstimate=getNewCostEstimate();
         finalCostEstimate.setCost(leftCE.getEstimatedCost(), leftCE.rowCount(),

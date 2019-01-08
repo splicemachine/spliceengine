@@ -1018,8 +1018,8 @@ public final class InsertNode extends DMLModStatementNode {
 			mb.push(badRecordsAllowed);
 			mb.push(skipConflictDetection);
 			mb.push(skipWAL);
-            mb.push((double) this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
-            mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+            mb.push((double) this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
+            mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
             mb.push(targetTableDescriptor.getVersion());
             mb.push(this.printExplainInformationForActivation());
 			BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getDelimited());
@@ -1058,8 +1058,8 @@ public final class InsertNode extends DMLModStatementNode {
 
 			// arg 2
 			targetVTI.generate(acb, mb);
-            mb.push((double)this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
-            mb.push(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+            mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
+            mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
             mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertVTIResultSet", ClassName.ResultSet, 4);
 		}
 	}
@@ -1152,7 +1152,7 @@ public final class InsertNode extends DMLModStatementNode {
 			.append("Insert").append("(")
 			.append("n=").append(order).append(attrDelim);
 		if (this.resultSet!=null) {
-			sb.append(this.resultSet.getFinalCostEstimate().prettyDmlStmtString("insertedRows"));
+			sb.append(this.resultSet.getFinalCostEstimate(false).prettyDmlStmtString("insertedRows"));
 		}
 		sb.append(attrDelim).append("targetTable=").append(targetTableName).append(")");
         return sb.toString();
