@@ -87,7 +87,6 @@
         <scala.binary.version>2.11</scala.binary.version>
         <spark.version>2.1.0</spark.version>
         <netty-all.version>4.0.29.Final</netty-all.version>
-        <hive.version>1.1.0-cdh5.12.0</hive.version>
     </properties>
     <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
@@ -1184,7 +1183,6 @@
                 <netty-all.version>4.1.17.Final</netty-all.version>
             </properties>
             <modules>
-                <module>hbase_pax</module>
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
