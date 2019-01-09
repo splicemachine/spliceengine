@@ -134,6 +134,16 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 							first.getOrderable().setValue(probeValue);
 					}
 			}
+
+			// populate the orderableCache if invariant for qualifiers, to avoid
+			// setting them by multiple-threads
+			for (int i = 0; i < qualifiers.length; i++) {
+				if (qualifiers[i] != null) {
+					for (int j = 0; j<qualifiers[i].length; j++)
+						qualifiers[i][j].getOrderable();
+				}
+			}
+
 		}
 		return qualifiers;
 	}
