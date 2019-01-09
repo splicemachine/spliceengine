@@ -1238,7 +1238,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             BIT(StoredFormatIds.SQL_BIT_ID),
             ROW_LOCATION(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID),
             ARRAY(StoredFormatIds.SQL_ARRAY_ID),
-            LIST(StoredFormatIds.LIST_ID),;
+            LIST(StoredFormatIds.LIST_ID);
 
             private final int storedFormatId;
 

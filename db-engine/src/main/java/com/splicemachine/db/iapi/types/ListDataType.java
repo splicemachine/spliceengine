@@ -74,7 +74,9 @@ import java.sql.ResultSet;
  * <p>
  * If any of the elements of the ListDataType holds a null, the
  * ListDataType item itself can be considered as a null value since
- * (null OP X) AND (A OP B) and (C OP D) ... is always UNKNOWN.
+ * (null OP X) AND (A OP B) and (C OP D) ... is never TRUE,
+ * and a multicolumn IN list is never negated (we never apply
+ * the NOT operator on it).
  * <p>
  */
 public final class ListDataType extends DataType {
