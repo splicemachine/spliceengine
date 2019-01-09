@@ -230,59 +230,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-hive_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpclient</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpcore</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>parquet-hadoop</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>parquet-column</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.twitter</groupId>
-                    <artifactId>parquet-avro</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
             <artifactId>spark-network-yarn_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-yarn_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-yarn-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-yarn-server-web-proxy</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-client</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -321,12 +270,6 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${scala.binary.version}</artifactId>
-            <version>${kafka.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -422,12 +365,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_pipeline-${envClassifier}</artifactId>
+            <artifactId>hbase_pipeline</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -664,17 +602,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-yarn-client</artifactId>
-            <version>${hadoop.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-yarn-server-common</artifactId>
             <version>${hadoop.version}</version>
             <exclusions>
@@ -708,35 +635,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-yarn-server-tests</artifactId>
-            <version>${hadoop.version}</version>
-            <classifier>tests</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-mapreduce-client-shuffle</artifactId>
             <version>${hadoop.version}</version>
         </dependency>
         <dependency>
-            <groupId>commons-dbutils</groupId>
-            <artifactId>commons-dbutils</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>hbase_storage-${envClassifier}</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.spark-project.hive</groupId>
