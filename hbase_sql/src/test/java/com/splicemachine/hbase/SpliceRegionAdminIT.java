@@ -132,6 +132,14 @@ public class SpliceRegionAdminIT {
                 .create();
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'B', null,'\\x83')");
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'B', 'BI','\\x83')");
+
+        new TableCreator(conn)
+                .withCreate("create table C (a int, b int, c int, primary key(a,b))")
+                .withInsert("insert into C values(?,?,?)")
+                .withIndex("create index CI on C(a)")
+                .create();
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'C', null,'\\x83')");
+        spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'C', 'CI','\\x83')");
     }
 
     @Test
@@ -326,6 +334,49 @@ public class SpliceRegionAdminIT {
         rs = methodWatcher.executeQuery(String.format(sql, B, BI));
         rs.next();
         Assert.assertEquals(expected, rs.getInt(1));
+    }
+
+    @Test
+    public void testCompaction() throws Exception {
+        String flush = "call syscs_util.syscs_flush_table('SPLICEREGIONADMINIT', 'C')";
+        String[] regionName = new String[2];
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.get_regions('SPLICEREGIONADMINIT', 'C', null, null, null, null, null, null, null, null)");
+        int i = 0;
+        while (rs.next()) {
+            regionName[i++] = rs.getString("ENCODED_REGION_NAME");
+        }
+        methodWatcher.execute("insert into c values(1,1,1)");
+        methodWatcher.execute(flush);
+        methodWatcher.execute("insert into c values(2,2,2)");
+        methodWatcher.execute(flush);
+        methodWatcher.execute("insert into c values(4,4,4)");
+        methodWatcher.execute(flush);
+        methodWatcher.execute("insert into c values(5,5,5)");
+        methodWatcher.execute(flush);
+
+        rs = methodWatcher.executeQuery("call syscs_util.get_regions('SPLICEREGIONADMINIT', 'C', null, null, null, null, null, null, null, null)");
+        while (rs.next()) {
+            int numFile = rs.getInt("NUM_HFILES");
+            Assert.assertTrue(numFile > 1);
+        }
+        // major compact the 2nd region
+        String majorCompaction = String.format("call syscs_util.major_compact_region('SPLICEREGIONADMINIT', 'C', null, '%s')", regionName[1]);
+        methodWatcher.execute(majorCompaction);
+
+        rs = methodWatcher.executeQuery("call syscs_util.get_regions('SPLICEREGIONADMINIT', 'C', null, null, null, null, null, null, null, null)");
+        i = 0;
+        while (rs.next()) {
+            int numFile = rs.getInt("NUM_HFILES");
+            if ( i == 0) {
+                // The first region should have more than 1 file.
+                Assert.assertTrue(numFile > 1);
+            }
+            else {
+                // The second region should only have 1 file
+                Assert.assertTrue(numFile == 1);
+            }
+            i++;
+        }
     }
 
     @Test
