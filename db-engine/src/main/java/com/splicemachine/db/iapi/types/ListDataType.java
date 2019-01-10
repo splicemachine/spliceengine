@@ -108,7 +108,7 @@ public final class ListDataType extends DataType {
         String theString = new String();
         theString.concat("( ");
         for (int i = 0; i < numElements; i++) {
-            String stringToAdd = dvd[i].getString();
+            String stringToAdd = dvd[i] == null ? null : dvd[i].getString();
             theString.concat(stringToAdd != null ? stringToAdd : "NULL");
             if (i != numElements - 1)
                 theString.concat(", ");
@@ -127,15 +127,13 @@ public final class ListDataType extends DataType {
     public boolean isNull() {
         boolean localIsNull = true;
         
-        if (numElements > 1) {
-            int i;
-            for (i = 0; i < numElements; i++) {
-                if (dvd[i] == null || dvd[i].isNull())
-                    break;
-            }
-            if (i == numElements)
-                localIsNull = false;
+        int i;
+        for (i = 0; i < numElements; i++) {
+            if (dvd[i] == null || dvd[i].isNull())
+                break;
         }
+        if (i == numElements)
+            localIsNull = false;
         setIsNull(localIsNull);
         return localIsNull;
     }
@@ -144,7 +142,8 @@ public final class ListDataType extends DataType {
     public void restoreToNull()
     {
         for (int i = 0; i < numElements; i++) {
-            dvd[i].restoreToNull();
+            if (dvd[i] != null)
+                dvd[i].restoreToNull();
         }
         setIsNull(true);
     }
@@ -395,7 +394,8 @@ public final class ListDataType extends DataType {
         int result = 17;
     
         for (int i = 0; i < numElements; i++) {
-            result = result * prime + dvd[i].hashCode();
+            if (dvd[i] != null)
+                result = result * prime + dvd[i].hashCode();
         }
         return result;
     }
@@ -411,7 +411,8 @@ public final class ListDataType extends DataType {
     public int estimateMemoryUsage() {
         int memEstimate = BASE_MEMORY_USAGE;
         for (int i = 0; i < numElements; i++) {
-            memEstimate += dvd[i].estimateMemoryUsage();
+            if (dvd[i] != null)
+                memEstimate += dvd[i].estimateMemoryUsage();
         }
         return memEstimate;
     }
