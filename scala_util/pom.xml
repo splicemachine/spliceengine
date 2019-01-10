@@ -93,7 +93,7 @@
                     <execution>
                         <id>test-jar</id>
                         <configuration>
-                            <classifier>${envClassifier}-${spark.version}_${scala.binary.version}-tests</classifier>
+                            <classifier>${envClassifier}-${spark.util.version}_${scala.binary.version}-tests</classifier>
                         </configuration>
                         <goals>
                             <goal>test-jar</goal>
@@ -102,7 +102,7 @@
                     <execution>
                         <id>default-jar</id>
                         <configuration>
-                            <classifier>${envClassifier}-${spark.version}_${scala.binary.version}</classifier>
+                            <classifier>${envClassifier}-${spark.util.version}_${scala.binary.version}</classifier>
                         </configuration>
                     </execution>
                 </executions>
