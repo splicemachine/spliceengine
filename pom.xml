@@ -60,12 +60,12 @@
     </repositories>
     <pluginRepositories>
         <pluginRepository>
-            <id>central</id>
-            <url>http://10.1.0.134:8081/artifactory/spliceengine-releases</url>
+            <id>splicemachine-public</id>
+            <url>http://repository.splicemachine.com/nexus/content/groups/public</url>
         </pluginRepository>
         <pluginRepository>
-            <id>snapshots</id>
-            <url>http://10.1.0.134:8081/artifactory/spliceengine</url>
+            <id>splicemachine</id>
+            <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </pluginRepository>
         <pluginRepository>
             <id>apache.snapshots</id>
