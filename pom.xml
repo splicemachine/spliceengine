@@ -50,7 +50,7 @@
             <url>http://10.1.0.134:8081/artifactory/spliceengine-releases</url>
         </repository>
         <repository>
-            <id>central</id>
+            <id>snapshots</id>
             <url>http://10.1.0.134:8081/artifactory/spliceengine</url>
         </repository>
          <repository>
