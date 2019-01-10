@@ -36,6 +36,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -140,6 +141,14 @@ public class SpliceRegionAdminIT {
                 .create();
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'C', null,'\\x83')");
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'C', 'CI','\\x83')");
+
+        new TableCreator(conn)
+                .withCreate("create table D (a int, b int, c int, primary key(a,b))")
+                .create();
+        for (int i = 81; i <101; ++i) {
+            String split = String.format("call syscs_util.syscs_split_table_or_index_at_points('SPLICEREGIONADMINIT', 'D', null,'\\x%d')", i);
+            spliceClassWatcher.execute(split);
+        }
     }
 
     @Test
@@ -240,6 +249,19 @@ public class SpliceRegionAdminIT {
 
     }
 
+    @Test
+    public void testMultipleMerge() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.get_regions('SPLICEREGIONADMINIT', 'D', null, null, null, null, null,null,null,null)");
+        List<String> regions = new ArrayList<>();
+        while (rs.next()) {
+            regions.add(rs.getString("ENCODED_REGION_NAME"));
+        }
+
+        for (int i = 1; i < regions.size(); i++) {
+            String delete = String.format("call syscs_util.delete_region('SPLICEREGIONADMINIT', 'D', null, '%s', true)", regions.get(i));
+            methodWatcher.execute(delete);
+        }
+    }
     @Test(timeout = 120000)
     public void testDeleteAndMergeRegion() throws Exception {
         Connection connection = methodWatcher.getOrCreateConnection();
