@@ -1173,7 +1173,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                 || (relop.usefulStopKey(optTable) && (thisIndexPosition != -1 && !isAscending[thisIndexPosition]))))){
                         thisPred.markStartKey();
                         currentStartPosition=thisIndexPosition;
-                        numColsInStartPred = thisPred.numColumnsInPred();
+                        numColsInStartPred = thisPred.numColumnsInQualifier();
                         thisPredMarked=true;
                         seenGT=(thisPred.getStartOperator(optTable)==ScanController.GT);
                         thisPred.markQualifier();
@@ -1193,7 +1193,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                 || (relop.usefulStartKey(optTable) && (thisIndexPosition != -1 && !isAscending[thisIndexPosition]))))){
                         thisPred.markStopKey();
                         currentStopPosition=thisIndexPosition;
-                        numColsInStopPred = thisPred.numColumnsInPred();
+                        numColsInStopPred = thisPred.numColumnsInQualifier();
                         thisPredMarked=true;
                         seenGE=(thisPred.getStopOperator(optTable)==ScanController.GE);
                         thisPred.markQualifier();

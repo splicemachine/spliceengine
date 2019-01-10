@@ -256,16 +256,8 @@ public abstract class BinaryListOperatorNode extends ValueNode{
 		** nullable, the result of the comparison must be nullable, too, so
 		** we can represent the unknown truth value.
 		*/
-		boolean leftNullable = false;
-        for (int index = 0; index < leftOperandList.size(); index++) {
-            ValueNode ln = (ValueNode) leftOperandList.elementAt(index);
-            if (ln.getTypeServices().isNullable()) {
-                leftNullable = true;
-                break;
-            }
-        }
-        nullableResult= leftNullable ||
-                rightOperandList.isNullable();
+        nullableResult= leftOperandList.isNullable() ||
+                        rightOperandList.isNullable();
         setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID,nullableResult));
     }
 
@@ -442,7 +434,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     }
 
     public boolean isConstantOrParameterTreeNode() {
-        if (leftOperandList != null && !leftOperandList.isConstantOrParameterTreeNode())
+        if (leftOperandList != null && !leftOperandList.containsOnlyConstantAndParamNodes())
             return false;
 
         if (rightOperandList != null && !rightOperandList.containsOnlyConstantAndParamNodes())

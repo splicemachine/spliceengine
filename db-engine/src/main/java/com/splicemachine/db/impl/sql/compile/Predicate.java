@@ -1236,10 +1236,10 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
     
     /**
-     * Returns the number of columns represented in a predicate if the predicate is a probe predicate,
-     * otherwise returns 1.
+     * Returns the number of columns represented in a qualifier predicate if the
+     * predicate is a probe predicate, otherwise returns 1.
      */
-    protected int numColumnsInPred () throws StandardException {
+    protected int numColumnsInQualifier() throws StandardException {
         InListOperatorNode ilon = getSourceInList();
         return (ilon == null) ? 1 : ilon.leftOperandList.size();
     }
@@ -1310,7 +1310,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                     if (!((ListValueNode)o).allConstantsNodesInList())
                         return false;
                 }
-                return false; //not all constants in the IN list
+                else
+                    return false; //not all constants in the IN list
             }
         }
         return true;
