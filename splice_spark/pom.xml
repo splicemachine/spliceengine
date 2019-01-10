@@ -182,7 +182,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>scala_util</artifactId>
             <version>${project.version}</version>
-	    <classifier>${envClassifier}-${spark.version}_${scala.binary.version}</classifier>
+	    <classifier>${envClassifier}_${spark.util.version}_${scala.binary.version}</classifier>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
