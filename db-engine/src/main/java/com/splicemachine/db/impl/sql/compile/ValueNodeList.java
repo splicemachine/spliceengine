@@ -434,11 +434,12 @@ public class ValueNodeList extends QueryTreeNodeVector
 			ValueNode literalVal = (ValueNode) elementAt(index);
 			if (! (literalVal instanceof ConstantNode))
 			{
-				return false;
-			}
-			else if (literalVal instanceof ListValueNode) {
-				if (! ((ListValueNode)literalVal).containsAllConstantNodes())
-					return false;
+				if (literalVal instanceof ListValueNode) {
+					if (!((ListValueNode) literalVal).containsAllConstantNodes())
+						return false;
+				}
+				else
+				    return false;
 			}
 		}
 		return true;
