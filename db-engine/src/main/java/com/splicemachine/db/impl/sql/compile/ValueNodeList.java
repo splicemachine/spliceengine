@@ -490,27 +490,60 @@ public class ValueNodeList extends QueryTreeNodeVector
 		 * the list to be in sorted order > 90% of the time.
 		 */
 		boolean continueSort = true;
-
+		
+		boolean multiColumn = false;
+		ListDataType combinedJudgeODV = null;
+		ListValueNode lvn = null, prevLVN = null;
+		if (elementAt(0) instanceof ListValueNode) {
+			multiColumn = true;
+			if (combinedJudgeODV != null && !(combinedJudgeODV instanceof ListDataType))
+				SanityManager.THROWASSERT("Expected ListDataType when comparing IN list items for sorting.");
+			combinedJudgeODV = (ListDataType)judgeODV;
+		}
+		int numColumns = multiColumn ? ((ListValueNode) elementAt(0)).numValues() : 1;
 		while (continueSort)
 		{
 			continueSort = false;
 			
 			for (int index = 1; index < size; index++)
 			{
-				ConstantNode currCN = (ConstantNode) elementAt(index);
-				DataValueDescriptor currODV =
-					 currCN.getValue();
-				ConstantNode prevCN = (ConstantNode) elementAt(index - 1);
-				DataValueDescriptor prevODV =
-					 prevCN.getValue();
 
-				/* Swap curr and prev if prev > curr */
-				if ((judgeODV == null && (prevODV.compare(currODV)) > 0) ||
-					(judgeODV != null && judgeODV.greaterThan(prevODV, currODV).equals(true)))
-				{
-					setElementAt(currCN, index - 1);
-					setElementAt(prevCN, index);
-					continueSort = true;
+				for (int i = 0; i < numColumns; i++) {
+					ConstantNode currCN;
+					DataValueDescriptor currODV;
+					ConstantNode prevCN;
+					if (multiColumn) {
+						lvn = (ListValueNode) elementAt(index);
+						currCN = (ConstantNode)lvn.getValue(i);
+						currODV = currCN.getValue();
+						prevLVN = (ListValueNode) elementAt(index - 1);
+						prevCN = (ConstantNode)(prevLVN.getValue(i));
+						if (combinedJudgeODV != null)
+							judgeODV = combinedJudgeODV.getDVD(i);
+					}
+					else {
+						currCN = (ConstantNode) elementAt(index);
+						currODV =
+							currCN.getValue();
+						prevCN = (ConstantNode) elementAt(index - 1);
+					}
+					DataValueDescriptor prevODV =
+						prevCN.getValue();
+					
+					/* Swap curr and prev if prev > curr */
+					if ((judgeODV == null && (prevODV.compare(currODV)) > 0) ||
+						(judgeODV != null && judgeODV.greaterThan(prevODV, currODV).equals(true))) {
+						if (multiColumn) {
+							setElementAt(lvn, index - 1);
+							setElementAt(prevLVN, index);
+						}
+						else {
+							setElementAt(currCN, index - 1);
+							setElementAt(prevCN, index);
+						}
+						continueSort = true;
+						break;
+					}
 				}
 			}
 		}

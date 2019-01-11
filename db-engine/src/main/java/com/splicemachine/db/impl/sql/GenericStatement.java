@@ -484,6 +484,17 @@ public class GenericStatement implements Statement{
                 // just use the default setting.
             }
             cc.setMulticolumnInlistProbeOnSparkEnabled(multicolumnInlistProbeOnSparkEnabled);
+    
+            String convertMultiColumnDNFPredicatesToInListString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST);
+            boolean convertMultiColumnDNFPredicatesToInList = CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
+            try {
+                if (convertMultiColumnDNFPredicatesToInListString != null)
+                    convertMultiColumnDNFPredicatesToInList = Boolean.valueOf(convertMultiColumnDNFPredicatesToInListString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setConvertMultiColumnDNFPredicatesToInList(convertMultiColumnDNFPredicatesToInList);
 
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){

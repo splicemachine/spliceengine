@@ -164,6 +164,9 @@ public class OrNode extends BinaryLogicalOperatorNode {
                 return false;
             columnNumbers.add(cr.getColumnNumber());
             columns.put(cr.getColumnNumber(), cr);
+            if (columnNumbers.size() > 1 &&
+				!getCompilerContext().getConvertMultiColumnDNFPredicatesToInList())
+            	return false;
         } else if (tableNumber.intValue() != cr.getTableNumber() ||
                    !columnNumbers.contains(cr.getColumnNumber())) {
             return false;
