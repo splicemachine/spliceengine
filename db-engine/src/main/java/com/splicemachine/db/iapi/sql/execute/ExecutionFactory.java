@@ -31,18 +31,19 @@
 
 package com.splicemachine.db.iapi.sql.execute;
 
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.ListDataType;
 
 /**
 	This is the factory for creating a factories needed by
@@ -267,4 +268,7 @@ public interface ExecutionFactory {
 		This returns the value row as an indexable row 
 	 */
 	ExecIndexRow	getIndexableRow(ExecRow valueRow);
+	
+	// Get a new ListDataType object that holds "numberOfValues" data values.
+    ListDataType getListData(int numberOfValues);
 }
