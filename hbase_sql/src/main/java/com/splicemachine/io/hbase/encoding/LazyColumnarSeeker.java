@@ -17,7 +17,6 @@ import com.splicemachine.orc.memory.AggregatedMemoryContext;
 import com.splicemachine.orc.metadata.OrcMetadataReader;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.impl.SpliceQuery;
-import com.splicemachine.si.impl.server.RedoTransactor;
 import com.splicemachine.utils.SpliceLogUtils;
 import io.airlift.units.DataSize;
 import org.apache.log4j.Logger;
@@ -89,7 +88,7 @@ public class LazyColumnarSeeker {
         );
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"Lazy Seeker ORC Section: columnNames=%s",reader.getColumnNames());
-        SpliceQuery spliceQuery = RedoTransactor.queryContext.get();
+        SpliceQuery spliceQuery = SpliceQuery.queryContext.get();
         ExecRow execRow = null;
         if (spliceQuery == null) {
             execRow = MemstoreAwareObserver.conglomerateThreadLocal.get(); // Are we splitting or compacting?
