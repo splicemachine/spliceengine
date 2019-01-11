@@ -2020,6 +2020,7 @@ public interface SQLState {
 	String SPLIT_KEY_CANNOT_BE_NULL									= "TS006";
 	String INVALID_CONSISTENCY_LEVEL                                = "TS007";
     String INVALID_PARAMETER                                        = "TS008";
+	String CANNOT_MERGE_REGION                                      = "TS009";
 
 	String OLAP_SERVER_CONNECTION                                   = "OS001";
 	String TIMESTAMP_SERVER_CONNECTION                              = "TSS01";
