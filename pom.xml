@@ -685,7 +685,7 @@
             <distributionManagement>
                <repository>
                     <id>central</id>
-                    <url>http://10.1.0.113:8081/artifactory/spliceengine-releases</url>
+                    <url>http://10.1.0.134:8081/artifactory/spliceengine-releases</url>
                 </repository>
                  <snapshotRepository>
                     <id>snapshots</id>
