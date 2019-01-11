@@ -1608,7 +1608,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             BooleanConstantNode trueNode=(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                     Boolean.TRUE,contextManager);
 
-            AndNode firstAndInProbeSet = null, prevAnd = null;
+            AndNode firstAndInProbeSet = null;
             while(topAnd.getRightOperand() instanceof AndNode){
                 /* Break out the next top AndNode */
                 thisAnd=topAnd;
@@ -1618,23 +1618,20 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     thisAnd.setRightOperand(trueNode);
 
                     /* Add the top AndNode to the PredicateList */
+                    /* If firstAndInProbeSet is not null, add it as a chain of And'ed nodes
+                     * in the probe set as a single predicate.
+                     */
                     newJBitSet=new JBitSet(numTables);
-                    newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,thisAnd,newJBitSet, contextManager);
+                    newPred=(Predicate)getNodeFactory().getNode(C_NodeTypes.PREDICATE,
+                              firstAndInProbeSet != null ? firstAndInProbeSet : thisAnd,
+                              newJBitSet, contextManager);
                     addPredicate(newPred);
-                    
-                    if (firstAndInProbeSet != null) {
-                        // Add the chain of And'ed nodes in the probe set as a single predicate.
-                        prevAnd.setRightOperand(trueNode);
-                        newJBitSet = new JBitSet(numTables);
-                        newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE, firstAndInProbeSet, newJBitSet, contextManager);
-                        addPredicate(newPred);
-                        firstAndInProbeSet = prevAnd = null;
-                    }
+    
+                    firstAndInProbeSet = null;
                 }
                 else {
                     if (firstAndInProbeSet == null)
                         firstAndInProbeSet = thisAnd;
-                    prevAnd = thisAnd;
                 }
             }
 			

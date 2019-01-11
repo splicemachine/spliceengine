@@ -156,6 +156,7 @@ public interface CompilerContext extends Context
 	int			GROUP_BY_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
 	int         DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES              = 10000;
 	boolean     DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
+	boolean     DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -661,5 +662,9 @@ public interface CompilerContext extends Context
 	public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue);
 	
 	public boolean getMulticolumnInlistProbeOnSparkEnabled();
+	
+	public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue);
+	
+	public boolean getConvertMultiColumnDNFPredicatesToInList();
 
 }

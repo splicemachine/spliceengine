@@ -1366,4 +1366,11 @@ public interface Property {
 	String MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED =
 		"derby.database.multicolumnInlistProbeOnSparkEnabled";
 	
+	/**
+	 * If false, disable conversion of multicolumn equality DNF predicates to
+	 * a multicolumn in list, e.g. (a=1 and b=1) or (a=2 and b=3) ==> (a,b) IN ((1,1), (2,3)).
+	 * By default, this rewrite is enabled.
+	 */
+	String CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST =
+		"derby.database.convertMultiColumnDNFPredicatesToInList";
 }

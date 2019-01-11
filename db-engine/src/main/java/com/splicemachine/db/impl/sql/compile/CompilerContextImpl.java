@@ -228,6 +228,14 @@ public class CompilerContextImpl extends ContextImpl
 		multicolumnInlistProbeOnSparkEnabled = newValue;
 	}
 	
+	public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue) {
+		convertMultiColumnDNFPredicatesToInList = newValue;
+	}
+	
+	public boolean getConvertMultiColumnDNFPredicatesToInList() {
+		return convertMultiColumnDNFPredicatesToInList;
+	}
+	
 	public boolean getMulticolumnInlistProbeOnSparkEnabled() { return multicolumnInlistProbeOnSparkEnabled; }
 	
 	/**
@@ -1052,6 +1060,7 @@ public class CompilerContextImpl extends ContextImpl
 	private boolean             projectionPruningEnabled;
 	private int                 maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
 	private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+	private boolean             convertMultiColumnDNFPredicatesToInList= DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
 
 	/**
 	 * Saved execution time default schema, if we need to change it
