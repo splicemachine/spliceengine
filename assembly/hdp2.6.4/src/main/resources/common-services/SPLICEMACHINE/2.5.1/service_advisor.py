@@ -54,7 +54,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         hbase_env = services["configurations"]["hbase-env"]["properties"]
         if "content" in hbase_env:
           content = hbase_env["content"]
-          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*:/usr/hdp/2.6.3.0-235/hadoop/lib/ranger-hdfs-plugin-impl/*"
+          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/2.6.4.0-91/spark2/jars/*:/usr/hdp/2.6.4.0-91/hadoop/lib/ranger-hdfs-plugin-impl/*"
           HBASE_MASTER_OPTS = "export HBASE_MASTER_OPTS=\"${HBASE_MASTER_OPTS} -D"+ " -D".join(self.getMasterDashDProperties()) + "\""
           HBASE_REGIONSERVER_OPTS = "export HBASE_REGIONSERVER_OPTS=\"${HBASE_REGIONSERVER_OPTS} -D"+ " -D".join(self.getRegionServerDashDProperties()) + "\""
           HBASE_CONF_DIR = "export HBASE_CONF_DIR=${HBASE_CONF_DIR}:/etc/splicemachine/conf/"
@@ -174,7 +174,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
 
   def getYarnSiteDesiredValues(self):
       yarn_site_desired_values = {
-          "hdp.version" : "2.6.3.0-235"
+          "hdp.version" : "2.6.4.0-91"
 
       }
       return yarn_site_desired_values
@@ -191,7 +191,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "hbase.balancer.period" : "60000",
         "hbase.client.ipc.pool.size" : "10",
         "hbase.client.max.perregion.tasks" : "100",
-        "hbase.coprocessor.regionserver.classes" : "org.apache.ranger.authorization.hbase.RangerAuthorizationCoprocessor,com.splicemachine.hbase.RegionServerLifecycleObserver",
+        "hbase.coprocessor.regionserver.classes" : "com.splicemachine.hbase.RegionServerLifecycleObserver",
         "hbase.hstore.compaction.min.size" : "136314880",
         "hbase.hstore.compaction.min" : "3",
         "hbase.hstore.defaultengine.compactionpolicy" : "com.splicemachine.compactions.SpliceDefaultCompactionPolicy",
@@ -235,7 +235,8 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.olap_server.memory" : "8192",
         "splice.olap_server.memoryOverhead" : "2048",
         "splice.olap_server.virtualCores" : "2",
-        "splice.authorization.scheme" : "NATIVE"
+        "splice.authorization.scheme" : "NATIVE",
+        "hbase.master.hfilecleaner.plugins" : "com.splicemachine.hbase.SpliceHFileCleaner,org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner"
     }
     return hbase_site_desired_values
 
@@ -269,8 +270,8 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.yarn.am.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
         "splice.spark.yarn.am.waitTime=10s",
         "splice.spark.yarn.executor.memoryOverhead=2048",
-        "splice.spark.yarn.am.extraJavaOptions=-Dhdp.version=2.6.3.0-235",
-        "splice.spark.driver.extraJavaOptions=-Dhdp.version=2.6.3.0-235",
+        "splice.spark.yarn.am.extraJavaOptions=-Dhdp.version=2.6.4.0-91",
+        "splice.spark.driver.extraJavaOptions=-Dhdp.version=2.6.4.0-91",
         "splice.spark.driver.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
         "splice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar",
         "splice.spark.ui.retainedJobs=100",
@@ -286,10 +287,10 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.local.dir=/tmp",
         "splice.spark.executor.userClassPathFirst=true",
         "splice.spark.driver.userClassPathFirst=true",
-        "splice.spark.executor.extraJavaOptions=-Dhdp.version=2.6.3.0-235",
+        "splice.spark.executor.extraJavaOptions=-Dhdp.version=2.6.4.0-91",
         "splice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
-        "splice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*",
-        "splice.spark.yarn.jars=/usr/hdp/2.6.3.0-235/spark2/jars/*"
+        "splice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/2.6.4.0-91/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*:/usr/hdp/2.6.4.0-91/hadoop-mapreduce/*",
+        "splice.spark.yarn.jars=/usr/hdp/2.6.4.0-91/spark2/jars/*"
       ]
     return dashDProperties
 
