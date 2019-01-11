@@ -238,7 +238,11 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			 * will have.  In that case we'll sort the values at execution
 			 * time. 
 			 */
-			if (allConstants) {
+			// Disable sorting of multicolumn IN lists here for now.
+			// These will typically long lists, and using bubble sort
+			// is not good.  The probe values will end up getting
+			// sorted, and duplicates removed, at execution time.
+			if (allConstants && leftOperandList.size() == 1) {
                 /* When sorting or choosing min/max in the list, if types
                  * are not an exact match then we have to use the *dominant*
                  * type across all values, where "all values" includes the
