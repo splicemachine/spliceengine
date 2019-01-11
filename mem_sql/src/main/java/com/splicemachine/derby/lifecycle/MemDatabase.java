@@ -24,6 +24,7 @@ import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.access.util.ReflectingConfigurationSource;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.concurrent.ConcurrentTicker;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -46,6 +47,18 @@ public class MemDatabase{
                                                                  new ReflectingConfigurationSource());
         MemSIEnvironment env=new MemSIEnvironment(tableFactory,new ConcurrentTicker(0L),config);
         MemSIEnvironment.INSTANCE = env;
+        if (config.debugDumpClassFile()) {
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
+            SanityManager.DEBUG_SET("DumpClassFile");
+        }
+        if (config.debugDumpBindTree()) {
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
+            SanityManager.DEBUG_SET("DumpBindTree");
+        }
+        if (config.debugDumpOptimizedTree()) {
+            System.setProperty("com.splicemachine.enableLegacyAsserts",Boolean.TRUE.toString());
+            SanityManager.DEBUG_SET("DumpOptimizedTree");
+        }
 
         SIDriver.loadDriver(env);
         final SIDriver driver = env.getSIDriver();
@@ -104,6 +117,10 @@ public class MemDatabase{
             builder.storageFactoryHome = System.getProperty("user.dir");
             builder.authenticationImpersonationEnabled = true;
             builder.authenticationImpersonationUsers = "dgf=splice;splice=*";
+    
+            if ("true".equals(System.getProperty("splice.debug.dumpClassFile")) ||
+                "DumpClassFile".equals(System.getProperty("derby.debug.true")))
+              builder.debugDumpClassFile = true;
         }
     }
 }

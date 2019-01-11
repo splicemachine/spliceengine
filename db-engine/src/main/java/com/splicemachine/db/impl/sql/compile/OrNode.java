@@ -31,11 +31,14 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import org.apache.commons.lang3.mutable.MutableInt;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 public class OrNode extends BinaryLogicalOperatorNode {
@@ -86,6 +89,168 @@ public class OrNode extends BinaryLogicalOperatorNode {
 		return this;
 	}
 	
+	private boolean canConvertToInList(ValueNode vn, ArrayList<Integer> columnNumbers,
+                                       ArrayList<Integer> compareNumbers,
+                                       HashMap<Integer, ColumnReference> columns,
+                                       MutableInt tableNumber, boolean firstTime) {
+		boolean convert = false;
+        ColumnReference cr = null;
+		
+		if (vn instanceof AndNode)
+			return canConvertToInList(((AndNode)vn).leftOperand, columnNumbers,
+                                      compareNumbers, columns, tableNumber, firstTime) &&
+                   canConvertToInList(((AndNode) vn).rightOperand, columnNumbers,
+                       compareNumbers, columns, tableNumber, firstTime);
+		else if (vn instanceof BooleanConstantNode)
+			return (((BooleanConstantNode) vn).isBooleanTrue());
+		else
+        // Is the operator an =
+        if (!vn.isRelationalOperator()) {
+            /* If the operator is an IN-list disguised as a relational
+             * operator then we can still convert it--we'll just
+             * combine the existing IN-list ("left") with the new IN-
+             * list values.  So check for that case now.
+             */
+            
+            if (SanityManager.DEBUG) {
+                /* At the time of writing the only way a call to
+                 * left.isRelationalOperator() would return false for
+                 * a BinaryRelationalOperatorNode was if that node
+                 * was for an IN-list probe predicate.  That's why we
+                 * we can get by with the simple "instanceof" check
+                 * below.  But if we're running in SANE mode, do a
+                 * quick check to make sure that's still valid.
+                 */
+                BinaryRelationalOperatorNode bron = null;
+                if (vn instanceof BinaryRelationalOperatorNode) {
+                    bron = (BinaryRelationalOperatorNode) vn;
+                    if (!bron.isInListProbeNode()) {
+                        SanityManager.THROWASSERT(
+                            "isRelationalOperator() unexpectedly returned "
+                                + "false for a BinaryRelationalOperatorNode.");
+                    }
+                }
+            }
+            
+            convert = (vn instanceof BinaryRelationalOperatorNode);
+            if (!convert)
+                return false;
+        }
+		
+		if (!(((RelationalOperator) vn).getOperator() == RelationalOperator.EQUALS_RELOP)) {
+			return false;
+		}
+		
+		BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) vn;
+        
+        if (bron.getLeftOperand() instanceof ColumnReference) {
+			cr = (ColumnReference) bron.getLeftOperand();
+			if (!bron.getRightOperand().isConstantOrParameterTreeNode())
+				return false;
+		}
+        else if (bron.getRightOperand() instanceof ColumnReference) {
+			cr = (ColumnReference) bron.getRightOperand();
+			if (!bron.getLeftOperand().isConstantOrParameterTreeNode())
+				return false;
+		}
+        else {
+            return false;
+        }
+
+        if (firstTime) {
+            if (tableNumber.intValue() == -1)
+                tableNumber.setValue(cr.getTableNumber());
+            else if (cr.getTableNumber() != tableNumber.intValue())
+                return false;
+            columnNumbers.add(cr.getColumnNumber());
+            columns.put(cr.getColumnNumber(), cr);
+            if (columnNumbers.size() > 1 &&
+				!getCompilerContext().getConvertMultiColumnDNFPredicatesToInList())
+            	return false;
+        } else if (tableNumber.intValue() != cr.getTableNumber() ||
+                   !columnNumbers.contains(cr.getColumnNumber())) {
+            return false;
+        }
+        else
+            compareNumbers.add(cr.getColumnNumber());
+        return true;
+	}
+    
+    
+    private void addNewInListNode(ValueNode vn, HashMap<Integer, Integer> columnMap, ValueNodeList vnl)
+        throws StandardException {
+        
+        HashMap constNodes = new HashMap<Integer, ValueNode>();
+        
+        boolean multiColumn = false;
+        if (columnMap.size() > 1)
+			multiColumn = true;
+        
+        constructNodeForInList(vn, multiColumn, columnMap, vnl, constNodes);
+    
+        if (columnMap.size() > 1) {
+            ValueNodeList constList = (ValueNodeList) getNodeFactory().getNode(
+                C_NodeTypes.VALUE_NODE_LIST,
+                getContextManager());
+            for (int i = 0; i < columnMap.size(); i++) {
+                constList.addValueNode((ValueNode)constNodes.get(i));
+            }
+            
+            ValueNode lcn = (ListValueNode) getNodeFactory().getNode(
+                C_NodeTypes.LIST_VALUE_NODE,
+                constList,
+                getContextManager());
+            vnl.addValueNode(lcn);
+        }
+    }
+    
+    private void constructNodeForInList(ValueNode vn, boolean multiColumn,
+                                        HashMap<Integer, Integer> columnMap, ValueNodeList vnl,
+                                        HashMap<Integer, ValueNode> constNodes)
+        throws StandardException {
+        
+        if (vn instanceof AndNode) {
+            constructNodeForInList(((AndNode) vn).leftOperand, multiColumn, columnMap, vnl, constNodes);
+            constructNodeForInList(((AndNode) vn).rightOperand, multiColumn, columnMap, vnl, constNodes);
+            return;
+        }
+        else if (vn instanceof BooleanConstantNode) {
+            // Do nothing
+            return;
+        }
+        
+        BinaryRelationalOperatorNode bron =
+            (BinaryRelationalOperatorNode) vn;
+        if (bron.isInListProbeNode()) {
+            /* If we have an OR between multiple IN-lists on the same
+             * column then just combine them into a single IN-list.
+             * Ex.
+             *
+             *   select ... from T1 where i in (2, 3) or i in (7, 10)
+             *
+             * effectively becomes:
+             *
+             *   select ... from T1 where i in (2, 3, 7, 10).
+             */
+            vnl.destructiveAppend(
+                bron.getInListOp().getRightOperandList());
+        } else if (bron.getLeftOperand() instanceof ColumnReference) {
+            if (!multiColumn)
+                vnl.addValueNode(bron.getRightOperand());
+            else {
+                constNodes.put(columnMap.get(((ColumnReference) bron.getLeftOperand()).getColumnNumber()),
+                               bron.getRightOperand());
+            }
+        } else {
+            if (!multiColumn)
+                vnl.addValueNode(bron.getLeftOperand());
+            else {
+                constNodes.put(columnMap.get(((ColumnReference) bron.getRightOperand()).getColumnNumber()),
+                               bron.getLeftOperand());
+            }
+        }
+    }
+    
 	/**
 	 * Preprocess an expression tree.  We do a number of transformations
 	 * here (including subqueries, IN lists, LIKE and BETWEEN) plus
@@ -143,99 +308,31 @@ public class OrNode extends BinaryLogicalOperatorNode {
 		if (firstOr)
 		{
 			boolean			convert = true;
-			ColumnReference	cr = null;
-			int				columnNumber = -1;
-			int				tableNumber = -1;
+            HashMap         columns = new HashMap<Integer, ColumnReference>();
+			ArrayList       columnNumbers = new ArrayList<Integer>();
+			HashMap         columnMap = new HashMap<Integer, Integer>();
+            MutableInt	    tableNumber = new MutableInt(-1);
             ValueNode       vn;
+            boolean         firstTime = true;
 
             for (vn = this;
                     vn instanceof OrNode;
-                    vn = ((OrNode) vn).getRightOperand())
+                    vn = ((OrNode) vn).getRightOperand(), firstTime = false)
 			{
 				OrNode on = (OrNode) vn;
 				ValueNode left = on.getLeftOperand();
-
-				// Is the operator an =
-				if (!left.isRelationalOperator())
-				{
-					/* If the operator is an IN-list disguised as a relational
-					 * operator then we can still convert it--we'll just
-					 * combine the existing IN-list ("left") with the new IN-
-					 * list values.  So check for that case now.
-					 */ 
-
-					if (SanityManager.DEBUG)
-					{
-						/* At the time of writing the only way a call to
-						 * left.isRelationalOperator() would return false for
-						 * a BinaryRelationalOperatorNode was if that node
-						 * was for an IN-list probe predicate.  That's why we
-						 * we can get by with the simple "instanceof" check
-						 * below.  But if we're running in SANE mode, do a
-						 * quick check to make sure that's still valid.
-					 	 */
-						BinaryRelationalOperatorNode bron = null;
-						if (left instanceof BinaryRelationalOperatorNode)
-						{
- 							bron = (BinaryRelationalOperatorNode)left;
-							if (!bron.isInListProbeNode())
-							{
-								SanityManager.THROWASSERT(
-								"isRelationalOperator() unexpectedly returned "
-								+ "false for a BinaryRelationalOperatorNode.");
-							}
-						}
-					}
-
-					convert = (left instanceof BinaryRelationalOperatorNode);
-					if (!convert)
-						break;
-				}
-
-				if (!(((RelationalOperator)left).getOperator() == RelationalOperator.EQUALS_RELOP))
-				{
-					convert = false;
-					break;
-				}
-
-				BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)left;
-
-				if (bron.getLeftOperand() instanceof ColumnReference)
-				{
-					cr = (ColumnReference) bron.getLeftOperand();
-					if (tableNumber == -1)
-					{
-						tableNumber = cr.getTableNumber();
-						columnNumber = cr.getColumnNumber();
-					}
-					else if (tableNumber != cr.getTableNumber() ||
-							 columnNumber != cr.getColumnNumber())
-					{
-						convert = false;
-						break;
-					}
-				}
-				else if (bron.getRightOperand() instanceof ColumnReference)
-				{
-					cr = (ColumnReference) bron.getRightOperand();
-					if (tableNumber == -1)
-					{
-						tableNumber = cr.getTableNumber();
-						columnNumber = cr.getColumnNumber();
-					}
-					else if (tableNumber != cr.getTableNumber() ||
-							 columnNumber != cr.getColumnNumber())
-					{
-						convert = false;
-						break;
-					}
-				}
-				else
-				{
-					convert = false;
-					break;
-				}
-			}
+                ArrayList compareNumbers = new ArrayList<Integer>();
+                
+                convert = canConvertToInList(left, columnNumbers, compareNumbers, columns, tableNumber, firstTime);
+                if (firstTime)
+                    Collections.sort(columnNumbers);
+                else {
+                    Collections.sort(compareNumbers);
+                    convert = convert && compareNumbers.equals(columnNumbers);
+                }
+                if (!convert)
+                    break;
+            }
 
             // DERBY-6363: An OR chain on conjunctive normal form should be
             // terminated by a false BooleanConstantNode. If it is terminated
@@ -246,6 +343,16 @@ public class OrNode extends BinaryLogicalOperatorNode {
 			/* So, can we convert the OR chain? */
 			if (convert)
 			{
+			    ValueNodeList crList = (ValueNodeList) getNodeFactory().getNode(
+                    C_NodeTypes.VALUE_NODE_LIST,
+                    getContextManager());
+			    
+			    for (int i = 0; i < columnNumbers.size(); i++) {
+			        Integer colNum = (Integer)columnNumbers.get(i);
+			        columnMap.put(colNum, i);
+			        crList.addValueNode((ValueNode)columns.get(colNum));
+                }
+                
 				ValueNodeList vnl = (ValueNodeList) getNodeFactory().getNode(
 													C_NodeTypes.VALUE_NODE_LIST,
 													getContextManager());
@@ -255,41 +362,17 @@ public class OrNode extends BinaryLogicalOperatorNode {
                         vn = ((OrNode) vn).getRightOperand())
 				{
 					OrNode on = (OrNode) vn;
-					BinaryRelationalOperatorNode bron =
-						(BinaryRelationalOperatorNode) on.getLeftOperand();
-					if (bron.isInListProbeNode())
-					{
-						/* If we have an OR between multiple IN-lists on the same
-						 * column then just combine them into a single IN-list.
-						 * Ex.
-						 *
-						 *   select ... from T1 where i in (2, 3) or i in (7, 10)
-						 *
-						 * effectively becomes:
-						 *
-						 *   select ... from T1 where i in (2, 3, 7, 10).
-						 */
-						vnl.destructiveAppend(
-							bron.getInListOp().getRightOperandList());
-					}
-					else if (bron.getLeftOperand() instanceof ColumnReference)
-					{
-						vnl.addValueNode(bron.getRightOperand());
-					}
-					else
-					{
-						vnl.addValueNode(bron.getLeftOperand());
-					}
+                    
+                    addNewInListNode(on.getLeftOperand(), columnMap, vnl);
 				}
 
 				InListOperatorNode ilon =
 							(InListOperatorNode) getNodeFactory().getNode(
 											C_NodeTypes.IN_LIST_OPERATOR_NODE,
-											cr,
+                                            crList,
 											vnl,
 											getContextManager());
 
-				// Transfer the result type info to the IN list
 				ilon.setType(getTypeServices());
 
 				/* We return the result of preprocess() on the

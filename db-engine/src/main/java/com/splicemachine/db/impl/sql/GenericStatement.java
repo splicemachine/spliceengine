@@ -450,10 +450,51 @@ public class GenericStatement implements Statement{
             String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.PROJECTION_PRUNING_DISABLED);
             // if database property is not set, treat it as false
             Boolean projectionPruningOptimizationDisabled = false;
-            if (projectionPruningOptimizationString != null)
-                projectionPruningOptimizationDisabled = Boolean.valueOf(projectionPruningOptimizationString);
-
+            try {
+                if (projectionPruningOptimizationString != null)
+                    projectionPruningOptimizationDisabled = Boolean.valueOf(projectionPruningOptimizationString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
             cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
+    
+            // User can specify the max length of multicolumn IN list the optimizer may build for
+            // use as a probe predicate.  Single-column IN lists can be combined up until the point
+            // where adding in the next IN predicate would push us over the limit.
+            String maxMulticolumnProbeValuesString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MAX_MULTICOLUMN_PROBE_VALUES);
+            int maxMulticolumnProbeValues = CompilerContext.DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+            try {
+                if (maxMulticolumnProbeValuesString != null)
+                    maxMulticolumnProbeValues = Integer.valueOf(maxMulticolumnProbeValuesString);
+            }
+            catch (Exception e) {
+                // If the property value failed to convert to an int, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setMaxMulticolumnProbeValues(maxMulticolumnProbeValues);
+    
+            String multicolumnInlistProbeOnSparkEnabledString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED);
+            boolean multicolumnInlistProbeOnSparkEnabled = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+            try {
+                if (multicolumnInlistProbeOnSparkEnabledString != null)
+                    multicolumnInlistProbeOnSparkEnabled = Boolean.valueOf(multicolumnInlistProbeOnSparkEnabledString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setMulticolumnInlistProbeOnSparkEnabled(multicolumnInlistProbeOnSparkEnabled);
+    
+            String convertMultiColumnDNFPredicatesToInListString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST);
+            boolean convertMultiColumnDNFPredicatesToInList = CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
+            try {
+                if (convertMultiColumnDNFPredicatesToInListString != null)
+                    convertMultiColumnDNFPredicatesToInList = Boolean.valueOf(convertMultiColumnDNFPredicatesToInListString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setConvertMultiColumnDNFPredicatesToInList(convertMultiColumnDNFPredicatesToInList);
 
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){

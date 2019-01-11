@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import static java.lang.String.format;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+
+import static java.lang.String.format;
 
 /**
  * Utility to get the string representation of a given operator.
@@ -90,17 +90,33 @@ public class OperatorToString {
             return format("%s(%s)",uop.getOperatorString(),opToString(uop.getOperand()));
         }else if(operand instanceof BinaryRelationalOperatorNode){
             BinaryRelationalOperatorNode bron=(BinaryRelationalOperatorNode)operand;
-            InListOperatorNode inListOp=bron.getInListOp();
-            if(inListOp!=null) return opToString(inListOp);
-
-            return format("(%s %s %s)",opToString(bron.getLeftOperand()),
-                          bron.getOperatorString(),opToString(bron.getRightOperand()));
+            try {
+                InListOperatorNode inListOp = bron.getInListOp();
+                if (inListOp != null) return opToString(inListOp);
+    
+                return format("(%s %s %s)", opToString(bron.getLeftOperand()),
+                    bron.getOperatorString(), opToString(bron.getRightOperand()));
+            }
+            catch (StandardException e) {
+                return "PARSE_ERROR_WHILE_CONVERTING_OPERATOR";
+            }
         }else if(operand instanceof BinaryListOperatorNode){
             BinaryListOperatorNode blon = (BinaryListOperatorNode)operand;
-            StringBuilder inList = new StringBuilder("(").append(opToString(blon.getLeftOperand()))
-                                                         .append(" ")
-                                                         .append(blon.getOperator())
-                                                         .append(" (");
+            StringBuilder inList = new StringBuilder("(");
+            if (!blon.isSingleLeftOperand()) {
+                ValueNodeList vnl = blon.leftOperandList;
+                inList.append("(");
+                for (int i = 0; i < vnl.size(); i++) {
+                    ValueNode vn = (ValueNode) vnl.elementAt(i);
+                    if (i != 0)
+                        inList.append(",");
+                    inList.append(opToString(vn));
+                }
+                inList.append(")");
+            }
+            else
+                inList.append(opToString(blon.getLeftOperand()));
+            inList.append(" ").append(blon.getOperator()).append(" (");
             ValueNodeList rightOperandList=blon.getRightOperandList();
             boolean isFirst = true;
             for(Object qtn: rightOperandList){
@@ -135,6 +151,18 @@ public class OperatorToString {
                 i++;
             }
             builder.append("]");
+            return builder.toString();
+        } else if (operand instanceof ListValueNode) {
+            ListValueNode lcn = (ListValueNode) operand;
+            StringBuilder builder = new StringBuilder();
+            builder.append("(");
+            for (int i = 0; i < lcn.numValues(); i++) {
+                ValueNode vn = lcn.getValue(i);
+                if (i != 0)
+                    builder.append(",");
+                builder.append(opToString(vn));
+            }
+            builder.append(")");
             return builder.toString();
         }
         else if (operand instanceof ColumnReference) {
