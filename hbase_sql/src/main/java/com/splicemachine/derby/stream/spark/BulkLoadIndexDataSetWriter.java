@@ -18,6 +18,10 @@ import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -113,8 +117,9 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
     }
 
     private void sampleAndSplitIndex() throws StandardException {
-        SConfiguration sConfiguration = HConfiguration.getConfiguration();
-        double sampleFraction = sConfiguration.getBulkImportSampleFraction();
+        Activation activation = operationContext.getActivation();
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        double sampleFraction = BulkLoadUtils.getSampleFraction(lcc);
         DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
         DataSet sampleRowAndIndexes = sampledDataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true,
