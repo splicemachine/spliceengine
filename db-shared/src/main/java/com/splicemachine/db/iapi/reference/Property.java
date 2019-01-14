@@ -1339,4 +1339,5 @@ public interface Property {
 	String MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED =
 			"derby.database.matchStmtCacheIgnoreCommentOptimizationEnabled";
 
+	String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
 }
