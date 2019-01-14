@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableSampler;
 import com.splicemachine.derby.stream.iapi.TableSamplerBuilder;
 import com.splicemachine.si.api.txn.TxnView;
@@ -29,9 +30,11 @@ public class SparkTableSamplerBuilder implements TableSamplerBuilder{
     private DDLMessage.TentativeIndex tentativeIndex;
     private String indexName;
     private double sampleFraction;
+    private OperationContext operationContext;
 
-    public SparkTableSamplerBuilder(DataSet dataSet) {
+    public SparkTableSamplerBuilder(DataSet dataSet, OperationContext operationContext) {
         this.dataSet = dataSet;
+        this.operationContext = operationContext;
     }
 
     @Override
@@ -54,6 +57,6 @@ public class SparkTableSamplerBuilder implements TableSamplerBuilder{
 
     @Override
     public TableSampler build() {
-        return new SparkTableSampler(dataSet, tentativeIndex, indexName, sampleFraction);
+        return new SparkTableSampler(operationContext, dataSet, tentativeIndex, indexName, sampleFraction);
     }
 }

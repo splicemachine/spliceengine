@@ -891,6 +891,6 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
-        return new SparkTableSamplerBuilder(this);
+        return new SparkTableSamplerBuilder(this, operationContext);
     }
 }
