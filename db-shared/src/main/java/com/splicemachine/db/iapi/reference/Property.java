@@ -1373,4 +1373,6 @@ public interface Property {
 	 */
 	String CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST =
 		"derby.database.convertMultiColumnDNFPredicatesToInList";
+
+	String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
 }

@@ -18,7 +18,10 @@ import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -194,8 +197,17 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             List<Tuple2<Long, byte[][]>> cutPoints = null;
             if (!skipSampling) {
                 if (sampleFraction == 0) {
-                    SConfiguration sConfiguration = HConfiguration.getConfiguration();
-                    sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                    LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+
+                    String sampleFractionString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                            Property.BULK_IMPORT_SAMPLE_FRACTION);
+                    if (sampleFractionString != null) {
+                        sampleFraction = Double.parseDouble(sampleFractionString);
+                    }
+                    else {
+                        SConfiguration sConfiguration = HConfiguration.getConfiguration();
+                        sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                    }
                 }
                 DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
 
