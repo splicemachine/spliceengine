@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>0.0.0.1</version>
+    <version>0.0.0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -45,18 +45,14 @@
             <id>splicemachine</id>
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
         </repository>
+       <repository>
+            <id>nexus-central</id>
+            <url>http://10.1.0.134:8085/repository/developers/</url>
+        </repository>      
         <repository>
-            <id>central</id>
-            <url>http://10.1.0.134:8081/artifactory/spliceengine-releases</url>
-        </repository>
-        <repository>
-            <id>snapshots</id>
-            <url>http://10.1.0.134:8081/artifactory/spliceengine</url>
-        </repository>
-         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
-	</repository>
+	    </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
@@ -684,28 +680,25 @@
             <id>splicemachine-internal</id>
             <distributionManagement>
                <repository>
-                    <id>central</id>
-                    <url>http://10.1.0.134:8081/artifactory/spliceengine-releases</url>
+                    <id>nexus-central</id>
+                    <url>http://10.1.0.134:8085/repository/spliceengine-releases/</url>
                 </repository>
                  <snapshotRepository>
-                    <id>snapshots</id>
-                    <name>artifactory-snapshots</name>
-                    <url>http://10.1.0.134:8081/artifactory/spliceengine</url>
+                    <id>nexus-public</id>
+                    <url>http://10.1.0.134:8085/repository/spliceengine/</url>
                 </snapshotRepository>
            </distributionManagement>
         </profile>
         <profile>
             <id>splicemachine-external</id>
             <distributionManagement>
-                <repository>
-                    <id>central</id>
-                    <name>artifactory-releases</name>
-                    <url>http://10.1.0.134:8081/artifactory/spliceengine-releases</url>
+               <repository>
+                    <id>nexus-central</id>
+                    <url>http://10.1.0.134:8085/repository/spliceengine-releases/</url>
                 </repository>
-                <snapshotRepository>
-                    <id>snapshots</id>
-                    <name>artifactory-snapshots</name>
-                    <url>http://10.1.0.134:8081/artifactory/spliceengine</url>
+                 <snapshotRepository>
+                    <id>nexus-public</id>
+                    <url>http://10.1.0.134:8085/repository/spliceengine/</url>
                 </snapshotRepository>
            </distributionManagement>
         </profile>

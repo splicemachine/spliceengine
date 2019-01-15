@@ -17,7 +17,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>spliceengine-parent</artifactId>
-        <version>0.0.0.1</version>
+        <version>0.0.0.2-SNAPSHOT</version>
     </parent>
     <artifactId>splice_aws</artifactId>
     <name>splice_aws</name>

@@ -19,13 +19,13 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>0.0.0.1</version>
+        <version>0.0.0.2-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_encoding</artifactId>
-            <version>0.0.0.1</version>
+            <version>0.0.0.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
