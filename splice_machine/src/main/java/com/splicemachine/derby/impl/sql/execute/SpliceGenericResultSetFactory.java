@@ -369,13 +369,13 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                        boolean isInSortedOrder, int aggregateItem, int orderItem,
                                                        GeneratedMethod rowAllocator, int maxRowSize, int resultSetNumber,
                                                        double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-                                                       boolean isRollup, String explainPlan) throws StandardException {
+                                                       boolean isRollup, int groupingIdColPosition, int groupingIdArrayItem, String explainPlan) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getGroupedAggregateResultSet");
             ConvertedResultSet below = (ConvertedResultSet)source;
             GroupedAggregateOperation op = new GroupedAggregateOperation(below.getOperation(), isInSortedOrder, aggregateItem, orderItem, source.getActivation(),
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, isRollup);
+                    optimizerEstimatedCost, isRollup, groupingIdColPosition, groupingIdArrayItem);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -812,6 +812,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                                double optimizerEstimatedRowCount,
                                                                double optimizerEstimatedCost,
                                                                boolean isRollup,
+                                                               int groupingIdColPosition, int groupingIdArrayItem,
                                                                String explainPlan) throws StandardException {
         SpliceLogUtils.trace(LOG, "getDistinctGroupedAggregateResultSet");
         try{
@@ -819,7 +820,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             DistinctGroupedAggregateOperation op = new DistinctGroupedAggregateOperation (
                     below.getOperation(), isInSortedOrder, aggregateItem, orderItem, source.getActivation(),
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, isRollup);
+                    optimizerEstimatedCost, isRollup, groupingIdColPosition, groupingIdArrayItem);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){

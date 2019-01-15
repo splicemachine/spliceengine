@@ -534,6 +534,9 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 		@param isRollup true if this is a GROUP BY ROLLUP()
+	    @param groupingIdColPosition column position of the groupingId column which is only used for rollup
+	    @param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
+	                               which is only used for rollup
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -548,6 +551,8 @@ public interface ResultSetFactory {
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
 		boolean isRollup,
+		int groupingIdColPosition,
+		int groupingIdArrayItem,
 		String explainPlan) 
 			throws StandardException;
 
@@ -571,6 +576,9 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 		@param isRollup true if this is a GROUP BY ROLLUP()
+	    @param groupingIdColPosition column position of the groupingId column which is only used for rollup
+	    @param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
+	                                which is only used for rollup
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -585,6 +593,8 @@ public interface ResultSetFactory {
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
         boolean isRollup,
+		int groupingIdColPosition,
+		int groupingIdArrayItem,
         String explainPlan) 
 			throws StandardException;
 

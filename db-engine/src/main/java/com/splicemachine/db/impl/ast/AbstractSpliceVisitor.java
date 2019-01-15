@@ -885,4 +885,10 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     public Visitable visit(ListValueNode node) throws StandardException {
         return defaultVisit(node);
     }
+
+    @Override
+    public Visitable visit(GroupingFunctionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
 }
