@@ -215,5 +215,6 @@ public interface ISpliceVisitor {
     Visitable visit(ArrayConstantNode node) throws StandardException;
     Visitable visit(SetSessionPropertyNode node) throws StandardException;
     Visitable visit(ListValueNode node) throws StandardException;
+    Visitable visit(GroupingFunctionNode node) throws StandardException;
 
 }

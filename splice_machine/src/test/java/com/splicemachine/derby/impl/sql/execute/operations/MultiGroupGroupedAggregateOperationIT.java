@@ -15,23 +15,20 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import org.spark_project.guava.collect.Lists;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.suites.Stats;
+import com.splicemachine.test_dao.TableDAO;
+import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import com.splicemachine.test_dao.TableDAO;
-import com.splicemachine.test_tools.TableCreator;
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -39,6 +36,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 
 /**
  * Tests aggregations around multi-group entries
@@ -627,7 +627,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	public void testRollupWithNotNullNestedSubqRollup() throws Exception {
 		// nested subquery with nested rollup on not-null columns
 		String sqlText = String.format(
-				"SELECT deptno, count(s_sum) from (" +
+				"SELECT deptno, count(s_sum), grouping(deptno) from (" +
 					"SELECT deptno, empno, sum(salary) as s_sum " +
 						"FROM %s " +
 						"group by rollup(deptno, empno) ) v1 " +
@@ -636,14 +636,15 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 
 		ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-		String expected = "DEPTNO | 2 |\n"+
-						"------------\n"+
-						"   1   | 4 |\n"+
-						"   2   | 4 |\n"+
-						"   3   | 4 |\n"+
-						"   4   | 4 |\n"+
-						"   5   | 4 |\n"+
-						" NULL  |22 |";
+		String expected = "DEPTNO | 2 | 3 |\n" +
+				"----------------\n" +
+				"   1   | 4 | 0 |\n" +
+				"   2   | 4 | 0 |\n" +
+				"   3   | 4 | 0 |\n" +
+				"   4   | 4 | 0 |\n" +
+				"   5   | 4 | 0 |\n" +
+				" NULL  | 1 | 0 |\n" +
+				" NULL  |21 | 1 |";
 
 		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
 		rs.close();
@@ -653,7 +654,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	public void testRollupWithNotNullDistinct() throws Exception {
 	    // rollup with not-null columns and aggr distinct
 		String sqlText = String.format(
-				"SELECT deptno, count(distinct s_sum) from (" +
+				"SELECT deptno, count(distinct s_sum), grouping(deptno) from (" +
 				  "SELECT deptno, count(distinct salary) as s_sum " +
 						"FROM %s " +
 						"group by rollup(deptno) ) v1 " +
@@ -662,19 +663,46 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 
 		ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-		String expected = "DEPTNO | 2 |\n"+
-				"------------\n"+
-				"   1   | 1 |\n"+
-				"   2   | 1 |\n"+
-				"   3   | 1 |\n"+
-				"   4   | 1 |\n"+
-				"   5   | 1 |\n"+
-				" NULL  | 7 |";
+		String expected = "DEPTNO | 2 | 3 |\n" +
+				"----------------\n" +
+				"   1   | 1 | 0 |\n" +
+				"   2   | 1 | 0 |\n" +
+				"   3   | 1 | 0 |\n" +
+				"   4   | 1 | 0 |\n" +
+				"   5   | 1 | 0 |\n" +
+				" NULL  | 1 | 0 |\n" +
+				" NULL  | 3 | 1 |";
 
 		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
 		rs.close();
 	}
 
+	@Test
+	public void testRollupWithNotNullDistinct1() throws Exception {
+		// rollup with not-null columns and aggr distinct
+		String sqlText = String.format(
+				"SELECT deptno, count(s_sum), grouping(deptno) from (" +
+						"SELECT deptno, count(distinct salary) as s_sum " +
+						"FROM %s " +
+						"group by rollup(deptno) ) v1 " +
+						"group by rollup(deptno) " +
+						"order by 1, 2", EMP_2_REF);
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+		String expected = "DEPTNO | 2 | 3 |\n" +
+				"----------------\n" +
+				"   1   | 1 | 0 |\n" +
+				"   2   | 1 | 0 |\n" +
+				"   3   | 1 | 0 |\n" +
+				"   4   | 1 | 0 |\n" +
+				"   5   | 1 | 0 |\n" +
+				" NULL  | 1 | 0 |\n" +
+				" NULL  | 6 | 1 |";
+
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+		rs.close();
+	}
 
 	private static class Pair {
 		private final String key1;

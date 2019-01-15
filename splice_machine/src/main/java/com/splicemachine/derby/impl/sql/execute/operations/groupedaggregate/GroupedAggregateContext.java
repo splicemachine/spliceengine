@@ -14,11 +14,11 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.SQLBit;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.WarningCollector;
-
-import com.splicemachine.db.iapi.error.StandardException;
 
 import java.io.Externalizable;
 
@@ -39,4 +39,8 @@ public interface GroupedAggregateContext extends WarningCollector,Externalizable
     int[] getNonGroupedUniqueColumns();
 
     int getNumDistinctAggregates();
+
+    SQLBit[] getGroupingIdVals();
+
+    int getGroupingIdColumnPosition();
 }

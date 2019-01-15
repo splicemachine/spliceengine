@@ -1497,6 +1497,7 @@ public class JoinNode extends TableOperatorNode{
 
             // SQL 2003, section 7.7 SR 5
             SelectNode.checkNoWindowFunctions(joinClause,"ON");
+            SelectNode.checkNoGroupingFunctions(joinClause,"ON");
 
 			/*
 			** We cannot have aggregates in the ON clause.

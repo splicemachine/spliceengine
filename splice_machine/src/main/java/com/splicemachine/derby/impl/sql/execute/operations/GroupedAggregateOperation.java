@@ -105,9 +105,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                      int resultSetNumber,
                                      double optimizerEstimatedRowCount,
                                      double optimizerEstimatedCost,
-                                     boolean isRollup) throws StandardException {
+                                     boolean isRollup,
+                                     int groupingIdColPosition,
+                                     int groupingIdArrayItem) throws StandardException {
         this(s, isInSortedOrder, aggregateItem, a, ra, maxRowSize, resultSetNumber,
-                optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup, new DerbyGroupedAggregateContext(orderingItem));
+                optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup,
+                new DerbyGroupedAggregateContext(orderingItem, groupingIdColPosition, groupingIdArrayItem));
     }
 
     @Override
@@ -164,6 +167,21 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         // Have distinct Aggregates?
         boolean hasMultipleDistinct = false;
         int numOfGroupKeys = groupedAggregateContext.getGroupingKeys().length;
+
+        int[] extendedGroupBy = groupedAggregateContext.getGroupingKeys();
+        if (isRollup) {
+            extendedGroupBy = new int[numOfGroupKeys+1];
+            for (int i=0; i<numOfGroupKeys; i++)
+                extendedGroupBy[i] = groupedAggregateContext.getGroupingKeys()[i];
+            extendedGroupBy[numOfGroupKeys] = groupedAggregateContext.getGroupingIdColumnPosition();
+        }
+
+        if (isRollup) { // OLAP Rollup Functionality
+            operationContext.pushScopeForOp(OperationContext.Scope.ROLLUP);
+            set = set.flatMap(new GroupedAggregateRollupFlatMapFunction(operationContext));
+            operationContext.popScope();
+        }
+
         if (groupedAggregateContext.getNonGroupedUniqueColumns() != null && groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
             if (groupedAggregateContext.getNonGroupedUniqueColumns().length > 1) {
                 /**
@@ -181,18 +199,17 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                  */
                 hasMultipleDistinct = true;
                 operationContext.pushScopeForOp(OperationContext.Scope.EXPAND);
-                DataSet set1 = set.flatMap(new DistinctAggregatesPrepareFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
+                DataSet set1 = set.flatMap(new DistinctAggregatesPrepareFunction(operationContext, extendedGroupBy));
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
-                PairDataSet set2 = set1.keyBy(new DistinctAggregateKeyCreation(operationContext, groupedAggregateContext.getGroupingKeys()));
+                PairDataSet set2 = set1.keyBy(new DistinctAggregateKeyCreation(operationContext, extendedGroupBy));
 
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
                 PairDataSet set3 = set2.reduceByKey(
-                        new MergeNonDistinctAggregatesFunctionForMixedRows(operationContext,
-                                                                           groupedAggregateContext.getGroupingKeys()));
+                        new MergeNonDistinctAggregatesFunctionForMixedRows(operationContext, extendedGroupBy));
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.READ);
@@ -202,7 +219,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 set = set4;
             } else {
                 //only one distinct aggregate
-                int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(), groupedAggregateContext.getNonGroupedUniqueColumns());
+                int[] allKeys = ArrayUtils.addAll(extendedGroupBy, groupedAggregateContext.getNonGroupedUniqueColumns());
 
                 operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
                 PairDataSet set2 = set.keyBy(new KeyerFunction(operationContext, allKeys));
@@ -220,31 +237,25 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             }
         }
         
-        if (isRollup) { // OLAP Rollup Functionality
-            operationContext.pushScopeForOp(OperationContext.Scope.ROLLUP);
-            set = set.flatMap(new GroupedAggregateRollupFlatMapFunction(operationContext));
-            operationContext.popScope();
-        }
-
         // with more than one distinct aggregates, each row is split into multiple rows
         // where each row starts with the original group keys + the distinct column id
         operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
         PairDataSet set2;
         if (hasMultipleDistinct) {
-            int[] tmpGroupKey = new int[numOfGroupKeys + 1];
+            int[] tmpGroupKey = new int[extendedGroupBy.length + 1];
             //Note, groupKeys as input for KeyerFunction is 0-based
-            for (int i=0; i<numOfGroupKeys+1; i++)
+            for (int i=0; i<extendedGroupBy.length+1; i++)
                 tmpGroupKey[i] = i;
             set2 = set.keyBy(new KeyerFunction(operationContext, tmpGroupKey));
         }
         else
-            set2 = set.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
+            set2 = set.keyBy(new KeyerFunction(operationContext, extendedGroupBy));
         operationContext.popScope();
         
         operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
         PairDataSet set3;
         if (hasMultipleDistinct)
-            set3 = set2.reduceByKey(new MergeAllAggregatesFunctionForMixedRows(operationContext, groupedAggregateContext.getGroupingKeys()));
+            set3 = set2.reduceByKey(new MergeAllAggregatesFunctionForMixedRows(operationContext, extendedGroupBy));
         else
             set3 = set2.reduceByKey(new MergeAllAggregatesFunction(operationContext));
         operationContext.popScope();
@@ -256,11 +267,11 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         //need to stitch the split rows together for multiple aggregates case
         if (hasMultipleDistinct) {
             operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
-            PairDataSet set6 = set4.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
+            PairDataSet set6 = set4.keyBy(new KeyerFunction(operationContext, extendedGroupBy));
             operationContext.popScope();
 
             operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
-            PairDataSet set7 = set6.reduceByKey(new StitchMixedRowFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
+            PairDataSet set7 = set6.reduceByKey(new StitchMixedRowFunction(operationContext, extendedGroupBy));
             operationContext.popScope();
 
             operationContext.pushScopeForOp(OperationContext.Scope.READ);
