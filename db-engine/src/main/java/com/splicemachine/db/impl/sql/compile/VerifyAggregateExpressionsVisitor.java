@@ -128,6 +128,16 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 							SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
 							SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
 			}
+		} else if (node instanceof GroupingFunctionNode) {
+			if (groupByList == null || !groupByList.isRollup()) {
+				throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_FUNCTION_NOT_ALLOWED,
+						"GROUPING",
+						"Query without OLAP operations like rollup, cube, groupingsets");
+			} else if (!((GroupingFunctionNode) node).isSingleColumnExpression()) {
+				throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
+						node.toString(),
+						"GROUPING");
+			}
 		}
 		return node;
 	}

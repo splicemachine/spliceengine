@@ -132,6 +132,14 @@ public class GroupByList extends OrderedColumnList{
                     throw StandardException.newException(SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
                 }
 
+                visitor =
+                        new HasNodeVisitor(GroupingFunctionNode.class);
+                resultCol.expression.accept(visitor);
+                if (visitor.hasNode())
+                {
+                    throw StandardException.newException(SQLState.LANG_GROUPING_FUNCTION_CONTEXT_ERROR, "GROUPBY");
+                }
+
                 groupByCol.setColumnExpression(resultCol.expression);
             }
             groupByCol.bindExpression(fromList,

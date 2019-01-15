@@ -594,6 +594,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.RANK_FUNCTION_NODE:
                 return C_NodeNames.RANK_FUNCTION_NAME;
 
+			case C_NodeTypes.GROUPING_FUNCTION_NODE:
+				return C_NodeNames.GROUPING_FUNCTION_NODE_NAME;
+
           case C_NodeTypes.CREATE_SEQUENCE_NODE:
             return C_NodeNames.CREATE_SEQUENCE_NODE_NAME;
 
