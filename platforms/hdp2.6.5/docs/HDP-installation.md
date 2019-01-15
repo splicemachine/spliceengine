@@ -74,19 +74,16 @@ Follow the steps to install splicemachine server.
 
 <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
-3. Choose the master machine. It needs to be the same machine as the HBase master.
-
-4. Choose hosts needed to install splice machine. Only choose hosts that have hbase region server 
-installed.Then click next.
+3. Choose hosts needed to install splice machine. Choose both HBase master and HBase region servers. Then click next.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-5. On the page of custom services, no properties need to customized by hand unless you would 
+4. On the page of custom services, no properties need to customized by hand unless you would 
 like to add Apache Ranger Support.
 
 <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
-6. Please review all the configuration changes made by Ambari and click OK to continue.
+5. Please review all the configuration changes made by Ambari and click OK to continue.
 
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
@@ -103,12 +100,12 @@ important configurations are set properly by clicking "recommend" button next to
 Information" are in the configurations.
 
 
-7. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
+6. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
  Machine is installed.
 
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-8. Restart all the services affected to start Splice Machine!
+7. Restart all the services affected to start Splice Machine!
 
 
 
