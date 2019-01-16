@@ -65,15 +65,7 @@ public class SparkTableSampler implements TableSampler {
         if (sampleFraction == 0) {
             Activation activation = operationContext.getActivation();
             LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-            String sampleFractionString = PropertyUtil.getCachedDatabaseProperty(lcc,
-                    Property.BULK_IMPORT_SAMPLE_FRACTION);
-            if (sampleFractionString != null) {
-                sampleFraction = Double.parseDouble(sampleFractionString);
-            }
-            else {
-                SConfiguration sConfiguration = HConfiguration.getConfiguration();
-                sampleFraction = sConfiguration.getBulkImportSampleFraction();
-            }
+            sampleFraction = BulkLoadUtils.getSampleFraction(lcc);
         }
         DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
         DataSet sampleRowAndIndexes = sampledDataSet

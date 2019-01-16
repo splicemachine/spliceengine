@@ -119,15 +119,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
     private void sampleAndSplitIndex() throws StandardException {
         Activation activation = operationContext.getActivation();
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        double sampleFraction = 0;
-        String sampleFractionString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.BULK_IMPORT_SAMPLE_FRACTION);
-        if (sampleFractionString != null) {
-            sampleFraction = Double.parseDouble(sampleFractionString);
-        }
-        else {
-            SConfiguration sConfiguration = HConfiguration.getConfiguration();
-            sampleFraction = sConfiguration.getBulkImportSampleFraction();
-        }
+        double sampleFraction = BulkLoadUtils.getSampleFraction(lcc);
         DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
         DataSet sampleRowAndIndexes = sampledDataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true,
