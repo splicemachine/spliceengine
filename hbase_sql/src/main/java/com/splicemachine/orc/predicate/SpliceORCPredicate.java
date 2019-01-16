@@ -334,8 +334,8 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
         }
         else if (dataType instanceof DecimalType) {
             DecimalStatistics decimalStatistics = columnStatistics.getDecimalStatistics();
-            statsEval.minimumDVD = new SQLDecimal(Decimal.apply(decimalStatistics.getMin()));
-            statsEval.maximumDVD = new SQLDecimal(Decimal.apply(decimalStatistics.getMax()));
+            statsEval.minimumDVD = new SQLDecimal(decimalStatistics.getMin());
+            statsEval.maximumDVD = new SQLDecimal(decimalStatistics.getMax());
         }
         else if (dataType instanceof StringType) {
             StringStatistics stringStatistics = columnStatistics.getStringStatistics();

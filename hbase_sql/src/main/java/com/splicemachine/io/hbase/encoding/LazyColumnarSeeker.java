@@ -91,7 +91,7 @@ public class LazyColumnarSeeker {
         SpliceQuery spliceQuery = SpliceQuery.queryContext.get();
         ExecRow execRow = null;
         if (spliceQuery == null) {
-            execRow = MemstoreAwareObserver.conglomerateThreadLocal.get(); // Are we splitting or compacting?
+            execRow = PAXDataBlockEncoder.conglomerateThreadLocal.get(); // Are we splitting or compacting?
             if (execRow == null) {
                 SpliceLogUtils.warn(LOG, "No Format for seeker...");
                 splitSeeker = true;

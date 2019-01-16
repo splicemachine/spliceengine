@@ -159,7 +159,7 @@ public class PAXEncodingStateTest {
         valueRow.setColumn(8,new SQLBlob("1231".getBytes()));
         valueRow.setColumn(9,new UserType(new SQLChar("Splice Machine")));
         valueRow.setColumn(10,new SQLTime(new Time(System.currentTimeMillis())));
-        valueRow.setColumn(11,new SQLDecimal(Decimal.apply(new BigDecimal(1))));
+        valueRow.setColumn(11,new SQLDecimal(new BigDecimal(1)));
 
 
         StructType type = valueRow.createStructType(IntArrays.count(valueRow.size())); // Can we overload this method on execrow...
@@ -176,7 +176,9 @@ public class PAXEncodingStateTest {
         for (int i = 0; i < structFields.size(); i++) {
             // Fix this..
             oi.setStructFieldData(orcStruct, structFields.get(i),
-                    valueRow.getColumn(i + 1).getHiveObject());
+                    // valueRow.getColumn(i + 1).getHiveObject());  msirek-temp
+                   valueRow.getColumn(i + 1).isNull() ? null :
+                    valueRow.getColumn(i + 1).getObject());
         }
         writer.addRow(orcStruct);
 

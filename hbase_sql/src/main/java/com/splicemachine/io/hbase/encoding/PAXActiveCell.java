@@ -45,7 +45,7 @@ public class PAXActiveCell implements Cell, SettableSequenceId, HeapSize  {
 
     @Override
     public byte[] getFamilyArray() {
-        return SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES;
+        return SIConstants.DEFAULT_FAMILY_BYTES;
     }
 
     @Override
@@ -145,7 +145,7 @@ public class PAXActiveCell implements Cell, SettableSequenceId, HeapSize  {
 
     @Override
     public byte[] getFamily() {
-        return SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES;
+        return SIConstants.DEFAULT_FAMILY_BYTES;
     }
 
     @Override

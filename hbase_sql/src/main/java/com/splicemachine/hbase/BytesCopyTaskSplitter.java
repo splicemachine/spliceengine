@@ -43,7 +43,7 @@ public class BytesCopyTaskSplitter {
     public static List<byte[]> getActiveCutPoints(HRegion region, byte[] start, byte[] end, int requestedSplits) throws IOException {
         Store store = null;
         try {
-            store = region.getStore(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES);
+            store = region.getStore(SIConstants.DEFAULT_FAMILY_BYTES);
             HRegionUtil.lockStore(store);
             return HRegionUtil.getCutpoints(store, start, end,requestedSplits);
         }catch (Throwable t) {

@@ -52,9 +52,6 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 import org.apache.hadoop.hbase.security.access.AccessController;
 import org.apache.hadoop.hbase.security.token.TokenProvider;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.ImmutableList;
 
 import java.util.List;
 

@@ -78,7 +78,6 @@ public class StripeReader
         this.decompressor = requireNonNull(decompressor, "decompressor is null");
         this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
         this.partitionIds = ImmutableList.copyOf(requireNonNull(partitionIds, "partitionIds is null"));
-        this.bufferSize = bufferSize;
         this.includedOrcColumns = getIncludedOrcColumns(types,
                 requireNonNull(includedColumns, "includedColumns is null"),
                 this.partitionIds);

@@ -25,7 +25,8 @@ public class SpliceQuery implements Externalizable {
     public SpliceQuery() {}
 
     public SpliceQuery(ExecRow template) {
-        FormatableBitSet scanColumns = new FormatableBitSet(template.nColumns());
+        FormatableBitSet scanColumns;
+        scanColumns = new FormatableBitSet(template.nColumns());
         scanColumns.setAll();
         this.template = template;
         this.scanColumns = scanColumns;

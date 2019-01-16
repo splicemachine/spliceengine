@@ -139,10 +139,10 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
      * @return
      */
     private long getActiveStoreFileSize() {
-        Store store = region.getStore(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES);
+        Store store = region.getStore(SIConstants.DEFAULT_FAMILY_BYTES);
         try {
             HRegionUtil.lockStore(store);
-            return region.getStore(SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES).getStoreSizeUncompressed();
+            return region.getStore(SIConstants.DEFAULT_FAMILY_BYTES).getStoreSizeUncompressed();
         } finally {
             HRegionUtil.unlockStore(store);
         }

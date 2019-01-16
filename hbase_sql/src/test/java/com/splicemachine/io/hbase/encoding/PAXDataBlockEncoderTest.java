@@ -12,7 +12,6 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.SpliceQuery;
-import com.splicemachine.si.impl.server.RedoTransactor;
 import com.splicemachine.storage.HCell;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -101,10 +100,6 @@ public class PAXDataBlockEncoderTest {
     @Test
     public void testSeekBeforeWithFixedData() throws Exception {
         ExecRow execRow = createExecRow();
-        FormatableBitSet fbs = new FormatableBitSet(6);
-        fbs.setAll();
-        SpliceQuery spliceQuery = new SpliceQuery(execRow,fbs);
-        RedoTransactor.queryContext.set(spliceQuery);
         PAXDataBlockEncoder encoder = new PAXDataBlockEncoder(execRow);
         HFileBlockEncodingContext blkEncodingCtx = createHFileBlockEncodingContext();
         ByteArrayOutputStream baosInMemory = new ByteArrayOutputStream();
@@ -152,10 +147,6 @@ public class PAXDataBlockEncoderTest {
     @Test
     public void testLargeWrite() throws Exception {
         ExecRow execRow = createExecRow();
-        FormatableBitSet fbs = new FormatableBitSet(6);
-        fbs.setAll();
-        SpliceQuery spliceQuery = new SpliceQuery(execRow,fbs);
-        RedoTransactor.queryContext.set(spliceQuery);
         PAXDataBlockEncoder encoder = new PAXDataBlockEncoder(execRow);
         HFileBlockEncodingContext blkEncodingCtx = createHFileBlockEncodingContext();
         ByteArrayOutputStream baosInMemory = new ByteArrayOutputStream();
@@ -209,10 +200,6 @@ public class PAXDataBlockEncoderTest {
     @Test
     public void testFixOffset() throws Exception {
         ExecRow execRow = createExecRow();
-        FormatableBitSet fbs = new FormatableBitSet(6);
-        fbs.setAll();
-        SpliceQuery spliceQuery = new SpliceQuery(execRow,fbs);
-        RedoTransactor.queryContext.set(spliceQuery);
         PAXDataBlockEncoder encoder = new PAXDataBlockEncoder(execRow);
         HFileBlockEncodingContext blkEncodingCtx = createHFileBlockEncodingContext();
         ByteArrayOutputStream baosInMemory = new ByteArrayOutputStream();

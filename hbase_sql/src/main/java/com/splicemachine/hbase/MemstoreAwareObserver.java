@@ -18,20 +18,10 @@ import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.access.client.MemStoreFlushAwareScanner;
 import com.splicemachine.access.client.MemstoreAware;
 import com.splicemachine.compactions.SpliceCompactionRequest;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLBlob;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.hbase.*;
-import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.utils.BlockingProbe;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -45,10 +35,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.primitives.Longs;
-
 import java.io.IOException;
-import java.util.List;
 import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -60,10 +47,8 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         SplitObserver,
         FlushObserver,
         StoreScannerObserver{
-    public static ThreadLocal<ExecRow> conglomerateThreadLocal = new ThreadLocal<>();
     private static final Logger LOG = Logger.getLogger(MemstoreAwareObserver.class);
     private AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());     // Atomic Reference to memstore aware state handling
-
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,
                                       Store store,
@@ -76,7 +61,6 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 SpliceLogUtils.error(LOG,"Compaction request must be a SpliceCompactionRequest");
                 throw new DoNotRetryIOException();
             }
-            setConglomerateThreadLocal(e);
             SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
             // memstoreAware is injected into the request, where the blocking logic lives, and where compaction
             // count will be incremented and decremented.
@@ -87,12 +71,6 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
-    }
-
-    @Override
-    public InternalScanner preCompactScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Store store, List<? extends KeyValueScanner> scanners, ScanType scanType, long earliestPutTs, InternalScanner s) throws IOException {
-        setConglomerateThreadLocal(c);
-        return super.preCompactScannerOpen(c, store, scanners, scanType, earliestPutTs, s);
     }
 
     @Override
@@ -107,7 +85,6 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     @Override
     public void preSplit(ObserverContext<RegionCoprocessorEnvironment> c,byte[] splitRow) throws IOException{
         try {
-            setConglomerateThreadLocal(c);
             BlockingProbe.blockPreSplit();
             while (true) {
                 MemstoreAware latest = memstoreAware.get();
@@ -126,12 +103,6 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
-    }
-
-    @Override
-    public void preSplitAfterPONR(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
-        setConglomerateThreadLocal(ctx);
-        super.preSplitAfterPONR(ctx);
     }
 
     @Override
@@ -344,29 +315,4 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
             throw CoprocessorUtils.getIOException(t);
         }
     }
-
-    @Override
-    public InternalScanner preFlushScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Store store, KeyValueScanner memstoreScanner, InternalScanner s) throws IOException {
-        setConglomerateThreadLocal(c);
-        return super.preFlushScannerOpen(c, store, memstoreScanner, s);
-    }
-
-    public void setConglomerateThreadLocal(ObserverContext<RegionCoprocessorEnvironment> c) throws IOException {
-        if (c.getEnvironment().getRegion().getStores().size() == 2) {
-            try {
-                String qualifier = c.getEnvironment().getRegion().getTableDesc().getTableName().getQualifierAsString();
-                if (qualifier.equals("SPLICE_CONGLOMERATE")) {
-                    conglomerateThreadLocal.set(new ValueRow(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()}));
-                } else {
-                    Conglomerate conglomerate = ConglomerateUtils.readConglomerate(Longs.tryParse(qualifier),
-                            GenericConglomerate.class,
-                            ReadOnlyTxn.create(Long.MAX_VALUE, Txn.IsolationLevel.READ_COMMITTED, null, null));
-                    conglomerateThreadLocal.set(conglomerate.getTemplate());
-                }
-            } catch (StandardException se) {
-                throw new IOException(se);
-            }
-        }
-    }
-
 }

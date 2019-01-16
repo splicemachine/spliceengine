@@ -40,7 +40,7 @@ public class PAXSmokeTest {
                 random.nextBytes(bytes);
                 removeEncodingIssues(bytes); // removes 0x00
                 bytes[bytes.length-1] = 0x00; // emulates Splice Machine key generation
-                KeyValue keyValue = new KeyValue(bytes, SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES, SIConstants.PACKED_COLUMN_BYTES, random.nextInt(20) + 1, org.apache.hadoop.hbase.KeyValue.Type.Put, "1".getBytes());
+                KeyValue keyValue = new KeyValue(bytes, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES, random.nextInt(20) + 1, org.apache.hadoop.hbase.KeyValue.Type.Put, "1".getBytes());
                 ((SettableSequenceId) keyValue).setSequenceId(i);
                 memStore.add(keyValue);
                 byte[] artRow = PAXEncodingState.genRowKey(keyValue);

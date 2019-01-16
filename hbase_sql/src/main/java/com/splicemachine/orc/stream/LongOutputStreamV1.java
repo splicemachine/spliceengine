@@ -14,6 +14,7 @@
 package com.splicemachine.orc.stream;
 
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.orc.OrcOutputBuffer;
 import com.splicemachine.orc.checkpoint.LongStreamCheckpoint;
 import com.splicemachine.orc.checkpoint.LongStreamV1Checkpoint;
@@ -28,7 +29,6 @@ import java.util.List;
 import java.util.Optional;
 import static com.splicemachine.orc.stream.LongDecode.writeVLong;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Verify.verify;
 import static java.util.Objects.requireNonNull;
 
 public class LongOutputStreamV1
@@ -143,7 +143,7 @@ public class LongOutputStreamV1
 
     private void flushLiteralSequence(int literalCount)
     {
-        verify(literalCount > 0);
+        SanityManager.ASSERT(literalCount > 0);
 
         buffer.writeByte(-literalCount);
         for (int i = 0; i < literalCount; i++) {
@@ -153,7 +153,7 @@ public class LongOutputStreamV1
 
     private void flushRleSequence(int runCount)
     {
-        verify(runCount > 0);
+        SanityManager.ASSERT(runCount > 0);
 
         buffer.writeByte(runCount - MIN_REPEAT_SIZE);
         buffer.writeByte((byte) lastDelta);

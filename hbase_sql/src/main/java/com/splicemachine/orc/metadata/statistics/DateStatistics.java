@@ -38,6 +38,7 @@ public class DateStatistics
         this.maximum = maximum;
     }
 
+    /* msirek-temp->
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
         DateStatistics dateStatistics = null;
         if(value != null) {
@@ -47,6 +48,7 @@ public class DateStatistics
         return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
             null,null,null,null,dateStatistics,null,null);
     }
+    */
 
     @Override
     public Integer getMin()

@@ -39,7 +39,7 @@ import java.util.Iterator;
  * Variable Length Data {(variable)}
  */
 public class UnsafeRecord implements Record<byte[]> {
-    public static final byte[] DEFAULT_FAMILY_ACTIVE_BYTES = Bytes.toBytes("A");
+    public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes("A");
     protected byte[] keyObject;
     protected long keyOffset;
     protected int keyLength;
@@ -102,7 +102,7 @@ public class UnsafeRecord implements Record<byte[]> {
         this.baseObject = dataCell.valueArray();
         this.baseOffset = dataCell.valueOffset();
         this.baseLength = dataCell.valueLength();
-        this.isActiveRecord = dataCell.matchesFamily(DEFAULT_FAMILY_ACTIVE_BYTES);
+        this.isActiveRecord = dataCell.matchesFamily(DEFAULT_FAMILY_BYTES);
     }
 
     public void wrap(DataCell dataCell) {
@@ -113,7 +113,7 @@ public class UnsafeRecord implements Record<byte[]> {
         this.version = dataCell.version();
         this.baseObject = dataCell.valueArray();
         this.baseOffset = dataCell.valueOffset();
-        this.isActiveRecord = dataCell.matchesFamily(DEFAULT_FAMILY_ACTIVE_BYTES);
+        this.isActiveRecord = dataCell.matchesFamily(DEFAULT_FAMILY_BYTES);
         this.baseLength = dataCell.valueLength();
     }
 

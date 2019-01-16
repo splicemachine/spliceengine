@@ -43,7 +43,7 @@ public class StringStatistics
         this.maximum = maximum;
         this.sum = sum;
     }
-
+/* msirek-temp->
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
         StringStatistics stringStatistics = null;
         if(value != null) {
@@ -53,6 +53,7 @@ public class StringStatistics
         return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
             null,null,null,stringStatistics,null,null,null);
     }
+    */
 
     @Override
     public Slice getMin()

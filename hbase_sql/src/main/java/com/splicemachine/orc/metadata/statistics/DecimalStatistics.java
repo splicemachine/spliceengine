@@ -37,7 +37,7 @@ public class DecimalStatistics
         this.minimum = minimum;
         this.maximum = maximum;
     }
-
+/* msirek-temp->
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
         DecimalStatistics decimalStatistics = null;
         if(value != null) {
@@ -48,6 +48,7 @@ public class DecimalStatistics
         return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
             null,null,null,null,null,decimalStatistics,null);
     }
+    */
 
     @Override
     public BigDecimal getMin()

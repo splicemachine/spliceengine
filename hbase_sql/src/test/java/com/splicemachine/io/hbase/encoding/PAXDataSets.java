@@ -11,6 +11,8 @@ import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.spark.sql.types.Decimal;
+
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -56,10 +58,10 @@ public class PAXDataSets {
                     new SQLInteger(i),
                     new SQLLongint(i),
                     new SQLDate(new java.sql.Date(df.parse("02-04-2015").getTime())),
-                    new SQLDecimal(Decimal.apply(i), 10, 2),
+                    new SQLDecimal(new BigDecimal(i), 10, 2),
                     new SQLTimestamp(new Timestamp(System.currentTimeMillis()))});
 //                    new SQLTimestamp()});
-            keyValues.add(new KeyValue(record.getKey(), SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,record.getValue()));
+            keyValues.add(new KeyValue(record.getKey(), SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,record.getValue()));
         }
         return keyValues.iterator();
     }
@@ -97,10 +99,10 @@ public class PAXDataSets {
                     new SQLInteger(i),
                     new SQLLongint(i),
                     new SQLDate(new java.sql.Date(df.parse("02-04-2015").getTime())),
-                    new SQLDecimal(Decimal.apply(i), 10, 2),
+                    new SQLDecimal(new BigDecimal(i), 10, 2),
                     new SQLTimestamp(new Timestamp(System.currentTimeMillis()))});
 //                    new SQLTimestamp()});
-            keyValues.add(new KeyValue(record.getKey(), SIConstants.DEFAULT_FAMILY_ACTIVE_BYTES,SIConstants.PACKED_COLUMN_BYTES,record.getValue()));
+            keyValues.add(new KeyValue(record.getKey(), SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,record.getValue()));
         }
         return keyValues.iterator();
     }

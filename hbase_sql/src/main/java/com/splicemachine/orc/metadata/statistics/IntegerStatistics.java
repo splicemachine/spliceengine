@@ -36,7 +36,7 @@ public class IntegerStatistics
         this.minimum = minimum;
         this.maximum = maximum;
     }
-
+/*  msirek-temp->
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
         IntegerStatistics integerStatistics = null;
         if(value != null) {
@@ -45,7 +45,7 @@ public class IntegerStatistics
         return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,
             null,integerStatistics,null,null,null,null,null);
     }
-
+*/
     @Override
     public Long getMin()
     {

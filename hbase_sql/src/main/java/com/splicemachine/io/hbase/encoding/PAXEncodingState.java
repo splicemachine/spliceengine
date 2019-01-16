@@ -76,7 +76,7 @@ public class PAXEncodingState extends EncodingState {
         unsafeRecord = new UnsafeRecord();
         hcell = new HCell();
         if (execRow == null) {
-            init(MemstoreAwareObserver.conglomerateThreadLocal.get()); // Can Null Point
+            init(PAXDataBlockEncoder.conglomerateThreadLocal.get()); // Can Null Point
         }
         dataToRetrieve = IntArrays.count(execRow.size());
         radixTree = new SimpleART();
@@ -160,7 +160,9 @@ public class PAXEncodingState extends EncodingState {
             writtenExecRow.getColumn(6).setValue(unsafeRecord.getEffectiveTimestamp());// Effective Timestamp
             for (int i = 0; i < structFields.size(); i++) {
                     oi.setStructFieldData(orcStruct, structFields.get(i),
-                                    writtenExecRow.getColumn(i + 1).getHiveObject());
+                                    // writtenExecRow.getColumn(i + 1).getHiveObject()); msirek-temp
+                            writtenExecRow.getColumn(i + 1).isNull() ? null :
+                                    writtenExecRow.getColumn(i + 1).getObject());
             }
             writer.addRow(orcStruct);
             return 1;

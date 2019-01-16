@@ -38,7 +38,7 @@ public class BooleanStatistics
     {
         return trueValueCount;
     }
-
+/* msirek-temp->
     public static ColumnStatistics getPartitionColumnStatistics(String value) throws IOException {
         BooleanStatistics booleanStatistics = null;
         if(value != null) {
@@ -53,7 +53,7 @@ public class BooleanStatistics
         }
         return new ColumnStatistics(SpliceOrcNewInputFormat.DEFAULT_PARTITION_SIZE,booleanStatistics,null,null,null,null,null,null);
     }
-
+*/
     @Override
     public boolean equals(Object o)
     {
