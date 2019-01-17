@@ -447,7 +447,8 @@ public class GenericStatement implements Statement{
             cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
 
             /* check if the optimization to do projection pruning is enabled or not */
-            String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.PROJECTION_PRUNING_DISABLED);
+            String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                    Property.PROJECTION_PRUNING_DISABLED);
             // if database property is not set, treat it as false
             Boolean projectionPruningOptimizationDisabled = false;
             try {
