@@ -64,7 +64,7 @@ public class SparkDirectDataSetWriter<K,V> implements DataSetWriter{
         rdd.saveAsNewAPIHadoopDataset(conf);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(0));
-        return new NativeSparkDataSet<>(context.createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
+        return new SparkDataSet(new JavaSparkContext(context.sparkContext()).parallelize(Collections.singletonList(valueRow), 1));
     }
 
     @Override

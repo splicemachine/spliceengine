@@ -18,11 +18,14 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
@@ -30,6 +33,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperatio
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
+import com.splicemachine.derby.stream.function.CountWriteFunction;
 import com.splicemachine.derby.stream.function.ExportFunction;
 import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
@@ -77,6 +81,8 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
@@ -840,14 +846,38 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                              String location,
                                              String compression,
                                              OperationContext context) throws StandardException {
-        StructType dataSchema = null;
-        StructType tableSchema = context.getOperation().getExecRowDefinition().schema();
-        dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "p");
+        //Generate Table Schema
+        String[] colNames;
+        DataValueDescriptor[] dvds;
+        if (context.getOperation() instanceof DMLWriteOperation) {
+            dvds  = context.getOperation().getExecRowDefinition().getRowArray();
+            colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
+        } else if (context.getOperation() instanceof ExportOperation) {
+            dvds = context.getOperation().getLeftOperation().getLeftOperation().getExecRowDefinition().getRowArray();
+            ExportOperation export = (ExportOperation) context.getOperation();
+            ResultColumnDescriptor[] descriptors = export.getSourceResultColumnDescriptors();
+            colNames = new String[descriptors.length];
+            int i = 0;
+            for (ResultColumnDescriptor rcd : export.getSourceResultColumnDescriptors()) {
+                colNames[i++] = rcd.getName();
+            }
+        } else {
+            throw new IllegalArgumentException("Unsupported operation type: " + context.getOperation());
+        }
+        StructField[] fields = new StructField[colNames.length];
+        for (int i=0 ; i<colNames.length ; i++){
+            fields[i] = dvds[i].getStructField(colNames[i]);
+        }
+        StructType tableSchema = DataTypes.createStructType(fields);
+
+        StructType dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "p");
 
         if (dataSchema == null)
             dataSchema = tableSchema;
+
         // construct a DF using schema of data
-        Dataset<Row> insertDF = dataset;
+        Dataset<Row> insertDF = SpliceSpark.getSession()
+                .createDataFrame(dataset.rdd(), dataSchema);
 
         List<String> partitionByCols = new ArrayList();
         for (int i = 0; i < partitionBy.length; i++) {
@@ -865,7 +895,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 .mode(SaveMode.Append).parquet(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-        return new NativeSparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -875,13 +905,22 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                           String compression,
                                           OperationContext context) throws StandardException {
         StructType dataSchema = null;
-        StructType tableSchema = context.getOperation().getExecRowDefinition().schema();
+
+        //Generate Table Schema
+        String[] colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
+        DataValueDescriptor[] dvds = context.getOperation().getExecRowDefinition().getRowArray();
+        StructField[] fields = new StructField[colNames.length];
+        for (int i=0 ; i<colNames.length ; i++){
+            fields[i] = dvds[i].getStructField(colNames[i]);
+        }
+        StructType tableSchema = DataTypes.createStructType(fields);
         dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "a");
+
 
         if (dataSchema == null)
             dataSchema = tableSchema;
 
-        Dataset<Row> insertDF = dataset;
+        Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(dataset.rdd(), dataSchema);
 
         List<String> partitionByCols = new ArrayList();
         for (int i = 0; i < partitionBy.length; i++) {
@@ -898,23 +937,34 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-        return new NativeSparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
-                                                    OperationContext context) {
-        Dataset<Row> insertDF = dataset;
+                                                    OperationContext context) throws StandardException {
+        //Generate Table Schema
+        String[] colNames = ((DMLWriteOperation) context.getOperation()).getColumnNames();
+        DataValueDescriptor[] dvds = context.getOperation().getExecRowDefinition().getRowArray();
+        StructField[] fields = new StructField[colNames.length];
+        for (int i=0 ; i<colNames.length ; i++){
+            fields[i] = dvds[i].getStructField(colNames[i]);
+        }
+        StructType tableSchema = DataTypes.createStructType(fields);
+
+        Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
+                dataset.rdd(),
+                tableSchema);
 
         String[] partitionByCols = new String[partitionBy.length];
         for (int i = 0; i < partitionBy.length; i++) {
-            partitionByCols[i] = ValueRow.getNamedColumn(partitionBy[i]);
+            partitionByCols[i] = colNames[partitionBy[i]];
         }
         if (partitionBy.length > 0) {
             List<Column> repartitionCols = new ArrayList();
             for (int i = 0; i < partitionBy.length; i++) {
-                repartitionCols.add(new Column(ValueRow.getNamedColumn(partitionBy[i])));
+                repartitionCols.add(new Column(colNames[partitionBy[i]]));
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }
@@ -923,7 +973,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 .mode(SaveMode.Append).orc(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-        return new NativeSparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -940,12 +990,13 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 .mode(SaveMode.Append).csv(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-        return new NativeSparkDataSet<>(SpliceSpark.getSession().createDataFrame(Collections.singletonList(valueRow), valueRow.schema()));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })
     public void pin(ExecRow template, long conglomId) throws StandardException {
-        throw new UnsupportedOperationException("pin() not supported");
+        dataset.createOrReplaceTempView("SPLICE_"+conglomId);
+        SpliceSpark.getSession().catalog().cacheTable("SPLICE_"+conglomId);
     }
 
     @Override

@@ -124,7 +124,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> getEmpty(String name) {
-        return new NativeSparkDataSet<>(SpliceSpark.getSession().emptyDataFrame());
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
     }
 
     @Override
@@ -317,11 +317,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     return getEmpty();
 
                 // Infer schema from external files\
-//                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "p");
+                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "p");
 
                 table = SpliceSpark.getSession()
                         .read()
-                        .schema(tableSchema)
+                        .schema(dataSchema)
                         .parquet(location);
 
                 ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
@@ -359,6 +359,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                     return getEmpty();
 
+                StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
+
                 // Infer schema from external files\
                 StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "a");
 
@@ -366,8 +368,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 // Creates a DataFrame from a specified file
                 table = spark.read().schema(dataSchema).format("com.databricks.spark.avro").load(location);
 
-                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+                int i = 0;
+                for (StructField sf : copy.fields()) {
+                    if (sf.dataType().sameType(DataTypes.DateType)) {
+                        String colName = table.schema().fields()[i].name();
+                        table = table.withColumn(colName, table.col(colName).cast(DataTypes.DateType));
+                    }
+                    i++;
+                }
 
+                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
@@ -629,9 +639,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                             .values();
 
             if (useSample) {
-                return new NativeSparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)),"", context);
+                return new SparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)));
             } else {
-                return new NativeSparkDataSet(rows.map(new RowToLocatedRowFunction(context, execRow)), "", context);
+                return new SparkDataSet(rows.map(new RowToLocatedRowFunction(context, execRow)));
             }
         } catch (Exception e) {
             throw StandardException.newException(

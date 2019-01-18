@@ -698,8 +698,6 @@ public class SparkDataSet<V> implements DataSet<V> {
                                              String location,
                                              String compression,
                                              OperationContext context) throws StandardException {
-        StructType dataSchema = null;
-
         //Generate Table Schema
         String[] colNames;
         DataValueDescriptor[] dvds;
@@ -724,16 +722,12 @@ public class SparkDataSet<V> implements DataSet<V> {
         }
         StructType tableSchema = DataTypes.createStructType(fields);
 
-        dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "p");
-
-        if (dataSchema == null)
-            dataSchema = tableSchema;
         // construct a DF using schema of data
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 rdd
                         .map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context)))
                         .map(new LocatedRowToRowFunction()),
-                dataSchema);
+                tableSchema);
 
         return new NativeSparkDataSet<>(insertDF, context).writeParquetFile(dsp, partitionBy, location, compression, context);
     }

@@ -33,4 +33,8 @@ public class QueryResult extends AbstractOlapResult {
     public boolean isSuccess() {
         return true;
     }
+
+    public int getNumPartitions() {
+        return numPartitions;
+    }
 }
