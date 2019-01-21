@@ -719,7 +719,7 @@ public class UserType extends DataType
 
 	@Override
 	public StructField getStructField(String columnName) {
-		return DataTypes.createStructField(columnName, DataTypes.NullType, true);
+		return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
 	}
 
 

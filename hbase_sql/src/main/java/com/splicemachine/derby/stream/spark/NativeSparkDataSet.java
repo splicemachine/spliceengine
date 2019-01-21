@@ -312,11 +312,15 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f) {
-        throw new UnsupportedOperationException();
+        try {
+            return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context)).keyBy(f);
+        } catch (Exception e) {
+            throw Exceptions.throwAsRuntime(e);
+        }
     }
 
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f, String name) {
-        throw new UnsupportedOperationException();
+        return keyBy(f);
     }
 
 
@@ -328,7 +332,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(
             SpliceFunction<Op, V, K> f, String name, boolean pushScope, String scopeDetail) {
-        throw new UnsupportedOperationException();
+        return keyBy(f);
     }
 
     @Override
