@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -447,7 +447,8 @@ public class GenericStatement implements Statement{
             cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
 
             /* check if the optimization to do projection pruning is enabled or not */
-            String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.PROJECTION_PRUNING_DISABLED);
+            String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                    Property.PROJECTION_PRUNING_DISABLED);
             // if database property is not set, treat it as false
             Boolean projectionPruningOptimizationDisabled = false;
             try {
