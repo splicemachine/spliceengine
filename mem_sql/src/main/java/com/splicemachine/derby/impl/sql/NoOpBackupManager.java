@@ -55,16 +55,6 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public void scheduleDailyBackup(String directory, String type, int hour) throws StandardException {
-        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
-    }
-
-    @Override
-    public void cancelDailyBackup(long jobId) throws StandardException {
-        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
-    }
-
-    @Override
     public BackupJobStatus[] getRunningBackups() throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }

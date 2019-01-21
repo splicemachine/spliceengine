@@ -2130,10 +2130,6 @@ public interface DataDictionary{
 
     void deleteAllBackupItems(long backupId, TransactionController tc) throws StandardException;
 
-    void addBackupJob(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
-
-    void deleteBackupJob(long jobId, TransactionController tc) throws StandardException;
-
     void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException;
 
     void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
