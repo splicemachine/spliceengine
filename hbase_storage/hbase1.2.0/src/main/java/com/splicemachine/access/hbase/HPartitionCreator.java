@@ -16,10 +16,12 @@ package com.splicemachine.access.hbase;
 
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
@@ -59,6 +61,12 @@ public class HPartitionCreator implements PartitionCreator{
         descriptor.setValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, displayNames[0]);
         descriptor.setValue(SIConstants.TABLE_DISPLAY_NAME_ATTR, displayNames[1] != null ? displayNames[1] : descriptor.getNameAsString());
         descriptor.setValue(SIConstants.INDEX_DISPLAY_NAME_ATTR, displayNames[2]);
+        return this;
+    }
+
+    @Override
+    public PartitionCreator withTemplate(ExecRow template) {
+        descriptor.setValue(SIConstants.COUNTER_COL, SerializationUtils.serialize(template));
         return this;
     }
 

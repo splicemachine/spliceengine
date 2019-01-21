@@ -41,13 +41,12 @@ import java.nio.ByteBuffer;
  */
 public class PAXDataBlockEncoder implements DataBlockEncoder {
     private static Logger LOG = Logger.getLogger(PAXDataBlockEncoder.class);
-    public static ThreadLocal<ExecRow> conglomerateThreadLocal = new ThreadLocal<>();  // msirek-temp
 
     public PAXDataBlockEncoder() {
     }
 
     public PAXDataBlockEncoder(ExecRow execRow) {
-        conglomerateThreadLocal.set(execRow);
+        MemstoreAwareObserver.conglomerateThreadLocal.set(execRow);
     }
 
     @Override

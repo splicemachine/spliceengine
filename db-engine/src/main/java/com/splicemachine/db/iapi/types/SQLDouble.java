@@ -1014,4 +1014,9 @@ public final class SQLDouble extends NumberDataType
 		}
 	}
 
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new SQLDouble(value);
+	}
+
 }

@@ -36,6 +36,7 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -203,6 +204,20 @@ public class HBaseConnectionFactory{
         snapshot.setTimeToLive(HConfiguration.DEFAULT_TTL);
         return snapshot;
     }
+                                           // msirek-temp->
+    public HColumnDescriptor createDataFamily2(){
+        HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
+        snapshot.setMaxVersions(Integer.MAX_VALUE);
+        snapshot.setDataBlockEncoding(DataBlockEncoding.PREFIX_TREE);
+        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
+        snapshot.setCompressionType(compress);
+        snapshot.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
+        snapshot.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
+        snapshot.setBloomFilterType(BloomType.ROW);
+        snapshot.setTimeToLive(HConfiguration.DEFAULT_TTL);
+        return snapshot;
+    }
+                                           // <-msirek-temp
 
     public boolean createSpliceHBaseTables(){
         SpliceLogUtils.info(LOG,"Creating Splice Required HBase Tables");

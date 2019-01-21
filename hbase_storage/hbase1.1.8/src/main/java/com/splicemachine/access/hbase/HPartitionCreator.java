@@ -62,6 +62,12 @@ public class HPartitionCreator implements PartitionCreator{
     }
 
     @Override
+    public PartitionCreator withTemplate(ExecRow template) {
+        descriptor.setValue(SIConstants.COUNTER_COL, SerializationUtils.serialize(template));
+        return this;
+    }
+
+    @Override
     public PartitionCreator withPartitionSize(long partitionSize){
         descriptor.setMaxFileSize(partitionSize*1024*1024);
         return this;

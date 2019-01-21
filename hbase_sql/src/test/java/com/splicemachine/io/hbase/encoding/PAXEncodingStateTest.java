@@ -189,9 +189,7 @@ public class PAXEncodingStateTest {
         for (int i = 0; i < structFields.size(); i++) {
             // Fix this..
             oi.setStructFieldData(orcStruct, structFields.get(i),
-                    // valueRow.getColumn(i + 1).getHiveObject());  msirek-temp
-                   valueRow.getColumn(i + 1).isNull() ? null :
-                    valueRow.getColumn(i + 1).getObject());
+                    valueRow.getColumn(i + 1).getHiveObject());
         }
         writer.addRow(orcStruct);
 

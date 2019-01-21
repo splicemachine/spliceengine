@@ -69,6 +69,7 @@ public class SIConstants {
     public static final String SI_NEEDED = "B";
     public static final String SI_DELETE_PUT = "D";
     public static final String SI_COUNT_STAR = "M";
+    public static final String SI_EXEC_ROW = "E";
 
     //common SI fields
     public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";

@@ -52,6 +52,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -821,6 +822,11 @@ public final class SQLInteger
 			value = (Integer) sparkObject; // Autobox, must be something better.
 			setIsNull(false);
 		}
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new IntWritable(value);
 	}
 
 }

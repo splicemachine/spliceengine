@@ -94,6 +94,13 @@ public class H10PartitionAdmin implements PartitionAdmin{
     }
 
     @Override
+    public PartitionCreator newPartition2() throws IOException{
+        HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
+        HColumnDescriptor dataFamily = instance.createDataFamily2();
+        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,dataFamily,partitionInfoCache);
+    }
+
+    @Override
     public void deleteTable(String tableName) throws IOException{
 
         TableName tn = tableInfoFactory.getTableInfo(tableName);

@@ -52,6 +52,7 @@ import java.util.Calendar;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -737,4 +738,8 @@ public class UserType extends DataType
 		}
 	}
 
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new BytesWritable(org.apache.commons.lang3.SerializationUtils.serialize((Serializable) value));
+	}
 }

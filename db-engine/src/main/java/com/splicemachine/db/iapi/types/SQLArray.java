@@ -608,4 +608,8 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	}
 
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:getObject();
+	}
 }

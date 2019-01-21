@@ -42,6 +42,9 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     }
 
     @Override
+    PartitionCreator newPartition2() throws IOException {return newPartition();}  // msirek-temp
+
+    @Override
     public void deleteTable(String tableName) throws IOException{
         admin.deleteTable(tableName);
     }

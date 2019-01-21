@@ -1117,5 +1117,11 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
 	 */
 	void setSparkObject(Object sparkObject) throws StandardException;
 
+	/**
+	 * Retrieve the Hive Object
+	 *
+	 * @return
+	 */
+	Object getHiveObject() throws StandardException;
 
 }

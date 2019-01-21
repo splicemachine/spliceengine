@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -302,4 +303,8 @@ public class HBaseRowLocation extends DataType implements RowLocation {
         return slice.getByteCopy();
     }
 
+    @Override
+    public Object getHiveObject() throws StandardException {
+        return isNull()?null:new BytesWritable(slice.getByteCopy());
+    }
 }

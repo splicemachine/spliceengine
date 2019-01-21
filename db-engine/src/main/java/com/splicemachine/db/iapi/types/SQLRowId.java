@@ -354,4 +354,9 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
 
     }
 
+    @Override
+    public Object getHiveObject() throws StandardException {
+        return isNull()?null:getObject();
+    }
+
 }

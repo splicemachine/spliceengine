@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.lifecycle;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
@@ -74,6 +75,13 @@ public class PipelinePartitionCreator implements PartitionCreator{
         baseCreator =baseCreator.withPartitionSize(partitionSize);
         return this;
     }
+
+    @Override
+    public PartitionCreator withTemplate(ExecRow template) {
+        baseCreator =baseCreator.withTemplate(template);
+        return this;
+    }
+
 
     @Override
     public PartitionCreator withSplitKeys(byte[][] splitKeys) {

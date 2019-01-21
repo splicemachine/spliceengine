@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.util.UTF8Util;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
@@ -3413,4 +3414,8 @@ public class SQLChar
         }
     }
 
+    @Override
+    public Object getHiveObject() throws StandardException {
+        return isNull()?null:new Text(value);
+    }
 }

@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.store.access.conglomerate;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -293,4 +294,7 @@ public interface Conglomerate extends Storable, DataValueDescriptor
             Transaction                     rawtran)
             throws StandardException;
 
+    void setTemplate(ExecRow execRow);
+
+    ExecRow getTemplate();
 }

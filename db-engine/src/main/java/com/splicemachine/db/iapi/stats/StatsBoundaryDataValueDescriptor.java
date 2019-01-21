@@ -533,4 +533,9 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     public void setSparkObject(Object sparkObject) throws StandardException {
         dvd.setSparkObject(sparkObject);
     }
+
+    @Override
+    public Object getHiveObject() throws StandardException {
+        return dvd.getHiveObject();
+    }
 }

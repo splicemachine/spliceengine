@@ -20,12 +20,14 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.*;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -98,7 +100,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
                 pSize,
-                splitKeys);
+                splitKeys,
+                new ValueRow(template));
     }
 
     @Override
@@ -341,6 +344,12 @@ public class HBaseConglomerate extends SpliceConglomerate{
         ConglomerateUtil.writeFormatIdArray(collation_ids,out);
         out.writeInt(columnOrdering.length);
         ConglomerateUtil.writeFormatIdArray(columnOrdering,out);
+        boolean writeTemplate = getTemplate() != null &&
+                                getTemplate() instanceof ValueRow;
+        out.writeBoolean(writeTemplate);
+        if (writeTemplate) {
+            out.writeObject(getTemplate());
+        }
     }
 
     /**
@@ -368,6 +377,10 @@ public class HBaseConglomerate extends SpliceConglomerate{
         collation_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
+        boolean readTemplate = in.readBoolean();
+        if (readTemplate) {
+            setTemplate((ExecRow)in.readObject());
+        }
 
         partitionFactory=SIDriver.driver().getTableFactory();
         opFactory=SIDriver.driver().getOperationFactory();
@@ -394,4 +407,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
         throw new RuntimeException("Not Implemented");
     }
 
+    @Override
+    public Object getHiveObject() throws StandardException {
+        throw new UnsupportedOperationException("Not Implemented");
+    }
 }

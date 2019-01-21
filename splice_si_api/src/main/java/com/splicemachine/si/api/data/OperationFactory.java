@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.api.data;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
@@ -52,4 +53,8 @@ public interface OperationFactory{
     DataResult newResult(List<DataCell> visibleColumns);
 
     DataPut toDataPut(KVPair kvPair,byte[] family,byte[] column,long timestamp);
+
+    ExecRow getTemplate(Attributable op) throws IOException;
+
+    void setTemplate(Attributable op, ExecRow execRow) throws IOException;
 }

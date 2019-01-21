@@ -54,6 +54,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.hive.serde2.io.TimestampWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -1240,6 +1241,11 @@ public final class SQLTime extends DataType
 			setValue((Timestamp) sparkObject);
 			setIsNull(false);
 		}
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new TimestampWritable((Timestamp) getTimestamp(null));
 	}
 }
 

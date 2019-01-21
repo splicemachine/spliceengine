@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -158,7 +159,8 @@ public class IndexConglomerate extends SpliceConglomerate{
                     properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
-                    splitKeys);
+                    splitKeys,
+                    new ValueRow(template));
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
         }
@@ -603,6 +605,11 @@ public class IndexConglomerate extends SpliceConglomerate{
     @Override
     public StructField getStructField(String columnName) {
         throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public Object getHiveObject() throws StandardException {
+        throw new UnsupportedOperationException("Not Implemented");
     }
 
 }

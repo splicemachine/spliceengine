@@ -46,6 +46,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.ByteWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -863,6 +864,9 @@ public final class SQLTinyint
 		return value;
 	}
 
-
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new ByteWritable(value);
+	}
 
 }

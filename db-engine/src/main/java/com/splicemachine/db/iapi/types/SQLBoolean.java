@@ -47,6 +47,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.io.BooleanWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -1162,4 +1163,8 @@ public final class SQLBoolean
 		}
 	}
 
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull()?null:new BooleanWritable(value);
+	}
 }

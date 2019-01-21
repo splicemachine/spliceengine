@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -56,6 +57,8 @@ the Conglomerate interface.
 public abstract class GenericConglomerate 
     extends DataType implements Conglomerate
 {
+
+	private ExecRow execRow;
 
     /**************************************************************************
      * Public Methods implementing DataValueDescriptor interface.
@@ -236,4 +239,14 @@ public abstract class GenericConglomerate
         }
         return false;
     }
+
+	@Override
+	public void setTemplate(ExecRow execRow) {
+		this.execRow = execRow;
+	}
+
+	@Override
+	public ExecRow getTemplate() {
+		return execRow;
+	}
 }

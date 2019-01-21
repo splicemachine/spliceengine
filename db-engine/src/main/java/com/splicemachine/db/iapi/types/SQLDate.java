@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
+import org.apache.hadoop.hive.serde2.io.DateWritable;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
@@ -1422,6 +1423,11 @@ public final class SQLDate extends DataType
 			setIsNull(false);
 		}
 
+	}
+
+	@Override
+	public Object getHiveObject() throws StandardException {
+		return isNull?null:new DateWritable( (Date)getObject());
 	}
 
 }
