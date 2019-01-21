@@ -32,10 +32,6 @@ public interface BackupManager{
 
     void removeBackup(List<Long> backupIds) throws StandardException;
 
-    void scheduleDailyBackup(String directory, String type, int hour) throws StandardException;
-
-    void cancelDailyBackup(long jobId) throws StandardException;
-
     BackupJobStatus[] getRunningBackups() throws StandardException;
 
     void cancelBackup(long backupId) throws StandardException;
