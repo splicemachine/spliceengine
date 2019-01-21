@@ -71,8 +71,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl pkTable=null;
     private volatile TabInfoImpl backupTable=null;
     private volatile TabInfoImpl backupItemsTable=null;
-    private volatile TabInfoImpl backupStatesTable=null;
-    private volatile TabInfoImpl backupJobsTable=null;
     private volatile TabInfoImpl tableStatsTable=null;
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
@@ -235,22 +233,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return backupItemsTable;
     }
 
-    private TabInfoImpl getBackupStatesTable() throws StandardException{
-        if(backupStatesTable==null){
-            backupStatesTable=new TabInfoImpl(new SYSBACKUPFILESETRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(backupStatesTable);
-        return backupStatesTable;
-    }
-
-    private TabInfoImpl getBackupJobsTable() throws StandardException{
-        if(backupJobsTable==null){
-            backupJobsTable=new TabInfoImpl(new SYSBACKUPJOBSRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(backupJobsTable);
-        return backupJobsTable;
-    }
-
     public void createLassenTables(TransactionController tc) throws StandardException{
         SchemaDescriptor systemSchemaDescriptor=getSystemSchemaDescriptor();
 
@@ -281,36 +263,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
                         systemSchemaDescriptor.getSchemaName(),backupItemsTabInfo.getTableName()));
-            }
-        }
-
-        // Create BACKUPFILESET
-        TabInfoImpl backupStatesTabInfo=getBackupStatesTable();
-        if(getTableDescriptor(backupStatesTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
-                        backupStatesTabInfo.getTableName()));
-            }
-            makeCatalog(backupStatesTabInfo,systemSchemaDescriptor,tc);
-        }else{
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(),backupStatesTabInfo.getTableName()));
-            }
-        }
-
-        // Create BACKUPJOBS
-        TabInfoImpl backupJobsTabInfo=getBackupJobsTable();
-        if(getTableDescriptor(backupJobsTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
-                        backupJobsTabInfo.getTableName()));
-            }
-            makeCatalog(backupJobsTabInfo,systemSchemaDescriptor,tc);
-        }else{
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(),backupJobsTabInfo.getTableName()));
             }
         }
     }
@@ -1161,6 +1113,33 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
 
             SpliceLogUtils.info(LOG, "SYS.SYSCOLUMNS upgraded: added column: USEEXTRAPOLATION.");
+        }
+    }
+
+    public void removeUnusedBackupTables(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor("SYSBACKUPFILESET", sd, tc);
+        if (td != null) {
+            dropTableDescriptor(td, sd, tc);
+        }
+
+        td = getTableDescriptor("SYSBACKUPJOBS", sd, tc);
+        if (td != null) {
+            dropTableDescriptor(td, sd, tc);
+        }
+    }
+
+    public void removeUnusedBackupProcedures(TransactionController tc) throws StandardException {
+        AliasDescriptor ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
+                "SYSCS_SCHEDULE_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        if (ad != null) {
+            dropAliasDescriptor(ad, tc);
+        }
+
+        ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
+                "SYSCS_CANCEL_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        if (ad != null) {
+            dropAliasDescriptor(ad, tc);
         }
     }
 }
