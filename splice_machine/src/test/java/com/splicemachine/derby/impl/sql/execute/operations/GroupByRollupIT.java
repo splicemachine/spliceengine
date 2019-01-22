@@ -519,6 +519,17 @@ public class GroupByRollupIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testGroupingFunctionInWindowFunction() throws Exception {
+        String sqlText = "select a1, b1, row_number() over (partition by grouping(a1) order by b1) from t1 group by a1,b1";
+        try {
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLException e) {
+            Assert.assertEquals(e.getSQLState(), SQLState.LANG_FUNCTION_NOT_ALLOWED);
+        }
+    }
+
+    @Test
     public void testGroupingFunctionInSelectWithGroupBy() throws Exception {
         String sqlText = "select a1, b1, grouping(a1) from t1";
         try {

@@ -3058,7 +3058,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
 
         String sqlText =
                 "select empnum, dept, sum(salary)," +
-                        "rank() over(partition by dept order by salary desc) rank " +
+                        "rank() over(partition by dept order by sum(salary) desc) rank " +
                         "from %s  --SPLICE-PROPERTIES useSpark = %s \n " +
                         "group by empnum, dept order by empnum";
 
@@ -3312,7 +3312,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         sqlText =
         String.format("select sum(sal) as sum_sal, avg(sal) as avg_sal," +
         "rank() over ( order by deptno - avg(sal) ) empsal, ename " +
-        "from %s  --SPLICE-PROPERTIES useSpark = %s \n  group by ename order by ename",
+        "from %s  --SPLICE-PROPERTIES useSpark = %s \n  group by deptno, ename order by ename",
         this.getTableReference(EMP), useSpark);
 
         rs = methodWatcher.executeQuery(sqlText);
@@ -5211,14 +5211,17 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
                 String.format("select  sum(sum(b)) over (partition by b)  as revenue\n" +
                         "from %s\n" +
-                        "group by c order by revenue", this.getTableReference(NESTED_AGGREGATION_WF));
+                        "group by c,b order by revenue", this.getTableReference(NESTED_AGGREGATION_WF));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "REVENUE |\n" +
                         "----------\n" +
                         "    4    |\n" +
-                        "   40    |";
+                        "    6    |\n" +
+                        "    8    |\n" +
+                        "   12    |\n" +
+                        "   14    |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -5229,7 +5232,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String sqlText =
                 String.format("select  sum(sum(b)) over (partition by b)  as revenue\n" +
                         "from %s\n" +
-                        "group by  c order by revenue", this.getTableReference(EMPTY_TABLE));
+                        "group by  c, b order by revenue", this.getTableReference(EMPTY_TABLE));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected = "";
