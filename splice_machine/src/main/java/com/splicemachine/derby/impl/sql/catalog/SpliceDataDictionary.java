@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
@@ -1117,16 +1118,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void removeUnusedBackupTables(TransactionController tc) throws StandardException {
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor("SYSBACKUPFILESET", sd, tc);
-        if (td != null) {
-            dropTableDescriptor(td, sd, tc);
-        }
-
-        td = getTableDescriptor("SYSBACKUPJOBS", sd, tc);
-        if (td != null) {
-            dropTableDescriptor(td, sd, tc);
-        }
+        dropUnusedBackupTable("SYSBACKUPFILESET", tc);
+        dropUnusedBackupTable("SYSBACKUPJOBS", tc);
     }
 
     public void removeUnusedBackupProcedures(TransactionController tc) throws StandardException {
@@ -1134,12 +1127,55 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 "SYSCS_SCHEDULE_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
         if (ad != null) {
             dropAliasDescriptor(ad, tc);
+            SpliceLogUtils.info(LOG, "Dropped system procedure SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP");
         }
 
         ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
                 "SYSCS_CANCEL_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
         if (ad != null) {
             dropAliasDescriptor(ad, tc);
+            SpliceLogUtils.info(LOG, "Dropped system procedure SYSCS_UTIL.SYSCS_CANCEL_DAILY_BACKUP");
+        }
+    }
+
+    private void dropUnusedBackupTable(String tableName, TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(tableName, sd, tc);
+        SpliceTransactionManager sm = (SpliceTransactionManager) tc;
+        if (td != null) {
+            UUID tableId = td.getUUID();
+
+            // Drop column descriptors
+            dropAllColumnDescriptors(tableId, tc);
+
+            long heapId = td.getHeapConglomerateId();
+
+            /*
+             * Drop all the conglomerates.  Drop the heap last, because the
+             * store needs it for locking the indexes when they are dropped.
+             */
+            ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
+            for (ConglomerateDescriptor cd : cds) {
+                // Remove Statistics
+                deletePartitionStatistics(cd.getConglomerateNumber(), tc);
+
+                // Drop index conglomerates
+                if (cd.getConglomerateNumber() != heapId) {
+                    Conglomerate conglomerate = sm.findConglomerate(cd.getConglomerateNumber());
+                    conglomerate.drop(sm);
+                }
+            }
+            // Drop the conglomerate descriptors
+            dropAllConglomerateDescriptors(td, tc);
+
+            // Drop table descriptors
+            dropTableDescriptor(td, sd, tc);
+
+            // Drop base table conglomerate
+            Conglomerate conglomerate = sm.findConglomerate(heapId);
+            conglomerate.drop(sm);
+
+            SpliceLogUtils.info(LOG, "Dropped table %s", tableName);
         }
     }
 }

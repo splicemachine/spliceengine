@@ -209,16 +209,6 @@ public class IndexConglomerate extends SpliceConglomerate{
 
 
     /**
-     * Drop this hbase conglomerate (what's the relationship with dropping container).
-     *
-     * @throws StandardException Standard exception policy.
-     * @see Conglomerate#drop
-     **/
-    public void drop(TransactionManager xact_manager) throws StandardException{
-        SpliceLogUtils.trace(LOG,"drop %s",xact_manager);
-    }
-
-    /**
      * Return dynamic information about the conglomerate to be dynamically
      * reused in repeated execution of a statement.
      * <p/>
