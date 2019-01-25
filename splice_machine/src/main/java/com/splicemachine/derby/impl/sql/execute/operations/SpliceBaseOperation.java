@@ -426,7 +426,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
                 this.jobName = userId + " <" + txnId + ">";
                 dsp.setJobGroup(jobName, sql);
             }
-            dsp.clearBroadcastedOperation();
             this.execRowIterator =getDataSet(dsp).toLocalIterator();
         } catch (ResubmitDistributedException e) {
             resubmitDistributed(e);

@@ -265,11 +265,6 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public void clearBroadcastedOperation() {
-        // do nothing
-    }
-
-    @Override
     public void stopJobGroup(String jobName) {
         // do nothing
     }
