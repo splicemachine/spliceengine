@@ -1185,7 +1185,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              boolean outputKeysOnly,
                                              boolean skipSampling,
                                              double sampleFraction,
-                                             String indexName)
+                                             String indexName,
+                                             boolean targetIsPAX)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
@@ -1193,7 +1194,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     statusDirectory, failBadRecordCount, skipConflictDetection, skipWAL,
                     optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
                     delimited,escaped,lines,storedAs,location, compression, partitionBy,bulkImportDirectory,
-            samplingOnly, outputKeysOnly, skipSampling, sampleFraction, indexName);
+            samplingOnly, outputKeysOnly, skipSampling, sampleFraction, indexName, targetIsPAX);
 
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();

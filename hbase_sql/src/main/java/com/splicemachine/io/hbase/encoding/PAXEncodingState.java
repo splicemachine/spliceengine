@@ -31,6 +31,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.encoding.EncodingState;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
@@ -148,6 +149,10 @@ public class PAXEncodingState extends EncodingState {
 
     public int encode(Cell cell) throws IOException {
         try {
+            // msirek-temp->
+            if (((KeyValue)cell).getLength() == 38)
+                return 0;
+            // <- msirek-temp
             byte[] valueBytes = new byte[12];
             Base.U.putLong(valueBytes,16l,cell.getTimestamp());
             Base.U.putInt(valueBytes,24l,counter);

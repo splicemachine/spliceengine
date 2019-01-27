@@ -141,6 +141,8 @@ class SpliceTestPlatformConfig {
         //
         // Networking
         //
+        config.setInt("zookeeper.session.timeout",1200000);  // msirek-temp
+        config.setInt("zookeeper.connection.timeout.ms",1200000);  // msirek-temp
         config.setBoolean("hbase.defaults.for.version.skip",true);
         config.setBoolean("hbase.ipc.client.fallback-to-simple-auth-allowed",true);
         config.setBoolean("hbase.regionserver.safemode",false);

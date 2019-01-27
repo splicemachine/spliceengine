@@ -52,7 +52,7 @@ import java.util.Iterator;
  * Variable Length Data {(variable)}
  */
 public class UnsafeRecord implements Record<byte[]> {
-    public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes("A");
+    public static final byte[] DEFAULT_FAMILY_BYTES = Bytes.toBytes("V");
     protected byte[] keyObject;
     protected long keyOffset;
     protected int keyLength;
@@ -71,7 +71,7 @@ public class UnsafeRecord implements Record<byte[]> {
     public static int EFF_TS_INC = TXN_ID1_INC+8;
     protected static int NUM_COLS_INC = EFF_TS_INC+8;
     protected static int COLS_BS_INC = NUM_COLS_INC+4;
-    protected static int UNSAFE_INC = COLS_BS_INC;
+    public static int UNSAFE_INC = COLS_BS_INC;
     protected static int WORD_SIZE = 8;
 
     public UnsafeRecord() {}
@@ -743,7 +743,7 @@ public class UnsafeRecord implements Record<byte[]> {
     public Record[] updateRecord(Record updatedRecord, ExecRow rowDefinition) throws StandardException {
         return updateRecord(updatedRecord, rowDefinition.getVariableLengthBitSet());
     }
-                            <- msirek-temp */
+
     @Override
     public String toString() {
         return "UnsafeRecord {key=" + Hex.encodeHexString(getKey()) +
@@ -756,7 +756,7 @@ public class UnsafeRecord implements Record<byte[]> {
                 "}"
                 ;
     }
-
+                            <- msirek-temp */
     private UnsafeRow getUnsafeRow() {
         int numberOfColumns = numberOfColumns();
         int bitSetWidth = UnsafeRecordUtils.calculateBitSetWidthInBytes(numberOfColumns);

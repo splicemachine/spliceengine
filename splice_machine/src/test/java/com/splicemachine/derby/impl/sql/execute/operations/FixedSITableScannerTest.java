@@ -22,6 +22,7 @@ import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SIFilterFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
@@ -346,7 +347,7 @@ public class FixedSITableScannerTest{
                     .keyDecodingMap(keyDecodingMap)
                     .accessedKeyColumns(accessedKeyCols);
         }
-        SITableScanner tableScanner=((TableScannerBuilder)builder).build();
+        TableScanner tableScanner=((TableScannerBuilder)builder).build();
         Assert.assertNotNull("Missing table scanner!",tableScanner);
 
         try{

@@ -48,6 +48,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Properties;
 
+import static com.splicemachine.db.iapi.services.io.StoredFormatIds.ACCESS_HEAP_V4_ID;
+
 /**
  * A hbase object corresponds to an instance of a hbase conglomerate.
  **/
@@ -323,7 +325,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
      **/
     public int getTypeFormatId(){
-        return StoredFormatIds.ACCESS_HEAP_V3_ID;
+        return StoredFormatIds.ACCESS_HEAP_V4_ID;
     }
 
     /**
@@ -344,11 +346,14 @@ public class HBaseConglomerate extends SpliceConglomerate{
         ConglomerateUtil.writeFormatIdArray(collation_ids,out);
         out.writeInt(columnOrdering.length);
         ConglomerateUtil.writeFormatIdArray(columnOrdering,out);
-        boolean writeTemplate = getTemplate() != null &&
-                                getTemplate() instanceof ValueRow;
-        out.writeBoolean(writeTemplate);
-        if (writeTemplate) {
-            out.writeObject(getTemplate());
+        if (conglom_format_id >= ACCESS_HEAP_V4_ID) {
+            boolean writeTemplate = getTemplate() != null &&
+                    getTemplate() instanceof ValueRow;
+            out.writeBoolean(writeTemplate);
+            if (writeTemplate) {
+                out.writeObject(getTemplate());
+            }
+            out.writeBoolean(isPAX());
         }
     }
 
@@ -372,15 +377,19 @@ public class HBaseConglomerate extends SpliceConglomerate{
         int num_columns=in.readInt();
         // read the array of format ids.
         format_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
-        this.conglom_format_id=getTypeFormatId();
+
         num_columns=in.readInt();
         collation_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
-        boolean readTemplate = in.readBoolean();
-        if (readTemplate) {
-            setTemplate((ExecRow)in.readObject());
+        if (conglom_format_id >= ACCESS_HEAP_V4_ID) {
+            boolean readTemplate = in.readBoolean();
+            if (readTemplate) {
+                setTemplate((ExecRow) in.readObject());
+            }
+            setPAX(in.readBoolean());
         }
+        this.conglom_format_id=getTypeFormatId();  // msirek-temp
 
         partitionFactory=SIDriver.driver().getTableFactory();
         opFactory=SIDriver.driver().getOperationFactory();

@@ -96,6 +96,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected boolean skipSampling;
     protected String indexName;
     protected double sampleFraction;
+    private boolean targetIsPAX;
     @Override
     public String getName(){
         return NAME;
@@ -129,8 +130,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            boolean outputKeysOnly,
                            boolean skipSampling,
                            double sampleFraction,
-                           String indexName) throws StandardException{
-        super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+                           String indexName,
+                           boolean targetIsPAX) throws StandardException{
+        super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion, targetIsPAX);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
         this.skipConflictDetection=skipConflictDetection;
@@ -149,6 +151,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.skipSampling = skipSampling;
         this.sampleFraction = sampleFraction;
         this.indexName = indexName;
+        this.targetIsPAX = targetIsPAX;
         init();
     }
 
@@ -300,6 +303,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             indexName = in.readUTF();
         partitionByRefItem = in.readInt();
         sampleFraction = in.readDouble();
+        targetIsPAX = in.readBoolean();
     }
 
     @Override
@@ -346,6 +350,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             out.writeUTF(indexName);
         out.writeInt(partitionByRefItem);
         out.writeDouble(sampleFraction);
+        out.writeBoolean(targetIsPAX);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -473,4 +478,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     }
 
     public String getTableVersion() { return tableVersion; }
+
+    public boolean getTargetIsPAX() {return targetIsPAX; }
 }

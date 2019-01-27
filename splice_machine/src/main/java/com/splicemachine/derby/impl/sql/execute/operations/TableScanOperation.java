@@ -343,6 +343,7 @@ public class TableScanOperation extends ScanOperation{
         operationContext = dsp.createOperationContext(this);
         return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
+                .accessedColumns(scanInformation.getAccessedColumns())
                 .activation(activation)
                 .transaction(txn)
                 .scan(getNonSIScan())
@@ -366,6 +367,7 @@ public class TableScanOperation extends ScanOperation{
                 .partitionByColumns(getPartitionColumnMap())
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
                 .ignoreRecentTransactions(isReadOnly(txn))
+                .scanOperation(this)
                 .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
     }
 

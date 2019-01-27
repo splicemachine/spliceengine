@@ -21,6 +21,10 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.operations.DerbyScanInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -83,7 +87,10 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected int[] partitionByColumns;
     protected boolean useSample = false;
     protected double sampleFraction = 0;
+    protected FormatableBitSet accessedColumns;
+    protected int[] indexColsToMainColMap;
     protected int splits;
+    protected ScanOperation scanOperation;
 
     protected ExecRow defaultRow;
     protected FormatableBitSet defaultValueMap;
@@ -393,7 +400,46 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
-    public SITableScanner build(){
+    public ScanSetBuilder<V> scanOperation(SpliceBaseOperation operation){
+        if (operation != null && operation instanceof ScanOperation) {
+            this.scanOperation = (ScanOperation) operation;
+        }
+        else
+            this.scanOperation = null;
+        return this;
+    }
+
+    @Override
+    public ScanSetBuilder<V> indexColsToMainColMap(int[] indexColsToMainColMap) {
+        this.indexColsToMainColMap = indexColsToMainColMap;
+        return this;
+    }
+
+    @Override
+    public ScanSetBuilder<V> accessedColumns(FormatableBitSet accessedColumns){
+        this.accessedColumns=accessedColumns;
+        return this;
+    }
+
+    public TableScanner build() throws StandardException{
+        if (scanOperation != null &&
+                scanOperation.getScanInformation().getConglomerate().isPAX()) {
+            return new RedoTableScanner(accessedColumns,
+                    indexColsToMainColMap,
+                    scanner,
+                    region,
+                    template,
+                    scan,
+                    txn,
+                    reuseRowLocation,
+                    indexName,
+                    tableVersion,
+                    demarcationPoint,
+                    optionalProbeValue,
+                    defaultRow,
+                    defaultValueMap);
+        }
+        else {
             return new SITableScanner(
                     scanner,
                     region,
@@ -415,6 +461,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     defaultRow,
                     defaultValueMap,
                     ignoreRecentTransactions);
+        }
     }
 
     @Override

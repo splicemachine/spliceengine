@@ -217,6 +217,20 @@ public class HBaseConnectionFactory{
         snapshot.setTimeToLive(HConfiguration.DEFAULT_TTL);
         return snapshot;
     }
+
+    public HColumnDescriptor createDataFamily3(){
+        HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
+        snapshot.setMaxVersions(Integer.MAX_VALUE);
+        snapshot.setDataBlockEncoding(DataBlockEncoding.FAST_DIFF);
+        Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
+        snapshot.setCompressionType(compress);
+        snapshot.setInMemory(HConfiguration.DEFAULT_IN_MEMORY);
+        snapshot.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
+        snapshot.setBloomFilterType(BloomType.ROW);
+        snapshot.setTimeToLive(HConfiguration.DEFAULT_TTL);
+        return snapshot;
+    }
+
                                            // <-msirek-temp
 
     public boolean createSpliceHBaseTables(){

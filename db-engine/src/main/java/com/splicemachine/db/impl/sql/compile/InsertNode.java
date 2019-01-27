@@ -1035,7 +1035,15 @@ public final class InsertNode extends DMLModStatementNode {
             mb.push(skipSampling);
             mb.push(sampleFraction);
             BaseJoinStrategy.pushNullableString(mb, indexName);
-			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 25);
+                                                                // msirek-temp->
+			// Temp code to mark whether the target is a PAX table.
+			//findExistingConglomerate(targetTableDescriptor.getHeapConglomerateId())
+            if (targetTableDescriptor.getSchemaName().equals("MWS"))
+            	mb.push(true);
+            else
+            	mb.push(false);
+            // <- msirek-temp
+			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 26);
 		}
 		else
 		{

@@ -917,9 +917,6 @@ public interface StoredFormatIds {
     int XML_TYPE_ID_IMPL =
             (MIN_ID_2 + 457);
 
-    // 468 unused
-    //        (MIN_ID_2 + 468);
-
     int ROW_MULTISET_TYPE_ID_IMPL =
             (MIN_ID_2 + 469);
     
@@ -1508,6 +1505,9 @@ public interface StoredFormatIds {
 
     int ACCESS_HEAP_V3_ID =
             (MIN_ID_2 + 467);
+
+    int ACCESS_HEAP_V4_ID =
+            (MIN_ID_2 + 468);
 
     int ACCESS_B2I_V5_ID =
             (MIN_ID_2 + 470);

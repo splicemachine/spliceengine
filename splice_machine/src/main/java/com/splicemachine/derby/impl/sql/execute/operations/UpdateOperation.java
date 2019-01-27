@@ -70,7 +70,7 @@ public class UpdateOperation extends DMLWriteOperation{
                            GeneratedMethod checkGM,Activation activation,double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost,String tableVersion)
             throws StandardException, IOException{
-        super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+        super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion, false); // msirek-temp
         init();
     }
 

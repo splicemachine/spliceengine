@@ -16,6 +16,8 @@ package com.splicemachine.derby.stream.output.insert;
 
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.impl.data.UnsafeRecord;
+import com.splicemachine.access.impl.data.UnsafeRecordUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -54,6 +56,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected RowLocation[] autoIncrementRowLocationArray;
     protected KVPair.Type dataType;
     protected SpliceSequence[] spliceSequences;
+    protected KeyEncoder keyEncoder;
     protected PairEncoder encoder;
     protected InsertOperation insertOperation;
     protected boolean isUpsert;
@@ -119,7 +122,25 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             if (operationContext!=null && operationContext.isFailed())
                 return;
             beforeRow(execRow);
-            KVPair encode = encoder.encode(execRow);
+            KVPair encode;
+            InsertOperation insOp = this.operation instanceof InsertOperation ?
+                    (InsertOperation)this.operation : null;
+            boolean targetIsPAX = insOp != null && insOp.getTargetIsPAX();
+            if (targetIsPAX) {
+                UnsafeRecord
+                unsafeRecord = new UnsafeRecord(
+                        keyEncoder.getKey(execRow),
+                        1,
+                        new byte[UnsafeRecordUtils.calculateFixedRecordSize(execRow.nColumns())],
+                        0l, true);
+                unsafeRecord.setNumberOfColumns(execRow.nColumns());
+                unsafeRecord.setTxnId1(txn.getTxnId());
+                unsafeRecord.setData(execRow.getRowArray());
+                encode = unsafeRecord.getKVPair(); // Do I need this?
+                encode.setType(KVPair.Type.INSERT);
+            } else {
+                encode = encoder.encode(execRow);
+            }
             writeBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
@@ -149,19 +170,22 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         HashPrefix prefix;
         DataHash dataHash;
         KeyPostfix postfix = NoOpPostfix.INSTANCE;
-        if(pkCols==null){
-            prefix = new SaltedPrefix(EngineDriver.driver().newUUIDGenerator(100));
-            dataHash = NoOpDataHash.INSTANCE;
-        }else{
-            int[] keyColumns = new int[pkCols.length];
-            for(int i=0;i<keyColumns.length;i++){
-                keyColumns[i] = pkCols[i] -1;
+        if (keyEncoder==null) {
+            if(pkCols==null){
+                prefix = new SaltedPrefix(EngineDriver.driver().newUUIDGenerator(100));
+                dataHash = NoOpDataHash.INSTANCE;
+            }else{
+                int[] keyColumns = new int[pkCols.length];
+                for(int i=0;i<keyColumns.length;i++){
+                    keyColumns[i] = pkCols[i] -1;
+                }
+                prefix = NoOpPrefix.INSTANCE;
+                DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(execRowDefinition);
+                dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
             }
-            prefix = NoOpPrefix.INSTANCE;
-            DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(execRowDefinition);
-            dataHash = BareKeyHash.encoder(keyColumns,null, SpliceKryoRegistry.getInstance(),serializers);
+            keyEncoder = new KeyEncoder(prefix,dataHash,postfix);
         }
-        return new KeyEncoder(prefix,dataHash,postfix);
+        return keyEncoder;
     }
 
     public DataHash getRowHash() throws StandardException {

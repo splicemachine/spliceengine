@@ -52,7 +52,7 @@ public class DeleteOperation extends DMLWriteOperation {
                            double optimizerEstimatedCost, String tableVersion,
 						   String bulkDeleteDirectory, int colMapRefItem) throws StandardException, IOException {
 
-        super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+        super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion, false);  // msirek-temp
         this.bulkDeleteDirectory = bulkDeleteDirectory;
         this.colMapRefItem = colMapRefItem;
         init();

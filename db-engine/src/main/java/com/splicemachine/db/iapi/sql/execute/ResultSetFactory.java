@@ -143,7 +143,8 @@ public interface ResultSetFactory {
                                  boolean outputKeysOnly,
 								 boolean skipSampling,
 								 double sampleFraction,
-								 String indexName)
+								 String indexName,
+                                 boolean targetIsPAX)
         throws StandardException;
 
 	/**

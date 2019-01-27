@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
@@ -470,6 +471,13 @@ public class IndexConglomerate extends SpliceConglomerate{
         if(len>0){
             ConglomerateUtil.writeFormatIdArray(columnOrdering,out);
         }
+        boolean writeTemplate = getTemplate() != null &&
+                getTemplate() instanceof ValueRow;
+        out.writeBoolean(writeTemplate);
+        if (writeTemplate) {
+            out.writeObject(getTemplate());
+        }
+        out.writeBoolean(isPAX());
     }
 
     /**
@@ -537,6 +545,12 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
         int len=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(len,in);
+        boolean readTemplate = in.readBoolean();
+        if (readTemplate) {
+            setTemplate((ExecRow)in.readObject());
+        }
+        setPAX(in.readBoolean());
+
         partitionFactory =SIDriver.driver().getTableFactory();
         opFactory = SIDriver.driver().getOperationFactory();
     }

@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
@@ -37,7 +38,7 @@ import java.util.Iterator;
 @NotThreadSafe
 public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow>, Closeable {
     protected TableScannerBuilder siTableBuilder;
-    protected SITableScanner tableScanner;
+    protected TableScanner tableScanner;
     protected boolean initialized;
     private ExecRow execRow;
     boolean slotted;

@@ -16,6 +16,7 @@ package com.splicemachine.access.impl.data;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
@@ -89,15 +90,21 @@ public class UnsafeRecordUtils {
 
     public static int calculateFixedRecordSize(int numFields) {
         return UnsafeRow.calculateFixedPortionByteSize(numFields)+
-        calculateBitSetWidthInBytes(numFields);
+        calculateBitSetWidthInBytes(numFields) + UnsafeRecord.UNSAFE_INC;  // msirek-temp
     }
 
     public static int cardinality(Object baseObject, long baseOffset, int bitSetWidthInWords) {
 
         long addr = baseOffset;
         int sum = 0;
-        for (int i = 0; i < bitSetWidthInWords; i++, addr += 8)
+        // msirek-temp->
+        long size = ((byte[])baseObject).length;
+        for (int i = 0; i < bitSetWidthInWords; i++, addr += 8) {
+            if (addr >= size)
+                SanityManager.THROWASSERT("Invalid access of byte array");
+            // <- msirek-temp
             sum += Long.bitCount(Platform.getLong(baseObject, addr));
+        }
         return sum;
     }
 

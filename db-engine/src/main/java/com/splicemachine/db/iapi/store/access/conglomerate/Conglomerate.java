@@ -297,4 +297,7 @@ public interface Conglomerate extends Storable, DataValueDescriptor
     void setTemplate(ExecRow execRow);
 
     ExecRow getTemplate();
+
+    boolean isPAX();
+    void setPAX(boolean newValue);
 }

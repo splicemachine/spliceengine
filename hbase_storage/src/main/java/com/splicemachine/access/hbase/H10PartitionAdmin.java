@@ -92,7 +92,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
         HColumnDescriptor dataFamily = instance.createDataFamily();
         return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,dataFamily,partitionInfoCache);
     }
-
+// msirek-temp->
     @Override
     public PartitionCreator newPartition2() throws IOException{
         HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
@@ -100,6 +100,13 @@ public class H10PartitionAdmin implements PartitionAdmin{
         return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,dataFamily,partitionInfoCache);
     }
 
+    @Override
+    public PartitionCreator newPartition3() throws IOException{
+        HBaseConnectionFactory instance=HBaseConnectionFactory.getInstance(SIDriver.driver().getConfiguration());
+        HColumnDescriptor dataFamily = instance.createDataFamily3();
+        return new HPartitionCreator(tableInfoFactory,admin.getConnection(),timeKeeper,dataFamily,partitionInfoCache);
+    }
+// <-msirek-temp
     @Override
     public void deleteTable(String tableName) throws IOException{
 

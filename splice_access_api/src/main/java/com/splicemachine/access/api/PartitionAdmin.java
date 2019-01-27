@@ -32,6 +32,8 @@ public interface PartitionAdmin extends AutoCloseable{
 
     PartitionCreator newPartition2() throws IOException;  // msirek-temp
 
+    PartitionCreator newPartition3() throws IOException;  // msirek-temp
+
     void deleteTable(String tableName) throws IOException;
 
     void splitTable(String tableName,byte[]... splitPoints) throws IOException;

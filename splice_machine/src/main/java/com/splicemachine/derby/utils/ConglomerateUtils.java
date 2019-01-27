@@ -224,7 +224,9 @@ public class ConglomerateUtils{
                                           String indexDisplayName,
                                           byte[][] splitKeys,
                                           ExecRow execRow) throws StandardException{
-        conglomerate.setTemplate(execRow);  // msirek-temp
+        conglomerate.setTemplate(execRow);    // msirek-temp
+        if ("MWS".equals(schemaDisplayName))  // msirek-temp
+            conglomerate.setPAX(true);        // msirek-temp
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,-1, splitKeys, execRow);
     }
 
@@ -237,7 +239,9 @@ public class ConglomerateUtils{
                                           long partitionSize,
                                           byte[][] splitKeys,
                                           ExecRow execRow) throws StandardException{
-        conglomerate.setTemplate(execRow);  // msirek-temp
+        conglomerate.setTemplate(execRow);    // msirek-temp
+        if ("MWS".equals(schemaDisplayName))  // msirek-temp
+            conglomerate.setPAX(true);        // msirek-temp
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,partitionSize, splitKeys, execRow);
     }
 
@@ -280,6 +284,8 @@ public class ConglomerateUtils{
         if (!isExternal) {
             try (PartitionAdmin admin = tableFactory.getAdmin()) {
                 PartitionCreator partitionCreator =        // msirek-temp->
+                        "FAST_DIFF".equals(schemaDisplayName) ?
+                                admin.newPartition3().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId()) :
                         "MWS".equals(schemaDisplayName) ?
                                 admin.newPartition2().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId()) :
                         admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId());

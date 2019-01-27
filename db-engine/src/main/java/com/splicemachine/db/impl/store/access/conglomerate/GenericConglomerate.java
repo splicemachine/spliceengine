@@ -59,6 +59,7 @@ public abstract class GenericConglomerate
 {
 
 	private ExecRow execRow;
+	private boolean pax;  // True if this conglomerate has PAX format.
 
     /**************************************************************************
      * Public Methods implementing DataValueDescriptor interface.
@@ -248,5 +249,13 @@ public abstract class GenericConglomerate
 	@Override
 	public ExecRow getTemplate() {
 		return execRow;
+	}
+
+	@Override
+	public boolean isPAX() { return pax; }
+
+	@Override
+	public void setPAX(boolean newValue) {
+		pax = newValue;
 	}
 }

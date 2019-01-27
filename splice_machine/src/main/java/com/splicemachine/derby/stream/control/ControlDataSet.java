@@ -686,7 +686,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                         txn,
                         token, operationContext,
                         isUpsert);
-                ipw.setRollforward(true);
+                //ipw.setRollforward(true); msirek-temp
                 return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext);
             }
         }.operationContext(operationContext);

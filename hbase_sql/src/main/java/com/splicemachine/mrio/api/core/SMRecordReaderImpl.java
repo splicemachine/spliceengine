@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
@@ -54,7 +55,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	protected HRegion hregion;
 	protected Configuration config;
 	protected RegionScanner mrs;
-	protected SITableScanner siTableScanner;
+	protected TableScanner tableScanner;
 	protected Scan scan;
 	protected ExecRow currentRow;
 	protected TableScannerBuilder builder;
@@ -129,8 +130,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 				LOG.error("Calling next() on closed record reader");
 				throw new IOException("RecordReader is closed");
 			}
-			currentRow = siTableScanner.next();
-			rowLocation = siTableScanner.getCurrentRowLocation();
+			currentRow = tableScanner.next();
+			rowLocation = tableScanner.getCurrentRowLocation();
 			return currentRow != null;
 		} catch (StandardException e) {
 			throw new IOException(e);
@@ -204,7 +205,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 		addCloseable(htable);
 	}
 	
-	public void restart(byte[] firstRow) throws IOException {		
+	public void restart(byte[] firstRow) throws IOException, StandardException {
 		Scan newscan = scan;
 		newscan.setStartRow(firstRow);
         setScan(newscan);
@@ -248,8 +249,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
                     .scanner(new RegionDataScanner(new RegionPartition(hregion),mrs,statisticsRun?Metrics.basicMetricFactory():Metrics.noOpMetricFactory()));
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
-			siTableScanner = builder.build();
-			addCloseable(siTableScanner);
+			tableScanner = builder.build();
+			addCloseable(tableScanner);
 		} else {
 			throw new IOException("htable not set");
 		}

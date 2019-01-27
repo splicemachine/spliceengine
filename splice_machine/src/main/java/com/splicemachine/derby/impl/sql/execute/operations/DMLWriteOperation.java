@@ -78,6 +78,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
     private SpliceMethod<ExecRow> checkGM;
     private String checkGMFunMethodName;
     protected String tableVersion;
+    private boolean targetIsPAX;
 
 
     public DMLWriteOperation(){
@@ -86,20 +87,22 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
 
     public DMLWriteOperation(SpliceOperation source,Activation activation,
                              double optimizerEstimatedRowCount,
-                             double optimizerEstimatedCost,String tableVersion) throws StandardException{
+                             double optimizerEstimatedCost,String tableVersion,
+                             boolean targetIsPAX) throws StandardException{
         super(activation,-1,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.source=source;
         this.activation=activation;
         this.tableVersion=tableVersion;
         this.writeInfo=new DerbyDMLWriteInfo();
+        this.targetIsPAX = targetIsPAX;
     }
 
     public DMLWriteOperation(SpliceOperation source,
                              GeneratedMethod generationClauses,
                              GeneratedMethod checkGM,
                              Activation activation,double optimizerEstimatedRowCount,
-                             double optimizerEstimatedCost,String tableVersion) throws StandardException{
-        this(source,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+                             double optimizerEstimatedCost,String tableVersion, boolean targetIsPAX) throws StandardException{
+        this(source,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion, targetIsPAX);
 
         if(generationClauses!=null){
             this.generationClausesFunMethodName=generationClauses.getMethodName();
@@ -122,6 +125,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         checkGMFunMethodName=readNullableString(in);
         heapConglom=in.readLong();
         tableVersion=in.readUTF();
+        targetIsPAX = in.readBoolean();
     }
 
     @Override
@@ -133,6 +137,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         writeNullableString(checkGMFunMethodName,out);
         out.writeLong(heapConglom);
         out.writeUTF(tableVersion);
+        out.writeBoolean(targetIsPAX);
     }
 
     @Override

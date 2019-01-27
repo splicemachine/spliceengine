@@ -19,6 +19,8 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
@@ -109,6 +111,12 @@ public interface ScanSetBuilder<V>{
     ScanSetBuilder<V> useSample(boolean useSample);
 
     ScanSetBuilder<V> sampleFraction(double sampleFraction);
+
+    ScanSetBuilder<V> indexColsToMainColMap(int[] indexColsToMainColMap);
+
+    ScanSetBuilder<V> accessedColumns(FormatableBitSet accessedColumns);
+
+    ScanSetBuilder<V> scanOperation(SpliceBaseOperation operation);
 
     ScanSetBuilder<V> ignoreRecentTransactions(boolean ignoreRecentTransactions);
 
