@@ -1145,6 +1145,15 @@
             </properties>
         </profile>
         <profile>
+            <id>cdh5.16.1</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
             <id>mapr6.0.0</id>
             <properties>
                 <extraDependency>splice_ee</extraDependency>
