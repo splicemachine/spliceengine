@@ -22,6 +22,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.spark.NativeSparkDataSet;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 import org.apache.spark.sql.Dataset;
@@ -47,7 +48,7 @@ public class SpliceDatasetVTI implements DatasetProvider, VTICosting {
         operationContext = dsp.createOperationContext(op);
         if (datasetThreadLocal.get() == null)
             throw new RuntimeException("dataset is null");
-       return (DataSet<ExecRow>) datasetThreadLocal.get();
+       return new NativeSparkDataSet<>(datasetThreadLocal.get(), operationContext);
     }
 
     @Override
