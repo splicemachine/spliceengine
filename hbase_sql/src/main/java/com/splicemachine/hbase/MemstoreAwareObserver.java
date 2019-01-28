@@ -35,6 +35,9 @@ import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.BlockingProbe;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.ConnectionUtils;
@@ -42,6 +45,10 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionObserver;
+import org.apache.hadoop.hbase.io.FSDataInputStreamWrapper;
+import org.apache.hadoop.hbase.io.Reference;
+import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
@@ -221,6 +228,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     @Override
     public KeyValueScanner preStoreScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c,Store store,Scan scan,NavigableSet<byte[]> targetCols,KeyValueScanner s) throws IOException{
         try {
+            setConglomerateThreadLocal(c);  // msirek-temp
             if (scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY) != null &&
                     Bytes.equals(scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY),SIConstants.TRUE_BYTES)) {
                 if(LOG.isDebugEnabled()){
@@ -350,13 +358,37 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         return super.preFlushScannerOpen(c, store, memstoreScanner, s);
     }
 
+    @Override
+    public StoreFile.Reader preStoreFileReaderOpen(ObserverContext<RegionCoprocessorEnvironment> ctx,
+                                                   FileSystem fs, Path p, FSDataInputStreamWrapper in, long size, CacheConfig cacheConf,
+                                                   Reference r, StoreFile.Reader reader) throws IOException {
+        setConglomerateThreadLocal(ctx);
+        return super.preStoreFileReaderOpen(ctx, fs, p, in, size, cacheConf, r, reader);
+    }
+/* msirek-temp->
+    @Override
+    public RegionScanner preScannerOpen(final ObserverContext<RegionCoprocessorEnvironment> e,
+                                        final Scan scan, final RegionScanner s) throws IOException {
+        setConglomerateThreadLocal(e);
+        return preScannerOpen(e, scan, s);
+    }
+*/
     public void setConglomerateThreadLocal(ObserverContext<RegionCoprocessorEnvironment> c) throws IOException {
-        if (c.getEnvironment().getRegion().getStores().size() == 1) {  // msirek-temp
+        Region region = c.getEnvironment().getRegion();
+        if (region.getStores().size() == 1 &&
+             region.isAvailable() && !region.isRecovering()) {  // msirek-temp
             try {
                 String qualifier = c.getEnvironment().getRegion().getTableDesc().getTableName().getQualifierAsString();
                 if (qualifier.startsWith("SPLICE_")) {
                     conglomerateThreadLocal.set(new ValueRow(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()}));
                 } else {
+                    byte[] templateBytes = region.getTableDesc().getValue(SIConstants.COUNTER_COL);
+                    if (templateBytes != null && templateBytes.length > 0) {
+                        ValueRow templateRow = (ValueRow)SerializationUtils.deserialize(templateBytes);
+                        conglomerateThreadLocal.set(templateRow);
+                    }
+
+                    /* msirek-temp ->
                     Long conglomID = Longs.tryParse(qualifier);
                     Conglomerate conglomerate = null;
                     if (conglomID != null) {
@@ -368,8 +400,9 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                         conglomerateThreadLocal.set(conglomerate.getTemplate());
                     else
                         conglomerateThreadLocal.set(new ValueRow(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()}));
+                */
                 }
-            } catch (StandardException se) {
+            } catch (Exception se) {
                 throw new IOException(se);
             }
         }

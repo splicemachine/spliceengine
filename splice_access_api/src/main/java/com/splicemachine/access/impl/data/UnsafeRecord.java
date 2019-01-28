@@ -65,7 +65,7 @@ public class UnsafeRecord implements Record<byte[]> {
     protected boolean isActiveRecord;
     protected RecordType recordType;
     protected static int TOTAL_BYTES = 0;
-    protected static int ASIZE = 16;
+    protected static int ASIZE = Platform.BYTE_ARRAY_OFFSET;
     protected static int TOMB_INC = TOTAL_BYTES+ASIZE;//+8;
     protected static int TXN_ID1_INC = TOMB_INC+1;
     public static int EFF_TS_INC = TXN_ID1_INC+8;
@@ -169,43 +169,43 @@ public class UnsafeRecord implements Record<byte[]> {
 
     @Override
     public boolean hasTombstone() {
-        return Platform.getBoolean(baseObject,baseOffset+TOMB_INC);
+        return Platform.getBoolean(baseObject,baseOffset+TOMB_INC+ASIZE);
     }
 
     @Override
     public void setHasTombstone(boolean hasTombstone) {
-        Platform.putBoolean(baseObject, baseOffset+TOMB_INC, hasTombstone);
+        Platform.putBoolean(baseObject, baseOffset+TOMB_INC+ASIZE, hasTombstone);
         baseLength = UNSAFE_INC; // Trim the data for the key value store when generated...  Just need tombstone and txn info...
     }
 
     @Override
     public long getTxnId1() {
-        return Platform.getLong(baseObject,baseOffset+TXN_ID1_INC);
+        return Platform.getLong(baseObject,baseOffset+TXN_ID1_INC+ASIZE);
     }
 
     @Override
     public void setTxnId1(long transactionId1) {
-        Platform.putLong(baseObject,baseOffset+TXN_ID1_INC,transactionId1);
+        Platform.putLong(baseObject,baseOffset+TXN_ID1_INC+ASIZE,transactionId1);
     }
 
     @Override
     public long getEffectiveTimestamp() {
-        return Platform.getLong(baseObject,baseOffset+EFF_TS_INC);
+        return Platform.getLong(baseObject,baseOffset+EFF_TS_INC+ASIZE);
     }
 
     @Override
     public void setEffectiveTimestamp(long effectiveTimestamp) {
-        Platform.putLong(baseObject,baseOffset+EFF_TS_INC,effectiveTimestamp);
+        Platform.putLong(baseObject,baseOffset+EFF_TS_INC+ASIZE,effectiveTimestamp);
     }
 
     @Override
     public int numberOfColumns() {
-        return Platform.getInt(baseObject,baseOffset+NUM_COLS_INC);
+        return Platform.getInt(baseObject,baseOffset+NUM_COLS_INC+ASIZE);
     }
 
     @Override
     public void setNumberOfColumns(int numberOfColumns) {
-        Platform.putInt(baseObject,baseOffset+NUM_COLS_INC,numberOfColumns);
+        Platform.putInt(baseObject,baseOffset+NUM_COLS_INC+ASIZE,numberOfColumns);
     }
 
     @Override
@@ -248,9 +248,9 @@ public class UnsafeRecord implements Record<byte[]> {
     public void getData(int[] columns, DataValueDescriptor[] rows) throws StandardException {
         int numberOfColumns = numberOfColumns();
         int bitSetWidth = UnsafeRecordUtils.calculateBitSetWidthInBytes(numberOfColumns);
-        UnsafeRow row = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+COLS_BS_INC,bitSetWidth/WORD_SIZE));
-        row.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth,(int)baseLength);
-        int fromIndex = UnsafeRecordUtils.nextSetBit(baseObject,baseOffset+ COLS_BS_INC,0,8);
+        UnsafeRow row = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+COLS_BS_INC+ASIZE,bitSetWidth/WORD_SIZE));
+        row.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth+ASIZE,(int)baseLength);
+        int fromIndex = UnsafeRecordUtils.nextSetBit(baseObject,baseOffset+ COLS_BS_INC+ASIZE,0,8);
         int ordinal = 0;
         for (int i = 0; i< columns.length; i++) {
             do {
@@ -261,11 +261,11 @@ public class UnsafeRecord implements Record<byte[]> {
                 }
                 if (fromIndex == columns[i]) { // set value and move on
                     rows[i].read(row, ordinal);
-                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC, fromIndex+1, WORD_SIZE);
+                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC+ASIZE, fromIndex+1, WORD_SIZE);
                     ordinal++;
                     break;
                 } else  { // if (fromIndex < columns[i]) {
-                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC, fromIndex+1, WORD_SIZE);
+                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC+ASIZE, fromIndex+1, WORD_SIZE);
                     ordinal++;
                 }
             } while (true);
@@ -282,9 +282,9 @@ public class UnsafeRecord implements Record<byte[]> {
     public void mergeWithExistingData(int[] columns, DataValueDescriptor[] rows, int[] indexToMainColumnMap) throws StandardException {
         int numberOfColumns = numberOfColumns();
         int bitSetWidth = UnsafeRecordUtils.calculateBitSetWidthInBytes(numberOfColumns);
-        UnsafeRow row = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+COLS_BS_INC,bitSetWidth/WORD_SIZE));
-        row.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth,(int)baseLength);
-        int fromIndex = UnsafeRecordUtils.nextSetBit(baseObject,baseOffset+ COLS_BS_INC,0,8);
+        UnsafeRow row = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+COLS_BS_INC+ASIZE,bitSetWidth/WORD_SIZE));
+        row.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth+ASIZE,(int)baseLength);
+        int fromIndex = UnsafeRecordUtils.nextSetBit(baseObject,baseOffset+ COLS_BS_INC+ASIZE,0,8);
         int ordinal = 0;
         for (int i = 0; i< columns.length; i++) {
             do {
@@ -295,11 +295,11 @@ public class UnsafeRecord implements Record<byte[]> {
                 }
                 if (fromIndex == columns[i]) { // set value and move on
                     rows[indexToMainColumnMap[columns[i]]].read(row, ordinal);
-                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC, fromIndex+1, WORD_SIZE);
+                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC+ASIZE, fromIndex+1, WORD_SIZE);
                     ordinal++;
                     break;
                 } else  { // if (fromIndex < columns[i]) {
-                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC, fromIndex+1, WORD_SIZE);
+                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC+ASIZE, fromIndex+1, WORD_SIZE);
                     ordinal++;
                 }
             } while (true);
@@ -312,9 +312,9 @@ public class UnsafeRecord implements Record<byte[]> {
     public void getData(int[] columns, DataValueDescriptor[] rows, int[] indexToMainColumnMap) throws StandardException {
         int numberOfColumns = numberOfColumns();
         int bitSetWidth = UnsafeRecordUtils.calculateBitSetWidthInBytes(numberOfColumns);
-        UnsafeRow row = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+COLS_BS_INC,bitSetWidth/WORD_SIZE));
-        row.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth,(int)baseLength);
-        int fromIndex = UnsafeRecordUtils.nextSetBit(baseObject,baseOffset+ COLS_BS_INC,0,8);
+        UnsafeRow row = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+COLS_BS_INC+ASIZE,bitSetWidth/WORD_SIZE));
+        row.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth+ASIZE,(int)baseLength);
+        int fromIndex = UnsafeRecordUtils.nextSetBit(baseObject,baseOffset+ COLS_BS_INC+ASIZE,0,8);
         int ordinal = 0;
         for (int i = 0; i< columns.length; i++) {
             do {
@@ -325,11 +325,11 @@ public class UnsafeRecord implements Record<byte[]> {
                 }
                 if (fromIndex == columns[i]) { // set value and move on
                     rows[indexToMainColumnMap[columns[i]]].read(row, ordinal);
-                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC, fromIndex+1, WORD_SIZE);
+                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC+ASIZE, fromIndex+1, WORD_SIZE);
                     ordinal++;
                     break;
                 } else  { // if (fromIndex < columns[i]) {
-                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC, fromIndex+1, WORD_SIZE);
+                    fromIndex = UnsafeRecordUtils.nextSetBit(baseObject, baseOffset+ COLS_BS_INC+ASIZE, fromIndex+1, WORD_SIZE);
                     ordinal++;
                 }
             } while (true);
@@ -391,14 +391,14 @@ public class UnsafeRecord implements Record<byte[]> {
                 UnsafeRecordUtils.unset(baseObject, baseOffset + COLS_BS_INC, columns[i]); // Cleanup in case there is old stuff in there...
                 continue;
             }
-            UnsafeRecordUtils.set(baseObject, baseOffset + COLS_BS_INC, columns[i]);
+            UnsafeRecordUtils.set(baseObject, baseOffset + COLS_BS_INC+ASIZE, columns[i]);
             dvds[i].write(writer,j);
             j++;
         }
         setHasTombstone(false);
         checkCapacity(baseOffset+UNSAFE_INC+bitSetWidth+bufferHolder.cursor);
         Platform.copyMemory(bufferHolder.buffer,16,baseObject,
-                baseOffset+UNSAFE_INC+bitSetWidth,bufferHolder.cursor);
+                baseOffset+UNSAFE_INC+bitSetWidth+ASIZE,bufferHolder.cursor);
         baseLength = UNSAFE_INC+bitSetWidth + bufferHolder.cursor;
     }
 
@@ -427,14 +427,14 @@ public class UnsafeRecord implements Record<byte[]> {
             int pos = colPosMap[i];
             if ( (dvds[pos] == null || dvds[pos].isNull()) && isActiveRecord)
                 continue;
-            UnsafeRecordUtils.set(baseObject, baseOffset + COLS_BS_INC, i-1);
+            UnsafeRecordUtils.set(baseObject, baseOffset + COLS_BS_INC+ASIZE, i-1);
             dvds[pos].write(writer,j);
             j++;
         }
         setHasTombstone(false);
         checkCapacity(baseOffset+UNSAFE_INC+bitSetWidth+bufferHolder.cursor);
         Platform.copyMemory(bufferHolder.buffer,16,baseObject,
-                baseOffset+UNSAFE_INC+bitSetWidth,bufferHolder.cursor);
+                baseOffset+UNSAFE_INC+bitSetWidth+ASIZE,bufferHolder.cursor);
         baseLength = UNSAFE_INC+bitSetWidth + bufferHolder.cursor;
     }
 
@@ -760,8 +760,8 @@ public class UnsafeRecord implements Record<byte[]> {
     private UnsafeRow getUnsafeRow() {
         int numberOfColumns = numberOfColumns();
         int bitSetWidth = UnsafeRecordUtils.calculateBitSetWidthInBytes(numberOfColumns);
-        UnsafeRow activeRow = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+UNSAFE_INC,bitSetWidth/8));
-        activeRow.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth,Platform.getInt(baseObject,baseOffset+UNSAFE_INC+bitSetWidth+4));
+        UnsafeRow activeRow = new UnsafeRow(UnsafeRecordUtils.cardinality(baseObject,baseOffset+UNSAFE_INC+ASIZE,bitSetWidth/8));
+        activeRow.pointTo(baseObject,baseOffset+UNSAFE_INC+bitSetWidth+ASIZE,Platform.getInt(baseObject,baseOffset+UNSAFE_INC+bitSetWidth+4+ASIZE));
         return activeRow;
     }
 
@@ -858,7 +858,7 @@ public class UnsafeRecord implements Record<byte[]> {
     public boolean areIndexedKeysModified(BitSet indexKeys) {
         int idx = 0;
         while ( (idx=indexKeys.nextSetBit(idx)) != -1) {
-            if (UnsafeRecordUtils.isSet(baseObject,baseOffset+UNSAFE_INC,idx))
+            if (UnsafeRecordUtils.isSet(baseObject,baseOffset+UNSAFE_INC+ASIZE,idx))
                 return true;
             idx++;
         }
