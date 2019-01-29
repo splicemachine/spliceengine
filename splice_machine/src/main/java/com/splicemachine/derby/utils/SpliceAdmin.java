@@ -51,6 +51,7 @@ import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.tools.dblook;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
@@ -2144,5 +2145,350 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 connection.createStatement().execute("call SYSCS_UTIL.INVALIDATE_DICTIONARY_CACHE()");
             }
         }
+    }
+
+    public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
+    {
+        try {
+            Connection connection = getDefaultConn();
+            Statement stmt = connection.createStatement();
+
+            EngineUtils.verifyTableExists(connection, schemaName, tableName);
+
+            ResultSet tableIdRs = stmt.executeQuery("SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
+                    "T.ESCAPED, T.LINES, T.STORED, T.LOCATION" +
+                    " FROM SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                    "WHERE T.TABLETYPE IN ('T','E') AND T.SCHEMAID = S.SCHEMAID " +
+                    "AND T.TABLENAME = '" + tableName + "' AND S.SCHEMANAME = '" + schemaName + "'");
+
+            PreparedStatement getColumnInfoStmt = connection.prepareStatement("SELECT C.COLUMNNAME, C.REFERENCEID, " +
+                    "C.COLUMNNUMBER FROM SYS.SYSCOLUMNS C, SYS.SYSTABLES T WHERE T.TABLEID = ? " +
+                    "AND T.TABLEID = C.REFERENCEID ORDER BY C.COLUMNNUMBER");
+
+            PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
+                    "FROM SYS.SYSCOLUMNS C, SYS.SYSTABLES T WHERE T.TABLEID = ? " +
+                    "AND T.TABLEID = C.REFERENCEID AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
+
+            String tableId = "" ;
+            boolean firstCol = true;
+
+            //External Table
+            String isExternal = "";
+            StringBuilder extTblString = new StringBuilder("");
+            while (tableIdRs.next()){
+                tableId = tableIdRs.getString(1);
+                //Process external table definition
+                if ("E".equals(tableIdRs.getString(2))) {
+                    String tmpStr;
+                    isExternal = "EXTERNAL ";
+                    tmpStr = tableIdRs.getString(3);
+                    if (tmpStr != null && !tmpStr.equals("none"))
+                        extTblString.append("\nCOMPRESSED WITH " + tmpStr );
+
+                    // Partitioned Columns
+                    getPartitionedColsStmt.setString(1,tableId);
+                    ResultSet pcRS = getPartitionedColsStmt.executeQuery();
+                    while (pcRS.next()){
+                        extTblString.append( firstCol ? "\nPARTITIONED BY (" + pcRS.getString(1) : "," + pcRS.getString(1));
+                        firstCol = false;
+                    }
+                    extTblString.append(")");
+
+                    // Row Format
+                    if (tableIdRs.getString(4) != null || tableIdRs.getString(6) != null) {
+                        extTblString.append("\nROW FORMAT DELIMITED");
+                        if ((tmpStr = tableIdRs.getString(4)) != null)
+                            extTblString.append(" FIELDS TERMINATED BY ''" + tmpStr + "''");
+                        if ((tmpStr = tableIdRs.getString(5)) != null)
+                            extTblString.append(" ESCAPED BY ''" + tmpStr + "''");
+                        if ((tmpStr = tableIdRs.getString(6)) != null)
+                            extTblString.append(" LINES TERMINATED BY ''" + tmpStr + "''");
+                    }
+                    // Storage type
+                    if ((tmpStr = tableIdRs.getString(7)) != null) {
+                        extTblString.append("\nSTORED AS ");
+                        switch (tmpStr) {
+                            case "T":
+                                extTblString.append("TEXTFILE");
+                                break;
+                            case "P":
+                                extTblString.append("PARQUET");
+                                break;
+                            case "A":
+                                extTblString.append("AVRO");
+                                break;
+                            case "O":
+                                extTblString.append("ORC");
+                                break;
+                            default:
+                                throw new SQLException("Invalid stored format");
+                        }
+                    }
+                    // Location
+                    if ((tmpStr = tableIdRs.getString(8)) != null) {
+                        extTblString.append("\nLOCATION ''" + tmpStr + "''");
+                    }
+                }
+            }
+            //End External Table
+
+            // Get column list, and write DDL for each column.
+            StringBuilder colStringBuilder = new StringBuilder("");
+            String createColString = "";
+
+            getColumnInfoStmt.setString(1, tableId);
+            ResultSet columnRS = getColumnInfoStmt.executeQuery();
+
+            firstCol = true;
+            while (columnRS.next()) {
+                String colName = columnRS.getString(1)  ;
+                createColString = createColumn(connection, colName, columnRS.getString(2), columnRS.getInt(3));
+                colStringBuilder.append( firstCol ? createColString : "," + createColString).append("\n");
+                firstCol = false;
+            }
+
+            colStringBuilder.append(createConstraint(connection, schemaName, tableName));
+            String DDL = "CREATE " + isExternal + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
+            StringBuilder sb=new StringBuilder("SELECT * FROM (VALUES '");
+            sb.append(DDL);
+            String extStr = extTblString.toString();
+            if (extStr.length() > 0)
+                sb.append(extStr);
+            sb.append("') FOO (DDL)");
+            resultSet[0]=executeStatement(sb);
+        } catch (Exception e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    private static String createColumn(Connection theConnection, String colName, String tableId, int colNum) throws SQLException
+    {
+        PreparedStatement getColumnTypeStmt =
+                theConnection.prepareStatement("SELECT COLUMNDATATYPE, COLUMNDEFAULT FROM SYS.SYSCOLUMNS " +
+                        "WHERE REFERENCEID = ? AND COLUMNNAME = ?");
+        PreparedStatement getAutoIncStmt =
+                theConnection.prepareStatement("SELECT AUTOINCREMENTSTART, " +
+                        "AUTOINCREMENTINC, COLUMNNAME, REFERENCEID, COLUMNDEFAULT FROM SYS.SYSCOLUMNS " +
+                        "WHERE COLUMNNAME = ? AND REFERENCEID = ?");
+
+        getColumnTypeStmt.setString(1, tableId);
+        getColumnTypeStmt.setString(2, colName);
+
+        ResultSet rs = getColumnTypeStmt.executeQuery();
+        StringBuffer colDef = new StringBuffer();
+        if (rs.next()) {
+            colDef.append("\"" + colName + "\"");
+            colDef.append(" ");
+            String colType = rs.getString(1);
+            colDef.append(colType);
+            if (!reinstateAutoIncrement(getAutoIncStmt, colName, tableId, colDef) &&
+                    rs.getString(2) != null) {
+                String defaultText = rs.getString(2);
+
+                if ( defaultText.startsWith( "GENERATED ALWAYS AS" ) ) {
+                    colDef.append( " " );
+                }
+                else {
+                    colDef.append(" DEFAULT ");
+                    if (colType.indexOf("CHAR") > -1 || colType.indexOf("VARCHAR") > -1)
+                        defaultText = "'" + defaultText + "'";
+                }
+                colDef.append( defaultText );
+            }
+        }
+        rs.close();
+        return colDef.toString();
+    }
+
+    private static String createConstraint(Connection theConnection, String schemaName, String tableName) throws SQLException
+    {
+        ResultSet rs;
+
+        //Check
+        StringBuffer chkStr = new StringBuffer();
+        PreparedStatement getCheckStmt =
+                theConnection.prepareStatement("SELECT CS.CONSTRAINTNAME, CK.CHECKDEFINITION" +
+                        " FROM SYS.SYSCONSTRAINTS CS, SYS.SYSCHECKS CK, SYS.SYSSCHEMAS S, SYS.SYSTABLES T" +
+                        " WHERE CS.CONSTRAINTID = CK.CONSTRAINTID AND" +
+                        " CS.STATE != 'D' AND" +
+                        " S.SCHEMANAME LIKE ? AND" +
+                        " T.TABLENAME LIKE ? AND" +
+                        " CS.SCHEMAID = S.SCHEMAID AND" +
+                        " CS.TABLEID = T.TABLEID ");
+        getCheckStmt.setString(1,schemaName);
+        getCheckStmt.setString(2,tableName);
+        rs = getCheckStmt.executeQuery();
+        while (rs.next()){
+            chkStr.append(", CONSTRAINT " + rs.getString(1) + " CHECK " + rs.getString(2).replace("'","''"));
+        }
+        //End Check
+
+        //Unique
+        StringBuffer uniqueStr = new StringBuffer();
+        PreparedStatement getUniqueStmt =
+                theConnection.prepareStatement("SELECT CS.CONSTRAINTNAME, COLS.COLUMNNAME" +
+                        " FROM SYS.SYSSCHEMAS S, SYS.SYSTABLES T, SYS.SYSCONSTRAINTS CS, SYS.SYSCONGLOMERATES CONGLOMS, SYS.SYSCOLUMNS COLS , SYS.SYSKEYS K" +
+                        " WHERE  CS.TYPE = 'U' AND" +
+                        " S.SCHEMAID = T.SCHEMAID AND" +
+                        " S.SCHEMANAME LIKE ? AND" +
+                        " T.TABLENAME LIKE ? AND" +
+                        " CS.SCHEMAID = S.SCHEMAID AND" +
+                        " CS.TABLEID = T.TABLEID AND" +
+                        " COLS.REFERENCEID = T.TABLEID AND" +
+                        " CS.STATE != 'D' AND" +
+                        " CS.CONSTRAINTID = K.CONSTRAINTID AND" +
+                        " K.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID AND" +
+                        " (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE 0 END) <> 0 ");
+
+        getUniqueStmt.setString(1,schemaName);
+        getUniqueStmt.setString(2,tableName);
+        rs = getUniqueStmt.executeQuery();
+        String uniqueName = null;
+        List<String> cols = null;
+        boolean uniqueFirst = true;
+        while (rs.next()) {
+            if (uniqueName == null || !rs.getString(1).equals(uniqueName)){
+                if (uniqueName != null)
+                    uniqueStr.append(", CONSTRAINT " + uniqueName + " UNIQUE " + buildColumnsFromList(cols));
+                uniqueName = rs.getString(1);
+                cols = new LinkedList<>();
+                uniqueFirst = false;
+            }
+            cols.add(rs.getString(2));
+        }
+        if (!uniqueFirst)
+            uniqueStr.append(", CONSTRAINT " + uniqueName + " UNIQUE " + buildColumnsFromList(cols));
+        //End Unique
+
+        //Primary Key
+        StringBuffer priKeys = new StringBuffer();
+        boolean pkFirstCol = true;
+        CallableStatement cs = theConnection.prepareCall("CALL SYSIBM.SQLPRIMARYKEYS(?,?,?,?)");
+        cs.setString(1,"");
+        cs.setString(2,schemaName);
+        cs.setString(3,tableName);
+        cs.setString(4,"");
+
+        rs = cs.executeQuery();
+        while (rs.next()) {
+            priKeys.append(pkFirstCol ? ", CONSTRAINT " + rs.getString("PK_NAME")+ " PRIMARY KEY(" + rs.getString("COLUMN_NAME") : "," + rs.getString("COLUMN_NAME"));
+            pkFirstCol = false;
+        }
+        if (!pkFirstCol)
+            priKeys.append(")");
+        //End Primary Key
+
+        //Foreign Key
+        cs = theConnection.prepareCall("CALL SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
+        cs.setString(1,"");
+        cs.setString(2,null);
+        cs.setString(3,"");
+        cs.setString(4,"");
+        cs.setString(5,schemaName);
+        cs.setString(6,tableName);
+        cs.setString(7,"IMPORTEDKEY=1");
+        rs = cs.executeQuery();
+
+        boolean fkFirst = true;
+        String fkName = null;
+        String refTblName = null;
+        List<String> pkCols = null;
+        List<String> fkCols = null;
+        int updateType = -1, deleteType = -1;
+        StringBuffer fkKeys = new StringBuffer();
+        while (rs.next()) {
+            if (fkName == null || !rs.getString("FK_NAME").equals(fkName)){
+                if (fkName != null) {
+                    fkKeys.append("," + buildForeignKeyConstraint(fkName,refTblName,pkCols,fkCols,updateType,deleteType));
+                }
+                fkName = rs.getString("FK_NAME");
+                refTblName = rs.getString("PKTABLE_NAME");
+                updateType = rs.getInt("UPDATE_RULE");
+                deleteType = rs.getInt("DELETE_RULE");
+                pkCols = new LinkedList<>();
+                fkCols = new LinkedList<>();
+                fkFirst = false;
+            }
+            pkCols.add(rs.getString("PKCOLUMN_NAME"));
+            fkCols.add(rs.getString("FKCOLUMN_NAME"));
+        }
+        if (!fkFirst)
+            fkKeys.append("," + buildForeignKeyConstraint(fkName,refTblName,pkCols,fkCols,updateType,deleteType)); //Append the final constraint
+        //End Foreign Key
+
+        return  chkStr.toString() + uniqueStr.toString() + priKeys.toString() + fkKeys.toString();
+    }
+
+    private static String buildColumnsFromList(List<String> cols)
+    {
+        StringBuffer sb = new StringBuffer("(");
+        boolean firstCol = true;
+        for (String c : cols) {
+            sb.append(firstCol ? "" : ",");
+            sb.append(c);
+            firstCol = false;
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
+    private static String buildForeignKeyConstraint(String fkName, String refTblName, List<String> pkCols, List<String> fkCols,
+                                                    int updateRule, int deleteRule) throws SQLException
+    {
+        StringBuffer fkStr = new StringBuffer("CONSTRAINT " + fkName + " FOREIGN KEY " + buildColumnsFromList(fkCols));
+        fkStr.append(" REFERENCES " + refTblName + buildColumnsFromList(pkCols));
+
+        fkStr.append(" ON UPDATE ");
+        switch (updateRule) {
+            case java.sql.DatabaseMetaData.importedKeyRestrict:
+                fkStr.append("RESTRICT");
+                break;
+            case java.sql.DatabaseMetaData.importedKeyNoAction:
+                fkStr.append("NO ACTION");
+                break;
+            default:  // shouldn't happen
+                throw new SQLException("INTERNAL ERROR: unexpected 'on-update' action: " + updateRule);
+        }
+        fkStr.append(" ON DELETE ");
+        switch (deleteRule) {
+            case java.sql.DatabaseMetaData.importedKeyRestrict:
+                fkStr.append("RESTRICT");
+                break;
+            case java.sql.DatabaseMetaData.importedKeyNoAction:
+                fkStr.append("NO ACTION");
+                break;
+            case java.sql.DatabaseMetaData.importedKeyCascade:
+                fkStr.append("CASCADE");
+                break;
+            case java.sql.DatabaseMetaData.importedKeySetNull:
+                fkStr.append("SET NULL");
+                break;
+            default:  // shouldn't happen
+                throw new SQLException("INTERNAL ERROR: unexpected 'on-delete' action: " + deleteRule);
+        }
+        return fkStr.toString();
+    }
+
+    public static boolean reinstateAutoIncrement(PreparedStatement getAutoIncStmt, String colName,
+                                          String tableId, StringBuffer colDef) throws SQLException
+    {
+        getAutoIncStmt.setString(1, colName);
+        getAutoIncStmt.setString(2, tableId);
+        ResultSet autoIncCols = getAutoIncStmt.executeQuery();
+        if (autoIncCols.next()) {
+            long start = autoIncCols.getLong(1);
+            if (!autoIncCols.wasNull()) {
+                colDef.append(" GENERATED ");
+                colDef.append(autoIncCols.getObject(5) == null ?
+                        "ALWAYS ":"BY DEFAULT ");
+                colDef.append("AS IDENTITY (START WITH ");
+                colDef.append(autoIncCols.getLong(1));
+                colDef.append(", INCREMENT BY ");
+                colDef.append(autoIncCols.getLong(2));
+                colDef.append(")");
+                return true;
+            }
+        }
+        return false;
     }
 }
