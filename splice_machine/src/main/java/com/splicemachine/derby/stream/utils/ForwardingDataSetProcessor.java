@@ -135,11 +135,6 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public void clearBroadcastedOperation(){
-        //no-op
-    }
-
-    @Override
     public void stopJobGroup(String jobName) {
         delegate.stopJobGroup(jobName);
     }

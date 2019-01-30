@@ -149,7 +149,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         setupBroadcastedActivation(spliceOperation.getActivation(), spliceOperation);
-        OperationContext<Op> operationContext =new SparkOperationContext<>(spliceOperation,broadcastedActivation.get());
+        OperationContext<Op> operationContext = new SparkOperationContext<>(spliceOperation, broadcastedActivation);
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive(statusDirectory, importFileName, failBadRecordCount);
@@ -161,7 +161,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
         if (activation !=null) {
-            return new SparkOperationContext<>(activation, broadcastedActivation.get());
+            return new SparkOperationContext<>(activation, broadcastedActivation);
         } else {
             return new SparkOperationContext<>(activation, null);
         }
@@ -276,22 +276,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         this.failBadRecordCount = badRecordThreshold;
     }
 
-
-    @Override
-    public void clearBroadcastedOperation(){
-        broadcastedActivation.remove();
-    }
-
     @Override
     public void stopJobGroup(String jobName) {
         SpliceSpark.getContext().cancelJobGroup(jobName);
     }
 
-    private transient ThreadLocal<BroadcastedActivation> broadcastedActivation = new ThreadLocal<>();
+    private transient BroadcastedActivation broadcastedActivation;
 
     private void setupBroadcastedActivation(Activation activation, SpliceOperation root){
-        if(broadcastedActivation.get()==null){
-            broadcastedActivation.set(new BroadcastedActivation(activation, root));
+        if (broadcastedActivation == null) {
+            broadcastedActivation = new BroadcastedActivation(activation, root);
         }
     }
 

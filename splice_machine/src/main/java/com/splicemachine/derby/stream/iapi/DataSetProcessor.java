@@ -113,8 +113,6 @@ public interface DataSetProcessor {
      */
     void setPermissive(String statusDirectory, String importFileName, long badRecordThreshold);
 
-    void clearBroadcastedOperation();
-
     /*
      * Stops the given job
      */

@@ -81,7 +81,6 @@ public class QueryJob implements Callable<Void>{
             }
 
             dsp.setJobGroup(jobName, sql);
-            dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
             context = dsp.createOperationContext(root);
             SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset.map(new CloneFunction<>());
