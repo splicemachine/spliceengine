@@ -499,7 +499,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             useSample = false;
             sampleFraction = 0.0d;
         }
-        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample, sampleFraction, mergeStats, scope,activation);
+        List<ColumnDescriptor> colsToCollect = getCollectedColumns(conn, table);
+        DataTypeDescriptor[] dtds = new DataTypeDescriptor[colsToCollect.size()];
+        int index = 0;
+        for (ColumnDescriptor descriptor : colsToCollect ) {
+            dtds[index++] = descriptor.getType();
+        }
+        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample,sampleFraction,mergeStats,scope,activation,dtds);
         op.openCore();
         return op;
     }
@@ -528,7 +534,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(conn, table);
         ExecRow row = new ValueRow(colsToCollect.size());
-  //      int[] execRowFormatIds = new int[colsToCollect.size()];
         BitSet accessedColumns = new BitSet(table.getMaxStorageColumnID());
         int outputCol = 0;
         int[] columnPositionMap = new int[table.getNumberOfColumns()];
