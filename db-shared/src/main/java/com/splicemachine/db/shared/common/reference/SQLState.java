@@ -1977,6 +1977,7 @@ public interface SQLState {
 	String BACKUP_NOT_IN_CHAIN                                     = "BR019";
 	String NOT_ENOUGH_SPACE 									   = "BR020";
 	String INCREMENTAL_NOT_ENABLED								   = "BR021";
+	String POINT_IN_TIME_TOO_SMALL                                 = "BR022";
 
 	String ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET					   	= "EXT01";
 	String ROW_FORMAT_NOT_ALLOWED_WITH_ORC						   	= "EXT02";

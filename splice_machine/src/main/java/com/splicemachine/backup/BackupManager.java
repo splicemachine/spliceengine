@@ -28,7 +28,7 @@ public interface BackupManager{
 
     long incrementalBackup(String directory, boolean sync) throws StandardException;
 
-    void restoreDatabase(String directory,long backupId, boolean sync, boolean validate)throws StandardException;
+    void restoreDatabase(String directory,long backupId, boolean sync, boolean validate, String timestamp)throws StandardException;
 
     void removeBackup(List<Long> backupIds) throws StandardException;
 
