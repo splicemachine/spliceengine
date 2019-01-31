@@ -75,6 +75,36 @@ public class SelectivityUtil {
     }
 
 
+    private static boolean isTheRightJoinPredicate(Predicate p, JoinPredicateType predicateType) {
+        if (p == null || !p.isJoinPredicate())
+            return false;
+
+        // only equality join conditions can be used for hashable joins to search for matching rows
+        if (predicateType == JoinPredicateType.HASH_SEARCH || predicateType == JoinPredicateType.MERGE_SEARCH) {
+            ValueNode valueNode = p.getAndNode().getLeftOperand();
+            if (valueNode instanceof BinaryRelationalOperatorNode) {
+                BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) valueNode;
+                if (bron.getOperator() != RelationalOperator.EQUALS_RELOP) {
+                    return false;
+                }
+
+                // only equality join condition without expression on index column can be used by merge join to search for matching rows
+                if (predicateType == JoinPredicateType.MERGE_SEARCH) {
+                    if (p.getIndexPosition() < 0) {
+                        return false;
+                    } else {
+                        if (!(bron.getLeftOperand() instanceof ColumnReference) ||
+                                !(bron.getRightOperand() instanceof ColumnReference))
+                            return false;
+                    }
+                }
+            } else
+                return false;
+        }
+
+        return true;
+    }
+
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                                                  OptimizablePredicateList predList,
                                                  long innerRowCount,long outerRowCount,
@@ -97,30 +127,8 @@ public class SelectivityUtil {
         if (predList != null) {
             for (int i = 0; i < predList.size(); i++) {
                 Predicate p = (Predicate) predList.getOptPredicate(i);
-                if (!p.isJoinPredicate()) continue;
-
-                // only equality join conditions can be used for hashable joins to search for matching rows
-                if (predicateType == JoinPredicateType.HASH_SEARCH || predicateType == JoinPredicateType.MERGE_SEARCH) {
-                    ValueNode valueNode = p.getAndNode().getLeftOperand();
-                    if (valueNode instanceof BinaryRelationalOperatorNode) {
-                        BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) valueNode;
-                        if (bron.getOperator() != RelationalOperator.EQUALS_RELOP) {
-                            continue;
-                        }
-
-                        // only equality join condition without expression on index column can be used by merge join to search for matching rows
-                        if (predicateType == JoinPredicateType.MERGE_SEARCH) {
-                            if (p.getIndexPosition() < 0) {
-                                continue;
-                            } else {
-                                if (!(bron.getLeftOperand() instanceof ColumnReference) ||
-                                        !(bron.getRightOperand() instanceof ColumnReference))
-                                    continue;
-                            }
-                        }
-                    } else
-                        continue;
-                }
+                if (!isTheRightJoinPredicate(p, predicateType))
+                    continue;
 
                 selectivity = Math.min(selectivity, p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType));
             }
@@ -141,30 +149,8 @@ public class SelectivityUtil {
         }
         for (int i = 0; i < predList.size(); i++) {
             Predicate p = (Predicate) predList.getOptPredicate(i);
-            if (!p.isJoinPredicate()) continue;
-
-            // only equality join conditions can be used for hashable joins to search for matching rows
-            if (predicateType == JoinPredicateType.HASH_SEARCH || predicateType == JoinPredicateType.MERGE_SEARCH) {
-                ValueNode valueNode = p.getAndNode().getLeftOperand();
-                if (valueNode instanceof BinaryRelationalOperatorNode) {
-                    BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) valueNode;
-                    if (bron.getOperator() != RelationalOperator.EQUALS_RELOP) {
-                        continue;
-                    }
-
-                    // only equality join condition without expression on index column can be used by merge join to search for matching rows
-                    if (predicateType == JoinPredicateType.MERGE_SEARCH) {
-                        if (p.getIndexPosition() < 0) {
-                            continue;
-                        } else {
-                            if (!(bron.getLeftOperand() instanceof ColumnReference) ||
-                                    !(bron.getRightOperand() instanceof ColumnReference))
-                                continue;
-                        }
-                    }
-                } else
-                    continue;
-            }
+            if (!isTheRightJoinPredicate(p, predicateType))
+                continue;
 
             selectivity *= p.scanSelectivity(innerTable);
         }
