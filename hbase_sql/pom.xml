@@ -91,6 +91,13 @@
             <artifactId>orc-protobuf</artifactId>
             <version>1</version>
         </dependency>
+        <dependency>
+            <!-- com.databricks.spark.avro -->
+            <groupId>com.databricks</groupId>
+            <artifactId>spark-avro_${scala.binary.version}</artifactId>
+            <version>4.0.0</version>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Provided dependencies -->
 
