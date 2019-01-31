@@ -237,10 +237,6 @@ public class StatisticsOperation extends SpliceBaseOperation {
         int outputCol = 0;
         for (DataTypeDescriptor dtd : dataTypeDescriptors) {
             row.setColumn(outputCol + 1, dtd.getNull());
-            if (row.getColumn(outputCol + 1 ) instanceof SQLDecimal) {
-                ((SQLDecimal) row.getColumn(outputCol + 1)).setPrecision(dtd.getPrecision());
-                ((SQLDecimal) row.getColumn(outputCol + 1)).setScale(dtd.getScale());
-            }
             outputCol++;
         }
         return row;
