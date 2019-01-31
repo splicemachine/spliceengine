@@ -59,6 +59,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *         Created: 2/2/13 10:11 AM
  */
 public class ConglomerateUtils{
+    public static ThreadLocal<ExecRow> conglomerateThreadLocal = new ThreadLocal<>();
     //    public static final String CONGLOMERATE_ATTRIBUTE = "DERBY_CONGLOMERATE";
     private static Logger LOG=Logger.getLogger(ConglomerateUtils.class);
 
@@ -283,10 +284,11 @@ public class ConglomerateUtils{
         PartitionFactory tableFactory=driver.getTableFactory();
         if (!isExternal) {
             try (PartitionAdmin admin = tableFactory.getAdmin()) {
+                boolean isPAX = "MWS".equals(schemaDisplayName);
                 PartitionCreator partitionCreator =        // msirek-temp->
                         "FAST_DIFF".equals(schemaDisplayName) ?
                                 admin.newPartition3().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId()) :
-                        "MWS".equals(schemaDisplayName) ?
+                                isPAX ?
                                 admin.newPartition2().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId()) :
                         admin.newPartition().withName(tableName).withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName}).withTransactionId(txn.getTxnId());
                         // <- msirek-temp
@@ -294,7 +296,8 @@ public class ConglomerateUtils{
                     partitionCreator = partitionCreator.withPartitionSize(partitionSize);
                 if (splitKeys != null && splitKeys.length > 0)
                     partitionCreator = partitionCreator.withSplitKeys(splitKeys);
-                partitionCreator.withTemplate(execRow);
+                if (isPAX)
+                    partitionCreator.withTemplate(execRow);
                 partitionCreator.create();
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrow(LOG, "Error Creating Conglomerate", Exceptions.parseException(e));

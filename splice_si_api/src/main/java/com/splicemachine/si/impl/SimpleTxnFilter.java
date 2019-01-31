@@ -223,7 +223,8 @@ public class SimpleTxnFilter implements TxnFilter{
             return DataFilter.ReturnCode.NEXT_ROW;
 
         //we don't have any tombstone problems, so just check our own visibility
-        if(!isVisible(timestamp)) return DataFilter.ReturnCode.SKIP;
+        if(!isVisible(timestamp))
+            return DataFilter.ReturnCode.SKIP;
         return DataFilter.ReturnCode.INCLUDE;
     }
 

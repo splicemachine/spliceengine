@@ -15,6 +15,9 @@
 
 package com.splicemachine.si.impl.server;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -49,6 +52,8 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private boolean purgeDeletedRows;
     private AtomicReference<IOException> failure = new AtomicReference<>();
     private AtomicLong remainingTime;
+    private final ExecRow template = ConglomerateUtils.conglomerateThreadLocal.get() != null ?
+                  ConglomerateUtils.conglomerateThreadLocal.get().getClone() : null;
 
     public AbstractSICompactionScanner(SICompactionState compactionState,
                                InternalScanner scanner,
@@ -132,6 +137,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         Thread thread = new Thread( new Runnable() {
             @Override
             public void run() {
+                ConglomerateUtils.conglomerateThreadLocal.set(template);
                 boolean more = true;
                 try {
                     while (more) {

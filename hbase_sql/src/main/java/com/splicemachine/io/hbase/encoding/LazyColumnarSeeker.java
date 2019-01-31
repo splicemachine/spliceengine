@@ -23,7 +23,7 @@ import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLTinyint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.hbase.MemstoreAwareObserver;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.orc.OrcReader;
 import com.splicemachine.orc.OrcRecordReader;
 import com.splicemachine.orc.input.ColumnarBatchRow;
@@ -105,7 +105,7 @@ public class LazyColumnarSeeker {
         SpliceQuery spliceQuery = SpliceQuery.queryContext.get();
         ExecRow execRow = null;
         if (spliceQuery == null) {
-            execRow = MemstoreAwareObserver.conglomerateThreadLocal.get(); // Are we splitting or compacting?
+            execRow = ConglomerateUtils.conglomerateThreadLocal.get(); // Are we splitting or compacting?
             if (execRow == null) {
                 SpliceLogUtils.warn(LOG, "No Format for seeker...");
                 splitSeeker = true;
@@ -210,9 +210,9 @@ public class LazyColumnarSeeker {
         writtenExecRow = writtenExecRow.fromSparkRow(new ColumnarBatchRow(row, schema));
         long version = writtenExecRow.getColumn(1).getLong();
         unsafeRecord.setKey(rowKey,0,rowKey.length-1);
-        unsafeRecord.setHasTombstone(writtenExecRow.getColumn(1).getBoolean());
-        unsafeRecord.setTxnId1(writtenExecRow.getColumn(2).getLong());
-        unsafeRecord.setEffectiveTimestamp(writtenExecRow.getColumn(3).getLong());
+        unsafeRecord.setHasTombstone(writtenExecRow.getColumn(4).getBoolean());
+        unsafeRecord.setTxnId1(writtenExecRow.getColumn(5).getLong());
+        unsafeRecord.setEffectiveTimestamp(writtenExecRow.getColumn(6).getLong());
         unsafeRecord.setNumberOfColumns(writtenExecRow.length()-6);
         unsafeRecord.setVersion(version);
         if (dataRow == null)

@@ -23,7 +23,7 @@ import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLTinyint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.hbase.MemstoreAwareObserver;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.HCell;
 import com.splicemachine.utils.IntArrays;
@@ -90,7 +90,7 @@ public class PAXEncodingState extends EncodingState {
         unsafeRecord = new UnsafeRecord();
         hcell = new HCell();
         if (execRow == null) {
-            init(MemstoreAwareObserver.conglomerateThreadLocal.get()); // Can Null Point
+            init(ConglomerateUtils.conglomerateThreadLocal.get()); // Can Null Point
         }
         dataToRetrieve = IntArrays.count(execRow.size());
         radixTree = new SimpleART();
@@ -150,8 +150,9 @@ public class PAXEncodingState extends EncodingState {
     public int encode(Cell cell) throws IOException {
         try {
             // msirek-temp->
-            if (((KeyValue)cell).getLength() == 38)
-                return 0;
+                if (cell instanceof KeyValue &&
+                        ((KeyValue) cell).getLength() < 40)
+                    return 0;
             // <- msirek-temp
             byte[] valueBytes = new byte[12];
             Base.U.putLong(valueBytes,16l,cell.getTimestamp());
@@ -164,7 +165,8 @@ public class PAXEncodingState extends EncodingState {
             }
             radixTree.insert(rowKey, 0, rowKey.length, valueBytes, 0, valueBytes.length);
             counter++;
-            //radixTree.checkTree(); // msirek-temp
+           // if ((counter % 10000) == 0)
+           //     radixTree.checkTree(); // msirek-temp
             //SpliceLogUtils.info(LOG, "ART for row #%d : \n%s \n",counter, radixTree.toString());  // msirek-temp
             //LOG.trace("ART for row #%d : \n%s \n",counter, radixTree.toString());  // msirek-temp
             hcell.set(cell);

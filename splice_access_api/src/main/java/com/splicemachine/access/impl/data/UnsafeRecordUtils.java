@@ -23,6 +23,8 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.unsafe.Platform;
 import org.apache.spark.unsafe.bitset.BitSetMethods;
 
+import static com.splicemachine.access.impl.data.UnsafeRecord.ASIZE;
+
 /**
  *
  *
@@ -98,7 +100,7 @@ public class UnsafeRecordUtils {
         long addr = baseOffset;
         int sum = 0;
         // msirek-temp->
-        long size = ((byte[])baseObject).length;
+        long size = ((byte[])baseObject).length + ASIZE;
         for (int i = 0; i < bitSetWidthInWords; i++, addr += 8) {
             if (addr >= size)
                 SanityManager.THROWASSERT("Invalid access of byte array");

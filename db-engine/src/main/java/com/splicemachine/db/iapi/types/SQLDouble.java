@@ -1016,7 +1016,7 @@ public final class SQLDouble extends NumberDataType
 
 	@Override
 	public Object getHiveObject() throws StandardException {
-		return isNull()?null:new SQLDouble(value);
+		return isNull()?null:new org.apache.hadoop.io.DoubleWritable(value);
 	}
 
 }

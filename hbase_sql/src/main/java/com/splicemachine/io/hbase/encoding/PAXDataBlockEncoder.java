@@ -14,7 +14,7 @@
 package com.splicemachine.io.hbase.encoding;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.hbase.MemstoreAwareObserver;
+import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
@@ -46,7 +46,7 @@ public class PAXDataBlockEncoder implements DataBlockEncoder {
     }
 
     public PAXDataBlockEncoder(ExecRow execRow) {
-        MemstoreAwareObserver.conglomerateThreadLocal.set(execRow);
+        ConglomerateUtils.conglomerateThreadLocal.set(execRow);
     }
 
     @Override

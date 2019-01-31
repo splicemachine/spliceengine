@@ -24,9 +24,13 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.splicemachine.compactions.SpliceDefaultCompactor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.ConglomerateUtils;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.stream.SparkCompactionContext;
 import org.apache.commons.collections.iterators.EmptyListIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -165,7 +169,19 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
                     )
             );
         }
-
+        // Set the template row for this region if one exists.
+        if (region.getStores().size() == 1 &&
+                region.isAvailable() && !region.isRecovering() &&
+                region.getTableDesc().getNameAsString().startsWith("splice")) {
+            String qualifier = region.getTableDesc().getTableName().getQualifierAsString();
+            if (!qualifier.startsWith("SPLICE_")) {
+                byte[] templateBytes = region.getTableDesc().getValue(SIConstants.COUNTER_COL);
+                if (templateBytes != null && templateBytes.length > 0) {
+                    ValueRow templateRow = (ValueRow) SerializationUtils.deserialize(templateBytes);
+                    ConglomerateUtils.conglomerateThreadLocal.set(templateRow);
+                }
+            }
+        }
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
         CompactionRequest compactionRequest = new CompactionRequest(readersToClose);
         compactionRequest.setIsMajor(isMajor, isMajor);

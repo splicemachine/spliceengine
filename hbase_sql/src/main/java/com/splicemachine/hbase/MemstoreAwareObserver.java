@@ -18,26 +18,16 @@ import com.splicemachine.access.client.ClientRegionConstants;
 import com.splicemachine.access.client.MemStoreFlushAwareScanner;
 import com.splicemachine.access.client.MemstoreAware;
 import com.splicemachine.compactions.SpliceCompactionRequest;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
-import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.BlockingProbe;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.ConnectionUtils;
@@ -45,14 +35,9 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.RegionObserver;
-import org.apache.hadoop.hbase.io.FSDataInputStreamWrapper;
-import org.apache.hadoop.hbase.io.Reference;
-import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.primitives.Longs;
 
 import java.io.IOException;
 import java.util.List;
@@ -67,7 +52,6 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         SplitObserver,
         FlushObserver,
         StoreScannerObserver{
-    public static ThreadLocal<ExecRow> conglomerateThreadLocal = new ThreadLocal<>();
     private static final Logger LOG = Logger.getLogger(MemstoreAwareObserver.class);
     private AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());     // Atomic Reference to memstore aware state handling
     @Override
@@ -358,12 +342,29 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         return super.preFlushScannerOpen(c, store, memstoreScanner, s);
     }
 
+    /* msirek-temp->
     @Override
     public StoreFile.Reader preStoreFileReaderOpen(ObserverContext<RegionCoprocessorEnvironment> ctx,
                                                    FileSystem fs, Path p, FSDataInputStreamWrapper in, long size, CacheConfig cacheConf,
                                                    Reference r, StoreFile.Reader reader) throws IOException {
         setConglomerateThreadLocal(ctx);
         return super.preStoreFileReaderOpen(ctx, fs, p, in, size, cacheConf, r, reader);
+    }
+    */
+
+    @Override
+    public void preCompactSelection(final ObserverContext<RegionCoprocessorEnvironment> c,
+                                    final Store store, final List<StoreFile> candidates) throws IOException {
+        setConglomerateThreadLocal(c);
+        super.preCompactSelection(c, store, candidates);
+    }
+
+    @Override
+    public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,
+                                      final Store store, final InternalScanner scanner, final ScanType scanType)
+            throws IOException {
+        setConglomerateThreadLocal(e);
+        return super.preCompact(e, store, scanner, scanType);
     }
 /* msirek-temp->
     @Override
@@ -376,16 +377,17 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
     public void setConglomerateThreadLocal(ObserverContext<RegionCoprocessorEnvironment> c) throws IOException {
         Region region = c.getEnvironment().getRegion();
         if (region.getStores().size() == 1 &&
-             region.isAvailable() && !region.isRecovering()) {  // msirek-temp
+             region.isAvailable() && !region.isRecovering() &&
+                region.getTableDesc().getNameAsString().startsWith("splice")) {  // msirek-temp
             try {
                 String qualifier = c.getEnvironment().getRegion().getTableDesc().getTableName().getQualifierAsString();
                 if (qualifier.startsWith("SPLICE_")) {
-                    conglomerateThreadLocal.set(new ValueRow(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()}));
+                    // conglomerateThreadLocal.set(new ValueRow(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()})); msirek-temp
                 } else {
                     byte[] templateBytes = region.getTableDesc().getValue(SIConstants.COUNTER_COL);
                     if (templateBytes != null && templateBytes.length > 0) {
                         ValueRow templateRow = (ValueRow)SerializationUtils.deserialize(templateBytes);
-                        conglomerateThreadLocal.set(templateRow);
+                        ConglomerateUtils.conglomerateThreadLocal.set(templateRow);
                     }
 
                     /* msirek-temp ->
@@ -397,9 +399,9 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                                 ReadOnlyTxn.create(Long.MAX_VALUE, Txn.IsolationLevel.READ_COMMITTED, null, null));
                     }
                     if (conglomerate != null)
-                        conglomerateThreadLocal.set(conglomerate.getTemplate());
+                        ConglomerateUtils.conglomerateThreadLocal.set(conglomerate.getTemplate());
                     else
-                        conglomerateThreadLocal.set(new ValueRow(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()}));
+                        ConglomerateUtils.conglomerateThreadLocal.set(new ValueRow(new DataValueDescriptor[]{new SQLBlob(),new SQLBlob()}));
                 */
                 }
             } catch (Exception se) {

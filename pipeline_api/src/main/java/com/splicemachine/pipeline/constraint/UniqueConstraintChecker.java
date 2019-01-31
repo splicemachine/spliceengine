@@ -51,7 +51,10 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
 
         if (isPrimaryKey) {
             // There is an existing row for the primary key columns, if this is an insert then fail.
-            return mutation.getType() == KVPair.Type.INSERT ? failure : SUCCESS;
+            if (mutation.getType() == KVPair.Type.INSERT)
+                return failure;
+            else
+                return SUCCESS;
         }else {
             byte[] existingValue = existingRow.userData().value();
             byte[] value = mutation.getValue();
@@ -59,7 +62,10 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
             // If we have seen this index row before, and they are indexing the same main table row, the index row
             // is being retried by client. Otherwise it is a true conflict.
             if (!valueEqual) {
-                return mutation.getType() == KVPair.Type.INSERT ? failure : SUCCESS;
+                if (mutation.getType() == KVPair.Type.INSERT)
+                    return failure;
+                else
+                    return SUCCESS;
             } else {
                 return SUCCESS;
             }
