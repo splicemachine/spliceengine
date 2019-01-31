@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -67,6 +67,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1842), new UpgradeScriptForDroppedConglomerates(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1849), new UpgradeScriptToRemoveFKDependencyOnPrivileges(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1851), new UpgradeScriptToAddUseExtrapolationInSysColumns(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1901), new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
 
     }
 

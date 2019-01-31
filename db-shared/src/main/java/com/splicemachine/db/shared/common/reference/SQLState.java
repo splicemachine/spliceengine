@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -870,6 +870,7 @@ public interface SQLState {
 	String LANG_INVALID_COL_HAVING_CLAUSE                              = "42X24";
 	String LANG_UNARY_FUNCTION_BAD_TYPE                                = "42X25";
 	String LANG_TYPE_DOESNT_EXIST                                      = "42X26";
+	String LANG_FUNCTION_NOT_ALLOWED                                   = "42X27";
 	String LANG_CURSOR_DELETE_MISMATCH                                 = "42X28";
 	String LANG_CURSOR_UPDATE_MISMATCH                                 = "42X29";
 	String LANG_CURSOR_NOT_FOUND                                       = "42X30";
@@ -991,7 +992,7 @@ public interface SQLState {
 	String LANG_BAD_J_D_B_C_TYPE_INFO                                  = "42Y23";
 	String LANG_VIEW_NOT_UPDATEABLE                                    = "42Y24";
 	String LANG_UPDATE_SYSTEM_TABLE_ATTEMPTED                          = "42Y25";
-    	String LANG_AGGREGATE_IN_GROUPBY_LIST                              = "42Y26";
+	String LANG_AGGREGATE_IN_GROUPBY_LIST                              = "42Y26";
 	String LANG_NO_PARAMS_IN_TRIGGER_ACTION                            = "42Y27";
 	// String LANG_NO_TRIGGER_ON_SYSTEM_TABLE                             = "42Y28"; -- replaced by 42X62
 	String LANG_INVALID_NON_GROUPED_SELECT_LIST                        = "42Y29";
@@ -1167,6 +1168,7 @@ public interface SQLState {
 	String LANG_UDA_WRONG_INPUT_TYPE                                   = "42ZC6";
 	String LANG_UDA_WRONG_RETURN_TYPE                                  = "42ZC7";
 	String LANG_UDA_INSTANTIATION                                      = "42ZC8";
+	String LANG_GROUPING_FUNCTION_CONTEXT_ERROR                          = "42ZC9";
 
 	String LANG_RESUBMIT_DISTRIBUTED                                    = "42ZD0";
 	
@@ -2032,6 +2034,7 @@ public interface SQLState {
 	String SPLIT_KEY_CANNOT_BE_NULL									= "TS006";
 	String INVALID_CONSISTENCY_LEVEL                                = "TS007";
     String INVALID_PARAMETER                                        = "TS008";
+	String CANNOT_MERGE_REGION                                      = "TS009";
 
 	String OLAP_SERVER_CONNECTION                                   = "OS001";
 	String TIMESTAMP_SERVER_CONNECTION                              = "TSS01";

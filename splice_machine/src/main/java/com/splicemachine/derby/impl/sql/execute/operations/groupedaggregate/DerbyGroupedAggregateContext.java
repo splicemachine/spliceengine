@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,15 +14,17 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.types.SQLBit;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.spark_project.guava.collect.Lists;
 
@@ -42,12 +44,17 @@ public class DerbyGroupedAggregateContext implements GroupedAggregateContext {
     private boolean[] groupingKeyOrder;
     private int[] nonGroupedUniqueColumns;
     private int numDistinctAggs;
+    private int groupingIdColPosition;
+    private int groupingIdArrayItem;
+    private SQLBit[] groupingIdVals;
 
     public DerbyGroupedAggregateContext() {
     }
 
-    public DerbyGroupedAggregateContext(int orderingItem) {
+    public DerbyGroupedAggregateContext(int orderingItem, int groupingIdColPosition, int groupingIdArrayItem) {
         this.orderingItem = orderingItem;
+        this.groupingIdColPosition = groupingIdColPosition;
+        this.groupingIdArrayItem = groupingIdArrayItem;
     }
 
     @Override
@@ -98,6 +105,16 @@ public class DerbyGroupedAggregateContext implements GroupedAggregateContext {
             groupingKeyOrder = allSortOrders;
             nonGroupedUniqueColumns = new int[]{};
         }
+
+        if (groupingIdArrayItem > 0) {
+            FormatableBitSet[] groupingIdArray = (FormatableBitSet[])
+                    ((FormatableArrayHolder) (statement.getSavedObject(groupingIdArrayItem))).getArray(FormatableBitSet.class);
+            groupingIdVals = new SQLBit[groupingKeys.length];
+            for (int i=0; i<groupingKeys.length; i++) {
+                groupingIdVals[i] = new SQLBit(groupingIdArray[i].getByteArray());
+            }
+        }
+
     }
 
     private boolean keysContain(int[] keyColumns, int inputColNum) {
@@ -139,10 +156,25 @@ public class DerbyGroupedAggregateContext implements GroupedAggregateContext {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(orderingItem);
+        out.writeInt(groupingIdColPosition);
+        out.writeInt(groupingIdArrayItem);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         orderingItem = in.readInt();
+        groupingIdColPosition = in.readInt();
+        groupingIdArrayItem = in.readInt();
+
+    }
+
+    @Override
+    public int getGroupingIdColumnPosition() {
+        return groupingIdColPosition;
+    }
+
+    @Override
+    public SQLBit[] getGroupingIdVals() {
+        return groupingIdVals;
     }
 }

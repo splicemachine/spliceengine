@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1734,7 +1734,12 @@ public abstract class ResultSetNode extends QueryTreeNode{
     }
     
     public String printExplainInformationForActivation() throws StandardException {
-        return WordUtils.wrap(printExplainInformation(", ", getResultSetNumber()), 40, null, false);
+        String outString = WordUtils.wrap(printExplainInformation(", ", getResultSetNumber()), 40, null, false);
+        
+        // Avoid UTFDataFormatException that occurs when trying to encode very long strings.
+        if (outString.length() >= 65536)
+            outString = outString.substring(0, 65534);
+        return outString;
     }
 
 

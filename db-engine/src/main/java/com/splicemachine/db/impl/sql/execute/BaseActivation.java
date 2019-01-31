@@ -25,11 +25,42 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.execute;
+
+import com.splicemachine.db.catalog.Dependable;
+import com.splicemachine.db.catalog.DependableFinder;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.Context;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.GeneratedByteCode;
+import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.*;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.sql.execute.CursorActivation;
+import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -37,52 +68,6 @@ import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
-import	com.splicemachine.db.catalog.Dependable;
-import	com.splicemachine.db.catalog.DependableFinder;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.execute.HasIncrement;
-import com.splicemachine.db.iapi.sql.Row;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.jdbc.ConnectionContext;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.context.Context;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.loader.GeneratedByteCode;
-import com.splicemachine.db.iapi.services.loader.GeneratedClass;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.ParameterValueSet;
-import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.conn.SQLSessionContext;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.sql.execute.CursorActivation;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
-import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
-import com.splicemachine.db.iapi.sql.execute.TemporaryRowHolder;
-import com.splicemachine.db.iapi.store.access.ConglomerateController;
-import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.NumberDataValue;
-import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.StringDataValue;
 
 /**
  * BaseActivation
@@ -1573,6 +1558,19 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return reUse;
     } // end of getDB2Length
 
+	public NumberDataValue isGrouping(DataValueDescriptor value, int position) throws StandardException {
+    	NumberDataValue result = getDataValueFactory().getNullByte(null);
+    	if (value == null || value.isNull()) {
+			result.setValue(0);
+			return result;
+		}
+
+		// value is expected to be of type SQLBit
+    	byte[] bitArray = value.getBytes();
+    	FormatableBitSet bitSet = new FormatableBitSet(bitArray);
+    	result.setValue(bitSet.get(position)?1:0);
+    	return result;
+	}
 
 	/* Dependable interface implementation */
 

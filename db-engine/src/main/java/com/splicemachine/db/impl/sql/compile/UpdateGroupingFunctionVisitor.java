@@ -25,53 +25,54 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
+package com.splicemachine.db.impl.sql.compile;
 
-package com.splicemachine.db.iapi.sql.dictionary;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 
-import org.joda.time.DateTime;
+/**
+ * Created by yxia on 1/16/19.
+ */
+public class UpdateGroupingFunctionVisitor implements Visitor
+{
+    private VirtualColumnNode groupingIdVField;
+    private GroupByList groupByList;
+    private Class     skipOverClass;
 
-public class BackupJobsDescriptor extends TupleDescriptor{
-
-    private long jobId;
-    private String fileSystem;
-    private String type;
-    private int hourOfDay;
-    private DateTime beginTimestamp;
-
-    public BackupJobsDescriptor () {}
-
-    public BackupJobsDescriptor (long jobId,
-                                 String fileSystem,
-                                 String type,
-                                 int hourOfDay,
-                                 DateTime beginTimestamp) {
-        this.jobId = jobId;
-        this.fileSystem = fileSystem;
-        this.type = type;
-        this.hourOfDay = hourOfDay;
-        this.beginTimestamp = beginTimestamp;
+    UpdateGroupingFunctionVisitor(VirtualColumnNode groupingIdVField, GroupByList groupByList, Class skipThisClass) {
+        this.groupingIdVField = groupingIdVField;
+        this.groupByList = groupByList;
+        this.skipOverClass = skipThisClass;
     }
 
-    public long getJobId() {
-        return jobId;
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
+        if (node instanceof GroupingFunctionNode) {
+            ((GroupingFunctionNode) node).setGroupByColumnPosition(groupByList);
+            ((GroupingFunctionNode) node).setGroupingIdRef(groupingIdVField);
+        }
+        return node;
     }
 
-    public String getFileSystem() {
-        return fileSystem;
+    @Override
+    public boolean stopTraversal()
+    {
+        return false;
     }
 
-    public String getType() {
-        return type;
+    @Override
+    public boolean skipChildren(Visitable node)
+    {
+        return skipOverClass != null && skipOverClass.isInstance(node);
     }
 
-    public int getHourOfDay() {
-        return hourOfDay;
-    }
-
-    public DateTime getBeginTimestamp() {
-        return beginTimestamp;
+    @Override
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
     }
 }

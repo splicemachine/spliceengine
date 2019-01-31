@@ -1,4 +1,4 @@
-/*
+ /*
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
  * GNU Affero General Public License as published by the Free Software Foundation, either
@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -157,7 +157,7 @@ public class BinaryRelationalOperatorNode
      * left operand of the inListProbeSource is set correctly before
      * returning it.
      */
-    public InListOperatorNode getInListOp(){
+    public InListOperatorNode getInListOp() throws StandardException {
         if(inListProbeSource!=null){
             /* Depending on where this probe predicate currently sits
 			 * in the query tree, this.leftOperand *may* have been
@@ -186,7 +186,9 @@ public class BinaryRelationalOperatorNode
 			 * to ensure the underlying InListOperatorNode also has an
 			 * up-to-date leftOperand is to set it to this.leftOperand.
 			 */
-            inListProbeSource.setLeftOperand(this.leftOperand);
+            // No remapping of multicolumn IN list for now.
+            if (inListProbeSource.leftOperandList.size() == 1)
+                inListProbeSource.setLeftOperand(this.leftOperand);
         }
 
         return inListProbeSource;
@@ -1019,7 +1021,7 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    private boolean isKnownConstant(ValueNode node, boolean considerParameters) {
+    public static boolean isKnownConstant(ValueNode node, boolean considerParameters) {
         if (node instanceof CastNode)
             node = ((CastNode) node).castOperand;
 
@@ -1648,7 +1650,7 @@ public class BinaryRelationalOperatorNode
      * inListProbeSource's leftOperand through this method.
      */
     @Override
-    public boolean isInListProbeNode(){
+    public boolean  isInListProbeNode(){
         return (inListProbeSource!=null);
     }
 

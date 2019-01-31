@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -331,63 +331,6 @@ public class BackupSystemProcedures {
 
         } finally {
             resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
-        }
-    }
-
-    /**
-     * Entry point for system procedure SYSCS_SCHEDULE_DAILY_BACKUP. Submit a scheduled job to back up database
-     *
-     * @param directory A directory in file system to stored backup data
-     * @param type type of backup, either 'FULL' or 'INCREMENTAL'
-     * @param hour hour of every day(relative to UTC/GMT time) the backup job is executed
-     * @param resultSets returned results
-     * @throws StandardException
-     * @throws SQLException
-     */
-    public static void SYSCS_SCHEDULE_DAILY_BACKUP(final String directory,
-                                                   final String type,
-                                                   final int hour,
-                                                   ResultSet[] resultSets) throws StandardException, SQLException {
-
-        try{
-            if (directory == null || directory.isEmpty()) {
-                throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
-            }
-
-            if (type.compareToIgnoreCase("FULL") != 0 && type.compareToIgnoreCase("INCREMENTAL") != 0) {
-                throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
-            }
-
-            if (hour < 0 || hour >= 24) {
-                throw StandardException.newException(SQLState.INVALID_BACKUP_HOUR);
-            }
-            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            backupManager.scheduleDailyBackup(directory, type, hour);
-            resultSets[0] = ProcedureUtils.generateResult("Success",
-                                           String.format("Schedule %s daily backup to %s on hour %s", type, directory, hour));
-        } catch (Throwable t) {
-            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
-            SpliceLogUtils.error(LOG, "Schedule daily backup error", t);
-        }
-    }
-
-    /**
-     * Entry point for system procedure SYSCS_CANCEL_DAILY_BACKU\
-     * Cancel a scheduled daily backup job
-     * @param jobId ID of a backup job to be canceled
-     * @param resultSets returned results
-     * @throws StandardException
-     * @throws SQLException
-     */
-    public static void SYSCS_CANCEL_DAILY_BACKUP(long jobId, ResultSet[] resultSets) throws StandardException, SQLException {
-
-        try {
-            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            backupManager.cancelDailyBackup(jobId);
-            resultSets[0] = ProcedureUtils.generateResult("Success", "Cancel daily backup "+jobId);
-        } catch (Throwable t) {
-            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
-            SpliceLogUtils.error(LOG, "Cancel daily backup error", t);
         }
     }
 

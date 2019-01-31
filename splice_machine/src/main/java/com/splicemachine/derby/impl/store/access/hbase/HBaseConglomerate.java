@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.store.access.hbase;
 
-import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -33,7 +32,6 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
@@ -152,21 +150,6 @@ public class HBaseConglomerate extends SpliceConglomerate{
         }
     }
 
-
-    /**
-     * Drop this hbase conglomerate (what's the relationship with dropping container).
-     *
-     * @throws StandardException Standard exception policy.
-     * @see Conglomerate#drop
-     **/
-    public void drop(TransactionManager xact_manager) throws StandardException{
-        SpliceLogUtils.trace(LOG,"drop with account manager %s",xact_manager);
-        try(PartitionAdmin pa=partitionFactory.getAdmin()){
-            pa.deleteTable(Long.toString(containerId));
-        }catch(IOException e){
-            throw Exceptions.parseException(e);
-        }
-    }
 
     /**
      * Return dynamic information about the conglomerate to be dynamically

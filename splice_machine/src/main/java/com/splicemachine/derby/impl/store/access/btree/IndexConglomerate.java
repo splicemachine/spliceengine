@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -207,16 +207,6 @@ public class IndexConglomerate extends SpliceConglomerate{
         throw StandardException.newException(SQLState.BTREE_UNIMPLEMENTED_FEATURE);
     }
 
-
-    /**
-     * Drop this hbase conglomerate (what's the relationship with dropping container).
-     *
-     * @throws StandardException Standard exception policy.
-     * @see Conglomerate#drop
-     **/
-    public void drop(TransactionManager xact_manager) throws StandardException{
-        SpliceLogUtils.trace(LOG,"drop %s",xact_manager);
-    }
 
     /**
      * Return dynamic information about the conglomerate to be dynamically

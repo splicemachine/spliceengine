@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -293,6 +293,7 @@ public class BaseTypeIdImpl implements Formatable
             else if ( TypeId.TIME_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.TIME_TYPE_ID_IMPL; }
             else if ( TypeId.TIMESTAMP_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.TIMESTAMP_TYPE_ID_IMPL; }
             else if ( TypeId.XML_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.XML_TYPE_ID_IMPL; }
+            else if (TypeId.LIST_NAME.equals(unqualifiedName)) {  return StoredFormatIds.LIST_TYPE_ID_IMPL; }
             else { return 0; }
         }
     }
@@ -355,6 +356,13 @@ public class BaseTypeIdImpl implements Formatable
     {
         switch (getTypeFormatId())
         {
+    
+          case StoredFormatIds.LIST_TYPE_ID_IMPL:
+              schemaName = null;
+              unqualifiedName = TypeId.LIST_NAME;
+              JDBCTypeId = Types.OTHER;
+              break;
+              
           case StoredFormatIds.BOOLEAN_TYPE_ID_IMPL:
               schemaName = null;
               unqualifiedName = TypeId.BOOLEAN_NAME;

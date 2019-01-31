@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -2847,6 +2847,7 @@ TOKEN [IGNORE_CASE] :
 |   <EXTRACT: "extract">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|   <GROUPING: "grouping">
 |   <HFILE: "hfile">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
 |	<IGNORE: "ignore">
@@ -7737,7 +7738,8 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLPARSE ||
                 getToken(1).kind == XMLSERIALIZE ||
                 getToken(1).kind == XMLEXISTS ||
-                getToken(1).kind == XMLQUERY ) &&
+                getToken(1).kind == XMLQUERY ||
+                getToken(1).kind == GROUPING) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -7843,6 +7845,14 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                                         value,
                                                         localCM);
 	}
+|
+    <GROUPING> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+        							C_NodeTypes.GROUPING_FUNCTION_NODE,
+                                    value,
+                                    getContextManager());
+    }
 |
 	value = xmlFunction()
 	{
@@ -11410,7 +11420,7 @@ partitionByClause() throws StandardException :
 {
 	<PARTITION> <BY>
         (
-	groupingCols = groupingColumnReferenceList()
+	groupingCols = groupingColumnReferenceList(true)
 	{
 		return new Partition(groupingCols);
 	}
@@ -11427,13 +11437,13 @@ groupByClause() throws StandardException :
         (
 	LOOKAHEAD ( { getToken(1).kind == ROLLUP &&
 			getToken(2).kind == LEFT_PAREN } )
-        <ROLLUP> <LEFT_PAREN> groupingCols = groupingColumnReferenceList() <RIGHT_PAREN>
+        <ROLLUP> <LEFT_PAREN> groupingCols = groupingColumnReferenceList(false) <RIGHT_PAREN>
 	{
 		groupingCols.setRollup();
 		return groupingCols;
 	}
 |
-	groupingCols = groupingColumnReferenceList()
+	groupingCols = groupingColumnReferenceList(false)
 	{
 		return groupingCols;
 	}
@@ -11441,21 +11451,21 @@ groupByClause() throws StandardException :
 }
 
 GroupByList
-groupingColumnReferenceList() throws StandardException :
+groupingColumnReferenceList(boolean fromPartitionBy) throws StandardException :
 {
 	GroupByList groupingCols = (GroupByList) nodeFactory.getNode(
 									C_NodeTypes.GROUP_BY_LIST,
 									getContextManager());
 }
 {
-	groupingColumnReference(groupingCols) ( <COMMA> groupingColumnReference(groupingCols) ) *
+	groupingColumnReference(groupingCols, fromPartitionBy) ( <COMMA> groupingColumnReference(groupingCols, fromPartitionBy) ) *
 	{
 		return groupingCols;
 	}
 }
 
 void
-groupingColumnReference(GroupByList groupingCols) throws StandardException :
+groupingColumnReference(GroupByList groupingCols, boolean fromPartitionBy) throws StandardException :
 {
         ValueNode columnExpression;
 }
@@ -11470,7 +11480,17 @@ groupingColumnReference(GroupByList groupingCols) throws StandardException :
 		{
 			throw StandardException.newException(SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
 		}
-		
+
+        if (!fromPartitionBy) {
+		    visitor =
+        	        new HasNodeVisitor(GroupingFunctionNode.class);
+                    columnExpression.accept(visitor);
+            if (visitor.hasNode())
+            {
+                throw StandardException.newException(SQLState.LANG_GROUPING_FUNCTION_CONTEXT_ERROR, "GROUPBY");
+            }
+         }
+
         // Look for user-defined aggregates too. At the parsing stage,
         // they appear as function calls. Look for function calls
         // inside the expression and mark them so that at bind() time
@@ -16784,6 +16804,7 @@ nonReservedKeyword()  :
 	|	tok = <FORTRAN>
 	|   tok = <FRACTION>
 	|	tok = <GENERATED>
+	|   tok = <GROUPING>
 	|   tok = <HFILE>
 	|	tok = <IDENTITY_VAL_LOCAL>
 	|	tok = <IGNORE>

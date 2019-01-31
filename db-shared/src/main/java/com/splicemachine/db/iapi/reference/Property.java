@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1348,5 +1348,31 @@ public interface Property {
 	 */
 	String MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED =
 			"derby.database.matchStmtCacheIgnoreCommentOptimizationEnabled";
+	
+	/**
+	 * The maximum number of IN list items the optimizer is allowed to generate by combining
+	 * IN lists involving index or primary key columns into a single multicolumn IN list.
+	 */
+	String MAX_MULTICOLUMN_PROBE_VALUES =
+		"derby.database.maxMulticolumnProbeValues";
+	
+	/**
+	 * If true, allow conversion of single-column IN lists into a multicolumn IN list
+	 * for use as a probe predicate when executing on Spark.  By default, this
+	 * optimization is only used on control because the greater number of union
+	 * operations on Spark leads to worse performance.
+	 *
+	 */
+	String MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED =
+		"derby.database.multicolumnInlistProbeOnSparkEnabled";
+	
+	/**
+	 * If false, disable conversion of multicolumn equality DNF predicates to
+	 * a multicolumn in list, e.g. (a=1 and b=1) or (a=2 and b=3) ==> (a,b) IN ((1,1), (2,3)).
+	 * By default, this rewrite is enabled.
+	 */
+	String CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST =
+		"derby.database.convertMultiColumnDNFPredicatesToInList";
 
+	String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
 }

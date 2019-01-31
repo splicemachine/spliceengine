@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -16,9 +16,11 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBit;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -33,6 +35,8 @@ public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> e
     protected boolean initialized;
     protected GroupedAggregateOperation op;
     protected int[] groupColumns;
+    protected int groupingIdColumnPosition;
+    protected SQLBit[] groupingIdVals;
 
     public GroupedAggregateRollupFlatMapFunction() {
         super();
@@ -48,6 +52,8 @@ public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> e
             initialized = true;
             op = (GroupedAggregateOperation) getOperation();
             groupColumns = op.groupedAggregateContext.getGroupingKeys();
+            groupingIdColumnPosition = op.groupedAggregateContext.getGroupingIdColumnPosition();
+            groupingIdVals = op.groupedAggregateContext.getGroupingIdVals();
         }
         ExecRow[] rollupRows = new ExecRow[groupColumns.length + 1];
         int rollUpPos = groupColumns.length;
@@ -57,6 +63,8 @@ public class GroupedAggregateRollupFlatMapFunction<Op extends SpliceOperation> e
             rollupRows[pos] = nextRow;
             if (rollUpPos > 0) {
                 nextRow = nextRow.getClone();
+                DataValueDescriptor groupingIdCol = nextRow.getColumn(groupingIdColumnPosition + 1);
+                groupingIdCol.setValue(groupingIdVals[pos]);
                 DataValueDescriptor rollUpCol = nextRow.getColumn(groupColumns[rollUpPos - 1] + 1);
                 rollUpCol.setToNull();
             }

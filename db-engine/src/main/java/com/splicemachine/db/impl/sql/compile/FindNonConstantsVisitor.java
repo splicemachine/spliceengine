@@ -25,39 +25,71 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.iapi.sql.dictionary;
 
-public class BackupFileSetDescriptor extends TupleDescriptor {
+package com.splicemachine.db.impl.sql.compile;
 
-    private String backupItem;
-    private String regionName;
-    private String fileName;
-    private boolean include;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 
-    public BackupFileSetDescriptor(String backupItem, String regionName, String fileName, boolean include) {
-        this.backupItem = backupItem;
-        this.regionName = regionName;
-        this.fileName = fileName;
-        this.include = include;
+
+/**
+ * Created by msirek on 2018-12-18.
+ */
+public class FindNonConstantsVisitor implements Visitor 
+{
+    private boolean nonConstantsFound = false;
+
+    public FindNonConstantsVisitor()
+    {
+        
     }
 
-    public String getBackupItem() {
-        return backupItem;
+    ////////////////////////////////////////////////
+    //
+    // VISITOR INTERFACE
+    //
+    ////////////////////////////////////////////////
+
+
+    public Visitable visit(Visitable node, QueryTreeNode parent)
+        throws StandardException
+    {
+        if (node instanceof ColumnReference ||
+            node instanceof ResultSetNode ||
+            node instanceof NextSequenceNode)
+        {
+            nonConstantsFound = true;
+        }
+
+        return node;
     }
 
-    public String getRegionName() {
-        return regionName;
+    /**
+     * No need to go below a Predicate or ResultSet.
+     *
+     * @return Whether or not to go below the node.
+     */
+    public boolean skipChildren(Visitable node)
+    {
+        return (nonConstantsFound ||
+                node instanceof ColumnReference ||
+                node instanceof ResultSetNode);
     }
 
-    public String getFileName() {
-        return fileName;
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
     }
 
-    public boolean shouldInclude() {
-        return include;
+    public boolean stopTraversal()
+    {
+        return nonConstantsFound;
     }
-}
+
+    public boolean getNonConstantsFound() { return nonConstantsFound; }
+}    

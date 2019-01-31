@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -6217,7 +6217,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 int catalogNumber=noncoreCtr+NUM_CORE;
                 boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
-                makeCatalog(ti,isDummy?sysIBMSchemaDesc:systemSchemaDesc,tc);
+                if (ti != null) {
+                    makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc);
+                }
                 if(isDummy)
                     populateSYSDUMMY1(tc);
                 // Clear the table entry for this non-core table,
@@ -6231,8 +6233,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 System.exit(1);
             }
         }
-
-
     }
 
 
@@ -7375,13 +7375,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     retval=new TabInfoImpl(new SYSBACKUPRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSBACKUPFILESET_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSBACKUPFILESETRowFactory(luuidFactory,exFactory,dvf));
+                    retval=null;
                     break;
                 case SYSBACKUPITEMS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSBACKUPJOBS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSBACKUPJOBSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=null;
                     break;
                 case SYSCOLUMNSTATS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSCOLUMNSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
@@ -7405,8 +7405,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     retval=new TabInfoImpl(new SYSTOKENSRowFactory(luuidFactory,exFactory,dvf));
                     break;
             }
-            initSystemIndexVariables(retval);
-            noncoreInfo[nonCoreNum]=retval;
+            if (retval != null) {
+                initSystemIndexVariables(retval);
+                noncoreInfo[nonCoreNum] = retval;
+            }
         }
 
         return retval;
@@ -10349,21 +10351,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1, new SQLLongint(backupId));
         ti.deleteRow(tc, keyRow, SYSBACKUPITEMSRowFactory.SYSBACKUPITEMS_INDEX1_ID);
     }
-
-    @Override
-    public void addBackupJob(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
-        TabInfoImpl ti=getNonCoreTI(SYSBACKUPJOBS_CATALOG_NUM);
-        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
-        int insertRetCode=ti.insertRow(row,tc);
-    }
-
-    @Override
-    public void deleteBackupJob(long jobId, TransactionController tc) throws StandardException {
-        TabInfoImpl ti=getNonCoreTI(SYSBACKUPJOBS_CATALOG_NUM);
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1, new SQLLongint(jobId));
-        ti.deleteRow(tc, keyRow, SYSBACKUPJOBSRowFactory.SYSBACKUPJOBS_INDEX1_ID);
-}
 
     @Override
     public void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException

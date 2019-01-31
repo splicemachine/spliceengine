@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -18,7 +18,10 @@ import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -194,8 +197,8 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             List<Tuple2<Long, byte[][]>> cutPoints = null;
             if (!skipSampling) {
                 if (sampleFraction == 0) {
-                    SConfiguration sConfiguration = HConfiguration.getConfiguration();
-                    sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                    LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+                    sampleFraction = BulkLoadUtils.getSampleFraction(lcc);
                 }
                 DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
 

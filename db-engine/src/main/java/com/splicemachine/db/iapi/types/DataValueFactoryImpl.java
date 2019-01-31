@@ -25,33 +25,30 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.RegisteredFormatIds;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.SQLState;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
+import java.sql.*;
 import java.text.Collator;
 import java.text.RuleBasedCollator;
-import java.util.Properties;
 import java.util.Locale;
-import com.splicemachine.db.iapi.db.DatabaseContext;
-import com.splicemachine.db.iapi.services.context.ContextService;
+import java.util.Properties;
 
 /**
  * Core implementation of DataValueFactory. Does not implement
@@ -1240,7 +1237,8 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             BLOB(StoredFormatIds.SQL_BLOB_ID),
             BIT(StoredFormatIds.SQL_BIT_ID),
             ROW_LOCATION(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID),
-            ARRAY(StoredFormatIds.SQL_ARRAY_ID);
+            ARRAY(StoredFormatIds.SQL_ARRAY_ID),
+            LIST(StoredFormatIds.LIST_ID);
 
             private final int storedFormatId;
 

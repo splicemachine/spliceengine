@@ -1042,7 +1042,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @Override
     public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
-        return new SparkTableSamplerBuilder(this);
+        return new SparkTableSamplerBuilder(this, this.context);
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -911,28 +911,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(1)
                             .ownerClass(TimestampAdmin.class.getCanonicalName())
-                            .build());
-
-                    /*
-                     * Procedure to schedule a daily backup job
-                     */
-                    procedures.add(Procedure.newBuilder().name("SYSCS_SCHEDULE_DAILY_BACKUP")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                            .varchar("directory", 32672)
-                            .varchar("type", 32672)
-                            .integer("hour")
-                            .build());
-
-                    /*
-                     * Procedure to cancel a daily backup job
-                     */
-                    procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_DAILY_BACKUP")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                            .bigint("jobId")
                             .build());
 
                     /*

@@ -25,13 +25,11 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.compile;
-
-import java.util.List;
 
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -47,7 +45,11 @@ import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.*;
+
+import java.util.List;
+
+import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.FunctionType;
+import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromString;
 /**
  * An Aggregate Node is a node that reprsents a set function/aggregate.
  * It used for all system aggregates as well as user defined aggregates.
@@ -356,6 +358,7 @@ public class AggregateNode extends UnaryOperatorNode
 			// Also forbid any window function inside an aggregate unless in
 			// subquery, cf. SQL 2003, section 10.9, SR 7 a).
 			SelectNode.checkNoWindowFunctions(operand, aggregateName);
+			SelectNode.checkNoGroupingFunctions(operand, aggregateName);
 
 			/*
 			** Check the type of the operand.  Make sure that the user

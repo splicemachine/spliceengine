@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -216,6 +216,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
 		  case C_NodeTypes.BOOLEAN_CONSTANT_NODE:
 		  	return C_NodeNames.BOOLEAN_CONSTANT_NODE_NAME;
+			
+		  case C_NodeTypes.LIST_VALUE_NODE:
+		    return C_NodeNames.LIST_VALUE_NODE_NAME;
 
 		  case C_NodeTypes.AND_NODE:
 		  	return C_NodeNames.AND_NODE_NAME;
@@ -590,6 +593,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.RANK_FUNCTION_NODE:
                 return C_NodeNames.RANK_FUNCTION_NAME;
+
+			case C_NodeTypes.GROUPING_FUNCTION_NODE:
+				return C_NodeNames.GROUPING_FUNCTION_NODE_NAME;
 
           case C_NodeTypes.CREATE_SEQUENCE_NODE:
             return C_NodeNames.CREATE_SEQUENCE_NODE_NAME;

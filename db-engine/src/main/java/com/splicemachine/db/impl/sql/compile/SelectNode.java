@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -128,6 +128,16 @@ public class SelectNode extends ResultSetNode{
 
         if(visitor.hasNode()){
             throw StandardException.newException( SQLState.LANG_WINDOW_FUNCTION_CONTEXT_ERROR, clauseName);
+        }
+    }
+
+    public static void checkNoGroupingFunctions(QueryTreeNode clause, String clauseName) throws StandardException{
+        // Clause cannot contain grouping function except inside subqueries
+        HasNodeVisitor visitor=new HasNodeVisitor(GroupingFunctionNode.class, SubqueryNode.class);
+        clause.accept(visitor);
+
+        if(visitor.hasNode()){
+            throw StandardException.newException( SQLState.LANG_GROUPING_FUNCTION_CONTEXT_ERROR, clauseName);
         }
     }
 
@@ -550,6 +560,7 @@ public class SelectNode extends ResultSetNode{
             getCompilerContext().popCurrentPrivType();
 
             checkNoWindowFunctions(whereClause,"WHERE");
+            checkNoGroupingFunctions(whereClause, "WHERE");
         }
 
         if(havingClause!=null){
@@ -611,6 +622,9 @@ public class SelectNode extends ResultSetNode{
         if((groupByList!=null || !selectAggregates.isEmpty())){
             VerifyAggregateExpressionsVisitor visitor= new VerifyAggregateExpressionsVisitor(groupByList);
             resultColumns.accept(visitor);
+        } else {
+            // non aggregate query should not contain GROUPING function
+            checkNoGroupingFunctions(resultColumns, "SELECT");
         }
     }
 
@@ -949,8 +963,9 @@ public class SelectNode extends ResultSetNode{
 		/* A valid group by without any aggregates or a having clause
 		 * is equivalent to a distinct without the group by.  We do the transformation
 		 * in order to simplify the group by code.
+		 * The conversion cannot be done if it is a rollup
 		 */
-        if(groupByList!=null && havingClause==null && !hasAggregatesInSelectList() && whereAggregates.isEmpty()){
+        if(groupByList!=null && !groupByList.isRollup() && havingClause==null && !hasAggregatesInSelectList() && whereAggregates.isEmpty()){
             isDistinct=true;
             groupByList=null;
             wasGroupBy=true;
