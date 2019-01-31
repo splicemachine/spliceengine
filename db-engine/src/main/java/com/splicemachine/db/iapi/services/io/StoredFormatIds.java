@@ -1514,6 +1514,9 @@ public interface StoredFormatIds {
 
     public static final int ACCESS_B2I_V6_ID =
             (MIN_ID_2 + 479);
+
+    public static final int ACCESS_B2I_V7_ID =
+            (MIN_ID_2 + 480);
     /******************************************************************
     **
     ** PropertyConglomerate

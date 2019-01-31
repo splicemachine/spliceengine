@@ -18,6 +18,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -55,6 +56,10 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     protected boolean hasCollatedTypes;
     protected long nextContainerId=System.currentTimeMillis();
     protected long containerId = -1l;
+
+    private ExecRow execRow;
+    private boolean pax;  // True if this conglomerate has PAX format.
+
 
     protected TxnOperationFactory opFactory;
     protected PartitionFactory partitionFactory;
@@ -253,4 +258,17 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         throw new UnsupportedOperationException("Not Implemented");
     }
 
+    public void setTemplate(ExecRow execRow) {
+        this.execRow = execRow;
+    }
+
+    public ExecRow getTemplate() {
+        return execRow;
+    }
+
+    public boolean isPAX() { return pax; }
+
+    public void setPAX(boolean newValue) {
+        pax = newValue;
+    }
 }

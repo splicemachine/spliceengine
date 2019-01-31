@@ -293,11 +293,4 @@ public interface Conglomerate extends Storable, DataValueDescriptor
             TransactionManager              xact_manager,
             Transaction                     rawtran)
             throws StandardException;
-
-    void setTemplate(ExecRow execRow);
-
-    ExecRow getTemplate();
-
-    boolean isPAX();
-    void setPAX(boolean newValue);
 }

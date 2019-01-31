@@ -26,6 +26,7 @@ import java.util.ServiceLoader;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Preconditions;
 
@@ -225,9 +226,13 @@ public class ConglomerateUtils{
                                           String indexDisplayName,
                                           byte[][] splitKeys,
                                           ExecRow execRow) throws StandardException{
-        conglomerate.setTemplate(execRow);    // msirek-temp
-        if ("MWS".equals(schemaDisplayName))  // msirek-temp
-            conglomerate.setPAX(true);        // msirek-temp
+
+        if ("MWS".equals(schemaDisplayName) &&
+            conglomerate instanceof SpliceConglomerate) {// msirek-temp
+            SpliceConglomerate sc = (SpliceConglomerate)conglomerate;
+            sc.setTemplate(execRow);    // msirek-temp
+            sc.setPAX(true);        // msirek-temp
+        }
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,-1, splitKeys, execRow);
     }
 
@@ -240,9 +245,13 @@ public class ConglomerateUtils{
                                           long partitionSize,
                                           byte[][] splitKeys,
                                           ExecRow execRow) throws StandardException{
-        conglomerate.setTemplate(execRow);    // msirek-temp
-        if ("MWS".equals(schemaDisplayName))  // msirek-temp
-            conglomerate.setPAX(true);        // msirek-temp
+
+        if ("MWS".equals(schemaDisplayName) &&
+            conglomerate instanceof SpliceConglomerate) { // msirek-temp
+            SpliceConglomerate sc = (SpliceConglomerate)conglomerate;
+            sc.setTemplate(execRow);    // msirek-temp
+            sc.setPAX(true);        // msirek-temp
+        }
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,schemaDisplayName, tableDisplayName,indexDisplayName,partitionSize, splitKeys, execRow);
     }
 

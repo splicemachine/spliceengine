@@ -56,7 +56,7 @@ import java.util.Properties;
 
 public class IndexConglomerate extends SpliceConglomerate{
     private static final Logger LOG=Logger.getLogger(IndexConglomerate.class);
-    public static final int FORMAT_NUMBER=StoredFormatIds.ACCESS_B2I_V6_ID;
+    public static final int FORMAT_NUMBER=StoredFormatIds.ACCESS_B2I_V7_ID;
     public static final String PROPERTY_UNIQUE_WITH_DUPLICATE_NULLS="uniqueWithDuplicateNulls";
     private static final long serialVersionUID=4l;
     protected static final String PROPERTY_BASECONGLOMID="baseConglomerateId";
@@ -386,7 +386,7 @@ public class IndexConglomerate extends SpliceConglomerate{
      */
 
     public int getTypeFormatId(){
-        return StoredFormatIds.ACCESS_B2I_V6_ID;
+        return StoredFormatIds.ACCESS_B2I_V7_ID;
     }
 
 
@@ -444,7 +444,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         writeExternal_v10_2(out);
         if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V4_ID
                 || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID
-                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID){
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V7_ID){
             // Now append sparse array of collation ids
             ConglomerateUtil.writeCollationIdArray(collation_ids,out);
         }
@@ -464,20 +465,24 @@ public class IndexConglomerate extends SpliceConglomerate{
         if(LOG.isTraceEnabled())
             LOG.trace("writeExternal");
         writeExternal_v10_3(out);
-        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID)
+        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID ||
+            conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID ||
+            conglom_format_id==StoredFormatIds.ACCESS_B2I_V7_ID)
             out.writeBoolean(isUniqueWithDuplicateNulls());
         int len=(columnOrdering!=null && columnOrdering.length>0)?columnOrdering.length:0;
         out.writeInt(len);
         if(len>0){
             ConglomerateUtil.writeFormatIdArray(columnOrdering,out);
         }
-        boolean writeTemplate = getTemplate() != null &&
+        if (conglom_format_id==StoredFormatIds.ACCESS_B2I_V7_ID) {
+            boolean writeTemplate = getTemplate() != null &&
                 getTemplate() instanceof ValueRow;
-        out.writeBoolean(writeTemplate);
-        if (writeTemplate) {
-            out.writeObject(getTemplate());
+            out.writeBoolean(writeTemplate);
+            if (writeTemplate) {
+                out.writeObject(getTemplate());
+            }
+            out.writeBoolean(isPAX());
         }
-        out.writeBoolean(isPAX());
     }
 
     /**
@@ -518,7 +523,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         setUniqueWithDuplicateNulls(false);
         if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V4_ID
                 || conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID
-                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID){
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID
+                || conglom_format_id==StoredFormatIds.ACCESS_B2I_V7_ID ){
             // current format id, read collation info from disk
             if(SanityManager.DEBUG){
                 // length must include row location column and at least
@@ -540,17 +546,21 @@ public class IndexConglomerate extends SpliceConglomerate{
                         "Unexpected format id: "+conglom_format_id);
             }
         }
-        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID || conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID){
+        if(conglom_format_id==StoredFormatIds.ACCESS_B2I_V5_ID ||
+            conglom_format_id==StoredFormatIds.ACCESS_B2I_V6_ID ||
+            conglom_format_id==StoredFormatIds.ACCESS_B2I_V7_ID){
             setUniqueWithDuplicateNulls(in.readBoolean());
         }
         int len=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(len,in);
-        boolean readTemplate = in.readBoolean();
-        if (readTemplate) {
-            setTemplate((ExecRow)in.readObject());
-        }
-        setPAX(in.readBoolean());
 
+        if (conglom_format_id==StoredFormatIds.ACCESS_B2I_V7_ID) {
+            boolean readTemplate = in.readBoolean();
+            if (readTemplate) {
+                setTemplate((ExecRow) in.readObject());
+            }
+            setPAX(in.readBoolean());
+        }
         partitionFactory =SIDriver.driver().getTableFactory();
         opFactory = SIDriver.driver().getOperationFactory();
     }
