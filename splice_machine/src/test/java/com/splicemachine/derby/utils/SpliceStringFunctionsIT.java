@@ -223,6 +223,20 @@ public class SpliceStringFunctionsIT {
     }
 
     @Test
+    public void testConcatAliasFunction() throws Exception {
+	    String sCell1 = null;
+	    String sCell2 = null;
+	    ResultSet rs;
+
+	    rs = methodWatcher.executeQuery("SELECT a CONCAT b, c from " + tableWatcherD);
+	    while (rs.next()) {
+            sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell2, sCell1);
+	    }
+    }
+
+    @Test
     public void testReges() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select count(*) from d where REGEXP_LIKE(a, 'aa*')");
         rs.next();
