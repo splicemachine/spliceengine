@@ -98,6 +98,35 @@ public class CostEstimationIT extends SpliceUnitTest {
         spliceClassWatcher.executeUpdate(format("CALL SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS('%s', '%s', null, '%s')",
                 spliceSchemaWatcher.toString(), "T2", "\\x94"));
 
+
+        new TableCreator(conn)
+                .withCreate("create table t3 (a3 int, b3 int, c3 int, d3 int, primary key (a3, c3))")
+                .withInsert("insert into t3 values(?,?,?,?)")
+                .withRows(rows(
+                        row(1,1,1,1),
+                        row(1,2,2,2),
+                        row(1,3,3,3),
+                        row(1,4,4,4),
+                        row(1,5,5,5),
+                        row(1,6,6,6),
+                        row(1,7,7,7),
+                        row(1,8,8,8),
+                        row(1,9,9,9),
+                        row(1,10,10,10)))
+                .create();
+
+        factor = 10;
+        for (int i = 1; i <= 8; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t3 select a3, b3+%1$d,c3+%1$d, d3 from t3", factor));
+            factor = factor * 2;
+        }
+
+        new TableCreator(conn)
+                .withCreate("create table t4 (a4 int, b4 int, c4 int, d4 int, primary key (a4, b4))")
+                .create();
+
+        spliceClassWatcher.executeUpdate("insert into t4 select * from t3");
+
         try(PreparedStatement ps = spliceClassWatcher.getOrCreateConnection().
                 prepareStatement("analyze schema " + CLASS_NAME)) {
             ps.execute();
@@ -189,5 +218,18 @@ public class CostEstimationIT extends SpliceUnitTest {
                         "on a2=a3 where a1=a2 and a1=90", methodWatcher,
                 "outputRows=1", "outputRows=1", "outputRows=1", "outputRows=219", "outputRows=219", "outputRows=18", "outputRows=20", "outputRows=18", "outputRows=270");
 
+    }
+
+    @Test
+    public void testMergeJoinWithVeryNonUniqueJoinCondition() throws Exception {
+        // though both source tables are sorted on X.a4=Y.a4, a4 is a very non-unique column (in this case, it has only one value).
+        // c4 is a very unique column, but it is not part of the PK that merge join can make use of, so merge join is not attractive
+        // for this query
+        thirdRowContainsQuery("explain select * from t4 as X, t4 as Y where X.a4=Y.a4 and X.c4=Y.c4","BroadcastJoin",methodWatcher);
+    }
+
+    @Test
+    public void testMergeJoinWithVeryUniqueJoinCondition() throws Exception {
+        thirdRowContainsQuery("explain select * from t3 as X, t3 as Y where X.a3=Y.a3 and X.c3=Y.c3","MergeJoin",methodWatcher);
     }
 }

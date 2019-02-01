@@ -33,7 +33,9 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
@@ -53,23 +55,61 @@ public class SelectivityUtil {
         OUTER, INNER, ANTIJOIN
     }
 
+    public enum JoinPredicateType {
+        MERGE_SEARCH, /* join conditions on index columns that can be used for merge join to search for matching rows */
+        HASH_SEARCH,  /* join conditions that can be used for hash-based joins (like broadcast, sortmerge) to search for matching rows, they should be equality join conditions */
+        ALL   /* all join conditions, equality or not */
+    }
+
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                             OptimizablePredicateList predList,
                             long innerRowCount,long outerRowCount,
-                            CostEstimate outerCost) throws StandardException {
+                            CostEstimate outerCost,
+                            JoinPredicateType predicateType) throws StandardException {
         if (outerCost.isOuterJoin())
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.OUTER);
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.OUTER, predicateType);
         else if (outerCost.isAntiJoin())
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.ANTIJOIN);
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.ANTIJOIN, predicateType);
         else
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.INNER);
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.INNER, predicateType);
     }
 
+
+    private static boolean isTheRightJoinPredicate(Predicate p, JoinPredicateType predicateType) {
+        if (p == null || !p.isJoinPredicate())
+            return false;
+
+        // only equality join conditions can be used for hashable joins to search for matching rows
+        if (predicateType == JoinPredicateType.HASH_SEARCH || predicateType == JoinPredicateType.MERGE_SEARCH) {
+            ValueNode valueNode = p.getAndNode().getLeftOperand();
+            if (valueNode instanceof BinaryRelationalOperatorNode) {
+                BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) valueNode;
+                if (bron.getOperator() != RelationalOperator.EQUALS_RELOP) {
+                    return false;
+                }
+
+                // only equality join condition without expression on index column can be used by merge join to search for matching rows
+                if (predicateType == JoinPredicateType.MERGE_SEARCH) {
+                    if (p.getIndexPosition() < 0) {
+                        return false;
+                    } else {
+                        if (!(bron.getLeftOperand() instanceof ColumnReference) ||
+                                !(bron.getRightOperand() instanceof ColumnReference))
+                            return false;
+                    }
+                }
+            } else
+                return false;
+        }
+
+        return true;
+    }
 
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                                                  OptimizablePredicateList predList,
                                                  long innerRowCount,long outerRowCount,
-                                                 SelectivityJoinType selectivityJoinType) throws StandardException {
+                                                 SelectivityJoinType selectivityJoinType,
+                                                 JoinPredicateType predicateType) throws StandardException {
 
         assert innerTable!=null:"Null values passed in to estimateJoinSelectivity " + innerTable ;
         assert innerTable!=null:"Null values passed in to hashJoinSelectivity";
@@ -87,7 +127,9 @@ public class SelectivityUtil {
         if (predList != null) {
             for (int i = 0; i < predList.size(); i++) {
                 Predicate p = (Predicate) predList.getOptPredicate(i);
-                if (!p.isJoinPredicate()) continue;
+                if (!isTheRightJoinPredicate(p, predicateType))
+                    continue;
+
                 selectivity = Math.min(selectivity, p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType));
             }
         }
@@ -100,14 +142,16 @@ public class SelectivityUtil {
         }
         return selectivity;
     }
-    public static double estimateScanSelectivity(Optimizable innerTable, OptimizablePredicateList predList) throws StandardException {
+    public static double estimateScanSelectivity(Optimizable innerTable, OptimizablePredicateList predList, JoinPredicateType predicateType) throws StandardException {
         double selectivity = 1d;
         if (innerTable == null) {
             return selectivity;
         }
         for (int i = 0; i < predList.size(); i++) {
             Predicate p = (Predicate) predList.getOptPredicate(i);
-            if (!p.isJoinPredicate()) continue;
+            if (!isTheRightJoinPredicate(p, predicateType))
+                continue;
+
             selectivity *= p.scanSelectivity(innerTable);
         }
 
@@ -226,91 +270,4 @@ public class SelectivityUtil {
                 (innerRowCount<1.0d?1.0d:innerRowCount);
     }
 
-    /**
-     *
-     * Broadcast Join Local Cost Computation
-     *
-     * Total Cost = (Left Side Cost/Partition Count) + Right Side Cost + Right Side Transfer Cost + Open Cost + Close Cost + 0.1
-     *
-     * @param innerCost
-     * @param outerCost
-     * @return
-     */
-    public static double broadcastJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
-        return (outerCost.localCostPerPartition())+innerCost.localCost()+innerCost.remoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost()+.01; // .01 Hash Cost//
-    }
-
-    /**
-     *
-     * Merge Join Local Cost Computation
-     *
-     * Total Cost = (Left Side Cost + Right Side Cost + Right Side Remote Cost)/Left Side Partition Count) + Open Cost + Close Cost
-     *
-     * @param innerCost
-     * @param outerCost
-     * @return
-     */
-
-    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty) {
-        if (outerTableEmpty) {
-            return (outerCost.localCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
-        }
-        else
-            return outerCost.localCostPerPartition()+innerCost.localCostPerPartition()+innerCost.remoteCost()/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
-    }
-
-    /**
-     *
-     * Merge Sort Join Local Cost Computation
-     *
-     * Total Cost = Max( (Left Side Cost+ReplicationFactor*Left Transfer Cost)/Left Number of Partitions),
-     *              (Right Side Cost+ReplicationFactor*Right Transfer Cost)/Right Number of Partitions)
-     *
-     * Replication Factor Based
-     *
-     * @param innerCost
-     * @param outerCost
-     * @return
-     */
-    public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
-        double outerShuffleCost = outerCost.localCostPerPartition()+outerCost.getRemoteCost()/outerCost.partitionCount()
-                +outerCost.getOpenCost()+outerCost.getCloseCost();
-        double innerShuffleCost = innerCost.localCostPerPartition()+innerCost.getRemoteCost()/innerCost.partitionCount()
-                +innerCost.getOpenCost()+innerCost.getCloseCost();
-        double outerReadCost = outerCost.localCost()/outerCost.partitionCount();
-        double innerReadCost = innerCost.localCost()/outerCost.partitionCount();
-
-        return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost;
-    }
-
-    /**
-     *
-     * Half Merge Sort Join Local Cost Computation
-     *
-     * Total Cost = (Left Side Cost + Right Side Cost + Right Side Remote Cost)/Left Side Partition Count) + Open Cost + Close Cost
-     *
-     * Replication Factor Based
-     *
-     * @param innerCost
-     * @param outerCost
-     * @return
-     */
-    public static double halfMergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double replicationFactor) {
-        return 1.1*((outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost())/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost());
-    }
-
-    /**
-     *
-     * Nested Loop Join Local Cost Computation
-     *
-     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Left Side Row Count/Left Side Partition Count)*(Right Side Cost + Right Side Transfer Cost)
-     *
-     * @param innerCost
-     * @param outerCost
-     * @return
-     */
-
-    public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
-        return outerCost.localCostPerPartition() + (outerCost.rowCount()/outerCost.partitionCount())*(innerCost.localCost()+innerCost.getRemoteCost());
-    }
 }
