@@ -232,8 +232,8 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                 valueA.readExternal(objectInputStream);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-                Assert.assertEquals("Incorrect Precision", 5, valueA.precision);
-                Assert.assertEquals("Incorrect Scale", 2, valueA.scale);
+                Assert.assertEquals("Incorrect Precision", -1, valueA.precision);
+                Assert.assertEquals("Incorrect Scale", -1, valueA.scale);
 
                 objectInputStream.close();
                 objectOutputStream.close();
