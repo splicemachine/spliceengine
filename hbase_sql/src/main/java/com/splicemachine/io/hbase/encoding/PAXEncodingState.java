@@ -215,6 +215,7 @@ public class PAXEncodingState extends EncodingState {
         LOG.error(String.format("End Block Encoding with rows=%d, time(ms)=%d, treeSize(bytes)=%d, columnarSize(bytes)=%d, format=%s",counter, System.currentTimeMillis()-beginMillis,daos.size(), out.size()-daos.size()-4, writtenExecRow));
         daos.close();
         radixTree.destroy(); // Critical, will leak memory if you do not do this...
+        radixTree = null;
     }
 
 }
