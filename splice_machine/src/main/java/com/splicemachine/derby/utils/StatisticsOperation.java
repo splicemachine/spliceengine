@@ -35,6 +35,9 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.SQLDecimal;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
@@ -66,6 +69,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
     protected boolean useSample;
     protected double sampleFraction;
     private boolean mergeStats;
+    protected DataTypeDescriptor[] dtds;
 
     // serialization
     public StatisticsOperation(){}
@@ -81,6 +85,11 @@ public class StatisticsOperation extends SpliceBaseOperation {
         if (useSample) {
             scanSetBuilder.useSample(useSample).sampleFraction(sampleFraction);
         }
+    }
+    public StatisticsOperation(ScanSetBuilder scanSetBuilder, boolean useSample, double sampleFraction, boolean mergeStats, String scope, Activation activation, DataTypeDescriptor[] dataTypeDescriptors) throws StandardException {
+        this(scanSetBuilder, useSample, sampleFraction, mergeStats, scope, activation);
+        this.dtds = dataTypeDescriptors;
+        this.scanSetBuilder.template(buildTemplateRow(dtds));
     }
 
     @Override
@@ -196,6 +205,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         out.writeBoolean(useSample);
         out.writeDouble(sampleFraction);
         out.writeBoolean(mergeStats);
+        out.writeObject(dtds);
     }
 
     @Override
@@ -206,6 +216,12 @@ public class StatisticsOperation extends SpliceBaseOperation {
         useSample = in.readBoolean();
         sampleFraction = in.readDouble();
         mergeStats = in.readBoolean();
+        dtds = (DataTypeDescriptor[]) in.readObject();
+        try {
+            scanSetBuilder.template(buildTemplateRow(dtds));
+        } catch (StandardException se) {
+            throw new IOException(se.getMessage(),se);
+        }
     }
 
     public double getSampleFraction() {
@@ -214,5 +230,15 @@ public class StatisticsOperation extends SpliceBaseOperation {
 
     public boolean getUseSample() {
         return useSample;
+    }
+
+    private ExecRow buildTemplateRow(DataTypeDescriptor[] dataTypeDescriptors)  throws StandardException{
+        ExecRow row = new ValueRow(dataTypeDescriptors.length);
+        int outputCol = 0;
+        for (DataTypeDescriptor dtd : dataTypeDescriptors) {
+            row.setColumn(outputCol + 1, dtd.getNull());
+            outputCol++;
+        }
+        return row;
     }
 }
