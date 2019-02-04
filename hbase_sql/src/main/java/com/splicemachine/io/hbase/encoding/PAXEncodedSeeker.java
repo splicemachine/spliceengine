@@ -17,15 +17,15 @@ import com.splicemachine.art.ReadOnlyArt;
 import com.splicemachine.art.node.Base;
 import com.splicemachine.orc.OrcRecordReader;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellComparator;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoder;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTimeZone;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+
+import static java.nio.ByteBuffer.allocate;
 
 /**
  *
@@ -40,6 +40,7 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
 //    protected ByteBuffer buffer;
     private ReadOnlyArt readOnlyArt;
     private Iterator<ByteBuffer[]> rowIterator;
+    private Iterator<ByteBuffer[]> reverseIterator;
     private Cell currentCell;
     private LazyColumnarSeeker lazyColumnarSeeker;
     public PAXEncodedSeeker(boolean includeMvccVersion) {
@@ -72,16 +73,18 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
 
     @Override
     public ByteBuffer getKeyDeepCopy() {
+        if (currentCell == null)
+            return ByteBuffer.allocate(0);
         ByteBuffer byteBuffer = ByteBuffer.wrap(currentCell.getRowArray(),currentCell.getRowOffset(),currentCell.getRowLength());
         return byteBuffer.duplicate();
     }
 
     @Override
     public ByteBuffer getValueShallowCopy() {
+        if (currentCell == null)
+            return ByteBuffer.allocate(0);
         return ByteBuffer.wrap(currentCell.getRowArray(),currentCell.getRowOffset(),currentCell.getRowLength());
     }
-
-
 
     @Override
     public Cell getKeyValue() {
@@ -122,6 +125,27 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
         }
     }
 
+    private boolean prev() {
+        try {
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "prev");
+            if (!reverseIterator.hasNext()) {
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "seeker#exhausted");
+                currentCell = null;
+                return false;
+            }
+            ByteBuffer[] value = reverseIterator.next();
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "tree fetch key=%s, position=%d", Base.toHex(value[0].array()), Bytes.toInt(value[1].array()));
+            int rowPosition = Base.U.getInt(value[1].array(),24L);
+            currentCell = new PAXActiveCell(rowPosition,value[0].array(),lazyColumnarSeeker,Base.U.getLong(value[1].array(),16L));
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
         public int seekToKeyInBlock(byte[] key, int offset, int length, boolean seekBefore) {
         //SpliceLogUtils.error(LOG,"seek to key in block seekBefore=%s, key=%s",seekBefore,Base.toHex(key,offset,length));
@@ -129,11 +153,9 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
             SpliceLogUtils.trace(LOG,"seek to key in block seekBefore=%s, key=%s",seekBefore,Base.toHex(key,offset,length));
         try {
             if (seekBefore) {
-                Iterator<ByteBuffer[]> reverseIterator = readOnlyArt.getReverseIterator(key, offset, length, null, 0, 0);
-                if (reverseIterator.next() == null) {
-
-
-                }
+                reverseIterator = readOnlyArt.getReverseIterator(key, offset, length, null, 0, 0);
+                prev();
+                return 1;
             } else {
                 rowIterator = readOnlyArt.getIterator(key, offset, length, null, 0, 0);
                 next();
@@ -150,13 +172,14 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
             SpliceLogUtils.trace(LOG,"seek to key in block cellKey=%s",Base.toHex(key.getRowArray(),key.getRowOffset(),key.getRowLength()));
         try {
             byte[] gen = PAXEncodingState.genRowKey(key);
-            seekToKeyInBlock(key == null ? null : gen, key == null ? 0 : 0, key == null ? 0 : gen.length, seekBefore);
+            int retCode = seekToKeyInBlock(key == null ? null : gen, key == null ? 0 : 0, key == null ? 0 : gen.length, seekBefore);
+            /* msirek-temp  Is this needed?
             if (currentCell != null && CellComparator.compareRows(key.getRowArray(),key.getRowOffset(),key.getRowLength(),
                     currentCell.getRowArray(),currentCell.getRowOffset(),currentCell.getRowLength()) == 0) {
                 if (currentCell.getTimestamp() > key.getTimestamp())
                     next();
-            }
-            return 0;
+            } */
+            return retCode;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -164,12 +187,22 @@ public class PAXEncodedSeeker implements DataBlockEncoder.EncodedSeeker {
 
     @Override
     public int compareKey(KeyValue.KVComparator comparator, byte[] key, int offset, int length) {
+        if (currentCell == null) {
+            if (key == null)
+                return 0;
+            return 1;
+        }
         return comparator.compareFlatKey(key, offset, length,
                 currentCell.getRowArray(), currentCell.getRowOffset(), currentCell.getRowLength());
     }
 
     @Override
     public int compareKey(KeyValue.KVComparator comparator, Cell key) {
+        if (currentCell == null) {
+            if (key == null)
+                return 0;
+            return 1;
+        }
         return comparator.compare(key, currentCell);
     }
 

@@ -63,6 +63,7 @@ public class PAXEncodingState extends EncodingState {
     private static final byte MASK = (byte) 0xff;
     private static Logger LOG = Logger.getLogger(PAXEncodingState.class);
     private ART radixTree;
+    //private ART radixTree2;  // msirek-temp
     private ExecRow execRow;
     private ExecRow writtenExecRow;
     private List<? extends StructField> structFields;
@@ -79,6 +80,17 @@ public class PAXEncodingState extends EncodingState {
     private int[] dataToRetrieve;
     private long beginMillis;
 
+    private static class Entry<K, V> {
+        public K key;
+        public V value;
+        public Entry(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+    }
+    private ArrayList<Entry<byte[], byte[]>> kvList = null;
+
+
     public PAXEncodingState(DataOutputStream out) throws IOException {
         beginMillis = System.currentTimeMillis();
         if (LOG.isDebugEnabled()) {
@@ -94,6 +106,7 @@ public class PAXEncodingState extends EncodingState {
         }
         dataToRetrieve = IntArrays.count(execRow.size());
         radixTree = new SimpleART();
+        //radixTree2 = new SimpleART();
         type = writtenExecRow.createStructType(IntArrays.count(writtenExecRow.size())); // Can we overload this method on execrow...
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"attempting to encode types=%s",type.catalogString());
@@ -104,6 +117,8 @@ public class PAXEncodingState extends EncodingState {
         writer = OrcFile.createWriter(new PAXBlockFileSystem(out),DUMMY_PATH, new Configuration(),oi,268435456, NONE, 262144, 10000);
         structFields = oi.getAllStructFieldRefs();
         counter = 0;
+
+        kvList = new ArrayList<>();
     }
 
     /**
@@ -163,7 +178,8 @@ public class PAXEncodingState extends EncodingState {
                         Bytes.toHex(cell.getRowArray(), cell.getRowOffset(), cell.getRowLength()),cell.getTimestamp());
                 items.add(Bytes.toHex(rowKey, 0, rowKey.length));
             }
-            radixTree.insert(rowKey, 0, rowKey.length, valueBytes, 0, valueBytes.length);
+            kvList.add(new Entry<>(rowKey, valueBytes));
+            //radixTree.insert(rowKey, 0, rowKey.length, valueBytes, 0, valueBytes.length);
             counter++;
            // if ((counter % 10000) == 0)
            //     radixTree.checkTree(); // msirek-temp
@@ -201,21 +217,40 @@ public class PAXEncodingState extends EncodingState {
             SpliceLogUtils.trace(LOG,"Radix Tree:\n%s",radixTree.debugString(false));
         }
         java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-        DataOutputStream daos = new DataOutputStream(baos);
+        //DataOutputStream daos = new DataOutputStream(baos);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"Begin Serialize Tree on thread={%s}",Thread.currentThread().getName());
-        radixTree.serialize(daos);
-        daos.flush();
+        int i = 0;
+        for (Entry<byte[], byte[]> kv : kvList) {
+            i++;
+            //if (i <= 10)
+                radixTree.insert(kv.key, 0, kv.key.length, kv.value, 0, kv.value.length);
+            //else
+               // radixTree2.insert(kv.key, 0, kv.key.length, kv.value, 0, kv.value.length);
+        }
+        //radixTree.serialize(daos);  msirek-temp
+        //daos.flush();
+        radixTree.serialize(out);
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"End Serialize Tree on thread={%s}, bytes=%d",Thread.currentThread().getName(),daos.size());
-        out.writeInt(daos.size());
-        byte[] foo = baos.toByteArray();
-        out.write(foo,0,foo.length);
+            SpliceLogUtils.debug(LOG,"End Serialize Tree on thread={%s}, bytes=%d",Thread.currentThread().getName(),out.size());
+        //out.writeInt(daos.size());
+        //byte[] foo = baos.toByteArray();
+        //out.write(foo,0,foo.length);
         writer.close();
-        LOG.error(String.format("End Block Encoding with rows=%d, time(ms)=%d, treeSize(bytes)=%d, columnarSize(bytes)=%d, format=%s",counter, System.currentTimeMillis()-beginMillis,daos.size(), out.size()-daos.size()-4, writtenExecRow));
-        daos.close();
+        LOG.error(String.format("End Block Encoding with rows=%d, time(ms)=%d, treeSize(bytes)=%d, columnarSize(bytes)=%d, format=%s",counter, System.currentTimeMillis()-beginMillis,out.size(), out.size(), writtenExecRow));
+        //daos.close();
         radixTree.destroy(); // Critical, will leak memory if you do not do this...
         radixTree = null;
+        //radixTree2.destroy(); // Critical, will leak memory if you do not do this...
+        //radixTree2 = null;
+        unsafeRecord = null;
+        hcell = null;
+        oi = null;
+        orcSerializer = null;
+        orcStruct = null;
+        writer = null;
+        structFields = null;
+        kvList = null;
     }
 
 }
