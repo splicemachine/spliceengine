@@ -145,6 +145,10 @@
                     <groupId>net.jpountz.lz4</groupId>
                     <artifactId>lz4</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <!-- Yarn dependencies -->
