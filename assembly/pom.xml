@@ -42,6 +42,7 @@
         <jenkins.build.number>1</jenkins.build.number>
         <parcel.patch>p0.${jenkins.build.number}</parcel.patch>
         <commonArtifacts>
+            adaptive-radix-tree,
             db-client,
             db-tools-i18n,
             db-tools-ij,
