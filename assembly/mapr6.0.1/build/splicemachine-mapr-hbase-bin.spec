@@ -1,7 +1,7 @@
 #
 Summary: Splice Machine HBase binary components for MapR platform
 Name: splicemachine-mapr-hbase-bin
-Version: 2.7.0.1834
+Version: 2.7.0.1850
 Release: 1
 License: AGPL
 Group: SpliceMachine
@@ -38,12 +38,12 @@ mkdir -p -m 755 %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13
 ln -s /opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/ %{buildroot}/opt/splice/default
 
 mkdir -p -m 755 %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/bin/
-install -m 755 %{buildroot}/../../../splice-tarball/bin/sqlshell.sh                             %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/bin/
-install -m 755 %{buildroot}/../../../splice-tarball/scripts/start-hbase.sh                      %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/bin/ 
-install -m 755 %{buildroot}/../../../splice-tarball/scripts/stop-hbase.sh                       %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/bin/
+install -m 755 %{buildroot}/../../../splice1850-tarball/bin/sqlshell.sh                             %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/bin/
+install -m 755 %{buildroot}/../../../splice1850-tarball/scripts/start-hbase.sh                      %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/bin/ 
+install -m 755 %{buildroot}/../../../splice1850-tarball/scripts/stop-hbase.sh                       %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/bin/
 
 mkdir -p -m 755 %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/lib/
-install -m 644 %{buildroot}/../../../splice-tarball/lib/*.jar                                   %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/lib/
+install -m 644 %{buildroot}/../../../splice1850-tarball/lib/*.jar                                   %{buildroot}/opt/splice/SPLICEMACHINE-%{version}.mapr6.0.1.p1.13/lib/
 
 mkdir -p -m 755 %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/logs/
 mkdir -p -m 755 %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/bin/
@@ -122,21 +122,22 @@ ln -s /opt/splice/default/lib/javax.servlet-api-3.1.0.jar                       
 /opt/mapr/hbase/hbase-1.1.8-splice/hbase-webapps/thrift/WEB-INF/web.xml
 /opt/mapr/hbase/hbase-1.1.8-splice/hbase-webapps/thrift/index.html
 /opt/mapr/hbase/hbase-1.1.8-splice/lib/*.jar
-%dir /opt/mapr/hbase/hbase-1.1.8-splice/logs
 /opt/splice/default
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/bin/sqlshell.sh
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/bin/start-hbase.sh
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/bin/stop-hbase.sh
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/db-client-2.7.0.1834-SNAPSHOT.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/db-drda-2.7.0.1834-SNAPSHOT.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/db-shared-2.7.0.1834-SNAPSHOT.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/db-tools-i18n-2.7.0.1834-SNAPSHOT.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/db-tools-ij-2.7.0.1834-SNAPSHOT.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/javax.servlet-api-3.1.0.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/javax.ws.rs-api-2.0.1.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/jython-standalone-2.5.3.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/splice_machine-assembly-uber.jar
-/opt/splice/SPLICEMACHINE-2.7.0.1834.mapr6.0.1.p1.13/lib/splice_machine-assembly-yarn-webproxy.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/bin/sqlshell.sh
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/bin/start-hbase.sh
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/bin/stop-hbase.sh
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/db-client-2.7.0.1850-SNAPSHOT.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/db-drda-2.7.0.1850-SNAPSHOT.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/db-shared-2.7.0.1850-SNAPSHOT.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/db-tools-i18n-2.7.0.1850-SNAPSHOT.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/db-tools-ij-2.7.0.1850-SNAPSHOT.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/javax.servlet-api-3.1.0.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/javax.ws.rs-api-2.0.1.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/jython-standalone-2.5.3.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/splice_machine-assembly-uber.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/splice_machine-assembly-yarn-webproxy.jar
+/opt/splice/SPLICEMACHINE-2.7.0.1850.mapr6.0.1.p1.13/lib/splicemachine-mapr6.0.1-2.2.1-mapr-1808_2.11-2.7.0.1850-SNAPSHOT.jar
+
 
 %pre
 %post

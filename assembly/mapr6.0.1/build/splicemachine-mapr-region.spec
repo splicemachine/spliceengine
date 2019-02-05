@@ -1,7 +1,7 @@
 
 Summary: Splice Machine binary components for MapR platform
 Name: splicemachine-mapr-region
-Version: 2.7.0.1834
+Version: 2.7.0.1850
 Release: 1
 License: AGPL
 Group: SpliceMachine

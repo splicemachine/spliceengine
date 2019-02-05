@@ -1,6 +1,6 @@
 
-Summary: Splice Machine HBase configuration files for MapR platform
-Name: splicemachine-mapr-hbase-conf
+Summary: Splice Machine HBase configuration files for Secure MapR platform
+Name: splicemachine-mapr-hbase-secure-conf
 Version: 2.7.0.1850
 Release: 1
 License: AGPL
@@ -11,8 +11,8 @@ BuildArch: noarch
 URL: https://doc.splicemachine.com/onprem_install_intro.html
 Vendor: Splice Machine, Inc.
 Packager: Murray Brown <mbrown@splicemachine.com>
-Provides: splicemachine-hbase-config
-Conflicts: splicemachine-hbase-secure-config
+Provides: splicemachine-hbase-secure-config
+Conflicts: splicemachine-hbase-config
 Requires: splicemachine-hbase-binary
 
 %description
@@ -42,8 +42,8 @@ install -m 755 %{buildroot}/../../../templates/mapr-splice-hbase-config.sh   %{b
 mkdir -p %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/bin
 install -m 755 %{buildroot}/../../../templates/hbase-daemon.sh               %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/bin/
 mkdir -p %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/conf
-install -m 644 %{buildroot}/../../../templates/hbase-site.xml                %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/conf/
-install -m 744 %{buildroot}/../../../templates/hbase-env.sh                  %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/conf/
+install -m 644 %{buildroot}/../../../templates/hbase-site.secure.xml         %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/conf/hbase-site.xml
+install -m 744 %{buildroot}/../../../templates/hbase-env.secure.sh           %{buildroot}/opt/mapr/hbase/hbase-1.1.8-splice/conf/hbase-env.sh
 
 %files
 %config %attr(-, mapr, mapr) /opt/mapr/conf/mapr-splice-hbase-config.sh
