@@ -23,6 +23,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -30,6 +31,10 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
@@ -84,7 +89,34 @@ public class DeleteOperation extends DMLWriteOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        DataSet set = source.getDataSet(dsp).shufflePartitions();
+        DataSet set;
+        int[] expectedUpdatecounts = null;
+        if (activation.isBatched()) {
+            List<DataSet> sets = new LinkedList<>();
+            List<Integer> counts = new ArrayList<>();
+            do {
+                Pair<DataSet, Integer> pair = source.getDataSet(dsp).materialize();
+                sets.add(pair.getFirst());
+                counts.add(pair.getSecond());
+            } while (activation.nextBatchElement());
+
+            expectedUpdatecounts = new int[sets.size()];
+            Iterator<Integer> it = counts.iterator();
+            for (int i = 0; i < expectedUpdatecounts.length; ++i) {
+                expectedUpdatecounts[i] = it.next();
+            }
+
+            while (sets.size() > 1) {
+                DataSet left = sets.remove(0);
+                DataSet right = sets.remove(0);
+                sets.add(left.union(right, operationContext));
+            }
+
+            set = sets.get(0);
+        } else {
+            set = source.getDataSet(dsp);
+        }
+        set = set.shufflePartitions();
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
 		operationContext.pushScope();
@@ -100,6 +132,7 @@ public class DeleteOperation extends DMLWriteOperation {
                 dataSetWriterBuilder = set.deleteData(operationContext);
             }
             DataSetWriter dataSetWriter = dataSetWriterBuilder
+                    .updateCounts(expectedUpdatecounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn).build();

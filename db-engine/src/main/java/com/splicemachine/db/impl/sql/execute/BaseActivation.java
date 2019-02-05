@@ -61,12 +61,15 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.utils.Pair;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Vector;
 
 /**
@@ -1699,4 +1702,46 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         scanKeys = keys;
     }
 
+
+	@Override
+	public boolean isBatched() {
+		return params != null && params.hasNext() && ps != null;
+	}
+
+	@Override
+	public boolean nextBatchElement() throws StandardException {
+		if (!params.hasNext())
+			return false;
+		
+		ParameterValueSet temp = params.next();
+
+		int numberOfParameters = temp.getParameterCount();
+
+		for (int j = 0; j < numberOfParameters; j++) {
+			try {
+				temp.getParameter(j).setInto(ps, j + 1);
+			} catch (SQLException e) {
+				throw StandardException.plainWrapException(e);
+			}
+		}
+
+		getLanguageConnectionContext().logNextBatch(
+				temp
+		);
+		return true;
+	}
+
+	private Iterator<ParameterValueSet> params;
+	private PreparedStatement ps;
+
+	@Override
+	public void setBatch(Iterator<ParameterValueSet> params, PreparedStatement ps) {
+		this.params = params;
+		this.ps = ps;
+	}
+
+	@Override
+	public Pair<PreparedStatement, Iterator<ParameterValueSet>> getBatch() {
+		return Pair.newPair(ps, params);
+	}
 }

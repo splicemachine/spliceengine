@@ -33,6 +33,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,12 +44,14 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
     private final ControlDataSet<ExecRow> dataSet;
     private final OperationContext operationContext;
     private final AbstractPipelineWriter<ExecRow> pipelineWriter;
+    private final int[] updateCounts;
     private static final Logger LOG = Logger.getLogger(ControlDataSetWriter.class);
 
-    public ControlDataSetWriter(ControlDataSet<ExecRow> dataSet,AbstractPipelineWriter<ExecRow> pipelineWriter,OperationContext opContext){
+    public ControlDataSetWriter(ControlDataSet<ExecRow> dataSet, AbstractPipelineWriter<ExecRow> pipelineWriter, OperationContext opContext, int[] updateCounts){
         this.dataSet=dataSet;
         this.operationContext=opContext;
         this.pipelineWriter=pipelineWriter;
+        this.updateCounts = updateCounts;
     }
 
     @Override
@@ -100,6 +103,18 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                         throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
                     }
                 }
+            }
+            if (updateCounts != null) {
+                int total = 0;
+                List<ExecRow> rows = new ArrayList<>();
+                for (int count : updateCounts) {
+                    total += count;
+                    ValueRow valueRow = new ValueRow(1);
+                    valueRow.setColumn(1, new SQLLongint(count));
+                    rows.add(valueRow);
+                }
+                assert total == recordsWritten;
+                return new ControlDataSet<>(rows.iterator());
             }
             ValueRow valueRow=null;
             if (badRecords > 0) {

@@ -59,6 +59,10 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -364,8 +368,35 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 ((NormalizeOperation) source).setRequireNotNull(false);
             }
         }
-        DataSet set=source.getDataSet(dsp).shufflePartitions();
+        DataSet set;
         OperationContext operationContext=dsp.createOperationContext(this);
+        int[] expectedUpdatecounts = null;
+        if (activation.isBatched()) {
+            List<DataSet> sets = new LinkedList<>();
+            List<Integer> counts = new ArrayList<>();
+            do {
+                Pair<DataSet, Integer> pair = source.getDataSet(dsp).materialize();
+                sets.add(pair.getFirst());
+                counts.add(pair.getSecond());
+            } while (activation.nextBatchElement());
+
+            expectedUpdatecounts = new int[sets.size()];
+            Iterator<Integer> it = counts.iterator();
+            for(int i = 0; i < expectedUpdatecounts.length; ++i) {
+                expectedUpdatecounts[i] = it.next();
+            }
+
+            while(sets.size() > 1) {
+                DataSet left = sets.remove(0);
+                DataSet right = sets.remove(0);
+                sets.add(left.union(right, operationContext));
+            }
+            
+            set = sets.get(0);
+        } else {
+            set=source.getDataSet(dsp);
+        }
+        set = set.shufflePartitions();
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
         if(insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
@@ -419,6 +450,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .sampleFraction(sampleFraction)
                     .pkCols(pkCols)
                     .tableVersion(tableVersion)
+                    .updateCounts(expectedUpdatecounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn)

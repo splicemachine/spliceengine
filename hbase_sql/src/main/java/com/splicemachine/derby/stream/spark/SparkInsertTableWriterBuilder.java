@@ -69,6 +69,7 @@ public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder
                 spliceSequences,
                 heapConglom,
                 isUpsert,
-                sampleFraction);
+                sampleFraction,
+                updateCounts);
     }
 }

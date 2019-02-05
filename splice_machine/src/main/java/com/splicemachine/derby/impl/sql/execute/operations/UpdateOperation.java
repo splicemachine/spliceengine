@@ -32,11 +32,16 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author jessiezhang
@@ -170,7 +175,34 @@ public class UpdateOperation extends DMLWriteOperation{
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        DataSet set=source.getDataSet(dsp).shufflePartitions();
+        DataSet set;
+        int[] expectedUpdatecounts = null;
+        if (activation.isBatched()) {
+            List<DataSet> sets = new LinkedList<>();
+            List<Integer> counts = new ArrayList<>();
+            do {
+                Pair<DataSet, Integer> pair = source.getDataSet(dsp).materialize();
+                sets.add(pair.getFirst());
+                counts.add(pair.getSecond());
+            } while (activation.nextBatchElement());
+
+            expectedUpdatecounts = new int[sets.size()];
+            Iterator<Integer> it = counts.iterator();
+            for (int i = 0; i < expectedUpdatecounts.length; ++i) {
+                expectedUpdatecounts[i] = it.next();
+            }
+
+            while (sets.size() > 1) {
+                DataSet left = sets.remove(0);
+                DataSet right = sets.remove(0);
+                sets.add(left.union(right, operationContext));
+            }
+
+            set = sets.get(0);
+        } else {
+            set = source.getDataSet(dsp);
+        }
+        set = set.shufflePartitions();
         OperationContext operationContext=dsp.createOperationContext(this);
         TxnView txn=getCurrentTransaction();
         ExecRow execRow=getExecRowDefinition();
@@ -186,6 +218,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
                     .heapList(getHeapListStorage())
                     .tableVersion(tableVersion)
+                    .updateCounts(expectedUpdatecounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn)
