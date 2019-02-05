@@ -246,6 +246,20 @@ public class HBaseConnectionFactory{
                         com.splicemachine.si.constants.SIConstants.SEQUENCE_TABLE_NAME+" created");
             }
 
+            if(!admin.tableExists(TableName.valueOf(namespace, HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME))){
+                HTableDescriptor td=generateNonSITable(HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
+                admin.createTable(td);
+                SpliceLogUtils.info(LOG,
+                        HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME + " created");
+            }
+
+            if(!admin.tableExists(TableName.valueOf(namespace, HConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME))){
+                HTableDescriptor td=generateNonSITable(HConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME);
+                admin.createTable(td);
+                SpliceLogUtils.info(LOG,
+                        HConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME + " created");
+            }
+
             return true;
         }catch(Exception e){
             SpliceLogUtils.error(LOG,"Unable to set up HBase Tables",e);
