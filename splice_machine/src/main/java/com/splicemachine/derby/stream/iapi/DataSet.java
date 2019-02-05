@@ -21,6 +21,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOp
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.*;
+import com.splicemachine.utils.Pair;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -34,6 +35,8 @@ public interface DataSet<V> extends //Iterable<V>,
         Serializable {
 
     int partitions();
+
+    Pair<DataSet, Integer> materialize();
 
     public enum JoinType {
         INNER("inner"),

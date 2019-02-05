@@ -133,6 +133,8 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 false, // sendRslsetflg
                 0, // resultSetFlag
                 false, // sendQryrowset
+                0,
+                false,
                 0);               // qryrowset
 
         if (numInputColumns > 0) {
@@ -141,6 +143,49 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
             }
 
             boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
+                    parameterMetaData,
+                    inputs);
+
+            // can we eleminate the chain argument needed for lobs
+            buildEXTDTA(parameterMetaData, inputs, chained);
+        }
+    }
+
+    // Write the message to execute  prepared sql statement.
+    //
+    // preconditions:
+    public void writeExecuteBatch(NetPreparedStatement materialPreparedStatement,
+                             Section section,
+                             ColumnMetaData parameterMetaData,
+                             Object[] inputs,
+                             int numInputColumns,
+                             boolean outputExpected,
+                             boolean chained) throws SqlException  // chained flag for blobs only  //dupqry
+    {
+
+        buildEXCSQLSTT(section,
+                true, // sendOutexp
+                outputExpected, // outexp
+                false, // sendPrcnam
+                null, // prcnam
+                false, // sendQryblksz
+                false, // sendMaxrslcnt,
+                0, // maxrslcnt,
+                false, // sendMaxblkext
+                0, // maxblkext
+                false, // sendRslsetflg
+                0, // resultSetFlag
+                false, // sendQryrowset
+                0,
+                true,
+                inputs.length);               // qryrowset
+
+        if (numInputColumns > 0) {
+            if ((extdtaPositions_ != null) && (!extdtaPositions_.isEmpty())) {
+                extdtaPositions_.clear();  // reset extdta column position markers
+            }
+
+            boolean overrideExists = buildSQLDTAcommandDataBatch(numInputColumns,
                     parameterMetaData,
                     inputs);
 
@@ -282,7 +327,9 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 true, // sendRslsetflg
                 calculateResultSetFlags(), // resultSetFlag
                 sendQryrowset, // sendQryrowset
-                fetchSize);      // qryrowset
+                fetchSize,
+                false,
+                0);      // qryrowset
 
         if (numParameters > 0) {
             if ((extdtaPositions_ != null) && (!extdtaPositions_.isEmpty())) {
@@ -453,12 +500,17 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                         boolean sendRslsetflg,
                         int resultSetFlag,
                         boolean sendQryrowset,
-                        int qryrowset) throws SqlException {
+                        int qryrowset,
+                        boolean sendNbrrow,
+                        int nbrrow) throws SqlException {
         createCommand();
         markLengthBytes(CodePoint.EXCSQLSTT);
 
         buildPKGNAMCSN(section);
         buildRDBCMTOK();
+        if (sendNbrrow) {
+            buildNBRROW(nbrrow);
+        }
         if (sendOutexp) {
             buildOUTEXP(outexp);
         }
@@ -546,6 +598,55 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         }
 
         return overrideExists;
+    }
+
+
+    // Build the SQL Program Variable Data Command Data Object.
+    // This object contains the input data to an SQL statement
+    // that an RDB is executing.
+    //
+    // preconditions:
+    boolean buildSQLDTAcommandDataBatch(int numInputColumns,
+                                   ColumnMetaData parameterMetaData,
+                                   Object[] inputRows) throws SqlException {
+        createEncryptedCommandData();
+
+        int loc = buffer.position();
+
+        markLengthBytes(CodePoint.SQLDTA);
+
+        int[][] protocolTypesAndLengths = allocateLidAndLengthsArray(parameterMetaData);
+
+        java.util.Hashtable protocolTypeToOverrideLidMapping = null;
+        java.util.ArrayList mddOverrideArray = null;
+        protocolTypeToOverrideLidMapping =
+                computeProtocolTypesAndLengths((Object[]) inputRows[0], parameterMetaData, protocolTypesAndLengths,
+                        protocolTypeToOverrideLidMapping);
+
+        boolean overrideExists = false;
+
+        buildFDODSC(numInputColumns,
+                protocolTypesAndLengths,
+                overrideExists,
+                protocolTypeToOverrideLidMapping,
+                mddOverrideArray);
+
+        for (Object inputRow : inputRows) {
+            buildFDODTA(numInputColumns,
+                    protocolTypesAndLengths,
+                    (Object[]) inputRow);
+        }
+
+        updateLengthBytes(); // for sqldta
+        if (netAgent_.netConnection_.getSecurityMechanism() ==
+                NetConfiguration.SECMEC_EUSRIDDTA ||
+                netAgent_.netConnection_.getSecurityMechanism() ==
+                        NetConfiguration.SECMEC_EUSRPWDDTA) {
+            encryptDataStream(loc);
+        }
+
+        return overrideExists;
+
     }
 
     // Build the FDOCA Data Descriptor Scalar whose value is a FDOCA
@@ -1604,6 +1705,16 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         if (maxNumOfExtraBlocks != 0) {
             writeScalar2Bytes(CodePoint.MAXBLKEXT, maxNumOfExtraBlocks);
         }
+    }
+
+    // Number of Input Rows (NBRROW) specifies the number of rows to input for multi-row input.
+    // For a multi-row input operation, any null row counts towards the total number of rows for a
+    // multi-row input operation as indicated by NBRROW.
+    //
+    // preconditions:
+    //   sqlam must support this parameter on the command, method will not check.
+    void buildNBRROW(int numberOfInputRows) throws SqlException {
+        writeScalar4Bytes(CodePoint.NBRROW, numberOfInputRows);
     }
 
     // preconditions:

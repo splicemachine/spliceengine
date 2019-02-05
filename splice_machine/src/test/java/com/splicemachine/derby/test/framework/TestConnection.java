@@ -88,6 +88,7 @@ public class TestConnection implements Connection{
     @Override
     public void close() throws SQLException {
         closeStatements();
+        rollback();
         delegate.close();
     }
 

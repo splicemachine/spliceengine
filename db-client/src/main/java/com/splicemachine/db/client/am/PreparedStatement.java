@@ -1866,6 +1866,25 @@ public class PreparedStatement extends Statement
                 chainedWritesFollowingSetLob);
     }
 
+    public void writeExecuteBatch(Section section,
+                             ColumnMetaData parameterMetaData,
+                             Object[] inputs,
+                             int numInputColumns,
+                             boolean outputExpected,
+                             // This is a hint to the material layer that more write commands will follow.
+                             // It is ignored by the driver in all cases except when blob data is written,
+                             // in which case this boolean is used to optimize the implementation.
+                             // Otherwise we wouldn't be able to chain after blob data is sent.
+                             // Current servers have a restriction that blobs can only be chained with blobs
+                             boolean chainedWritesFollowingSetLob) throws SqlException {
+        materialPreparedStatement_.writeExecuteBatch_(section,
+                parameterMetaData,
+                inputs,
+                numInputColumns,
+                outputExpected,
+                chainedWritesFollowingSetLob);
+    }
+
 
     public void readExecute() throws SqlException {
         materialPreparedStatement_.readExecute_();
@@ -2318,40 +2337,62 @@ public class PreparedStatement extends Statement
             timeoutSent = true;
         }
 
-        for (int i = 0; i < batchSize; i++) {
+        boolean useBatchExecution = sqlMode_ != isCall__ && batchSize > 1 && !connection_.autoCommit_;
+
+        if (useBatchExecution) {
             if (parameterMetaData_ != null) {
-                parameterMetaData_.clientParamtertype_ = (int[]) parameterTypeList.get(i);
-                parameters_ = (Object[]) batch_.get(i);
+                parameterMetaData_.clientParamtertype_ = (int[]) parameterTypeList.get(0);
             }
-            
-            if (sqlMode_ != isCall__) {
-                boolean outputExpected;
-                try {
-                    outputExpected = (resultSetMetaData_ != null && resultSetMetaData_.getColumnCount() > 0);
-                } catch ( SQLException se ) {
-                    throw new SqlException(se);
+            boolean outputExpected;
+            try {
+                outputExpected = (resultSetMetaData_ != null && resultSetMetaData_.getColumnCount() > 0);
+            } catch (SQLException se) {
+                throw new SqlException(se);
+            }
+            updateCounts_ = new int[batchSize];
+            updateCount_ = -1;
+            writeExecuteBatch(section_,
+                    parameterMetaData_,
+                    batch_.toArray(),
+                    numInputColumns,
+                    outputExpected,
+                    chainAutoCommit);  // more statements to chain
+        } else {
+            for (int i = 0; i < batchSize; i++) {
+                if (parameterMetaData_ != null) {
+                    parameterMetaData_.clientParamtertype_ = (int[]) parameterTypeList.get(i);
+                    parameters_ = (Object[]) batch_.get(i);
                 }
 
-                writeExecute(section_,
-                        parameterMetaData_,
-                        parameters_,
-                        numInputColumns,
-                        outputExpected,
-                        chainAutoCommit || (i != batchSize - 1));  // more statements to chain
-            } else if (outputRegistered_) // make sure no output parameters are registered
-            {
-                throw new BatchUpdateException(agent_.logWriter_, 
-                    new ClientMessageId(SQLState.OUTPUT_PARAMS_NOT_ALLOWED),
-                    updateCounts);
-            } else {
-                writeExecuteCall(false, // no output expected for batched CALLs
-                        null, // no procedure name supplied for prepared CALLs
-                        section_,
-                        fetchSize_,
-                        true, // suppress ResultSets for batch
-                        resultSetType_,
-                        parameterMetaData_,
-                        parameters_);
+                if (sqlMode_ != isCall__) {
+                    boolean outputExpected;
+                    try {
+                        outputExpected = (resultSetMetaData_ != null && resultSetMetaData_.getColumnCount() > 0);
+                    } catch (SQLException se) {
+                        throw new SqlException(se);
+                    }
+
+                    writeExecute(section_,
+                            parameterMetaData_,
+                            parameters_,
+                            numInputColumns,
+                            outputExpected,
+                            chainAutoCommit || (i != batchSize - 1));  // more statements to chain
+                } else if (outputRegistered_) // make sure no output parameters are registered
+                {
+                    throw new BatchUpdateException(agent_.logWriter_,
+                            new ClientMessageId(SQLState.OUTPUT_PARAMS_NOT_ALLOWED),
+                            updateCounts);
+                } else {
+                    writeExecuteCall(false, // no output expected for batched CALLs
+                            null, // no procedure name supplied for prepared CALLs
+                            section_,
+                            fetchSize_,
+                            true, // suppress ResultSets for batch
+                            resultSetType_,
+                            parameterMetaData_,
+                            parameters_);
+                }
             }
         }
 
@@ -2377,16 +2418,23 @@ public class PreparedStatement extends Statement
         }
 
         try {
-            for (int i = 0; i < batchSize; i++) {
-                agent_.setBatchedExceptionLabelIndex(i);
-                parameters_ = (Object[]) batch_.get(i);
-                if (sqlMode_ != isCall__) {
-                    readExecute();
-                } else {
-                    readExecuteCall();
-                }
-                updateCounts[i] = updateCount_;
 
+            if (useBatchExecution) {
+                agent_.setBatchedExceptionLabelIndex(0);
+                parameters_ = (Object[]) batch_.get(0);
+                readExecute();
+                System.arraycopy(updateCounts_, 0, updateCounts, 0, updateCounts_.length);
+            } else {
+                for (int i = 0; i < batchSize; i++) {
+                    agent_.setBatchedExceptionLabelIndex(i);
+                    parameters_ = (Object[]) batch_.get(i);
+                    if (sqlMode_ != isCall__) {
+                        readExecute();
+                    } else {
+                        readExecuteCall();
+                    }
+                    updateCounts[i] = updateCount_;
+                }
             }
 
             agent_.disableBatchedExceptionTracking(); // to prvent the following readCommit() from getting a batch label
@@ -2408,6 +2456,7 @@ public class PreparedStatement extends Statement
             chainBreaker.setNextException(new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.BATCH_CHAIN_BREAKING_EXCEPTION)));
         }
+
         // We need to clear the batch before any exception is thrown from agent_.endBatchedReadChain().
         batch_.clear();
         parameterTypeList = null;

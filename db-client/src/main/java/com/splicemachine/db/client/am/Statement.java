@@ -60,6 +60,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
 
     // Use -1, if there is no update count returned, ie. when result set is returned. 0 is a valid update count for DDL.
     int updateCount_ = -1;
+    int[] updateCounts_ = null;
     int returnValueFromProcedure_;
 
     // Enumeration of the flavors of statement execute call used.
@@ -1612,7 +1613,11 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
             agent_.accumulateReadException(new SqlException(agent_.logWriter_, sqlca));
             returnValueFromProcedure_ = sqlcode;
         } else {
-            updateCount_ = sqlca.getUpdateCount();
+            if (updateCounts_ != null) {
+                updateCounts_[++updateCount_] = sqlca.getUpdateCount();
+            } else {
+                updateCount_ = sqlca.getUpdateCount();
+            }
             // sometime for call statement, protocol will return updateCount_, we will always set that to 0
             // sqlMode_ is not set for statements, only for prepared statements
             if (sqlMode_ == isCall__) {
