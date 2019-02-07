@@ -45,7 +45,7 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
-    public void restoreDatabase(String directory,long backupId, boolean sync, boolean validate, String timestamp)throws StandardException {
+    public void restoreDatabase(String directory,long backupId, boolean sync, boolean validate, String timestamp, long txnId)throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
 

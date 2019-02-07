@@ -176,7 +176,7 @@ public class BackupSystemProcedures {
      * @throws SQLException
      */
     public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, boolean validate, ResultSet[] resultSets) throws StandardException, SQLException {
-        restoreDatabase(directory, backupId, validate, null, resultSets);
+        restoreDatabase(directory, backupId, validate, null, -1, resultSets);
     }
 
     /**
@@ -192,13 +192,25 @@ public class BackupSystemProcedures {
                                                            boolean validate,
                                                            String timestamp,
                                                            ResultSet[] resultSets) throws StandardException, SQLException {
-        restoreDatabase(directory, backupId, validate, timestamp, resultSets);
+        restoreDatabase(directory, backupId, validate, timestamp, -1, resultSets);
+    }
+
+    public static void SYSCS_RESTORE_DATABASE_TO_TRANSACTION(String directory,
+                                                           long backupId,
+                                                           boolean validate,
+                                                           long transactionId,
+                                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        if (transactionId > backupId) {
+            throw StandardException.newException(SQLState.RESTORE_TXNID_TOO_LARGE, transactionId);
+        }
+        restoreDatabase(directory, backupId, validate, null, transactionId, resultSets);
     }
 
     private static void restoreDatabase(String directory,
                                         long backupId,
                                         boolean validate,
                                         String timestamp,
+                                        long txnId,
                                         ResultSet[] resultSets) throws StandardException, SQLException {
         IteratorNoPutResultSet inprs = null;
 
@@ -212,7 +224,7 @@ public class BackupSystemProcedures {
                 long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId, true, validate, timestamp);
+            backupManager.restoreDatabase(directory,backupId, true, validate, timestamp, txnId);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {
@@ -323,7 +335,7 @@ public class BackupSystemProcedures {
                 long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId, false, validate, null);
+            backupManager.restoreDatabase(directory,backupId, false, validate, null, -1);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {

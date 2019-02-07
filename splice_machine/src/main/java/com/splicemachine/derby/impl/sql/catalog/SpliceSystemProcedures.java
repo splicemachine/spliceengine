@@ -1102,6 +1102,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("pointInTime", 100)
                             .build());
 
+                    procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TRANSACTION")
+                            .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .varchar("directory", 32672)
+                            .bigint("backupId")
+                            .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .bigint("transactionId")
+                            .build());
+
                     procedures.add(Procedure.newBuilder().name("SYSCS_SAVE_SOURCECODE")
                             .numResultSets(0).numOutputParams(0).modifiesSql()
                             .returnType(null).isDeterministic(false)
