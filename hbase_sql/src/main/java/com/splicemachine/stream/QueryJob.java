@@ -85,7 +85,9 @@ public class QueryJob implements Callable<Void>{
             dsp.setJobGroup(jobName, sql);
             dataset = root.getDataSet(dsp);
             context = dsp.createOperationContext(root);
-            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset.map(new CloneFunction<>(context)).map(new IdentityFunction<>(context));
+            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset
+                    .map(new CloneFunction<>(context))
+                    .map(new IdentityFunction<>(context)); // force materialization into Derby's format
             String clientHost = queryRequest.host;
             int clientPort = queryRequest.port;
             UUID uuid = queryRequest.uuid;

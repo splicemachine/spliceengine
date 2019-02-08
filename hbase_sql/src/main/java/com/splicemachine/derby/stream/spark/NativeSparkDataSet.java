@@ -33,7 +33,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperatio
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
-import com.splicemachine.derby.stream.function.CountWriteFunction;
 import com.splicemachine.derby.stream.function.ExportFunction;
 import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
@@ -381,8 +380,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public DataSet< V> union(DataSet<V> dataSet, OperationContext operationContext, String name, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded((SpliceFunction)null, pushScope, scopeDetail);
         try {
-            Dataset rdd1 = dataset.union(((NativeSparkDataSet) dataSet).dataset);
+            Dataset right = getDataset(dataSet);
+            Dataset rdd1 = dataset.union(right);
             return new NativeSparkDataSet<>(rdd1, operationContext);
+        } catch (Exception se){
+            throw new RuntimeException(se);
         } finally {
             if (pushScope) SpliceSpark.popScope();
         }
@@ -486,6 +488,21 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     }
 
+    private Dataset getDataset(DataSet dataSet) throws StandardException {
+        if (dataSet instanceof NativeSparkDataSet) {
+            return ((NativeSparkDataSet) dataSet).dataset;
+        } else {
+            //Convert the right operand to a untyped dataset
+            return SpliceSpark.getSession()
+                    .createDataFrame(
+                            ((SparkDataSet)dataSet).rdd
+                                    .map(new LocatedRowToRowFunction()),
+                            context.getOperation()
+                                    .getExecRowDefinition()
+                                    .schema());
+        }
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public DataSet< V> intersect(DataSet< V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) {
@@ -495,19 +512,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             Dataset<Row> left = dataset;
 
             //Convert the left operand to a untyped dataset
-            Dataset<Row> right;
-            if (dataSet instanceof NativeSparkDataSet) {
-                right = ((NativeSparkDataSet) dataSet).dataset;
-            } else {
-                //Convert the right operand to a untyped dataset
-                right = SpliceSpark.getSession()
-                        .createDataFrame(
-                                ((SparkDataSet)dataSet).rdd
-                                        .map(new LocatedRowToRowFunction()),
-                                context.getOperation()
-                                        .getExecRowDefinition()
-                                        .schema());
-            }
+            Dataset<Row> right = getDataset(dataSet);
 
             //Do the intesect
             Dataset<Row> result = left.intersect(right);
@@ -537,19 +542,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             Dataset<Row> left = dataset;
 
             //Convert the right operand to a untyped dataset
-            Dataset<Row> right;
-            if (dataSet instanceof NativeSparkDataSet) {
-                right = ((NativeSparkDataSet) dataSet).dataset;
-            } else {
-                right = SpliceSpark.getSession().createDataFrame(
-                        ((SparkDataSet)dataSet).rdd.map(new LocatedRowToRowFunction()),
-                        context.getOperation().getRightOperation().getExecRowDefinition().schema());
-            }
+            Dataset<Row> right = getDataset(dataSet);
 
             //Do the subtract
             Dataset<Row> result = left.except(right);
 
-            //Convert back to RDD<ExecRow>
             return new NativeSparkDataSet<>(result, context);
         }
         catch (Exception se){

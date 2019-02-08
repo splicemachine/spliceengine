@@ -359,9 +359,14 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet< V> union(DataSet<V> dataSet, OperationContext operationContext, String name, boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded((SpliceFunction)null, pushScope, scopeDetail);
         try {
-            JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
-            rdd1.setName(name != null ? name : RDDName.UNION.displayName());
-            return new SparkDataSet<>(rdd1);
+            if (dataSet instanceof SparkDataSet) {
+                JavaRDD rdd1 = rdd.union(((SparkDataSet) dataSet).rdd);
+                rdd1.setName(name != null ? name : RDDName.UNION.displayName());
+                return new SparkDataSet<>(rdd1);
+            } else {
+                // Let the NativeSparkDataset perform the conversion
+                return dataSet.union(this, operationContext);
+            }
         } finally {
             if (pushScope) SpliceSpark.popScope();
         }
@@ -748,6 +753,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             fields[i] = dvds[i].getStructField(colNames[i]);
         }
         StructType tableSchema = DataTypes.createStructType(fields);
+
         dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "a");
 
         if (dataSchema == null)
@@ -757,7 +763,24 @@ public class SparkDataSet<V> implements DataSet<V> {
                 rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowAvroFunction()),
                 dataSchema);
 
-        return new NativeSparkDataSet<>(insertDF, context).writeAvroFile(dsp, partitionBy, location, compression, context);
+
+        // We duplicate the code in NativeSparkDataset.writeAvroFile here to avoid calling  ExternalTableUtils.getDataSchema() twice
+        List<String> partitionByCols = new ArrayList();
+        for (int i = 0; i < partitionBy.length; i++) {
+            partitionByCols.add(dataSchema.fields()[partitionBy[i]].name());
+        }
+        if (partitionBy.length > 0) {
+            List<Column> repartitionCols = new ArrayList();
+            for (int i = 0; i < partitionBy.length; i++) {
+                repartitionCols.add(new Column(dataSchema.fields()[partitionBy[i]].name()));
+            }
+            insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
+        }
+        insertDF.write().option(SPARK_COMPRESSION_OPTION,compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
+                .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
+        ValueRow valueRow=new ValueRow(1);
+        valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
+        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
 
