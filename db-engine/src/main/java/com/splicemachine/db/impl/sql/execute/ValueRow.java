@@ -363,7 +363,10 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	public int hashCode() {
 		if (hash == 0) {
-			hash = MurmurHash3.arrayHashing().hash(column);
+			if (column.length > 0)
+			    hash = MurmurHash3.arrayHashing().hash(column);
+			else
+				hash = 123456789;
 		}
 		return hash;
 	}
