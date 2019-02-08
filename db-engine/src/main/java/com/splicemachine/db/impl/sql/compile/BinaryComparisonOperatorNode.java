@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.util.StringUtil;
 
+import java.sql.Types;
 import java.util.List;
 
 /**
@@ -136,6 +137,8 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 
         TypeId leftTypeId = leftOperand.getTypeId();
 		TypeId rightTypeId = rightOperand.getTypeId();
+		DataTypeDescriptor	leftDTS = leftOperand.getTypeServices();
+		DataTypeDescriptor	rightDTS = rightOperand.getTypeServices();
 
 		/*
 		 * If we are comparing a non-string with a string type, then we
@@ -159,6 +162,18 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 										true,leftOperand.getTypeServices().getMaximumWidth()),
 								getContextManager());
 				((CastNode) rightOperand).bindCastNodeOnly();
+				rightTypeId = rightOperand.getTypeId();
+			}
+			else if (leftTypeId.isNumericTypeId() &&
+				     rightTypeId.isCharOrVarChar()) {
+
+				rightOperand = (ValueNode) getNodeFactory().getNode(
+					C_NodeTypes.CAST_NODE,
+					rightOperand,
+					DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE),
+					getContextManager());
+				((CastNode) rightOperand).bindCastNodeOnly();
+				rightTypeId = rightOperand.getTypeId();
 			}
 		}
 		else if (! rightTypeId.isStringTypeId() && leftTypeId.isStringTypeId())
@@ -174,23 +189,32 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 										rightOperand.getTypeServices().getMaximumWidth()),
 								getContextManager());
 				((CastNode) leftOperand).bindCastNodeOnly();
+				leftTypeId = leftOperand.getTypeId();
+			}
+			else if (rightTypeId.isNumericTypeId() &&
+				     leftTypeId.isCharOrVarChar()) {
+
+				leftOperand = (ValueNode) getNodeFactory().getNode(
+					C_NodeTypes.CAST_NODE,
+					leftOperand,
+					DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE),
+					getContextManager());
+				((CastNode) leftOperand).bindCastNodeOnly();
+				leftTypeId = leftOperand.getTypeId();
 			}
 		}
-		else if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
+		if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
                 (leftTypeId.isDecimalTypeId() && rightTypeId.isIntegerNumericTypeId())) {
 
-            ValueNode decimalOperand = leftTypeId.isDecimalTypeId() ? leftOperand : rightOperand;
-            ValueNode intOperand = leftTypeId.isIntegerNumericTypeId() ? leftOperand : rightOperand;
             TypeId decimalTypeId = leftTypeId.isDecimalTypeId() ? leftTypeId : rightTypeId;
 
             DataTypeDescriptor dty = new DataTypeDescriptor(
                     decimalTypeId,
-                    decimalOperand.getTypeServices().getPrecision(),
-                    decimalOperand.getTypeServices().getScale(),
+				    decimalTypeId.getMaximumPrecision(),
+                    0,
                     true,
-                    decimalOperand.getTypeServices().getMaximumWidth()
+				    decimalTypeId.getMaximumMaximumWidth()
             );
-
 
             // If right side is the decimal then promote the left side integer
             if (rightTypeId.isDecimalTypeId()) {
