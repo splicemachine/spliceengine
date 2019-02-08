@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -69,6 +70,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     public static final SpliceTableWatcher t2= new SpliceTableWatcher("t2",schemaWatcher.schemaName,"(a2 int, b2 int)");
     public static final SpliceTableWatcher s1= new SpliceTableWatcher("s1",schemaWatcher.schemaName,"(a1 int, b1 char(2), c1 char(10), d1 char(10), e1 char(20))");
     public static final SpliceTableWatcher s2= new SpliceTableWatcher("s2",schemaWatcher.schemaName,"(a2 int, b2 boolean, c2 date, d2 time, e2 timestamp)");
+    public static final SpliceTableWatcher s3 = new SpliceTableWatcher("s3", schemaWatcher.schemaName, "(num1 dec(31,1), num2 double, num3 float, num4 real, num5 int)");
 
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
@@ -82,6 +84,28 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             .around(t2)
             .around(s1)
             .around(s2)
+            .around(s3)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try (PreparedStatement ps = classWatcher.prepareStatement("insert into " + s3 + "(num1,num2,num3,num4,num5) values (?,?,?,?,?)")) {
+                        ps.setBigDecimal(1, BigDecimal.ONE);
+                        ps.setDouble(2, Double.valueOf(1));
+                        ps.setFloat(3, Float.valueOf(1));
+                        ps.setFloat(4, Float.valueOf(1));
+                        ps.setInt(5, 1);
+                        ps.execute();
+                        ps.setBigDecimal(1, BigDecimal.valueOf(-1.1));
+                        ps.setDouble(2, Double.valueOf("-1.1"));
+                        ps.setDouble(3, Double.valueOf("-1.1"));
+                        ps.setFloat(4, Float.valueOf("-1.1"));
+                        ps.setInt(5, -1);
+                        ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description){
@@ -258,6 +282,99 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     @BeforeClass
     public static void createDataSet() throws Exception {
         createData(classWatcher.getOrCreateConnection(), schemaWatcher.toString());
+    }
+    
+    @Test
+    public void testNumericColumnsBroadCastJoin() throws Exception {
+
+        String expected = "1 |\n" +
+            "----\n" +
+            " 1 |\n" +
+            " 1 |";
+    
+        String expected2 = "1 |\n" +
+            "----\n" +
+            " 1 |";
+        
+        String sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+            " where tab1.num1=tab2.num2", useSpark
+        );
+
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    
+        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+            " where tab1.num1=tab2.num3", useSpark
+        );
+    
+        rs = classWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    
+        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+            " where tab1.num1=tab2.num4", useSpark
+        );
+    
+        rs = classWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    
+        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+            " where tab1.num1=tab2.num5", useSpark
+        );
+    
+        rs = classWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected2 + "\n,actual result: " + resultString, expected2, resultString);
+        rs.close();
+    
+        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+            " where tab1.num3=tab2.num1", useSpark
+        );
+    
+        rs = classWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    
+        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+            " where tab1.num3=tab2.num2", useSpark
+        );
+    
+        rs = classWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    
+        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+            " where tab1.num3=tab2.num4", useSpark
+        );
+    
+        rs = classWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    
+        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
+            " where tab1.num3=tab2.num5", useSpark
+        );
+    
+        rs = classWatcher.executeQuery(sqlText);
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected2 + "\n,actual result: " + resultString, expected2, resultString);
+        rs.close();
     }
 
     @Test
