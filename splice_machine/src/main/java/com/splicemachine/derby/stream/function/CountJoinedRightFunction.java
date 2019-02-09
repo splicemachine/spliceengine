@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.spark.sql.Dataset;
 
 public class CountJoinedRightFunction extends SpliceFunction {
     public CountJoinedRightFunction() {
@@ -29,4 +30,10 @@ public class CountJoinedRightFunction extends SpliceFunction {
         operationContext.recordJoinedRight();
         return o;
     }
+
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        return true;
+    }
+
 }

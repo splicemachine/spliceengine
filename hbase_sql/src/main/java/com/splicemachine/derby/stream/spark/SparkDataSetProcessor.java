@@ -236,7 +236,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         }
                     });
             SparkUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
-            return new SparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
+            return new SparkDataSet(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException | StandardException ioe) {
             throw new RuntimeException(ioe);
         } finally {
@@ -332,14 +332,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .sample(false, sampleFraction)
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                return new NativeSparkDataSet(table
+                        .sample(false, sampleFraction), context);
             } else {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                return new NativeSparkDataSet(table, context);
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -363,6 +359,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                     return getEmpty();
 
+                StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
+
                 // Infer schema from external files\
                 StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "a");
 
@@ -370,8 +368,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 // Creates a DataFrame from a specified file
                 table = spark.read().schema(dataSchema).format("com.databricks.spark.avro").load(location);
 
-                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+                int i = 0;
+                for (StructField sf : copy.fields()) {
+                    if (sf.dataType().sameType(DataTypes.DateType)) {
+                        String colName = table.schema().fields()[i].name();
+                        table = table.withColumn(colName, table.col(colName).cast(DataTypes.DateType));
+                    }
+                    i++;
+                }
 
+                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
@@ -379,14 +385,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .sample(false, sampleFraction)
-                        .map(new RowToLocatedRowAvroFunction(context,execRow)));
+                return new NativeSparkDataSet(table
+                        .sample(false, sampleFraction), context);
             } else {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .map(new RowToLocatedRowAvroFunction(context, execRow)));
+                return new NativeSparkDataSet(table, context);
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -708,14 +710,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .sample(false, sampleFraction)
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                return new NativeSparkDataSet(table
+                        .sample(false, sampleFraction), context);
             } else {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                return new NativeSparkDataSet(table, context);
             }
         } catch (Exception e) {
             throw StandardException.newException(

@@ -196,7 +196,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.READ);
-                DataSet set4 = set3.values();
+                DataSet set4 = set3.values(operationContext);
                 operationContext.popScope();
 
                 set = set4;
@@ -213,7 +213,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 operationContext.popScope();
 
                 operationContext.pushScopeForOp(OperationContext.Scope.READ);
-                DataSet set4 = set3.values();
+                DataSet set4 = set3.values(operationContext);
                 operationContext.popScope();
 
                 set = set4;
@@ -235,10 +235,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             //Note, groupKeys as input for KeyerFunction is 0-based
             for (int i=0; i<numOfGroupKeys+1; i++)
                 tmpGroupKey[i] = i;
-            set2 = set.keyBy(new KeyerFunction(operationContext, tmpGroupKey));
+            set2 = set.keyBy(new KeyerFunction(operationContext, tmpGroupKey), operationContext);
         }
         else
-            set2 = set.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
+            set2 = set.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()), operationContext);
         operationContext.popScope();
         
         operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
@@ -250,13 +250,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         operationContext.popScope();
         
         operationContext.pushScopeForOp(OperationContext.Scope.READ);
-        DataSet set4 = set3.values(OperationContext.Scope.READ.displayName());
+        DataSet set4 = set3.values(OperationContext.Scope.READ.displayName(), operationContext);
         operationContext.popScope();
 
         //need to stitch the split rows together for multiple aggregates case
         if (hasMultipleDistinct) {
             operationContext.pushScopeForOp(OperationContext.Scope.GROUP_AGGREGATE_KEYER);
-            PairDataSet set6 = set4.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()));
+            PairDataSet set6 = set4.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()), operationContext);
             operationContext.popScope();
 
             operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
@@ -264,7 +264,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             operationContext.popScope();
 
             operationContext.pushScopeForOp(OperationContext.Scope.READ);
-            set4 = set7.values(OperationContext.Scope.READ.displayName());
+            set4 = set7.values(OperationContext.Scope.READ.displayName(), operationContext);
             operationContext.popScope();
         }
         
