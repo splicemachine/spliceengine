@@ -40,7 +40,8 @@ public class IndexRowReaderTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
 
         assertTrue("Expected a max concurrency of 2", irr.getMaxConcurrency() == 2);
 
@@ -56,7 +57,8 @@ public class IndexRowReaderTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
 
         assertTrue("Expected a max concurrency of 2", irr.getMaxConcurrency() == 2);
     }

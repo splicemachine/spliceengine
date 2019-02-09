@@ -131,7 +131,10 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                         String tableVersion,
                                                         String explainPlan,
                                                         GeneratedMethod defaultRowFunc,
-                                                        int defaultValueMapItem)
+                                                        int defaultValueMapItem,
+                                                        boolean useOldIndexLookupMethod,
+                                                        int numThreadsForIndexLookup,
+                                                        int indexBatchSize)
         throws StandardException {
 
         SpliceLogUtils.trace(LOG, "getIndexRowToBaseRowResultSet");
@@ -155,7 +158,10 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedCost,
                     tableVersion,
                     defaultRowFunc,
-                    defaultValueMapItem);
+                    defaultValueMapItem,
+                    useOldIndexLookupMethod,
+                    numThreadsForIndexLookup,
+                    indexBatchSize);
             indexOp.setExplainPlan(explainPlan);
             return indexOp;
         }catch(Exception e){
