@@ -55,6 +55,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -321,10 +322,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			return localValue.toPlainString();
 	}
 
-	public Object	getObject() {
-		/*
-		** BigDecimal is immutable
-		*/
+	public Object getSparkObject() {
+		return getObject();
+	}
+
+	@Override
+	public Object getObject() {
 		return getBigDecimal();
 	}
 
@@ -1285,7 +1288,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	@Override
 	public StructField getStructField(String columnName) {
 		if (precision == -1 || scale == -1) {
-			return DataTypes.createStructField(columnName,DataTypes.createDecimalType(),true);
+			return DataTypes.createStructField(columnName, DecimalType.SYSTEM_DEFAULT(),true);
 		} else {
 			return DataTypes.createStructField(columnName, DataTypes.createDecimalType(precision, scale), true);
 		}

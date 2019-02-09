@@ -90,7 +90,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                                SpliceSequence[] sequences,
                                long heapConglom,
                                boolean isUpsert,
-                               double sampleFraction){
+                               double sampleFraction) throws StandardException {
         this.dataSet = dataSet;
         this.rdd=((SparkPairDataSet) dataSet.index(new EmptySparkPairDataSet<>())).wrapExceptions();
         this.opContext=opContext;

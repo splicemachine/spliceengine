@@ -370,6 +370,18 @@ public class StreamListener<T> extends ChannelInboundHandlerAdapter implements I
     public void completed(OlapResult result) {
         // the olap job completed, we shouldn't block anymore
         canBlock = false;
+        if  (result instanceof QueryResult) {
+            QueryResult qr = (QueryResult) result;
+            if (qr.numPartitions == 0) {
+                // This query was empty, unblock iterator
+                this.numPartitions = 0;
+                for (PartitionState state : partitionStateMap.values()) {
+                    if (state != null) {
+                        state.messages.add(SENTINEL);
+                    }
+                }
+            }
+        }
     }
 
     public void failed(Throwable e) {

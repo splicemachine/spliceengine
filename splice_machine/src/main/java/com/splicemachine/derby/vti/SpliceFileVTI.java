@@ -131,7 +131,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return streamSet.values().flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext), true);
+                return streamSet.values(operationContext).flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext), true);
             }
         } finally {
             operationContext.popScope();
