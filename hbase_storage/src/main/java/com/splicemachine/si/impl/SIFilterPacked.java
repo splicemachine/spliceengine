@@ -76,7 +76,7 @@ public class SIFilterPacked extends FilterBase implements HasPredicateFilter{
         }catch(IOException e){
             throw new RuntimeException(e);
         }
-        if(!filterRow())
+        if(keyValues.size() > 0 && !filterRow())  // msirek-temp
             keyValues.remove(0);
         //TODO -sf- figure out a way to remove the DataCell object here
         DataCell accumulatedResults = filterState.produceAccumulatedResult();

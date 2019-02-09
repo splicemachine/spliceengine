@@ -15,7 +15,10 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.spark_project.guava.base.Function;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
@@ -118,6 +121,62 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     @Override
     public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
+        /*
+        boolean skipNewLogic = false, doBothPaths = false;
+        Iterator<DataResult> retcode = null;
+        if (skipNewLogic) {
+            retcode = batchGet2(attributes, rowKeys);
+            if (!doBothPaths)
+                return retcode;
+        } */
+        final int numResultRows = rowKeys.size();
+        List<MultiRowRangeFilter.RowRange> ranges = new ArrayList<>(numResultRows);
+        Scan scan = new Scan();
+        if(attributes!=null){
+            for(Map.Entry<String, byte[]> attr : attributes.allAttributes().entrySet()){
+                scan.setAttribute(attr.getKey(),attr.getValue());
+            }
+        }
+        // Temporarily skip SI...
+        //scan.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,
+        //                  SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
+        for(byte[] rowKey : rowKeys){
+            MultiRowRangeFilter.RowRange rr =
+                new MultiRowRangeFilter.RowRange(rowKey, true,
+                                                 rowKey, true);
+            ranges.add(rr);
+        }
+        Filter filter = new MultiRowRangeFilter(ranges);
+        scan.setFilter(filter);
+
+        Result[] results = new Result[numResultRows];
+
+        ResultScanner scanner = table.getScanner(scan);
+        int resultCount = 0;
+        while (resultCount < numResultRows) {
+            results[resultCount] = scanner.next();
+            resultCount++;
+        }
+        /*
+        if (results[resultCount-1] == null || scanner.next() != null)
+            throw new IOException("Returned rowcount mismatch.");
+*/
+        //return retcode;
+
+        if(results.length<=0) return Collections.emptyIterator();
+        final HResult retResult=new HResult();
+        return Iterators.transform(Iterators.forArray(results),new Function<Result, DataResult>(){
+            @Override
+            public DataResult apply(Result input){
+                retResult.set(input);
+                return retResult;
+            }
+        });
+
+    }
+
+    //@Override
+    public Iterator<DataResult> batchGet2(Attributable attributes,List<byte[]> rowKeys) throws IOException{
         List<Get> gets=new ArrayList<>(rowKeys.size());
         for(byte[] rowKey : rowKeys){
             Get g=new Get(rowKey);
