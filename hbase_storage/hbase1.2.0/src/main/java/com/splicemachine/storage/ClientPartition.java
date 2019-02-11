@@ -119,7 +119,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         return Bytes.toLong(table.increment(incr).value());
     }
 
-    @Override
+    //@Override
     public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
         /*
         boolean skipNewLogic = false, doBothPaths = false;
@@ -129,7 +129,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
             if (!doBothPaths)
                 return retcode;
         } */
-        final int numResultRows = rowKeys.size();
+        int numResultRows = rowKeys.size();
         List<MultiRowRangeFilter.RowRange> ranges = new ArrayList<>(numResultRows);
         Scan scan = new Scan();
         if(attributes!=null){
@@ -149,14 +149,18 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         Filter filter = new MultiRowRangeFilter(ranges);
         scan.setFilter(filter);
 
-        Result[] results = new Result[numResultRows];
+        // Number of rowkeys could have shrunk due to duplicates.
+        numResultRows = ranges.size();
+        //Result[] results = new Result[numResultRows];
 
         ResultScanner scanner = table.getScanner(scan);
+        Result[] results = scanner.next(numResultRows);
+        /*
         int resultCount = 0;
         while (resultCount < numResultRows) {
             results[resultCount] = scanner.next();
             resultCount++;
-        }
+        } */
         /*
         if (results[resultCount-1] == null || scanner.next() != null)
             throw new IOException("Returned rowcount mismatch.");
