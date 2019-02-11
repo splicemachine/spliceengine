@@ -18,41 +18,22 @@ import java.io.IOException;
 import java.util.Properties;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServerStartable;
+import kafka.utils.TestUtils;
+
+import org.apache.curator.test.TestingServer;
+
 
 public class TestKafkaCluster {
     private KafkaServerStartable kafkaServer;
 
-    public TestKafkaCluster(String connectString) {
-        KafkaConfig config = getKafkaConfig(connectString);
-        kafkaServer = new KafkaServerStartable(config);
-        kafkaServer.startup();
-    }
+    private TestingServer zkServer;
 
-    public static void main(String [] args) throws Exception {
-        if (args.length==1)
-            new TestKafkaCluster(args[0]);
-        else
-            throw new RuntimeException("No zookeper local");
-    }
-
-    private static KafkaConfig getKafkaConfig(final String zkConnectString) {
-        Properties props = new Properties();
-        assert props.containsKey("zookeeper.connect");
-        props.put("zookeeper.connect", zkConnectString);
-        props.put("port","9092");
-        return new KafkaConfig(props);
-    }
-
-    public String getKafkaBrokerString() {
-        return String.format("localhost:%d",
-                kafkaServer.serverConfig().port());
-    }
-
-    public int getKafkaPort() {
-        return kafkaServer.serverConfig().port();
-    }
-
-    public void stop() throws IOException {
-        kafkaServer.shutdown();
+    public TestKafkaCluster() {
+        try {
+            zkServer = new TestingServer();
+        }
+        catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
