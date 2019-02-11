@@ -661,8 +661,9 @@ public final class SConfigurationImpl implements SConfiguration {
     }
     @Override
     public int getIndexBatchSize() {
-        return 1000000;  // msirek-temp
-        return indexBatchSize;
+        //return 1000000;  // msirek-temp
+        return 10000;
+        //return indexBatchSize;
     }
     @Override
     public int getIndexLookupBlocks() {
