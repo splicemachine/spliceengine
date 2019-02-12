@@ -2322,6 +2322,59 @@ public class SQLChar
         return result;
     }
 
+    /**
+     * return a string that repeats the leftOperand number of times specified by the rightOperand
+     * @param leftOperand  the string to be repeated
+     * @param rightOperand  the number of times to repeat, it should be a number >= 0. When it is 0,
+     *                      an empty string will be returned if leftOperand is not null.
+     * @param result  the result string
+     * @return
+     * @throws StandardException
+     */
+    public StringDataValue repeat(StringDataValue leftOperand,
+                                  NumberDataValue rightOperand,
+                                  StringDataValue result) throws StandardException {
+        if (result == null)
+        {
+            result = (StringDataValue) getNewNull();
+        }
+
+        if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        int repeatedTimes;
+        if (rightOperand == null || rightOperand.isNull()) {
+            throw StandardException.newException(
+                    SQLState.LANG_INVALID_FUNCTION_ARGUMENT, "NULL", "REPEAT");
+        } else {
+            try {
+                repeatedTimes = rightOperand.getInt();
+            } catch (StandardException e) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_FUNCTION_ARGUMENT, rightOperand, "REPEAT");
+            }
+
+            if (repeatedTimes < 0) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_FUNCTION_ARGUMENT, rightOperand, "REPEAT");
+            }
+        }
+
+        String val = leftOperand.getString();
+        String concatenatedVal = null;
+
+        for (int i=0; i<repeatedTimes; i++) {
+            concatenatedVal = concatenatedVal == null? val : concatenatedVal + val;
+        }
+
+        result.setValue(concatenatedVal==null?"":concatenatedVal);
+
+        return result;
+    }
+
 
     /**
      * This method implements the like function for char (with no escape value).

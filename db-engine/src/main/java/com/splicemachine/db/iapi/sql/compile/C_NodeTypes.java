@@ -272,9 +272,10 @@ int CREATE_INDEX_NODE = 146;
 	int BINARY_EXPORT_NODE = 261;
 	int LIST_VALUE_NODE = 262;
 	int GROUPING_FUNCTION_NODE = 263;
+	int REPEAT_OPERATOR_NODE = 264;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = GROUPING_FUNCTION_NODE;
+	int FINAL_VALUE = REPEAT_OPERATOR_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

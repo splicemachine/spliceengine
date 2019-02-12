@@ -31,12 +31,11 @@
 
 package com.splicemachine.db.iapi.types;
 
-import java.sql.Clob;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
-import java.text.RuleBasedCollator;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
+
+import java.sql.Clob;
+import java.text.RuleBasedCollator;
 
 public interface StringDataValue extends ConcatableDataValue
 {
@@ -100,6 +99,12 @@ public interface StringDataValue extends ConcatableDataValue
 	StringDataValue concatenate(
 			StringDataValue leftOperand,
 			StringDataValue rightOperand,
+			StringDataValue result)
+		throws StandardException;
+
+	public StringDataValue repeat(
+			StringDataValue leftOperand,
+			NumberDataValue repeatedTimes,
 			StringDataValue result)
 		throws StandardException;
 

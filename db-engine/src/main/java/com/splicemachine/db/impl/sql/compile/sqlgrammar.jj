@@ -2888,6 +2888,7 @@ TOKEN [IGNORE_CASE] :
 |	<PRECISION: "precision">
 |	<RELEASE: "release">
 |	<QUARTER: "quarter">
+|   <REPEAT: "repeat">
 |	<REPEATABLE: "repeatable">
 |	<RESPECT: "respect">
 |	<RESTART: "restart">
@@ -7422,6 +7423,18 @@ characterValueFunction() throws StandardException :
 					getContextManager());
 	}
 |
+    /* REPEAT(string, num) */
+    <REPEAT> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA>
+            str2 = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+	    					C_NodeTypes.REPEAT_OPERATOR_NODE,
+		    				str1,
+			    			str2,
+			    			ReuseFactory.getInteger(BinaryOperatorNode.REPEAT),
+						    getContextManager());
+    }
+|
 	value = trimFunction()
 	{
 		return value;
@@ -7703,6 +7716,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == VALUE ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
+                getToken(1).kind == REPEAT ||
                 getToken(1).kind == REPLACE ||
                 getToken(1).kind == UPPER ||
                 getToken(1).kind == LOWER ||
@@ -16897,6 +16911,7 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <RELEASE>
 	|	tok = <RENAME>
+	|   tok = <REPEAT>
 	|	tok = <REPEATABLE>
 	|	tok = <REFERENCING>
 	|	tok = <RESET>

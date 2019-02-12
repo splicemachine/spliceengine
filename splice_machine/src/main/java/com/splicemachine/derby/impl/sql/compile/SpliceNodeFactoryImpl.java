@@ -542,6 +542,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
           case C_NodeTypes.XML_EXISTS_OPERATOR_NODE:
           case C_NodeTypes.XML_QUERY_OPERATOR_NODE:
+          case C_NodeTypes.REPEAT_OPERATOR_NODE:
             return C_NodeNames.BINARY_OPERATOR_NODE_NAME;
 
           case C_NodeTypes.GRANT_NODE:
