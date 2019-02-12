@@ -147,7 +147,8 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                     return true;
             }
             return (e.getCause() instanceof IOException && e.getCause().getCause() instanceof CallTimeoutException) ||
-                    e.getCause() instanceof RemoteWithExtrasException;
+                   (e.getCause() instanceof RemoteWithExtrasException && e.getMessage().equals(
+                           "Table Namespace Manager not fully initialized, try again later"));
         }
         return false;
     }
