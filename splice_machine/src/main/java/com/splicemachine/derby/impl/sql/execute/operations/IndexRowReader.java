@@ -41,9 +41,7 @@ import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * Utility for executing "look-ahead" index lookups, where the index lookup is backgrounded,
@@ -71,6 +69,10 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private boolean populated=false;
     private EntryDecoder entryDecoder;
     protected Iterator<ExecRow> sourceIterator;
+    private final ExecutorService executorService;
+    private final CompletionService executorCompletionService;
+    private int numQueuedThreads = 0;
+    private final int numConcurrentLookups;
 
     private ExecRow heapRowToReturn;
     private ExecRow indexRowToReturn;
@@ -98,8 +100,13 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         this.keyDecoder=new KeyDecoder(keyDecoder,0);
         this.rowDecoder=rowDecoder;
         this.indexCols=indexCols;
+        numConcurrentLookups = 32;  // msirek-temp
+        this.numConcurrentLookups = numConcurrentLookups;
         this.resultFutures=Lists.newArrayListWithCapacity(numConcurrentLookups);
         this.operationFactory = operationFactory;
+
+        executorService = Executors.newFixedThreadPool(numConcurrentLookups);
+        executorCompletionService = new ExecutorCompletionService<>(executorService);
     }
 
     public void close() throws IOException{
@@ -175,14 +182,15 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         if(!sourceRows.isEmpty()){
             //submit to the background thread
             Lookup task=new Lookup(sourceRows);
-            resultFutures.add(SIDriver.driver().getExecutorService().submit(task));
+            resultFutures.add(executorCompletionService.submit(task));
+            numQueuedThreads++;
         }
 
         //if there is only one submitted future, call this again to set off an additional background process
         //if(resultFutures.size()<numBlocks && sourceRows.size()==batchSize) msirek-temp
-        if (sourceIterator.hasNext()) // msirek-temp
+        if (numQueuedThreads < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
             getMoreData();
-        else if(!resultFutures.isEmpty()){
+        else if(numQueuedThreads > 0){
             waitForBlockCompletion();
         }
     }
@@ -190,8 +198,9 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private void waitForBlockCompletion() throws StandardException, IOException{
         //wait for the first future to return correctly or error-out
         try{
-            Future<List<Pair<ExecRow, DataResult>>> future=resultFutures.remove(0);
+            Future<List<Pair<ExecRow, DataResult>>> future=executorCompletionService.take();
             currentResults=future.get();
+            numQueuedThreads--;
         }catch(InterruptedException e){
             throw new InterruptedIOException(e.getMessage());
         }catch(ExecutionException e){
