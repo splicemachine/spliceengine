@@ -530,7 +530,7 @@ public class RegionTxnStore implements TxnPartition{
                 }
 
 
-                //return a transaciton that is committed after afterTs
+                //return a transaction that is committed after afterTs
                 TxnMessage.TxnInfo info=txn.getInfo();
                 if(info.getBeginTs()>afterTs||
                         txn.getCommitTs()>afterTs ||

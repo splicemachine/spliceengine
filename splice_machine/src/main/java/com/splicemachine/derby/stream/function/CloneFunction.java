@@ -32,4 +32,9 @@ public class CloneFunction<Op extends SpliceOperation> extends SpliceFunction<Op
     public ExecRow call(ExecRow o) throws Exception {
         return o.getClone();
     }
+
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        return true;
+    }
 }

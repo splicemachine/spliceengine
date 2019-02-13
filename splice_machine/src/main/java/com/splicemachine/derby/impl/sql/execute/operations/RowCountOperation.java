@@ -200,7 +200,7 @@ public class RowCountOperation extends SpliceBaseOperation {
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> sourceSet = source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
-        return sourceSet.zipWithIndex().mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
+        return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
     }
 
     @Override

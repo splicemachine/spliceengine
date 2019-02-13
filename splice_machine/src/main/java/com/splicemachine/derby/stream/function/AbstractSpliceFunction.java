@@ -14,10 +14,13 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamUtils;
+import org.apache.spark.sql.Dataset;
 
 import java.io.*;
 
@@ -68,4 +71,17 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
     public String getSparkName() {
         return getPrettyFunctionName();
     }
+
+    public ExecRow getExecRow() throws StandardException {
+        return operationContext.getOperation().getExecRowDefinition();
+    }
+
+    public boolean hasNativeSparkImplementation() {
+        return false;
+    }
+
+    public <V> Dataset<V> nativeTransformation(Dataset<V> input) {
+        return input;
+    }
+
 }
