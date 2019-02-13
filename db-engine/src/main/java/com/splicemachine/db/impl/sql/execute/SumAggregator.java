@@ -68,11 +68,10 @@ public  class SumAggregator
 						case StoredFormatIds.LONGINT_TYPE_ID:
 								return new LongBufferedSumAggregator(64); //todo -sf- make this configurable?
 						case StoredFormatIds.REAL_TYPE_ID:
-								return new FloatBufferedSumAggregator(64);
 						case StoredFormatIds.DOUBLE_TYPE_ID:
 								return new DoubleBufferedSumAggregator(64);
 						case StoredFormatIds.DECIMAL_TYPE_ID:
-								return new DecimalBufferedSumAggregator(64);
+						    return new DecimalBufferedSumAggregator(64);
 						default: //default to Derby's typical behavior, which has crappy performance, but will work in all cases
 								return null;
 				}

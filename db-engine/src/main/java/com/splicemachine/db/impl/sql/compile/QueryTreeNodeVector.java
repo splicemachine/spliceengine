@@ -60,6 +60,10 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         return v.get(index);
     }
 
+    public int indexOf(T itemToSearchFor){
+        return v.indexOf(itemToSearchFor);
+    }
+
     public final void addElement(T qt){
         v.add(qt);
     }

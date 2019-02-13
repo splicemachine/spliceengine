@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.junit.Assert;
 import org.junit.runner.Description;
@@ -292,6 +294,37 @@ public class SpliceUnitTest {
         Matcher m1 = outputRowsP.matcher(planMessage);
         Assert.assertTrue("No OutputRows found!", m1.find());
         return Double.parseDouble(m1.group().substring("outputRows=".length()));
+    }
+
+    protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
+    protected void testFail(String sqlText,
+                            List<String> expectedErrors,
+                            SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            String failMsg = "Query not expected to succeed.";
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = expectedErrors.contains(e.getMessage());
+            assertTrue(format("\n + Unexpected error message: %s + \n", e.getMessage()), found);
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
     }
 
     public static class Contains {
