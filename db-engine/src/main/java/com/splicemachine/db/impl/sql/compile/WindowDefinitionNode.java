@@ -104,7 +104,7 @@ public final class WindowDefinitionNode extends WindowNode
             FromList fromList = parent.getFromList();
             for (int i=0; i<orderByList.size(); ++i) {
                 OrderByColumn obc = orderByList.getOrderByColumn(i);
-                obc.getColumnExpression().bindExpression(fromList, null, aggregates);
+                    obc.setColumnExpression(obc.getColumnExpression().bindExpression(fromList, null, aggregates));
             }
         }
     }
@@ -258,4 +258,5 @@ public final class WindowDefinitionNode extends WindowNode
         result = 31 * result + (overClause != null ? overClause.hashCode() : 0);
         return result;
     }
+
 }
