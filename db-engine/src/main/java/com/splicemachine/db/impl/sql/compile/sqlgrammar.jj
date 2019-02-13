@@ -16911,7 +16911,7 @@ nonReservedKeyword()  :
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <RELEASE>
 	|	tok = <RENAME>
-	|   tok = <REPEAT>
+	|	tok = <REPEAT>
 	|	tok = <REPEATABLE>
 	|	tok = <REFERENCING>
 	|	tok = <RESET>

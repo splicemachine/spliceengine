@@ -2364,13 +2364,13 @@ public class SQLChar
         }
 
         String val = leftOperand.getString();
-        String concatenatedVal = null;
+        StringBuilder builder = new StringBuilder();
 
         for (int i=0; i<repeatedTimes; i++) {
-            concatenatedVal = concatenatedVal == null? val : concatenatedVal + val;
+            builder.append(val);
         }
 
-        result.setValue(concatenatedVal==null?"":concatenatedVal);
+        result.setValue(builder.toString());
 
         return result;
     }
