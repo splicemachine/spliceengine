@@ -745,7 +745,8 @@ public final class SQLTinyint
 	 */
 	public int hashCode()
 	{
-		return (int) value;
+		long longVal = (long) value;
+		return (int) (longVal ^ (longVal >> 32));
 	}
 	
 	public Format getFormat() {
