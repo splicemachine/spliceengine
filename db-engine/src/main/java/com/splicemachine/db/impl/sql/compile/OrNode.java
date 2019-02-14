@@ -88,8 +88,20 @@ public class OrNode extends BinaryLogicalOperatorNode {
 		postBindFixup();
 		return this;
 	}
-	
+
 	private boolean canConvertToInList(ValueNode vn, ArrayList<Integer> columnNumbers,
+									   ArrayList<Integer> compareNumbers,
+									   HashMap<Integer, ColumnReference> columns,
+									   MutableInt tableNumber, boolean firstTime) {
+    	boolean retVal =
+		    canConvertToInListHelper(vn, columnNumbers, compareNumbers,
+				                     columns, tableNumber, firstTime);
+    	if (columnNumbers.size() < 1)
+    		return false;
+    	else
+    		return retVal;
+	}
+	private boolean canConvertToInListHelper(ValueNode vn, ArrayList<Integer> columnNumbers,
                                        ArrayList<Integer> compareNumbers,
                                        HashMap<Integer, ColumnReference> columns,
                                        MutableInt tableNumber, boolean firstTime) {
@@ -97,9 +109,9 @@ public class OrNode extends BinaryLogicalOperatorNode {
         ColumnReference cr = null;
 		
 		if (vn instanceof AndNode)
-			return canConvertToInList(((AndNode)vn).leftOperand, columnNumbers,
+			return canConvertToInListHelper(((AndNode)vn).leftOperand, columnNumbers,
                                       compareNumbers, columns, tableNumber, firstTime) &&
-                   canConvertToInList(((AndNode) vn).rightOperand, columnNumbers,
+				canConvertToInListHelper(((AndNode) vn).rightOperand, columnNumbers,
                        compareNumbers, columns, tableNumber, firstTime);
 		else if (vn instanceof BooleanConstantNode)
 			return (((BooleanConstantNode) vn).isBooleanTrue());
@@ -145,12 +157,14 @@ public class OrNode extends BinaryLogicalOperatorNode {
         
         if (bron.getLeftOperand() instanceof ColumnReference) {
 			cr = (ColumnReference) bron.getLeftOperand();
-			if (!bron.getRightOperand().isConstantOrParameterTreeNode())
-				return false;
+			if (!bron.getRightOperand().isConstantOrParameterTreeNode() ||
+				(bron.isInListProbeNode() && columnNumbers.size() > 1))
+			return false;
 		}
         else if (bron.getRightOperand() instanceof ColumnReference) {
 			cr = (ColumnReference) bron.getRightOperand();
-			if (!bron.getLeftOperand().isConstantOrParameterTreeNode())
+			if (!bron.getLeftOperand().isConstantOrParameterTreeNode() ||
+				(bron.isInListProbeNode() && columnNumbers.size() > 1))
 				return false;
 		}
         else {
@@ -162,8 +176,10 @@ public class OrNode extends BinaryLogicalOperatorNode {
                 tableNumber.setValue(cr.getTableNumber());
             else if (cr.getTableNumber() != tableNumber.intValue())
                 return false;
-            columnNumbers.add(cr.getColumnNumber());
-            columns.put(cr.getColumnNumber(), cr);
+            if (!columnNumbers.contains(cr.getColumnNumber())) {
+				columnNumbers.add(cr.getColumnNumber());
+				columns.put(cr.getColumnNumber(), cr);
+			}
             if (columnNumbers.size() > 1 &&
 				!getCompilerContext().getConvertMultiColumnDNFPredicatesToInList())
             	return false;
@@ -221,7 +237,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
         
         BinaryRelationalOperatorNode bron =
             (BinaryRelationalOperatorNode) vn;
-        if (bron.isInListProbeNode()) {
+        if (bron.isInListProbeNode() && !multiColumn) {
             /* If we have an OR between multiple IN-lists on the same
              * column then just combine them into a single IN-list.
              * Ex.
