@@ -96,10 +96,20 @@ public class OrNode extends BinaryLogicalOperatorNode {
     	boolean retVal =
 		    canConvertToInListHelper(vn, columnNumbers, compareNumbers,
 				                     columns, tableNumber, firstTime);
-    	if (columnNumbers.size() < 1)
-    		return false;
-    	else
-    		return retVal;
+		if (firstTime) {
+			if (columnNumbers.size() < 1)
+				return false;
+			Collections.sort(columnNumbers);
+			retVal =
+				canConvertToInListHelper(vn, columnNumbers, compareNumbers,
+					columns, tableNumber, false);
+		}
+		else {
+			Collections.sort(compareNumbers);
+			retVal = retVal && compareNumbers.equals(columnNumbers);
+		}
+
+		return retVal;
 	}
 	private boolean canConvertToInListHelper(ValueNode vn, ArrayList<Integer> columnNumbers,
                                        ArrayList<Integer> compareNumbers,
@@ -340,12 +350,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
                 ArrayList compareNumbers = new ArrayList<Integer>();
                 
                 convert = canConvertToInList(left, columnNumbers, compareNumbers, columns, tableNumber, firstTime);
-                if (firstTime)
-                    Collections.sort(columnNumbers);
-                else {
-                    Collections.sort(compareNumbers);
-                    convert = convert && compareNumbers.equals(columnNumbers);
-                }
+
                 if (!convert)
                     break;
             }
