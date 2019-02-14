@@ -85,13 +85,17 @@ public class ShowCreateTableIT extends SpliceUnitTest
         new TableCreator(conn)
                 .withCreate("CREATE TABLE T8 (I INT GENERATED ALWAYS AS IDENTITY, CH CHAR(50) DEFAULT 'HELLO', D DECIMAL(5,2) DEFAULT 2.2)")
                 .create();
-
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE T9 (A9 INT, B9 INT, PRIMARY KEY(B9,A9))")
+                .create();
         new TableCreator(conn)
                 .withCreate("CREATE TABLE T11 (A11 INT, B2 INT, A2 INT,CONSTRAINT T11_FK_1 FOREIGN KEY (A2, B2) REFERENCES T2 ON UPDATE RESTRICT ON DELETE RESTRICT)")
                 .create();
         new TableCreator(conn)
                 .withCreate("CREATE TABLE T12 (A12 INT, B2 INT, A2 INT,CONSTRAINT T12_FK_1 FOREIGN KEY (A2, B2) REFERENCES T2 ON UPDATE NO ACTION ON DELETE NO ACTION)")
                 .create();
+
+
     }
 
     @AfterClass
@@ -116,7 +120,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ",\"B1\" INTEGER\n" +
                 ",\"C1\" INTEGER\n" +
                 ",\"D1\" VARCHAR(10)\n" +
-                ", CONSTRAINT " + csName +" PRIMARY KEY(A1)) ", ddl);
+                ", CONSTRAINT " + csName +" PRIMARY KEY(A1)) ;", ddl);
     }
 
     @Test
@@ -133,9 +137,25 @@ public class ShowCreateTableIT extends SpliceUnitTest
         Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T2\" (\n" +
                 "\"A2\" INTEGER NOT NULL\n" +
                 ",\"B2\" INTEGER NOT NULL\n" +
-                ", CONSTRAINT " + csName + " PRIMARY KEY(A2,B2)) ", ddl);
+                ", CONSTRAINT " + csName + " PRIMARY KEY(A2,B2)) ;", ddl);
     }
 
+    @Test
+    public void testPrimaryKeyReverseOrder() throws Exception
+    {
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T9')");
+        rs.next();
+        String ddl = rs.getString(1);
+        Pattern pattern = Pattern.compile("SQL\\d+");
+        Matcher m1 = pattern.matcher(ddl);
+        String csName = null;
+        while (m1.find())
+            csName = m1.group();
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T9\" (\n" +
+                "\"A9\" INTEGER NOT NULL\n" +
+                ",\"B9\" INTEGER NOT NULL\n" +
+                ", CONSTRAINT " + csName + " PRIMARY KEY(B9,A9)) ;", ddl);
+    }
     @Test
     public void testSingleForeignKey() throws Exception
     {
@@ -145,7 +165,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A3\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
-                ",CONSTRAINT T3_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ", rs.getString(1));
+                ",CONSTRAINT T3_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -158,7 +178,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
                 ",\"A1\" INTEGER\n" +
-                ",CONSTRAINT T4_FK_2 FOREIGN KEY (A1) REFERENCES T1(A1) ON UPDATE NO ACTION ON DELETE NO ACTION,CONSTRAINT T4_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ", rs.getString(1));
+                ",CONSTRAINT T4_FK_2 FOREIGN KEY (A1) REFERENCES T1(A1) ON UPDATE NO ACTION ON DELETE NO ACTION,CONSTRAINT T4_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -170,7 +190,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A5\" INTEGER\n" +
                 ",\"B5F\" INTEGER\n" +
                 ",\"A5F\" INTEGER\n" +
-                ",CONSTRAINT T5_FK_1 FOREIGN KEY (A5F,B5F) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ", rs.getString(1));
+                ",CONSTRAINT T5_FK_1 FOREIGN KEY (A5F,B5F) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -182,7 +202,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A11\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
-                ",CONSTRAINT T11_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE RESTRICT ON DELETE RESTRICT) ", rs.getString(1));
+                ",CONSTRAINT T11_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE RESTRICT ON DELETE RESTRICT) ;", rs.getString(1));
     }
 
     @Test
@@ -194,7 +214,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A12\" INTEGER\n" +
                 ",\"B2\" INTEGER\n" +
                 ",\"A2\" INTEGER\n" +
-                ",CONSTRAINT T12_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ", rs.getString(1));
+                ",CONSTRAINT T12_FK_1 FOREIGN KEY (A2,B2) REFERENCES T2(A2,B2) ON UPDATE NO ACTION ON DELETE NO ACTION) ;", rs.getString(1));
     }
 
     @Test
@@ -213,7 +233,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ",\"B6\" INTEGER\n" +
                 ",\"C6\" INTEGER\n" +
                 ",\"D6\" INTEGER\n" +
-                ", CONSTRAINT " + csName + " UNIQUE (D6), CONSTRAINT U_T6_1 UNIQUE (A6), CONSTRAINT U_T6_2 UNIQUE (B6,C6)) ", ddl);
+                ", CONSTRAINT " + csName + " UNIQUE (D6), CONSTRAINT U_T6_1 UNIQUE (A6), CONSTRAINT U_T6_2 UNIQUE (B6,C6)) ;", ddl);
     }
 
     @Test
@@ -225,7 +245,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A7\" INTEGER\n" +
                 ",\"B7\" INTEGER\n" +
                 ",\"C7\" CHAR(1)\n" +
-                ", CONSTRAINT B7_CONSTRAINT CHECK (B7 > 100), CONSTRAINT C7_CONSTRAINT CHECK (C7 IN ('B', 'L', 'D', 'S','''','\"'))) ", rs.getString(1));
+                ", CONSTRAINT B7_CONSTRAINT CHECK (B7 > 100), CONSTRAINT C7_CONSTRAINT CHECK (C7 IN ('B', 'L', 'D', 'S','''','\"'))) ;", rs.getString(1));
     }
 
     @Test
@@ -237,7 +257,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 "\"A7\" INTEGER\n" +
                 ",\"B7\" INTEGER\n" +
                 ",\"C7\" CHAR(1)\n" +
-                ", CONSTRAINT B7_CONSTRAINT CHECK (B7 > 100), CONSTRAINT C7_CONSTRAINT CHECK (C7 IN ('B', 'L', 'D', 'S','''','\"'))) ", rs.getString(1));
+                ", CONSTRAINT B7_CONSTRAINT CHECK (B7 > 100), CONSTRAINT C7_CONSTRAINT CHECK (C7 IN ('B', 'L', 'D', 'S','''','\"'))) ;", rs.getString(1));
     }
 
     @Test

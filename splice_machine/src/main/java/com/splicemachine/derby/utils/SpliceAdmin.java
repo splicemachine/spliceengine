@@ -2254,7 +2254,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             String extStr = extTblString.toString();
             if (extStr.length() > 0)
                 sb.append(extStr);
-            sb.append("') FOO (DDL)");
+            sb.append(";') FOO (DDL)");
             resultSet[0]=executeStatement(sb);
         } catch (Exception e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
