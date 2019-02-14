@@ -68,9 +68,9 @@ public final class CharTypeCompiler extends BaseTypeCompiler
 				return (otherType.isStringTypeId() || otherType.isBooleanTypeId());
 			}
 
-			// The double function can convert CHAR and VARCHAR
-			if (forDataTypeFunction && otherType.isDoubleTypeId())
-				return (getTypeId().isStringTypeId());
+			// The double function and CAST can convert CHAR and VARCHAR to double
+			if (otherType.isDoubleTypeId())
+				return (getTypeId().isCharOrVarChar());
 
 			// can't CAST to CHAR and VARCHAR from REAL or DOUBLE
 			// or binary types or XML

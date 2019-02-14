@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -39,11 +40,7 @@ public class ProjectRestrictPredicateFunction<Op extends SpliceOperation> extend
     @Override
     public boolean apply(@Nullable ExecRow from) {
         try {
-
-            if (!initialized) {
-                initialized = true;
-                op = (ProjectRestrictOperation) getOperation();
-            }
+            init();
             op.setCurrentRow(from);
             op.source.setCurrentRow(from);
             if (!op.getRestriction().apply(from)) {
@@ -53,6 +50,19 @@ public class ProjectRestrictPredicateFunction<Op extends SpliceOperation> extend
             return true;
         }catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public ExecRow getExecRow() throws StandardException {
+        init();
+        return op.getSubOperations().get(0).getExecRowDefinition();
+    }
+
+    private void init() {
+        if (!initialized) {
+            initialized = true;
+            op = (ProjectRestrictOperation) getOperation();
         }
     }
 }

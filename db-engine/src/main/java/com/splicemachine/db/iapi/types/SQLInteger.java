@@ -693,7 +693,8 @@ public final class SQLInteger
 	 */
 	public int hashCode()
 	{
-		return value;
+		long longVal = (long) value;
+		return (int) (longVal ^ (longVal >> 32));
 	}
 
 	/*

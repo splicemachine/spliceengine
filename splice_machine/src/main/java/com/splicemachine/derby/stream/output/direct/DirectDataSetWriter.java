@@ -47,7 +47,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
     public DataSet<ExecRow> write() throws StandardException{
         try{
             pipelineWriter.open();
-            CountingIterator rows=new CountingIterator(dataSet.values().toLocalIterator());
+            CountingIterator rows=new CountingIterator(dataSet.values(pipelineWriter.getOperationContext()).toLocalIterator());
             pipelineWriter.write(rows);
             pipelineWriter.close(); //make sure everything gets written
 

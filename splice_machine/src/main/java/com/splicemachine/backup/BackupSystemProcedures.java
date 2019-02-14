@@ -176,6 +176,42 @@ public class BackupSystemProcedures {
      * @throws SQLException
      */
     public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, boolean validate, ResultSet[] resultSets) throws StandardException, SQLException {
+        restoreDatabase(directory, backupId, validate, null, -1, resultSets);
+    }
+
+    /**
+     * Entry point for system procedure SYSCS_UTIL.SYSCS_RESTORE_DATABASE
+     * @param directory A directory in file system where backup data are stored
+     * @param backupId backup ID
+     * @param resultSets returned results
+     * @throws StandardException
+     * @throws SQLException
+     */
+    public static void SYSCS_RESTORE_DATABASE_TO_TIMESTAMP(String directory,
+                                                           long backupId,
+                                                           boolean validate,
+                                                           String timestamp,
+                                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        restoreDatabase(directory, backupId, validate, timestamp, -1, resultSets);
+    }
+
+    public static void SYSCS_RESTORE_DATABASE_TO_TRANSACTION(String directory,
+                                                           long backupId,
+                                                           boolean validate,
+                                                           long transactionId,
+                                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        if (transactionId > backupId) {
+            throw StandardException.newException(SQLState.RESTORE_TXNID_TOO_LARGE, transactionId);
+        }
+        restoreDatabase(directory, backupId, validate, null, transactionId, resultSets);
+    }
+
+    private static void restoreDatabase(String directory,
+                                        long backupId,
+                                        boolean validate,
+                                        String timestamp,
+                                        long txnId,
+                                        ResultSet[] resultSets) throws StandardException, SQLException {
         IteratorNoPutResultSet inprs = null;
 
         Connection conn = SpliceAdmin.getDefaultConn();
@@ -188,7 +224,7 @@ public class BackupSystemProcedures {
                 long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId, true, validate);
+            backupManager.restoreDatabase(directory,backupId, true, validate, timestamp, txnId);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {
@@ -238,6 +274,7 @@ public class BackupSystemProcedures {
             resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
         }
     }
+
     /**
      * Entry point for system procedure SYSCS_UTIL.SYSCS_BACKUP_DATABASE
      *
@@ -298,7 +335,7 @@ public class BackupSystemProcedures {
                 long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId, false, validate);
+            backupManager.restoreDatabase(directory,backupId, false, validate, null, -1);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {

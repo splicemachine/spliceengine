@@ -55,8 +55,7 @@ public class SparkDirectWriterBuilder<K,V> extends DirectTableWriterBuilder{
             conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
             TableWriterUtils.serializeHTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,HTableOutputFormat.class,HTableOutputFormat.class);
-            JavaSparkContext context=SpliceSpark.getContext();
-            return new SparkDirectDataSetWriter<>(rdd,context,opCtx,conf,skipIndex,destConglomerate,txn);
+            return new SparkDirectDataSetWriter<>(rdd,SpliceSpark.getSession(),opCtx,conf,skipIndex,destConglomerate,txn);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

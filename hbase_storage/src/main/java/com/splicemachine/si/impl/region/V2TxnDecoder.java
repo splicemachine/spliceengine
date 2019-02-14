@@ -41,11 +41,11 @@ import java.util.List;
 
 public class V2TxnDecoder implements TxnDecoder{
     public static final V2TxnDecoder INSTANCE=new V2TxnDecoder();
-    private static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
+    public static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
     static final byte[] DATA_QUALIFIER_BYTES=Bytes.toBytes("d");
     static final byte[] KEEP_ALIVE_QUALIFIER_BYTES=Bytes.toBytes("k");
-    static final byte[] COMMIT_QUALIFIER_BYTES=Bytes.toBytes("t");
-    static final byte[] GLOBAL_COMMIT_QUALIFIER_BYTES=Bytes.toBytes("g");
+    public static final byte[] COMMIT_QUALIFIER_BYTES=Bytes.toBytes("t");
+    public static final byte[] GLOBAL_COMMIT_QUALIFIER_BYTES=Bytes.toBytes("g");
     static final byte[] STATE_QUALIFIER_BYTES=Bytes.toBytes("s");
     static final byte[] DESTINATION_TABLE_QUALIFIER_BYTES=Bytes.toBytes("e"); //had to pick a letter that was unique
     static final byte[] ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES=Bytes.toBytes("r"); //had to pick a letter that was unique

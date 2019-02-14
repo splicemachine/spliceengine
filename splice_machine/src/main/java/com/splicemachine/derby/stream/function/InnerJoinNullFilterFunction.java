@@ -18,6 +18,11 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.spark.api.java.function.FilterFunction;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -68,6 +73,24 @@ public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOpe
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        return true;
+    }
+
+    @Override
+    public <V> Dataset<V> nativeTransformation(Dataset<V> input) {
+        Column andCols = null;
+        for (int i : hashKeys) {
+            Column col = input.col("c"+i).isNotNull();
+            if (andCols ==null)
+                andCols = col;
+            else
+                andCols = andCols.and(col);
+        }
+        return input.filter(andCols);
     }
 
 }

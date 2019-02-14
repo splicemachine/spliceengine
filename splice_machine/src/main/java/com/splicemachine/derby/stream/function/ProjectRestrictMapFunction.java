@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -53,5 +54,10 @@ public class ProjectRestrictMapFunction<Op extends SpliceOperation> extends Spli
         preCopy.setKey(from.getKey());
         op.setCurrentRow(preCopy);
         return preCopy;
+    }
+
+    @Override
+    public ExecRow getExecRow() throws StandardException {
+        return operationContext.getOperation().getSubOperations().get(0).getExecRowDefinition();
     }
 }

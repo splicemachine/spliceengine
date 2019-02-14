@@ -92,7 +92,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                                long heapConglom,
                                boolean isUpsert,
                                double sampleFraction,
-                               int[] updateCounts){
+                               int[] updateCounts) throws StandardException {
         this.dataSet = dataSet;
         this.rdd=((SparkPairDataSet) dataSet.index(new EmptySparkPairDataSet<>())).wrapExceptions();
         this.opContext=opContext;
