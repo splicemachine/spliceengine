@@ -428,6 +428,26 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
 
+        sqlText = format("select * from t1  --SPLICE-PROPERTIES useSpark=%s \n"+
+            "where a1 in ('A','B','C') and b1 = 1 or a1 = 'D' and b1 = 4 order by 1,2,3", useSpark);
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertFalse("Bad IN list construction found.", resultString.contains("dataTypeServices"));
+
+        Assert.assertFalse("Multicolumn IN list should not be built", resultString.contains("(A[0:1],B[0:2])"));
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+            "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " A | 1 | 1 |\n" +
+                " D | 4 | 4 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
     }
 
     @Test
