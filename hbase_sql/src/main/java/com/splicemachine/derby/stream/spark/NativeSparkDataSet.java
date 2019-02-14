@@ -289,10 +289,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> f, String name, boolean isLast, boolean pushScope, String scopeDetail) throws StandardException {
-        if (f.hasNativeSparkImplementation()) {
-            return new NativeSparkDataSet<>(f.nativeTransformation(dataset), this.context);
-        }
         OperationContext<Op> context = f.operationContext;
+        if (f.hasNativeSparkImplementation()) {
+            return new NativeSparkDataSet<>(f.nativeTransformation(dataset), context);
+        }
         return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, f.getExecRow(), context)).map(f, name, isLast, pushScope, scopeDetail);
     }
 
@@ -426,11 +426,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation> DataSet< V> filter(
         SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail) {
 
+        OperationContext<Op> context = f.operationContext;
         if (f.hasNativeSparkImplementation()) {
-            return new NativeSparkDataSet<>(f.nativeTransformation(dataset), this.context);
+            return new NativeSparkDataSet<>(f.nativeTransformation(dataset), context);
         }
         try {
-            OperationContext<Op> context = f.operationContext;
             return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context)).filter(f, isLast, pushScope, scopeDetail);
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
