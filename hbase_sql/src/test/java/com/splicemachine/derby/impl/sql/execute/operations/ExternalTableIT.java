@@ -2864,7 +2864,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "PARTITIONED BY (COL1)\n" +
                 "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '\\\\' LINES TERMINATED BY '\\\\n'\n" +
                 "STORED AS TEXTFILE\n" +
-                "LOCATION '" + tablePath + "'", rs.getString(1));
+                "LOCATION '" + tablePath + "';", rs.getString(1));
 
     }
 
@@ -2884,7 +2884,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 ") \n" +
                 "PARTITIONED BY (COL1)\n" +
                 "STORED AS ORC\n" +
-                "LOCATION '" + tablePath + "'" , rs.getString(1));
+                "LOCATION '" + tablePath + "';" , rs.getString(1));
 
     }
 
@@ -2904,7 +2904,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 ") \n" +
                 "PARTITIONED BY (COL2)\n" +
                 "STORED AS PARQUET\n" +
-                "LOCATION '" + tablePath + "'", rs.getString(1));
+                "LOCATION '" + tablePath + "';", rs.getString(1));
     }
 
     @Test
@@ -2926,7 +2926,7 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "COMPRESSED WITH snappy\n" +
                 "PARTITIONED BY (COL2,COL3)\n" +
                 "STORED AS PARQUET\n" +
-                "LOCATION '" + tablePath + "'", rs.getString(1));
+                "LOCATION '" + tablePath + "';", rs.getString(1));
 
     }
 
@@ -2946,6 +2946,6 @@ public class ExternalTableIT extends SpliceUnitTest{
                 ") \n" +
                 "PARTITIONED BY (COL1)\n" +
                 "STORED AS AVRO\n" +
-                "LOCATION '" + tablePath + "'", rs.getString(1));
+                "LOCATION '" + tablePath + "';", rs.getString(1));
     }
 }
