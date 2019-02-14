@@ -96,6 +96,9 @@ public class OrNode extends BinaryLogicalOperatorNode {
     	boolean retVal =
 		    canConvertToInListHelper(vn, columnNumbers, compareNumbers,
 				                     columns, tableNumber, firstTime);
+    	if (!retVal)
+    		return false;
+
 		if (firstTime) {
 			if (columnNumbers.size() < 1)
 				return false;
