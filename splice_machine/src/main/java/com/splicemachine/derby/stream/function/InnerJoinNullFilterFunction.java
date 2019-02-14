@@ -81,7 +81,7 @@ public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOpe
     }
 
     @Override
-    public <V> Dataset<V> nativeTransformation(Dataset<V> input) {
+    public Dataset<Row> nativeTransformation(Dataset<Row> input) {
         Column andCols = null;
         for (int i : hashKeys) {
             Column col = input.col("c"+i).isNotNull();

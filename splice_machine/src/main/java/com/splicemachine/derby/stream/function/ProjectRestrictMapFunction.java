@@ -20,6 +20,9 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 /**
  *
@@ -59,5 +62,24 @@ public class ProjectRestrictMapFunction<Op extends SpliceOperation> extends Spli
     @Override
     public ExecRow getExecRow() throws StandardException {
         return operationContext.getOperation().getSubOperations().get(0).getExecRowDefinition();
+    }
+
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        ProjectRestrictOperation op = (ProjectRestrictOperation) operationContext.getOperation();
+        if (op.projection != null)
+            return false;
+        return true;
+    }
+
+    @Override
+    public Dataset<Row> nativeTransformation(Dataset<Row> input) {
+        ProjectRestrictOperation op = (ProjectRestrictOperation) operationContext.getOperation();
+        int[] mapping = op.projectMapping;
+        Column[] columns = new Column[mapping.length];
+        for (int i = 0; i < mapping.length; ++i) {
+            columns[i] = input.col("c"+(mapping[i] - 1));
+        }
+        return input.select(columns);
     }
 }

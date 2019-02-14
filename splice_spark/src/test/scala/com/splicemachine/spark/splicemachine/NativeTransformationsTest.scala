@@ -74,7 +74,7 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
     assert("Sort ".r.findAllMatchIn(plan).length == 1)
   }
 
-  ignore("simple project on join over join") {
+  test("simple project on join over join") {
     val df = splicemachineContext.df(
       """select s1.tablename from sys.systables s1
         |inner join sys.systables s2 --splice-properties joinStrategy=sortmerge

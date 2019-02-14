@@ -21,6 +21,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 
 import java.io.*;
 
@@ -80,7 +81,7 @@ public abstract class AbstractSpliceFunction<Op extends SpliceOperation> impleme
         return false;
     }
 
-    public <V> Dataset<V> nativeTransformation(Dataset<V> input) {
+    public Dataset<Row> nativeTransformation(Dataset<Row> input) {
         return input;
     }
 
