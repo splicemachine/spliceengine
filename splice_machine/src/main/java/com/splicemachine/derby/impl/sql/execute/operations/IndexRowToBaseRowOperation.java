@@ -311,7 +311,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .mainTableVersion(tableVersion)
                     .mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
                     .mainTableAccessedRowColumns(getMainTableRowColumns())
-                    .numConcurrentLookups((getEstimatedRowCount()>2*indexBatchSize?lookupBlocks:-1))
+                    .numConcurrentLookups(lookupBlocks)
                     .lookupBatchSize(indexBatchSize);
         }
         OperationContext context = dsp.createOperationContext(this);

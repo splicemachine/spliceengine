@@ -91,16 +91,20 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         this.outputTemplate=outputTemplate;
         this.txn=txn;
         batchSize=lookupBatchSize;
-        this.numBlocks=numConcurrentLookups;
+        this.numBlocks=Math.max(numConcurrentLookups, 2);
         this.mainTableConglomId=mainTableConglomId;
         this.predicateFilterBytes=predicateFilterBytes;
         this.tableFactory=tableFactory;
         this.keyDecoder=new KeyDecoder(keyDecoder,0);
         this.rowDecoder=rowDecoder;
         this.indexCols=indexCols;
-        this.resultFutures=Lists.newArrayListWithCapacity(numConcurrentLookups);
+        this.resultFutures=Lists.newArrayListWithCapacity(this.numBlocks);
         this.operationFactory = operationFactory;
     }
+
+    // Return the maximum number of threads that could be simultaneously
+    // doing base conglomerate row lookups.
+    public int getMaxConcurrency() {return this.numBlocks;}
 
     public void close() throws IOException{
         rowDecoder.close();
