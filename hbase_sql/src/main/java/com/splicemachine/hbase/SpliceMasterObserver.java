@@ -125,7 +125,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
                 switch(manager.getState()){
                     case NOT_STARTED:
-                    	boot(ctx.getEnvironment().getMasterServices().getServerName());
+                        throw new PleaseHoldException("Please Hold - Master not started");
                     case BOOTING_ENGINE:
                     case BOOTING_GENERAL_SERVICES:
                     case BOOTING_SERVER:
