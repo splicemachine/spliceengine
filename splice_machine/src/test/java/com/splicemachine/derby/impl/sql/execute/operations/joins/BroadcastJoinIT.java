@@ -625,15 +625,15 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testUncomparableCharColumnsBroadCastJoin() throws Exception {
+    public void testComparableCharColumnsBroadCastJoin() throws Exception {
         String sqlText = format("select count(s1.a1) from " + s1 +
                 " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
                 " on s1.b1 = s2.a2" , useSpark
         ) ;
+
+        // The following query with CHAR/INT comparison should not throw an error.
         try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
-            Assert.fail("Exception not thrown");
-        } catch (SQLSyntaxErrorException e) {
-            assertEquals("42818", e.getSQLState());
+
         }
     }
 

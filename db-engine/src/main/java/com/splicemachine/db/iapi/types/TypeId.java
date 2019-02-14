@@ -1010,6 +1010,15 @@ public class TypeId{
     }
 
     /**
+     * Does this TypeId represent a CHAR or VARCHAR.
+     *
+     * @return Whether or not this TypeId represents a CHAR or VARCHAR data type.
+     */
+    public boolean isCharOrVarChar(){
+        return (formatId==StoredFormatIds.CHAR_TYPE_ID || formatId==StoredFormatIds.VARCHAR_TYPE_ID);
+    }
+
+    /**
      * Is this a Clob?
      *
      * @return true if this is CLOB
