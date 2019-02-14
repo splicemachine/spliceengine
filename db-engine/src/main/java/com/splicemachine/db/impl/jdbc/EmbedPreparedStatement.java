@@ -1120,20 +1120,21 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
                 //Second check - if the statement was revalidated since last getMetaData call,
                 //then gcDuringGetMetaData wouldn't match with current generated class name
 
-                GeneratedClass currAc;
-                ResultDescription resd;
+                GeneratedClass currAc = null;
+                ResultDescription resd = null;
 
-                synchronized(execp) {
-                    // DERBY-3823 Some other thread may be repreparing
-                    do {
-                        while (!execp.upToDate()) {
+                // DERBY-3823 Some other thread may be repreparing
+                do {
+                    synchronized (execp) {
+                        if (!execp.upToDate()) {
                             execp.rePrepare(lcc);
                         }
-
-                        currAc = execp.getActivationClass();
-                        resd = execp.getResultDescription();
-                    } while (currAc == null);
-                }
+                        else {
+                            currAc = execp.getActivationClass();
+                            resd = execp.getResultDescription();
+                        }
+                    }
+                } while (currAc == null);
 
                 if (gcDuringGetMetaData == null ||
                         !gcDuringGetMetaData.equals(currAc.getName())) {
