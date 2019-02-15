@@ -169,4 +169,27 @@ public class FailuresSparkIT {
             }
         }
     }
+
+
+    @Test
+    public void testResubmitToSpark() throws Throwable {
+        try(Statement s =methodWatcher.getOrCreateConnection().createStatement()) {
+            s.execute("create table resubmit(i int)");
+            s.executeUpdate("insert into resubmit values 1");
+            for (int i = 0; i < 10; ++i) {
+                s.executeUpdate("insert into resubmit select i + (select count(*) from resubmit) from resubmit");
+            }
+            String sql = "select count(distinct a.i + (b.i*10001)) from resubmit a, resubmit b";
+            try(ResultSet rs = s.executeQuery("explain " + sql)) {
+                assertTrue(rs.next());
+                String plan = rs.getString(1);
+                assertTrue(plan.contains("control"));
+            }
+            try(ResultSet rs = s.executeQuery(sql)) {
+                assertTrue(rs.next());
+                int count = rs.getInt(1);
+                assertEquals(1048576, count);
+            }
+        }
+    }
 }
