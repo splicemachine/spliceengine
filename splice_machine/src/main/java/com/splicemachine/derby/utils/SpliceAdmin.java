@@ -2159,7 +2159,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     "T.ESCAPED, T.LINES, T.STORED, T.LOCATION" +
                     " FROM SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
                     "WHERE T.TABLETYPE IN ('T','E') AND T.SCHEMAID = S.SCHEMAID " +
-                    "AND T.TABLENAME = '" + tableName + "' AND S.SCHEMANAME = '" + schemaName + "'");
+                    "AND T.TABLENAME LIKE '" + tableName + "' AND S.SCHEMANAME = '" + schemaName + "'");
 
             PreparedStatement getColumnInfoStmt = connection.prepareStatement("SELECT C.COLUMNNAME, C.REFERENCEID, " +
                     "C.COLUMNNUMBER FROM SYS.SYSCOLUMNS C, SYS.SYSTABLES T WHERE T.TABLEID = ? " +
@@ -2175,7 +2175,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             //External Table
             String isExternal = "";
             StringBuilder extTblString = new StringBuilder("");
-            while (tableIdRs.next()){
+            if (tableIdRs.next()){
                 tableId = tableIdRs.getString(1);
                 //Process external table definition
                 if ("E".equals(tableIdRs.getString(2))) {
@@ -2228,34 +2228,35 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     if ((tmpStr = tableIdRs.getString(8)) != null) {
                         extTblString.append("\nLOCATION ''" + tmpStr + "''");
                     }
+                }//End External Table
+
+                // Get column list, and write DDL for each column.
+                StringBuilder colStringBuilder = new StringBuilder("");
+                String createColString = "";
+
+                getColumnInfoStmt.setString(1, tableId);
+                ResultSet columnRS = getColumnInfoStmt.executeQuery();
+
+                firstCol = true;
+                while (columnRS.next()) {
+                    String colName = columnRS.getString(1)  ;
+                    createColString = createColumn(connection, colName, columnRS.getString(2), columnRS.getInt(3));
+                    colStringBuilder.append( firstCol ? createColString : "," + createColString).append("\n");
+                    firstCol = false;
                 }
+
+                colStringBuilder.append(createConstraint(connection, schemaName, tableName));
+                String DDL = "CREATE " + isExternal + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
+                StringBuilder sb=new StringBuilder("SELECT * FROM (VALUES '");
+                sb.append(DDL);
+                String extStr = extTblString.toString();
+                if (extStr.length() > 0)
+                    sb.append(extStr);
+                sb.append(";') FOO (DDL)");
+                resultSet[0]=executeStatement(sb);
+
+                isExternal = "";
             }
-            //End External Table
-
-            // Get column list, and write DDL for each column.
-            StringBuilder colStringBuilder = new StringBuilder("");
-            String createColString = "";
-
-            getColumnInfoStmt.setString(1, tableId);
-            ResultSet columnRS = getColumnInfoStmt.executeQuery();
-
-            firstCol = true;
-            while (columnRS.next()) {
-                String colName = columnRS.getString(1)  ;
-                createColString = createColumn(connection, colName, columnRS.getString(2), columnRS.getInt(3));
-                colStringBuilder.append( firstCol ? createColString : "," + createColString).append("\n");
-                firstCol = false;
-            }
-
-            colStringBuilder.append(createConstraint(connection, schemaName, tableName));
-            String DDL = "CREATE " + isExternal + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
-            StringBuilder sb=new StringBuilder("SELECT * FROM (VALUES '");
-            sb.append(DDL);
-            String extStr = extTblString.toString();
-            if (extStr.length() > 0)
-                sb.append(extStr);
-            sb.append(";') FOO (DDL)");
-            resultSet[0]=executeStatement(sb);
         } catch (Exception e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
