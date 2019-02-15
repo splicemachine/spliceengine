@@ -436,7 +436,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             resubmitDistributed(e);
         }catch(Exception e){ // This catches all the iterator errors for things that are not lazy
             checkInterruptedException(e);
-            throw Exceptions.parseException(e);
+            StandardException se = Exceptions.parseException(e);
+            if (se instanceof ResubmitDistributedException) {
+                ResubmitDistributedException re = (ResubmitDistributedException) se;
+                resubmitDistributed(re);
+            } else throw se;
         }
     }
 
