@@ -270,6 +270,8 @@ public interface C_NodeNames
 
 	String SIMPLE_STRING_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SimpleStringOperatorNode";
 
+	String SIMPLE_LOCALE_STRING_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SimpleLocaleStringOperatorNode";
+
 	String STATIC_CLASS_FIELD_REFERENCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StaticClassFieldReferenceNode";
 
 	String STATIC_METHOD_CALL_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StaticMethodCallNode";
