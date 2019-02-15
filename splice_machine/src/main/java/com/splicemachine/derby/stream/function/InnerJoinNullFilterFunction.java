@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.utils.Pair;
 import org.apache.spark.api.java.function.FilterFunction;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
@@ -81,7 +82,7 @@ public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOpe
     }
 
     @Override
-    public Dataset<Row> nativeTransformation(Dataset<Row> input) {
+    public Pair<Dataset<Row>, OperationContext> nativeTransformation(Dataset<Row> input, OperationContext context) {
         Column andCols = null;
         for (int i : hashKeys) {
             Column col = input.col("c"+i).isNotNull();
@@ -90,7 +91,7 @@ public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOpe
             else
                 andCols = andCols.and(col);
         }
-        return input.filter(andCols);
+        return Pair.newPair(input.filter(andCols), null);
     }
 
 }

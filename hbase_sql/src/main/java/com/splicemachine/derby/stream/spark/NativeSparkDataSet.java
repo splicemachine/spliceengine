@@ -59,6 +59,7 @@ import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.utils.ByteDataInput;
+import com.splicemachine.utils.Pair;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -291,7 +292,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> f, String name, boolean isLast, boolean pushScope, String scopeDetail) throws StandardException {
         OperationContext<Op> context = f.operationContext;
         if (f.hasNativeSparkImplementation()) {
-            return new NativeSparkDataSet<>(f.nativeTransformation(dataset), context);
+            Pair<Dataset<Row>, OperationContext> pair = f.nativeTransformation(dataset, context);
+            OperationContext c = pair.getSecond() == null ? this.context : pair.getSecond();
+            return new NativeSparkDataSet<>(pair.getFirst(), c);
         }
         return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, f.getExecRow(), context)).map(f, name, isLast, pushScope, scopeDetail);
     }
@@ -428,7 +431,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
         OperationContext<Op> context = f.operationContext;
         if (f.hasNativeSparkImplementation()) {
-            return new NativeSparkDataSet<>(f.nativeTransformation(dataset), context);
+            Pair<Dataset<Row>, OperationContext> pair = f.nativeTransformation(dataset, context);
+            OperationContext c = pair.getSecond() == null ? this.context : pair.getSecond();
+            return new NativeSparkDataSet<>(pair.getFirst(), c);
         }
         try {
             return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context)).filter(f, isLast, pushScope, scopeDetail);
