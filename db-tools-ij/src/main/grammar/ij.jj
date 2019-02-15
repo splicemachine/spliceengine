@@ -2204,8 +2204,6 @@ throws SQLException
                 i = i2.substring(0,dotPosition);
                 i2 = i2.substring(dotPosition+1);
             }
-            if ("*".equals(i2))
-                i2 = null;
 
             schema = i;
             tblname = i2;
