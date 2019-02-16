@@ -133,6 +133,4 @@ public class OrcMapreduceRecordReader extends RecordReader<NullWritable,Row> {
         orcRecordReader.close();
     }
 
-
-
 }

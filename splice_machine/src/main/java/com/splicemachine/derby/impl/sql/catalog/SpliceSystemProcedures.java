@@ -1282,6 +1282,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceTableAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(checkTable);
+
+                    Procedure showCreateTable = Procedure.newBuilder().name("SHOW_CREATE_TABLE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(showCreateTable);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

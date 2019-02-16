@@ -65,6 +65,9 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
+import static com.splicemachine.derby.utils.EngineUtils.getSchemaDescriptor;
+import static com.splicemachine.derby.utils.EngineUtils.verifyTableExists;
+
 
 /**
  * @author Scott Fines
@@ -651,27 +654,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);
         }
-    }
-
-    private static TableDescriptor verifyTableExists(Connection conn, String schema, String table) throws
-        SQLException, StandardException {
-        LanguageConnectionContext lcc = ((EmbedConnection) conn).getLanguageConnection();
-        DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor schemaDescriptor = getSchemaDescriptor(schema, lcc, dd);
-        TableDescriptor tableDescriptor = dd.getTableDescriptor(table, schemaDescriptor, lcc.getTransactionExecute());
-        if (tableDescriptor == null)
-            throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schema + "." + table);
-
-        return tableDescriptor;
-    }
-
-    private static SchemaDescriptor getSchemaDescriptor(String schema,
-                                                        LanguageConnectionContext lcc,
-                                                        DataDictionary dd) throws StandardException {
-        SchemaDescriptor schemaDescriptor;
-        if (schema ==null || (schemaDescriptor = dd.getSchemaDescriptor(schema, lcc.getTransactionExecute(), true))==null)
-            throw ErrorState.LANG_SCHEMA_DOES_NOT_EXIST.newException(schema);
-        return schemaDescriptor;
     }
 
     private static final Comparator<ColumnDescriptor> order = new Comparator<ColumnDescriptor>() {
