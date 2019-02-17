@@ -2315,7 +2315,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         " S.SCHEMANAME LIKE ? AND" +
                         " T.TABLENAME LIKE ? AND" +
                         " CS.SCHEMAID = S.SCHEMAID AND" +
-                        " CS.TABLEID = T.TABLEID ");
+                        " CS.TABLEID = T.TABLEID" +
+                        " ORDER BY CS.CONSTRAINTNAME");
         getCheckStmt.setString(1,schemaName);
         getCheckStmt.setString(2,tableName);
         rs = getCheckStmt.executeQuery();
@@ -2339,7 +2340,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         " CS.STATE != 'D' AND" +
                         " CS.CONSTRAINTID = K.CONSTRAINTID AND" +
                         " K.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID AND" +
-                        " (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE 0 END) <> 0 ");
+                        " (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE 0 END) <> 0" +
+                        " ORDER BY CS.CONSTRAINTNAME");
 
         getUniqueStmt.setString(1,schemaName);
         getUniqueStmt.setString(2,tableName);
