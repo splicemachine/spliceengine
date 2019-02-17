@@ -526,6 +526,32 @@ public class SelectNode extends ResultSetNode{
             return;
         }
 
+        // Evaluate expressions with constant operands here to simplify the
+        // query tree and to reduce the runtime cost. Do it before optimize()
+        // since the simpler tree may have more accurate information for
+        // the optimizer. (Example: The selectivity for 1=1 is estimated to
+        // 0.1, whereas the actual selectivity is 1.0. In this step, 1=1 will
+        // be rewritten to TRUE, which is known by the optimizer to have
+        // selectivity 1.0.)
+        // This is also done before predicate simplification to enable
+        // more predicates to be pruned away.
+        accept(new ConstantExpressionVisitor());
+
+        // Perform predicate simplification.  Currently only
+        // simple rewrites involving boolean TRUE/FALSE are done, such as:
+        // TRUE AND col1 IN (1,2,3)  ==>  col1 IN (1,2,3)
+        // FALSE OR col1 = 1         ==>  col1 = 1
+        //
+        // Predicate simplification is done before binding because
+        // Subqueries and aggregates in the WHERE clause and HAVING
+        // clause get added to the whereSubquerys, whereAggregates,
+        // havingSubquerys and havingAggregates lists during binding.
+        // If the predicates containing thoses SubqueryNodes and
+        // AggregateNodes are subsequently removed from the WHERE or
+        // HAVING clause, query compilation will fail.
+        if (!getCompilerContext().getDisablePredicateSimplification())
+            accept(new PredicateSimplificationVisitor(fromListParam));
+
         whereAggregates=new LinkedList<>();
         whereSubquerys=(SubqueryList)getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
 
@@ -578,7 +604,7 @@ public class SelectNode extends ResultSetNode{
 		/* Restore fromList */
         for(int index=0;index<fromListSize;index++){
             fromListParam.removeElementAt(0);
-        }
+        }// those items
 
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(fromListParam.size()==fromListParamSize,
