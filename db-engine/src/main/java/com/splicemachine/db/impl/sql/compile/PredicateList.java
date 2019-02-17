@@ -809,6 +809,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		*/
 		Integer inlistPosition = -2;
 
+        boolean multiColumnMultiProbeEnabled =
+            (optTable instanceof FromBaseTable &&
+            !((FromBaseTable) optTable).isSpark(((FromBaseTable) optTable).getDataSetProcessorType())) ||
+                getCompilerContext().getMulticolumnInlistProbeOnSparkEnabled();
+
         TreeMap<Integer, Predicate> inlistPreds = new TreeMap<>();
         List<Predicate> predicates=new ArrayList<>();
         for(int index=0;index<size;index++){
@@ -817,10 +822,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(position!=null){
                 if (pred.isInListProbePredicate()) {
                     inlistPreds.put(position, pred);
-                    if (position >= 0)
+                    if (position >= 0 && multiColumnMultiProbeEnabled)
                         isEquality[position] = true;
-                    //we keep track of the inlist at highest index position excluding rowid whose position is -1
-                    if (inlistPosition == -2 || inlistPosition < position) {
+                    // we keep track of the inlist at highest index position excluding rowid whose position is -1
+                    // if MultiProbeScan on multiple columns is enabled, otherwise we keep track
+                    // of the lowest index position.
+                    if (inlistPosition == -2 ||
+                        (multiColumnMultiProbeEnabled && inlistPosition < position) ||
+                        (!multiColumnMultiProbeEnabled && inlistPosition > position)) {
                         inlistPosition = position;
                     }
                 } else {
@@ -840,6 +849,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }
         }
+        if (inlistPosition >= 0)
+            isEquality[inlistPosition] = true;
 
         /** inlistPosition of -1 means inlist on rowid, however, currently MultiProbeTableScan for inlist on rowid
 		  returns wrong result, so do not consider MultiProbeTableScan for inlist on rowid.
@@ -961,10 +972,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                    C_NodeTypes.VALUE_NODE_LIST,
                                    getContextManager());
             boolean multiColumnInListBuilt = false;
-            if (optTable instanceof FromBaseTable &&
-                (!((FromBaseTable) optTable).isSpark(((FromBaseTable) optTable).getDataSetProcessorType()) ||
-                   getCompilerContext().getMulticolumnInlistProbeOnSparkEnabled()) &&
-                  firstPred != lastPred &&
+            if (firstPred != lastPred &&
                 addConstantsToList(optTable, null, groupedConstants, predsForNewInList, 0)) {
                 if (numConstants != groupedConstants.size())
                     SanityManager.THROWASSERT("Wrong number of constants built for IN list.");

@@ -237,6 +237,14 @@ public class CompilerContextImpl extends ContextImpl
 	}
 	
 	public boolean getMulticolumnInlistProbeOnSparkEnabled() { return multicolumnInlistProbeOnSparkEnabled; }
+
+	public void setDisablePredicateSimplification(boolean newValue) {
+		disablePredicateSimplification = newValue;
+	}
+
+	public boolean getDisablePredicateSimplification() {
+		return disablePredicateSimplification;
+	}
 	
 	/**
 	 * Get the current next subquery number from this CompilerContext.
@@ -1061,7 +1069,7 @@ public class CompilerContextImpl extends ContextImpl
 	private int                 maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
 	private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
 	private boolean             convertMultiColumnDNFPredicatesToInList= DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
-
+    private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.

@@ -158,7 +158,10 @@ public abstract class DMLStatementNode extends StatementNode {
         // 0.1, whereas the actual selectivity is 1.0. In this step, 1=1 will
         // be rewritten to TRUE, which is known by the optimizer to have
         // selectivity 1.0.)
-        accept(new ConstantExpressionVisitor());
+        // SelectNodes have already been visited in SelectNode.java,
+        // so handle all other nodes here we might have missed,
+        // skipping over SelectNodes in the tree traversal.
+        accept(new ConstantExpressionVisitor(SelectNode.class));
 
         // prune tree based on unsat condition
         accept(new TreePruningVisitor());
