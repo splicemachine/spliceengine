@@ -251,13 +251,13 @@ public class ShowCreateTableIT extends SpliceUnitTest
     @Test
     public void testDefaultValue() throws Exception
     {
-        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T7')");
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T8')");
         rs.next();
-        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T7\" (\n" +
-                "\"A7\" INTEGER\n" +
-                ",\"B7\" INTEGER\n" +
-                ",\"C7\" CHAR(1)\n" +
-                ", CONSTRAINT B7_CONSTRAINT CHECK (B7 > 100), CONSTRAINT C7_CONSTRAINT CHECK (C7 IN ('B', 'L', 'D', 'S','''','\"'))) ;", rs.getString(1));
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T8\" (\n" +
+                "\"I\" INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1)\n" +
+                ",\"CH\" CHAR(50) DEFAULT 'HELLO'\n" +
+                ",\"D\" DECIMAL(5,2) DEFAULT 2.2\n" +
+                ") ;", rs.getString(1));
     }
 
     @Test
