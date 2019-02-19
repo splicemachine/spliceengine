@@ -60,7 +60,7 @@ public class ExportNode extends DMLStatementNode {
     private StatementNode node;
     /* HDFS, local, etc */
     private String exportPath;
-    private boolean compression;
+    private String compression;
     private int replicationCount;
     private String encoding;
     private String fieldSeparator;
@@ -85,7 +85,7 @@ public class ExportNode extends DMLStatementNode {
         this.node = (StatementNode) statementNode;
 
         this.exportPath = stringValue(argsList.get(0));
-        this.compression = booleanValue(argsList.get(1));
+        this.compression = stringValue(argsList.get(1));
         this.replicationCount = intValue(argsList.get(2));
         this.encoding = stringValue(argsList.get(3));
         this.fieldSeparator = stringValue(argsList.get(4));

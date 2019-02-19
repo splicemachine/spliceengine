@@ -1380,6 +1380,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         Object resultDescription = activation.getPreparedStatement().getSavedObject(srcResultDescriptionSavedObjectNum);
         ResultColumnDescriptor[] columnDescriptors = ((GenericResultDescription) resultDescription).getColumnInfo();
 
+        String compressionAlgorithm = compression?"snappy":null;
         ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
         SpliceBaseOperation op = new ExportOperation(
                 convertedResultSet.getOperation(),
@@ -1387,7 +1388,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 activation,
                 resultSetNumber,
                 exportPath,
-                compression,
+                compressionAlgorithm,
                 format,
                 1,
                 "",
@@ -1404,7 +1405,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              Activation activation,
                                              int resultSetNumber,
                                              String exportPath,
-                                             boolean compression,
+                                             String compression,
                                              int replicationCount,
                                              String encoding,
                                              String fieldSeparator,

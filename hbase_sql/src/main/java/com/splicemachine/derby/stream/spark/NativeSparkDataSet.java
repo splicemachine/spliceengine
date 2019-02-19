@@ -29,6 +29,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
@@ -64,6 +65,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.InvalidJobConfException;
@@ -648,18 +650,23 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             final ExportOperation op = exportFunction.getOperation();
             CompressionCodec codec = null;
             String extension = ".csv";
-            boolean isCompressed = op.getExportParams().isCompression();
-            if (isCompressed) {
-                Class<? extends CompressionCodec> codecClass =
-                        getOutputCompressorClass(taskAttemptContext, GzipCodec.class);
-                codec =ReflectionUtils.newInstance(codecClass, conf);
+            COMPRESSION compression = op.getExportParams().getCompression();
+            if (compression == COMPRESSION.BZ2) {
+                extension += ".bz2";
+            }
+            else if (compression == COMPRESSION.GZ) {
                 extension += ".gz";
             }
 
             Path file = getDefaultWorkFile(taskAttemptContext, extension);
             FileSystem fs = file.getFileSystem(conf);
             OutputStream fileOut = fs.create(file, false);
-            if (isCompressed) {
+            if (compression == COMPRESSION.BZ2) {
+                CompressionCodecFactory factory = new CompressionCodecFactory(conf);
+                codec = factory.getCodecByClassName("org.apache.hadoop.io.compress.BZip2Codec");
+                fileOut = codec.createOutputStream(fileOut);
+            }
+            else if (compression == COMPRESSION.GZ) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
             final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());

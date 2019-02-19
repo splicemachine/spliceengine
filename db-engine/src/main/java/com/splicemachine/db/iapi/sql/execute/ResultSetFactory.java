@@ -1780,7 +1780,7 @@ public interface ResultSetFactory {
 									  Activation activation,
 									  int resultSetNumber,
 									  String exportPath,
-									  boolean compression,
+									  String compression,
 									  int replicationCount,
 									  String encoding,
 									  String fieldSeparator,
