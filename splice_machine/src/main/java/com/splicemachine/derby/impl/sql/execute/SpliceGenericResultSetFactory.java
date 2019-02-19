@@ -1369,7 +1369,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              Activation activation,
                                              int resultSetNumber,
                                              String exportPath,
-                                             boolean compression,
+                                             String compression,
                                              String format,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException {
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
@@ -1403,7 +1403,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              Activation activation,
                                              int resultSetNumber,
                                              String exportPath,
-                                             boolean compression,
+                                             String compression,
                                              int replicationCount,
                                              String encoding,
                                              String fieldSeparator,

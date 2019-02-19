@@ -619,7 +619,7 @@ public class RowCountOperationIT {
     public void exportWithLimit() throws Exception {
         final int limit = 10;
         String exportPath = temporaryFolder.getRoot().getAbsolutePath();
-        String exportQuery = String.format("EXPORT('%s', false,null,null,null,null) select * from A {limit %d}", exportPath, limit);
+        String exportQuery = String.format("EXPORT('%s',null,null,null,null,null) select * from A {limit %d}", exportPath, limit);
         ResultSet rs = conn.createStatement().executeQuery(exportQuery);
         assertTrue(rs.next());
         long exportedRowCount = rs.getLong(1);
