@@ -2589,6 +2589,7 @@ TOKEN [IGNORE_CASE] :
 |	<AND: "and">
 |	<ANY: "any">
 |	<ARE: "are">
+|	<ARRAY: "array">
 |	<AS: "as">
 |	<ASC: "asc">
 |	<ASSERTION: "assertion">
@@ -2757,14 +2758,13 @@ TOKEN [IGNORE_CASE] :
 |   <SESSION_PROPERTY: "session_property">
 |	<SET: "set">
 |	<SMALLINT: "smallint">
-|	<ARRAY: "array">
-|	<TINYINT: "tinyint">
 |	<SOME: "some">
 |	<SPACE: "space">
 |	<SQL: "sql">
 |	<SQLCODE: "sqlcode">
 |	<SQLERROR: "sqlerror">
 |	<SQLSTATE: "sqlstate">
+|	<STRIP: "strip">
 |	<SUBSTRING: "substring">
 |	<SUM: "sum">
 |	<SYSTEM_USER: "system_user">
@@ -2773,6 +2773,7 @@ TOKEN [IGNORE_CASE] :
 |	<TEMPORARY: "temporary">
 |	<TIMEZONE_HOUR: "timezone_hour">
 |	<TIMEZONE_MINUTE: "timezone_minute">
+|	<TINYINT: "tinyint">
 |	<TO: "to">
 |	<TOP: "top">
 |	<TRANSACTION: "transaction">
@@ -3070,7 +3071,6 @@ TOKEN [IGNORE_CASE] :
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
 |	<STATISTICS: "statistics">
-|   <STRIP: "strip">
 |   <STYLE: "style">
 |	<TRIGGER: "trigger">
 |	<TRUNCATE_END: "truncate_end">
@@ -7426,6 +7426,11 @@ characterValueFunction() throws StandardException :
 		return value;
 	}
 |
+    value = stripFunction()
+    {
+        return value;
+    }
+|
     /* LOCATE( string1, string2[, start] )
      * LOCATE is a SQLJ reserved word.
      */
@@ -7550,6 +7555,70 @@ trimType() :
 		return ReuseFactory.getInteger(StringDataValue.LEADING);
 	}
 }
+
+ValueNode
+stripFunction() throws StandardException :
+{
+	ValueNode	source;
+	Integer		trimType;
+	ValueNode	ansiTrimNode;
+}
+{
+	<STRIP> ansiTrimNode = ansiStrip()
+	{
+		return ansiTrimNode;
+	}
+
+}
+
+ValueNode
+ansiStrip() throws StandardException  :
+{
+    Integer trimSpec = ReuseFactory.getInteger(StringDataValue.BOTH);
+    ValueNode trimChar = null;
+    ValueNode trimSource = null;
+}
+{
+    <LEFT_PAREN> trimSource = additiveExpression(null,0)
+    (
+        LOOKAHEAD ({ansiTrimSpecFollows()})
+        (
+            <COMMA> trimSpec = ansiTrimSpec()
+            (
+                // <source> COMMA LEADING COMMA <trimChar>
+                LOOKAHEAD(<COMMA>)
+                <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
+                {
+                    return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
+                }
+            |
+                // <source> COMMA LEADING
+                <RIGHT_PAREN>
+                {
+                    return getTrimOperatorNode(trimSpec, null, trimSource, null);
+                }
+            )
+        )
+    |
+        LOOKAHEAD ({!ansiTrimSpecFollows()})
+        (
+            // <source> COMMA <trimChar>
+            <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
+            {
+                return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
+            }
+        |
+            // <source>
+            <RIGHT_PAREN>
+            {
+                return getTrimOperatorNode(trimSpec, null, trimSource, null);
+            }
+
+        )
+    )
+}
+
+
 
 /*
  * <A NAME="valueExpressionPrimary">valueExpressionPrimary</A>
@@ -7710,6 +7779,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == LTRIM ||
                 getToken(1).kind == RTRIM ||
                 getToken(1).kind == TRIM ||
+                getToken(1).kind == STRIP ||
                 getToken(1).kind == DATE ||
                 getToken(1).kind == TIME ||
                 getToken(1).kind == TIMESTAMP ||
@@ -16918,7 +16988,6 @@ nonReservedKeyword()  :
 	|	tok = <START>
 	|	tok = <STATEMENT>
 	|	tok = <STATISTICS>
-	|	tok = <STRIP>
 	|	tok = <SYNONYM>
 	|	tok = <STYLE>
 	|	tok = <T>
