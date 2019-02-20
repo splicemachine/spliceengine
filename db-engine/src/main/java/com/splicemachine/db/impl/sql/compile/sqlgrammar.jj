@@ -16808,6 +16808,7 @@ reservedKeyword() :
 |	tok = <LTRIM>
 |	tok = <RTRIM>
 |	tok = <TRIM>
+|	tok = <STRIP>
 |	tok = <SUBSTR>
 |	tok = <XML>
 |	tok = <XMLPARSE>
