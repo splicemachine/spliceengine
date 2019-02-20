@@ -1795,7 +1795,7 @@ public interface ResultSetFactory {
 									  Activation activation,
 									  int resultSetNumber,
 									  String exportPath,
-									  boolean compression,
+									  String compression,
 									  String format,
 									  int srcResultDescriptionSavedObjectNum) throws StandardException;
     /**

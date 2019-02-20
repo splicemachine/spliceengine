@@ -53,8 +53,8 @@ public class ExportParams implements Serializable {
     public ExportParams(String directory, String compression, String format, int replicationCount, String characterEncoding,
                         String fieldDelimiter, String quoteChar) throws StandardException {
         setDirectory(directory);
-        setCompression(compression);
         setFormat(format);
+        setCompression(compression);
         setReplicationCount((short) replicationCount);
         setCharacterEncoding(characterEncoding);
         setDefaultFieldDelimiter(StringEscapeUtils.unescapeJava(fieldDelimiter));
@@ -121,23 +121,34 @@ public class ExportParams implements Serializable {
         if (compression != null) {
             compression = compression.trim().toUpperCase();
         }
-        if (compression != null && compression.length() > 0) {
-            if (compression.compareTo("BZ2") == 0 || compression.compareTo("BZIP2") == 0) {
-                this.compression = COMPRESSION.BZ2;
-            }
-            else if (compression.compareTo("GZ") == 0 || compression.compareTo("GZIP") == 0) {
-                this.compression = COMPRESSION.GZ;
-            }
-            else if (compression.compareTo("NONE") == 0) {
-                this.compression = COMPRESSION.NONE;
-            }
-            else {
-                throw StandardException.newException(SQLState.UNSUPPORTED_COMPRESSION_FORMAT, compression);
+        if (compression!= null && compression.length() > 0) {
+            String f = format.trim().toUpperCase();
+            if (f.compareTo("PARQUET") == 0) {
+                // Only support snappy compression for parquet
+                if (compression.compareTo("SNAPPY") == 0 ||
+                        compression.compareTo("TRUE") == 0) {
+                    this.compression = COMPRESSION.SNAPPY;
+                } else if (compression.compareTo("NONE") == 0 ||
+                        compression.compareTo("FALSE") == 0) {
+                    this.compression = COMPRESSION.NONE;
+                } else throw StandardException.newException(SQLState.UNSUPPORTED_COMPRESSION_FORMAT, compression);
+            } else if (f.compareTo("CSV") == 0) {
+                // Support gzip, bzip2 for csv
+                if (compression.compareTo("BZ2") == 0 ||
+                        compression.compareTo("BZIP2") == 0) {
+                    this.compression = COMPRESSION.BZ2;
+                } else if (compression.compareTo("GZ") == 0 ||
+                        compression.compareTo("GZIP") == 0 ||
+                        compression.compareTo("TRUE") == 0) {
+                    this.compression = COMPRESSION.GZ;
+                } else if (compression.compareTo("NONE") == 0 ||
+                        compression.compareTo("FALSE") == 0) {
+                    this.compression = COMPRESSION.NONE;
+                } else throw StandardException.newException(SQLState.UNSUPPORTED_COMPRESSION_FORMAT, compression);
             }
         }
-        else {
+        else
             this.compression = COMPRESSION.NONE;
-        }
     }
 
     private void setReplicationCount(short replicationCount) {

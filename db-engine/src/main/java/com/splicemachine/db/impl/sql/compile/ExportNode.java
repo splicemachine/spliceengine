@@ -148,7 +148,7 @@ public class ExportNode extends DMLStatementNode {
 
 
 
-    private static String stringValue(Object object) throws StandardException {
+    public static String stringValue(Object object) throws StandardException {
         // MethodBuilder can't handle null, so we use empty string when the user types NULL as argument
         if (isNullConstant(object)) {
             return "";
@@ -158,6 +158,9 @@ public class ExportNode extends DMLStatementNode {
            return ((CharConstantNode) object).getString();
         }
 
+        if (object instanceof BooleanConstantNode) {
+            return ((BooleanConstantNode) object).getValueAsString();
+        }
         throw newException(object);
     }
 

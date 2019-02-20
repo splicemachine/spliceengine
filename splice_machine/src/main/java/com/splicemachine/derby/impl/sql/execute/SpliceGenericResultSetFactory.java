@@ -1370,7 +1370,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              Activation activation,
                                              int resultSetNumber,
                                              String exportPath,
-                                             boolean compression,
+                                             String compression,
                                              String format,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException {
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
@@ -1380,7 +1380,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         Object resultDescription = activation.getPreparedStatement().getSavedObject(srcResultDescriptionSavedObjectNum);
         ResultColumnDescriptor[] columnDescriptors = ((GenericResultDescription) resultDescription).getColumnInfo();
 
-        String compressionAlgorithm = compression?"snappy":null;
         ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
         SpliceBaseOperation op = new ExportOperation(
                 convertedResultSet.getOperation(),
@@ -1388,7 +1387,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 activation,
                 resultSetNumber,
                 exportPath,
-                compressionAlgorithm,
+                compression,
                 format,
                 1,
                 "",

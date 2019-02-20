@@ -31,7 +31,6 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -41,6 +40,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
 import org.junit.Assert;
+import org.xerial.snappy.SnappyInputStream;
 
 /**
  * This IT assumes the server side writes to the local files system accessible to IT itself.  Currently true only
@@ -274,6 +274,7 @@ public class ExportOperationIT {
                         "30,3.14159,14:31:20,varchar1\n",
                 IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
     }
+
     @Test
     public void export_decimalFormatting() throws Exception {
 
@@ -436,7 +437,7 @@ public class ExportOperationIT {
     private String buildExportSQL(String selectQuery, String compression, String fieldDelimiter) {
         String exportPath = temporaryFolder.getRoot().getAbsolutePath();
         if (compression == null) {
-            return String.format("EXPORT('%s', null, 3, NULL, '%s', NULL)", exportPath, fieldDelimiter) + " " + selectQuery;
+            return String.format("EXPORT('%s', false, 3, NULL, '%s', NULL)", exportPath, fieldDelimiter) + " " + selectQuery;
         }
         else {
             return String.format("EXPORT('%s', '%s', 3, NULL, '%s', NULL)", exportPath, compression, fieldDelimiter) + " " + selectQuery;
