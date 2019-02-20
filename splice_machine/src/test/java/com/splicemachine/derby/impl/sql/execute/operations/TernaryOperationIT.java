@@ -313,6 +313,40 @@ public class TernaryOperationIT {
     }
 
     @Test
+    public void testSTRIPShortName() throws Exception {
+        ResultSet rs;
+        String sql  = "values strip('   space case   ',b)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","space case",rs.getString(1));
+
+        sql  = "values strip('   space case   ',l)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","space case   ",rs.getString(1));
+
+        sql  = "values strip('   space case   ',t)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","   space case",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',b,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bbcc",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',l,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bbccaa",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',t,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","aabbcc",rs.getString(1));
+    }
+
+    @Test
     public void testSTRIPNegative() throws Exception {
         try {
             String sql = "values strip(1,2)";

@@ -1029,8 +1029,8 @@ public class SQLParser
 
     private boolean ansiTrimSpecFollows()
     {
-        return (getToken(2).kind == LEADING || getToken(2).kind == TRAILING
-                || getToken(2).kind == BOTH);
+        return (getToken(2).kind == LEADING || getToken(2).kind == L || getToken(2).kind == TRAILING || getToken(2).kind == T
+                || getToken(2).kind == BOTH || getToken(2).kind == B);
     }
     
 	/**
@@ -2596,6 +2596,7 @@ TOKEN [IGNORE_CASE] :
 |	<AT: "at">
 |	<AUTHORIZATION: "authorization">
 |	<AVG: "avg">
+|	<B: "b">
 |	<BEGIN: "begin">
 |	<BETWEEN: "between">
 |	<BINARY: "binary">
@@ -2696,6 +2697,7 @@ TOKEN [IGNORE_CASE] :
 |	<ISOLATION: "isolation">
 |	<JOIN: "join">
 |	<KEY: "key">
+|	<L: "l">
 |	<LAST: "last">
 |	<LEADING: "leading">
 |	<LEFT: "left">
@@ -7537,17 +7539,17 @@ ansiTrimSpec() :
 {
 }
 {
-	<TRAILING>
+	(<TRAILING>|<T>)
 	{
 		return ReuseFactory.getInteger(StringDataValue.TRAILING);
 	}
 |
-	<LEADING>
+	(<LEADING>|<L>)
 	{
 		return ReuseFactory.getInteger(StringDataValue.LEADING);
 	}
 |
-	<BOTH>
+	(<BOTH>|<B>)
 	{
 		return ReuseFactory.getInteger(StringDataValue.BOTH);
 	}
@@ -16845,6 +16847,7 @@ nonReservedKeyword()  :
 	|	tok = <AGGREGATE>
 	|	tok = <ALWAYS>
 	|   tok = <AUTO>
+	|   tok = <B>
 	|	tok = <BEFORE>
 	|	tok = <BINARY>
 	|	tok = <BLOB>
@@ -16905,6 +16908,7 @@ nonReservedKeyword()  :
 	|	tok = <INTERVAL>
 	|   tok = <JAVA>
 	|   tok = <KEYS>
+	|   tok = <L>
 	|	tok = <LAG>
 	|	tok = <LANGUAGE>
 	|	tok = <LARGE>
