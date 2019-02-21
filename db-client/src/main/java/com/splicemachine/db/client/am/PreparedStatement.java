@@ -2349,7 +2349,7 @@ public class PreparedStatement extends Statement
             } catch (SQLException se) {
                 throw new SqlException(se);
             }
-            updateCounts_ = new int[batchSize];
+            updateCounts_ = new ArrayList<>(batchSize);
             updateCount_ = -1;
             writeExecuteBatch(section_,
                     parameterMetaData_,
@@ -2423,7 +2423,9 @@ public class PreparedStatement extends Statement
                 agent_.setBatchedExceptionLabelIndex(0);
                 parameters_ = (Object[]) batch_.get(0);
                 readExecute();
-                System.arraycopy(updateCounts_, 0, updateCounts, 0, updateCounts_.length);
+                for (int i = 0; i<updateCounts_.size(); ++i) {
+                    updateCounts[i] = updateCounts_.get(i);
+                }
             } else {
                 for (int i = 0; i < batchSize; i++) {
                     agent_.setBatchedExceptionLabelIndex(i);
