@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.util.ArrayList;
@@ -88,19 +89,48 @@ public class OrNode extends BinaryLogicalOperatorNode {
 		postBindFixup();
 		return this;
 	}
-	
+
 	private boolean canConvertToInList(ValueNode vn, ArrayList<Integer> columnNumbers,
+									   ArrayList<Integer> compareNumbers,
+									   HashMap<Integer, ColumnReference> columns,
+									   MutableInt tableNumber, MutableBoolean hasInListPred,
+									   boolean firstTime) {
+    	if (hasInListPred == null)
+    		hasInListPred = new MutableBoolean(false);
+
+    	boolean retVal =
+		    canConvertToInListHelper(vn, columnNumbers, compareNumbers,
+				                     columns, tableNumber, hasInListPred, firstTime);
+    	if (!retVal)
+    		return false;
+
+		if (firstTime) {
+			if (columnNumbers.size() < 1)
+				return false;
+			if (columnNumbers.size() > 1 && hasInListPred.isTrue())
+				return false;
+			Collections.sort(columnNumbers);
+		}
+		else {
+			Collections.sort(compareNumbers);
+			retVal = retVal && compareNumbers.equals(columnNumbers);
+		}
+
+		return retVal;
+	}
+	private boolean canConvertToInListHelper(ValueNode vn, ArrayList<Integer> columnNumbers,
                                        ArrayList<Integer> compareNumbers,
                                        HashMap<Integer, ColumnReference> columns,
-                                       MutableInt tableNumber, boolean firstTime) {
+                                       MutableInt tableNumber, MutableBoolean hasInListPred,
+									   boolean firstTime) {
 		boolean convert = false;
         ColumnReference cr = null;
 		
 		if (vn instanceof AndNode)
-			return canConvertToInList(((AndNode)vn).leftOperand, columnNumbers,
-                                      compareNumbers, columns, tableNumber, firstTime) &&
-                   canConvertToInList(((AndNode) vn).rightOperand, columnNumbers,
-                       compareNumbers, columns, tableNumber, firstTime);
+			return canConvertToInListHelper(((AndNode)vn).leftOperand, columnNumbers,
+                                      compareNumbers, columns, tableNumber, hasInListPred, firstTime) &&
+				canConvertToInListHelper(((AndNode) vn).rightOperand, columnNumbers,
+                       compareNumbers, columns, tableNumber, hasInListPred, firstTime);
 		else if (vn instanceof BooleanConstantNode)
 			return (((BooleanConstantNode) vn).isBooleanTrue());
 		else
@@ -145,11 +175,23 @@ public class OrNode extends BinaryLogicalOperatorNode {
         
         if (bron.getLeftOperand() instanceof ColumnReference) {
 			cr = (ColumnReference) bron.getLeftOperand();
+			if (bron.isInListProbeNode()) {
+				if (columnNumbers.size() > 1)
+					return false;
+				else
+					hasInListPred.setTrue();
+			}
 			if (!bron.getRightOperand().isConstantOrParameterTreeNode())
-				return false;
+			return false;
 		}
         else if (bron.getRightOperand() instanceof ColumnReference) {
 			cr = (ColumnReference) bron.getRightOperand();
+			if (bron.isInListProbeNode()) {
+				if (columnNumbers.size() > 1)
+					return false;
+				else
+				    hasInListPred.setTrue();
+			}
 			if (!bron.getLeftOperand().isConstantOrParameterTreeNode())
 				return false;
 		}
@@ -162,10 +204,13 @@ public class OrNode extends BinaryLogicalOperatorNode {
                 tableNumber.setValue(cr.getTableNumber());
             else if (cr.getTableNumber() != tableNumber.intValue())
                 return false;
-            columnNumbers.add(cr.getColumnNumber());
-            columns.put(cr.getColumnNumber(), cr);
+            if (!columnNumbers.contains(cr.getColumnNumber())) {
+				columnNumbers.add(cr.getColumnNumber());
+				columns.put(cr.getColumnNumber(), cr);
+			}
             if (columnNumbers.size() > 1 &&
-				!getCompilerContext().getConvertMultiColumnDNFPredicatesToInList())
+				(hasInListPred.isTrue() ||
+				 !getCompilerContext().getConvertMultiColumnDNFPredicatesToInList()))
             	return false;
         } else if (tableNumber.intValue() != cr.getTableNumber() ||
                    !columnNumbers.contains(cr.getColumnNumber())) {
@@ -221,7 +266,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
         
         BinaryRelationalOperatorNode bron =
             (BinaryRelationalOperatorNode) vn;
-        if (bron.isInListProbeNode()) {
+        if (bron.isInListProbeNode() && !multiColumn) {
             /* If we have an OR between multiple IN-lists on the same
              * column then just combine them into a single IN-list.
              * Ex.
@@ -314,6 +359,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
             MutableInt	    tableNumber = new MutableInt(-1);
             ValueNode       vn;
             boolean         firstTime = true;
+			MutableBoolean  hasInListPred = new MutableBoolean(false);
 
             for (vn = this;
                     vn instanceof OrNode;
@@ -323,13 +369,9 @@ public class OrNode extends BinaryLogicalOperatorNode {
 				ValueNode left = on.getLeftOperand();
                 ArrayList compareNumbers = new ArrayList<Integer>();
                 
-                convert = canConvertToInList(left, columnNumbers, compareNumbers, columns, tableNumber, firstTime);
-                if (firstTime)
-                    Collections.sort(columnNumbers);
-                else {
-                    Collections.sort(compareNumbers);
-                    convert = convert && compareNumbers.equals(columnNumbers);
-                }
+                convert = canConvertToInList(left, columnNumbers, compareNumbers, columns,
+					                         tableNumber, hasInListPred, firstTime);
+
                 if (!convert)
                     break;
             }
