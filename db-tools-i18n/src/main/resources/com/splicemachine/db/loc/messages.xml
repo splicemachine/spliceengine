@@ -9013,6 +9013,12 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>txnId</arg>
            </msg>
            <msg>
+               <name>BR024</name>
+               <text>Full backup not supported for external table '{0}'.'{1}'</text>
+               <arg>schema</arg>
+               <arg>table</arg>
+           </msg>
+           <msg>
                <name>EXT01</name>
                <text>row format specification not allowed with 'stored as parquet' </text>
            </msg>
