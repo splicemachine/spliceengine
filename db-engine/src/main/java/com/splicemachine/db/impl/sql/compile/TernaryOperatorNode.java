@@ -84,9 +84,8 @@ public class TernaryOperatorNode extends OperatorNode
 	public static final int TIMESTAMPADD = 4;
 	public static final int TIMESTAMPDIFF = 5;
 	public static final int REPLACE = 6;
-	public static final int STRIP = 7;
-	static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "strip"};
-	static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "ansiTrim"};
+	static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace"};
+	static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace"};
 	static final String[] TernaryResultType = {ClassName.StringDataValue, 
 			ClassName.NumberDataValue,
 			ClassName.ConcatableDataValue,
@@ -217,7 +216,7 @@ public class TernaryOperatorNode extends OperatorNode
 		{
 			rightOperand = rightOperand.bindExpression(fromList, subqueryList,  aggregateVector);
 		}
-		if (operatorType == TRIM || operatorType == STRIP)
+		if (operatorType == TRIM)
 			trimBind();
 		else if (operatorType == LOCATE)
 			locateBind();
@@ -284,7 +283,7 @@ public class TernaryOperatorNode extends OperatorNode
 	 * @exception StandardException	thrown on error
 	 */
 	protected int getOrderableVariantType() throws StandardException {
-		if (operator != null && (operator.equals("trim")||operator.equals("strip")) && rightOperand == null)
+		if (operator != null && operator.equals("trim") && rightOperand == null)
 			return Qualifier.VARIANT;
 		int leftType = leftOperand.getOrderableVariantType();
 		return rightOperand == null ?
@@ -312,7 +311,7 @@ public class TernaryOperatorNode extends OperatorNode
 		LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultInterfaceType);
 
 		receiver.generateExpression(acb, mb);
-		if (operatorType == TRIM || operatorType == STRIP)
+		if (operatorType == TRIM)
 		{
 			mb.push(trimType);
 			leftOperand.generateExpression(acb, mb);
