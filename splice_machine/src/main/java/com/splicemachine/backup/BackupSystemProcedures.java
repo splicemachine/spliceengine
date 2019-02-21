@@ -511,6 +511,8 @@ public class BackupSystemProcedures {
                                            String type,
                                            ResultSet[] resultSets) throws StandardException, SQLException {
         try{
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            Activation activation = lcc.getLastActivation();
             schemaName = EngineUtils.validateSchema(schemaName);
             type = type.trim().toUpperCase();
             if (directory == null || directory.isEmpty()) {
@@ -526,7 +528,31 @@ public class BackupSystemProcedures {
             else {
                 throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
             }
-            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+            // Print reboot statement
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(2);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+
+            SQLWarning warning = activation.getWarnings();
+            if (warning != null) {
+                while (warning != null) {
+                    template.getColumn(1).setValue(warning.getSQLState());
+                    template.getColumn(2).setValue(warning.getLocalizedMessage());
+                    rows.add(template.getClone());
+                    warning = warning.getNextWarning();
+                }
+                IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+                inprs.openCore();
+                Connection conn = SpliceAdmin.getDefaultConn();
+                resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+            }
+            else {
+                resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+            }
 
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
