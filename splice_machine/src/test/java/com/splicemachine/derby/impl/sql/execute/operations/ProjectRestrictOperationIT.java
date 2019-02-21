@@ -317,18 +317,6 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
         Assert.assertEquals("lower return type incorrect", Types.CHAR,
                 rs.getMetaData().getColumnType(1));
 
-        String from = "";
-        String to = "";
-        for (int i = 0; i < Limits.DB2_CHAR_MAXWIDTH - 1; i++) {
-           from = from.concat("ß");
-           to = to.concat("SS");
-        }
-        rs = methodWatcher.executeQuery(format("values upper('%s', 'de-DE')", from));
-        rs.next();
-        Assert.assertEquals("upper incorrect with de-DE", to, rs.getString(1));
-        Assert.assertEquals("upper return type incorrect", Types.CLOB ,
-                rs.getMetaData().getColumnType(1));
-
         try {
             methodWatcher.executeQuery("values lower('I', 'aaa-bbb')");
             Assert.fail("Should fail with invalidate locale");
@@ -352,6 +340,25 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
             Assert.fail("Should fail with invalidate locale");
         } catch (Exception ignored) {
         }
+
+        testUpperReturnType(4, Types.CHAR);
+        testUpperReturnType(Limits.DB2_CHAR_MAXWIDTH, Types.VARCHAR);
+        testUpperReturnType(Limits.DB2_VARCHAR_MAXWIDTH, Types.LONGVARCHAR);
+        testUpperReturnType(Limits.DB2_LONGVARCHAR_MAXWIDTH, Types.CLOB);
+    }
+
+    private void testUpperReturnType(int width, int expectType) throws Exception {
+        String from = "";
+        String to = "";
+        for (int i = 0; i * 2 <= width; i++) {
+           from = from.concat("ß");
+           to = to.concat("SS");
+        }
+        ResultSet rs = methodWatcher.executeQuery(format("values upper('%s', 'de-DE')", from));
+        rs.next();
+        Assert.assertEquals("upper incorrect with de-DE", to, rs.getString(1));
+        Assert.assertEquals("upper return type incorrect", expectType,
+                rs.getMetaData().getColumnType(1));
     }
 
     @Test

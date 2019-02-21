@@ -116,6 +116,7 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 				case Types.VARCHAR:
 				case Types.LONGVARCHAR:
 				case Types.CLOB:
+					operandType = getResultType(width, operandType);
 					break;
 				case Types.JAVA_OBJECT:
 				case Types.OTHER:	
@@ -126,8 +127,9 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 				}
 
 				default:
+					operandType = getResultType(width, TypeId.getBuiltInTypeId(TypeId.VARCHAR_NAME));
 					DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-					        width>Limits.DB2_CHAR_MAXWIDTH?Types.CLOB:Types.VARCHAR,
+					        operandType.getJDBCTypeId(),
                             true,
 							width);
 			
@@ -138,12 +140,11 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 							dtd,
 							getContextManager());
 					
-				// DERBY-2910 - Match current schema collation for implicit cast as we do for
-				// explicit casts per SQL Spec 6.12 (10)					
-			    leftOperand.setCollationUsingCompilationSchema();
-			    
-				((CastNode) leftOperand).bindCastNodeOnly();
-					operandType = leftOperand.getTypeId();
+					// DERBY-2910 - Match current schema collation for implicit cast as we do for
+					// explicit casts per SQL Spec 6.12 (10)
+			    	leftOperand.setCollationUsingCompilationSchema();
+
+					((CastNode) leftOperand).bindCastNodeOnly();
 		}
 
 		/*
@@ -151,7 +152,7 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 		*/
 
 		setType(new DataTypeDescriptor(
-		        width>Limits.DB2_CHAR_MAXWIDTH?TypeId.getBuiltInTypeId(TypeId.CLOB_NAME):operandType,
+		        operandType,
 				leftOperand.getTypeServices().isNullable(),
                 width));
 		//Result of upper()/lower() will have the same collation as the   
@@ -159,6 +160,27 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
         setCollationInfo(leftOperand.getTypeServices());
 
 		return this;
+	}
+
+	/**
+	 * Get the result type give the width. It will cast the value to a new type if the width exceed current type's
+	 * width limit.
+	 * @param width The width
+	 * @param defaultType The original type. Must be one of CLOB, LONGVARCHAR, VARCHAR, CHAR
+	 * @return The casted type.
+	 */
+	private TypeId getResultType(int width, TypeId defaultType) {
+	    int type = defaultType.getJDBCTypeId();
+		if (type == Types.CLOB || width > Limits.DB2_LONGVARCHAR_MAXWIDTH) {
+			return TypeId.getBuiltInTypeId(TypeId.CLOB_NAME);
+		}
+		if (type == Types.LONGVARCHAR || width > Limits.DB2_VARCHAR_MAXWIDTH) {
+			return TypeId.getBuiltInTypeId(TypeId.LONGVARCHAR_NAME);
+		}
+		if (type == Types.VARCHAR || width > Limits.DB2_CHAR_MAXWIDTH) {
+			return TypeId.getBuiltInTypeId(TypeId.VARCHAR_NAME);
+		}
+	    return defaultType;
 	}
 
 	/**
