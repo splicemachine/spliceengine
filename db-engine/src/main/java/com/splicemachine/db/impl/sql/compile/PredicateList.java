@@ -900,6 +900,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             }
         } else
             inlistQualified = false;
+
+        if (inlistPreds.isEmpty())
+            inlistQualified = false;
     
         if (usefulCount > 0) {
             /* The array of useful predicates may have unused slots.  Shrink it */
