@@ -100,6 +100,7 @@ public class BinaryOperatorNode extends OperatorNode
 	public final static int XMLEXISTS_OP = 0;
 	public final static int XMLQUERY_OP = 1;
 	public final static int REPEAT = 2;
+	public final static int SIMPLE_LOCALE_STRING = 3;
 
 	// NOTE: in the following 4 arrays, order
 	// IS important.
@@ -172,6 +173,22 @@ public class BinaryOperatorNode extends OperatorNode
 		this.rightInterfaceType = (String) rightInterfaceType;
 		this.operatorType = -1;
 	}
+
+	public void init(
+			Object leftOperand,
+			Object rightOperand,
+			Object operator,
+			Object methodName,
+			Object leftInterfaceType,
+			Object rightInterfaceType,
+			Object resultInterfaceType,
+			int operatorType)
+	{
+	    init(leftOperand, rightOperand, operator, methodName, leftInterfaceType, rightInterfaceType);
+		this.operatorType = operatorType;
+		this.resultInterfaceType = (String) resultInterfaceType;
+	}
+
 
 	/**
 	 * Initializer for a BinaryOperatorNode
@@ -602,7 +619,7 @@ public class BinaryOperatorNode extends OperatorNode
 		**
 		*/
 		if (leftOperand.getTypeId().typePrecedence() >
-			rightOperand.getTypeId().typePrecedence() || operatorType == REPEAT)
+			rightOperand.getTypeId().typePrecedence() || operatorType == REPEAT || operatorType == SIMPLE_LOCALE_STRING)
 		{
 			receiver = leftOperand;
 			/*

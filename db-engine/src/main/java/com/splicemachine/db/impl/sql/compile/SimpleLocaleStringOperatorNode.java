@@ -59,7 +59,7 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 	public void init(Object leftOperand, Object rightOperand, Object methodName)
 	{
 		super.init(leftOperand, rightOperand, "upperWithLocale", methodName, ClassName.StringDataValue,
-				ClassName.StringDataValue);
+				ClassName.StringDataValue, ClassName.StringDataValue, SIMPLE_LOCALE_STRING);
 	}
 
 	/**
