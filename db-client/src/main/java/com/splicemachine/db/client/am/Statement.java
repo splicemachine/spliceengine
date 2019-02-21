@@ -25,6 +25,7 @@
 package com.splicemachine.db.client.am;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
@@ -60,7 +61,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
 
     // Use -1, if there is no update count returned, ie. when result set is returned. 0 is a valid update count for DDL.
     int updateCount_ = -1;
-    int[] updateCounts_ = null;
+    ArrayList<Integer> updateCounts_ = null;
     int returnValueFromProcedure_;
 
     // Enumeration of the flavors of statement execute call used.
@@ -1614,7 +1615,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
             returnValueFromProcedure_ = sqlcode;
         } else {
             if (updateCounts_ != null) {
-                updateCounts_[++updateCount_] = sqlca.getUpdateCount();
+                updateCounts_.add(sqlca.getUpdateCount());
             } else {
                 updateCount_ = sqlca.getUpdateCount();
             }

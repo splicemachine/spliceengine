@@ -78,7 +78,6 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
      */
     protected EngineStatement applicationStatement;
 
-    int updateCount = -1;
     long[] updateCounts = new long[] {-1};
     EmbedResultSet results;
     //for jdbc3.0 feature, where you can get a resultset of rows inserted
@@ -1126,7 +1125,6 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
                 throw se;
             }
 
-            updateCount = -1;
             updateCounts = new long[] {-1};
 
             while (++currentDynamicResultSet < dynamicResults.length) {
@@ -1283,7 +1281,6 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
                     if (a.isSingleExecution())
                         lresults.singleUseActivation = a;
 
-                    updateCount = -1;
                     updateCounts = new long[] {-1};
                     retval = true;
                 } else {
@@ -1524,7 +1521,6 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
               requests.  There is no close method on database statement objects.
         */
 
-        updateCount = -1; // reset field
         updateCounts = new long[] {-1};
 
         if (sqle != null)
@@ -1633,7 +1629,6 @@ public class EmbedStatement extends ConnectionChild implements EngineStatement {
             }
 
 
-            updateCount = -1;
             updateCounts = new long[] {-1};
             results = sorted[0];
             currentDynamicResultSet = 0;

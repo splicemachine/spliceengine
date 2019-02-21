@@ -368,35 +368,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 ((NormalizeOperation) source).setRequireNotNull(false);
             }
         }
-        DataSet set;
-        OperationContext operationContext=dsp.createOperationContext(this);
-        int[] expectedUpdatecounts = null;
-        if (activation.isBatched()) {
-            List<DataSet> sets = new LinkedList<>();
-            List<Integer> counts = new ArrayList<>();
-            do {
-                Pair<DataSet, Integer> pair = source.getDataSet(dsp).materialize();
-                sets.add(pair.getFirst());
-                counts.add(pair.getSecond());
-            } while (activation.nextBatchElement());
-
-            expectedUpdatecounts = new int[sets.size()];
-            Iterator<Integer> it = counts.iterator();
-            for(int i = 0; i < expectedUpdatecounts.length; ++i) {
-                expectedUpdatecounts[i] = it.next();
-            }
-
-            while(sets.size() > 1) {
-                DataSet left = sets.remove(0);
-                DataSet right = sets.remove(0);
-                sets.add(left.union(right, operationContext));
-            }
-            
-            set = sets.get(0);
-        } else {
-            set=source.getDataSet(dsp);
-        }
-        set = set.shufflePartitions();
+        Pair<DataSet, int[]> pair = getBatchedDataset(dsp);
+        DataSet set = pair.getFirst();
+        int[] expectedUpdateCounts = pair.getSecond();
+        
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
         if(insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
@@ -450,7 +425,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .sampleFraction(sampleFraction)
                     .pkCols(pkCols)
                     .tableVersion(tableVersion)
-                    .updateCounts(expectedUpdatecounts)
+                    .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn)

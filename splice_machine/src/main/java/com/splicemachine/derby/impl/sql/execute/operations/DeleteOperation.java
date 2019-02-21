@@ -89,34 +89,10 @@ public class DeleteOperation extends DMLWriteOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        DataSet set;
-        int[] expectedUpdatecounts = null;
-        if (activation.isBatched()) {
-            List<DataSet> sets = new LinkedList<>();
-            List<Integer> counts = new ArrayList<>();
-            do {
-                Pair<DataSet, Integer> pair = source.getDataSet(dsp).materialize();
-                sets.add(pair.getFirst());
-                counts.add(pair.getSecond());
-            } while (activation.nextBatchElement());
 
-            expectedUpdatecounts = new int[sets.size()];
-            Iterator<Integer> it = counts.iterator();
-            for (int i = 0; i < expectedUpdatecounts.length; ++i) {
-                expectedUpdatecounts[i] = it.next();
-            }
-
-            while (sets.size() > 1) {
-                DataSet left = sets.remove(0);
-                DataSet right = sets.remove(0);
-                sets.add(left.union(right, operationContext));
-            }
-
-            set = sets.get(0);
-        } else {
-            set = source.getDataSet(dsp);
-        }
-        set = set.shufflePartitions();
+        Pair<DataSet, int[]> pair = getBatchedDataset(dsp);
+        DataSet set = pair.getFirst();
+        int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
 		operationContext.pushScope();
@@ -132,7 +108,7 @@ public class DeleteOperation extends DMLWriteOperation {
                 dataSetWriterBuilder = set.deleteData(operationContext);
             }
             DataSetWriter dataSetWriter = dataSetWriterBuilder
-                    .updateCounts(expectedUpdatecounts)
+                    .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn).build();

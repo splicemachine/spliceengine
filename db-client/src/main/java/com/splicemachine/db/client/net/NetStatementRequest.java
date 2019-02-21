@@ -144,7 +144,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
 
             boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
                     parameterMetaData,
-                    inputs);
+                    new Object[]{inputs});
 
             // can we eleminate the chain argument needed for lobs
             buildEXTDTA(parameterMetaData, inputs, chained);
@@ -185,7 +185,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 extdtaPositions_.clear();  // reset extdta column position markers
             }
 
-            boolean overrideExists = buildSQLDTAcommandDataBatch(numInputColumns,
+            boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
                     parameterMetaData,
                     inputs);
 
@@ -231,7 +231,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
             // indicate the extdta should be built
             boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
                     parameterMetaData,
-                    inputs);
+                    new Object[]{inputs});
 
             // can we eleminate the chain argument needed for lobs
             // do we chain after Extdta's on open, verify this
@@ -341,7 +341,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
             // indicate the extdta should be built
             boolean overrideExists = buildSQLDTAcommandData(numParameters,
                     parameterMetaData,
-                    inputs);
+                    new Object[]{inputs});
 
             buildEXTDTA(parameterMetaData, inputs, false); // no chained autocommit for CALLs
         }
@@ -561,52 +561,6 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
     //
     // preconditions:
     boolean buildSQLDTAcommandData(int numInputColumns,
-                                   ColumnMetaData parameterMetaData,
-                                   Object[] inputRow) throws SqlException {
-        createEncryptedCommandData();
-
-        int loc = buffer.position();
-
-        markLengthBytes(CodePoint.SQLDTA);
-
-        int[][] protocolTypesAndLengths = allocateLidAndLengthsArray(parameterMetaData);
-
-        java.util.Hashtable protocolTypeToOverrideLidMapping = null;
-        java.util.ArrayList mddOverrideArray = null;
-        protocolTypeToOverrideLidMapping =
-                computeProtocolTypesAndLengths(inputRow, parameterMetaData, protocolTypesAndLengths,
-                        protocolTypeToOverrideLidMapping);
-
-        boolean overrideExists = false;
-
-        buildFDODSC(numInputColumns,
-                protocolTypesAndLengths,
-                overrideExists,
-                protocolTypeToOverrideLidMapping,
-                mddOverrideArray);
-
-        buildFDODTA(numInputColumns,
-                protocolTypesAndLengths,
-                inputRow);
-
-        updateLengthBytes(); // for sqldta
-        if (netAgent_.netConnection_.getSecurityMechanism() ==
-                NetConfiguration.SECMEC_EUSRIDDTA ||
-                netAgent_.netConnection_.getSecurityMechanism() ==
-                NetConfiguration.SECMEC_EUSRPWDDTA) {
-            encryptDataStream(loc);
-        }
-
-        return overrideExists;
-    }
-
-
-    // Build the SQL Program Variable Data Command Data Object.
-    // This object contains the input data to an SQL statement
-    // that an RDB is executing.
-    //
-    // preconditions:
-    boolean buildSQLDTAcommandDataBatch(int numInputColumns,
                                    ColumnMetaData parameterMetaData,
                                    Object[] inputRows) throws SqlException {
         createEncryptedCommandData();
