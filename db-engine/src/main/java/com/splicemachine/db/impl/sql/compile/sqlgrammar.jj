@@ -2596,7 +2596,6 @@ TOKEN [IGNORE_CASE] :
 |	<AT: "at">
 |	<AUTHORIZATION: "authorization">
 |	<AVG: "avg">
-|	<B: "b">
 |	<BEGIN: "begin">
 |	<BETWEEN: "between">
 |	<BINARY: "binary">
@@ -2697,7 +2696,6 @@ TOKEN [IGNORE_CASE] :
 |	<ISOLATION: "isolation">
 |	<JOIN: "join">
 |	<KEY: "key">
-|	<L: "l">
 |	<LAST: "last">
 |	<LEADING: "leading">
 |	<LEFT: "left">
@@ -2770,7 +2768,6 @@ TOKEN [IGNORE_CASE] :
 |	<SUBSTRING: "substring">
 |	<SUM: "sum">
 |	<SYSTEM_USER: "system_user">
-|	<T: "t">
 |	<TABLE: "table">
 |	<TEMPORARY: "temporary">
 |	<TIMEZONE_HOUR: "timezone_hour">
@@ -2827,6 +2824,7 @@ TOKEN [IGNORE_CASE] :
 |	<ACTION: "action">
 |	<ALWAYS: "always">
 |   <AUTO: "auto">
+|	<B: "b">
 |	<BLOB: "blob">
 |	<C: "c">
 |   <CALLED: "called">
@@ -2860,6 +2858,7 @@ TOKEN [IGNORE_CASE] :
 |	<INTERVAL: "interval">
 |	<INVOKER: "invoker">
 |	<KEYS: "keys">
+|	<L: "l">
 |	<LANGUAGE: "language">
 |	<LARGE: "large">
 |	<LENGTH: "length">
@@ -2935,6 +2934,7 @@ TOKEN [IGNORE_CASE] :
 |	<START: "start">
 |	<STATEMENT: "statement">
 |	<SYNONYM: "synonym">
+|	<T: "t">
 |	<THEN: "then">
 |	<TIME: "time">
 |	<TIMESTAMP: "timestamp">
