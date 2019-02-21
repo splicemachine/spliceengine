@@ -316,6 +316,141 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
 
     @Test
+    public void testSPLICE2306() throws Exception {
+        String sqlText = format("select * from t1  --SPLICE-PROPERTIES useSpark=%s \n"+
+            "where (a1 in ('A','B','C') or false) or (a1 in ('D','E','F') and (true or false)) order by 1,2,3", useSpark);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+            "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " A | 1 | 1 |\n" +
+                " A |11 | 1 |\n" +
+                " A |21 | 1 |\n" +
+                " A |31 | 1 |\n" +
+                " A |41 | 1 |\n" +
+                " A |51 | 1 |\n" +
+                " A |61 | 1 |\n" +
+                " A |71 | 1 |\n" +
+                " B | 2 | 2 |\n" +
+                " B |12 | 2 |\n" +
+                " B |22 | 2 |\n" +
+                " B |32 | 2 |\n" +
+                " B |42 | 2 |\n" +
+                " B |52 | 2 |\n" +
+                " B |62 | 2 |\n" +
+                " B |72 | 2 |\n" +
+                " C | 3 | 3 |\n" +
+                " C |13 | 3 |\n" +
+                " C |23 | 3 |\n" +
+                " C |33 | 3 |\n" +
+                " C |43 | 3 |\n" +
+                " C |53 | 3 |\n" +
+                " C |63 | 3 |\n" +
+                " C |73 | 3 |\n" +
+                " D | 4 | 4 |\n" +
+                " D |14 | 4 |\n" +
+                " D |24 | 4 |\n" +
+                " D |34 | 4 |\n" +
+                " D |44 | 4 |\n" +
+                " D |54 | 4 |\n" +
+                " D |64 | 4 |\n" +
+                " D |74 | 4 |\n" +
+                " E | 5 | 0 |\n" +
+                " E |15 | 0 |\n" +
+                " E |25 | 0 |\n" +
+                " E |35 | 0 |\n" +
+                " E |45 | 0 |\n" +
+                " E |55 | 0 |\n" +
+                " E |65 | 0 |\n" +
+                " E |75 | 0 |\n" +
+                " F | 6 | 1 |\n" +
+                " F |16 | 1 |\n" +
+                " F |26 | 1 |\n" +
+                " F |36 | 1 |\n" +
+                " F |46 | 1 |\n" +
+                " F |56 | 1 |\n" +
+                " F |66 | 1 |\n" +
+                " F |76 | 1 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        sqlText = format("select * from t1  --SPLICE-PROPERTIES useSpark=%s \n"+
+            "where a1 in ('A','B','C') or a1 in ('D','E','F') order by 1,2,3", useSpark);
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertTrue("MultiProbeTableScan is expected", resultString.contains("MultiProbeTableScan"));
+        Assert.assertTrue("In lists should be combined", resultString.contains("(A1[0:1] IN (A         ,B         ,C         ,D         ,E         ,F         )"));
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+
+        sqlText = format("select * from t1  --SPLICE-PROPERTIES useSpark=%s \n"+
+            "where a1 in ('A','B','C') and b1 in (1,11) or a1 in ('D','E','F') and b1 in (4,14) order by 1,2,3", useSpark);
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertFalse("MultiProbeTableScan is not expected", resultString.contains("MultiProbeTableScan"));
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+            "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " A | 1 | 1 |\n" +
+                " A |11 | 1 |\n" +
+                " D | 4 | 4 |\n" +
+                " D |14 | 4 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = format("select * from t1  --SPLICE-PROPERTIES useSpark=%s \n"+
+            "where (a1 = 'A' and b1 = 1) or (a1 = 'D' and b1 = 4) order by 1,2,3", useSpark);
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertFalse("MultiProbeTableScan is not expected", resultString.contains("MultiProbeTableScan"));
+
+        Assert.assertTrue("Multicolumn IN list should be built", resultString.contains("[((A1[0:1],B1[0:2]) IN ((A         ,1),(D         ,4)))]"));
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+            "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " A | 1 | 1 |\n" +
+                " D | 4 | 4 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        sqlText = format("select * from t1  --SPLICE-PROPERTIES useSpark=%s \n"+
+            "where a1 in ('A','B','C') and b1 = 1 or a1 = 'D' and b1 = 4 order by 1,2,3", useSpark);
+        rs = methodWatcher.executeQuery("explain " + sqlText);
+
+        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertFalse("Bad IN list construction found.", resultString.contains("dataTypeServices"));
+
+        Assert.assertFalse("Multicolumn IN list should not be built", resultString.contains("(A[0:1],B[0:2])"));
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        expected =
+            "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " A | 1 | 1 |\n" +
+                " D | 4 | 4 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+    }
+
+    @Test
     public void testInListWithBooleanIT() throws Exception {
         String sqlText = "select count(*) from ts_bool where b in (true)";
         ResultSet rs = methodWatcher.executeQuery(sqlText);
