@@ -7388,7 +7388,8 @@ characterValueFunction() throws StandardException :
 {
 	ValueNode 	value = null;
 	ValueNode 	str1;
-	ValueNode 	str2 = null;
+	ValueNode 	str2;
+	ValueNode 	locale = null;
 	Token		upperTok = null;
 	Token		lowerTok = null;
 	ValueNode	startPosition;
@@ -7405,13 +7406,13 @@ characterValueFunction() throws StandardException :
         return getReplaceNode( value, str1, str2 );
 	}
 |
-	( upperTok = <UPPER> | lowerTok = <LOWER> ) <LEFT_PAREN> str1 = additiveExpression(null,0) [ <COMMA> str2 = additiveExpression(null,0) ] <RIGHT_PAREN>
+	( upperTok = <UPPER> | lowerTok = <LOWER> ) <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> locale = additiveExpression(null,0) ] <RIGHT_PAREN>
 	{
-	    if (str2 == null)
+	    if (locale == null)
 	    {
 		    return (ValueNode) nodeFactory.getNode(
 					C_NodeTypes.SIMPLE_STRING_OPERATOR_NODE,
-					str1,
+					value,
 					(upperTok != null) ? "upper" : "lower",
 					getContextManager());
 		}
@@ -7419,21 +7420,21 @@ characterValueFunction() throws StandardException :
 		{
 		    return (ValueNode) nodeFactory.getNode(
 					C_NodeTypes.SIMPLE_LOCALE_STRING_OPERATOR_NODE,
-					str1,
-					str2,
+					value,
+					locale,
 					(upperTok != null) ? "upperWithLocale" : "lowerWithLocale",
 					getContextManager());
 		}
 
 	}
 |
-	( upperTok = <UCASE> | lowerTok = <LCASE> ) <LEFT_PAREN> str1 = additiveExpression(null,0) [ <COMMA> str2 = additiveExpression(null,0) ] <RIGHT_PAREN>
+	( upperTok = <UCASE> | lowerTok = <LCASE> ) <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> locale = additiveExpression(null,0) ] <RIGHT_PAREN>
 	{
-	    if (str2 == null)
+	    if (locale == null)
 	    {
 		    return (ValueNode) nodeFactory.getNode(
 					C_NodeTypes.SIMPLE_STRING_OPERATOR_NODE,
-					str1,
+					value,
 					(upperTok != null) ? "upper" : "lower",
 					getContextManager());
 		}
@@ -7441,8 +7442,8 @@ characterValueFunction() throws StandardException :
 		{
 		    return (ValueNode) nodeFactory.getNode(
 					C_NodeTypes.SIMPLE_LOCALE_STRING_OPERATOR_NODE,
-					str1,
-					str2,
+					value,
+					locale,
 					(upperTok != null) ? "upperWithLocale" : "lowerWithLocale",
 					getContextManager());
 		}
