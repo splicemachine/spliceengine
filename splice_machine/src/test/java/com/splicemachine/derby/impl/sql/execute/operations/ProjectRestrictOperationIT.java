@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.client.am.Types;
+import com.splicemachine.db.iapi.reference.Limits;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
@@ -312,6 +314,20 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
         rs = methodWatcher.executeQuery("values lcase('I', 'tr-TR')");
         rs.next();
         Assert.assertEquals("lower incorrect with tr-TR", "ı", rs.getString(1));
+        Assert.assertEquals("lower return type incorrect", Types.CHAR,
+                rs.getMetaData().getColumnType(1));
+
+        String from = "";
+        String to = "";
+        for (int i = 0; i < Limits.DB2_CHAR_MAXWIDTH - 1; i++) {
+           from = from.concat("ß");
+           to = to.concat("SS");
+        }
+        rs = methodWatcher.executeQuery(format("values upper('%s', 'de-DE')", from));
+        rs.next();
+        Assert.assertEquals("upper incorrect with de-DE", to, rs.getString(1));
+        Assert.assertEquals("upper return type incorrect", Types.CLOB ,
+                rs.getMetaData().getColumnType(1));
 
         try {
             methodWatcher.executeQuery("values lower('I', 'aaa-bbb')");

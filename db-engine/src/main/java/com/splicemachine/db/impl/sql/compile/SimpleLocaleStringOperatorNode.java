@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -101,6 +102,14 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 		*/
 		TypeId operandType = leftOperand.getTypeId();
 
+		int leftWidth = leftOperand.getTypeCompiler().getCastToCharWidth(
+		        leftOperand.getTypeServices());
+		if (leftWidth > Limits.DB2_LOB_MAXWIDTH / 2) {
+		    throw StandardException.newException(SQLState.BLOB_LENGTH_TOO_LONG, methodName,
+                    leftWidth * 2);
+        }
+		int width = leftWidth * 2;
+
 		switch (operandType.getJDBCTypeId())
 		{
 				case Types.CHAR:
@@ -111,16 +120,16 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 				case Types.JAVA_OBJECT:
 				case Types.OTHER:	
 				{
-					throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE, 
+					throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
 										methodName,
 										operandType.getSQLTypeName());
 				}
 
 				default:
-					DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 
-							  leftOperand.getTypeCompiler().
-								getCastToCharWidth(
-									leftOperand.getTypeServices()));
+					DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+					        width>Limits.DB2_CHAR_MAXWIDTH?Types.CLOB:Types.VARCHAR,
+                            true,
+							width);
 			
 					leftOperand =  (ValueNode)
 						getNodeFactory().getNode(
@@ -138,15 +147,13 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 		}
 
 		/*
-		** The result type of upper()/lower() is the type of the operand.
+		** The result type of upper()/lower() is the type of the operand, or CBLOB
 		*/
 
-		setType(new DataTypeDescriptor(operandType,
+		setType(new DataTypeDescriptor(
+		        width>Limits.DB2_CHAR_MAXWIDTH?TypeId.getBuiltInTypeId(TypeId.CLOB_NAME):operandType,
 				leftOperand.getTypeServices().isNullable(),
-				leftOperand.getTypeCompiler().
-					getCastToCharWidth(leftOperand.getTypeServices())
-						)
-				);
+                width));
 		//Result of upper()/lower() will have the same collation as the   
 		//argument to upper()/lower(). 
         setCollationInfo(leftOperand.getTypeServices());
