@@ -276,6 +276,29 @@ public class ExportOperationIT {
     }
 
     @Test
+    public void export_compressed_gz2() throws Exception {
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table export_compressed_gz2(a smallint,b double, c time,d varchar(20))")
+                .withInsert("insert into export_compressed_gz2 values(?,?,?,?)")
+                .withRows(getTestRows()).create();
+
+        String exportSQL = buildExportSQL("select * from export_compressed_gz2 order by a asc", true);
+
+        exportAndAssertExportResults(exportSQL, 6);
+        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv.gz"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "25,3.14159,14:31:20,varchar1\n" +
+                        "26,3.14159,14:31:20,varchar1\n" +
+                        "27,3.14159,14:31:20,varchar1 space\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
+                        "30,3.14159,14:31:20,varchar1\n",
+                IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
+    }
+
+    @Test
     public void export_decimalFormatting() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
@@ -434,6 +457,10 @@ public class ExportOperationIT {
         return buildExportSQL(selectQuery, compression, ",");
     }
 
+    private String buildExportSQL(String selectQuery, boolean compression) {
+        return buildExportSQL(selectQuery, compression, ",");
+    }
+
     private String buildExportSQL(String selectQuery, String compression, String fieldDelimiter) {
         String exportPath = temporaryFolder.getRoot().getAbsolutePath();
         if (compression == null) {
@@ -442,6 +469,11 @@ public class ExportOperationIT {
         else {
             return String.format("EXPORT('%s', '%s', 3, NULL, '%s', NULL)", exportPath, compression, fieldDelimiter) + " " + selectQuery;
         }
+    }
+
+    private String buildExportSQL(String selectQuery, boolean compression, String fieldDelimiter) {
+        String exportPath = temporaryFolder.getRoot().getAbsolutePath();
+        return String.format("EXPORT('%s', %s, 3, NULL, '%s', NULL)", exportPath, compression, fieldDelimiter) + " " + selectQuery;
     }
 
     private void exportAndAssertExportResults(String exportSQL, long expectedExportRowCount) throws Exception {
