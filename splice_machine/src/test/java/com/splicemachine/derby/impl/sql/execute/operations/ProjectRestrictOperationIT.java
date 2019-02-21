@@ -314,8 +314,6 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
         rs = methodWatcher.executeQuery("values lcase('I', 'tr-TR')");
         rs.next();
         Assert.assertEquals("lower incorrect with tr-TR", "ı", rs.getString(1));
-        Assert.assertEquals("lower return type incorrect", Types.CHAR,
-                rs.getMetaData().getColumnType(1));
 
         try {
             methodWatcher.executeQuery("values lower('I', 'aaa-bbb')");
@@ -345,6 +343,10 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
         testUpperReturnType(Limits.DB2_CHAR_MAXWIDTH, Types.VARCHAR);
         testUpperReturnType(Limits.DB2_VARCHAR_MAXWIDTH, Types.LONGVARCHAR);
         testUpperReturnType(Limits.DB2_LONGVARCHAR_MAXWIDTH, Types.CLOB);
+
+        rs = methodWatcher.executeQuery("values upper(CURRENT_DATE, 'tr-TR')");
+        rs.next();
+        Assert.assertEquals("upper return type incorrect", Types.VARCHAR, rs.getMetaData().getColumnType(1));
     }
 
     private void testUpperReturnType(int width, int expectType) throws Exception {
