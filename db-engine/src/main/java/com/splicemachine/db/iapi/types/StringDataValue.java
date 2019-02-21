@@ -164,7 +164,29 @@ public interface StringDataValue extends ConcatableDataValue
 	StringDataValue upper(StringDataValue result)
 							throws StandardException;
 
-	/** 
+	/**
+	 * Covert the string to upper case with specified locale.
+	 * @param str The string
+	 * @param locale  The locale
+	 * @param result the result
+	 * @return The string converted to upper case
+	 * @throws StandardException Thrown on error
+	 */
+	StringDataValue upperWithLocale(StringDataValue str, StringDataValue locale, StringDataValue result)
+							throws StandardException;
+
+	/**
+	 * Covert the string to lower case with specified locale.
+	 * @param str The string
+	 * @param locale  The locale
+	 * @param result the result
+	 * @return The string converted to lower case
+	 * @throws StandardException Thrown on error
+	 */
+	StringDataValue lowerWithLocale(StringDataValue str, StringDataValue locale, StringDataValue result)
+			throws StandardException;
+
+	/**
 	 * Convert the string to lower case.
 	 *
 	 * @param result	The result (reusable - allocate if null).
