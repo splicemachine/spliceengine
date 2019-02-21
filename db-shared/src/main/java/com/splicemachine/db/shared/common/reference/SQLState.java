@@ -1913,7 +1913,7 @@ public interface SQLState {
     String UNEXPECTED_IMPORT_READING_ERROR                         ="XIE10.S";
 	String UNEXPECTED_IMPORT_CSV_ERROR                             ="XIE11.S";
 	String REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR                 ="XIE12.S";
-
+	String UNSUPPORTED_COMPRESSION_FORMAT                          ="XIE13.S";
 
 
     /*
