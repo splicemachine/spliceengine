@@ -32,6 +32,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
+import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -81,7 +82,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             int timestampBlockSize = configuration.getTimestampBlockSize();
 
             TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);
-            this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
+            this.timestampServer =new TimestampServer(timestampPort,new TimestampServerHandler(tbm, timestampBlockSize));
 
             this.timestampServer.startServer();
 
