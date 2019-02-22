@@ -1082,6 +1082,15 @@
             </properties>
         </profile>
         <profile>
+            <id>cdh5.12.2-2.3</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
             <id>cdh5.13.0</id>
             <properties>
                 <!--extraDependency>splice_sentry</extraDependency-->
