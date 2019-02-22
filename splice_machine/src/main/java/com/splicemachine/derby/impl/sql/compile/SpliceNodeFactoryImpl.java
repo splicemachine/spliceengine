@@ -394,6 +394,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 		  case C_NodeTypes.CURRENT_SCHEMA_NODE:
           case C_NodeTypes.CURRENT_ROLE_NODE:
 		  case C_NodeTypes.CURRENT_SESSION_PROPERTY_NODE:
+		  case C_NodeTypes.GROUP_USER_NODE:
 		  	return C_NodeNames.SPECIAL_FUNCTION_NODE_NAME;
 
 		  case C_NodeTypes.IS_NODE:

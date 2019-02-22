@@ -1150,6 +1150,13 @@ public interface LanguageConnectionContext extends Context {
 			throws StandardException;
 
 	/**
+	 * @param a activation of statement
+	 * @return String of the group user list in delimited form
+	 * @throws StandardException
+	 */
+	String getCurrentGroupUserDelimited(Activation a) throws StandardException;
+
+	/**
 	 * Checks whether the given role can be legally set for the current user.
 	 *
 	 * This method will read (potentially) the dictionary, so it needs

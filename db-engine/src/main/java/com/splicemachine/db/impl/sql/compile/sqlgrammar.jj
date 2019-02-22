@@ -2849,6 +2849,7 @@ TOKEN [IGNORE_CASE] :
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |   <GROUPING: "grouping">
+|   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
 |	<IGNORE: "ignore">
@@ -8768,6 +8769,13 @@ userNode() throws StandardException :
 						C_NodeTypes.SESSION_USER_NODE,
 						getContextManager());
 	}
+|
+    <GROUP_USER>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                        C_NodeTypes.GROUP_USER_NODE,
+        						getContextManager());
+    }
 }
 
 
