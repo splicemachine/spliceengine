@@ -117,6 +117,7 @@ public class MemDatabase{
             builder.storageFactoryHome = System.getProperty("user.dir");
             builder.authenticationImpersonationEnabled = true;
             builder.authenticationImpersonationUsers = "dgf=splice;splice=*";
+            builder.authenticationMapGroupAttr = "jy=splice,dgf=splice";
     
             if ("true".equals(System.getProperty("splice.debug.dumpClassFile")) ||
                 "DumpClassFile".equals(System.getProperty("derby.debug.true")))
