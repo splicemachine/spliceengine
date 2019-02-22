@@ -296,6 +296,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
 
         long timestamp = callback.getNewTimestamp();
         if (timestamp < 0) {
+            clientCallbacks.remove(clientCallId); // defensive call, this should have already been removed
             doClientErrorThrow(LOG, "Invalid timestamp found for client: %s", null, callback);
         }
 
