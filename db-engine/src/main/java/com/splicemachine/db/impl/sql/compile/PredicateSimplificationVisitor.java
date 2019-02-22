@@ -40,8 +40,15 @@ import java.util.List;
 class PredicateSimplificationVisitor implements Visitor {
 
     private final FromList fromListParam;
+    private Class skipOverClass;
 
     public PredicateSimplificationVisitor(FromList fromListParam) {
+        this.skipOverClass = null;
+        this.fromListParam = fromListParam;
+    }
+
+    public PredicateSimplificationVisitor(FromList fromListParam, Class skipOverClass) {
+        this.skipOverClass = skipOverClass;
         this.fromListParam = fromListParam;
     }
 
@@ -135,11 +142,14 @@ class PredicateSimplificationVisitor implements Visitor {
     }
 
     /**
-     * {@inheritDoc}
-     * @return {@code false}, since the entire tree should be visited
+     * Don't visit childen under the skipOverClass
+     * node, if it isn't null.
+     *
+     * @return true/false
      */
-    public boolean skipChildren(Visitable node) {
-        return false;
+    public boolean skipChildren(Visitable node)
+    {
+        return skipOverClass != null && skipOverClass.isInstance(node);
     }
 
     /**

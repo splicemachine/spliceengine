@@ -546,11 +546,19 @@ public class SelectNode extends ResultSetNode{
         // Subqueries and aggregates in the WHERE clause and HAVING
         // clause get added to the whereSubquerys, whereAggregates,
         // havingSubquerys and havingAggregates lists during binding.
-        // If the predicates containing thoses SubqueryNodes and
+        // If the predicates containing those SubqueryNodes and
         // AggregateNodes are subsequently removed from the WHERE or
         // HAVING clause, query compilation will fail.
-        if (!getCompilerContext().getDisablePredicateSimplification())
-            accept(new PredicateSimplificationVisitor(fromListParam));
+        // Nested SelectNodes will not be scanned by this Visitor.
+        if (!getCompilerContext().getDisablePredicateSimplification()) {
+            Visitor predSimplVisitor =
+                new PredicateSimplificationVisitor(fromListParam,
+                                                   SelectNode.class);
+            if (whereClause != null)
+                whereClause = (ValueNode)whereClause.accept(predSimplVisitor);
+            if (havingClause != null)
+                havingClause = (ValueNode)havingClause.accept(predSimplVisitor);
+        }
 
         whereAggregates=new LinkedList<>();
         whereSubquerys=(SubqueryList)getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
