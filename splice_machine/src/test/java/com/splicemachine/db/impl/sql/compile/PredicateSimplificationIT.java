@@ -72,7 +72,12 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
 
     @AfterClass
     public static void dropUDF() throws Exception {
+        try {
             TestUtils.executeSqlFile(classWatcher.getOrCreateConnection(), "subquery/PredSimplTestCleanup.sql", "");
+        }
+        catch (Exception e) {
+            // Don't error out if the UDF we want to drop does not exist.
+        }
     }
 
     public PredicateSimplificationIT(Boolean useSpark) {
