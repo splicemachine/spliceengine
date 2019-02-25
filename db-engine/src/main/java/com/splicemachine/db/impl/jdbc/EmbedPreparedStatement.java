@@ -1067,7 +1067,6 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
         checkExecStatus();
         synchronized (getConnectionSynchronization()) {
             setupContextStack();
-            int i = 0;
             // As per the jdbc 2.0 specs, close the statement object's current resultset
             // if one is open.
             // Are there results?
@@ -1114,8 +1113,7 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
                 restoreContextStack();
             }
 
-            int successfulUpdateCount[] = new int[i];
-            System.arraycopy(returnUpdateCountForBatch, 0, successfulUpdateCount, 0, i);
+            int successfulUpdateCount[] = new int[0];
 
             SQLException batch =
                     new java.sql.BatchUpdateException(sqle.getMessage(), sqle.getSQLState(),
