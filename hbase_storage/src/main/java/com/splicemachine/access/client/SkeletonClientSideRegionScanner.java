@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.IsolationLevel;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
@@ -95,9 +96,9 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         isClosed = true;
     }
 
-    @Override
+
 	public HRegionInfo getRegionInfo() {
-		return scanner.getRegionInfo();
+		return (HRegionInfo) scanner.getRegionInfo();
 	}
 
     @Override

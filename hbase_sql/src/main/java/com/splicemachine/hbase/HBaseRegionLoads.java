@@ -33,6 +33,7 @@ import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Throwables;
@@ -211,7 +212,8 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
                     .setType(HBaseProtos.RegionSpecifier.RegionSpecifierType.ENCODED_REGION_NAME).setValue(
                                         ZeroCopyLiteralByteString.copyFromUtf8(info.getFirst())).build());
                 ClusterStatusProtos.RegionLoad load = rl.build();
-                HPartitionLoad value=new HPartitionLoad(info.getFirst(),load.getStorefileSizeMB(),load.getMemstoreSizeMB(),load.getStorefileIndexSizeMB());
+                HPartitionLoad value=new HPartitionLoad(info.getFirst(),load.getStorefileSizeMB(),
+                        load.getMemstoreSizeMB(), HBasePlatformUtils.getStorefileIndexSizeMB(load));
                 retMap.put(info.getFirst(),value);
             }
 

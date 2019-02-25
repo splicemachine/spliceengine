@@ -17,6 +17,7 @@ package com.splicemachine.derby.hbase;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.spark_project.guava.base.Function;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
@@ -75,10 +76,10 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     @SuppressWarnings("unchecked")
     public void start(final CoprocessorEnvironment env) throws IOException{
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)env);
-        final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion(),rce.getRegionServerServices());
+        final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion(),HBasePlatformUtils.getRegionServerServices(rce));
 
         tokenEnabled = SIDriver.driver().getConfiguration().getAuthenticationTokenEnabled();
-        String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
+        String tableName= HBasePlatformUtils.getTableName(rce).getQualifierAsString();
         TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),(RegionCoprocessorEnvironment)env);
         if(table.equals(TableType.USER_TABLE) || table.equals(TableType.DERBY_SYS_TABLE)){ // DERBY SYS TABLE is temporary (stats)
             try{
@@ -130,7 +131,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         }
     }
 
-//    @Override
+    //    @Override
     public SpliceIndexEndpoint getBaseIndexEndpoint(){
         return this;
     }
@@ -182,7 +183,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         return true;
     }
 
-//    @Override
+    //    @Override
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
         if (useToken(bulkWrites)) {
             try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()){

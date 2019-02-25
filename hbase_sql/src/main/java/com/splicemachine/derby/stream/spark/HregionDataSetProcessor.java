@@ -35,6 +35,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -81,7 +82,7 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
                     });
 
 
-                    long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getQualifierAsString());
+                    long conglomId = Long.parseLong(HBasePlatformUtils.getTableDescriptor(hregion).getTableName().getQualifierAsString());
                     TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));
                     this.region(region)
                             .template(template)

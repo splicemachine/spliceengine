@@ -17,7 +17,7 @@ package com.splicemachine.olap;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
-import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
+import com.splicemachine.derby.stream.compaction.BaseSparkCompactionFunction;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 
@@ -33,7 +33,7 @@ import java.util.concurrent.Callable;
 public class DistributedCompaction extends DistributedJob{
     private static final long serialVersionUID = 1l;
 
-    SparkCompactionFunction compactionFunction;
+    BaseSparkCompactionFunction compactionFunction;
 
     List<String> files;
 
@@ -49,7 +49,7 @@ public class DistributedCompaction extends DistributedJob{
     @SuppressWarnings("unused")
     public DistributedCompaction(){ }
 
-    public DistributedCompaction(SparkCompactionFunction compactionFunction,
+    public DistributedCompaction(BaseSparkCompactionFunction compactionFunction,
                                  List<String> files,
                                  String jobDetails,
                                  String jobGroup,

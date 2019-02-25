@@ -18,6 +18,7 @@ import com.splicemachine.access.api.ServerControl;
 import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.ipc.RpcServer;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 
@@ -55,11 +56,11 @@ public class RegionServerControl implements ServerControl{
 
     @Override
     public boolean isAvailable(){
-        return rsServices.getFromOnlineRegions(region.getRegionInfo().getEncodedName())!=null;
+        return region.isAvailable();
     }
 
     private static void checkCallerDisconnect(HRegion region, String task) throws CallerDisconnectedException{
-        RpcCallContext currentCall = RpcServer.getCurrentCall();
+        RpcCallContext currentCall = HBasePlatformUtils.getRpcCallContext();
         if(currentCall!=null){
             long afterTime =  currentCall.disconnectSince();
             if(afterTime>0){

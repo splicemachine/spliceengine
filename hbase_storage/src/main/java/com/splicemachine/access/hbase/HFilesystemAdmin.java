@@ -45,6 +45,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class HFilesystemAdmin implements FilesystemAdmin {
@@ -77,8 +78,8 @@ public class HFilesystemAdmin implements FilesystemAdmin {
                     }
                     HdfsBlockLocation hbl = (HdfsBlockLocation) bl;
                     LocatedBlock locatedBlock = hbl.getLocatedBlock();
-                    HdfsProtos.LocatedBlockProto lbp = PBHelper.convert(locatedBlock);
-                    results.add(lbp.toByteArray());
+// TODO                    HdfsProtos.LocatedBlockProto lbp = PBHelper.convert(locatedBlock);
+//                    results.add(lbp.toByteArray());
                 }
                 return results;
             }
@@ -97,7 +98,8 @@ public class HFilesystemAdmin implements FilesystemAdmin {
                 return Arrays.asList(bytes);
             }
             case "blocks": {
-                return Arrays.asList(PBHelper.convert(HDFSUtil.getBlocks((DistributedFileSystem)fs, spath)).toByteArray());
+// TODO                return Arrays.asList(PBHelper.convert(HDFSUtil.getBlocks((DistributedFileSystem)fs, spath)).toByteArray());
+                return Collections.emptyList();
             }
             case "decrypt": {
                 KeyProvider.KeyVersion decrypted = HDFSUtil.decrypt((DistributedFileSystem) fs, spath);

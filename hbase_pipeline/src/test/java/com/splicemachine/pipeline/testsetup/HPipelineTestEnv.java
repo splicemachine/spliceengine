@@ -15,6 +15,8 @@
 package com.splicemachine.pipeline.testsetup;
 
 import com.splicemachine.access.api.PartitionCreator;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.pipeline.ContextFactoryDriverService;
 import com.splicemachine.pipeline.ManualContextFactoryLoader;
@@ -25,8 +27,6 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryLoader;
 import com.splicemachine.pipeline.contextfactory.ReferenceCountingFactoryDriver;
 import com.splicemachine.si.testsetup.HBaseSITestEnv;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
-import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import org.apache.log4j.Level;
 
 import java.io.IOException;

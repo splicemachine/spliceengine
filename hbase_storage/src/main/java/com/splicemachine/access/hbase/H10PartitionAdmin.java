@@ -400,10 +400,11 @@ public class H10PartitionAdmin implements PartitionAdmin{
                         return results;
                     }
                 case "descriptor":
-                    try (Table table = admin.getConnection().getTable(TableName.valueOf(tableName))) {
-                        HTableDescriptor descriptor = table.getTableDescriptor();
-                        return Arrays.asList(descriptor.convert().toByteArray());
-                    }
+//                    TODO try (Table table = admin.getConnection().getTable(TableName.valueOf(tableName))) {
+//                        HTableDescriptor descriptor = table.getTableDescriptor();
+//                        return Arrays.asList(descriptor.convert().toByteArray());
+//                    }
+                    return Collections.emptyList();
                 case "grant":
                     String userName = Bytes.toString(bytes);
                     String spliceNamespace = SIDriver.driver().getConfiguration().getNamespace();

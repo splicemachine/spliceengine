@@ -45,7 +45,7 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException{
-        hostName = ((RegionCoprocessorEnvironment) env).getRegionServerServices().getServerName().getHostname();
+        hostName = HBasePlatformUtils.getRegionServerServices((RegionCoprocessorEnvironment) env).getServerName().getHostname();
         region = (HRegion)((RegionCoprocessorEnvironment) env).getRegion();
     }
 
@@ -81,7 +81,8 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
             for (byte[] split : splits)
                 writeResponse.addCutPoint(com.google.protobuf.ByteString.copyFrom(split));
         } catch (java.io.IOException e) {
-            org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, e);
+            // FIXME: 4/12/19 
+            //org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, e);
         }
         callback.run(writeResponse.build());
     }
@@ -95,7 +96,8 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
             writeResponse.setEncodedName(region.getRegionInfo().getRegionNameAsString());
             writeResponse.setSizeInBytes(HBasePlatformUtils.getMemstoreSize(region)+getStoreFileSize());
         } catch (Exception e) {
-            org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, new IOException(e));
+            // FIXME: 4/12/19 
+            //org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, new IOException(e));
         }
         callback.run(writeResponse.build());
     }

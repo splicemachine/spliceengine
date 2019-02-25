@@ -36,6 +36,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -237,7 +238,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			this.mrs = srs;
 			ExecRow template = getExecRow();
             assert this.hregion !=null:"Returned null HRegion for htable "+htable.getName();
-			long conglomId = Long.parseLong(hregion.getTableDesc().getTableName().getQualifierAsString());
+			long conglomId = Long.parseLong(HBasePlatformUtils.getTableDescriptor(hregion).getTableName().getQualifierAsString());
             TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));
             TxnView parentTxn = builder.getTxn();
             this.localTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, null);

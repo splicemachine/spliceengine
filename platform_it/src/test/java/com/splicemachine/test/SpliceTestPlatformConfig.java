@@ -18,22 +18,19 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static com.google.common.collect.Lists.transform;
 
-import java.io.IOException;
 import java.util.List;
 
 import com.splicemachine.access.configuration.OlapConfigurations;
+import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.hbase.security.access.AccessController;
-import com.splicemachine.compactions.SpliceDefaultCompactor;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import org.apache.hadoop.hbase.security.token.TokenProvider;
-import org.apache.hadoop.security.UserGroupInformation;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.hbase.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -45,7 +42,6 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
-import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import com.splicemachine.utils.BlockingProbeEndpoint;
@@ -239,6 +235,8 @@ class SpliceTestPlatformConfig {
         config.setBoolean(CacheConfig.CACHE_BLOOM_BLOCKS_ON_WRITE_KEY, true); // hfile.block.bloom.cacheonwrite
         config.set("hbase.master.hfilecleaner.plugins", getHFileCleanerAsString());
         config.setInt("hbase.mapreduce.bulkload.max.hfiles.perRegion.perFamily", 1024);
+        config.set("hbase.procedure.store.wal.use.hsync", "false");
+        config.set("hbase.unsafe.stream.capability.enforce", "false");
         //
         // Misc
         //

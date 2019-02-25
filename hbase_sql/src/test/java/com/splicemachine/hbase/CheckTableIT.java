@@ -345,7 +345,7 @@ public class CheckTableIT extends SpliceUnitTest {
         // Delete 1st region of the table
         long conglomerateId = TableSplit.getConglomerateId(connection, schemaName, tableName, null);
         TableName tName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
-        List<HRegionInfo> partitions = admin.getTableRegions(tName.getName());
+        List<HRegionInfo> partitions = admin.getTableRegions(tName);
         for (HRegionInfo partition : partitions) {
             byte[] startKey = partition.getStartKey();
             if (startKey.length == 0) {
@@ -359,7 +359,7 @@ public class CheckTableIT extends SpliceUnitTest {
         // Delete 2nd region of index
         conglomerateId = TableSplit.getConglomerateId(connection, schemaName, tableName, indexName);
         TableName iName = TableName.valueOf(config.getNamespace(),Long.toString(conglomerateId));
-        partitions = admin.getTableRegions(iName.getName());
+        partitions = admin.getTableRegions(iName);
         for (HRegionInfo partition : partitions) {
             byte[] startKey = partition.getStartKey();
             byte[] endKey = partition.getEndKey();

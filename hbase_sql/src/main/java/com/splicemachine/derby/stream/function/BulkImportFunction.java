@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.VoidFunction;
 
@@ -92,7 +93,7 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
                     fs.delete(sourceDir.getParent(), true);
                 }
             }
-            loader.doBulkLoad(path.getParent(), (HTable) ((SkeletonHBaseClientPartition)partition).unwrapDelegate());
+            HBasePlatformUtils.bulkLoad(conf, loader, path.getParent(), "splice:" + partition.getTableName());
             fs.delete(path.getParent(), true);
         }
     }

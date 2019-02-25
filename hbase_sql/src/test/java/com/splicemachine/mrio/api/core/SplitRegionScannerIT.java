@@ -309,7 +309,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
     public void simpleMergeWithConcurrentFlushAndSplitTest() throws Exception {
         // Currently fails with:
         // org.apache.hadoop.hbase.DoNotRetryIOException: org.apache.hadoop.hbase.DoNotRetryIOException
-        // at com.splicemachine.hbase.MemstoreAwareObserver.preStoreScannerOpen(MemstoreAwareObserver.java:159)
+        // at com.splicemachine.hbase.MemstoreAwareObserver.preStoreScannerOpen(BaseMemstoreAwareObserver.java:159)
         // at org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost$51.call(RegionCoprocessorHost.java:1291)
 
         String tableName = sqlUtil.getConglomID(spliceTableWatcherJ.toString());

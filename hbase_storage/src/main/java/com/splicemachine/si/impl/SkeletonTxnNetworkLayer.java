@@ -37,7 +37,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     public void beginTransaction(byte[] rowKey,TxnMessage.TxnInfo txnInfo) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
         ServerRpcController controller=new ServerRpcController();
-        service.beginTransaction(controller,txnInfo,new BlockingRpcCallback<TxnMessage.VoidResponse>());
+        service.beginTransaction(controller,txnInfo,new BlockingRpcCallback<>());
         dealWithError(controller);
     }
 
