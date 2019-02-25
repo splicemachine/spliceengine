@@ -17,20 +17,26 @@ package com.splicemachine.compactions;
 import com.splicemachine.access.client.MemstoreAware;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.regionserver.HStoreFile;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Extension of CompactionRequest with a hook to block scans while Storefile's are being renamed
  * Created by dgomezferro on 3/24/16.
  */
-public class SpliceCompactionRequest extends CompactionRequest {
+public class SpliceCompactionRequest extends CompactionRequestImpl {
     private static final Logger LOG = Logger.getLogger(SpliceCompactionRequest.class);
     private AtomicReference<MemstoreAware> memstoreAware;
     private HRegion region;
+
+    public SpliceCompactionRequest(Collection<HStoreFile> files) {
+        super(files);
+    }
 
     public void preStorefilesRename() throws IOException {
         assert memstoreAware != null;
@@ -49,8 +55,6 @@ public class SpliceCompactionRequest extends CompactionRequest {
                 break;
         }
     }
-
-    @Override
     public void afterExecute(){
         if (memstoreAware == null) {
             // memstoreAware hasn't been set, the compaction failed before it could block and increment the counter, so don't do anything
@@ -63,7 +67,7 @@ public class SpliceCompactionRequest extends CompactionRequest {
         }
         if(region != null) {
             try {
-                region.getCoprocessorHost().postCompact(null, null, null);
+                region.getCoprocessorHost().postCompact(null, null, null, null, null);
             } catch (Exception e) {
                 throw new RuntimeException("Error running postCompact hook");
             }
@@ -77,4 +81,5 @@ public class SpliceCompactionRequest extends CompactionRequest {
     public void setRegion(HRegion region) {
         this.region = region;
     }
+
 }

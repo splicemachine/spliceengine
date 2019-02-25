@@ -43,8 +43,8 @@ import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
-import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.ZKConfig;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.util.StringUtils;
@@ -56,10 +56,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.sql.SQLException;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @SuppressWarnings("unchecked")
 public class SpliceTableMapReduceUtil{
@@ -231,7 +228,7 @@ public class SpliceTableMapReduceUtil{
         ObjectOutput dos=null;
         try{
             byte[] bytes=ProtobufUtil.toScan(scan).toByteArray();
-            return Base64.encodeBytes(bytes);
+            return Base64.getEncoder().encodeToString(bytes);
         }finally{
             if(dos!=null)
                 dos.close();
@@ -246,7 +243,7 @@ public class SpliceTableMapReduceUtil{
      * @throws IOException When reading the scan instance fails.
      */
     public static Scan convertStringToScan(String base64) throws IOException{
-        byte[] bytes=Base64.decode(base64);
+        byte[] bytes= Base64.getDecoder().decode(base64);
         ClientProtos.Scan scan=ClientProtos.Scan.parseFrom(bytes);
         return ProtobufUtil.toScan(scan);
     }
@@ -369,7 +366,7 @@ public class SpliceTableMapReduceUtil{
 
         if(quorumAddress!=null){
             // Calling this will validate the format
-            HBasePlatformUtils.validateClusterKey(quorumAddress);
+            ZKConfig.validateClusterKey(quorumAddress);
             conf.set(TableOutputFormat.QUORUM_ADDRESS,quorumAddress);
         }
         if(serverClass!=null && serverImpl!=null){

@@ -48,7 +48,7 @@ wait_for () {
 }
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="cdh5.14.0"  # default hbase platform profile
+DEFAULT_PROFILE="hdp3.1.0"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/platform_it"

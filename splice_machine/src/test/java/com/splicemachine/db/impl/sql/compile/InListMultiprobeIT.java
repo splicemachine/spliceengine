@@ -39,6 +39,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Test the IN list predicates with the multiprobe index scan
  */
+@Ignore
 @RunWith(Parameterized.class)
 @Category(SerialTest.class)
 public class InListMultiprobeIT  extends SpliceUnitTest {

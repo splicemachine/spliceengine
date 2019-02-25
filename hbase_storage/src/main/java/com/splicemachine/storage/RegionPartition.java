@@ -63,7 +63,7 @@ public class RegionPartition implements Partition{
 
     @Override
     public String getTableName(){
-        return region.getTableDesc().getTableName().getQualifierAsString();
+        return region.getTableDescriptor().getTableName().getQualifierAsString();
     }
 
     @Override
@@ -500,7 +500,7 @@ public class RegionPartition implements Partition{
      */
     @Override
     public void flush() throws IOException{
-        HBasePlatformUtils.flush(region);
+        region.flushcache(false,false, null);
     }
 
     public HRegion unwrapDelegate(){

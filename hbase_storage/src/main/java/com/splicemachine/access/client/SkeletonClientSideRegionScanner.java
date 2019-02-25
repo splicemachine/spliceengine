@@ -26,13 +26,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.IsolationLevel;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hdfs.ProxiedFilesystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.security.AccessControlException;
@@ -95,9 +94,9 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         isClosed = true;
     }
 
-    @Override
+
 	public HRegionInfo getRegionInfo() {
-		return scanner.getRegionInfo();
+		return (HRegionInfo) scanner.getRegionInfo();
 	}
 
     @Override
@@ -165,7 +164,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             }
             memScannerList.add(getMemStoreScanner());
             this.region = openHRegion();
-            RegionScanner regionScanner = new CountingRegionScanner(BaseHRegionUtil.getScanner(region, scan, memScannerList), region, scan);
+            RegionScanner regionScanner = new CountingRegionScanner(HRegionUtil.getScanner(region, scan, memScannerList), region, scan);
             if (flushed) {
                 if (scanner != null)
                     scanner.close();
@@ -202,6 +201,10 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     private boolean nextMerged(List<Cell> result) throws IOException {
         boolean res = scanner.nextRaw(result);
+        if (!result.isEmpty()) {
+            Cell first = result.get(0);
+            String rowkey = Bytes.toHex(first.getRowArray(), first.getRowOffset(), first.getRowLength());
+        }
         // Drain HoldTimestamps
         if (matchingFamily(result,ClientRegionConstants.HOLD)) {
             // Second Hold, null out scanner
@@ -224,20 +227,9 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     }
 
     private HRegion openHRegion() throws IOException {
-        try {
-            return HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
-        } catch (AccessControlException e) {
-            // Our user doesn't have direct HBase access in HDFS, let's try to get proxy access through SpliceMachine
-            if (fs instanceof DistributedFileSystem) {
-                String connectionURL = conf.get(MRConstants.SPLICE_CONNECTION_STRING);
-                if (connectionURL != null) {
-                    customFilesystem = new ProxiedFilesystem((DistributedFileSystem) fs, connectionURL);
-                    customFilesystem.initialize(fs.getUri(), fs.getConf());
-                    return HRegion.openHRegion(conf, customFilesystem, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
-                }
-            }
-            throw e;
-        }
+        Path tableDir = FSUtils.getTableDir(rootDir, hri.getTable());
+        SpliceHRegion spliceHRegion = new SpliceHRegion(tableDir, null, fs, conf, hri, htd, null);
+        return spliceHRegion;
     }
 
     private KeyValueScanner getMemStoreScanner() throws IOException {

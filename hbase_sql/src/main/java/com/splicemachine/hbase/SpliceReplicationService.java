@@ -22,15 +22,15 @@ import com.splicemachine.replication.ReplicationMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.SingletonCoprocessorService;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Region;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 
+import org.apache.hadoop.hbase.shaded.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.log4j.Logger;
 
@@ -42,13 +42,11 @@ public class SpliceReplicationService extends ReplicationMessage.GetRegionServer
 {
     private static final Logger LOG = Logger.getLogger(SpliceReplicationService.class);
     private RegionServerServices regionServerServices;
-    private long testCount;
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException {
         if (env instanceof RegionServerCoprocessorEnvironment) {
-            this.regionServerServices = ((RegionServerCoprocessorEnvironment) env).getRegionServerServices();
-            this.testCount = 0;
+            this.regionServerServices = (RegionServerServices) ((RegionServerCoprocessorEnvironment) env).getOnlineRegions();
             SpliceLogUtils.info(LOG,"Started SpliceReplicationService");
         } else {
             throw new CoprocessorException("Must be loaded on a RegionServer!");
@@ -75,21 +73,21 @@ public class SpliceReplicationService extends ReplicationMessage.GetRegionServer
         ReplicationMessage.GetRegionServerLSNReponse.Builder responseBuilder =
                 ReplicationMessage.GetRegionServerLSNReponse.newBuilder();
         try {
-            Set<Region> regionSet = new HashSet<Region>();
+            List<? extends Region> regions = regionServerServices.getRegions();
             // JY- TODO: only collect LSNs for tables under replication
             // Get all the online tables in this RS
-            Set<TableName> tableSet = this.regionServerServices.getOnlineTables();
-            for (TableName tableName : tableSet) {
-                // get all the regions of this table on this RS
-                regionSet.addAll(this.regionServerServices.getOnlineRegions(tableName));
-            }
+//            Set<TableName> tableSet = this.regionServerServices.getOnlineTables();
+//            for (TableName tableName : tableSet) {
+//                // get all the regions of this table on this RS
+//                regionSet.addAll(this.regionServerServices.getOnlineRegions(tableName));
+//            }
 
             // Go through each Region on this RS
-            for (Region region : regionSet) {
+            for (Region region : regions) {
                 if (!region.isReadOnly()) {
                     // What should be the key value
                     WAL wal = regionServerServices.getWAL(region.getRegionInfo());
-                    long readPoint = region.getReadpoint(IsolationLevel.READ_COMMITTED);
+                    long readPoint = ((HRegion)region).getReadPoint(IsolationLevel.READ_COMMITTED);
                     String encodedRegionName = region.getRegionInfo().getEncodedName();
                     responseBuilder.addResult(
                             ReplicationMessage.GetRegionServerLSNReponse.Result.

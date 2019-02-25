@@ -73,7 +73,8 @@ public class ProxiedDFSClient extends DFSClient {
                     byte[] bytes = blob.getBytes(1, (int) blob.length());
                     HdfsProtos.LocatedBlocksProto lbp = HdfsProtos.LocatedBlocksProto.parseFrom(bytes);
 
-                    return PBHelper.convert(lbp);
+// TODO                    return PBHelper.convert(lbp);
+                    return null;
                 }
             }
         } catch (SQLException e) {
@@ -85,7 +86,9 @@ public class ProxiedDFSClient extends DFSClient {
     public DFSInputStream open(String src, int buffersize, boolean verifyChecksum) throws IOException {
         checkOpen();
         //    Get block info from namenode
-        return new CustomDFSInputStream(this, src, verifyChecksum);
+
+        LocatedBlocks locatedBlocks = getLocatedBlocks(src, 0);
+        return new CustomDFSInputStream(this, src, verifyChecksum, locatedBlocks);
     }
 
     public HdfsDataInputStream createWrappedInputStream(DFSInputStream dfsis)
@@ -215,19 +218,6 @@ public class ProxiedDFSClient extends DFSClient {
             }
         } catch (SQLException e) {
             throw new IOException(e);
-        }
-    }
-
-    private static class CustomDFSInputStream extends DFSInputStream {
-        private String path;
-
-        CustomDFSInputStream(DFSClient dfsClient, String src, boolean verifyChecksum) throws IOException, UnresolvedLinkException {
-            super(dfsClient, src, verifyChecksum);
-            this.path = src;
-        }
-
-        public String getPath() {
-            return path;
         }
     }
 

@@ -14,16 +14,23 @@
 
 package com.splicemachine.test;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.splicemachine.access.HConfiguration;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static com.google.common.collect.Lists.transform;
+
+import java.util.List;
+
 import com.splicemachine.access.configuration.OlapConfigurations;
-import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
+import org.apache.commons.collections.ListUtils;
+import org.apache.hadoop.hbase.security.access.AccessController;
+import org.apache.hadoop.hbase.security.token.TokenProvider;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.hbase.*;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
@@ -53,7 +60,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
-import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import com.splicemachine.utils.BlockingProbeEndpoint;
@@ -217,7 +223,7 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.rpc.timeout", MINUTES.toMillis(5));
         config.setInt("hbase.client.max.perserver.tasks",50);
         config.setInt("hbase.client.ipc.pool.size",10);
-        config.setInt("hbase.rowlock.wait.duration",0);
+        config.setInt("hbase.rowlock.wait.duration",10);
 
         config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.client.operation.timeout", MINUTES.toMillis(2));
@@ -232,6 +238,7 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
 //        config.setBoolean("hbase.master.loadbalance.bytable",true);
         config.setInt("hbase.balancer.period",5000);
+        config.setInt("hbase.hfile.compaction.discharger.interval", 20*1000);
 
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
         config.setLong("hbase.client.pause", 100);
@@ -267,6 +274,8 @@ class SpliceTestPlatformConfig {
         config.setBoolean(CacheConfig.CACHE_BLOOM_BLOCKS_ON_WRITE_KEY, true); // hfile.block.bloom.cacheonwrite
         config.set("hbase.master.hfilecleaner.plugins", getHFileCleanerAsString());
         config.setInt("hbase.mapreduce.bulkload.max.hfiles.perRegion.perFamily", 1024);
+        config.set("hbase.procedure.store.wal.use.hsync", "false");
+        config.set("hbase.unsafe.stream.capability.enforce", "false");
         //
         // Misc
         //

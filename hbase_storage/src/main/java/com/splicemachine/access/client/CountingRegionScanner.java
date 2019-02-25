@@ -45,7 +45,7 @@ public class CountingRegionScanner implements RegionScanner {
     }
     @Override
     public HRegionInfo getRegionInfo() {
-        return delegate.getRegionInfo();
+        return (HRegionInfo) delegate.getRegionInfo();
     }
 
     @Override

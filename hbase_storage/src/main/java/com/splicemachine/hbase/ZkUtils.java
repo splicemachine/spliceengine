@@ -21,7 +21,7 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -58,7 +58,7 @@ public class ZkUtils{
     /**
      * @return direct interface to a ZooKeeperWatcher
      */
-    public static ZooKeeperWatcher getZooKeeperWatcher(){
+    public static ZKWatcher getZooKeeperWatcher(){
         try{
             return zkManager.getZooKeeperWatcher();
         }catch(ZooKeeperConnectionException e){

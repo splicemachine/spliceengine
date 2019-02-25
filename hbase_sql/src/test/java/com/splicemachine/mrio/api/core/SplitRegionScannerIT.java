@@ -266,8 +266,12 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
                     clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
-                if (i==ITERATIONS/2)
+                if (i==ITERATIONS/2) {
+                    spliceClassWatcher.executeUpdate(
+                            String.format("call syscs_util.syscs_perform_major_compaction_on_table('%s', '%s')",
+                                    SCHEMA, "E"));
                     driver.getTableFactory().getAdmin().splitTable(tableName);
+                }
                 newCells.clear();
             }
             srs.close();
@@ -309,7 +313,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
     public void simpleMergeWithConcurrentFlushAndSplitTest() throws Exception {
         // Currently fails with:
         // org.apache.hadoop.hbase.DoNotRetryIOException: org.apache.hadoop.hbase.DoNotRetryIOException
-        // at com.splicemachine.hbase.MemstoreAwareObserver.preStoreScannerOpen(MemstoreAwareObserver.java:159)
+        // at com.splicemachine.hbase.MemstoreAwareObserver.preStoreScannerOpen(BaseMemstoreAwareObserver.java:159)
         // at org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost$51.call(RegionCoprocessorHost.java:1291)
 
         String tableName = sqlUtil.getConglomID(spliceTableWatcherJ.toString());

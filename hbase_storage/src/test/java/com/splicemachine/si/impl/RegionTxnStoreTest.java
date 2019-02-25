@@ -30,6 +30,7 @@ import com.splicemachine.si.impl.store.TestingTimestampSource;
 import com.splicemachine.si.impl.store.TestingTxnStore;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -42,6 +43,7 @@ import static org.mockito.Mockito.mock;
  * @author Scott Fines
  *         Date: 6/30/14
  */
+@Ignore
 public class RegionTxnStoreTest{
     private static final Clock clock = new IncrementingClock();
     private static final TxnSupplier txnSupplier = new TestingTxnStore(clock,new TestingTimestampSource(),null,Long.MAX_VALUE);

@@ -15,7 +15,7 @@
 package com.splicemachine.mrio.api.core;
 
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.client.HBase10ClientSideRegionScanner;
+import com.splicemachine.access.client.HBaseClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -27,9 +27,6 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.FSUtils;
@@ -123,7 +120,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
             scan.setMaxVersions();
             scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY,HConstants.EMPTY_BYTE_ARRAY);
             try(SkeletonClientSideRegionScanner clientSideRegionScanner=
-                        new HBase10ClientSideRegionScanner(table,
+                        new HBaseClientSideRegionScanner(table,
                               table.getConfiguration(), FSUtils.getCurrentFileSystem(table.getConfiguration()),
                               FSUtils.getRootDir(table.getConfiguration()),
                               table.getTableDescriptor(),
@@ -155,7 +152,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
             scan.setAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY, HConstants.EMPTY_BYTE_ARRAY);
 
             try (SkeletonClientSideRegionScanner clientSideRegionScanner =
-                       new HBase10ClientSideRegionScanner(table,
+                       new HBaseClientSideRegionScanner(table,
                              table.getConfiguration(), FSUtils.getCurrentFileSystem(table.getConfiguration()),
                              FSUtils.getRootDir(table.getConfiguration()),
                              table.getTableDescriptor(),
