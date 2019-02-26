@@ -1192,7 +1192,7 @@
                 <hive.version>1.1.0-cdh5.12.2</hive.version>
                 <zookeeper.version>3.4.5-cdh5.12.2</zookeeper.version>
                 <spark.major.version>spark2.3</spark.major.version>
-                <spark.version>2.3.0.cloudera3</spark.version>
+                <spark.version>2.3.0.cloudera4</spark.version>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>orc-cds-2.3</parquet.version>
