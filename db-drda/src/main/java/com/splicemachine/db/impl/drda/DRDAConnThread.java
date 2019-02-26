@@ -48,6 +48,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -73,6 +74,7 @@ import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
+import com.splicemachine.primitives.Bytes;
 import com.sun.security.auth.callback.TextCallbackHandler;
 import com.sun.security.jgss.GSSUtil;
 import org.ietf.jgss.GSSContext;
@@ -1506,6 +1508,7 @@ class DRDAConnThread extends Thread {
 		if (session.drdaID == null)
 			session.drdaID = leftBrace + session.connNum + rightBrace;
 		p.put(Attribute.DRDAID_ATTR, session.drdaID);
+		p.put(Attribute.RDBINTTKN_ATTR, session.uuid.toString());
 
         // We pass extra property information for the authentication provider
         // to successfully re-compute the substitute (hashed) password and
@@ -3739,6 +3742,8 @@ class DRDAConnThread extends Thread {
 		writer.writeScalarString(CodePoint.TYPDEFNAM,
 								 CodePoint.TYPDEFNAM_QTDSQLASC);
 		writeTYPDEFOVR();
+		String token = generateToken();
+		writer.writeScalarBytes(CodePoint.RDBINTTKN, Bytes.toBytes(token));
 		writer.endDdmAndDss ();
 
          // Write the initial piggy-backed data, currently the isolation level
@@ -3757,7 +3762,15 @@ class DRDAConnThread extends Thread {
          }
 		finalizeChain();
 	}
-	
+
+	private String generateToken() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(this.session.uuid.toString());
+		sb.append('#');
+		sb.append(server.getExternalHostname()).append(':').append(server.getPortNumber());
+		return sb.toString();
+	}
+
 	private void writeTYPDEFOVR() throws DRDAProtocolException
 	{
 		//TYPDEFOVR - required - only single byte and mixed byte are specified

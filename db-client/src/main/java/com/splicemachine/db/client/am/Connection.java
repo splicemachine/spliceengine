@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.client.am;
 
+import com.splicemachine.db.client.net.NetConnection;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
 import com.splicemachine.db.jdbc.ClientDataSource;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -2534,4 +2535,7 @@ public abstract class Connection
         }
 	}
 
+    public abstract NetConnection getSideConnection() throws SqlException;
+
+    public abstract byte[] getInterruptToken();
 }

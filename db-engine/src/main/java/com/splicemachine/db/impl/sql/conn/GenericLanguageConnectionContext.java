@@ -150,6 +150,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private final int instanceNumber;
     private String drdaID;
     private String dbname;
+    private String rdbIntTkn;
 
     private Object lastQueryTree; // for debugging
 
@@ -347,6 +348,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             int instanceNumber,
             String drdaID,
             String dbname,
+            String rdbIntTkn,
             CompilerContext.DataSetProcessorType type,
             boolean skipStats,
             double defaultSelectivityFactor,
@@ -369,6 +371,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
+        this.rdbIntTkn=rdbIntTkn;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
 
@@ -3187,6 +3190,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getDrdaID(){
         return drdaID;
+    }
+
+    @Override
+    public String getRdbIntTkn() {
+        return rdbIntTkn;
     }
 
     @Override
