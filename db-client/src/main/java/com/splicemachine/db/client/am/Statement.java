@@ -806,8 +806,16 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
                 agent_.logWriter_.traceEntry(this, "cancel");
             }
             checkForClosedStatement(); // Per jdbc spec (see java.sql.Statement.close() javadoc)
-            throw new SqlException(agent_.logWriter_, 
-                new ClientMessageId(SQLState.CANCEL_NOT_SUPPORTED_BY_SERVER));
+            byte[] token = connection_.getInterruptToken();
+            if (token == null) {
+                throw new SqlException(agent_.logWriter_,
+                        new ClientMessageId(SQLState.CANCEL_NOT_SUPPORTED_BY_SERVER));
+            }
+            InterruptionToken it = new InterruptionToken(token);
+            Connection sideConnection = connection_.getSideConnection();
+            try (java.sql.Statement s = sideConnection.createStatement()) {
+                s.execute("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION('" + it.toString() +"')");
+            }
         }
         catch ( SqlException se )
         {

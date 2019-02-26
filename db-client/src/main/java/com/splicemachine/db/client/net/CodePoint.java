@@ -406,6 +406,9 @@ public class CodePoint {
     // RDB Allow Updates
     static final int RDBALWUPD = 0x211A;
 
+    // RDB interrupt token.
+    static final int RDBINTTKN = 0x2103;
+
     // Relational Database Name codepoint constant.
     static final int RDBNAM = 0x2110;
 
