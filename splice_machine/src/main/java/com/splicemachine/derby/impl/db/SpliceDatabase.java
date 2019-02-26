@@ -122,6 +122,7 @@ public class SpliceDatabase extends BasicDatabase{
 
     @Override
     public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+                                                     String rdbIntTkn,
                                                      CompilerContext.DataSetProcessorType dspt,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
@@ -130,7 +131,7 @@ public class SpliceDatabase extends BasicDatabase{
             throws StandardException{
 
         final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
+                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
 
         // If you add a visitor, be careful of ordering.
 
@@ -159,6 +160,7 @@ public class SpliceDatabase extends BasicDatabase{
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
      */
     public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+                                                                       String rdbIntTkn,
                                                                        CompilerContext.DataSetProcessorType type,
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
@@ -167,7 +169,7 @@ public class SpliceDatabase extends BasicDatabase{
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
-                groupuserlist,drdaID,dbname,type,skipStats, defaultSelectivityFactor, ipAddress,
+                groupuserlist,drdaID,dbname, rdbIntTkn,type,skipStats, defaultSelectivityFactor, ipAddress,
                 null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());

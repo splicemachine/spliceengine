@@ -1868,6 +1868,34 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return elapsedStr.toString();
     }
 
+    public static void SYSCS_KILL_DRDA_OPERATION(final String token) throws SQLException {
+        String[] parts = token.split("#");
+        String uuidString = parts[0];
+        String hostname = parts[1];
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+        HostAndPort needle = null;
+        for (HostAndPort hap : servers) {
+            if (hap.toString().equals(hostname)) {
+                needle = hap;
+                break;
+            }
+        }
+        if (needle == null)
+            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
+
+        try (Connection connection = RemoteUser.getConnection(hostname)) {
+            try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION_LOCAL(?)")) {
+                ps.setString(1, uuidString);
+                ps.execute();
+            }
+        }
+    }
+
     public static void SYSCS_KILL_OPERATION(final String uuidString) throws SQLException {
         ExecRow needle = null;
         for (ExecRow row : getRunningOperations()) {
@@ -1895,6 +1923,25 @@ public class SpliceAdmin extends BaseAdminProcedures{
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);
         }
+    }
+
+    public static void SYSCS_KILL_DRDA_OPERATION_LOCAL(final String rdbIntTkn) throws SQLException{
+
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        LanguageConnectionContext lcc = conn.getLanguageConnection();
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+
+        String userId = lcc.getCurrentUserId(lastActivation);
+
+        boolean killed;
+        try {
+            killed = EngineDriver.driver().getOperationManager().killDRDAOperation(rdbIntTkn, userId);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+
+        if (!killed)
+            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, rdbIntTkn));
     }
 
     public static void SYSCS_KILL_OPERATION_LOCAL(final String uuidString) throws SQLException{

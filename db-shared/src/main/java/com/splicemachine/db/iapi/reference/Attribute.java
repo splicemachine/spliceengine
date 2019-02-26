@@ -200,9 +200,14 @@ public interface Attribute {
 
 
 	/**
-		The attribute that is used to set the connection's DRDA ID.
-	*/
+	 The attribute that is used to set the connection's DRDA ID.
+	 */
 	String DRDAID_ATTR = "drdaID";
+
+	/**
+	 The attribute that is used to set the connection's RDB Interruption token.
+	 */
+	String RDBINTTKN_ATTR = "rdbIntTkn";
 
 	/**
 		The attribute that is used to allow upgrade.
