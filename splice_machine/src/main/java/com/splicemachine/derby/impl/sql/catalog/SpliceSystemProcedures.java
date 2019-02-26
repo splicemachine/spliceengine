@@ -659,6 +659,26 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(killOperation);
 
+                    /*
+                     * Procedure to kill an executing DRDA operation
+                     */
+                    Procedure killDrdaOperationLocal = Procedure.newBuilder().name("SYSCS_KILL_DRDA_OPERATION_LOCAL")
+                            .numOutputParams(0)
+                            .varchar("rdbIntTkn",512)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(killDrdaOperationLocal);
+
+                    /*
+                     * Procedure to kill an executing DRDA operation
+                     */
+                    Procedure killDrdaOperation = Procedure.newBuilder().name("SYSCS_KILL_DRDA_OPERATION")
+                            .numOutputParams(0)
+                            .varchar("rdbIntTkn",512)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(killDrdaOperation);
+
 
                     /*
                      * Procedure to get oldest active transaction id
