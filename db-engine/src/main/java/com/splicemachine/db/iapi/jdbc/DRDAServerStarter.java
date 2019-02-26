@@ -98,6 +98,7 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
 	private String userArg = null;
 	private String passwordArg = null;
 	private PrintWriter consoleWriter = null;
+	private String externalHostname = "";
 
     /**
      * Try to start the DRDA server. Log an error in error log and continue if it cannot be started.
@@ -121,14 +122,15 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
 	{
 		this.userArg = userName;
 		this.passwordArg = password;
-        setStartInfo(listenAddress, portNumber, consoleWriter);
+        setStartInfo(listenAddress, portNumber, consoleWriter, "");
     }
 
 	public void setStartInfo(InetAddress listenAddress, int portNumber, PrintWriter
-							 consoleWriter)
+            consoleWriter, String externalHostname)
 	{
 		this.listenAddress = listenAddress;
 		this.portNumber = portNumber;
+		this.externalHostname = externalHostname;
 
         // wrap the user-set consoleWriter with autoflush to true.
         // this will ensure that messages to console will be 
@@ -203,6 +205,7 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
 										  Class[] {java.net.InetAddress.class,
 												   Integer.TYPE,
                                                    String.class,
+                                                   String.class,
                                                    String.class});
                           }
 					  }
@@ -224,7 +227,7 @@ public final class DRDAServerStarter implements ModuleControl, Runnable
             } else {
 				server = serverConstructor.newInstance(new Object[]
 					{listenAddress, portNumber,
-                     userArg, passwordArg});
+                     userArg, passwordArg, externalHostname});
             }
 
             serverThread = Monitor.getMonitor().getDaemonThread( this, "NetworkServerStarter", false);
