@@ -1913,7 +1913,7 @@ public interface SQLState {
     String UNEXPECTED_IMPORT_READING_ERROR                         ="XIE10.S";
 	String UNEXPECTED_IMPORT_CSV_ERROR                             ="XIE11.S";
 	String REGION_SERVER_FAILURE_WITH_NO_WAL_ERROR                 ="XIE12.S";
-
+	String UNSUPPORTED_COMPRESSION_FORMAT                          ="XIE13.S";
 
 
     /*
@@ -1979,6 +1979,7 @@ public interface SQLState {
 	String INCREMENTAL_NOT_ENABLED								   = "BR021";
 	String POINT_IN_TIME_TOO_SMALL                                 = "BR022";
 	String RESTORE_TXNID_TOO_LARGE								   = "BR023";
+	String NO_BACKUP_EXT_TABLE									   = "BR024";
 
 	String ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET					   	= "EXT01";
 	String ROW_FORMAT_NOT_ALLOWED_WITH_ORC						   	= "EXT02";

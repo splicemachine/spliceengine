@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.client.am.Types;
+import com.splicemachine.db.iapi.reference.Limits;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
@@ -263,6 +265,102 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
             results.add(String.format("sa:%s,upper:%s,lower:%s",sa,upper,lower));
         }
         Assert.assertEquals("Incorrect num rows returned!",10,results.size());
+
+        rs=methodWatcher.executeQuery(format("select sa,UCASE(sa),LCASE(sa) from %s",this.getTableReference(TABLE_NAME)));
+        results=Lists.newArrayList();
+        while(rs.next()){
+            String sa=rs.getString(1);
+            String upper=rs.getString(2);
+            String lower=rs.getString(3);
+            String correctUpper=sa.toUpperCase();
+            String correctLower=sa.toLowerCase();
+            Assert.assertEquals("ucase incorrect",correctUpper,upper);
+            Assert.assertEquals("lcase incorrect",correctLower,lower);
+            results.add(String.format("sa:%s,upper:%s,lower:%s",sa,upper,lower));
+        }
+        Assert.assertEquals("Incorrect num rows returned!",10,results.size());
+    }
+
+    @Test
+    public void testUpperLowerWithLocale() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("values upper('i', 'en-US')");
+        rs.next();
+        Assert.assertEquals("upper incorrect with en-US", "I", rs.getString(1));
+        rs = methodWatcher.executeQuery("values upper('i', 'tr-TR')");
+        rs.next();
+        Assert.assertEquals("upper incorrect with tr-TR", "İ", rs.getString(1));
+        rs = methodWatcher.executeQuery("values upper('ß', 'de-DE')");
+        rs.next();
+        Assert.assertEquals("upper incorrect with de-DE", "SS", rs.getString(1));
+        rs = methodWatcher.executeQuery("values lower('I', 'en-US')");
+        rs.next();
+        Assert.assertEquals("lower incorrect with en-US", "i", rs.getString(1));
+        rs = methodWatcher.executeQuery("values lower('I', 'tr-TR')");
+        rs.next();
+        Assert.assertEquals("lower incorrect with tr-TR", "ı", rs.getString(1));
+
+        rs = methodWatcher.executeQuery("values ucase('i', 'en-US')");
+        rs.next();
+        Assert.assertEquals("upper incorrect with en-US", "I", rs.getString(1));
+        rs = methodWatcher.executeQuery("values ucase('i', 'tr-TR')");
+        rs.next();
+        Assert.assertEquals("upper incorrect with tr-TR", "İ", rs.getString(1));
+        rs = methodWatcher.executeQuery("values ucase('ß', 'de-DE')");
+        rs.next();
+        Assert.assertEquals("upper incorrect with de-DE", "SS", rs.getString(1));
+        rs = methodWatcher.executeQuery("values lcase('I', 'en-US')");
+        rs.next();
+        Assert.assertEquals("lower incorrect with en-US", "i", rs.getString(1));
+        rs = methodWatcher.executeQuery("values lcase('I', 'tr-TR')");
+        rs.next();
+        Assert.assertEquals("lower incorrect with tr-TR", "ı", rs.getString(1));
+
+        try {
+            methodWatcher.executeQuery("values lower('I', 'aaa-bbb')");
+            Assert.fail("Should fail with invalidate locale");
+        } catch (Exception ignored) {
+        }
+
+        try {
+            methodWatcher.executeQuery("values upper('I', 'aaa-bbb')");
+            Assert.fail("Should fail with invalidate locale");
+        } catch (Exception ignored) {
+        }
+
+        try {
+            methodWatcher.executeQuery("values lcase('I', 'aaa-bbb')");
+            Assert.fail("Should fail with invalidate locale");
+        } catch (Exception ignored) {
+        }
+
+        try {
+            methodWatcher.executeQuery("values ucase('I', 'aaa-bbb')");
+            Assert.fail("Should fail with invalidate locale");
+        } catch (Exception ignored) {
+        }
+
+        testUpperReturnType(4, Types.CHAR);
+        testUpperReturnType(Limits.DB2_CHAR_MAXWIDTH, Types.VARCHAR);
+        testUpperReturnType(Limits.DB2_VARCHAR_MAXWIDTH, Types.LONGVARCHAR);
+        testUpperReturnType(Limits.DB2_LONGVARCHAR_MAXWIDTH, Types.CLOB);
+
+        rs = methodWatcher.executeQuery("values upper(CURRENT_DATE, 'tr-TR')");
+        rs.next();
+        Assert.assertEquals("upper return type incorrect", Types.VARCHAR, rs.getMetaData().getColumnType(1));
+    }
+
+    private void testUpperReturnType(int width, int expectType) throws Exception {
+        String from = "";
+        String to = "";
+        for (int i = 0; i * 2 <= width; i++) {
+           from = from.concat("ß");
+           to = to.concat("SS");
+        }
+        ResultSet rs = methodWatcher.executeQuery(format("values upper('%s', 'de-DE')", from));
+        rs.next();
+        Assert.assertEquals("upper incorrect with de-DE", to, rs.getString(1));
+        Assert.assertEquals("upper return type incorrect", expectType,
+                rs.getMetaData().getColumnType(1));
     }
 
     @Test

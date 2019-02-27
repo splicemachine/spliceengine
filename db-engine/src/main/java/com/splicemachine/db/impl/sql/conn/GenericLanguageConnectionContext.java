@@ -3258,6 +3258,33 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public String getCurrentGroupUserDelimited(Activation a) throws StandardException {
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("getCurrentGroupUserDelimited():\n" +
+                            "sessionUser: %s,\n" +
+                            "defaultRoles: %s,\n" +
+                            "groupUserList: %s\n",
+                    sessionUser,
+                    (defaultRoles==null?"null":defaultRoles.toString()),
+                    (groupuserlist==null?"null":groupuserlist.toString())));
+        }
+        List<String> groupUsers = getCurrentSQLSessionContext(a).getCurrentGroupUser();
+
+        if (groupUsers == null)
+            return null;
+
+        String listString = null;
+        for (String groupUser: groupUsers) {
+            if (listString == null)
+                listString = IdUtil.normalToDelimited(groupUser);
+            else
+                listString = listString + ", " + IdUtil.normalToDelimited(groupUser);
+        }
+
+        return listString;
+    }
+
+    @Override
     public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
         if(LOG.isDebugEnabled()) {
             LOG.debug(String.format("getCurrentRoleIdDelimited():\n" +

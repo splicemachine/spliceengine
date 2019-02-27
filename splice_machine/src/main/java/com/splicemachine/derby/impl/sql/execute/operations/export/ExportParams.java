@@ -25,7 +25,7 @@ import java.nio.charset.UnsupportedCharsetException;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
-
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
 /**
  * Represents the user provided parameters of a given export.
  */
@@ -40,7 +40,7 @@ public class ExportParams implements Serializable {
     private String directory;
     private String format;
     private short replicationCount = DEFAULT_REPLICATION_COUNT;
-    private boolean compression;
+    private COMPRESSION compression;
     private String characterEncoding = DEFAULT_ENCODING;
 
     private char fieldDelimiter = DEFAULT_FIELD_DELIMITER;
@@ -50,11 +50,11 @@ public class ExportParams implements Serializable {
     public ExportParams() {
     }
 
-    public ExportParams(String directory, boolean compression, String format, int replicationCount, String characterEncoding,
+    public ExportParams(String directory, String compression, String format, int replicationCount, String characterEncoding,
                         String fieldDelimiter, String quoteChar) throws StandardException {
         setDirectory(directory);
-        setCompression(compression);
         setFormat(format);
+        setCompression(compression);
         setReplicationCount((short) replicationCount);
         setCharacterEncoding(characterEncoding);
         setDefaultFieldDelimiter(StringEscapeUtils.unescapeJava(fieldDelimiter));
@@ -94,7 +94,7 @@ public class ExportParams implements Serializable {
         return characterEncoding;
     }
 
-    public boolean isCompression() {
+    public COMPRESSION getCompression() {
         return compression;
     }
 
@@ -117,8 +117,38 @@ public class ExportParams implements Serializable {
         this.format = format;
     }
 
-    private void setCompression(Boolean compression) throws StandardException {
-        this.compression = compression;
+    private void setCompression(String compression) throws StandardException {
+        if (compression != null) {
+            compression = compression.trim().toUpperCase();
+        }
+        if (compression!= null && compression.length() > 0) {
+            String f = format.trim().toUpperCase();
+            if (f.compareTo("PARQUET") == 0) {
+                // Only support snappy compression for parquet
+                if (compression.compareTo("SNAPPY") == 0 ||
+                        compression.compareTo("TRUE") == 0) {
+                    this.compression = COMPRESSION.SNAPPY;
+                } else if (compression.compareTo("NONE") == 0 ||
+                        compression.compareTo("FALSE") == 0) {
+                    this.compression = COMPRESSION.NONE;
+                } else throw StandardException.newException(SQLState.UNSUPPORTED_COMPRESSION_FORMAT, compression);
+            } else if (f.compareTo("CSV") == 0) {
+                // Support gzip, bzip2 for csv
+                if (compression.compareTo("BZ2") == 0 ||
+                        compression.compareTo("BZIP2") == 0) {
+                    this.compression = COMPRESSION.BZ2;
+                } else if (compression.compareTo("GZ") == 0 ||
+                        compression.compareTo("GZIP") == 0 ||
+                        compression.compareTo("TRUE") == 0) {
+                    this.compression = COMPRESSION.GZ;
+                } else if (compression.compareTo("NONE") == 0 ||
+                        compression.compareTo("FALSE") == 0) {
+                    this.compression = COMPRESSION.NONE;
+                } else throw StandardException.newException(SQLState.UNSUPPORTED_COMPRESSION_FORMAT, compression);
+            }
+        }
+        else
+            this.compression = COMPRESSION.NONE;
     }
 
     private void setReplicationCount(short replicationCount) {

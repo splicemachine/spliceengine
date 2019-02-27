@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.spark_project.guava.base.Charsets;
 import org.spark_project.guava.io.Files;
 import org.spark_project.guava.io.PatternFilenameFilter;
@@ -30,7 +31,6 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,6 +40,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
 import org.junit.Assert;
+import org.xerial.snappy.SnappyInputStream;
 
 /**
  * This IT assumes the server side writes to the local files system accessible to IT itself.  Currently true only
@@ -119,7 +120,7 @@ public class ExportOperationIT {
                 .withInsert("insert into export_local values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from export_local order by a asc", false);
+        String exportSQL = buildExportSQL("select * from export_local order by a asc", "None");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -142,7 +143,7 @@ public class ExportOperationIT {
                 .withInsert("insert into pipe values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from pipe order by a asc", false, "|");
+        String exportSQL = buildExportSQL("select * from pipe order by a asc", "NONE", "|");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -165,7 +166,7 @@ public class ExportOperationIT {
                 .withInsert("insert into tabs values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from tabs order by a asc", false, "\\t");
+        String exportSQL = buildExportSQL("select * from tabs order by a asc", " none ", "\\t");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -229,14 +230,60 @@ public class ExportOperationIT {
     }
 
     @Test
-    public void export_compressed() throws Exception {
+    public void export_compressed_bz2() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate("create table export_compressed(a smallint,b double, c time,d varchar(20))")
-                .withInsert("insert into export_compressed values(?,?,?,?)")
+                .withCreate("create table export_compressed_bz2(a smallint,b double, c time,d varchar(20))")
+                .withInsert("insert into export_compressed_bz2 values(?,?,?,?)")
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL("select * from export_compressed order by a asc", true);
+        String exportSQL = buildExportSQL("select * from export_compressed_bz2 order by a asc", "BZ2");
+
+        exportAndAssertExportResults(exportSQL, 6);
+        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv.bz2"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "25,3.14159,14:31:20,varchar1\n" +
+                        "26,3.14159,14:31:20,varchar1\n" +
+                        "27,3.14159,14:31:20,varchar1 space\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
+                        "30,3.14159,14:31:20,varchar1\n",
+                IOUtils.toString(new BZip2CompressorInputStream(new FileInputStream(files[0]))));
+    }
+
+    @Test
+    public void export_compressed_gz() throws Exception {
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table export_compressed_gz(a smallint,b double, c time,d varchar(20))")
+                .withInsert("insert into export_compressed_gz values(?,?,?,?)")
+                .withRows(getTestRows()).create();
+
+        String exportSQL = buildExportSQL("select * from export_compressed_gz order by a asc", "GZIP");
+
+        exportAndAssertExportResults(exportSQL, 6);
+        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv.gz"));
+        assertEquals(1, files.length);
+        assertEquals("" +
+                        "25,3.14159,14:31:20,varchar1\n" +
+                        "26,3.14159,14:31:20,varchar1\n" +
+                        "27,3.14159,14:31:20,varchar1 space\n" +
+                        "28,3.14159,14:31:20,\"varchar1 , comma\"\n" +
+                        "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
+                        "30,3.14159,14:31:20,varchar1\n",
+                IOUtils.toString(new GZIPInputStream(new FileInputStream(files[0]))));
+    }
+
+    @Test
+    public void export_compressed_gz2() throws Exception {
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table export_compressed_gz2(a smallint,b double, c time,d varchar(20))")
+                .withInsert("insert into export_compressed_gz2 values(?,?,?,?)")
+                .withRows(getTestRows()).create();
+
+        String exportSQL = buildExportSQL("select * from export_compressed_gz2 order by a asc", true);
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv.gz"));
@@ -262,7 +309,7 @@ public class ExportOperationIT {
         //
         // default column order
         //
-        String exportSQL = buildExportSQL("select * from export_decimal order by a asc", false);
+        String exportSQL = buildExportSQL("select * from export_decimal order by a asc", null);
 
         exportAndAssertExportResults(exportSQL, 2);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -276,7 +323,7 @@ public class ExportOperationIT {
         // alternate column order
         //
         FileUtils.deleteDirectory(temporaryFolder.getRoot());
-        exportSQL = buildExportSQL("select c,b,a from export_decimal order by a asc", false);
+        exportSQL = buildExportSQL("select c,b,a from export_decimal order by a asc", "NONE");
 
         exportAndAssertExportResults(exportSQL, 2);
         files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -290,7 +337,7 @@ public class ExportOperationIT {
         // column subset
         //
         FileUtils.deleteDirectory(temporaryFolder.getRoot());
-        exportSQL = buildExportSQL("select b from export_decimal order by a asc", false);
+        exportSQL = buildExportSQL("select b from export_decimal order by a asc", "NONE");
 
         exportAndAssertExportResults(exportSQL, 2);
         files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -305,7 +352,7 @@ public class ExportOperationIT {
     @Test
     public void export_sysaliases() throws Exception {
         Long expectedRowCount = methodWatcher.query("select count(*) from sys.sysaliases");
-        String exportSQL = buildExportSQL("select * from sys.sysaliases", false);
+        String exportSQL = buildExportSQL("select * from sys.sysaliases", "none");
         exportAndAssertExportResults(exportSQL, expectedRowCount);
     }
 
@@ -314,7 +361,7 @@ public class ExportOperationIT {
     public void export_throwsSQLException_givenBadArguments() throws Exception {
         // export path
         try {
-            methodWatcher.executeQuery("export('', false, null,null,null, null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('', 'None', null,null,null, null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'export path'=''.", e.getMessage());
@@ -322,7 +369,7 @@ public class ExportOperationIT {
 
         // encoding
         try {
-            methodWatcher.executeQuery("export('/tmp/', false, 1,'BAD_ENCODING',null, null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', null, 1,'BAD_ENCODING',null, null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'encoding'='BAD_ENCODING'.", e.getMessage());
@@ -330,7 +377,7 @@ public class ExportOperationIT {
 
         // field delimiter
         try {
-            methodWatcher.executeQuery("export('/tmp/', false, 1,'utf-8','AAA', null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', null, 1,'utf-8','AAA', null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'field delimiter'='AAA'.", e.getMessage());
@@ -338,7 +385,7 @@ public class ExportOperationIT {
 
         // quote character
         try {
-            methodWatcher.executeQuery("export('/tmp/', false, 1,'utf-8',',', 'BBB') select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', null, 1,'utf-8',',', 'BBB') select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'quote character'='BBB'.", e.getMessage());
@@ -346,7 +393,7 @@ public class ExportOperationIT {
 
         // no permission to create export dir
         try {
-            methodWatcher.executeQuery("export('/ExportOperationIT/', false, 1,'utf-8',null, null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/ExportOperationIT/', null, 1,'utf-8',null, null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'cannot create export directory'='/ExportOperationIT/'.", e.getMessage());
@@ -354,7 +401,7 @@ public class ExportOperationIT {
 
         // wrong replica count
         try {
-            methodWatcher.executeQuery("export('/tmp/', false, -100, null, null, null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', null, -100, null, null, null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE0U", e.getSQLState());
@@ -362,7 +409,7 @@ public class ExportOperationIT {
 
         // wrong field separator
         try {
-            methodWatcher.executeQuery("export('/tmp/', false, null, null, 10, null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', null, null, null, 10, null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE0X", e.getSQLState());
@@ -371,7 +418,7 @@ public class ExportOperationIT {
 
         // wrong quote character
         try {
-            methodWatcher.executeQuery("export('/tmp/', false, null, null, null, 100) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', null, null, null, null, 100) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE0X", e.getSQLState());
@@ -380,11 +427,20 @@ public class ExportOperationIT {
 
         // wrong replication parameter
         try {
-            methodWatcher.executeQuery("export('/tmp/', false, 'a', null, null, null) select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("export('/tmp/', null, 'a', null, null, null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE0X", e.getSQLState());
             assertEquals("Invalid error message", "The export operation was not performed, because value of the specified parameter (a) is wrong.", e.getMessage());
+        }
+
+        // wrong compression format
+        try {
+            methodWatcher.executeQuery("export('/tmp/', 'WrongFormat', 1, null, null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE13", e.getSQLState());
+            assertEquals("Invalid error message", "Unsuported compression format: WRONGFORMAT", e.getMessage());
         }
     }
 
@@ -394,14 +450,28 @@ public class ExportOperationIT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private String buildExportSQL(String selectQuery) {
-        return buildExportSQL(selectQuery, false);
+        return buildExportSQL(selectQuery, null);
     }
 
-    private String buildExportSQL(String selectQuery, Boolean compression) {
+    private String buildExportSQL(String selectQuery, String compression) {
         return buildExportSQL(selectQuery, compression, ",");
     }
 
-    private String buildExportSQL(String selectQuery, Boolean compression, String fieldDelimiter) {
+    private String buildExportSQL(String selectQuery, boolean compression) {
+        return buildExportSQL(selectQuery, compression, ",");
+    }
+
+    private String buildExportSQL(String selectQuery, String compression, String fieldDelimiter) {
+        String exportPath = temporaryFolder.getRoot().getAbsolutePath();
+        if (compression == null) {
+            return String.format("EXPORT('%s', false, 3, NULL, '%s', NULL)", exportPath, fieldDelimiter) + " " + selectQuery;
+        }
+        else {
+            return String.format("EXPORT('%s', '%s', 3, NULL, '%s', NULL)", exportPath, compression, fieldDelimiter) + " " + selectQuery;
+        }
+    }
+
+    private String buildExportSQL(String selectQuery, boolean compression, String fieldDelimiter) {
         String exportPath = temporaryFolder.getRoot().getAbsolutePath();
         return String.format("EXPORT('%s', %s, 3, NULL, '%s', NULL)", exportPath, compression, fieldDelimiter) + " " + selectQuery;
     }

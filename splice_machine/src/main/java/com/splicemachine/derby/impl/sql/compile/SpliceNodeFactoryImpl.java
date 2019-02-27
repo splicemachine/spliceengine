@@ -315,6 +315,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 		  case C_NodeTypes.SIMPLE_STRING_OPERATOR_NODE:
 		  	return C_NodeNames.SIMPLE_STRING_OPERATOR_NODE_NAME;
 
+		  case C_NodeTypes.SIMPLE_LOCALE_STRING_OPERATOR_NODE:
+				return C_NodeNames.SIMPLE_LOCALE_STRING_OPERATOR_NODE_NAME;
+
 		  case C_NodeTypes.STATIC_CLASS_FIELD_REFERENCE_NODE:
 		  	return C_NodeNames.STATIC_CLASS_FIELD_REFERENCE_NODE_NAME;
 
@@ -391,6 +394,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 		  case C_NodeTypes.CURRENT_SCHEMA_NODE:
           case C_NodeTypes.CURRENT_ROLE_NODE:
 		  case C_NodeTypes.CURRENT_SESSION_PROPERTY_NODE:
+		  case C_NodeTypes.GROUP_USER_NODE:
 		  	return C_NodeNames.SPECIAL_FUNCTION_NODE_NAME;
 
 		  case C_NodeTypes.IS_NODE:
@@ -542,6 +546,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
           case C_NodeTypes.XML_EXISTS_OPERATOR_NODE:
           case C_NodeTypes.XML_QUERY_OPERATOR_NODE:
+          case C_NodeTypes.REPEAT_OPERATOR_NODE:
             return C_NodeNames.BINARY_OPERATOR_NODE_NAME;
 
           case C_NodeTypes.GRANT_NODE:

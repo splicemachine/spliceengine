@@ -99,28 +99,34 @@ public class BinaryOperatorNode extends OperatorNode
 
 	public final static int XMLEXISTS_OP = 0;
 	public final static int XMLQUERY_OP = 1;
+	public final static int REPEAT = 2;
+	public final static int SIMPLE_LOCALE_STRING = 3;
 
 	// NOTE: in the following 4 arrays, order
 	// IS important.
 
 	static final String[] BinaryOperators = {
 		"xmlexists",
-		"xmlquery"
+		"xmlquery",
+		"repeat"
 	};
 
 	static final String[] BinaryMethodNames = {
 		"XMLExists",
-		"XMLQuery"
+		"XMLQuery",
+		"repeat"
 	};
 
 	static final String[] BinaryResultTypes = {
 		ClassName.BooleanDataValue,		// XMLExists
-		ClassName.XMLDataValue			// XMLQuery
+		ClassName.XMLDataValue,			// XMLQuery
+		ClassName.StringDataValue       // repeat
 	};
 
 	static final String[][] BinaryArgTypes = {
 		{ClassName.StringDataValue, ClassName.XMLDataValue},	// XMLExists
-		{ClassName.StringDataValue, ClassName.XMLDataValue}		// XMLQuery
+		{ClassName.StringDataValue, ClassName.XMLDataValue},	// XMLQuery
+		{ClassName.StringDataValue, ClassName.NumberDataValue}  // repeat
 	};
 
     /** The query expression if the operator is XMLEXISTS or XMLQUERY. */
@@ -167,6 +173,22 @@ public class BinaryOperatorNode extends OperatorNode
 		this.rightInterfaceType = (String) rightInterfaceType;
 		this.operatorType = -1;
 	}
+
+	public void init(
+			Object leftOperand,
+			Object rightOperand,
+			Object operator,
+			Object methodName,
+			Object leftInterfaceType,
+			Object rightInterfaceType,
+			Object resultInterfaceType,
+			int operatorType)
+	{
+	    init(leftOperand, rightOperand, operator, methodName, leftInterfaceType, rightInterfaceType);
+		this.operatorType = operatorType;
+		this.resultInterfaceType = (String) resultInterfaceType;
+	}
+
 
 	/**
 	 * Initializer for a BinaryOperatorNode
@@ -301,6 +323,8 @@ public class BinaryOperatorNode extends OperatorNode
 
 		if ((operatorType == XMLEXISTS_OP) || (operatorType == XMLQUERY_OP))
 			return bindXMLQuery();
+		else if (operatorType == REPEAT)
+			return bindRepeat();
 
 		/* Is there a ? parameter on the left? */
 		if (leftOperand.requiresTypeFromContext())
@@ -422,6 +446,62 @@ public class BinaryOperatorNode extends OperatorNode
         return genSQLJavaSQLTree();
     }
 
+	public ValueNode bindRepeat() throws StandardException {
+		/*
+		 * Is there a ? parameter for the first arg.
+		 */
+		if( leftOperand.requiresTypeFromContext())
+		{
+			leftOperand.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
+			leftOperand.setCollationUsingCompilationSchema();
+		}
+
+		/*
+		 * Is there a ? paramter for the second arg.  It will be an int.
+		 */
+		if( rightOperand.requiresTypeFromContext())
+		{
+			rightOperand.setType(
+					new DataTypeDescriptor(TypeId.INTEGER_ID, true));
+		}
+
+		/*
+		** Check the type of the operand - this function is allowed only
+		** for: leftOperand = CHAR, VARCHAR, LONG VARCHAR
+		**      rightOperand = INT
+		*/
+		TypeId stringOperandType = leftOperand.getTypeId();
+		TypeId repeatOperandType = rightOperand.getTypeId();
+
+		if (!stringOperandType.isStringTypeId() || stringOperandType.isClobTypeId())
+			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARG_TYPE, stringOperandType.getSQLTypeName(),
+					1, "FUNCTION");
+
+		if (!repeatOperandType.isIntegerNumericTypeId())
+			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARG_TYPE, repeatOperandType.getSQLTypeName(),
+					2, "FUNCTION");
+
+		/*
+		** The result type of a repeat is of the same type as the leftOperand
+		*/
+		if (rightOperand instanceof ConstantNode) {
+			int repeatTimes = ((ConstantNode) rightOperand).getValue().getInt();
+			if (repeatTimes < 0)
+				throw StandardException.newException(
+						SQLState.LANG_INVALID_FUNCTION_ARGUMENT, rightOperand, "REPEAT");
+			int resultLength = leftOperand.getTypeId().getMaximumMaximumWidth();
+			if (leftOperand.getTypeServices().getMaximumWidth() * repeatTimes < resultLength) {
+				resultLength = leftOperand.getTypeServices().getMaximumWidth() * repeatTimes;
+			}
+			setType(new DataTypeDescriptor(stringOperandType, true, resultLength));
+		} else {
+			setType(new DataTypeDescriptor(stringOperandType, true));
+		}
+
+		return genSQLJavaSQLTree();
+
+	}
+
 	/** generate a SQL->Java->SQL conversion tree above the left and right
 	 * operand of this Binary Operator Node if needed. Subclasses can override
 	 * the default behavior.
@@ -539,7 +619,7 @@ public class BinaryOperatorNode extends OperatorNode
 		**
 		*/
 		if (leftOperand.getTypeId().typePrecedence() >
-			rightOperand.getTypeId().typePrecedence())
+			rightOperand.getTypeId().typePrecedence() || operatorType == REPEAT || operatorType == SIMPLE_LOCALE_STRING)
 		{
 			receiver = leftOperand;
 			/*

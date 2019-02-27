@@ -43,13 +43,11 @@ public class TimestampServer {
     private int port;
     private ChannelFactory factory;
     private Channel channel;
-    private TimestampBlockManager timestampBlockManager;
-    private int blockSize;
+    private final TimestampServerHandler handler;
 
-    public TimestampServer(int port, TimestampBlockManager timestampBlockManager, int blockSize) {
+    public TimestampServer(int port, TimestampServerHandler handler) {
         this.port = port;
-        this.timestampBlockManager=timestampBlockManager;
-        this.blockSize = blockSize;
+        this.handler = handler;
     }
 
     public void startServer() {
@@ -60,9 +58,6 @@ public class TimestampServer {
         SpliceLogUtils.info(LOG, "Timestamp Server starting (binding to port %s)...", port);
 
         ServerBootstrap bootstrap = new ServerBootstrap(factory);
-
-        // Instantiate handler once and share it
-        final TimestampServerHandler handler = new TimestampServerHandler(timestampBlockManager,blockSize);
 
         // If we end up needing to use one of the memory aware executors,
         // do so with code like this (leave commented out for reference).

@@ -29,6 +29,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
@@ -65,6 +66,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.InvalidJobConfException;
@@ -295,10 +297,12 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> f, String name, boolean isLast, boolean pushScope, String scopeDetail) throws StandardException {
-        if (f.hasNativeSparkImplementation()) {
-            return new NativeSparkDataSet<>(f.nativeTransformation(dataset), this.context);
-        }
         OperationContext<Op> context = f.operationContext;
+        if (f.hasNativeSparkImplementation()) {
+            Pair<Dataset<Row>, OperationContext> pair = f.nativeTransformation(dataset, context);
+            OperationContext c = pair.getSecond() == null ? this.context : pair.getSecond();
+            return new NativeSparkDataSet<>(pair.getFirst(), c);
+        }
         return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, f.getExecRow(), context)).map(f, name, isLast, pushScope, scopeDetail);
     }
 
@@ -432,11 +436,13 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation> DataSet< V> filter(
         SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail) {
 
+        OperationContext<Op> context = f.operationContext;
         if (f.hasNativeSparkImplementation()) {
-            return new NativeSparkDataSet<>(f.nativeTransformation(dataset), this.context);
+            Pair<Dataset<Row>, OperationContext> pair = f.nativeTransformation(dataset, context);
+            OperationContext c = pair.getSecond() == null ? this.context : pair.getSecond();
+            return new NativeSparkDataSet<>(pair.getFirst(), c);
         }
         try {
-            OperationContext<Op> context = f.operationContext;
             return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context)).filter(f, isLast, pushScope, scopeDetail);
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
@@ -654,18 +660,23 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             final ExportOperation op = exportFunction.getOperation();
             CompressionCodec codec = null;
             String extension = ".csv";
-            boolean isCompressed = op.getExportParams().isCompression();
-            if (isCompressed) {
-                Class<? extends CompressionCodec> codecClass =
-                        getOutputCompressorClass(taskAttemptContext, GzipCodec.class);
-                codec =ReflectionUtils.newInstance(codecClass, conf);
+            COMPRESSION compression = op.getExportParams().getCompression();
+            if (compression == COMPRESSION.BZ2) {
+                extension += ".bz2";
+            }
+            else if (compression == COMPRESSION.GZ) {
                 extension += ".gz";
             }
 
             Path file = getDefaultWorkFile(taskAttemptContext, extension);
             FileSystem fs = file.getFileSystem(conf);
             OutputStream fileOut = fs.create(file, false);
-            if (isCompressed) {
+            if (compression == COMPRESSION.BZ2) {
+                CompressionCodecFactory factory = new CompressionCodecFactory(conf);
+                codec = factory.getCodecByClassName("org.apache.hadoop.io.compress.BZip2Codec");
+                fileOut = codec.createOutputStream(fileOut);
+            }
+            else if (compression == COMPRESSION.GZ) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
             final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());

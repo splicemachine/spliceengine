@@ -170,6 +170,7 @@ public interface ISpliceVisitor {
     Visitable visit(SetSchemaNode node) throws StandardException;
     Visitable visit(SetTransactionIsolationNode node) throws StandardException;
     Visitable visit(SimpleStringOperatorNode node) throws StandardException;
+    Visitable visit(SimpleLocaleStringOperatorNode node) throws StandardException;
     Visitable visit(SpecialFunctionNode node) throws StandardException;
     Visitable visit(SQLBooleanConstantNode node) throws StandardException;
     Visitable visit(SQLToJavaValueNode node) throws StandardException;
