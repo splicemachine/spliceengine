@@ -240,7 +240,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 admin.majorCompact(tableName);
             else
                 admin.compact(tableName);
-            AdminProtos.GetRegionInfoResponse.CompactionState compactionState=null;
+            CompactionState compactionState=null;
             do{
                 try{
                     clock.sleep(500l,TimeUnit.MILLISECONDS);
@@ -266,7 +266,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                         throw e;
                     }
                 }
-            }while(compactionState!=AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+            }while(compactionState!=CompactionState.NONE);
         }
     }
     /**

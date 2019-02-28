@@ -195,7 +195,7 @@ public class SplitRegionScanner implements RegionScanner {
     }
 
     @Override
-    public HRegionInfo getRegionInfo() {
+    public RegionInfo getRegionInfo() {
         return currentScanner.getRegionInfo();
     }
 

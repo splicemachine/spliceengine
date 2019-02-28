@@ -53,9 +53,7 @@ import org.apache.hadoop.hbase.io.hfile.HFileContextBuilder;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionThroughputController;
 import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
-import org.apache.hadoop.hbase.regionserver.compactions.NoLimitCompactionThroughputController;
 import org.apache.hadoop.hbase.security.EncryptionUtil;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
@@ -96,10 +94,10 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
 
     public SpliceDefaultCompactor(final Configuration conf, final Store store) {
-        super(conf, store);
+        super(conf, (HStore)store);
         conglomId = this.store.getTableName().getQualifierAsString();
-        tableDisplayName = ((HStore)this.store).getHRegion().getTableDesc().getValue(TABLE_DISPLAY_NAME_ATTR);
-        indexDisplayName = ((HStore)this.store).getHRegion().getTableDesc().getValue(INDEX_DISPLAY_NAME_ATTR);
+        tableDisplayName = ((HStore)this.store).getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
+        indexDisplayName = ((HStore)this.store).getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
 
         if (LOG.isDebugEnabled()) {
             SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", ((HStore)this.store).getHRegion());
@@ -111,124 +109,124 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         this.smallestReadPoint = smallestReadPoint;
     }
 
-    @Override
-    public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController, User user) throws IOException {
-        if(!allowSpark || store.getRegionInfo().isSystemTable())
-            return super.compact(request, throughputController,user);
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
+//    @Override
+//    public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController, User user) throws IOException {
+//        if(!allowSpark || store.getRegionInfo().isSystemTable())
+//            return super.compact(request, throughputController,user);
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
+//
+//        assert request instanceof SpliceCompactionRequest;
+//
+//
+//        smallestReadPoint = store.getSmallestReadPoint();
+//        FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
+//        this.progress = new CompactionProgress(fd.maxKeyCount);
+//        List<String> files = new ArrayList<>();
+//        for (StoreFile sf : request.getFiles()) {
+//            files.add(sf.getPath().toString());
+//        }
+//
+//        ScanType scanType =
+//                request.isRetainDeleteMarkers()
+//                        ? ScanType.COMPACT_RETAIN_DELETES
+//                        : ScanType.COMPACT_DROP_DELETES;
+//        // trigger MemstoreAwareObserver
+//        postCreateCoprocScanner(request, scanType, null,user);
+//        if (hostName == null)
+//            hostName = RSRpcServices.getHostname(conf,false);
+//
+//        SConfiguration config = HConfiguration.getConfiguration();
+//        DistributedCompaction jobRequest=new DistributedCompaction(
+//                getCompactionFunction(request.isMajor(),getFavoredNodes()),
+//                files,
+//                getJobDetails(request),
+//                getJobGroup(request,hostName),
+//                getJobDescription(request),
+//                getPoolName(),
+//                getScope(request),
+//                hostName,
+//                config.getOlapCompactionMaximumWait());
+//        CompactionResult result = null;
+//        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest);
+//        while(result == null) {
+//            try {
+//                result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+//            } catch (InterruptedException e) {
+//                //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+//                Thread.currentThread().interrupt();
+//                throw new IOException(e);
+//            } catch (ExecutionException e) {
+//                if (e.getCause() instanceof RejectedExecutionException) {
+//                    LOG.warn("Spark compaction execution rejected, falling back to RegionServer execution", e.getCause());
+//                    return super.compact(request, throughputController, user);
+//                }
+//                throw Exceptions.rawIOException(e.getCause());
+//            } catch (TimeoutException e) {
+//                // check region write status
+//                if (!store.areWritesEnabled()) {
+//                    futureResult.cancel(true);
+//                    progress.cancel();
+//                    // TODO should we cleanup files written by Spark?
+//                    throw new IOException("Region has been closed, compaction aborted");
+//                }
+//            }
+//        }
+//
+//        List<String> sPaths = result.getPaths();
+//
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
+//
+//        this.progress.complete();
+//
+//
+//        SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
+//        scr.preStorefilesRename();
+//
+//        List<Path> paths = new ArrayList<>();
+//        for (String spath : sPaths) {
+//            paths.add(new Path(spath));
+//        }
+//        return paths;
+//    }
 
-        assert request instanceof SpliceCompactionRequest;
+//    private SparkCompactionFunction getCompactionFunction(boolean isMajor, InetSocketAddress[] favoredNodes) {
+//        return new SparkCompactionFunction(
+//                smallestReadPoint,
+//                store.getTableName().getNamespace(),
+//                store.getTableName().getQualifier(),
+//                store.getRegionInfo(),
+//                store.getColumnFamilyName().getBytes(),
+//                isMajor,
+//                favoredNodes);
+//    }
 
-
-        smallestReadPoint = store.getSmallestReadPoint();
-        FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
-        this.progress = new CompactionProgress(fd.maxKeyCount);
-        List<String> files = new ArrayList<>();
-        for (StoreFile sf : request.getFiles()) {
-            files.add(sf.getPath().toString());
-        }
-
-        ScanType scanType =
-                request.isRetainDeleteMarkers()
-                        ? ScanType.COMPACT_RETAIN_DELETES
-                        : ScanType.COMPACT_DROP_DELETES;
-        // trigger MemstoreAwareObserver
-        postCreateCoprocScanner(request, scanType, null,user);
-        if (hostName == null)
-            hostName = RSRpcServices.getHostname(conf,false);
-
-        SConfiguration config = HConfiguration.getConfiguration();
-        DistributedCompaction jobRequest=new DistributedCompaction(
-                getCompactionFunction(request.isMajor(),getFavoredNodes()),
-                files,
-                getJobDetails(request),
-                getJobGroup(request,hostName),
-                getJobDescription(request),
-                getPoolName(),
-                getScope(request),
-                hostName,
-                config.getOlapCompactionMaximumWait());
-        CompactionResult result = null;
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest);
-        while(result == null) {
-            try {
-                result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
-                Thread.currentThread().interrupt();
-                throw new IOException(e);
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof RejectedExecutionException) {
-                    LOG.warn("Spark compaction execution rejected, falling back to RegionServer execution", e.getCause());
-                    return super.compact(request, throughputController, user);
-                }
-                throw Exceptions.rawIOException(e.getCause());
-            } catch (TimeoutException e) {
-                // check region write status
-                if (!store.areWritesEnabled()) {
-                    futureResult.cancel(true);
-                    progress.cancel();
-                    // TODO should we cleanup files written by Spark?
-                    throw new IOException("Region has been closed, compaction aborted");
-                }
-            }
-        }
-
-        List<String> sPaths = result.getPaths();
-
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
-
-        this.progress.complete();
-
-
-        SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
-        scr.preStorefilesRename();
-
-        List<Path> paths = new ArrayList<>();
-        for (String spath : sPaths) {
-            paths.add(new Path(spath));
-        }
-        return paths;
-    }
-
-    private SparkCompactionFunction getCompactionFunction(boolean isMajor, InetSocketAddress[] favoredNodes) {
-        return new SparkCompactionFunction(
-                smallestReadPoint,
-                store.getTableName().getNamespace(),
-                store.getTableName().getQualifier(),
-                store.getRegionInfo(),
-                store.getFamily().getName(),
-                isMajor,
-                favoredNodes);
-    }
-
-    private String getScope(CompactionRequest request) {
-        return String.format("%s Compaction: %s",
-            getMajorMinorLabel(request),
-            getTableInfoLabel(", "));
-    }
-
-    private String getJobDescription(CompactionRequest request) {
-        int size = request.getFiles().size();
-        String jobDescription = String.format("%s Compaction: %s, %d %s, Total File Size=%s",
-                getMajorMinorLabel(request),
-                getTableInfoLabel(", "),
-                size,
-                (size > 1 ? "Files" : "File"),
-                FileUtils.byteCountToDisplaySize(request.getSize()));
-
-        if (size == 1 && !request.isMajor()) {
-            Collection<StoreFile> files = request.getFiles();
-            for (StoreFile file : files) {
-                if(file.isReference()) {
-                    return String.join(", ",jobDescription, "StoreFile is a Reference");
-                }
-            }
-        }
-        return jobDescription;
-    }
+//    private String getScope(CompactionRequest request) {
+//        return String.format("%s Compaction: %s",
+//            getMajorMinorLabel(request),
+//            getTableInfoLabel(", "));
+//    }
+//
+//    private String getJobDescription(CompactionRequest request) {
+//        int size = request.getFiles().size();
+//        String jobDescription = String.format("%s Compaction: %s, %d %s, Total File Size=%s",
+//                getMajorMinorLabel(request),
+//                getTableInfoLabel(", "),
+//                size,
+//                (size > 1 ? "Files" : "File"),
+//                FileUtils.byteCountToDisplaySize(request.getSize()));
+//
+//        if (size == 1 && !request.isMajor()) {
+//            Collection<StoreFile> files = request.getFiles();
+//            for (StoreFile file : files) {
+//                if(file.isReference()) {
+//                    return String.join(", ",jobDescription, "StoreFile is a Reference");
+//                }
+//            }
+//        }
+//        return jobDescription;
+//    }
 
     private String getMajorMinorLabel(CompactionRequest request) {
         return request.isMajor() ? "Major" : "Minor";
@@ -269,115 +267,115 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return "compaction";
     }
 
-    public List<Path> sparkCompact(CompactionRequest request, CompactionContext context, InetSocketAddress[] favoredNodes) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "sparkCompact(): CompactionRequest=%s", request);
-
-        FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
-        this.progress = new CompactionProgress(fd.maxKeyCount);
-
-        // Find the smallest read point across all the Scanners.
-        long smallestReadPoint = getSmallestReadPoint();
-
-        List<StoreFileScanner> scanners;
-        Collection<StoreFile> readersToClose;
-        // Tell HDFS it can drop data out of the caches after reading them, we are compacting on Spark and won't need
-        // that data anytime soon
-        final boolean dropBehind = true;
-        if (this.conf.getBoolean("hbase.regionserver.compaction.private.readers", false)) {
-            // clone all StoreFiles, so we'll do the compaction on a independent copy of StoreFiles,
-            // HFileFiles, and their readers
-            readersToClose =new ArrayList<>(request.getFiles().size());
-            for (StoreFile f : request.getFiles()) {
-                readersToClose.add(new StoreFile(f));
-            }
-            scanners = createFileScanners(readersToClose, smallestReadPoint, dropBehind);
-        } else {
-            readersToClose = Collections.emptyList();
-            scanners = createFileScanners(request.getFiles(), smallestReadPoint, dropBehind);
-        }
-
-        StoreFile.Writer writer = null;
-        List<Path> newFiles =new ArrayList<>();
-        boolean cleanSeqId = false;
-        IOException e = null;
-        try {
-            InternalScanner scanner = null;
-            try {
-                /* Include deletes, unless we are doing a compaction of all files */
-                ScanType scanType = request.isRetainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
-                        : ScanType.COMPACT_DROP_DELETES;
-                scanner = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners);
-                if (scanner == null) {
-                    scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
-                }
-                if (needsSI(store.getTableName())) {
-                    SIDriver driver=SIDriver.driver();
-                    double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
-                    int bufferSize = HConfiguration.getConfiguration().getOlapCompactionResolutionBufferSize();
-                    boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
-                    SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                            driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    boolean purgeDeletedRows = request.isMajor() && shouldPurge();
-
-                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
-                    siScanner.start();
-                    scanner = siScanner;
-                }
-                if (scanner == null) {
-                    // NULL scanner returned from coprocessor hooks means skip normal processing.
-                    return newFiles;
-                }
-                // Create the writer even if no kv(Empty store file is also ok),
-                // because we need record the max seq id for the store file, see HBASE-6059
-                if(fd.minSeqIdToKeep > 0) {
-                    smallestReadPoint = Math.min(fd.minSeqIdToKeep, smallestReadPoint);
-                    cleanSeqId = true;
-                }
-
-                writer = createTmpWriter(fd, dropBehind,favoredNodes);
-                boolean finished = performCompaction(fd, scanner,  writer, smallestReadPoint, cleanSeqId,
-                        new NoLimitCompactionThroughputController(), request.isMajor());
-                if (!finished) {
-                    writer.close();
-                    store.getFileSystem().delete(writer.getPath(), false);
-                    writer = null;
-                    throw new InterruptedIOException( "Aborting compaction of store " + store +
-                            " in region " + store.getRegionInfo().getRegionNameAsString() +
-                            " because it was interrupted.");
-                }
-            } finally {
-                if (scanner != null) {
-                    scanner.close();
-                }
-            }
-        } catch (IOException ioe) {
-            e = ioe;
-            throw ioe;
-        }
-        finally {
-            try {
-                if (writer != null) {
-                    if (e != null) {
-                        writer.close();
-                    } else {
-                        writer.appendMetadata(fd.maxSeqId, request.isAllFiles());
-                        writer.close();
-                        newFiles.add(writer.getPath());
-                    }
-                }
-            } finally {
-                for (StoreFile f : readersToClose) {
-                    try {
-                        f.closeReader(true);
-                    } catch (IOException ioe) {
-                        LOG.warn("Exception closing " + f, ioe);
-                    }
-                }
-            }
-        }
-        return newFiles;
-    }
+//    public List<Path> sparkCompact(CompactionRequest request, CompactionContext context, InetSocketAddress[] favoredNodes) throws IOException {
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG, "sparkCompact(): CompactionRequest=%s", request);
+//
+//        FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
+//        this.progress = new CompactionProgress(fd.maxKeyCount);
+//
+//        // Find the smallest read point across all the Scanners.
+//        long smallestReadPoint = getSmallestReadPoint();
+//
+//        List<StoreFileScanner> scanners;
+//        Collection<StoreFile> readersToClose;
+//        // Tell HDFS it can drop data out of the caches after reading them, we are compacting on Spark and won't need
+//        // that data anytime soon
+//        final boolean dropBehind = true;
+//        if (this.conf.getBoolean("hbase.regionserver.compaction.private.readers", false)) {
+//            // clone all StoreFiles, so we'll do the compaction on a independent copy of StoreFiles,
+//            // HFileFiles, and their readers
+//            readersToClose =new ArrayList<>(request.getFiles().size());
+//            for (StoreFile f : request.getFiles()) {
+//                readersToClose.add(new StoreFile(f));
+//            }
+//            scanners = createFileScanners(readersToClose, smallestReadPoint, dropBehind);
+//        } else {
+//            readersToClose = Collections.emptyList();
+//            scanners = createFileScanners(request.getFiles(), smallestReadPoint, dropBehind);
+//        }
+//
+//        StoreFile.Writer writer = null;
+//        List<Path> newFiles =new ArrayList<>();
+//        boolean cleanSeqId = false;
+//        IOException e = null;
+//        try {
+//            InternalScanner scanner = null;
+//            try {
+//                /* Include deletes, unless we are doing a compaction of all files */
+//                ScanType scanType = request.isRetainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
+//                        : ScanType.COMPACT_DROP_DELETES;
+//                scanner = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners);
+//                if (scanner == null) {
+//                    scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
+//                }
+//                if (needsSI(store.getTableName())) {
+//                    SIDriver driver=SIDriver.driver();
+//                    double resolutionShare = HConfiguration.getConfiguration().getOlapCompactionResolutionShare();
+//                    int bufferSize = HConfiguration.getConfiguration().getOlapCompactionResolutionBufferSize();
+//                    boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
+//                    SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
+//                            driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+//                    boolean purgeDeletedRows = request.isMajor() && shouldPurge();
+//
+//                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
+//                    siScanner.start();
+//                    scanner = siScanner;
+//                }
+//                if (scanner == null) {
+//                    // NULL scanner returned from coprocessor hooks means skip normal processing.
+//                    return newFiles;
+//                }
+//                // Create the writer even if no kv(Empty store file is also ok),
+//                // because we need record the max seq id for the store file, see HBASE-6059
+//                if(fd.minSeqIdToKeep > 0) {
+//                    smallestReadPoint = Math.min(fd.minSeqIdToKeep, smallestReadPoint);
+//                    cleanSeqId = true;
+//                }
+//
+//                writer = createTmpWriter(fd, dropBehind,favoredNodes);
+//                boolean finished = performCompaction(fd, scanner,  writer, smallestReadPoint, cleanSeqId,
+//                        new NoLimitCompactionThroughputController(), request.isMajor());
+//                if (!finished) {
+//                    writer.close();
+//                    store.getFileSystem().delete(writer.getPath(), false);
+//                    writer = null;
+//                    throw new InterruptedIOException( "Aborting compaction of store " + store +
+//                            " in region " + store.getRegionInfo().getRegionNameAsString() +
+//                            " because it was interrupted.");
+//                }
+//            } finally {
+//                if (scanner != null) {
+//                    scanner.close();
+//                }
+//            }
+//        } catch (IOException ioe) {
+//            e = ioe;
+//            throw ioe;
+//        }
+//        finally {
+//            try {
+//                if (writer != null) {
+//                    if (e != null) {
+//                        writer.close();
+//                    } else {
+//                        writer.appendMetadata(fd.maxSeqId, request.isAllFiles());
+//                        writer.close();
+//                        newFiles.add(writer.getPath());
+//                    }
+//                }
+//            } finally {
+//                for (StoreFile f : readersToClose) {
+//                    try {
+//                        f.closeReader(true);
+//                    } catch (IOException ioe) {
+//                        LOG.warn("Exception closing " + f, ioe);
+//                    }
+//                }
+//            }
+//        }
+//        return newFiles;
+//    }
 
     private boolean needsSI(TableName tableName) {
         TableType type = EnvUtils.getTableType(HConfiguration.getConfiguration(), tableName);
@@ -395,121 +393,121 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
     }
 
-    @Override
-    public List<Path> compactForTesting(Collection<StoreFile> filesToCompact, boolean isMajor) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"compactForTesting");
-        return super.compactForTesting(filesToCompact, isMajor);
-    }
+//    @Override
+//    public List<Path> compactForTesting(Collection<StoreFile> filesToCompact, boolean isMajor) throws IOException {
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG,"compactForTesting");
+//        return super.compactForTesting(filesToCompact, isMajor);
+//    }
 
     @Override
     public CompactionProgress getProgress() {
         return super.getProgress();
     }
 
-    @Override
-    protected FileDetails getFileDetails(Collection<StoreFile> filesToCompact, boolean allFiles) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getFileDetails");
-        return super.getFileDetails(filesToCompact, allFiles);
-    }
-
-    @Override
-    protected long getSmallestReadPoint() {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getSmallestReadPoint");
-        return this.smallestReadPoint;
-    }
-
-    @Override
-    protected InternalScanner preCreateCoprocScanner(CompactionRequest request, ScanType scanType, long earliestPutTs, List<StoreFileScanner> scanners) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"preCreateCoprocScanner");
-        return super.preCreateCoprocScanner(request, scanType, earliestPutTs, scanners);
-    }
-
-    @Override
-    protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer,
-                                        long smallestReadPoint, boolean cleanSeqId,
-                                        CompactionThroughputController throughputController, boolean major) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"performCompaction");
-        long bytesWritten = 0;
-        long bytesWrittenProgress = 0;
-
-        // Since scanner.next() can return 'false' but still be delivering data,
-        // we have to use a do/while loop.
-        List<Cell> cells =new ArrayList<>();
-        long closeCheckInterval = HStore.getCloseCheckInterval();
-        long lastMillis = 0;
-        if (LOG.isDebugEnabled()) {
-            lastMillis = EnvironmentEdgeManager.currentTime();
-        }
-        long now = 0;
-        boolean hasMore;
-        ScannerContext scannerContext =
-                ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
-        do {
-            hasMore = scanner.next(cells, scannerContext);
-            if (LOG.isDebugEnabled()) {
-                now = EnvironmentEdgeManager.currentTime();
-            }
-            // output to writer:
-            for (Cell c : cells) {
-                if (cleanSeqId && c.getSequenceId() <= smallestReadPoint) {
-                    CellUtil.setSequenceId(c, 0);
-                }
-                writer.append(c);
-                int len = KeyValueUtil.length(c);
-                ++progress.currentCompactedKVs;
-                progress.totalCompactedSize += len;
-                if (LOG.isDebugEnabled()) {
-                    bytesWrittenProgress += len;
-                }
-                // check periodically to see if a system stop is requested
-                if (closeCheckInterval > 0) {
-                    bytesWritten += len;
-                    if (bytesWritten > closeCheckInterval) {
-                        bytesWritten = 0;
-//                        if (!store.areWritesEnabled()) {
-//                            progress.cancel();
-//                            return false;
-//                        }
-                    }
-                }
-            }
-            // Log the progress of long running compactions every minute if
-            // logging at DEBUG level
-            if (LOG.isDebugEnabled()) {
-                if ((now - lastMillis) >= 60 * 1000) {
-                    LOG.debug("Compaction progress: " + progress + String.format(", rate=%.2f kB/sec",
-                            (bytesWrittenProgress / 1024.0) / ((now - lastMillis) / 1000.0)));
-                    lastMillis = now;
-                    bytesWrittenProgress = 0;
-                }
-            }
-            cells.clear();
-        } while (hasMore);
-        progress.complete();
-        return true;
-    }
-
-    @Override
-    protected InternalScanner createScanner(Store store, List<StoreFileScanner> scanners, ScanType scanType, long smallestReadPoint, long earliestPutTs) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createScanner");
-        Scan scan = new Scan();
-        scan.setMaxVersions(store.getFamily().getMaxVersions());
-        return new StoreScanner(store, store.getScanInfo(), scan, scanners,
-                scanType, smallestReadPoint, earliestPutTs);
-    }
-
-    @Override
-    protected InternalScanner createScanner(Store store, List<StoreFileScanner> scanners, long smallestReadPoint, long earliestPutTs, byte[] dropDeletesFromRow, byte[] dropDeletesToRow) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createScanner");
-        return super.createScanner(store, scanners, smallestReadPoint, earliestPutTs, dropDeletesFromRow, dropDeletesToRow);
-    }
+//    @Override
+//    protected FileDetails getFileDetails(Collection<StoreFile> filesToCompact, boolean allFiles) throws IOException {
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG,"getFileDetails");
+//        return super.getFileDetails(filesToCompact, allFiles);
+//    }
+//
+//    @Override
+//    protected long getSmallestReadPoint() {
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG,"getSmallestReadPoint");
+//        return this.smallestReadPoint;
+//    }
+//
+//    @Override
+//    protected InternalScanner preCreateCoprocScanner(CompactionRequest request, ScanType scanType, long earliestPutTs, List<StoreFileScanner> scanners) throws IOException {
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG,"preCreateCoprocScanner");
+//        return super.preCreateCoprocScanner(request, scanType, earliestPutTs, scanners);
+//    }
+//
+//    @Override
+//    protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer,
+//                                        long smallestReadPoint, boolean cleanSeqId,
+//                                        CompactionThroughputController throughputController, boolean major) throws IOException {
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG,"performCompaction");
+//        long bytesWritten = 0;
+//        long bytesWrittenProgress = 0;
+//
+//        // Since scanner.next() can return 'false' but still be delivering data,
+//        // we have to use a do/while loop.
+//        List<Cell> cells =new ArrayList<>();
+//        long closeCheckInterval = HStore.getCloseCheckInterval();
+//        long lastMillis = 0;
+//        if (LOG.isDebugEnabled()) {
+//            lastMillis = EnvironmentEdgeManager.currentTime();
+//        }
+//        long now = 0;
+//        boolean hasMore;
+//        ScannerContext scannerContext =
+//                ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
+//        do {
+//            hasMore = scanner.next(cells, scannerContext);
+//            if (LOG.isDebugEnabled()) {
+//                now = EnvironmentEdgeManager.currentTime();
+//            }
+//            // output to writer:
+//            for (Cell c : cells) {
+//                if (cleanSeqId && c.getSequenceId() <= smallestReadPoint) {
+//                    CellUtil.setSequenceId(c, 0);
+//                }
+//                writer.append(c);
+//                int len = KeyValueUtil.length(c);
+//                ++progress.currentCompactedKVs;
+//                progress.totalCompactedSize += len;
+//                if (LOG.isDebugEnabled()) {
+//                    bytesWrittenProgress += len;
+//                }
+//                // check periodically to see if a system stop is requested
+//                if (closeCheckInterval > 0) {
+//                    bytesWritten += len;
+//                    if (bytesWritten > closeCheckInterval) {
+//                        bytesWritten = 0;
+////                        if (!store.areWritesEnabled()) {
+////                            progress.cancel();
+////                            return false;
+////                        }
+//                    }
+//                }
+//            }
+//            // Log the progress of long running compactions every minute if
+//            // logging at DEBUG level
+//            if (LOG.isDebugEnabled()) {
+//                if ((now - lastMillis) >= 60 * 1000) {
+//                    LOG.debug("Compaction progress: " + progress + String.format(", rate=%.2f kB/sec",
+//                            (bytesWrittenProgress / 1024.0) / ((now - lastMillis) / 1000.0)));
+//                    lastMillis = now;
+//                    bytesWrittenProgress = 0;
+//                }
+//            }
+//            cells.clear();
+//        } while (hasMore);
+//        progress.complete();
+//        return true;
+//    }
+//
+//    @Override
+//    protected InternalScanner createScanner(Store store, List<StoreFileScanner> scanners, ScanType scanType, long smallestReadPoint, long earliestPutTs) throws IOException {
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG,"createScanner");
+//        Scan scan = new Scan();
+//        scan.setMaxVersions(store.getFamily().getMaxVersions());
+//        return new StoreScanner(store, store.getScanInfo(), scan, scanners,
+//                scanType, smallestReadPoint, earliestPutTs);
+//    }
+//
+//    @Override
+//    protected InternalScanner createScanner(Store store, List<StoreFileScanner> scanners, long smallestReadPoint, long earliestPutTs, byte[] dropDeletesFromRow, byte[] dropDeletesToRow) throws IOException {
+//        if (LOG.isTraceEnabled())
+//            SpliceLogUtils.trace(LOG,"createScanner");
+//        return super.createScanner(store, scanners, smallestReadPoint, earliestPutTs, dropDeletesFromRow, dropDeletesToRow);
+//    }
 
     private boolean shouldPurge() throws IOException {
 
@@ -552,175 +550,175 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return false;
     }
 
-    /**
-     *
-     * createWriterInTmp borrowed from DefaultCompactor to fix scope issues.
-     *
-     * @param maxKeyCount
-     * @param compression
-     * @param isCompaction
-     * @param includeMVCCReadpoint
-     * @param includesTag
-     * @param shouldDropBehind
-     * @param favoredNodes
-     * @return
-     * @throws IOException
-     */
-    public StoreFile.Writer createWriterInTmp(long maxKeyCount, Compression.Algorithm compression,
-                                              boolean isCompaction, boolean includeMVCCReadpoint, boolean includesTag,
-                                              boolean shouldDropBehind, InetSocketAddress[] favoredNodes)
-            throws IOException {
-        final CacheConfig writerCacheConf;
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG,"createWriterInTmp with favoredNodes=%s",favoredNodes==null?"null":Arrays.toString(favoredNodes));
-
-        }
-        if (isCompaction) {
-            // Don't cache data on write on compactions.
-            writerCacheConf = new CacheConfig(store.getCacheConfig());
-            writerCacheConf.setCacheDataOnWrite(false);
-        } else {
-            writerCacheConf = store.getCacheConfig();
-        }
-        // Required for Hbase Writer to pass on Favored Nodes
-        HFileSystem wrappedFileSystem = new HFileSystem(store.getFileSystem());
-
-        HFileContext hFileContext = createFileContext(compression, includeMVCCReadpoint, includesTag,
-                getCryptoContext());
-        StoreFile.Writer w = new StoreFile.WriterBuilder(conf, writerCacheConf,
-                wrappedFileSystem)
-                .withFilePath( ((HStore)store).getRegionFileSystem().createTempName())
-                .withComparator(store.getComparator())
-                .withBloomType(store.getFamily().getBloomFilterType())
-                .withMaxKeyCount(maxKeyCount)
-                .withFavoredNodes(favoredNodes)
-                .withFileContext(hFileContext)
-                .withShouldDropCacheBehind(shouldDropBehind)
-                .build();
-        return w;
-    }
-
-
-    /**
-     *
-     * This is borrowed from DefaultCompactor.
-     *
-     * @param compression
-     * @param includeMVCCReadpoint
-     * @param includesTag
-     * @param cryptoContext
-     * @return
-     */
-    private HFileContext createFileContext(Compression.Algorithm compression,
-                                           boolean includeMVCCReadpoint, boolean includesTag, Encryption.Context cryptoContext) {
-        if (compression == null) {
-            compression = HFile.DEFAULT_COMPRESSION_ALGORITHM;
-        }
-        HFileContext hFileContext = new HFileContextBuilder()
-                .withIncludesMvcc(includeMVCCReadpoint)
-                .withIncludesTags(includesTag)
-                .withCompression(compression)
-                .withCompressTags(store.getFamily().isCompressTags())
-                .withChecksumType(HStore.getChecksumType(conf))
-                .withBytesPerCheckSum(HStore.getBytesPerChecksum(conf))
-                .withBlockSize(store.getFamily().getBlocksize())
-                .withHBaseCheckSum(true)
-                .withDataBlockEncoding(store.getFamily().getDataBlockEncoding())
-                .withEncryptionContext(cryptoContext)
-                .withCreateTime(EnvironmentEdgeManager.currentTime())
-                .build();
-        return hFileContext;
-    }
-
-    /**
-     *
-     * Retrieve the Crypto Context.  This is borrowed from the DefaultCompactor logic.
-     *
-     * @return
-     * @throws IOException
-     */
-    public Encryption.Context getCryptoContext() throws IOException {
-        // Crypto context for new store files
-        String cipherName = store.getFamily().getEncryptionType();
-        if (cipherName != null) {
-            Cipher cipher;
-            Key key;
-            byte[] keyBytes = store.getFamily().getEncryptionKey();
-            if (keyBytes != null) {
-                // Family provides specific key material
-                String masterKeyName = conf.get(HConstants.CRYPTO_MASTERKEY_NAME_CONF_KEY,
-                        User.getCurrent().getShortName());
-                try {
-                    // First try the master key
-                    key = EncryptionUtil.unwrapKey(conf, masterKeyName, keyBytes);
-                } catch (KeyException e) {
-                    // If the current master key fails to unwrap, try the alternate, if
-                    // one is configured
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Unable to unwrap key with current master key '" + masterKeyName + "'");
-                    }
-                    String alternateKeyName =
-                            conf.get(HConstants.CRYPTO_MASTERKEY_ALTERNATE_NAME_CONF_KEY);
-                    if (alternateKeyName != null) {
-                        try {
-                            key = EncryptionUtil.unwrapKey(conf, alternateKeyName, keyBytes);
-                        } catch (KeyException ex) {
-                            throw new IOException(ex);
-                        }
-                    } else {
-                        throw new IOException(e);
-                    }
-                }
-                // Use the algorithm the key wants
-                cipher = Encryption.getCipher(conf, key.getAlgorithm());
-                if (cipher == null) {
-                    throw new RuntimeException("Cipher '" + key.getAlgorithm() + "' is not available");
-                }
-                // Fail if misconfigured
-                // We use the encryption type specified in the column schema as a sanity check on
-                // what the wrapped key is telling us
-                if (!cipher.getName().equalsIgnoreCase(cipherName)) {
-                    throw new RuntimeException("Encryption for family '" + store.getFamily().getNameAsString() +
-                            "' configured with type '" + cipherName +
-                            "' but key specifies algorithm '" + cipher.getName() + "'");
-                }
-            } else {
-                // Family does not provide key material, create a random key
-                cipher = Encryption.getCipher(conf, cipherName);
-                if (cipher == null) {
-                    throw new RuntimeException("Cipher '" + cipherName + "' is not available");
-                }
-                key = cipher.getRandomKey();
-            }
-            Encryption.Context cryptoContext = Encryption.newContext(conf);
-            cryptoContext.setCipher(cipher);
-            cryptoContext.setKey(key);
-            return cryptoContext;
-        } else
-            return Encryption.Context.NONE;
-    }
-
-    /**
-     * Creates a writer for a new file in a temporary directory.  This is pulled forward from DefaultCompactor
-     * to handle some scoping issues.
-     *
-     * @param fd The file details.
-     * @return Writer for a new StoreFile in the tmp dir.
-     * @throws IOException
-     */
-    protected StoreFile.Writer createTmpWriter(FileDetails fd, boolean shouldDropBehind, InetSocketAddress[] favoredNodes)
-            throws IOException {
-
-        // When all MVCC readpoints are 0, don't write them.
-        // See HBASE-8166, HBASE-12600, and HBASE-13389.
-
-        return createWriterInTmp(fd.maxKeyCount, this.compactionCompression,
-            /* isCompaction = */ true,
-            /* includeMVCCReadpoint = */ fd.maxMVCCReadpoint > 0,
-            /* includesTags = */ fd.maxTagsLength > 0,
-            /* shouldDropBehind = */ shouldDropBehind,
-                favoredNodes);
-    }
+//    /**
+//     *
+//     * createWriterInTmp borrowed from DefaultCompactor to fix scope issues.
+//     *
+//     * @param maxKeyCount
+//     * @param compression
+//     * @param isCompaction
+//     * @param includeMVCCReadpoint
+//     * @param includesTag
+//     * @param shouldDropBehind
+//     * @param favoredNodes
+//     * @return
+//     * @throws IOException
+//     */
+//    public StoreFile.Writer createWriterInTmp(long maxKeyCount, Compression.Algorithm compression,
+//                                              boolean isCompaction, boolean includeMVCCReadpoint, boolean includesTag,
+//                                              boolean shouldDropBehind, InetSocketAddress[] favoredNodes)
+//            throws IOException {
+//        final CacheConfig writerCacheConf;
+//        if (LOG.isDebugEnabled()) {
+//            SpliceLogUtils.debug(LOG,"createWriterInTmp with favoredNodes=%s",favoredNodes==null?"null":Arrays.toString(favoredNodes));
+//
+//        }
+//        if (isCompaction) {
+//            // Don't cache data on write on compactions.
+//            writerCacheConf = new CacheConfig(store.getCacheConfig());
+//            writerCacheConf.setCacheDataOnWrite(false);
+//        } else {
+//            writerCacheConf = store.getCacheConfig();
+//        }
+//        // Required for Hbase Writer to pass on Favored Nodes
+//        HFileSystem wrappedFileSystem = new HFileSystem(store.getFileSystem());
+//
+//        HFileContext hFileContext = createFileContext(compression, includeMVCCReadpoint, includesTag,
+//                getCryptoContext());
+//        StoreFile.Writer w = new StoreFile.WriterBuilder(conf, writerCacheConf,
+//                wrappedFileSystem)
+//                .withFilePath( ((HStore)store).getRegionFileSystem().createTempName())
+//                .withComparator(store.getComparator())
+//                .withBloomType(store.getFamily().getBloomFilterType())
+//                .withMaxKeyCount(maxKeyCount)
+//                .withFavoredNodes(favoredNodes)
+//                .withFileContext(hFileContext)
+//                .withShouldDropCacheBehind(shouldDropBehind)
+//                .build();
+//        return w;
+//    }
+//
+//
+//    /**
+//     *
+//     * This is borrowed from DefaultCompactor.
+//     *
+//     * @param compression
+//     * @param includeMVCCReadpoint
+//     * @param includesTag
+//     * @param cryptoContext
+//     * @return
+//     */
+//    private HFileContext createFileContext(Compression.Algorithm compression,
+//                                           boolean includeMVCCReadpoint, boolean includesTag, Encryption.Context cryptoContext) {
+//        if (compression == null) {
+//            compression = HFile.DEFAULT_COMPRESSION_ALGORITHM;
+//        }
+//        HFileContext hFileContext = new HFileContextBuilder()
+//                .withIncludesMvcc(includeMVCCReadpoint)
+//                .withIncludesTags(includesTag)
+//                .withCompression(compression)
+//                .withCompressTags(store.getFamily().isCompressTags())
+//                .withChecksumType(HStore.getChecksumType(conf))
+//                .withBytesPerCheckSum(HStore.getBytesPerChecksum(conf))
+//                .withBlockSize(store.getFamily().getBlocksize())
+//                .withHBaseCheckSum(true)
+//                .withDataBlockEncoding(store.getFamily().getDataBlockEncoding())
+//                .withEncryptionContext(cryptoContext)
+//                .withCreateTime(EnvironmentEdgeManager.currentTime())
+//                .build();
+//        return hFileContext;
+//    }
+//
+//    /**
+//     *
+//     * Retrieve the Crypto Context.  This is borrowed from the DefaultCompactor logic.
+//     *
+//     * @return
+//     * @throws IOException
+//     */
+//    public Encryption.Context getCryptoContext() throws IOException {
+//        // Crypto context for new store files
+//        String cipherName = store.getFamily().getEncryptionType();
+//        if (cipherName != null) {
+//            Cipher cipher;
+//            Key key;
+//            byte[] keyBytes = store.getFamily().getEncryptionKey();
+//            if (keyBytes != null) {
+//                // Family provides specific key material
+//                String masterKeyName = conf.get(HConstants.CRYPTO_MASTERKEY_NAME_CONF_KEY,
+//                        User.getCurrent().getShortName());
+//                try {
+//                    // First try the master key
+//                    key = EncryptionUtil.unwrapKey(conf, masterKeyName, keyBytes);
+//                } catch (KeyException e) {
+//                    // If the current master key fails to unwrap, try the alternate, if
+//                    // one is configured
+//                    if (LOG.isDebugEnabled()) {
+//                        LOG.debug("Unable to unwrap key with current master key '" + masterKeyName + "'");
+//                    }
+//                    String alternateKeyName =
+//                            conf.get(HConstants.CRYPTO_MASTERKEY_ALTERNATE_NAME_CONF_KEY);
+//                    if (alternateKeyName != null) {
+//                        try {
+//                            key = EncryptionUtil.unwrapKey(conf, alternateKeyName, keyBytes);
+//                        } catch (KeyException ex) {
+//                            throw new IOException(ex);
+//                        }
+//                    } else {
+//                        throw new IOException(e);
+//                    }
+//                }
+//                // Use the algorithm the key wants
+//                cipher = Encryption.getCipher(conf, key.getAlgorithm());
+//                if (cipher == null) {
+//                    throw new RuntimeException("Cipher '" + key.getAlgorithm() + "' is not available");
+//                }
+//                // Fail if misconfigured
+//                // We use the encryption type specified in the column schema as a sanity check on
+//                // what the wrapped key is telling us
+//                if (!cipher.getName().equalsIgnoreCase(cipherName)) {
+//                    throw new RuntimeException("Encryption for family '" + store.getFamily().getNameAsString() +
+//                            "' configured with type '" + cipherName +
+//                            "' but key specifies algorithm '" + cipher.getName() + "'");
+//                }
+//            } else {
+//                // Family does not provide key material, create a random key
+//                cipher = Encryption.getCipher(conf, cipherName);
+//                if (cipher == null) {
+//                    throw new RuntimeException("Cipher '" + cipherName + "' is not available");
+//                }
+//                key = cipher.getRandomKey();
+//            }
+//            Encryption.Context cryptoContext = Encryption.newContext(conf);
+//            cryptoContext.setCipher(cipher);
+//            cryptoContext.setKey(key);
+//            return cryptoContext;
+//        } else
+//            return Encryption.Context.NONE;
+//    }
+//
+//    /**
+//     * Creates a writer for a new file in a temporary directory.  This is pulled forward from DefaultCompactor
+//     * to handle some scoping issues.
+//     *
+//     * @param fd The file details.
+//     * @return Writer for a new StoreFile in the tmp dir.
+//     * @throws IOException
+//     */
+//    protected StoreFile.Writer createTmpWriter(FileDetails fd, boolean shouldDropBehind, InetSocketAddress[] favoredNodes)
+//            throws IOException {
+//
+//        // When all MVCC readpoints are 0, don't write them.
+//        // See HBASE-8166, HBASE-12600, and HBASE-13389.
+//
+//        return createWriterInTmp(fd.maxKeyCount, this.compactionCompression,
+//            /* isCompaction = */ true,
+//            /* includeMVCCReadpoint = */ fd.maxMVCCReadpoint > 0,
+//            /* includesTags = */ fd.maxTagsLength > 0,
+//            /* shouldDropBehind = */ shouldDropBehind,
+//                favoredNodes);
+//    }
 
     /**
      *
@@ -755,14 +753,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
     }
 
-    public List<StoreFileScanner> createFileScanners(
-            final Collection<StoreFile> filesToCompact,
-            long smallestReadPoint) throws IOException {
-        return StoreFileScanner.getScannersForStoreFiles(filesToCompact,
-        /* cache blocks = */ false,
-        /* use pread = */ false,
-        /* is compaction */ true,
-        /* use Drop Behind */ false,
-                smallestReadPoint);
-    }
+//    public List<StoreFileScanner> createFileScanners(
+//            final Collection<StoreFile> filesToCompact,
+//            long smallestReadPoint) throws IOException {
+//        return StoreFileScanner.getScannersForStoreFiles(filesToCompact,
+//        /* cache blocks = */ false,
+//        /* use pread = */ false,
+//        /* is compaction */ true,
+//        /* use Drop Behind */ false,
+//                smallestReadPoint);
+//    }
 }

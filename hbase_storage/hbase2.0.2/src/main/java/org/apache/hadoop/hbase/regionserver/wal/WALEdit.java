@@ -10,24 +10,10 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
- */
-
-package com.splicemachine.hbase;
-
-import org.apache.hadoop.hbase.HTableDescriptor;
-
-/**
- *
- * Read Only HTable Descriptor for reading HBase from the filesystem.
  *
  */
-public class ReadOnlyHTableDescriptor extends HTableDescriptor {
-    public ReadOnlyHTableDescriptor(HTableDescriptor desc) {
-            super(desc);
-    }
 
-    @Override
-    public boolean isReadOnly() {
-        return true;
-    }
+package org.apache.hadoop.hbase.regionserver.wal;
+
+public class WALEdit {
 }

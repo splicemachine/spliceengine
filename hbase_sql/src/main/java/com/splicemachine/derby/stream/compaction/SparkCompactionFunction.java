@@ -33,11 +33,15 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HStore;
+import org.apache.hadoop.hbase.regionserver.HStoreFile;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
@@ -58,7 +62,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     private byte[] namespace;
     private byte[] tableName;
     private byte[] storeColumn;
-    private HRegionInfo hri;
+    private RegionInfo hri;
     private boolean isMajor;
     private SparkCompactionContext context;
     private InetSocketAddress[] favoredNodes;
@@ -68,7 +72,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     }
 
     public SparkCompactionFunction(long smallestReadPoint, byte[] namespace,
-                                   byte[] tableName, HRegionInfo hri, byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
+                                   byte[] tableName, RegionInfo hri, byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
@@ -80,7 +84,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        byte[] hriBytes = hri.toByteArray();
+        byte[] hriBytes = RegionInfo.toByteArray(hri);
         super.writeExternal(out);
         out.writeLong(smallestReadPoint);
         out.writeInt(namespace.length);
@@ -131,7 +135,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     @Override
     public Iterator<String> call(Iterator it) throws Exception {
 
-        ArrayList<StoreFile> readersToClose = new ArrayList<StoreFile>();
+        ArrayList<HStoreFile> readersToClose = new ArrayList<>();
         Configuration conf = HConfiguration.unwrapDelegate();
         TableName tn = TableName.valueOf(namespace, tableName);
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
@@ -156,20 +160,22 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
                 LOG.trace(file + "\n");
             }
             readersToClose.add(
-                    new StoreFile(
+                    new HStoreFile(
                             fs,
                             new Path(file),
                             conf,
-                            store.getCacheConfig(),
-                            store.getFamily().getBloomFilterType()
+                            ((HStore)store).getCacheConfig(),
+                            ((HStore)store).getColumnFamilyDescriptor().getBloomFilterType(),
+                            false
                     )
             );
         }
 
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
-        CompactionRequest compactionRequest = new CompactionRequest(readersToClose);
-        compactionRequest.setIsMajor(isMajor, isMajor);
-        List<Path> paths = sdc.sparkCompact(compactionRequest, context, favoredNodes);
+        CompactionRequest compactionRequest = new CompactionRequestImpl(readersToClose);
+// TODO        compactionRequest.setIsMajor(isMajor, isMajor);
+        List<Path> paths = null;
+// TODO                sdc.sparkCompact(compactionRequest, context, favoredNodes);
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);

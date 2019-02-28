@@ -23,31 +23,32 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.LongAdder;
 
 public class HBasePlatformUtils{
 	public static void updateWriteRequests(HRegion region, long numWrites) {
-		Counter writeRequestsCount = region.writeRequestsCount;
+		LongAdder writeRequestsCount = region.writeRequestsCount;
 		if (writeRequestsCount != null)
 			writeRequestsCount.add(numWrites);
 	}
 
 	public static void updateReadRequests(HRegion region, long numReads) {
-		Counter readRequestsCount = region.readRequestsCount;
+		LongAdder readRequestsCount = region.readRequestsCount;
 		if (readRequestsCount != null)
 			readRequestsCount.add(numReads);
 	}
 
 	public static Map<byte[],Store> getStores(HRegion region) {
-        List<Store> stores = region.getStores();
+        List<HStore> stores = region.getStores();
         HashMap<byte[],Store> storesMap = new HashMap<>();
         for (Store store: stores) {
-            storesMap.put(store.getFamily().getName(),store);
+            storesMap.put(store.getColumnFamilyDescriptor().getName(),store);
         }
 		return storesMap;
 	}
 
     public static void flush(HRegion region) throws IOException {
-        region.flushcache(false,false);
+        region.flushcache(false,false, null);
     }
 
     public static void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> copyPaths) throws IOException{
@@ -55,7 +56,7 @@ public class HBasePlatformUtils{
         region.bulkLoadHFiles(copyPaths,true,null);
     }
     public static long getMemstoreSize(HRegion region) {
-        return region.getMemstoreSize();
+        return region.getMemStoreHeapSize();
     }
 
 
@@ -71,7 +72,7 @@ public class HBasePlatformUtils{
     public static boolean scannerEndReached(ScannerContext scannerContext) {
         scannerContext.setSizeLimitScope(ScannerContext.LimitScope.BETWEEN_ROWS);
         scannerContext.incrementBatchProgress(1);
-        scannerContext.incrementSizeProgress(100l);
+        scannerContext.incrementSizeProgress(100l, 100l);
         return scannerContext.setScannerState(ScannerContext.NextState.BATCH_LIMIT_REACHED).hasMoreValues();
     }
 

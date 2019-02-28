@@ -55,11 +55,11 @@ public class RegionServerControl implements ServerControl{
 
     @Override
     public boolean isAvailable(){
-        return rsServices.getFromOnlineRegions(region.getRegionInfo().getEncodedName())!=null;
+        return region.isAvailable();
     }
 
     private static void checkCallerDisconnect(HRegion region, String task) throws CallerDisconnectedException{
-        RpcCallContext currentCall = RpcServer.getCurrentCall();
+        RpcCallContext currentCall = RpcServer.getCurrentCall().get();
         if(currentCall!=null){
             long afterTime =  currentCall.disconnectSince();
             if(afterTime>0){

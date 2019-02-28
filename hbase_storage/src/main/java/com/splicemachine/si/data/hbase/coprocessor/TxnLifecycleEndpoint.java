@@ -16,6 +16,9 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import java.io.IOException;
 
+import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.util.StringUtils;
 import org.spark_project.guava.primitives.Longs;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
@@ -25,9 +28,7 @@ import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
-import org.apache.hadoop.hbase.protobuf.ResponseConverter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.log4j.Logger;
 
@@ -92,7 +93,8 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
                 TimestampSource timestampSource=driver.getTimestampSource();
                 int txnLockStrips = configuration.getTransactionLockStripes();
                 lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,
-                        new RegionServerControl(region,rce.getRegionServerServices()),timestampSource);
+//                        new RegionServerControl(region,rce.getRegionServerServices()),timestampSource);
+                new RegionServerControl(region, (RegionServerServices) rce.getOnlineRegions()),timestampSource);
                 isTxnTable=true;
             }
         } catch (Throwable t) {
@@ -124,7 +126,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             lifecycleStore.beginTransaction(request);
             done.run(TxnMessage.VoidResponse.getDefaultInstance());
         }catch(IOException ioe){
-            ResponseConverter.setControllerException(controller,ioe);
+            setControllerException(controller,ioe);
         }
     }
 
@@ -138,7 +140,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             lifecycleStore.elevateTransaction(request.getTxnId(),request.getNewDestinationTable().toByteArray());
             done.run(TxnMessage.VoidResponse.getDefaultInstance());
         }catch(IOException ioe){
-            ResponseConverter.setControllerException(controller,ioe);
+            setControllerException(controller,ioe);
         }
     }
 
@@ -173,7 +175,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             }
             done.run(response);
         }catch(IOException ioe){
-            ResponseConverter.setControllerException(controller,ioe);
+            setControllerException(controller,ioe);
         }
     }
 
@@ -190,7 +192,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             }
             done.run(transaction);
         }catch(IOException ioe){
-            ResponseConverter.setControllerException(controller,ioe);
+            setControllerException(controller,ioe);
         }
     }
 
@@ -201,7 +203,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             TxnMessage.TaskId taskId = lifecycleStore.getTaskId(txnId);
             done.run(taskId);
         }catch(IOException ioe){
-            ResponseConverter.setControllerException(controller,ioe);
+            setControllerException(controller,ioe);
         }
     }
 
@@ -221,10 +223,20 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             }
             done.run(response.build());
         }catch(IOException e){
-            ResponseConverter.setControllerException(controller,e);
+            setControllerException(controller,e);
         }
     }
 
+    public static void setControllerException(RpcController controller, IOException ioe) {
+        if (controller != null) {
+            if (controller instanceof ServerRpcController) {
+                ((ServerRpcController)controller).setFailedOn(ioe);
+            } else {
+                controller.setFailed(StringUtils.stringifyException(ioe));
+            }
+        }
+    }
+    
     @Override
     public void getActiveTransactions(RpcController controller,TxnMessage.ActiveTxnRequest request,RpcCallback<TxnMessage.ActiveTxnResponse> done){
         long endTxnId=request.getEndTxnId();
@@ -240,7 +252,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             }
             done.run(response.build());
         }catch(IOException e){
-            ResponseConverter.setControllerException(controller,e);
+            setControllerException(controller,e);
         }
 
     }
@@ -275,7 +287,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
             lifecycleStore.rollbackTransactionsAfter(request.getTxnId());
             done.run(TxnMessage.VoidResponse.getDefaultInstance());
         }catch(IOException ioe){
-            ResponseConverter.setControllerException(controller,ioe);
+            setControllerException(controller,ioe);
         }
     }
 }

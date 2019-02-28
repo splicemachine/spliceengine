@@ -23,6 +23,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HStore;
 import org.apache.hadoop.hbase.regionserver.ScanInfo;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreScanner;
@@ -67,7 +68,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 
     public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
                                      final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
-        super(store, scanInfo, scan, columns, readPt);
+        super((HStore) store, scanInfo, scan, columns, readPt);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "init for region=%s, scan=%s", region.getRegionInfo().getRegionNameAsString(),scan);
         this.memstoreAware = memstoreAware;
@@ -77,12 +78,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
     }
     
     protected boolean isStopRow(Cell peek) {
-        byte[] currentRow = peek.getRowArray();
-        int offset = peek.getRowOffset();
-        short length = peek.getRowLength();
         return (stopRow!= null &&
-                region.getComparator().compareRows(stopRow, 0, stopRow.length,
-                        currentRow, offset, length) <= 0);
+                region.getCellComparator().compareRows(peek, stopRow, 0, stopRow.length) > 0);
     }
 
     @Override

@@ -63,7 +63,7 @@ public class RegionPartition implements Partition{
 
     @Override
     public String getTableName(){
-        return region.getTableDesc().getTableName().getQualifierAsString();
+        return region.getTableDescriptor().getTableName().getQualifierAsString();
     }
 
     @Override
@@ -509,7 +509,8 @@ public class RegionPartition implements Partition{
 
     @Override
     public BitSet getBloomInMemoryCheck(boolean hasConstraintChecker,Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
-        return HRegionUtil.keyExists(hasConstraintChecker,region.getStore(SIConstants.DEFAULT_FAMILY_BYTES),dataAndLocks);
+        return null;
+// TODO        return HRegionUtil.keyExists(hasConstraintChecker,region.getStore(SIConstants.DEFAULT_FAMILY_BYTES),dataAndLocks);
     }
 
     @Override

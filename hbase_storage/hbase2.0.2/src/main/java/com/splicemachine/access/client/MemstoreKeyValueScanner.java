@@ -15,6 +15,7 @@
 package com.splicemachine.access.client;
 
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.KeyValue;
@@ -180,6 +181,12 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     }
 
     @Override
+    public Path getFilePath() {
+        // TODO
+        return null;
+    }
+
+    @Override
     public boolean next(List<Cell> result, ScannerContext scannerContext) throws IOException {
         return next(result);
     }
@@ -187,5 +194,10 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
     @Override
     public Cell getNextIndexedKey() {
         return null;
+    }
+
+    @Override
+    public void shipped() throws IOException {
+
     }
 }

@@ -17,6 +17,7 @@ package com.splicemachine.access.client;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -44,7 +45,7 @@ public class CountingRegionScanner implements RegionScanner {
         this.region = region;
     }
     @Override
-    public HRegionInfo getRegionInfo() {
+    public RegionInfo getRegionInfo() {
         return delegate.getRegionInfo();
     }
 

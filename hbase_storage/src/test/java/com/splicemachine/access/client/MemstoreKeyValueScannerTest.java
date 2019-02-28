@@ -15,6 +15,7 @@
 
 package com.splicemachine.access.client;
 
+import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
 import org.spark_project.guava.collect.Ordering;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.Cell;
@@ -84,6 +85,16 @@ public class MemstoreKeyValueScannerTest {
             @Override
             public void close() {
 
+            }
+
+            @Override
+            public boolean renewLease() {
+                return false;
+            }
+
+            @Override
+            public ScanMetrics getScanMetrics() {
+                return null;
             }
 
             @Override

@@ -144,18 +144,18 @@ public class HBaseConnectionFactory{
         }
     }
 
-    public static void deleteTable(HBaseAdmin admin,HTableDescriptor table) throws IOException{
-        deleteTable(admin,table.getTableName().getName());
-    }
-
-    public static void deleteTable(HBaseAdmin admin,long conglomerateID) throws IOException{
-        deleteTable(admin,Bytes.toBytes(Long.toString(conglomerateID)));
-    }
-
-    public static void deleteTable(HBaseAdmin admin,byte[] id) throws IOException{
-        admin.disableTable(id);
-        admin.deleteTable(id);
-    }
+//    TODO public static void deleteTable(HBaseAdmin admin,HTableDescriptor table) throws IOException{
+//        deleteTable(admin,table.getTableName().getName());
+//    }
+//
+//    public static void deleteTable(HBaseAdmin admin,long conglomerateID) throws IOException{
+//        deleteTable(admin,Bytes.toBytes(Long.toString(conglomerateID)));
+//    }
+//
+//    public static void deleteTable(HBaseAdmin admin,byte[] id) throws IOException{
+//        admin.disableTable(id);
+//        admin.deleteTable(id);
+//    }
 
     public HTableDescriptor generateDefaultSIGovernedTable(String tableName){
         HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));

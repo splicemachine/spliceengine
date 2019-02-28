@@ -29,6 +29,7 @@ import com.splicemachine.pipeline.AclCheckerService;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CompareOperator;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
@@ -42,9 +43,10 @@ import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.filter.ByteArrayComparable;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -52,6 +54,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
@@ -60,7 +63,6 @@ import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Iterables;
@@ -96,7 +98,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 /**
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
-public class SIObserver extends BaseRegionObserver{
+public class SIObserver implements RegionCoprocessor, RegionObserver {
     private static Logger LOG=Logger.getLogger(SIObserver.class);
     private boolean tableEnvMatch=false;
     private boolean spliceTable=false;
@@ -112,7 +114,7 @@ public class SIObserver extends BaseRegionObserver{
         try {
             SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
             RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
-            TableName tableName = rce.getRegion().getTableDesc().getTableName();
+            TableName tableName = rce.getRegion().getTableDescriptor().getTableName();
             doesTableNeedSI(tableName);
             HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), ZkUtils.getRecoverableZooKeeper());
             SIDriver driver = env.getSIDriver();
@@ -138,10 +140,10 @@ public class SIObserver extends BaseRegionObserver{
                 Tracer.traceRegion(region.getTableName(), rce.getRegion());
             }
             RegionCoprocessorEnvironment regionEnv = (RegionCoprocessorEnvironment) e;
-            ZooKeeperWatcher zk = regionEnv.getRegionServerServices().getZooKeeper();
-            this.authManager = TableAuthManager.get(zk, e.getConfiguration());
-            this.authTokenEnabled = driver.getConfiguration().getAuthenticationTokenEnabled();
-            super.start(e);
+//            ZooKeeperWatcher zk = regionEnv.getRegionServerServices().getZooKeeper();
+//            this.authManager = TableAuthManager.get(zk, e.getConfiguration());
+//            this.authTokenEnabled = driver.getConfiguration().getAuthenticationTokenEnabled();
+//            super.start(e);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -151,7 +153,6 @@ public class SIObserver extends BaseRegionObserver{
     public void stop(CoprocessorEnvironment e) throws IOException{
         try {
             SpliceLogUtils.trace(LOG,"stopping %s",SIObserver.class);
-            super.stop(e);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -171,13 +172,14 @@ public class SIObserver extends BaseRegionObserver{
             }
             SpliceLogUtils.trace(LOG,"preGet after %s",get);
 
-            super.preGetOp(e,get,results);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
     }
 
-    @Override
+    public void preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Scan scan) throws IOException {
+        preScannerOpen(c, scan, null);
+    }
     public RegionScanner preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,Scan scan,RegionScanner s) throws IOException{
         try {
             SpliceLogUtils.trace(LOG,"preScannerOpen %s with tableEnvMatch=%s, shouldUseSI=%s",scan,tableEnvMatch,shouldUseSI(scan));
@@ -192,10 +194,10 @@ public class SIObserver extends BaseRegionObserver{
             } else {
                 checkAccess();
             }
-            return super.preScannerOpen(e,scan,s);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
+        return s;
     }
 
     private boolean hasToken(Scan scan) {
@@ -212,7 +214,10 @@ public class SIObserver extends BaseRegionObserver{
         return true;
     }
 
-    @Override
+
+    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, StoreFile resultFile, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
+        postCompact(c,store,resultFile, null, null);
+    }
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,StoreFile resultFile) throws IOException {
         try {
             if(tableEnvMatch){
@@ -223,7 +228,12 @@ public class SIObserver extends BaseRegionObserver{
         }
     }
 
-    @Override
+
+
+    public void preDelete(ObserverContext<RegionCoprocessorEnvironment> c, Delete delete, org.apache.hadoop.hbase.wal.WALEdit edit, Durability durability) throws IOException {
+        preDelete(c,delete,(WALEdit) null,durability);
+    }
+
     public void preDelete(ObserverContext<RegionCoprocessorEnvironment> e,Delete delete,WALEdit edit,
                           Durability writeToWAL) throws IOException{
         checkAccess();
@@ -231,20 +241,21 @@ public class SIObserver extends BaseRegionObserver{
         try {
             if(tableEnvMatch){
                 if(delete.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null){
-                    TableName tableName=e.getEnvironment().getRegion().getTableDesc().getTableName();
+                    TableName tableName=e.getEnvironment().getRegion().getTableDescriptor().getTableName();
                     String message="Direct deletes are not supported under snapshot isolation. "+
                             "Instead a Put is expected that will set a record level tombstone. tableName="+tableName;
                     throw new RuntimeException(message);
                 }
             }
-            super.preDelete(e,delete,edit,writeToWAL);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
     }
 
-    @Override
     public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, InternalScanner scanner) throws IOException {
+        return preFlush(e, store, scanner, null);
+    }
+    public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, InternalScanner scanner, FlushLifeCycleTracker tracker) throws IOException {
         SIDriver driver=SIDriver.driver();
         // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
         // hasn't been loaded yet, causing a deadlock
@@ -257,13 +268,16 @@ public class SIObserver extends BaseRegionObserver{
             siScanner.start();
             return siScanner;
         }else {
-            return super.preFlush(e, store, scanner);
+            return scanner;
         }
     }
 
-    @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e,Store store,
                                       InternalScanner scanner,ScanType scanType,CompactionRequest compactionRequest) throws IOException{
+        return preCompact(e, store, scanner, scanType, null, compactionRequest);
+    }
+    public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store,
+                                      InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
         try {
             if(tableEnvMatch && scanner != null){
                 SIDriver driver=SIDriver.driver();
@@ -276,14 +290,16 @@ public class SIObserver extends BaseRegionObserver{
                 siScanner.start();
                 return siScanner;
             }else{
-                return super.preCompact(e,store,scanner,scanType,compactionRequest);
+                return scanner;
             }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
     }
 
-    @Override
+    public void prePut(ObserverContext<RegionCoprocessorEnvironment> c, Put put, org.apache.hadoop.hbase.wal.WALEdit edit, Durability durability) throws IOException {
+        prePut(c, put, (WALEdit) null, durability);
+    }
     public void prePut(ObserverContext<RegionCoprocessorEnvironment> e,Put put,WALEdit edit,Durability writeToWAL) throws IOException{
         checkAccess();
 
@@ -292,7 +308,6 @@ public class SIObserver extends BaseRegionObserver{
 		 * This is relatively expensive--it's better to use the write pipeline when you need to load a lot of rows.
 		 */
             if (!tableEnvMatch || put.getAttribute(SIConstants.SI_NEEDED) == null) {
-                super.prePut(e, put, edit, writeToWAL);
                 return;
             }
 
@@ -308,12 +323,15 @@ public class SIObserver extends BaseRegionObserver{
             Map<byte[], Map<byte[], KVPair>> familyMap = Maps.newHashMap();
             Iterable<Cell> keyValues = Iterables.concat(put.getFamilyCellMap().values());
             for (Cell kv : keyValues) {
-                @SuppressWarnings("deprecation") byte[] family = kv.getFamily();
-                @SuppressWarnings("deprecation") byte[] column = kv.getQualifier();
+//     TODO          @SuppressWarnings("deprecation") byte[] family = kv.getFamily();
+//                @SuppressWarnings("deprecation") byte[] column = kv.getQualifier();
+                @SuppressWarnings("deprecation") byte[] family = null;
+                @SuppressWarnings("deprecation") byte[] column = null;
                 if (!Bytes.equals(column, SIConstants.PACKED_COLUMN_BYTES)) continue; //skip SI columns
 
                 isSIDataOnly = false;
-                @SuppressWarnings("deprecation") byte[] value = kv.getValue();
+//                @SuppressWarnings("deprecation") byte[] value = kv.getValue();
+                @SuppressWarnings("deprecation") byte[] value = null;
                 Map<byte[], KVPair> columnMap = familyMap.get(family);
                 if (columnMap == null) {
                     columnMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
@@ -364,7 +382,7 @@ public class SIObserver extends BaseRegionObserver{
             }
 
             e.bypass();
-            e.complete();
+//            TODO e.complete();
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -377,7 +395,7 @@ public class SIObserver extends BaseRegionObserver{
         if (!UserGroupInformation.isSecurityEnabled())
             return;
 
-        User user = RpcServer.getRequestUser();
+        User user = RpcServer.getRequestUser().orElse(null);
         if (user == null || user.getShortName().equalsIgnoreCase("hbase"))
             return;
 
@@ -465,52 +483,55 @@ public class SIObserver extends BaseRegionObserver{
         return new FilterList(FilterList.Operator.MUST_PASS_ALL,filters[0],filters[1]);
     }
 
-    @Override
-    public Result preAppend(ObserverContext<RegionCoprocessorEnvironment> e, Append append) throws IOException {
-        checkAccess();
-        return super.preAppend(e, append);
-    }
+//    TODO
+//    public Result preAppend(ObserverContext<RegionCoprocessorEnvironment> e, Append append) throws IOException {
+//        checkAccess();
+//        return super.preAppend(e, append);
+//    }
 
-    @Override
+    public boolean preCheckAndDelete(ObserverContext<RegionCoprocessorEnvironment> c, byte[] row, byte[] family, byte[] qualifier, CompareOperator op, ByteArrayComparable comparator, Delete delete, boolean result) throws IOException {
+        checkAccess();
+        return result;
+    }
     public boolean preCheckAndDelete(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, ByteArrayComparable comparator, Delete delete, boolean result) throws IOException {
         checkAccess();
-        return super.preCheckAndDelete(e, row, family, qualifier, compareOp, comparator, delete, result);
+        return true;
     }
 
-    @Override
-    public boolean preCheckAndPut(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, ByteArrayComparable comparator, Put put, boolean result) throws IOException {
-        checkAccess();
-        return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);
-    }
+//    @Override TODO
+//    public boolean preCheckAndPut(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, ByteArrayComparable comparator, Put put, boolean result) throws IOException {
+//        checkAccess();
+//        return super.preCheckAndPut(e, row, family, qualifier, compareOp, comparator, put, result);
+//    }
 
-    @Override
-    public boolean preExists(ObserverContext<RegionCoprocessorEnvironment> e, Get get, boolean exists) throws IOException {
-        checkAccess();
-        return super.preExists(e, get, exists);
-    }
-
-    @Override
-    public Result preIncrement(ObserverContext<RegionCoprocessorEnvironment> e, Increment increment) throws IOException {
-        checkAccess();
-        return super.preIncrement(e, increment);
-    }
-
-    @Override
-    public void preGetClosestRowBefore(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, Result result) throws IOException {
-        checkAccess();
-        super.preGetClosestRowBefore(e, row, family, result);
-    }
-
-    @Override
-    public void preBatchMutate(ObserverContext<RegionCoprocessorEnvironment> c, MiniBatchOperationInProgress<Mutation> miniBatchOp) throws IOException {
-        checkAccess();
-        super.preBatchMutate(c, miniBatchOp);
-    }
-
-    @Override
-    public void preBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths) throws IOException {
-        checkAccess();
-        super.preBulkLoadHFile(ctx, familyPaths);
-    }
-    
+//    @Override TODO
+//    public boolean preExists(ObserverContext<RegionCoprocessorEnvironment> e, Get get, boolean exists) throws IOException {
+//        checkAccess();
+//        return super.preExists(e, get, exists);
+//    }
+//
+//    @Override
+//    public Result preIncrement(ObserverContext<RegionCoprocessorEnvironment> e, Increment increment) throws IOException {
+//        checkAccess();
+//        return super.preIncrement(e, increment);
+//    }
+//
+//    @Override
+//    public void preGetClosestRowBefore(ObserverContext<RegionCoprocessorEnvironment> e, byte[] row, byte[] family, Result result) throws IOException {
+//        checkAccess();
+//        super.preGetClosestRowBefore(e, row, family, result);
+//    }
+//
+//    @Override
+//    public void preBatchMutate(ObserverContext<RegionCoprocessorEnvironment> c, MiniBatchOperationInProgress<Mutation> miniBatchOp) throws IOException {
+//        checkAccess();
+//        super.preBatchMutate(c, miniBatchOp);
+//    }
+//
+//    @Override
+//    public void preBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths) throws IOException {
+//        checkAccess();
+//        super.preBulkLoadHFile(ctx, familyPaths);
+//    }
+//    
 }

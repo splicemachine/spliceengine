@@ -20,6 +20,7 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -67,6 +68,16 @@ public class MeasuredResultScanner implements ResultScanner{
     @Override
     public void close(){
         resultScanner.close();
+    }
+
+    @Override
+    public boolean renewLease() {
+        return false;
+    }
+
+    @Override
+    public ScanMetrics getScanMetrics() {
+        return null;
     }
 
     @Override

@@ -30,7 +30,7 @@ public class EnvUtils {
 	private static final long FIRST_USER_TABLE_NUMBER = 1568;
 
     public static TableType getTableType(SConfiguration config,RegionCoprocessorEnvironment e) {
-        return EnvUtils.getTableType(config,e.getRegion().getTableDesc().getTableName());
+        return EnvUtils.getTableType(config,e.getRegion().getTableDescriptor().getTableName());
     }
 
     public static TableType getTableType(SConfiguration config,TableName tableName) {

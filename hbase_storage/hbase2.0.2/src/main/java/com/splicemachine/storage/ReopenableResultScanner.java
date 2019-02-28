@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,23 +50,12 @@ public class ReopenableResultScanner implements ResultScanner{
     public Result next() throws IOException{
         int retriesLeft =maxRetries;
         while(retriesLeft>0){
-            try{
-                Result next=delegate.next();
-                if(next==null||next.isEmpty()) return next;
-                next = filterResultOnKey(next);
-                if(next==null) continue; //we filtered out the entire result. Fetch the next one
-                adjustTracking(next);
-                return next;
-            }catch(ScannerTimeoutException ste){
-                /*
-                 * We timed out the scanner. Now we need to
-                 * reopen the scanner, then advance that scanner until we've
-                 * past the last visited cell
-                 */
-                retriesLeft--;
-                noTimeoutsDetected=false;
-                reopenScanner();
-            }
+            Result next=delegate.next();
+            if(next==null||next.isEmpty()) return next;
+            next = filterResultOnKey(next);
+            if(next==null) continue; //we filtered out the entire result. Fetch the next one
+            adjustTracking(next);
+            return next;
         }
         return null;
     }
@@ -85,6 +75,16 @@ public class ReopenableResultScanner implements ResultScanner{
     @Override
     public void close(){
         if(delegate!=null) delegate.close();
+    }
+
+    @Override
+    public boolean renewLease() {
+        return false;
+    }
+
+    @Override
+    public ScanMetrics getScanMetrics() {
+        return null;
     }
 
     @Override

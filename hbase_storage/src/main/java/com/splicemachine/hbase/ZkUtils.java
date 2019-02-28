@@ -21,7 +21,6 @@ import com.splicemachine.access.configuration.HBaseConfiguration;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -55,17 +54,17 @@ public class ZkUtils{
         }
     }
 
-    /**
-     * @return direct interface to a ZooKeeperWatcher
-     */
-    public static ZooKeeperWatcher getZooKeeperWatcher(){
-        try{
-            return zkManager.getZooKeeperWatcher();
-        }catch(ZooKeeperConnectionException e){
-            LOG.error("Unable to connect to zookeeper, aborting",e);
-            throw new RuntimeException(e);
-        }
-    }
+//    /**
+//     * @return direct interface to a ZooKeeperWatcher
+//     */
+//    public static ZooKeeperWatcher getZooKeeperWatcher(){
+//        try{
+//            return zkManager.getZooKeeperWatcher();
+//        }catch(ZooKeeperConnectionException e){
+//            LOG.error("Unable to connect to zookeeper, aborting",e);
+//            throw new RuntimeException(e);
+//        }
+//    }
 
 
     /**

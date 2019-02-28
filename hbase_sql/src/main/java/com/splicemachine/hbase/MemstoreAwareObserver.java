@@ -29,9 +29,9 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.ConnectionUtils;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Scott Fines
  *         Date: 12/28/15
  */
-public class MemstoreAwareObserver extends BaseRegionObserver implements CompactionObserver,
+public class MemstoreAwareObserver implements CompactionObserver, RegionObserver,
         SplitObserver,
         FlushObserver,
         StoreScannerObserver{
@@ -153,12 +153,11 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         try {
             if (abortRequested) {
                 // If we are aborting don't wait for scanners to finish
-                super.preClose(c, abortRequested);
                 return;
             }
             while (true) {
                 MemstoreAware latest = memstoreAware.get();
-                if (latest.currentScannerCount>0 && !c.getEnvironment().getRegionServerServices().isAborted()) {
+                if (latest.currentScannerCount>0 && !((RegionServerServices)c.getEnvironment().getOnlineRegions()).isAborted()) {
                     SpliceLogUtils.warn(LOG, "preClose Delayed waiting for scanners to complete scannersRemaining=%d",latest.currentScannerCount);
                     try {
                         Thread.sleep(1000); // Have Split sleep for a second
@@ -170,7 +169,6 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                         break;
                 }
             }
-            super.preClose(c, abortRequested);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -184,7 +182,6 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 if(memstoreAware.compareAndSet(latest, MemstoreAware.changeSplitMerge(latest, false)))
                     break;
             }
-            super.postClose(e, abortRequested);
         } catch (Throwable t) {
             LOG.error("Unexpected exception on close, loggin it", t);
         }
@@ -224,13 +221,13 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                 }
                 if (Bytes.equals(startKey,c.getEnvironment().getRegionInfo().getStartKey()) &&
                     Bytes.equals(endKey,c.getEnvironment().getRegionInfo().getEndKey()) &&
-                    Bytes.equals(serverName,Bytes.toBytes(c.getEnvironment().getRegionServerServices().getServerName().getHostAndPort()))
+                    Bytes.equals(serverName,Bytes.toBytes(((RegionServerServices)c.getEnvironment().getOnlineRegions()).getServerName().getHostAndPort()))
                     ) {
                     // Partition Hit
                     InternalScan iscan = new InternalScan(scan);
                     iscan.checkOnlyMemStore();
                     HRegion region = (HRegion) c.getEnvironment().getRegion();
-                    return new MemStoreFlushAwareScanner(region, store, store.getScanInfo(), iscan, targetCols, getReadpoint(region), memstoreAware, memstoreAware.get());
+                    return new MemStoreFlushAwareScanner(region, store, ((HStore)store).getScanInfo(), iscan, targetCols, getReadpoint(region), memstoreAware, memstoreAware.get());
                 } else { // Partition Miss
                     while (true) {
                         MemstoreAware latest = memstoreAware.get();
@@ -247,7 +244,7 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
                             displayByteArray(c.getEnvironment().getRegionInfo().getStartKey()),
                             displayByteArray(c.getEnvironment().getRegionInfo().getEndKey()),
                             Bytes.toString(serverName),
-                            c.getEnvironment().getRegionServerServices().getServerName().getHostAndPort()
+                            ((RegionServerServices)c.getEnvironment().getOnlineRegions()).getServerName().getHostAndPort()
                             );
 
                     throw new DoNotRetryIOException();
@@ -294,25 +291,23 @@ public class MemstoreAwareObserver extends BaseRegionObserver implements Compact
         return memstoreAware.get();
     }
 
-    @Override
-    public void start(CoprocessorEnvironment e) throws IOException {
-        try {
-            super.start(e);
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"starting [%s]",((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
-    @Override
-    public void stop(CoprocessorEnvironment e) throws IOException {
-        try {
-            super.stop(e);
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"stopping [%s]", ((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
+//    @Override
+//    public void start(CoprocessorEnvironment e) throws IOException {
+//        try {
+//            if (LOG.isDebugEnabled())
+//                SpliceLogUtils.debug(LOG,"starting [%s]",((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
+//        } catch (Throwable t) {
+//            throw CoprocessorUtils.getIOException(t);
+//        }
+//    }
+//
+//    @Override
+//    public void stop(CoprocessorEnvironment e) throws IOException {
+//        try {
+//            if (LOG.isDebugEnabled())
+//                SpliceLogUtils.debug(LOG,"stopping [%s]", ((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
+//        } catch (Throwable t) {
+//            throw CoprocessorUtils.getIOException(t);
+//        }
+//    }
 }

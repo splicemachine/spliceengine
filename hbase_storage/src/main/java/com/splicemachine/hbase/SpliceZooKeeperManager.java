@@ -21,7 +21,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Abortable;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
@@ -34,7 +33,6 @@ import com.splicemachine.access.api.SConfiguration;
  */
 public class SpliceZooKeeperManager implements Abortable, Closeable{
     private static final Logger LOG=Logger.getLogger(SpliceZooKeeperManager.class);
-    protected ZooKeeperWatcher watcher;
     protected RecoverableZooKeeper rzk;
     private volatile boolean isAborted;
 
@@ -44,17 +42,17 @@ public class SpliceZooKeeperManager implements Abortable, Closeable{
 
     public void initialize(SConfiguration configuration){
         try{
-            watcher=new ZooKeeperWatcher((Configuration) configuration.getConfigSource().unwrapDelegate(), "spliceconnection", this);
-            rzk=watcher.getRecoverableZooKeeper();
+// TODO            watcher=new ZooKeeperWatcher((Configuration) configuration.getConfigSource().unwrapDelegate(), "spliceconnection", this);
+//            rzk=watcher.getRecoverableZooKeeper();
         }catch(Exception e){
             LOG.error(e);
             throw new RuntimeException(e);
         }
     }
 
-    public ZooKeeperWatcher getZooKeeperWatcher() throws ZooKeeperConnectionException{
-        return watcher;
-    }
+//    public ZooKeeperWatcher getZooKeeperWatcher() throws ZooKeeperConnectionException{
+//        return watcher;
+//    }
 
     public RecoverableZooKeeper getRecoverableZooKeeper() throws ZooKeeperConnectionException{
         return rzk;
@@ -65,7 +63,7 @@ public class SpliceZooKeeperManager implements Abortable, Closeable{
         if(e instanceof KeeperException.SessionExpiredException){
             try{
                 LOG.info("Lost connection with ZooKeeper, attempting reconnect");
-                watcher=null;
+// TODO                watcher=null;
                 initialize(HConfiguration.getConfiguration());
                 LOG.info("Successfully reconnected to ZooKeeper");
             }catch(RuntimeException zce){
@@ -87,10 +85,10 @@ public class SpliceZooKeeperManager implements Abortable, Closeable{
 
     @Override
     public void close() throws IOException{
-        if(watcher!=null){
-            watcher.close();
-            watcher=null;
-        }
+// TODO        if(watcher!=null){
+//            watcher.close();
+//            watcher=null;
+//        }
         if(rzk!=null){
             try{
                 rzk.close();

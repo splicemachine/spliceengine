@@ -60,14 +60,14 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     private FileSystem fs;
     private Path rootDir;
     private AtomicBoolean preparing;
-    private ThreadLocal<Collection<StoreFile>> storeFiles = new ThreadLocal<>();
+    private ThreadLocal<Collection<? extends StoreFile>> storeFiles = new ThreadLocal<Collection<? extends StoreFile>>();
     private ReentrantLock bulkLoadLock = new ReentrantLock();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
             region = (HRegion) ((RegionCoprocessorEnvironment) e).getRegion();
-            String[] name = region.getTableDesc().getNameAsString().split(":");
+            String[] name = region.getTableDescriptor().getTableName().getNameAsString().split(":");
             if (name.length == 2) {
                 namespace = name[0];
                 tableName = name[1];
@@ -243,10 +243,10 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         try {
             super.postCompact(e, store, resultFile);
             isCompacting.set(false);
-            if (LOG.isDebugEnabled()) {
-                String filePath =  resultFile != null?resultFile.getFileInfo().getFileStatus().getPath().toString():null;
-                SpliceLogUtils.debug(LOG, "Compaction result file %s", filePath);
-            }
+//            if (LOG.isDebugEnabled()) {
+//                String filePath =  resultFile != null?resultFile.getFileInfo().getFileStatus().getPath().toString():null;
+//                SpliceLogUtils.debug(LOG, "Compaction result file %s", filePath);
+//            }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -257,8 +257,8 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) throws IOException {
         try {
             // Register HFiles for incremental backup
-            String filePath =  resultFile != null?resultFile.getFileInfo().getFileStatus().getPath().toString():null;
-            SpliceLogUtils.info(LOG, "Flushed store file %s", filePath);
+//            String filePath =  resultFile != null?resultFile.getFileInfo().getFileStatus().getPath().toString():null;
+//            SpliceLogUtils.info(LOG, "Flushed store file %s", filePath);
             if (!BackupUtils.isSpliceTable(namespace, tableName))
                 return;
 
@@ -269,10 +269,6 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         }
     }
 
-
-    @Override
-    public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e ,Region l, Region r) throws IOException{
-    }
 
     @Override
     public void preBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths) throws IOException {
@@ -311,14 +307,14 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                 bulkLoadLock.lock();
                 byte[] family = familyPaths.get(0).getFirst();
                 Store store = region.getStore(family);
-                Collection<StoreFile> postBulkLoadStoreFiles = store.getStorefiles();
-                for (StoreFile storeFile : postBulkLoadStoreFiles) {
-                    byte[] val = storeFile.getMetadataValue(StoreFile.BULKLOAD_TASK_KEY);
-                    if (val != null && Bytes.compareTo(val, HBaseConfiguration.BULKLOAD_TASK_KEY) == 0
-                            && !storeFiles.get().contains(storeFile)) {
-                        BackupUtils.registerHFile(conf, fs, backupDir, region, storeFile.getPath().getName());
-                    }
-                }
+                Collection<? extends StoreFile> postBulkLoadStoreFiles = store.getStorefiles();
+// TODO                for (StoreFile storeFile : postBulkLoadStoreFiles) {
+//                    byte[] val = storeFile.getMetadataValue(StoreFile.BULKLOAD_TASK_KEY);
+//                    if (val != null && Bytes.compareTo(val, HBaseConfiguration.BULKLOAD_TASK_KEY) == 0
+//                            && !storeFiles.get().contains(storeFile)) {
+//                        BackupUtils.registerHFile(conf, fs, backupDir, region, storeFile.getPath().getName());
+//                    }
+//                }
             }
             finally {
                 storeFiles.remove();

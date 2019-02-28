@@ -30,6 +30,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.CompactionState;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 import org.apache.log4j.Logger;
@@ -117,7 +118,7 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
                 admin.majorCompactRegion(encodedRegionName);
             else
                 admin.compactRegion(encodedRegionName);
-            AdminProtos.GetRegionInfoResponse.CompactionState compactionState=null;
+            CompactionState compactionState=null;
             do{
                 try{
                     Thread.sleep(500l);
@@ -143,7 +144,7 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
                         throw e;
                     }
                 }
-            }while(compactionState!=AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+            }while(compactionState!=CompactionState.NONE);
         }
     }
 
