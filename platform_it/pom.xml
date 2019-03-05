@@ -875,7 +875,7 @@
                                     -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
                                 </argument>
                                 <argument>-Dsplice.spark.executor.instances=1</argument>
-                                <argument>-Dsplice.spark.executor.memory=2000M</argument>
+                                <argument>-Dsplice.spark.executor.memory=512M</argument>
                                 <argument>-Dsplice.spark.io.compression.lz4.blockSize=32k</argument>
                                 <argument>-Dspark.broadcast.compress=true</argument>
                                 <argument>-Dsplice.spark.kryo.referenceTracking=false</argument>

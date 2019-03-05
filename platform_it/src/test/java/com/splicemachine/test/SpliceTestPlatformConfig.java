@@ -126,6 +126,9 @@ class SpliceTestPlatformConfig {
             config.set("hbase.master.keytab.file", keytab);
             config.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
             config.set("yarn.resourcemanager.principal", "yarn/example.com@EXAMPLE.COM");
+            config.set("splice.splitblocksize","16000000");
+            config.set("splice.olap.shuffle.partitions","1200");
+            config.set("spark.default.parallelism","1000");
             //read ee_key from a resource file
             ClassLoader classloader = Thread.currentThread().getContextClassLoader();
             try (InputStream is = classloader.getResourceAsStream("ee.txt")) {
@@ -281,7 +284,7 @@ class SpliceTestPlatformConfig {
 
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
         config.setLong("splice.ddl.maxWaitSeconds",120000);
-        config.setInt("splice.olap_server.memory", 4096);
+        config.setInt("splice.olap_server.memory", 512);
         config.setInt("splice.authentication.token.renew-interval",120);
         config.set("splice.authentication.impersonation.users", "dgf=splice;splice=*");
         config.setBoolean("splice.authentication.impersonation.enabled", true);

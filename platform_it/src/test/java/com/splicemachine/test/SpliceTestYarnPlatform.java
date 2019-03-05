@@ -175,6 +175,9 @@ public class SpliceTestYarnPlatform {
             conf.set("yarn.resourcemanager.keytab", keytab);
             conf.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
             conf.set("yarn.nodemanager.keytab", keytab);
+            conf.set("yarn.scheduler.minimum-allocation-mb","128");
+            conf.set("yarn.scheduler.maximum-allocation-mb","2048");
+
         }
         conf.setDouble("yarn.nodemanager.resource.io-spindles",2.0);
         conf.set("fs.default.name", "file:///");
