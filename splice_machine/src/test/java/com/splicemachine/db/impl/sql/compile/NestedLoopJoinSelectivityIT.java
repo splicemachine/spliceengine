@@ -59,9 +59,9 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
         try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
             rowContainsQuery(
                     s,
-                    new int[]{1,5},
+                    new int[]{1,4},
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk where not exists (select * from  ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1)",
-                    "rows=10","BroadcastLeftOuterJoin");
+                    "rows=10","NestedLoopAntiJoin");
         }
     }
 

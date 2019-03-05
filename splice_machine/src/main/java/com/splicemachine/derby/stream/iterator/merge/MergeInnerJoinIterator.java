@@ -57,16 +57,18 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                     left = leftRS.next().getClone();
                 else
                     left.transfer(leftRS.next());
-                currentRightIterator = rightsForLeft(left);
-                while (currentRightIterator.hasNext()) {
-                    currentExecRow = mergeRows(left, currentRightIterator.next());
-                    if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
-                        if (isSemiJoin) {
-                            left = null; // only one joined row needed, force iteration on left side next time
+                if (!joinColumnHasNull(left, true)) {
+                    currentRightIterator = rightsForLeft(left);
+                    while (currentRightIterator.hasNext()) {
+                        currentExecRow = mergeRows(left, currentRightIterator.next());
+                        if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
+                            if (isSemiJoin) {
+                                left = null; // only one joined row needed, force iteration on left side next time
+                            }
+                            return true;
                         }
-                        return true;
+                        operationContext.recordFilter();
                     }
-                    operationContext.recordFilter();
                 }
             }
             return false;

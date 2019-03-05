@@ -189,7 +189,7 @@ public class MergeSortJoinOperation extends JoinOperation {
        // operationContext.pushScopeForOp("Prepare Left Side");
         DataSet<ExecRow> leftDataSet2 =
             leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
-        if (!isOuterJoin)
+        if (!isOuterJoin && !notExistsRightSide)
             leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
 
         // Prepare Right
@@ -245,7 +245,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                     return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values()
                         .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
-                    return leftDataSet.subtractByKey(rightDataSet, operationContext)
+                    return leftDataSet.subtractByKey(rightDataSet, operationContext).values()
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join

@@ -1666,7 +1666,7 @@ public class SubqueryNode extends ValueNode{
      * contains a single entry which is a FBT or a PRN/FBT, or {@code null}
      * if the subquery does not contain a single FBT
      */
-    private FromBaseTable singleFromBaseTable(FromList fromList){
+    public FromBaseTable singleFromBaseTable(FromList fromList){
         FromBaseTable fbt=null;
 
         if(fromList.size()==1){

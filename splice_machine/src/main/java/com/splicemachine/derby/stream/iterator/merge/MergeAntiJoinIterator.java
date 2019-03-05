@@ -47,15 +47,18 @@ public class MergeAntiJoinIterator extends AbstractMergeJoinIterator {
                     left = leftRS.next().getClone();
                 else
                     left.transfer(leftRS.next());
-                currentRightIterator = rightsForLeft(left);
                 boolean returnedRows = false;
-                while (currentRightIterator.hasNext()) {
-                    currentExecRow = mergeRows(left, currentRightIterator.next());
-                    if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
-                        returnedRows = true;
-                        break;
+                if (!joinColumnHasNull(left, true)) {
+                    currentRightIterator = rightsForLeft(left);
+
+                    while (currentRightIterator.hasNext()) {
+                        currentExecRow = mergeRows(left, currentRightIterator.next());
+                        if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
+                            returnedRows = true;
+                            break;
+                        }
+                        operationContext.recordFilter();
                     }
-                    operationContext.recordFilter();
                 }
                 if (!returnedRows) {
                     currentExecRow = mergeRows(left, null);
