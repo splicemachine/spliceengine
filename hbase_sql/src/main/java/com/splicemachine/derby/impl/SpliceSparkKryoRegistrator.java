@@ -54,6 +54,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
@@ -745,6 +746,9 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(JoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DMLWriteOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MiscOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER);
+
         instance.register(org.apache.commons.lang3.mutable.MutableDouble.class,
                           new SimpleObjectSerializer<MutableDouble>() {
             @Override

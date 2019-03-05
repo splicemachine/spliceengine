@@ -424,7 +424,22 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
 
         /* case 9 */
         /* where subquery, not exists with correlation */
+        /* correlated exists with a single table is no longer rewritten to a DT, instead it will be flattened as a FromBaseTable node,
+           as a result, Unsat tree pruning does not kick in
+         */
         sqlText = "select a1 from t1 where not exists (select a2 from t2 where a1=a2 and 1=0) order by 1";
+
+        expected =
+                "A1  |\n" +
+                        "------\n" +
+                        "  1  |\n" +
+                        "  2  |\n" +
+                        "NULL |";
+
+        assertPruneResult(sqlText, expected, false);
+
+        /* case 9-1 */
+        sqlText = "select a1 from t1 where not exists (select X.a2 from t2 as X, t2 as Y where a1=X.a2 and X.a2=Y.a2 and 1=0) order by 1";
 
         expected =
                 "A1  |\n" +
