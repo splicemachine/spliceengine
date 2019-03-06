@@ -1456,6 +1456,7 @@
                 </property>
             </activation>
             <properties>
+                <maven.test.skip>true</maven.test.skip>
                 <envClassifier>mapr6.1.0</envClassifier>
                 <envHbase>hbase1.1.8</envHbase>
                 <hadoop.version>2.7.0-mapr-1808</hadoop.version>
