@@ -36,7 +36,7 @@ PREPENDSTRING="$SPLICELIBDIR:$SPARKLIBDIR:$HADOOPTOOLSDIR"
 export HBASE_CLASSPATH="${PREPENDSTRING}:${HBASE_CLASSPATH}"
 
 # explicitly use our hbase conf dir
-export HBASE_CONF_DIR="/opt/mapr/hbase/hbase-1.1.8-splice/conf"
+export HBASE_CONF_DIR="/opt/mapr/hbase/hbase1.1.8-splice/conf"
 
 # The maximum amount of heap to use. Default is left to JVM default.
 # export HBASE_HEAPSIZE=1G

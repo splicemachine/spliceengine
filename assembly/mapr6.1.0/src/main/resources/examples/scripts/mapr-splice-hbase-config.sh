@@ -4,7 +4,7 @@
 
 MAPR_HOME="${MAPR_HOME:-/opt/mapr}"
 HBASE_VER=1.1.8-splice
-HBASE_HOME="${MAPR_HOME}/hbase/hbase-${HBASE_VER}"
+HBASE_HOME="${MAPR_HOME}/hbase/hbase${HBASE_VER}"
 
 EXTRA_JARS="gateway-*.jar"
 for jar in ${EXTRA_JARS} ; do

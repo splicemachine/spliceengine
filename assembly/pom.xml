@@ -1015,7 +1015,7 @@
                                             <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/bin</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}/bin</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
@@ -1028,7 +1028,7 @@
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/conf</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}/conf</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
@@ -1044,7 +1044,7 @@
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/conf</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}/conf</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
@@ -1086,7 +1086,7 @@
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/bin</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}/bin</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
@@ -1098,7 +1098,7 @@
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/conf</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/conf</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
@@ -1187,7 +1187,7 @@
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/bin</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/bin</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
@@ -1205,7 +1205,7 @@
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/hbase-webapps</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/hbase-webapps</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
@@ -1217,14 +1217,14 @@
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/logs</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/logs</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/hbase-1.1.8-splice/lib</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/lib</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
