@@ -649,8 +649,8 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
         return true;
     }
 
-    public int modifiedRowCount(){
-        return 0;
+    public long[] modifiedRowCount(){
+        return new long[] {0};
     }
 
     /**

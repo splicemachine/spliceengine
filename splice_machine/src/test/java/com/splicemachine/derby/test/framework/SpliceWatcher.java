@@ -88,11 +88,28 @@ public class SpliceWatcher extends TestWatcher {
         return createConnection(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD);
     }
 
+
+    /**
+     * Always creates a new connection, replacing this class's reference to the current connection, if any.
+     */
+    public TestConnection createConnection(boolean useSpark) throws Exception {
+        return createConnection(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD, useSpark);
+    }
+
     /**
      * Always creates a new connection, replacing this class's reference to the current connection, if any.
      */
     public TestConnection createConnection(String userName, String password) throws Exception {
         currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password));
+        connections.add(currentConnection);
+        if (!isNullOrEmpty(defaultSchema)) {
+            setSchema(defaultSchema);
+        }
+        return currentConnection;
+    }
+    
+    public TestConnection createConnection(String userName, String password, boolean useSpark) throws Exception {
+        currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password, useSpark));
         connections.add(currentConnection);
         if (!isNullOrEmpty(defaultSchema)) {
             setSchema(defaultSchema);

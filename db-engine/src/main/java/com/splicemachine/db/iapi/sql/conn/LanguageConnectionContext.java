@@ -1406,6 +1406,7 @@ public interface LanguageConnectionContext extends Context {
 	void logRollback();
 	void logStartFetching(String statement);
 	void logEndFetching(String statement, long fetchedRows);
+	void logNextBatch(ParameterValueSet pvs);
 	void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
 						   ParameterValueSet pvs);
 	void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);

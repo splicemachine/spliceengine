@@ -45,6 +45,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.Calendar;
+import java.util.Iterator;
 import java.util.Vector;
 import java.io.InputStream;
 import java.io.Reader;
@@ -305,7 +306,7 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
             } catch(SQLException sqle) {
                 checkStatementValidity(sqle);
             }
-            return updateCount;
+            return (int) updateCounts[0];
         }
 
     /**
@@ -1060,6 +1061,69 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
           clearParameters();
         }
     }
+
+    @Override
+    public int[] executeBatch() throws SQLException {
+        checkExecStatus();
+        synchronized (getConnectionSynchronization()) {
+            setupContextStack();
+            // As per the jdbc 2.0 specs, close the statement object's current resultset
+            // if one is open.
+            // Are there results?
+            // outside of the lower try/finally since results will
+            // setup and restore themselves.
+            clearResultSets();
+
+            Vector stmts = batchStatements;
+            batchStatements = null;
+            int size;
+            if (stmts == null)
+                size = 0;
+            else
+                size = stmts.size();
+
+            int[] returnUpdateCountForBatch = new int[size];
+
+            SQLException sqle;
+            Iterator it = stmts.iterator();
+            activation.setBatch(it, this);
+
+            try {
+                activation.nextBatchElement();
+
+                returnUpdateCountForBatch = new int[size];
+                int r = 0;
+                do {
+                    if (super.executeStatement(activation, false, true))
+                        throw newSQLException(SQLState.RESULTSET_RETURN_NOT_ALLOWED);
+                    for (int j = 0; j < updateCounts.length; ++j) {
+                        returnUpdateCountForBatch[r++] = (int) updateCounts[j];
+                    }
+                } while(activation.nextBatchElement()); // if we are running on Spark we don't do batching, iterate over the elements here
+
+                InterruptStatus.restoreIntrFlagIfSeen(lcc);
+                return returnUpdateCountForBatch;
+            } catch (StandardException se) {
+
+                sqle = handleException(se);
+            } catch (SQLException sqle2) {
+                sqle = sqle2;
+            } finally {
+                activation.setBatch(null, null); // reset the batch state
+                restoreContextStack();
+            }
+
+            int successfulUpdateCount[] = new int[0];
+
+            SQLException batch =
+                    new java.sql.BatchUpdateException(sqle.getMessage(), sqle.getSQLState(),
+                            sqle.getErrorCode(), successfulUpdateCount, sqle);
+
+            batch.setNextException(sqle);
+            throw batch;
+        }
+    }
+
 
     @Override
     boolean executeBatchElement(Object batchElement) throws SQLException, StandardException {

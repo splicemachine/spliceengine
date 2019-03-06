@@ -3773,6 +3773,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void logNextBatch(ParameterValueSet pvs) {
+        if (stmtLogger.isDebugEnabled()) {
+            stmtLogger.debug(String.format(
+                    "Next batch for query. %s, paramsCount=%d, params=[ %s ]",
+                    getLogHeader(),
+                    pvs.getParameterCount(), pvs.toString()));
+        }
+    }
+
+    @Override
     public void logEndExecuting(String uuid, long modifiedRows, long badRecords, long
             nanoTimeSpent) {
         if (stmtLogger.isInfoEnabled()) {

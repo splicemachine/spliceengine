@@ -136,7 +136,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      *
      * @return
      */
-    int modifiedRowCount();
+    long[] modifiedRowCount();
 
     /**
      *

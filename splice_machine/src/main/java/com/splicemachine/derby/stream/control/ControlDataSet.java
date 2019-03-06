@@ -30,6 +30,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperatio
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
 import com.splicemachine.derby.stream.control.output.ParquetWriterService;
+import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.MergeWindowFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
@@ -54,6 +55,7 @@ import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -107,6 +109,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public int partitions() {
         return 1;
+    }
+
+    @Override
+    public Pair<DataSet, Integer> materialize() {
+        List<ExecRow> rows = ((ControlDataSet<ExecRow>)this).map(new CloneFunction<>(null)).collect();
+        return Pair.newPair(new ControlDataSet(rows.iterator()), rows.size());
     }
 
     @Override
@@ -691,7 +699,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                 assert txn!=null:"Txn is null";
                 DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom,operationContext);
                 dpw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext, updateCounts);
             }
         };
     }
@@ -714,7 +722,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                         token, operationContext,
                         isUpsert);
                 ipw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext,updateCounts);
             }
         }.operationContext(operationContext);
     }
@@ -732,7 +740,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                         txn,token,execRowDefinition,heapList,operationContext);
 
                 upw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext, updateCounts);
             }
         };
     }

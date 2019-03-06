@@ -319,10 +319,12 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
         // an SQLCARD may be retunred if there was no output data, result sets or parameters,
         // or in the case of an error.
         if (peekCP == CodePoint.SQLCARD) {
-            NetSqlca netSqlca = parseSQLCARD(null);
+            while (peekCP == CodePoint.SQLCARD) {
+                NetSqlca netSqlca = parseSQLCARD(null);
 
-            statementI.completeExecute(netSqlca);
-            peekCP = peekCodePoint();
+                statementI.completeExecute(netSqlca);
+                peekCP = peekCodePoint();
+            }
         } else if (peekCP == CodePoint.SQLDTARD) {
             // in the case of singleton select or if a stored procedure was called which had
             // parameters but no result sets, an SQLSTARD may be returned

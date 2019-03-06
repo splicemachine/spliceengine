@@ -159,6 +159,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return dataset.rdd().getNumPartitions();
     }
 
+    @Override
+    public Pair<DataSet, Integer> materialize() {
+        return Pair.newPair(this, (int) dataset.count());
+    }
+
     /**
      *
      * Execute the job and materialize the results as a List.  Be careful, all
