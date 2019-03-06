@@ -105,7 +105,7 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                 }
             }
             if (updateCounts != null) {
-                int total = 0;
+                long total = 0;
                 List<ExecRow> rows = new ArrayList<>();
                 for (int count : updateCounts) {
                     total += count;

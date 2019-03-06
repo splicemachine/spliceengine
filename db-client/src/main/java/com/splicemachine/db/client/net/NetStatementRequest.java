@@ -133,9 +133,9 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 false, // sendRslsetflg
                 0, // resultSetFlag
                 false, // sendQryrowset
-                0,
+                0,           // qryrowset
                 false,
-                0);               // qryrowset
+                0);
 
         if (numInputColumns > 0) {
             if ((extdtaPositions_ != null) && (!extdtaPositions_.isEmpty())) {
@@ -176,9 +176,9 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 false, // sendRslsetflg
                 0, // resultSetFlag
                 false, // sendQryrowset
-                0,
+                0,         // qryrowset
                 true,
-                inputs.length);               // qryrowset
+                inputs.length);
 
         if (numInputColumns > 0) {
             if ((extdtaPositions_ != null) && (!extdtaPositions_.isEmpty())) {
