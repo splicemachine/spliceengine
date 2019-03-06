@@ -712,6 +712,22 @@ class DRDAStatement
 	}
 
 
+	protected int[] executeBatch() throws SQLException {
+		int[] results = ps.executeBatch();
+		
+		// DERBY-3085 - We need to make sure we drain the streamed parameter
+		// if not used by the server, for example if an update statement does not
+		// update any rows, the parameter won't be used.  Network Server will
+		// stream only the last parameter with an EXTDTA. This is stored when the
+		// parameter is set and drained now after statement execution if needed.
+		try {
+			drdaParamState_.drainStreamedParameter();
+		} catch (IOException e) {
+			throw Util.javaException(e);
+		}
+		return results;
+	}
+
 	/**
 	 * Executes the prepared statement and populates the resultSetTable.
 	 * Access to the various resultSets is then possible by using

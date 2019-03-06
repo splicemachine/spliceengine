@@ -32,11 +32,16 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author jessiezhang
@@ -170,7 +175,10 @@ public class UpdateOperation extends DMLWriteOperation{
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        DataSet set=source.getDataSet(dsp).shufflePartitions();
+
+        Pair<DataSet, int[]> pair = getBatchedDataset(dsp);
+        DataSet set = pair.getFirst();
+        int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext=dsp.createOperationContext(this);
         TxnView txn=getCurrentTransaction();
         ExecRow execRow=getExecRowDefinition();
@@ -186,6 +194,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
                     .heapList(getHeapListStorage())
                     .tableVersion(tableVersion)
+                    .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn)

@@ -65,6 +65,11 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     }
 
     @Override
+    public DataSetWriterBuilder updateCounts(int[] updateCounts) {
+        return this;
+    }
+
+    @Override
     public TxnView getTxn(){
         return txn;
     }

@@ -92,7 +92,7 @@ public interface ResultSet
 	 *
 	 * @return	The number of rows affect by the statement, so far.
 	 */
-	int	modifiedRowCount();
+	long[]	modifiedRowCount();
 
 	/**
 	 * Returns a ResultDescription object, which describes the results

@@ -53,6 +53,7 @@ import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.utils.ByteDataInput;
+import com.splicemachine.utils.Pair;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -111,6 +112,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public int partitions() {
         return rdd.getNumPartitions();
+    }
+
+    @Override
+    public Pair<DataSet, Integer> materialize() {
+        return Pair.newPair(this, (int) rdd.count());
     }
 
     /**
