@@ -116,7 +116,8 @@ class ExistsSubqueryPredicate implements org.spark_project.guava.base.Predicate<
         // So for such cases, return false here and let the flattening logic in SubqueryNode take care of them.
         FromList fromList = subqueryResultSet.getFromList();
         if (subqueryNode.singleFromBaseTable(fromList) != null) {
-            boolean hasAggregation = subquerySelectNode.hasAggregatesInSelectList() || subquerySelectNode.hasHavingClause();
+            boolean hasAggregation = subquerySelectNode.hasAggregatesInSelectList() || subquerySelectNode.hasHavingClause()
+                    || (subquerySelectNode.getGroupByList()!= null && subquerySelectNode.getGroupByList().isRollup());
             if (!hasAggregation &&
                     !subquerySelectNode.getOriginalWhereClauseHadSubqueries())
                 return false;
