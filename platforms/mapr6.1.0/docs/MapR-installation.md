@@ -77,7 +77,7 @@ splicemachine-mapr6.1.0-master-2.8.0.1904.p0.1_1.noarch.rpm
 
 5. Make one config file edit: update zookeeper quorum, on all machines:
    ````
-   sudo vi /opt/mapr/hbase/hbase-1.1.8-splice/conf/hbase-site.xml
+   sudo vi /opt/mapr/hbase/hbase1.1.8-splice/conf/hbase-site.xml
    ````
 replace `###ZK_QUORUM_LIST###` with your quorum, e.g. a single hostname
   `ip-10-11-128-26.ec2.internal`
