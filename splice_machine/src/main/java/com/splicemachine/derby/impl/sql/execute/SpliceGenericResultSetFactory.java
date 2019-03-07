@@ -34,6 +34,8 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
+
 public class SpliceGenericResultSetFactory implements ResultSetFactory {
     private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
 
@@ -175,7 +177,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       boolean doesProjection,
                                                       double optimizerEstimatedRowCount,
                                                       double optimizerEstimatedCost,
-                                                      String explainPlan) throws StandardException {
+                                                      String explainPlan,
+                                                      String filterPred,
+                                                      String[] expressions) throws StandardException {
         assert source!=null:"passed in source is null";
         SpliceLogUtils.trace(LOG, "getProjectRestrictResultSet");
         try{
@@ -187,7 +191,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     reuseResult,
                     doesProjection,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,
+                    filterPred,
+                    expressions);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){

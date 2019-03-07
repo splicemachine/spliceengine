@@ -43,6 +43,7 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
     private final String implementationVersion;
     private final String buildTime;
     private final String url;
+    private final String sparkMajorVersion;
     private final int majorVersion;
     private final int minorVersion;
     private final int patchVersion;
@@ -53,6 +54,7 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
         implementationVersion = safeGet(manifestProps, "Implementation-Version");
         buildTime = safeGet(manifestProps, "Build-Time");
         url = safeGet(manifestProps, "URL");
+        sparkMajorVersion = safeGet(manifestProps, "Spark-Major-Version");
 
         Iterator<String> versionParts = SPLITTER.split(release).iterator();
         majorVersion = versionParts.hasNext() ? safeParseInt(versionParts.next()) : UNKNOWN_INT;
@@ -79,6 +81,11 @@ public class SimpleDatabaseVersion implements DatabaseVersion{
     @Override
     public String getURL() {
         return url;
+    }
+
+    @Override
+    public String getSparkMajorVersion() {
+        return sparkMajorVersion;
     }
 
     @Override

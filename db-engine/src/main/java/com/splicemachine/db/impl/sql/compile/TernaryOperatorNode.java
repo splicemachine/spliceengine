@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -1162,4 +1163,9 @@ public class TernaryOperatorNode extends OperatorNode
 
 		return true;
 	}
+
+	// Following 3 interfaces only applicable when this is a TRIM operator.
+	public boolean isLeading()  {return trimType == StringDataValue.LEADING;}
+    public boolean isTrailing() {return trimType == StringDataValue.TRAILING;}
+    public boolean isBoth()     {return trimType == StringDataValue.BOTH;}
 }

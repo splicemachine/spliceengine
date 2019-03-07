@@ -43,6 +43,11 @@ public interface DatabaseVersion{
     String getURL();
 
     /**
+     * @return the Spark major version
+     */
+    String getSparkMajorVersion();
+
+    /**
      * @return the Splice major release version
      */
     int getMajorVersionNumber();

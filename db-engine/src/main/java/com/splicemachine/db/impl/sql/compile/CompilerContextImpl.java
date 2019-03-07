@@ -245,6 +245,14 @@ public class CompilerContextImpl extends ContextImpl
 	public boolean getDisablePredicateSimplification() {
 		return disablePredicateSimplification;
 	}
+
+	public void setSparkMajorVersion(double newValue) {
+		sparkMajorVersion = newValue;
+	}
+
+	public double getSparkMajorVersion() {
+		return sparkMajorVersion;
+	}
 	
 	/**
 	 * Get the current next subquery number from this CompilerContext.
@@ -1070,6 +1078,7 @@ public class CompilerContextImpl extends ContextImpl
 	private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
 	private boolean             convertMultiColumnDNFPredicatesToInList= DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
     private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+    private double              sparkMajorVersion = DEFAULT_SPLICE_SPARK_MAJOR_VERSION;
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.

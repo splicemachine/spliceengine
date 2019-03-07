@@ -62,6 +62,8 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_MAJOR_VERSION;
+
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
     protected static AtomicInteger jsonIncrement;
@@ -509,6 +511,17 @@ public class GenericStatement implements Statement{
                 // just use the default setting.
             }
             cc.setDisablePredicateSimplification(disablePredicateSimplification);
+
+            String spliceSparkMajorVersionString = System.getProperty(SPLICE_SPARK_MAJOR_VERSION);
+            double sparkMajorVersion = CompilerContext.DEFAULT_SPLICE_SPARK_MAJOR_VERSION;
+            try {
+                if (spliceSparkMajorVersionString != null)
+                    sparkMajorVersion = Double.valueOf(spliceSparkMajorVersionString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a double, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setSparkMajorVersion(sparkMajorVersion);
 
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){

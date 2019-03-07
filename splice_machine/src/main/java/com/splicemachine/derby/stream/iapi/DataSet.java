@@ -354,4 +354,6 @@ public interface DataSet<V> extends //Iterable<V>,
     InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException;
     UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException;
     TableSamplerBuilder sample(OperationContext operationContext) throws StandardException;
+
+    DataSet upgradeToSparkNativeDataSet(OperationContext operationContext);
 }

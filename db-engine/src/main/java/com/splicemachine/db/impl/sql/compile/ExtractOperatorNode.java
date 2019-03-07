@@ -48,6 +48,8 @@ import java.sql.Types;
 
 import java.util.List;
 
+import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
+
 /**
  * This node represents a unary extract operator, used to extract
  * a field from a date/time. The field value is returned as an integer.
@@ -170,7 +172,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 							operand.getTypeServices().isNullable()
 						)
 				);
-		} else if (extractField == DateTimeDataValue.MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
+		} else if (extractField == MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
             // name fields return varchar
             setType(new DataTypeDescriptor(
                         TypeId.CHAR_ID,
@@ -200,6 +202,12 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 			return "";
 		}
 	}
+
+	public String sparkFunctionName() throws StandardException{
+	    if (extractField == MONTHNAME_FIELD)
+	        throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
+	    return fieldName[extractField];
+    }
 
     @Override
     public long nonZeroCardinality(long numberOfRows) {

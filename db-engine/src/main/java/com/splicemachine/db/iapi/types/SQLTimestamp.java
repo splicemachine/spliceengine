@@ -1020,8 +1020,13 @@ public final class SQLTimestamp extends DataType
 				t = computeGregorianCalendarTimestamp(year);
 			} else {
 				try {
-					DateTime dt = createDateTime();
-					t = new Timestamp(dt.getMillis());
+					t = new Timestamp(SQLDate.getYear(encodedDate) - 1900,
+                                      SQLDate.getMonth(encodedDate) - 1,
+                                      SQLDate.getDay(encodedDate),
+                                      SQLTime.getHour(encodedTime),
+                                      SQLTime.getMinute(encodedTime),
+                                      SQLTime.getSecond(encodedTime),
+                                      nanos);
 				} catch (Exception e) {
 					t = computeGregorianCalendarTimestamp(year);
 				}
@@ -1709,4 +1714,8 @@ public final class SQLTimestamp extends DataType
 	}
 
 	public int getNanos() { return nanos; }
+
+    public int getEncodedDate() { return encodedDate; }
+
+    public int getEncodedTime() { return encodedTime; }
 }

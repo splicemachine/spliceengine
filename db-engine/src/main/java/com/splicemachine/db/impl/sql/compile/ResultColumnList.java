@@ -1021,8 +1021,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * not know about the position of the columns in the list.
      * <p/>
      * This is the method that does the work.
+     *
+     * @return true, if all of the result columns are non-special expressions, which
+     *         could be represented as normal expressions in spark sql.
      */
-    void generateCore(ExpressionClassBuilder acb, MethodBuilder mb, boolean genNulls) throws StandardException{
+    boolean generateCore(ExpressionClassBuilder acb, MethodBuilder mb, boolean genNulls) throws StandardException{
         // generate the function and initializer:
         // private ExecRow fieldX;
         // In the constructor:
@@ -1039,11 +1042,13 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         // this sets up the method and the static field.
         MethodBuilder userExprFun = acb.newUserExprFun();
 
-        generateEvaluatedRow( acb, userExprFun, genNulls, false );
+        boolean retval = generateEvaluatedRow( acb, userExprFun, genNulls, false );
 
         // what we return is the access of the field, i.e. the pointer to the method.
         acb.pushMethodReference(mb, userExprFun);
-           }
+
+        return retval;
+    }
 
     /**
      * Build an empty row with the size and shape of the ResultColumnList.
@@ -3635,8 +3640,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * </p>
      *
      * This is the method that does the work.
+     *
+     * @return true, if all of the result columns are non-special expressions, which
+     *         could be represented as normal expressions in spark sql.
      */
-    void generateEvaluatedRow
+    boolean generateEvaluatedRow
     (
             ExpressionClassBuilder acb,
             MethodBuilder userExprFun,
@@ -3668,6 +3676,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
         MethodBuilder cb = acb.getConstructor();
 
+        boolean retval = true;
+
         for (int index = 0; index < size; index++)
         {
             // generate statements of the form
@@ -3684,6 +3694,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                 if ( sourceExpr instanceof VirtualColumnNode && ! ( ((VirtualColumnNode) sourceExpr).getCorrelated()) )
                 {
+                    retval = false;
                     continue;
                 }
 
@@ -3697,6 +3708,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 //2)If the left table's column value is non-null,
                 // then pick up that value
                 if (rc.getJoinResultSet() != null) {
+                    retval = false;
+
                     //We are dealing with a join column for
                     // RIGHT OUTER JOIN with USING/NATURAL eg
                     //	 select c from t1 right join t2 using (c)
@@ -3811,6 +3824,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             //
             if ( rc.hasGenerationClause() )
             {
+                retval = false;
                 ValueNode   expr = rc.getExpression();
                 if ( (expr != null) && !(expr instanceof VirtualColumnNode) )
                 {
@@ -3856,6 +3870,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
             if (rc.isAutoincrementGenerated())
             {
+                retval = false;
                 // (com.ibm.db2j.impl... DataValueDescriptor)
                 // this.getSetAutoincValue(column_number)
 
@@ -3873,6 +3888,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     ((rc.getExpression() instanceof ConstantNode) &&
                             ((ConstantNode) rc.getExpression()).isNull()))
             {
+                retval = false;
                 userExprFun.getField(field);
                 userExprFun.push(index + 1);
                 userExprFun.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "getColumn",
@@ -3896,6 +3912,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
         // we are now done modifying userExprFun
         userExprFun.complete();
+
+        return retval;
     }
 
 

@@ -1387,4 +1387,10 @@ public interface Property {
 		"derby.database.disablePredicateSimplification";
 
 	String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
+
+    /**
+     * The major version of spark we're running, e.g. 2.2.
+     */
+    String SPLICE_SPARK_MAJOR_VERSION =
+		"splice.spark.major.version";
 }

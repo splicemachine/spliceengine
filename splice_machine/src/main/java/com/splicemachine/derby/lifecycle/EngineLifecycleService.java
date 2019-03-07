@@ -178,5 +178,17 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
         System.setProperty(Property.SPLICE_BUILD_TIME, spliceVersion.getBuildTime());
         System.setProperty(Property.SPLICE_URL, spliceVersion.getURL());
+
+        String spliceSparkMajorVersionString = spliceVersion.getSparkMajorVersion();
+        try {
+            if (spliceSparkMajorVersionString != null &&
+                spliceSparkMajorVersionString.startsWith("spark")) {
+                spliceSparkMajorVersionString =
+                  spliceSparkMajorVersionString.split("spark")[1];
+            }
+        } catch (Exception e) {
+            // Don't crash splice if we can't parse the string.
+        }
+        System.setProperty(Property.SPLICE_SPARK_MAJOR_VERSION, spliceSparkMajorVersionString);
     }
 }

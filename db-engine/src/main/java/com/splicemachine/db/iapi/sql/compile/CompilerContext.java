@@ -158,6 +158,7 @@ public interface CompilerContext extends Context
 	boolean     DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
 	boolean     DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
 	boolean     DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
+	double      DEFAULT_SPLICE_SPARK_MAJOR_VERSION = 2.2;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -672,4 +673,7 @@ public interface CompilerContext extends Context
 
 	public boolean getDisablePredicateSimplification();
 
+    public void setSparkMajorVersion(double newValue);
+
+	public double getSparkMajorVersion();
 }
