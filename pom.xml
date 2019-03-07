@@ -54,38 +54,14 @@
         <pluginRepository>
             <id>splicemachine-public</id>
             <url>http://repository.splicemachine.com/nexus/content/groups/public</url> 
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
         </pluginRepository>
         <pluginRepository>
             <id>splicemachine</id>
             <url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
         </pluginRepository>
         <pluginRepository>
             <id>apache.snapshots</id>
             <url>http://repository.apache.org/snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
         </pluginRepository>
     </pluginRepositories>
     <properties>
@@ -1236,7 +1212,7 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-                <parquet.version>orc-spark-2.3</parquet.version>
+                <parquet.version>parquet-cloudera</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
@@ -1456,6 +1432,7 @@
                 </property>
             </activation>
             <properties>
+                <maven.test.skip>true</maven.test.skip>
                 <envClassifier>mapr6.1.0</envClassifier>
                 <envHbase>hbase1.1.8</envHbase>
                 <hadoop.version>2.7.0-mapr-1808</hadoop.version>
