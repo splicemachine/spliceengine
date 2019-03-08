@@ -435,6 +435,7 @@ public class AggregateNode extends UnaryOperatorNode
 		     }
 		}
 		else if (isWindowFunction() &&
+                 uad instanceof SumAvgAggregateDefinition &&
                  operand != null    &&
                  operand.getTypeId().getTypeFormatId() !=
                  resultType.getTypeId().getTypeFormatId()) {

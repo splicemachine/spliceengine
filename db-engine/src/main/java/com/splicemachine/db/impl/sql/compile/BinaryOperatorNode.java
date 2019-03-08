@@ -698,6 +698,8 @@ public class BinaryOperatorNode extends OperatorNode
                 rightOperand.generateExpression(acb, mb);
 			else
                 acb.generateNull(mb, getTypeCompiler(), getTypeServices());
+
+			mb.cast(receiverType); // cast the method instance
 			// stack: receiver
 			
             if (xmlGen) {

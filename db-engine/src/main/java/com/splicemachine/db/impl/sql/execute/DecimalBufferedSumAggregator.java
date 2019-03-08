@@ -83,7 +83,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 				if(addend==null) return; //treat null entries as zero
 				//In Splice, we should never see a different type of an ExecAggregator
 				DecimalBufferedSumAggregator other = (DecimalBufferedSumAggregator)addend;
-            if (other.isNull && other.position == 0){
+            if (other.isNull){
                return;
             }
 
@@ -166,11 +166,11 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		}
 
 		private void incrementPosition() throws StandardException {
-				isNull=false;
 				int newposition = (position+1) & length;
 				if(newposition==0){
 						sum(buffer.length);
 				}
+				isNull=false;
 				position = newposition;
 		}
 

@@ -187,12 +187,12 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
 		}
 
 		private void incrementPosition() throws StandardException {
-				isNull = false;
 				int newposition = (position+1) & length;
 				if(newposition==0){
 						sum(buffer.length);
 				}
 				position = newposition;
+				isNull = false;
 		}
 
       public String toString() {
