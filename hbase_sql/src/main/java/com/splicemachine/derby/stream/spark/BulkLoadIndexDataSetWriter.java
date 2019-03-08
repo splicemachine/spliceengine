@@ -29,6 +29,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -49,6 +50,8 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
     private boolean sampling;
     private DDLMessage.TentativeIndex tentativeIndex;
     private String indexName;
+    private String tableVersion;
+    private ActivationHolder ah;
 
     public BulkLoadIndexDataSetWriter(DataSet dataSet,
                                       String  bulkLoadDirectory,
@@ -57,13 +60,16 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
                                       TxnView txn,
                                       OperationContext operationContext,
                                       DDLMessage.TentativeIndex tentativeIndex,
-                                      String indexName) {
+                                      String indexName,
+                                      String tableVersion) {
 
         super(dataSet, operationContext, destConglomerate, txn);
         this.bulkLoadDirectory = bulkLoadDirectory;
         this.sampling = sampling;
         this.tentativeIndex = tentativeIndex;
         this.indexName = indexName;
+        this.tableVersion = tableVersion;
+        this.ah = new ActivationHolder(operationContext.getActivation(),null);
     }
 
     @Override
@@ -99,8 +105,8 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
 
         // Write to HFile
         HFileGenerationFunction hfileGenerationFunction =
-                new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
-                        heapConglom, compressionAlgorithm, bulkLoadPartitions);
+                new BulkLoadIndexHFileGenerationFunction(operationContext, txn.getTxnId(),
+                        heapConglom, compressionAlgorithm, bulkLoadPartitions, tableVersion, tentativeIndex, ah);
 
         DataSet rowAndIndexes = dataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true,
