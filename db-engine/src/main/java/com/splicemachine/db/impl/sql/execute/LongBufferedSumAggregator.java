@@ -83,7 +83,7 @@ public class LongBufferedSumAggregator extends SumAggregator {
 			//In Splice, we should never see a different type of an ExecAggregator
             LongBufferedSumAggregator other = (LongBufferedSumAggregator) addend;
 
-            if (other.isNull && other.position == 0){
+            if (other.isNull){
                return;
             }
 
@@ -186,11 +186,11 @@ public class LongBufferedSumAggregator extends SumAggregator {
 		}
 
 		private void incrementPosition() throws StandardException {
-				isNull=false;
 				int newposition = (position+1) & length;
 				if(newposition==0){
 					sum(buffer.length);
 				}
+				isNull=false;
 				position = newposition;
 		}
 
