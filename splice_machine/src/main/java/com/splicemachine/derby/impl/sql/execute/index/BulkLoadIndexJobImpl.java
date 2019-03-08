@@ -74,7 +74,8 @@ public class BulkLoadIndexJobImpl implements Callable<Void> {
                 .sampling(request.sampling)
                 .bulkLoadDirectory(request.hfilePath)
                 .tentativeIndex(request.tentativeIndex)
-                .indexName(request.indexName);
+                .indexName(request.indexName)
+                .tableVersion(request.tableVersion);
 
         DataSetWriter writer = writerBuilder
                 .destConglomerate(tentativeIndex.getIndex().getConglomerate())

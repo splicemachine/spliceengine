@@ -14,10 +14,13 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.KeyValue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,11 +31,16 @@ public class BulkInsertHFileGenerationFunction extends HFileGenerationFunction {
     public BulkInsertHFileGenerationFunction() {}
 
     public BulkInsertHFileGenerationFunction(OperationContext operationContext,
-                                   long txnId,
-                                   Long heapConglom,
-                                   String compressionAlgorithm,
-                                   List<BulkImportPartition> partitionList) {
-        super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList);
+                                             long txnId,
+                                             Long heapConglom,
+                                             String compressionAlgorithm,
+                                             List<BulkImportPartition> partitionList,
+                                             int[] pkCols,
+                                             String tableVersion,
+                                             ArrayList<DDLMessage.TentativeIndex> tentativeIndexList) {
+        super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList, pkCols, tableVersion, tentativeIndexList);
+        this.operationType = OperationType.INSERT;
+        this.ah = new ActivationHolder(operationContext.getActivation(), operationContext.getOperation());
     }
 
     @Override
