@@ -930,7 +930,7 @@
                                             <groupname>root</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/scripts/splice-init-script</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/service/splice-init-script</location>
                                                     <destination>splice-regionserver</destination>
                                                 </source>
                                             </sources>
@@ -969,7 +969,7 @@
                                             <groupname>root</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/scripts/splice-init-script</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/service/splice-init-script</location>
                                                     <destination>splice-masterserver</destination>
                                                 </source>
                                             </sources>
@@ -1008,43 +1008,43 @@
                                             <groupname>mapr</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/scripts/mapr-splice-hbase-config.sh</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/service/mapr-splice-hbase-config.sh</location>
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
                                             <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/${envHbase}/bin</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/bin</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
                                             <sources>                                                
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/scripts/hbase-daemon.sh</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/service/hbase-daemon.sh</location>
                                                     <location>${envClassifier}/src/main/resources/bin/hbase</location>
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/${envHbase}/conf</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/conf</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/conf/hbase-env.sh</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/splice/hbase-env.sh</location>
                                                 </source>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/conf/hbase-site.conf.xml</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/splice/hbase-site.conf.xml</location>
                                                     <destination>hbase-site.xml</destination>
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/${envHbase}/conf</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/conf</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
@@ -1080,19 +1080,19 @@
                                             <groupname>mapr</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/scripts/mapr-splice-hbase-config.sh</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/splice/mapr-splice-hbase-config.sh</location>
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
                                         </mapping>
                                         <mapping>
-                                            <directory>/opt/mapr/hbase/${envHbase}/bin</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/bin</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
                                             <sources>                                                
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/scripts/hbase-daemon.sh</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/service/hbase-daemon.sh</location>
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
@@ -1104,11 +1104,11 @@
                                             <groupname>mapr</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/conf/hbase-env.secure.sh</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/splice/hbase-env.secure.sh</location>
                                                     <destination>hbase-env.sh</destination>
                                                 </source>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/examples/conf/hbase-site.secure.xml</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/splice/hbase-site.secure.xml</location>
                                                     <destination>hbase-site.xml</destination>
                                                 </source>
                                             </sources>
@@ -1144,10 +1144,10 @@
                                             <groupname>mapr</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/scripts/start-hbase.sh</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/hbase/start-hbase.sh</location>
                                                 </source>
                                                 <source>
-                                                    <location>${envClassifier}/src/main/resources/scripts/stop-hbase.sh</location>
+                                                    <location>${envClassifier}/src/main/resources/scripts/hbase/stop-hbase.sh</location>
                                                 </source>
                                                 <source>
                                                     <location>common/src/main/resources/bin/sqlshell.sh</location>
