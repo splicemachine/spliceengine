@@ -65,18 +65,12 @@ public final class AvgAggregator extends OrderableAggregator
 		private int scale;
 
 		public Class getAggregatorClass() { return aggregator.getClass();}
-		public boolean usesFloatBufferedSumAggregator() {
-		    return aggregator != null && aggregator instanceof FloatBufferedSumAggregator;
-		}
+
 		public boolean usesLongBufferedSumAggregator() {
 		    return aggregator != null && aggregator instanceof LongBufferedSumAggregator;
 		}
 		public void upgradeSumAggregator() throws StandardException {
-		    if (usesFloatBufferedSumAggregator()) {
-		        FloatBufferedSumAggregator fbsa = (FloatBufferedSumAggregator) aggregator;
-                aggregator = fbsa.upgrade();
-            }
-		    else if (usesLongBufferedSumAggregator()) {
+		    if (usesLongBufferedSumAggregator()) {
 		        LongBufferedSumAggregator lbsa = (LongBufferedSumAggregator) aggregator;
 		        aggregator = lbsa.upgrade();
             }
@@ -140,8 +134,7 @@ public final class AvgAggregator extends OrderableAggregator
 					    // DOUBLE has the largest range, so if it overflows, there is nothing
 					    // with greater range to upgrade to.
 						if (!se.getMessageId().equals(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE) ||
-                            (!(aggregator instanceof LongBufferedSumAggregator &&
-                             !(aggregator instanceof FloatBufferedSumAggregator))))
+                            (!(aggregator instanceof LongBufferedSumAggregator)))
 							throw se;
 				}
 
@@ -173,8 +166,6 @@ public final class AvgAggregator extends OrderableAggregator
 				 */
 				if(aggregator instanceof LongBufferedSumAggregator){
 					aggregator = ((LongBufferedSumAggregator)aggregator).upgrade();
-				}else if(aggregator instanceof FloatBufferedSumAggregator) {
-					aggregator = ((FloatBufferedSumAggregator) aggregator).upgrade();
 				}
 				else
 				    throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE);

@@ -121,15 +121,10 @@ public class SpliceGenericAggregator implements Serializable{
             LongBufferedSumAggregator lbsa = (LongBufferedSumAggregator) ua;
             ua = lbsa.upgrade();
         }
-        else if (ua instanceof FloatBufferedSumAggregator) {
-            FloatBufferedSumAggregator fbsa = (FloatBufferedSumAggregator) ua;
-            ua = fbsa.upgrade();
-        }
         else if (ua instanceof AvgAggregator) {
             AvgAggregator aa = (AvgAggregator) ua;
             SumAggregator sa = null;
-            if (aa.usesFloatBufferedSumAggregator() ||
-                aa.usesLongBufferedSumAggregator()) {
+            if (aa.usesLongBufferedSumAggregator()) {
                 aa.upgradeSumAggregator();
             }
             else if (e != null)
