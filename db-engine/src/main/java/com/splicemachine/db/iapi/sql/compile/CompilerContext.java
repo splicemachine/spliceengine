@@ -157,6 +157,7 @@ public interface CompilerContext extends Context
 	int         DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES              = 10000;
 	boolean     DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
 	boolean     DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
+	boolean     DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -666,5 +667,9 @@ public interface CompilerContext extends Context
 	public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue);
 	
 	public boolean getConvertMultiColumnDNFPredicatesToInList();
+
+	public void setDisablePredicateSimplification(boolean newValue);
+
+	public boolean getDisablePredicateSimplification();
 
 }
