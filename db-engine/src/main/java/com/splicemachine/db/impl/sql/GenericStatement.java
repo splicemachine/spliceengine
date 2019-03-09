@@ -497,6 +497,19 @@ public class GenericStatement implements Statement{
             }
             cc.setConvertMultiColumnDNFPredicatesToInList(convertMultiColumnDNFPredicatesToInList);
 
+            String disablePredicateSimplificationString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PREDICATE_SIMPLIFICATION);
+            boolean disablePredicateSimplification = CompilerContext.DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+            try {
+                if (disablePredicateSimplificationString != null)
+                    disablePredicateSimplification =
+                        Boolean.valueOf(disablePredicateSimplificationString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setDisablePredicateSimplification(disablePredicateSimplification);
+
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)

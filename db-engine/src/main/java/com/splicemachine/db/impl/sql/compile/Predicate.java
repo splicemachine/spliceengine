@@ -694,8 +694,14 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
+        // Don't replace the top-level AND.
         if(andNode!=null){
-            andNode=(AndNode)andNode.accept(v, this);
+            AndNode origNode = andNode;
+            if (v instanceof PredicateSimplificationVisitor) {
+                Visitable dummynode = andNode.accept(v, this);
+            }
+            else
+                andNode=(AndNode)andNode.accept(v, this);
         }
     }
 

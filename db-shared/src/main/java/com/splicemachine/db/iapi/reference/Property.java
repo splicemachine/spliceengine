@@ -1374,5 +1374,17 @@ public interface Property {
 	String CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST =
 		"derby.database.convertMultiColumnDNFPredicatesToInList";
 
+	/**
+	 * If true, disable predicate simplification.
+	 * Predicate simplification does the following transformations involving predicate p...
+	 * (p OR FALSE)  ==> (p)
+	 * (p OR TRUE)   ==> TRUE
+	 * (p AND TRUE)  ==> (p)
+	 * (p AND FALSE) ==> (FALSE)
+	 * By default, predicate simplification is enabled.
+	 */
+	String DISABLE_PREDICATE_SIMPLIFICATION =
+		"derby.database.disablePredicateSimplification";
+
 	String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
 }
