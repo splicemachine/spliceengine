@@ -34,12 +34,15 @@ package com.splicemachine.db.impl.sql.compile.subquery.exists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedBronPredicate;
+import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedColumnPredicate;
 import com.splicemachine.db.impl.sql.compile.subquery.CorrelatedEqualityBronPredicate;
 import com.splicemachine.db.impl.sql.compile.subquery.FlatteningUtils;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Lists;
 
 import java.util.List;
@@ -83,6 +86,8 @@ class ExistsSubqueryWhereVisitor implements Visitor {
 
     private int outerNestingLevel;
 
+    private final CorrelatedColumnPredicate correlatedColumnPredicate;
+
     /**
      * @param subqueryLevel       The level of the subquery we are considering flattening in the enclosing predicate
      * @param isNotExistsSubquery Are we looking at a NOT EXISTS subquery.
@@ -92,6 +97,7 @@ class ExistsSubqueryWhereVisitor implements Visitor {
         this.outerNestingLevel = subqueryLevel - 1;
         this.typeDPredicate = new CorrelatedEqualityBronPredicate(this.outerNestingLevel);
         this.typeCPredicate = new CorrelatedBronPredicate(this.outerNestingLevel);
+        this.correlatedColumnPredicate = new CorrelatedColumnPredicate(this.outerNestingLevel);
     }
 
     @Override
@@ -128,8 +134,12 @@ class ExistsSubqueryWhereVisitor implements Visitor {
 
         } else {
             /* Current node is not an AndNode or BinaryRelationalOperatorNode -- ok as long as there are no
-             * correlated predicates belows us, we can move/flatten any type of uncorrelated subtree */
-            foundUnsupported = node instanceof OrNode || ColumnUtils.isSubtreeCorrelated(node);
+             * predicates correlated to table above us, we can move/flatten any type of subtree */
+            foundUnsupported = node instanceof OrNode;
+            if (!foundUnsupported) {
+                List<ColumnReference> columnReferences = CollectingVisitorBuilder.forClass(ColumnReference.class).collect(node);
+                foundUnsupported = Iterables.any(columnReferences, correlatedColumnPredicate);
+            }
         }
         return node;
     }
