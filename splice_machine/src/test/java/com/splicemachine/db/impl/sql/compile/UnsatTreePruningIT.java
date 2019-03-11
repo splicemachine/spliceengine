@@ -436,7 +436,7 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
                         "  2  |\n" +
                         "NULL |";
 
-        assertPruneResult(sqlText, expected, false);
+        assertPruneResult(sqlText, expected, true);
 
         /* case 9-1 */
         sqlText = "select a1 from t1 where not exists (select X.a2 from t2 as X, t2 as Y where a1=X.a2 and X.a2=Y.a2 and 1=0) order by 1";

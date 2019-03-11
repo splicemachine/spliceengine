@@ -24,12 +24,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -284,9 +284,15 @@ public class PredicateSimplificationIT  extends SpliceUnitTest {
     public void testJoin() throws Exception {
         String expected =
             "1 |\n" +
-                "----\n" +
-                " 1 |\n" +
-                " 1 |";
+                    "----\n" +
+                    " 1 |\n" +
+                    " 1 |\n" +
+                    " 1 |\n" +
+                    " 1 |\n" +
+                    " 1 |\n" +
+                    " 1 |\n" +
+                    " 1 |\n" +
+                    " 1 |";
 
         // Simplifying predicates should allow Merge join to be picked.
         String query = format("select 1 from A, B --SPLICE-PROPERTIES joinStrategy=MERGE, useSpark=%s\n" +
