@@ -56,6 +56,8 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
+import java.sql.Types;
+
 /**
  * This class implements TypeId for the SQL numeric datatype.
  *
@@ -288,6 +290,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		}
 		else
 		{
+			TypeId typeId = higherType.getTypeId();
 		
 		
 			/* The calculation of precision and scale should be based upon
@@ -297,8 +300,24 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			precision = higherTC.getPrecision(operator, leftType, rightType);
 			scale = higherTC.getScale(operator, leftType, rightType);
 
-			if (higherType.getTypeId().isDecimalTypeId()) 
+			// Promote REAL to DOUBLE and BIGINT to DECIMAL so we don't overflow
+			// aggregate or arithmetic computations.
+			if (typeId.isRealTypeId()) {
+				typeId = TypeId.getBuiltInTypeId(Types.DOUBLE);
+				maximumWidth = typeId.getMaximumMaximumWidth();
+				precision = typeId.getMaximumPrecision();
+				scale = typeId.getMaximumScale();
+			}
+            else if (typeId.isBigIntTypeId()) {
+                typeId = TypeId.getBuiltInTypeId(Types.DECIMAL);
+                precision = typeId.getMaximumPrecision();
+                maximumWidth = precision + 1;
+                scale = 0;
+            }
+			else if (typeId.isDecimalTypeId())
 			{
+				// Use maximum precision for decimals so we don't overflow.
+				precision = TypeId.getBuiltInTypeId(Types.DECIMAL).getMaximumPrecision();
 				maximumWidth = (scale > 0) ? precision + 3 : precision + 1;
 
 				/*
@@ -315,7 +334,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			}
 		
 			return new DataTypeDescriptor(
-					higherType.getTypeId(),
+				    typeId,
 					precision,
 					scale,
 					nullable,

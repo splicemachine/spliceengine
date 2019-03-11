@@ -95,22 +95,6 @@ public class SparkValueRowSerializerTest {
     }
 
     @Test
-    public void testFloatBufferedSumAggregator() throws IOException, StandardException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Output output = new Output(out);
-        FloatBufferedSumAggregator lbsa = new FloatBufferedSumAggregator(64);
-        lbsa.add(new SQLReal(100));
-        lbsa.add(new SQLReal(200));
-        kryo.writeClassAndObject(output, lbsa);
-        output.close();
-        InputStream in = new ByteArrayInputStream(out.toByteArray());
-        Input input = new Input(in);
-        FloatBufferedSumAggregator lbsa2 = (FloatBufferedSumAggregator) kryo.readClassAndObject(input);
-        assertEquals(lbsa.getResult(), lbsa2.getResult());
-        input.close();
-    }
-
-    @Test
     public void testDecimalBufferedSumAggregator() throws IOException, StandardException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Output output = new Output(out);

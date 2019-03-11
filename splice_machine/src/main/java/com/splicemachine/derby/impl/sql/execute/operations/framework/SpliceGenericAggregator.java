@@ -14,17 +14,22 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
+import com.splicemachine.db.client.am.Types;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.UserDataValue;
-import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
-import com.splicemachine.db.impl.sql.execute.UserDefinedAggregator;
+import com.splicemachine.db.impl.sql.execute.*;
 
 import java.io.Serializable;
+
+import static com.splicemachine.db.iapi.services.io.StoredFormatIds.SQL_LONGINT_ID;
+import static com.splicemachine.db.iapi.types.DataTypeDescriptor.getBuiltInDataTypeDescriptor;
 
 /**
  * GenericAggregator wrapper. This is a near identical copy of
@@ -104,25 +109,90 @@ public class SpliceGenericAggregator implements Serializable{
     public DataValueDescriptor getResultColumnValue(ExecRow row) throws StandardException{
         return row.getColumn(aggInfo.getOutputColNum()+1);
     }
-	
+
+    private ExecAggregator upgradeExecAggregator(ExecAggregator ua,
+                                                 DataValueDescriptor aggCol,
+                                                 StandardException e) throws StandardException {
+	    // Only upgrade aggregator for overflow errors.
+	    if (e != null && e.getSQLState() != SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE)
+	        throw e;
+
+        if (ua instanceof LongBufferedSumAggregator) {
+            LongBufferedSumAggregator lbsa = (LongBufferedSumAggregator) ua;
+            ua = lbsa.upgrade();
+        }
+        else if (ua instanceof AvgAggregator) {
+            AvgAggregator aa = (AvgAggregator) ua;
+            SumAggregator sa = null;
+            if (aa.usesLongBufferedSumAggregator()) {
+                aa.upgradeSumAggregator();
+            }
+            else if (e != null)
+                throw e;
+        }
+        else if (e != null)
+            throw e;
+
+        // Put the new aggregator into the aggregate column,
+        // as we might not be done with the aggregation yet.
+        aggCol.setValue(ua);
+        return ua;
+    }
+
+
 	public boolean finish(ExecRow row) throws StandardException{
 		DataValueDescriptor outputCol = row.getColumn(resultColumnId);
 		DataValueDescriptor aggCol = row.getColumn(aggregatorColumnId);
 		
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
 		if(ua ==null|| (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null))
-			ua = getAggregatorInstance();
+			ua = getAggregatorInstance(row.getColumn(this.inputColumnId).getTypeFormatId());
 		
-		DataValueDescriptor result = ua.getResult();
-		if(result ==null) outputCol.setToNull();
-		else outputCol.setValue(result);
-		return ua.didEliminateNulls();
-	}
+		DataValueDescriptor result = null;
+        try {
+		    result = ua.getResult();
+        }
+        catch (StandardException e) {
+            ua = upgradeExecAggregator(ua, aggCol, e);
+            result = ua.getResult();
+        }
+        if (result == null)
+			outputCol.setToNull();
+        else {
+			// Cast the result to the compile-time determined data type,
+			// including precision and scale, only if there is a data type
+			// mismatch, so we can avoid unnecessary overflow errors.
+			// Otherwise, just use the exact result DVD directly.
+            if (outputCol.getTypeFormatId() != result.getTypeFormatId())
+                outputCol.setValue(result);
+            else
+                row.setColumn(resultColumnId, result.cloneValue(false));
+        }
+        return ua.didEliminateNulls();
+    }
 	
 	public void merge(Storable aggregatedIn,Storable aggregatedOut) throws StandardException {
 		ExecAggregator uaIn = (ExecAggregator)(((UserDataValue)aggregatedIn).getObject());
 		ExecAggregator uaOut = (ExecAggregator)(((UserDataValue)aggregatedOut).getObject());
-		uaOut.merge(uaIn);
+
+        // If one or the other of the two aggregate results was upgraded, we need to
+        // upgrade the other now to be compatible.
+        if (uaIn.getClass() != uaOut.getClass() ||
+            (uaIn instanceof AvgAggregator &&
+             ((AvgAggregator)uaIn).getAggregatorClass() !=
+             ((AvgAggregator)uaOut).getAggregatorClass())) {
+            uaIn = upgradeExecAggregator(uaIn, (DataValueDescriptor)aggregatedIn, null);
+            uaOut = upgradeExecAggregator(uaOut, (DataValueDescriptor)aggregatedOut, null);
+        }
+        try {
+		    uaOut.merge(uaIn);
+        }
+        catch (StandardException e) {
+            uaIn = upgradeExecAggregator(uaIn, (DataValueDescriptor)aggregatedIn, e);
+            uaOut = upgradeExecAggregator(uaOut, (DataValueDescriptor)aggregatedOut, e);
+            uaOut.merge(uaIn);
+        }
+
 	}
 
     public boolean initialize(ExecRow row) throws StandardException {
@@ -130,7 +200,7 @@ public class SpliceGenericAggregator implements Serializable{
 
         ExecAggregator ua = (ExecAggregator) aggColumn.getObject();
         if (ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)) {
-            ua = getAggregatorInstance();
+            ua = getAggregatorInstance(row.getColumn(this.inputColumnId).getTypeFormatId());
             aggColumn.setValue(ua);
             return true;
         }
@@ -149,35 +219,56 @@ public class SpliceGenericAggregator implements Serializable{
     }
     
 	public void accumulate(DataValueDescriptor inputCol,DataValueDescriptor aggCol) 
-																throws StandardException{
+																throws StandardException {
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
 		if(ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)){
-			ua = getAggregatorInstance();
+			ua = getAggregatorInstance(inputCol.getTypeFormatId());
+			aggCol.setValue(ua);
 		}
-		ua.accumulate(inputCol,this);
-	}
+
+        try {
+            ua.accumulate(inputCol,this);
+        }
+        catch (StandardException e) {
+            ua = upgradeExecAggregator(ua, aggCol, e);
+            ua.accumulate(inputCol,this);
+        }
+    }
 
 	public void initializeAndAccumulateIfNeeded(DataValueDescriptor inputCol,DataValueDescriptor aggCol) throws StandardException{
 		ExecAggregator ua = (ExecAggregator)aggCol.getObject();
 		if(ua == null || (ua.isUserDefinedAggregator() && ((UserDefinedAggregator) ua).getAggregator() == null)){
-			ua = getAggregatorInstance();
-			ua.accumulate(inputCol,this);
+			ua = getAggregatorInstance(inputCol.getTypeFormatId());
 			aggCol.setValue(ua);
+            try {
+                ua.accumulate(inputCol,this);
+            }
+            catch (StandardException e) {
+                ua = upgradeExecAggregator(ua, aggCol, e);
+                ua.accumulate(inputCol,this);
+            }
 		}
 	}
 
 	
-	public ExecAggregator getAggregatorInstance() throws StandardException {
+	public ExecAggregator getAggregatorInstance(int typeFormatId) throws StandardException {
 		ExecAggregator aggInstance;
 		if(cachedAggregator == null){
 			try{
 				Class aggClass = cf.loadApplicationClass(aggInfo.getAggregatorClassName());
 				Object agg = aggClass.newInstance();
 				aggInstance = (ExecAggregator)agg;
+				DataTypeDescriptor dtd = aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
+
+				// BIGINT aggregation writes the final result to a data type of DEC(31,1), but it is
+                // faster to aggregate longs until we overflow, so do not use the result data type
+                // to determine the data type of the running SUM for this case.
+                if (typeFormatId == SQL_LONGINT_ID)
+                    dtd = getBuiltInDataTypeDescriptor (Types.BIGINT, true);
 				aggInstance= aggInstance.setup(
                         cf,
                         aggInfo.getAggregateName(),
-                        aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType()
+                        dtd
                 );
 					cachedAggregator = aggInstance;
 			}catch(Exception e){

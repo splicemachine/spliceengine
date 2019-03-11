@@ -65,6 +65,7 @@ import java.text.RuleBasedCollator;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.MissingResourceException;
 
 
 /**
@@ -2450,7 +2451,7 @@ public class SQLChar
             startVal = start.getInt();
         }
 
-        if( isNull() || searchFrom.isNull() )
+        if( searchFrom.isNull() )
         {
             result.setToNull();
             return result;
@@ -2734,7 +2735,60 @@ public class SQLChar
         return result;
     }
 
-    /** @see StringDataValue#lower
+    public StringDataValue upperWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,
+                                                StringDataValue result)
+            throws StandardException
+    {
+        return upperLowerWithLocale(leftOperand, rightOperand, result, true);
+    }
+
+    public StringDataValue lowerWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,
+                                                StringDataValue result)
+            throws StandardException
+    {
+        return upperLowerWithLocale(leftOperand, rightOperand, result, false);
+    }
+
+    private StringDataValue upperLowerWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,
+                                           StringDataValue result, boolean isUpper)
+                            throws StandardException
+    {
+        if (result == null)
+        {
+            result = (StringDataValue) getNewNull();
+        }
+
+        if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        if (rightOperand == null || rightOperand.isNull() || rightOperand.getString() == null) {
+            throw StandardException.newException(
+                    SQLState.LANG_INVALID_FUNCTION_ARGUMENT, "NULL", isUpper?"UPPER":"LOWER");
+        }
+        String localeStr = rightOperand.getString();
+        Locale locale = Locale.forLanguageTag(localeStr);
+        if (!validLocale(locale)) {
+            throw StandardException.newException(
+                    SQLState.LANG_INVALID_FUNCTION_ARGUMENT, localeStr, isUpper?"UPPER":"LOWER");
+        }
+        String str = leftOperand.getString();
+        str = isUpper?str.toUpperCase(locale):str.toLowerCase(locale);
+        result.setValue(str);
+        return result;
+    }
+
+    private boolean validLocale(Locale locale) {
+        try {
+            return !(locale.getISO3Language().equals("") || locale.getISO3Country().equals(""));
+        } catch (MissingResourceException e) {
+            return false;
+        }
+    }
+
+    /** @see StringDataValue#lower 
      *
      * @exception StandardException     Thrown on error
      */
