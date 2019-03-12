@@ -56,14 +56,15 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
 	public static final int REFERENCES_ACTION = 4;
 	public static final int TRIGGER_ACTION = 5;
 	public static final int MODIFY_ACTION = 6;
-	public static final int ACTION_COUNT = 7;
+	public static final int ACCESS_ACTION = 7;
+	public static final int ACTION_COUNT = 8;
 
 	protected static final String YES_WITH_GRANT_OPTION = "Y";
 	protected static final String YES_WITHOUT_GRANT_OPTION = "y";
 	protected static final String NO = "N";
 
 	protected static final String[][] actionString =
-			{{"s", "S"}, {"d", "D"}, {"i", "I"}, {"u", "U"}, {"r", "R"}, {"t", "T"}, {"m", "M"}};
+			{{"s", "S"}, {"d", "D"}, {"i", "I"}, {"u", "U"}, {"r", "R"}, {"t", "T"}, {"m", "M"}, {"a", "A"}};
 
 	protected boolean[] actionAllowed;
 	protected FormatableBitSet[] columnBitSets;

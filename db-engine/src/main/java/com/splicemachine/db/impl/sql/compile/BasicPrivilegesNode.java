@@ -47,7 +47,9 @@ import com.splicemachine.db.impl.sql.execute.TablePrivilegeInfo;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo.ACCESS_ACTION;
 import static com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo.MODIFY_ACTION;
+import static com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo.SELECT_ACTION;
 
 /**
  * This class represents a set of privileges on one table and schema.
@@ -135,7 +137,7 @@ public class BasicPrivilegesNode extends QueryTreeNode
 			}
 
 			// Prevent granting non-SELECT privileges to views
-			if (td.getTableType() == TableDescriptor.VIEW_TYPE && action != TablePrivilegeInfo.SELECT_ACTION)
+			if (td.getTableType() == TableDescriptor.VIEW_TYPE && action != SELECT_ACTION)
 				if (actionAllowed[action])
 					throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED,
 									td.getQualifiedName());
@@ -224,6 +226,14 @@ public class BasicPrivilegesNode extends QueryTreeNode
 
 	public boolean modifyActionAllowed() {
 		return actionAllowed[MODIFY_ACTION];
+	}
+
+	public boolean accessActionAllowed() {
+		return actionAllowed[ACCESS_ACTION];
+	}
+
+	public boolean selectActionAllowed() {
+		return actionAllowed[SELECT_ACTION];
 	}
 
 	public boolean getIsAll() {

@@ -157,7 +157,7 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
 
         } else if (graph == null) {
             // We get here the second time next is called.
-            graph = dd.getRoleGrantGraph(tc, inverse);
+            graph = dd.getRoleGrantGraph(tc, inverse, true);
             List outArcs = (List)graph.get(root);
             if (outArcs != null) {
                 currNodeIter = outArcs.iterator();

@@ -186,7 +186,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
     @Test
     public void TestSelectStatistics() throws Exception {
         methodWatcher.execute("analyze schema " + CLASS_NAME);
-        ResultSet rs = methodWatcher.executeQuery("select count(*) from sys.syscolumnstatistics");
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from sysvw.syscolumnstatistics");
         Assert.assertTrue(rs.next());
         Assert.assertTrue(rs.getInt(1)>0);
     }

@@ -471,6 +471,7 @@ public class ProtoUtil {
                 .setReferencesPerm(permissionsDescriptor.getReferencesPriv())
                 .setTriggerPerm(permissionsDescriptor.getTriggerPriv())
                 .setModifyPerm(permissionsDescriptor.getModifyPriv())
+                .setAccessPerm(permissionsDescriptor.getAccessPriv())
                 .setGrantor(permissionsDescriptor.getGrantor())
                 .setGrantee(permissionsDescriptor.getGrantee())
                 .setPermObjectId(transferDerbyUUID((BasicUUID) permissionsDescriptor.getUUID()))

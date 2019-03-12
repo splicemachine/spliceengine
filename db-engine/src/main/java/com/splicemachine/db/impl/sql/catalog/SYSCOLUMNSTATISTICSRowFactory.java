@@ -41,7 +41,10 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -134,11 +137,14 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
         };
     }
 
-    public static ColumnDescriptor[] getViewColumns(TableDescriptor view,UUID viewId) throws StandardException{
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException{
         DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
         DataTypeDescriptor floatType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL);
-        return new ColumnDescriptor[]{
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+            new ColumnDescriptor[]{
                 new ColumnDescriptor("SCHEMANAME"   ,1,1,varcharType,null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("TABLENAME"    ,2,2,varcharType,null,null,view,viewId,0,0,1),
                 new ColumnDescriptor("COLUMNNAME"   ,3,3,varcharType,null,null,view,viewId,0,0,2),
@@ -149,9 +155,11 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
                 new ColumnDescriptor("MAX_VALUE"    ,8,8,varcharType,null,null,view,viewId,0,0,7),
                 new ColumnDescriptor("QUANTILES"        ,9,9,varcharType,null,null,view,viewId,0,0,8),
                 new ColumnDescriptor("FREQUENCIES"        ,9,9,varcharType,null,null,view,viewId,0,0,8),
-                new ColumnDescriptor("THETA"        ,9,9,varcharType,null,null,view,viewId,0,0,8),
+                new ColumnDescriptor("THETA"        ,9,9,varcharType,null,null,view,viewId,0,0,8)
 
-        };
+        });
+
+        return cdsl;
     }
 
     public static final String STATS_VIEW_SQL = "create view syscolumnstatistics as select " +
@@ -168,7 +176,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
             ",STATS_THETA(STATS_MERGE(data)) as THETA " +
             "from " +
             "sys.syscolumnstats cs" +
-            ",sys.sysschemas s " +
+            ",sysvw.sysschemasview s " +
             ",sys.systables t " +
             ",sys.sysconglomerates c" +
             ",sys.syscolumns co" +

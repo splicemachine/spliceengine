@@ -294,6 +294,7 @@ class SpliceTestPlatformConfig {
         config.set("splice.authentication.impersonation.users", "dgf=splice;splice=*");
         config.setBoolean("splice.authentication.impersonation.enabled", true);
         config.set("splice.authentication.ldap.mapGroupAttr", "jy=splice,dgf=splice");
+   //     config.setBoolean("splice.metadataRestrictionEnabled", true);
 
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing

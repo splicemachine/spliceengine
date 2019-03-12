@@ -32,23 +32,17 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSROLES row.
@@ -289,4 +283,30 @@ public class SYSROLESRowFactory extends CatalogRowFactory
             SystemColumnImpl.getColumn("DEFAULTROLE", Types.CHAR, true, 1)
         };
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+        DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128);
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(new ColumnDescriptor[]{
+                new ColumnDescriptor("NAME"               ,1,1,varcharType,null,null,view,viewId,0,0,0)
+        });
+        return cdsl;
+    }
+    /*
+    public static final String ALLROLES_VIEW_SQL = "" +
+            "create recursive view sysallroles as \n" +
+            "    select name from (values current_user) usr (name) \n" +
+            "    union all\n" +
+            "    select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI() as b (NAME VARCHAR(128)) \n" +
+            "    union all\n" +
+            "    select name from (values 'PUBLIC') usr (name) \n" +
+            "    union all\n" +
+            "    select roleid as name from sys.sysroles R, sysallroles A where A.name = R.grantee and R.isdef = 'N'";
+
+    */
+    public static final String ALLROLES_VIEW_SQL = "" +
+            "create view sysallroles as \n" +
+            "    select name from new com.splicemachine.derby.vti.SpliceAllRolesVTI() as b (NAME VARCHAR(128))";
+
 }

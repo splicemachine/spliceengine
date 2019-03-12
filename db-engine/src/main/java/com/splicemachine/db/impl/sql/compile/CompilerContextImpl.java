@@ -869,6 +869,7 @@ public class CompilerContextImpl extends ContextImpl
 		  = (StatementColumnPermission) requiredColumnPrivileges.get( key);
 		if( tableColumnPrivileges == null)
 		{
+			addRequiredAccessSchemaPriv(schemaUUID);
 			tableColumnPrivileges = new StatementColumnPermission( schemaUUID,
 																   tableUUID,
 																   currPrivType,
@@ -912,6 +913,7 @@ public class CompilerContextImpl extends ContextImpl
 		UUID tableUUID 	= table.getUUID();
 		UUID schemaUUID = table.getSchemaDescriptor().getUUID();
 
+		addRequiredAccessSchemaPriv(schemaUUID);
 		StatementTablePermission key = new StatementTablePermission(  schemaUUID, tableUUID, currPrivType);
 		requiredTablePrivileges.put(key, key);
 	}
@@ -965,6 +967,17 @@ public class CompilerContextImpl extends ContextImpl
 		requiredSchemaPrivileges.put(key, key);
 	}
 
+	public void addRequiredAccessSchemaPriv(UUID uuid) {
+		if( requiredSchemaPrivileges == null || uuid == null)
+			return;
+
+		// if schema access restriction is not enabled, no need to add access permission check
+		if (!lcc.getDataDictionary().getMetadataAccessRestrictionEnabled())
+			return;
+
+		StatementSchemaPermission accessPrivileges = new StatementSchemaPermission(uuid, Authorizer.ACCESS_PRIV);
+		requiredSchemaPrivileges.put(accessPrivileges, accessPrivileges);
+	}
 
 	/**
 	 * Add a required role privilege to the list privileges.
@@ -1003,6 +1016,7 @@ public class CompilerContextImpl extends ContextImpl
         { size += requiredRolePrivileges.size(); }
 		
 		ArrayList list = new ArrayList( size);
+		ArrayList accessList = new ArrayList();
 		if( requiredRoutinePrivileges != null)
 		{
             for (Object o : requiredRoutinePrivileges.keySet()) {
@@ -1025,7 +1039,13 @@ public class CompilerContextImpl extends ContextImpl
 		}
 		if( requiredSchemaPrivileges != null)
 		{
-			list.addAll(requiredSchemaPrivileges.values());
+			for (Object o: requiredSchemaPrivileges.keySet()) {
+				StatementSchemaPermission sp = (StatementSchemaPermission) o;
+				if (((StatementSchemaPermission) o).getPrivType() == Authorizer.ACCESS_PRIV)
+					accessList.add(requiredSchemaPrivileges.get(sp));
+				else
+					list.add(requiredSchemaPrivileges.get(sp));
+			}
 		}
 		if( requiredColumnPrivileges != null)
 		{
@@ -1035,6 +1055,10 @@ public class CompilerContextImpl extends ContextImpl
 		{
 			list.addAll(requiredRolePrivileges.values());
 		}
+
+		// insert all the access check to the beginning of the list
+		list.addAll(0, accessList);
+
 		return list;
 	} // end of getRequiredPermissionsList
 

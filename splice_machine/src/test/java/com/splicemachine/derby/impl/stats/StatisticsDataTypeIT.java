@@ -783,7 +783,7 @@ public class StatisticsDataTypeIT {
 
     private void assertCorrectTableStatistics(String tableName) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement("select * " +
-                "from sys.systablestatistics where schemaname = ? and tablename = ?")) {
+                "from sysvw.systablestatistics where schemaname = ? and tablename = ?")) {
             ps.setString(1, schema.schemaName);
             ps.setString(2, tableName);
 
@@ -803,7 +803,7 @@ public class StatisticsDataTypeIT {
         String colName = col.columnName.toUpperCase();
         String minValue = col.getMinValueString();
         try(PreparedStatement ps = conn.prepareStatement("select * from " +
-                "sys.syscolumnstatistics where schemaname = ? and tablename = ? and columnName=?")){
+                "sysvw.syscolumnstatistics where schemaname = ? and tablename = ? and columnName=?")){
             ps.setString(1,schema.schemaName);
             ps.setString(2,tableName);
             ps.setString(3,colName);

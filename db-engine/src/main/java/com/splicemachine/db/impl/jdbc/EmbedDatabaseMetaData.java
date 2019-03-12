@@ -33,25 +33,24 @@ package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.GetProcedureColumns;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.info.ProductVersionHolder;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.Limits;
 
-import java.sql.*;
-import java.util.Properties;
 import java.io.IOException;
 import java.io.InputStream;
-
-import com.splicemachine.db.iapi.util.InterruptStatus;
+import java.sql.*;
+import java.util.Properties;
 
 /**
  * This class provides information about the database as a whole.
@@ -3218,6 +3217,38 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		s.setString(1, swapNull(schema));
 		s.setString(2, swapNull(table)); //DERBY-1484: Must match table name as stored
 		s.setBoolean(3, unique);
+		return s.executeQuery();
+	}
+
+	public ResultSet getSchemasInfo() throws SQLException {
+		PreparedStatement s = getPreparedQuery("getSchemasInfo");
+		return s.executeQuery();
+	}
+
+	public ResultSet getTablesForSnaphot(String schemaname, String tablename) throws SQLException {
+		PreparedStatement s = getPreparedQuery("getTablesForSnapshot");
+		s.setString(1, swapNull(schemaname));
+		s.setString(2, swapNull(tablename));
+		return s.executeQuery();
+	}
+
+	public ResultSet checkSnapshotExists(String snapshotname) throws SQLException {
+		PreparedStatement s = getPreparedQuery("checkSnapshotExists");
+		s.setString(1, swapNull(snapshotname));
+		return s.executeQuery();
+	}
+
+	public ResultSet getCheckConstraints(String schemaname, String tablename) throws SQLException {
+		PreparedStatement s = getPreparedQuery("getCheckConstraints");
+		s.setString(1, swapNull(schemaname));
+		s.setString(2, swapNull(tablename));
+		return s.executeQuery();
+	}
+
+	public ResultSet getUniqueConstraints(String schemaname, String tablename) throws SQLException {
+		PreparedStatement s = getPreparedQuery("getUniqueConstraints");
+		s.setString(1, swapNull(schemaname));
+		s.setString(2, swapNull(tablename));
 		return s.executeQuery();
 	}
 

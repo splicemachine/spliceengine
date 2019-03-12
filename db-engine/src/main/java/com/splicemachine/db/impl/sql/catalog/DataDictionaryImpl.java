@@ -116,6 +116,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     protected SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
     protected SchemaDescriptor systemUtilSchemaDesc;
     protected SchemaDescriptor sysFunSchemaDesc;
+    protected SchemaDescriptor sysViewSchemaDesc;
+
     /**
      * Dictionary version of the on-disk database
      */
@@ -528,6 +530,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             // Update (or create) the system stored procedures if requested.
             updateSystemProcedures(bootingTC);
 
+            // read the system configuration setting about whether access restriction is enabled
+            // and determine if sysvw.sysschemasview should be updated
+            setMetadataAccessRestrictionEnabled();
+            updateSystemSchemasView(bootingTC);
+
 			/* Commit & destroy the create database */
             bootingTC.commit();
             assert cm!=null;
@@ -658,6 +665,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         sysIBMSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID);
         systemUtilSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID);
         sysFunSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,SchemaDescriptor.SYSFUN_SCHEMA_UUID);
+        sysViewSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID);
+
     }
 
     // returns null if database is at rev level 10.5 or earlier
@@ -2387,7 +2396,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * FIXME: Need to cache graph and invalidate when role graph is modified.
      * Currently, we always read from SYSROLES.
      */
-    Map<String, List<RoleGrantDescriptor>> getRoleGrantGraph(TransactionController tc,boolean inverse) throws StandardException{
+    public Map<String, List<RoleGrantDescriptor>> getRoleGrantGraph(TransactionController tc,boolean inverse, boolean roleOnly) throws StandardException{
 
         Map<String, List<RoleGrantDescriptor>> hm=new HashMap<>();
 
@@ -2424,19 +2433,21 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         while(sc.fetchNext(outRow.getRowArray())){
             grantDescr=(RoleGrantDescriptor)rf.buildDescriptor(outRow,null,this);
 
-            // Next call is potentially inefficient.  We could read in
-            // definitions first in a separate hash table limiting
-            // this to a 2-pass scan.
-            RoleGrantDescriptor granteeDef=getRoleDefinitionDescriptor(grantDescr.getGrantee());
+            if (roleOnly) {
+                // Next call is potentially inefficient.  We could read in
+                // definitions first in a separate hash table limiting
+                // this to a 2-pass scan.
+                RoleGrantDescriptor granteeDef = getRoleDefinitionDescriptor(grantDescr.getGrantee());
 
-            if(granteeDef==null){
-                // not a role, must be user authid, skip
-                continue;
+                if (granteeDef == null) {
+                    // not a role, must be user authid, skip
+                    continue;
+                }
             }
 
             String hashKey;
             if(inverse){
-                hashKey=granteeDef.getRoleName();
+                hashKey=grantDescr.getGrantee();
             }else{
                 hashKey=grantDescr.getRoleName();
             }
@@ -6393,6 +6404,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 false);
 
         addDescriptor(appSchemaDesc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
+
+        //Add the SYSVW schema
+        sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID,tc);
     }
 
     /**
@@ -6402,7 +6416,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param schema_name name of the schema to add.
      * @throws StandardException Standard exception policy.
      */
-    private SchemaDescriptor addSystemSchema(String schema_name,
+    protected SchemaDescriptor addSystemSchema(String schema_name,
                                              String schema_uuid,
                                              TransactionController tc) throws StandardException{
         // create the descriptor
@@ -9205,7 +9219,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public TablePermsDescriptor getTablePermissions(UUID tableUUID,String authorizationId) throws StandardException{
         TablePermsDescriptor key=new TablePermsDescriptor(this,authorizationId,null,tableUUID);
-        return (TablePermsDescriptor)getPermissions(key);
+        return (TablePermsDescriptor)getPermissions(key, true);
     } // end of getTablePermissions
 
     @Override
@@ -9225,7 +9239,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID, String authorizationId) throws StandardException{
         SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,authorizationId,null,schemaPermsUUID);
-        return (SchemaPermsDescriptor)getPermissions(key);
+        return (SchemaPermsDescriptor)getPermissions(key, true);
     }
 
     @Override
@@ -9234,7 +9248,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getUncachedSchemaPermsDescriptor(key);
     }
 
-    public Object getPermissions(PermissionsDescriptor key) throws StandardException{
+    public Object getPermissions(PermissionsDescriptor key, boolean metadataAccessRestrictionEnabled) throws StandardException{
 
         Optional<PermissionsDescriptor> optional = dataDictionaryCache.permissionCacheFind(key);
         if (optional != null)
@@ -9251,12 +9265,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // The owner has all privileges unless they have been revoked.
                 TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID());
                 SchemaDescriptor sd = td.getSchemaDescriptor();
-                if( sd.isSystemSchema())
+
+                if( metadataAccessRestrictionEnabled && sd.isSystemViewSchema() ||
+                        !metadataAccessRestrictionEnabled && sd.isSystemSchema())
                 {
-                    // RESOLVE The access to system tables is hard coded to SELECT only to everyone.
-                    // Is this the way we want Derby to work? Should we allow revocation of read access
-                    // to system tables? If so we must explicitly add a row to the SYS.SYSTABLEPERMISSIONS
-                    // table for each system table when a database is created.
+                    // make sytem tables or views publicly accessible and readable depending on metadataAccessRestritionEnabled or not
                     permissions = new TablePermsDescriptor( this,
                             tablePermsKey.getGrantee(),
                             (String) null,
@@ -9264,8 +9277,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                             "Y", "N", "N", "N", "N", "N");
                     // give the permission the same UUID as the system table
                     ((TablePermsDescriptor) permissions).setUUID( tablePermsKey.getTableUUID() );
-                }
-                else if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
+                } else if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
                 {
                     permissions = new TablePermsDescriptor( this,
                             tablePermsKey.getGrantee(),
@@ -9321,6 +9333,32 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         else if (key instanceof SchemaPermsDescriptor) {
             SchemaPermsDescriptor schemaPermsKey = (SchemaPermsDescriptor) key;
             permissions = getUncachedSchemaPermsDescriptor(schemaPermsKey);
+
+            if( permissions == null)
+            {
+                try {
+                    // The owner has all privileges unless they have been revoked.
+                    SchemaDescriptor sd = getSchemaDescriptor(schemaPermsKey.getSchemaUUID(), ConnectionUtil.getCurrentLCC().getTransactionExecute());
+
+                    if (metadataAccessRestrictionEnabled && sd.isSystemViewSchema() ||
+                            !metadataAccessRestrictionEnabled && sd.isSystemSchema()) {
+                        // allow read access to public
+                        permissions = new SchemaPermsDescriptor(this,
+                                schemaPermsKey.getGrantee(),
+                                (String) null,
+                                schemaPermsKey.getSchemaUUID(),
+                                "Y", "N", "N", "N", "N", "N", "N", "Y");
+                    } else if (schemaPermsKey.getGrantee().equals(sd.getAuthorizationId())) {
+                        permissions = new SchemaPermsDescriptor(this,
+                                schemaPermsKey.getGrantee(),
+                                Authorizer.SYSTEM_AUTHORIZATION_ID,
+                                schemaPermsKey.getSchemaUUID(),
+                                "Y", "Y", "Y", "Y", "Y", "Y", "Y", "Y" );
+                    }
+                } catch( java.sql.SQLException sqle) {
+                    throw StandardException.plainWrapException( sqle);
+                }
+            }
         }
         else if( key instanceof PermDescriptor)
         {
@@ -9412,7 +9450,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,String authorizationId) throws StandardException{
         RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,authorizationId,null,routineUUID);
 
-        return (RoutinePermsDescriptor)getPermissions(key);
+        return (RoutinePermsDescriptor)getPermissions(key, true);
     } // end of getRoutinePermissions
 
     @Override
@@ -10169,7 +10207,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                 String granteeAuthId) throws StandardException{
         PermDescriptor key=new PermDescriptor(this,null,objectType,objectUUID,privilege,null,granteeAuthId,false);
 
-        return (PermDescriptor)getPermissions(key);
+        return (PermDescriptor)getPermissions(key, true);
     }
 
     /**
