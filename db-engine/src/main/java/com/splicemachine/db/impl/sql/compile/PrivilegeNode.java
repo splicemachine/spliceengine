@@ -200,7 +200,7 @@ public class PrivilegeNode extends QueryTreeNode
             break;
         case TABLE_PRIVILEGES:
 
-            if (specificPrivileges.modifyActionAllowed()) {
+            if (specificPrivileges.modifyActionAllowed() || specificPrivileges.accessActionAllowed()) {
                 throw StandardException.newException(SQLState.AUTH_NOT_VALID_TABLE_PRIVILEGE);
             }
             sd = getSchemaDescriptor( objectName.getSchemaName(), true);

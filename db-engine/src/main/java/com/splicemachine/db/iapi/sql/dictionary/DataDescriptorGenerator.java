@@ -515,12 +515,13 @@ public class DataDescriptorGenerator
 														 String referencesPerm,
 														 String triggerPerm,
 														 String modifyPerm,
+														 String accessPerm,
 														 String grantor)
 			throws StandardException
 	{
 		if( "N".equals( selectPerm) && "N".equals( deletePerm) && "N".equals( insertPerm)
 				&& "N".equals( updatePerm) && "N".equals( referencesPerm) && "N".equals( triggerPerm)
-				&& "N".equals(modifyPerm))
+				&& "N".equals(modifyPerm) && "N".equals(accessPerm))
 			return null;
 
 		return new SchemaPermsDescriptor( dataDictionary,
@@ -533,7 +534,8 @@ public class DataDescriptorGenerator
 				updatePerm,
 				referencesPerm,
 				triggerPerm,
-				modifyPerm);
+				modifyPerm,
+				accessPerm);
 	}
 
     /**
