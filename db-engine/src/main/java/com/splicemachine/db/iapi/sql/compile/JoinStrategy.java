@@ -55,7 +55,8 @@ public interface JoinStrategy {
 		MERGE_SORT ("MERGE_SORT",1,"MergeSort",false),
         BROADCAST ("BROADCAST",2,"Broadcast",false),
         MERGE ("MERGE",3, "Merge",false),
-		HALF_MERGE_SORT ("HALF_MERGE_SORT", 4, "HalfMergeSort", false);
+		HALF_MERGE_SORT ("HALF_MERGE_SORT", 4, "HalfMergeSort", false),
+        CROSS ("CROSS", 5, "Cross", false);
         private final String name;
         private final int strategyId;
         private final String niceName;

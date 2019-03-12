@@ -743,6 +743,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(JoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DMLWriteOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MiscOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CrossJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(LongBufferedSumAggregator.class,new Serializer<LongBufferedSumAggregator>(){
             @Override

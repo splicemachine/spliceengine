@@ -108,7 +108,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             LOG.debug(String.format("visit joinNode=%s",j));
         initializeMap(j);
         AccessPath ap = ((Optimizable) j.getRightResultSet()).getTrulyTheBestAccessPath();
-        if (RSUtils.isHashableJoin(ap)){
+        if (RSUtils.isHashableJoin(ap) || RSUtils.isCrossJoin(ap)){
             return pullUpPreds(j, ap);
         } else if (RSUtils.isNLJ(ap)){
             return rewriteNLJColumnRefs(j);

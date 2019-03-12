@@ -473,6 +473,12 @@ public class ControlDataSet<V> implements DataSet<V> {
         throw new UnsupportedOperationException("Not Implemented in Control Side");
     }
 
+    @Override
+    public DataSet<V> crossJoin(OperationContext operationContext, DataSet<V> rightDataSet) {
+        throw new UnsupportedOperationException("Not Implemented in Control Side");
+    }
+
+
     /**
      * Window Function. Take a WindowContext that define the partition, the order, and the frame boundary.
      * Currently only run on top of Spark.

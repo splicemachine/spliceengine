@@ -657,6 +657,17 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new NativeSparkDataSet(leftDF, leftContext).join(context, rightDataSet, joinType, isBroadcast);
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet) throws StandardException {
+        Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
+                rdd.map(new LocatedRowToRowFunction()),
+                        context.getOperation().getLeftOperation().getExecRowDefinition().schema());
+        OperationContext<SpliceOperation> leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
+
+        return new NativeSparkDataSet(leftDF, leftContext).crossJoin(context, rightDataSet);
+    }
+
     /**
      * Take a Splice DataSet and  convert to a Spark Dataset
      * doing a map

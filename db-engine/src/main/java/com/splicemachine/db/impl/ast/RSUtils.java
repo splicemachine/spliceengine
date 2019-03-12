@@ -269,6 +269,12 @@ public class RSUtils {
         return strategy instanceof HashableJoinStrategy;
     }
 
+    public static boolean isCrossJoin(AccessPath ap) {
+        if (ap == null) return false;
+        JoinStrategy strategy = ap.getJoinStrategy();
+        return strategy.getJoinStrategyType() == JoinStrategy.JoinStrategyType.CROSS;
+    }
+
     public static boolean isSinkingJoin(AccessPath ap) {
         return isMSJ(ap) || isMJ(ap);
     }
