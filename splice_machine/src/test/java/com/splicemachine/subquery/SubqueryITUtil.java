@@ -80,7 +80,7 @@ public class SubqueryITUtil {
     /**
      * Counts the number of Subquery nodes that appear in the explain plan text for a given query.
      */
-    private static int countSubqueriesInPlan(String a) {
+    public static int countSubqueriesInPlan(String a) {
         Pattern pattern = Pattern.compile("^.*?Subquery\\s*\\(", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
         int count = 0;
         Matcher matcher = pattern.matcher(a);

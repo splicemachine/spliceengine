@@ -57,6 +57,7 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.derby.stream.control.ControlOperationContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
@@ -845,5 +846,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER,296);
         instance.register(SetOpOperation.class,EXTERNALIZABLE_SERIALIZER,297);
         instance.register(ExportFile.COMPRESSION.class, 298);
+        instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER, 299);
+        instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER, 300);
     }
 }
