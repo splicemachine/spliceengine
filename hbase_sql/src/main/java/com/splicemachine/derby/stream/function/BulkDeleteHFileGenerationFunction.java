@@ -35,7 +35,6 @@ public class BulkDeleteHFileGenerationFunction extends HFileGenerationFunction {
                                              List<BulkImportPartition> partitionList) {
         super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList);
         this.operationType = OperationType.DELETE;
-        this.ah = new ActivationHolder(operationContext.getActivation(), operationContext.getOperation());
     }
 
     @Override

@@ -35,11 +35,9 @@ public class BulkLoadIndexHFileGenerationFunction extends HFileGenerationFunctio
                                                 String compressionAlgorithm,
                                                 List<BulkImportPartition> partitionList,
                                                 String tableVersion,
-                                                DDLMessage.TentativeIndex tentativeIndexList,
-                                                ActivationHolder ah) {
+                                                DDLMessage.TentativeIndex tentativeIndexList) {
         super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList, tableVersion, tentativeIndexList);
         operationType = OperationType.CREATE_INDEX;
-        this.ah = ah;
     }
 
     @Override
