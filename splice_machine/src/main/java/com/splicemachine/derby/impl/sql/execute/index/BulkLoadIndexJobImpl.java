@@ -18,14 +18,17 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.BulkLoadIndexDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.si.api.txn.TxnView;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 
 /**
@@ -65,16 +68,54 @@ public class BulkLoadIndexJobImpl implements Callable<Void> {
 
         DataSet<ExecRow> dataSet = scanSetBuilder.buildDataSet(prefix);
         DataSetProcessor dsp =EngineDriver.driver().processorFactory().distributedProcessor();
-        scanSetBuilder.operationContext(dsp.createOperationContext(ah.getActivation()));
-        OperationContext operationContext = scanSetBuilder.getOperationContext();
+        SpliceBaseOperation op = new SpliceBaseOperation() {
+            @Override
+            public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+                return null;
+            }
 
+            @Override
+            public String getName() {
+                return null;
+            }
+
+            @Override
+            public int[] getRootAccessedCols(long tableNumber) throws StandardException {
+                return new int[0];
+            }
+
+            @Override
+            public boolean isReferencingTable(long tableNumber) {
+                return false;
+            }
+
+            @Override
+            public String prettyPrint(int indentLevel) {
+                return null;
+            }
+
+            @Override
+            public List<SpliceOperation> getSubOperations() {
+                return null;
+            }
+
+            @Override
+            public int resultSetNumber(){
+                return 0;
+            }
+        };
+        op.setActivation(ah.getActivation());
+        //scanSetBuilder.operationContext(dsp.createOperationContext(ah.getActivation()));
+        scanSetBuilder.operationContext(dsp.createOperationContext(op));
+        OperationContext operationContext = scanSetBuilder.getOperationContext();
         BulkLoadIndexDataSetWriterBuilder writerBuilder = dataSet
                 .bulkLoadIndex(operationContext)
                 .bulkLoadDirectory(request.hfilePath)
                 .sampling(request.sampling)
                 .bulkLoadDirectory(request.hfilePath)
                 .tentativeIndex(request.tentativeIndex)
-                .indexName(request.indexName);
+                .indexName(request.indexName)
+                .tableVersion(request.tableVersion);
 
         DataSetWriter writer = writerBuilder
                 .destConglomerate(tentativeIndex.getIndex().getConglomerate())
