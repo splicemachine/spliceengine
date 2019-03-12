@@ -95,7 +95,6 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
     private int[] pkCols;
     private String tableVersion;
     private Map<Long, Object> decoderMap = new HashedMap();
-    protected ActivationHolder ah;
 
     private List<DDLMessage.TentativeIndex> tentativeIndexList;
 
@@ -306,7 +305,6 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
                 out.write(message);
             }
         }
-        out.writeObject(ah);
     }
 
     @Override
@@ -343,7 +341,6 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
                 tentativeIndexList.add(DDLMessage.TentativeIndex.parseFrom(message));
             }
         }
-        ah = (ActivationHolder)in.readObject();
     }
 
     private static InetSocketAddress getFavoredNode(BulkImportPartition partition) throws IOException {
@@ -432,7 +429,7 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
         }
         else {
             SpliceLogUtils.error(LOG, "Unique constraint violation, row: %s", execRow.toString());
-            DataDictionary dd = ah.getActivation().getLanguageConnectionContext().getDataDictionary();
+            DataDictionary dd = operationContext.getActivation().getLanguageConnectionContext().getDataDictionary();
             ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
             com.splicemachine.db.catalog.UUID tableID = cd.getTableID();
             TableDescriptor td = dd.getTableDescriptor(tableID);

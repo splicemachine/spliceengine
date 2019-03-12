@@ -51,7 +51,6 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
     private DDLMessage.TentativeIndex tentativeIndex;
     private String indexName;
     private String tableVersion;
-    private ActivationHolder ah;
 
     public BulkLoadIndexDataSetWriter(DataSet dataSet,
                                       String  bulkLoadDirectory,
@@ -69,7 +68,6 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         this.tentativeIndex = tentativeIndex;
         this.indexName = indexName;
         this.tableVersion = tableVersion;
-        this.ah = new ActivationHolder(operationContext.getActivation(),null);
     }
 
     @Override
@@ -106,7 +104,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         // Write to HFile
         HFileGenerationFunction hfileGenerationFunction =
                 new BulkLoadIndexHFileGenerationFunction(operationContext, txn.getTxnId(),
-                        heapConglom, compressionAlgorithm, bulkLoadPartitions, tableVersion, tentativeIndex, ah);
+                        heapConglom, compressionAlgorithm, bulkLoadPartitions, tableVersion, tentativeIndex);
 
         DataSet rowAndIndexes = dataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true,

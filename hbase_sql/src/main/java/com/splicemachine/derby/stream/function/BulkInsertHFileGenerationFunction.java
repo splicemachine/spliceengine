@@ -40,7 +40,6 @@ public class BulkInsertHFileGenerationFunction extends HFileGenerationFunction {
                                              ArrayList<DDLMessage.TentativeIndex> tentativeIndexList) {
         super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList, pkCols, tableVersion, tentativeIndexList);
         this.operationType = OperationType.INSERT;
-        this.ah = new ActivationHolder(operationContext.getActivation(), operationContext.getOperation());
     }
 
     @Override
