@@ -47,6 +47,7 @@ import com.splicemachine.db.impl.sql.execute.TablePrivilegeInfo;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo.ACCESS_ACTION;
 import static com.splicemachine.db.impl.sql.execute.BasicPrivilegeInfo.MODIFY_ACTION;
 
 /**
@@ -224,6 +225,10 @@ public class BasicPrivilegesNode extends QueryTreeNode
 
 	public boolean modifyActionAllowed() {
 		return actionAllowed[MODIFY_ACTION];
+	}
+
+	public boolean accessActionAllowed() {
+		return actionAllowed[ACCESS_ACTION];
 	}
 
 	public boolean getIsAll() {

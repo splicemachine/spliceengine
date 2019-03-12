@@ -20,19 +20,18 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.dictionary.StatementTablePermission;
+import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
 public class SimpleActivation extends BaseActivation {
 
-    public SimpleActivation(List<StatementTablePermission> statementTablePermissions, LanguageConnectionContext context) throws StandardException {
+    public SimpleActivation(List<StatementPermission> statementPermissions, LanguageConnectionContext context) throws StandardException {
         GenericPreparedStatement gps = new GenericPreparedStatement(null);
-        gps.setRequiredPermissionsList(statementTablePermissions);
+        gps.setRequiredPermissionsList(statementPermissions);
         preStmt = gps;
         initFromContext(context);
     }

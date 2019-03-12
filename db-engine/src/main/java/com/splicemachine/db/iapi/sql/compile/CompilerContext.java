@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.sql.compile;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.compiler.JavaFactory;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -606,6 +607,8 @@ public interface CompilerContext extends Context
 	 * @param privType	CREATE_SCHEMA_PRIV, MODIFY_SCHEMA_PRIV or DROP_SCHEMA_PRIV
 	 */
 	void addRequiredSchemaPriv(String schema, String aid, int privType);
+
+	void addRequiredSchemaPriv(UUID uuid, int privType);
 
 	/**
 	 * Add a routine execute privilege to the list of used routine privileges.

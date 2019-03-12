@@ -2101,6 +2101,7 @@ public class SQLParser
 				tokenKind == UPDATE ||
 				tokenKind == REFERENCES ||
 				tokenKind == MODIFY ||
+				tokenKind == ACCESS ||
 				tokenKind == EXECUTE ||
 				tokenKind == USAGE ||
 				tokenKind == ALL);
@@ -2841,6 +2842,7 @@ TOKEN [IGNORE_CASE] :
 {	/* SQL92 non-reserved Keywords */
     <ABS: "abs">
 |    <ABSVAL: "absval">
+|   <ACCESS: "access">
 |	<ACTION: "action">
 |	<ALWAYS: "always">
 |   <AUTO: "auto">
@@ -16055,9 +16057,11 @@ PrivilegeNode basicPrivileges( BasicPrivilegesNode basicPrivilegesNode) throws S
 |   [  <TABLE> ]
         objectName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     {
-             /* modify action is not supported at the table level, so take it out */
-             if (basicPrivilegesNode.getIsAll())
+             /* modify and access action is not supported at the table level, so take it out */
+             if (basicPrivilegesNode.getIsAll()) {
                  basicPrivilegesNode.removeAction(TablePrivilegeInfo.MODIFY_ACTION);
+                 basicPrivilegesNode.removeAction(TablePrivilegeInfo.ACCESS_ACTION);
+             }
 
              return (PrivilegeNode) nodeFactory.getNode( C_NodeTypes.PRIVILEGE_NODE,
                                                          ReuseFactory.getInteger( PrivilegeNode.TABLE_PRIVILEGES),
@@ -16259,6 +16263,11 @@ void basicAction( BasicPrivilegesNode basicPrivilegesNode)  throws StandardExcep
     <MODIFY>
     {
         basicPrivilegesNode.addAction( BasicPrivilegeInfo.MODIFY_ACTION, (ResultColumnList) null);
+    }
+|
+    <ACCESS>
+    {
+        basicPrivilegesNode.addAction( BasicPrivilegeInfo.ACCESS_ACTION, (ResultColumnList) null);
     }
 } // end of tableAction
 
@@ -16925,7 +16934,8 @@ nonReservedKeyword()  :
 	 */
 	(
         tok = <ABS>  
-	|	tok = <ABSVAL>  
+	|	tok = <ABSVAL>
+	|	tok = <ACCESS>
 	|	tok = <ACTION>
 	|	tok = <AFTER>
 	|	tok = <AGGREGATE>

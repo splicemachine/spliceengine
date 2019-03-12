@@ -51,7 +51,6 @@ import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.tools.dblook;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
@@ -1937,7 +1936,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
             ConglomerateDescriptor conglomerate = lcc.getDataDictionary().getConglomerateDescriptor(conglomId);
 
             // Check generic table permission
-            Activation activation = new SimpleActivation(Arrays.asList(new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)), lcc);
+            Activation activation = new SimpleActivation(Arrays.asList(new StatementSchemaPermission(conglomerate.getSchemaID(), Authorizer.ACCESS_PRIV)
+                    , new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)), lcc);
             lcc.getAuthorizer().authorize(activation, Authorizer.SELECT_PRIV);
 
             // Special check for SYSUSERS which contains the user/passwords
@@ -2005,7 +2005,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 ConglomerateDescriptor conglomerate = lcc.getDataDictionary().getConglomerateDescriptor(conglomerateId);
 
                 // Check generic table permission
-                Activation activation = new SimpleActivation(Arrays.asList(new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)), lcc);
+                Activation activation = new SimpleActivation(Arrays.asList(new StatementSchemaPermission(conglomerate.getSchemaID(), Authorizer.ACCESS_PRIV)
+                        , new StatementTablePermission(conglomerate.getSchemaID(), conglomerate.getTableID(), Authorizer.SELECT_PRIV)), lcc);
                 lcc.getAuthorizer().authorize(activation, Authorizer.SELECT_PRIV);
 
                 // Special check for SYSUSERS which contains the user/passwords

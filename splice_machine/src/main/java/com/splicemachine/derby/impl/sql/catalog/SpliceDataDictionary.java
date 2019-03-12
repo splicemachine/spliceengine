@@ -1178,4 +1178,38 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.info(LOG, "Dropped table %s", tableName);
         }
     }
+
+    public void upgradeSysSchemaPermsForAccessSchemaPrivilege(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSSCHEMAPERMSRowFactory.SCHEMANAME_STRING, sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor("ACCESSPRIV");
+        if (cd == null) {
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence() + 1);
+            // add the table descriptor with new name
+            addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+
+            ColumnDescriptor columnDescriptor;
+            UUID uuid = getUUIDFactory().createUUID();
+
+            /**
+             *  Add the column ACCESSPRIV
+             */
+            DataValueDescriptor storableDV = getDataValueFactory().getNullChar(null);
+            int colNumber = td.getNumberOfColumns() + 1;
+            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1);
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+            columnDescriptor = new ColumnDescriptor(SYSSCHEMAPERMSRowFactory.ACCESSPRIV_COL_NAME, colNumber,
+                    colNumber, dtd, null, null, td, uuid, 0, 0, td.getColumnSequence());
+
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
+            // now add the column to the tables column descriptor list.
+            td.getColumnDescriptorList().add(columnDescriptor);
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+            SpliceLogUtils.info(LOG, "SYS.SYSSCHEMAPERMS upgraded: added columns: ACCESSPRIV.");
+        }
+    }
 }

@@ -9321,6 +9321,33 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         else if (key instanceof SchemaPermsDescriptor) {
             SchemaPermsDescriptor schemaPermsKey = (SchemaPermsDescriptor) key;
             permissions = getUncachedSchemaPermsDescriptor(schemaPermsKey);
+
+            if( permissions == null)
+            {
+                try {
+                    // The owner has all privileges unless they have been revoked.
+                    SchemaDescriptor sd = getSchemaDescriptor(schemaPermsKey.getSchemaUUID(), ConnectionUtil.getCurrentLCC().getTransactionExecute());
+                    if (sd.isSystemSchema()) {
+                        // RESOLVE The access to system tables is hard coded to SELECT only to everyone.
+                        // Is this the way we want Derby to work? Should we allow revocation of read access
+                        // to system tables? If so we must explicitly add a row to the SYS.SYSTABLEPERMISSIONS
+                        // table for each system table when a database is created.
+                        permissions = new SchemaPermsDescriptor(this,
+                                schemaPermsKey.getGrantee(),
+                                (String) null,
+                                schemaPermsKey.getSchemaUUID(),
+                                "N", "N", "N", "N", "N", "N", "N", "Y");
+                    } else if (schemaPermsKey.getGrantee().equals(sd.getAuthorizationId())) {
+                        permissions = new SchemaPermsDescriptor(this,
+                                schemaPermsKey.getGrantee(),
+                                Authorizer.SYSTEM_AUTHORIZATION_ID,
+                                schemaPermsKey.getSchemaUUID(),
+                                "Y", "Y", "Y", "Y", "Y", "Y", "Y", "Y" );
+                    }
+                } catch( java.sql.SQLException sqle) {
+                    throw StandardException.plainWrapException( sqle);
+                }
+            }
         }
         else if( key instanceof PermDescriptor)
         {
