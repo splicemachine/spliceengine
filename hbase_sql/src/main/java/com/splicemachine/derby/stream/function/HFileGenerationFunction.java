@@ -19,8 +19,22 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -40,6 +54,7 @@ import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.regionserver.HStore;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.function.MapPartitionsFunction;
 import org.apache.spark.sql.Row;
@@ -50,10 +65,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by jyuan on 3/21/17.
@@ -62,6 +74,13 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
 
     private static final Logger LOG=Logger.getLogger(HFileGenerationFunction.class);
 
+    public enum OperationType {
+        INSERT,
+        CREATE_INDEX,
+        DELETE
+    }
+
+    protected OperationType operationType;
     protected StoreFile.Writer writer;
     protected long txnId;
 
@@ -73,6 +92,11 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
     private Long heapConglom;
     private String compressionAlgorithm;
     private List<BulkImportPartition> partitionList;
+    private int[] pkCols;
+    private String tableVersion;
+    private Map<Long, Object> decoderMap = new HashedMap();
+
+    private List<DDLMessage.TentativeIndex> tentativeIndexList;
 
     public HFileGenerationFunction() {
     }
@@ -87,6 +111,41 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
         this.heapConglom = heapConglom;
         this.compressionAlgorithm = compressionAlgorithm;
         this.partitionList = partitionList;
+    }
+
+    public HFileGenerationFunction(OperationContext operationContext,
+                                   long txnId,
+                                   Long heapConglom,
+                                   String compressionAlgorithm,
+                                   List<BulkImportPartition> partitionList,
+                                   int[] pkCols,
+                                   String tableVersion,
+                                   ArrayList<DDLMessage.TentativeIndex> tentativeIndexList) {
+        this.txnId = txnId;
+        this.operationContext = operationContext;
+        this.heapConglom = heapConglom;
+        this.compressionAlgorithm = compressionAlgorithm;
+        this.partitionList = partitionList;
+        this.pkCols = pkCols;
+        this.tableVersion = tableVersion;
+        this.tentativeIndexList = tentativeIndexList;
+    }
+
+    public HFileGenerationFunction(OperationContext operationContext,
+                                   long txnId,
+                                   Long heapConglom,
+                                   String compressionAlgorithm,
+                                   List<BulkImportPartition> partitionList,
+                                   String tableVersion,
+                                   DDLMessage.TentativeIndex tentativeIndex) {
+        this.txnId = txnId;
+        this.operationContext = operationContext;
+        this.heapConglom = heapConglom;
+        this.compressionAlgorithm = compressionAlgorithm;
+        this.partitionList = partitionList;
+        this.tableVersion = tableVersion;
+        this.tentativeIndexList = Lists.newArrayList();
+        tentativeIndexList.add(tentativeIndex);
     }
 
     /**
@@ -104,10 +163,9 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
                 Long conglomerateId = row.getAs("conglomerateId");
                 String keyStr = row.getAs("key");
                 if (lastKey != null && lastKey.equals(keyStr)) {
-                    if (operationContext != null) {
-                        operationContext.recordBadRecord("Primary key duplicate, row: "
-                            + row.toString(), null);
-                    }
+                    byte[] value = row.getAs("value");
+                    byte[] key = Bytes.fromHex(keyStr);
+                    handleConstraintViolation(conglomerateId, key, value);
                     continue;
                 }
                 lastKey = keyStr;
@@ -139,7 +197,7 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
 
     protected abstract void writeToHFile (byte[] rowKey, byte[] value) throws Exception;
 
-    private void init(Long conglomerateId, byte[] key) throws IOException{
+    private void init(Long conglomerateId, byte[] key) throws IOException, StandardException{
         conf = HConfiguration.unwrapDelegate();
         int index = Collections.binarySearch(partitionList,
                 new BulkImportPartition(conglomerateId, null, key, key, null),
@@ -148,6 +206,7 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
         fs = FileSystem.get(URI.create(partition.getFilePath()), conf);
         writer = getNewWriter(conf, partition);
         hFiles.add(writer.getPath().toString());
+        initializeDecoders();
     }
 
 
@@ -224,6 +283,28 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
             BulkImportPartition partition = partitionList.get(i);
             out.writeObject(partition);
         }
+        out.writeBoolean(pkCols != null);
+        if (pkCols != null) {
+            int n = pkCols.length;
+            out.writeInt(n);
+            for (int i = 0; i < n; ++i) {
+                out.writeInt(pkCols[i]);
+            }
+        }
+        out.writeBoolean(tableVersion!=null);
+        if (tableVersion != null) {
+            out.writeUTF(tableVersion);
+        }
+        out.writeInt(operationType.ordinal());
+        out.writeBoolean(tentativeIndexList != null);
+        if (tentativeIndexList != null) {
+            out.writeInt(tentativeIndexList.size());
+            for (DDLMessage.TentativeIndex tentativeIndex:tentativeIndexList) {
+                byte[] message = tentativeIndex.toByteArray();
+                out.writeInt(message.length);
+                out.write(message);
+            }
+        }
     }
 
     @Override
@@ -239,6 +320,26 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
         for (int i = 0; i < n; ++i) {
             BulkImportPartition partition = (BulkImportPartition) in.readObject();
             partitionList.add(partition);
+        }
+        if (in.readBoolean()) {
+            n = in.readInt();
+            pkCols = new int[n];
+            for (int i = 0; i < n; ++i) {
+                pkCols[i] = in.readInt();
+            }
+        }
+        if (in.readBoolean()) {
+            tableVersion = in.readUTF();
+        }
+        operationType = OperationType.values()[in.readInt()];
+        if (in.readBoolean()) {
+            tentativeIndexList = Lists.newArrayList();
+            n = in.readInt();
+            for (int i = 0; i < n; ++i) {
+                byte[] message = new byte[in.readInt()];
+                in.readFully(message);
+                tentativeIndexList.add(DDLMessage.TentativeIndex.parseFrom(message));
+            }
         }
     }
 
@@ -267,5 +368,82 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
             SpliceLogUtils.info(LOG, "Cannot to get region location %s to achieve better data locality.", regionName);
         }
         return favoredNode;
+    }
+
+    private boolean isIndex(Long conglomId) {
+        return (operationType == OperationType.CREATE_INDEX) ||
+                (operationType == OperationType.INSERT && heapConglom.longValue() != conglomId.longValue());
+    }
+
+    private void initializeDecoders() throws StandardException{
+        if (operationType == OperationType.INSERT) {
+            // For bulk import, initialize decoder for base table row
+            ExecRow execRow = operationContext.getOperation().getExecRowDefinition();
+            KeyEncoder keyEncoder = BulkImportUtils.getKeyEncoder(execRow, pkCols, tableVersion, null);
+            DataHash rowEncoder = BulkImportUtils.getRowHash(execRow, pkCols, tableVersion);
+            PairDecoder pairDecoder = new PairDecoder(keyEncoder.getDecoder(), rowEncoder.getDecoder(), execRow);
+            decoderMap.put(heapConglom, pairDecoder);
+        }
+        if (tentativeIndexList != null && tentativeIndexList.size() > 0) {
+            // For each index, initialize a decoder for index column
+            for (DDLMessage.TentativeIndex tentativeIndex : tentativeIndexList) {
+                DDLMessage.Table tbl = tentativeIndex.getTable();
+                DDLMessage.Index idx = tentativeIndex.getIndex();
+                Long indexConglomerate = idx.getConglomerate();
+                int n = idx.getIndexColsToMainColMapCount();
+                ExecRow execRow = new ValueRow(n);
+                List<Integer> formatIds = tbl.getFormatIdsList();
+                DataValueDescriptor[] dvds = execRow.getRowArray();
+                for (int i = 0; i < n; ++i) {
+                    dvds[i] =  LazyDataValueFactory.getLazyNull(formatIds.get(i));
+                }
+                int[] pkCols = new int[execRow.nColumns()];
+                for (int i = 0; i < pkCols.length; ++i) {
+                    pkCols[i] = i+1;
+                }
+                boolean[] sortOrder = new boolean[n];
+                for (int  i = 0; i < n; ++i) {
+                    sortOrder[i] = !idx.getDescColumns(i);
+                }
+                KeyEncoder keyEncoder = BulkImportUtils.getKeyEncoder(execRow, pkCols, tableVersion, sortOrder);
+                decoderMap.put(indexConglomerate, new Pair<>(execRow, keyEncoder.getDecoder()));
+            }
+        }
+    }
+
+    private void handleConstraintViolation(Long conglomerateId, byte[] key, byte[] value) throws StandardException{
+        ExecRow execRow;
+        if (isIndex(conglomerateId)) {
+            Pair<ExecRow, KeyDecoder> p = (Pair<ExecRow, KeyDecoder>)decoderMap.get(conglomerateId);
+            execRow = p.getFirst();
+            KeyDecoder decoder = (KeyDecoder) p.getSecond();
+            decoder.decode(key, 0, key.length, execRow);
+        }else {
+            PairDecoder decoder = (PairDecoder) decoderMap.get(conglomerateId);
+            execRow = decoder.decode(key, value);
+        }
+        if (operationContext != null && operationContext.isPermissive()) {
+
+            operationContext.recordBadRecord("Unique constraint violation, row: "
+                    + execRow.toString(), null);
+        }
+        else {
+            SpliceLogUtils.error(LOG, "Unique constraint violation, row: %s", execRow.toString());
+            DataDictionary dd = operationContext.getActivation().getLanguageConnectionContext().getDataDictionary();
+            ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
+            com.splicemachine.db.catalog.UUID tableID = cd.getTableID();
+            TableDescriptor td = dd.getTableDescriptor(tableID);
+            String tableName = td.getName();
+            String indexOrConstraintName;
+            if (isIndex(conglomerateId)) {
+                indexOrConstraintName = cd.getConglomerateName();
+            }
+            else {
+                ConstraintDescriptor conDesc = dd.getConstraintDescriptor(td, cd.getUUID());
+                indexOrConstraintName = conDesc.getConstraintName();
+            }
+
+            throw StandardException.newException(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, indexOrConstraintName, tableName);
+        }
     }
 }

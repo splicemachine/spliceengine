@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.constants.SIConstants;
@@ -22,25 +23,28 @@ import org.apache.hadoop.hbase.KeyValue;
 import java.util.List;
 
 /**
- * Created by jyuan on 6/2/17.
+ * Created by jyuan on 3/7/19.
  */
-public class BulkDeleteHFileGenerationFunction extends HFileGenerationFunction {
+public class BulkLoadIndexHFileGenerationFunction extends HFileGenerationFunction {
 
-    public BulkDeleteHFileGenerationFunction() {}
+    public BulkLoadIndexHFileGenerationFunction() {}
 
-    public BulkDeleteHFileGenerationFunction(OperationContext operationContext,
-                                             long txnId,
-                                             Long heapConglom,
-                                             String compressionAlgorithm,
-                                             List<BulkImportPartition> partitionList) {
-        super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList);
-        this.operationType = OperationType.DELETE;
+    public BulkLoadIndexHFileGenerationFunction(OperationContext operationContext,
+                                                long txnId,
+                                                Long heapConglom,
+                                                String compressionAlgorithm,
+                                                List<BulkImportPartition> partitionList,
+                                                String tableVersion,
+                                                DDLMessage.TentativeIndex tentativeIndexList) {
+        super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList, tableVersion, tentativeIndexList);
+        operationType = OperationType.CREATE_INDEX;
     }
 
     @Override
     protected void writeToHFile (byte[] rowKey, byte[] value) throws Exception {
         KeyValue kv = new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, txnId, value);
+                SIConstants.PACKED_COLUMN_BYTES, txnId, value);
         writer.append(kv);
+
     }
 }
