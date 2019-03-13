@@ -595,6 +595,18 @@ public class SelectivityIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testEqualityPredicateWithUnknownConstantExpression() throws Exception {
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1 where a1=CAST (new java.lang.Object() AS CHAR(10))", methodWatcher));
+        Assert.assertEquals(100, rowCount, 10);
+    }
+
+    @Test
+    public void testNoteEqualPredicateWithUnknownConstantExpression() throws Exception {
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1 where a1 != CAST (new java.lang.Object() AS CHAR(10))", methodWatcher));
+        Assert.assertEquals(99900, rowCount, 10);
+    }
+
+    @Test
     public void testRangeSelectivityWithDifferentPredicateOrder() throws Exception {
         double rowCount = parseOutputRows(getExplainMessage(4,
                 "explain select * from t_range_test --splice-properties index=ix_t_range_test\n where a1=1 and d1 < 'cccc' and d1 >='bbbb'", methodWatcher));
