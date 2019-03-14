@@ -17,12 +17,9 @@ package com.splicemachine.derby.lifecycle;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-import java.io.InterruptedIOException;
 import java.sql.Connection;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
-import com.splicemachine.concurrent.Clock;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
@@ -95,44 +92,13 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         // External connections to Derby are created later when the Derby network server is started.
         EmbedConnectionMaker maker = new EmbedConnectionMaker();
         toUpgrade.set(isMaster);
-        boolean onHold = false;
-        Clock clock = SIDriver.driver().getClock();
-        do {
-            try {
-                onHold = false;
-                if (startup.connectAsFirstTime()) {
-                    isCreate.set(Boolean.TRUE);
-                    internalConnection = maker.createFirstNew(configuration, dbProperties);
-                } else {
-                    isCreate.set(Boolean.FALSE);
-                    internalConnection = maker.createNew(dbProperties);
-                }
-            }  catch (Exception e1) {
-                // The exception has so many levels, so use a loop to get the cause
-                Throwable cause = e1;
-                while (cause.getCause() != null) {
-                    String className = cause.getCause().getClass().getName();
-                    // Cannot get the origin class because of the dependency, so compare them by
-                    // class name
-                    if (className.equals("org.apache.hadoop.hbase.NotServingRegionException") ||
-                        className.equals("org.apache.hadoop.hbase.exceptions.RegionOpeningException")) {
-                        onHold = true;
-                        break;
-                    }
-                    cause = cause.getCause();
-                }
-                if (onHold) {
-                    try {
-                        clock.sleep(1, TimeUnit.SECONDS);
-                    } catch (InterruptedException e) {
-                        //startup was interrupted, so throw an InterruptedIOException
-                        throw new InterruptedIOException();
-                    }
-                } else {
-                    throw e1;
-                }
-            }
-        } while (onHold);
+        if(startup.connectAsFirstTime()){
+            isCreate.set(Boolean.TRUE);
+            internalConnection=maker.createFirstNew(configuration,dbProperties);
+        }else{
+            isCreate.set(Boolean.FALSE);
+            internalConnection=maker.createNew(dbProperties);
+        }
         startup.markBootFinished();
         isCreate.remove();
 
