@@ -241,4 +241,7 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
            SystemColumnImpl.getColumn(GENERATION_ID_COL_NAME, Types.BIGINT, false)
         };
     }
+
+	public static final String FILES_VIEW_SQL = "create view sysfilesV as select * from sys.sysfiles where schemaid in (select schemaid from sys.sysschemasV)";
+
 }

@@ -440,4 +440,6 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("USEEXTRAPOLATION", Types.TINYINT, true)
         };
     }
+
+    public static final String COLUMNS_VIEW_SQL = "create view syscolumnsV as select C.* from sys.syscolumns C, sys.systables T where C.referenceid = T.tableid and T.schemaid in (select schemaid from sys.sysschemasV)";
 }

@@ -369,4 +369,6 @@ public class SYSTABLEPERMSRowFactory extends PermissionsCatalogRowFactory
         DataValueDescriptor existingPermDVD = row.getColumn(TABLEPERMSID_COL_NUM);
         perm.setUUID(getUUIDFactory().recreateUUID(existingPermDVD.getString()));
     }
+
+    public static final String TABLEPERMS_VIEW_SQL = "create view systablepermsV as select P.* from sys.systableperms P, sys.systables T where P.tableid = T.tableid and T.schemaid in (select schemaid from sys.sysschemasV)";
 }

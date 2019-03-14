@@ -245,11 +245,14 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             "t.tableid = c.tableid " +
             "and c.conglomeratenumber = ts.conglomerateid " +
             "and t.schemaid = s.schemaid " +
+            "and s.schemaid in (select schemaid from sys.sysschemasV)" +
             " group by " +
             "s.schemaname" +
             ",t.tablename"+
             ",c.conglomeratename" +
             ",ts.statsType";
+
+    public static final String TABLESTATS_VIEW_SQL = "create view systablestatsV as select S.* from sys.systablestats S, sys.conglomerates T where S.conglomerateid = C.conglomeratenumber and C.schemaid in (select schemaid from sys.sysschemasV)";
 
     public static void main(String...args) {
         System.out.println(STATS_VIEW_SQL);

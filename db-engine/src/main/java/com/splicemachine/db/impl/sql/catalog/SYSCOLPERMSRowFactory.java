@@ -322,4 +322,6 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
         DataValueDescriptor existingPermDVD = row.getColumn(COLPERMSID_COL_NUM);
         perm.setUUID(getUUIDFactory().recreateUUID(existingPermDVD.getString()));
     }
+
+    public static final String COLPERMS_VIEW_SQL = "create view syscolpermsV as select * from sys.syscolperms C, sys.systables T where C.tableid = T.tableid and T.schemaid in (select schemaid from sys.sysschemasV)";
 }

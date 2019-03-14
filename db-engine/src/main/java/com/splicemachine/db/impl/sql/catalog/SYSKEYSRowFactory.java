@@ -216,4 +216,6 @@ public class SYSKEYSRowFactory extends CatalogRowFactory
             };
         }
 
+	public static final String KEYS_VIEW_SQL = "create view syskeysV as select K.* from sys.syskeys as K, sys.sysconstraints as C where K.constraintid = C.constraintid and C.schemaid in (select schemaid from sys.sysschemasV)";
+
 }

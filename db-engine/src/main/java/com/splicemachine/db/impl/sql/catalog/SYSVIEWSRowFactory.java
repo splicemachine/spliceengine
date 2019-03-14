@@ -31,24 +31,19 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import java.sql.Types;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.TypeId;
+
+import java.sql.Types;
 
 /**
  * Factory for creating a SYSVIEWS row.
@@ -282,4 +277,7 @@ public class SYSVIEWSRowFactory extends CatalogRowFactory
                         
             };
 	}
+
+	public static final String VIEWS_VIEW_SQL = "create view sysviewsV as select V.* from sys.sysviews V, sys.systables T where V.tableid=T.tableid and T.schemaid in (select schemaid from sys.sysschemasV)";
+
 }

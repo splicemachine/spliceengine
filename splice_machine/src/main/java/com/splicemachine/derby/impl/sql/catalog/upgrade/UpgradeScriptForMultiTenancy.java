@@ -14,8 +14,11 @@
 package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Created by yxia on 3/12/19.
@@ -28,5 +31,13 @@ public class UpgradeScriptForMultiTenancy extends UpgradeScriptBase {
     @Override
     protected void upgradeSystemTables() throws StandardException {
         sdd.upgradeSysSchemaPermsForAccessSchemaPrivilege(tc);
+        SchemaDescriptor sd = sdd.getSystemSchemaDescriptor();
+        TableDescriptor td = sdd.getTableDescriptor("SYSSCHEMASV", sd, tc);
+        if (td == null)
+        {
+            tc.elevate("dictionary");
+            sdd.createSystemViews(tc);
+            SpliceLogUtils.info(LOG, "Catalog upgraded: added support for multi-tenancy");
+        }
     }
 }

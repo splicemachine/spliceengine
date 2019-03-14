@@ -163,4 +163,6 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("SOURCE_CODE", Types.BLOB, false, 64*1024*1024)
         };
     }
+
+    public static final String SOURCECODE_VIEW_SQL = "create view syssourcecodeV as select * from sys.syssourcecode where schemaname in (select schemaname from sys.sysschemasV)";
 }

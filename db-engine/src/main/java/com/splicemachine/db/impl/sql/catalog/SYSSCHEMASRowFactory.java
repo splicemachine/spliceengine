@@ -233,4 +233,16 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getIdentifierColumn("AUTHORIZATIONID", false),
             };
 	}
+
+	public static final String SCHEMA_VIEW_SQL = "create view sysschemasV as select distinct * from " +
+		   "(select S.* from sys.sysschemas S " +
+			"where S.authorizationID  in (values current_user) " +
+			"union all " +
+			"select S.* from sys.sysschemas S " +
+			"where S.schemaId in (select schemaid from sys.sysschemaperms where grantee in (values current_user) and ACCESSPRIV='Y') " +
+			"union all " +
+			"select * from sys.sysschemas S " +
+			"     where schemaname in ('SYS', 'SYSIBM', 'SYSCS_UTIL', 'SYSCS_DIAG', 'SYSCAT', 'SYSFUN', 'SYSPROC', 'SYSSTAT', 'NULLID', 'SQLJ', 'SPLICE') " +
+			") as dt";
+
 }

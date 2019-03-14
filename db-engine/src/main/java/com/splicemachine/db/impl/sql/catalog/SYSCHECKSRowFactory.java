@@ -31,20 +31,12 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import java.sql.Types;
-
 import com.splicemachine.db.catalog.ReferencedColumns;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CheckConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SubCheckConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -52,6 +44,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.UserType;
+
+import java.sql.Types;
 
 /**
  * Factory for creating a SYSCHECKS row.
@@ -235,4 +229,6 @@ public class SYSCHECKSRowFactory extends CatalogRowFactory
                     "com.splicemachine.db.catalog.ReferencedColumns", false)
         };
     }
+
+	public static final String CHECKS_VIEW_SQL = "create view syschecksV as select CH.* from sys.syschecks as CH, sys.sysconstraints as CN where CH.constraintid = CN.constraintid and CN.schemaid in (select schemaid from sys.sysschemasV)";
 }

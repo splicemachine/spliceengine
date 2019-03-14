@@ -150,4 +150,7 @@ public class SYSPRIMARYKEYSRowFactory extends CatalogRowFactory {
                 one,two,one.toString().equals(two.toString()));
 
     }
+
+    public static final String PRIMARYKEYS_VIEW_SQL = "create view sysprimarykeysV as select P.* from sys.sysprimarykeys as P, sys.sysconstraints as C where P.constraintid = C.constraintid and C.schemaid in (select schemaid from sys.sysschemasV)";
+
 }

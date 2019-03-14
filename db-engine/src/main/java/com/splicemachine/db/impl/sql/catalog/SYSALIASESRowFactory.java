@@ -31,26 +31,17 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import java.sql.Types;
-
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.SQLBoolean;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.db.iapi.types.*;
+
+import java.sql.Types;
 
 
 /**
@@ -397,4 +388,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
         SystemColumnImpl.getIdentifierColumn("SPECIFICNAME", false)
         };
     }
+
+
+	public static final String ALIAS_VIEW_SQL = "create view sysaliasesV as select * from sys.sysaliases where schemaid in (select schemaid from sys.sysschemasV)";
 }

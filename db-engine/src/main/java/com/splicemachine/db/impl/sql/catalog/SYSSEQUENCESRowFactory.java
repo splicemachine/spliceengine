@@ -317,5 +317,8 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getIndicatorColumn("CYCLEOPTION")
         };
     }
+
+    public static final String SEQUENCES_VIEW_SQL = "create view syssequencesV as select * from sys.syssequences where schemaid in (select schemaid from sys.sysschemasV)";
+
 }
 

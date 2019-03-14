@@ -31,33 +31,18 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.reference.Property;
-
-import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
-
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-
-import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.types.*;
-
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Properties;
 
 /**
  * Factory for creating a SYSSTATEMENTS row.
@@ -422,5 +407,7 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 		//	                );
 
 	}
+
+	public static final String STATEMENTS_VIEW_SQL = "create view sysstatementsV as select * from sys.sysstatements where schemaid in (select schemaid from sys.sysschemasV)";
 
 }

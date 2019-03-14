@@ -330,5 +330,5 @@ public class SYSFOREIGNKEYSRowFactory extends CatalogRowFactory
 		return raRuleString ;
 	}
 
-
+	public static final String FOREIGNKEYS_VIEW_SQL = "create view sysforeignkeysV as select F.* from sys.sysforeignkeys as F, sys.sysconstraints as C where F.constraintid = C.constraintid and C.schemaid in (select schemaid from sys.sysschemasV)";
 }

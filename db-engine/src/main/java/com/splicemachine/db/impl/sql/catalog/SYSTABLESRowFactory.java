@@ -554,4 +554,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
         };
 	}
 
+	public static final String TABLES_VIEW_SQL = "create view systablesV as select * from sys.systables where schemaid in (select schemaid from sys.sysschemasV)";
+
 }

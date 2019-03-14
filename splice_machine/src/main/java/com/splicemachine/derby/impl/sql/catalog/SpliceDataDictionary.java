@@ -211,6 +211,72 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
     }
 
+    protected void createOneSystemView(int catalogNum,
+                              String viewName,
+                              String viewDef,
+                              SchemaDescriptor sysSchema,
+                              TransactionController tc) throws StandardException {
+        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+        TableDescriptor view=ddg.newTableDescriptor(viewName,
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+        addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+        UUID viewId=view.getUUID();
+
+        /* Create the columns */
+        TabInfoImpl ti;
+        if (catalogNum < 4)
+            ti=coreInfo[catalogNum];
+        else
+            ti=getNonCoreTI(catalogNum);
+
+        CatalogRowFactory crf=ti.getCatalogRowFactory();
+        SystemColumn[] columnList=crf.buildColumnList();
+
+        int columnCount=columnList.length;
+        ColumnDescriptor[] cdlArray=new ColumnDescriptor[columnCount];
+
+        for(int columnNumber=0;columnNumber<columnCount;columnNumber++){
+            SystemColumn column=columnList[columnNumber];
+            cdlArray[columnNumber]= new ColumnDescriptor(column.getName(),columnNumber+1,columnNumber+1,column.getType(),null,null,view,viewId,0,0,columnNumber+1);
+        }
+        addDescriptorArray(cdlArray,view,SYSCOLUMNS_CATALOG_NUM,false,tc);
+
+        ColumnDescriptorList viewDl=view.getColumnDescriptorList();
+        Collections.addAll(viewDl,cdlArray);
+
+        ViewDescriptor vd=ddg.newViewDescriptor(viewId,viewName,
+                viewDef,0,sysSchema.getUUID());
+        addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+    }
+
+
+    public void createSystemViews(TransactionController tc) throws StandardException {
+        SchemaDescriptor sysSchema=getSystemSchemaDescriptor();
+
+        createOneSystemView(DataDictionary.SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASV", SYSSCHEMASRowFactory.SCHEMA_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSALIASES_CATALOG_NUM, "SYSALIASESV", SYSALIASESRowFactory.ALIAS_VIEW_SQL, sysSchema, tc);
+
+        createOneSystemView(DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, "SYSCONGLOMERATESV", SYSCONGLOMERATESRowFactory.CONGLOMERATES_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSCONSTRAINTS_CATALOG_NUM, "SYSCONSTRAINTSV", SYSCONSTRAINTSRowFactory.CONSTRAINTS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSFILES_CATALOG_NUM, "SYSFILESV", SYSFILESRowFactory.FILES_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSSEQUENCES_CATALOG_NUM, "SYSSEQUENCESV", SYSSEQUENCESRowFactory.SEQUENCES_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSSNAPSHOT_NUM, "SYSSNAPSHOTSV", SYSSNAPSHOTSRowFactory.SNAPSHOTS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSSOURCECODE_CATALOG_NUM, "SYSSOURCECODEV", SYSSOURCECODERowFactory.SOURCECODE_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSSTATEMENTS_CATALOG_NUM, "SYSSTATEMENTSV", SYSSTATEMENTSRowFactory.STATEMENTS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSTABLES_CATALOG_NUM, "SYSTABLESV", SYSTABLESRowFactory.TABLES_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSTRIGGERS_CATALOG_NUM, "SYSTRIGGERSV", SYSTRIGGERSRowFactory.TRIGGERS_VIEW_SQL, sysSchema, tc);
+
+        createOneSystemView(DataDictionary.SYSCHECKS_CATALOG_NUM, "SYSCHECKSV", SYSCHECKSRowFactory.CHECKS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNSV", SYSCOLUMNSRowFactory.COLUMNS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSCOLUMNSTATS_CATALOG_NUM, "SYSCOLUMNSTATSV", SYSCOLUMNSTATISTICSRowFactory.COLUMNSTATS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSFOREIGNKEYS_CATALOG_NUM, "SYSFOREIGNKEYSV", SYSFOREIGNKEYSRowFactory.FOREIGNKEYS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSKEYS_CATALOG_NUM, "SYSKEYSV", SYSKEYSRowFactory.KEYS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSPRIMARYKEYS_CATALOG_NUM, "SYSPRIMARYKEYSV", SYSPRIMARYKEYSRowFactory.PRIMARYKEYS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSTABLESTATS_CATALOG_NUM, "SYSTABLESTATSV", SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL, sysSchema, tc);
+        createOneSystemView(DataDictionary.SYSVIEWS_CATALOG_NUM, "SYSVIEWSV", SYSVIEWSRowFactory.VIEWS_VIEW_SQL, sysSchema, tc);
+
+    }
+
     public void createSourceCodeTable(TransactionController tc) throws StandardException{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
@@ -286,6 +352,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createSnapshotTable(tc);
 
         createTokenTable(tc);
+
+        createSystemViews(tc);
 
     }
 

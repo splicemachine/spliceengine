@@ -179,12 +179,14 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
             "and c.isindex = false " + //strip out index column data
             "and co.referenceid = t.tableid " +
             "and co.columnnumber = cs.column_id " +
+            "and s.schemaid in (select schemaid from sys.sysschemasV) " +
             "group by " +
             "s.schemaname" +
             ",t.tablename" +
             ",co.columnname";
 
 
+    public static final String COLUMNSTATS_VIEW_SQL = "create view syscolumnstatsV as select S.* from sys.syscolumnstats S, sys.sysconglomerates C where S.conglom_id = C.conglomeratenumber and C.schemaid in (select schemaid from sys.sysschemasV)";
 
     public	int	getPrimaryKeyIndexNumber() {
         return SYSCOLUMNSTATISTICS_INDEX1_ID;

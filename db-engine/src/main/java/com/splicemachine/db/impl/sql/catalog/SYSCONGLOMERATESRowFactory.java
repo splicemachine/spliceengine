@@ -31,39 +31,17 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.types.SQLBoolean;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.UserType;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
-import com.splicemachine.db.iapi.types.DataValueFactory;
-
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-
-import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.catalog.UUID;
-
-import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
-import java.util.Properties;
 
 /**
  * Factory for creating a SYSCONGLOMERATES row.
@@ -416,4 +394,6 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
                SystemColumnImpl.getUUIDColumn("CONGLOMERATEID", false)
            };
 	}
+
+	public static final String CONGLOMERATES_VIEW_SQL = "create view sysconglomeratesV as select * from sys.sysconglomerates where schemaid in (select schemaid from sys.sysschemasV)";
 }

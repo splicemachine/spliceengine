@@ -615,4 +615,5 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         };
     }
 
+    public static final String CONSTRAINTS_VIEW_SQL = "create view sysconstraintsV as select * from sys.sysconstraints where schemaid in (select schemaid from sys.sysschemasV)";
 }

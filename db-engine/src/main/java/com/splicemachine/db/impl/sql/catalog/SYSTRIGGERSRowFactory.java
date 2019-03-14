@@ -459,4 +459,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
             return true;
         }
     }
+
+    public static final String TRIGGERS_VIEW_SQL = "create view systriggersV as select * from sys.systriggers where schemaid in (select schemaid from sys.sysschemasV)";
+
 }

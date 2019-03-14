@@ -178,4 +178,6 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getColumn("LASTRESTORETIME",Types.TIMESTAMP,true)
         };
     }
+
+    public static final String SNAPSHOTS_VIEW_SQL = "create view syssnapshotsV as select * from sys.syssnapshots where schemaname in (select schemaname from sys.sysschemasV)";
 }
