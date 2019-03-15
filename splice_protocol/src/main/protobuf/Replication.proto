@@ -1,0 +1,26 @@
+option java_package = "com.splicemachine.replication";
+option java_outer_classname = "ReplicationMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message GetRegionServerLSNRequest {
+}
+
+message GetRegionServerLSNReponse {
+    optional bool isNew  = 1;
+    message Result {
+        optional uint64 lsn = 1;
+        optional string regionName = 2;
+        optional bool valid = 3;
+    }
+    repeated Result result = 2;
+}
+
+message TestResponse {
+    optional uint64 count = 1;
+}
+
+service GetRegionServerLSNService {
+    rpc getRegionServerLSN(GetRegionServerLSNRequest) returns (GetRegionServerLSNReponse);
+}

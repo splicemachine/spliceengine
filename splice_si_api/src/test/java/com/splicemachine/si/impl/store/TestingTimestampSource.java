@@ -46,4 +46,9 @@ public class TestingTimestampSource implements TimestampSource{
     public void shutdown() {
 
     }
+
+    @Override
+    public void refresh() {
+
+    }
 }

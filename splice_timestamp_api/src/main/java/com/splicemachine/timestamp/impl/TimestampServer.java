@@ -33,7 +33,7 @@ public class TimestampServer {
     /**
      * Fixed number of bytes in the message we expect to receive from the client.
      */
-    static final int FIXED_MSG_RECEIVED_LENGTH = 2; // 2 byte client id
+    static final int FIXED_MSG_RECEIVED_LENGTH = 3; // 2 byte client id + 1 byte refresh boolean
 
     /**
      * Fixed number of bytes in the message we expect to send back to the client.

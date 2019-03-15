@@ -68,6 +68,7 @@
             hbase_sql,
             splice_ee,
             splice_backup,
+            splice_replication,
             splice_auth,
             splice_colperms,
             splice_encryption,

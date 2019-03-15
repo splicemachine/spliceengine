@@ -109,6 +109,12 @@ public interface SConfiguration {
 
     int getBackupIOBufferSize();
 
+    int getReplicationSnapshotInterval();
+
+    int getReplicationSinkPort();
+
+    int getReplicationProgressUpdateInterval();
+
     String getCompressionAlgorithm();
 
     String getNamespace();

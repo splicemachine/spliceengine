@@ -153,4 +153,14 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public void markDropped(long conglomId, long txn) throws IOException {
         // no op
     }
+
+    @Override
+    public void enableTableReplication(String tableName) throws IOException {
+
+    }
+
+    @Override
+    public void disableTableReplication(String tableName) throws IOException {
+
+    }
 }

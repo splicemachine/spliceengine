@@ -44,4 +44,9 @@ public class MemTimestampSource implements TimestampSource {
     public void shutdown() {
         
     }
+
+    @Override
+    public void refresh() {
+
+    }
 }

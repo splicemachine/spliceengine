@@ -101,6 +101,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
 
     public static final String DDL_PATH="/ddl";
     public static final String DDL_CHANGE_PATH="/ddlChange";
+    public static final String SPLICE_REPLICATION_PATH = "/splice/replication";
 
     /**
      * Location of Startup node in ZooKeeper. The presence of this node
@@ -155,6 +156,15 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SPLICE_BACKUP_IO_BUFFER_SIZE = "splice.backup.io.buffer.size";
     public static final int DEFAULT_SPLICE_BACKUP_IO_BUFFER_SIZE = 64*1024;
 
+    public static final String SPLICE_REPLICATION_SNAPSHOT_INTERVAL = "splice.replication.snapshot.interval";
+    public static final int DEFAULT_SPLICE_REPLICATION_SNAPSHOT_INTERVAL = 1000;
+
+    public static final String SPLICE_REPLICATION_SINK_PORT = "splice.replicationSink.port";
+    public static final int DEFAULT_SPLICE_REPLICATION_SINK_PORT = 60016;
+
+    public static final String SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL = "splice.replication.progress.update.interval";
+    public static final int DEFAULT_SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL = 200;
+
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
      * from the ZkTimestampSource implementation.
@@ -187,6 +197,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
     public static final String IGNORE_TXN_TABLE_NAME = "SPLICE_IGNORE_TXN";
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
+    public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
+    public static final String SLAVE_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
     @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
 
@@ -222,5 +234,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.backupMaxBandwidthMB = configurationSource.getLong(SPLICE_BACKUP_MAX_BANDWIDTH_MB, DEFAULT_SPLICE_BACKUP_MAX_BANDWIDTH_MB);
         builder.backupUseDistcp = configurationSource.getBoolean(SPLICE_BACKUP_USE_DISTCP, DEFAULT_SPLICE_USE_DISTCP);
         builder.backupIOBufferSize = configurationSource.getInt(SPLICE_BACKUP_IO_BUFFER_SIZE, DEFAULT_SPLICE_BACKUP_IO_BUFFER_SIZE);
+        builder.replicationSnapshotInterval = configurationSource.getInt(SPLICE_REPLICATION_SNAPSHOT_INTERVAL, DEFAULT_SPLICE_REPLICATION_SNAPSHOT_INTERVAL);
+        builder.replicationSinkPort = configurationSource.getInt(SPLICE_REPLICATION_SINK_PORT, DEFAULT_SPLICE_REPLICATION_SINK_PORT);
+        builder.replicationProgressUpdateInterval = configurationSource.getInt(SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL, DEFAULT_SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL);
     }
 }
