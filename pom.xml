@@ -916,7 +916,7 @@
             </activation>
             <properties>
                 <envClassifier>hdp2.6.1</envClassifier>
-                <envHbase>hbase1.1.2.2.6</envHbase>
+                <envHbase>hbase1.1.2.2.6-129</envHbase>
                 <hadoop.version>2.7.3.2.6.1.0-129</hadoop.version>
                 <hbase.version>1.1.2.2.6.1.0-129</hbase.version>
                 <hive.version>1.2.1000.2.6.1.0-129</hive.version>
