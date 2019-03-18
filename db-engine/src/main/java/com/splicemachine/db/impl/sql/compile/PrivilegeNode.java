@@ -186,7 +186,9 @@ public class PrivilegeNode extends QueryTreeNode
 
             if (sd.isSystemSchema())
             {
-                throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, schemaName);
+                // for system schemas, we will allow access and select privilege only
+                if (!specificPrivileges.accessActionAllowed() && !specificPrivileges.selectActionAllowed())
+                    throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, schemaName);
             }
 
             // Don't allow authorization on SESSION schema tables. Causes confusion if
@@ -213,7 +215,9 @@ public class PrivilegeNode extends QueryTreeNode
             // can't grant/revoke privileges on system tables
             if (sd.isSystemSchema())
             {
-                throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
+                // for system tables, we will allow select privilege only
+                if (!specificPrivileges.selectActionAllowed())
+                    throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
             }
             
             TableDescriptor td = getTableDescriptor( objectName.getTableName(), sd);

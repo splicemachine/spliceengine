@@ -9251,6 +9251,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // The owner has all privileges unless they have been revoked.
                 TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID());
                 SchemaDescriptor sd = td.getSchemaDescriptor();
+                /*
                 if( sd.isSystemSchema())
                 {
                     // RESOLVE The access to system tables is hard coded to SELECT only to everyone.
@@ -9265,7 +9266,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     // give the permission the same UUID as the system table
                     ((TablePermsDescriptor) permissions).setUUID( tablePermsKey.getTableUUID() );
                 }
-                else if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
+                else */
+                if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
                 {
                     permissions = new TablePermsDescriptor( this,
                             tablePermsKey.getGrantee(),
@@ -9327,6 +9329,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 try {
                     // The owner has all privileges unless they have been revoked.
                     SchemaDescriptor sd = getSchemaDescriptor(schemaPermsKey.getSchemaUUID(), ConnectionUtil.getCurrentLCC().getTransactionExecute());
+                    /*
                     if (sd.isSystemSchema()) {
                         // RESOLVE The access to system tables is hard coded to SELECT only to everyone.
                         // Is this the way we want Derby to work? Should we allow revocation of read access
@@ -9337,7 +9340,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                 (String) null,
                                 schemaPermsKey.getSchemaUUID(),
                                 "N", "N", "N", "N", "N", "N", "N", "Y");
-                    } else if (schemaPermsKey.getGrantee().equals(sd.getAuthorizationId())) {
+                    } else */
+                    if (schemaPermsKey.getGrantee().equals(sd.getAuthorizationId())) {
                         permissions = new SchemaPermsDescriptor(this,
                                 schemaPermsKey.getGrantee(),
                                 Authorizer.SYSTEM_AUTHORIZATION_ID,
