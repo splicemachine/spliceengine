@@ -104,7 +104,7 @@ class SpliceInstall(Script):
               create_parents = False
               )
 
-    splice_ranger_jar = self.search_file(splice_lib_dir, "splice_ranger_admin-hdp*.jar")
+    splice_ranger_jar = self.search_file(splice_lib_dir, "splice_ranger_admin*.jar")
     db_client_jar = self.search_file(splice_lib_dir, "db-client-*.jar")
 
     Link(os.path.join(ranger_plugins_dir, splice_ranger_jar),
