@@ -152,6 +152,7 @@ public class PropertyConglomerate {
                 if (onHold) {
                     try {
                         clock.sleep(1, TimeUnit.SECONDS);
+                        LOG.info("Conglomerate region is not online yet, sleep 1 second.");
                     } catch (InterruptedException e) {
                         //startup was interrupted, so throw an InterruptedIOException
                         throw Monitor.exceptionStartingModule(e) ;
