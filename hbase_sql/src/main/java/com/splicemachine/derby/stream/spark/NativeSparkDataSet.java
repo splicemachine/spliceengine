@@ -861,8 +861,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     /**
-     * Take a Splice DataSet in the consumer's context, with a single source,
-     * and convert it to a Spark Dataset doing a map.
+     * Take a Splice SparkDataSet (RDD) in the consumer's context, with a single source,
+     * and convert it to a NativeSparkDataSet (Dataset<Row>) doing a map.
      * @param context
      * @return
      * @throws Exception
