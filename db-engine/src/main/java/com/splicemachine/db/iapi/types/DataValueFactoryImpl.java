@@ -1197,6 +1197,36 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         }
     }
 
+        public static DataValueDescriptor getNullDVD(int typeFormatId) {
+                switch (typeFormatId) {
+                        /* Wrappers */
+                        case StoredFormatIds.BIT_TYPE_ID: return new SQLBit();
+                        case StoredFormatIds.BOOLEAN_TYPE_ID: return new SQLBoolean();
+                        case StoredFormatIds.CHAR_TYPE_ID: return new SQLChar();
+                        case StoredFormatIds.DATE_TYPE_ID: return new SQLDate();
+                        case StoredFormatIds.DOUBLE_TYPE_ID: return new SQLDouble();
+                        case StoredFormatIds.INT_TYPE_ID: return new SQLInteger();
+                        case StoredFormatIds.LONGINT_TYPE_ID: return new SQLLongint();
+                        case StoredFormatIds.REAL_TYPE_ID: return new SQLReal();
+                        case StoredFormatIds.REF_TYPE_ID: return new SQLRef();
+                        case StoredFormatIds.SMALLINT_TYPE_ID: return new SQLSmallint();
+                        case StoredFormatIds.TIME_TYPE_ID: return new SQLTime();
+                        case StoredFormatIds.TIMESTAMP_TYPE_ID: return new SQLTimestamp();
+                        case StoredFormatIds.TINYINT_TYPE_ID: return new SQLTinyint();
+                        case StoredFormatIds.VARCHAR_TYPE_ID: return new SQLVarchar();
+                        case StoredFormatIds.LONGVARCHAR_TYPE_ID: return new SQLLongvarchar();
+                        case StoredFormatIds.VARBIT_TYPE_ID: return new SQLVarbit();
+                        case StoredFormatIds.LONGVARBIT_TYPE_ID: return new SQLLongVarbit();
+                        case StoredFormatIds.USERDEFINED_TYPE_ID_V3: return new UserType();
+                        case StoredFormatIds.BLOB_TYPE_ID: return new SQLBlob();
+                        case StoredFormatIds.CLOB_TYPE_ID: return new SQLClob();
+                        case StoredFormatIds.XML_TYPE_ID: return new XML();
+                        case StoredFormatIds.ARRAY_TYPE_ID: return new SQLArray();
+                        default:return null;
+                }
+        }
+
+
         // RESOLVE: This is here to find the LocaleFinder (i.e. the Database)
         // on first access. This is necessary because the Monitor can't find
         // the Database at boot time, because the Database is not done booting.
