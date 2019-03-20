@@ -1004,4 +1004,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public ScanInformation<ExecRow> getScanInformation() {
         throw new RuntimeException("getScanInformation not implemented");
     }
+
+    @Override
+    public void setRecursiveUnionReference(NoPutResultSet recursiveUnionReference) {
+        for(SpliceOperation op : getSubOperations()){
+            op.setRecursiveUnionReference(recursiveUnionReference);
+        }
+    }
 }

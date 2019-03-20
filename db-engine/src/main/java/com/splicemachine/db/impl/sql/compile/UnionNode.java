@@ -35,11 +35,15 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+
+import java.lang.reflect.Modifier;
 
 /**
  * A UnionNode represents a UNION in a DML statement.  It contains a boolean
@@ -56,6 +60,16 @@ public class UnionNode extends SetOperatorNode{
 
     /* True if this is the top node of a table constructor */
     boolean topTableConstructor;
+
+    /* below variables are for recursive queries */
+    boolean isRecursive;
+    /* the description of the result columns */
+    TableDescriptor viewDescriptor;
+    /* for recursive union all, we want to display the step number from the recursive reference node, so save the step number
+       here for convenience. Note, this step number in explain may not be the same as the resultSetNumber, as some ProjectRestrict
+       node without restriction could be skipped and won't shown up in the explain
+     */
+    int stepNumInExplain;
 
 
     /**
@@ -78,6 +92,8 @@ public class UnionNode extends SetOperatorNode{
 
 		/* Is this a UNION ALL for a table constructor? */
         this.tableConstructor=(Boolean)tableConstructor;
+
+        this.isRecursive = false;
     } // end of init
 
     /**
@@ -586,6 +602,14 @@ public class UnionNode extends SetOperatorNode{
         // Get our final cost estimate based on the child estimates.
         costEstimate=getFinalCostEstimate(false);
 
+        LocalField recursiveUnionResultSetRef = null;
+
+        if (isRecursive) {
+            recursiveUnionResultSetRef = acb.newFieldDeclaration(Modifier.PRIVATE, ClassName.NoPutResultSet);
+        }
+
+        acb.newFieldDeclaration(Modifier.PRIVATE, ClassName.NoPutResultSet);
+
         // build up the tree.
 
         acb.pushGetResultSetFactoryExpression(mb); // instance for getUnionResultSet
@@ -625,8 +649,38 @@ public class UnionNode extends SetOperatorNode{
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
         mb.push(printExplainInformationForActivation());
-        
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getUnionResultSet", ClassName.NoPutResultSet,6);
+
+        String methodName;
+        if (isRecursive) {
+            methodName = "getRecursiveUnionResultSet";
+        } else
+            methodName = "getUnionResultSet";
+
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,methodName, ClassName.NoPutResultSet,6);
+
+        if (isRecursive) {
+            mb.setField(recursiveUnionResultSetRef);
+
+            //generate the code to set recursiveUnionReferene in the SelfReferenceOperation
+            CollectNodesVisitor cnv=
+                    new CollectNodesVisitor(SelfReferenceNode.class,null);
+            this.rightResultSet.accept(cnv);
+            for(Object o : cnv.getList()){
+                // make sure the SelfReference points to this recursive UnionNode, in the present of nested recursive union,
+                // we may see different SelfReference pointing to different level of RecursiveUnion.
+                if (((SelfReferenceNode)o).getRecursiveUnionRoot() != this)
+                    continue;
+                LocalField selfReferenceResultSetRef = ((SelfReferenceNode)o).getResultSetRef();
+                mb.getField(selfReferenceResultSetRef);
+                mb.cast(ClassName.SelfReferenceResultSet);
+                mb.getField(recursiveUnionResultSetRef);
+                mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.SelfReferenceResultSet, "setRecursiveUnionReference", "void", 1);
+            }
+
+            mb.getField(recursiveUnionResultSetRef);
+        }
+
     }
 
     /**
@@ -660,11 +714,31 @@ public class UnionNode extends SetOperatorNode{
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
-                .append("Union").append("(")
+                .append(isRecursive?"RecursiveUnion":"Union").append("(")
                 .append("n=").append(order);
         sb.append(attrDelim).append(costEstimate.prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }
 
+
+    public void setIsRecursive(boolean isRecursive) {
+        this.isRecursive = isRecursive;
+    }
+
+    public boolean getIsRecursive() {
+        return isRecursive;
+    }
+
+    public void setStepNumInExplain(int stepNum) {
+        stepNumInExplain = stepNum;
+    }
+
+    public int getStepNumInExplain() {
+        return stepNumInExplain;
+    }
+
+    public void setViewDescreiptor(TableDescriptor viewDescreiptor) {
+        this.viewDescriptor = viewDescreiptor;
+    }
 }

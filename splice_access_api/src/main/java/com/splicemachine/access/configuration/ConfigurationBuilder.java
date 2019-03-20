@@ -144,6 +144,7 @@ public class ConfigurationBuilder {
     public long broadcastRegionMbThreshold;
     public long broadcastRegionRowThreshold;
     public long broadcastDatasetCostThreshold;
+    public int recursiveQueryIterationLimit;
     public long optimizerPlanMaximumTimeout;
     public long optimizerPlanMinimumTimeout;
     public long determineSparkRowThreshold;

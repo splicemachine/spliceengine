@@ -112,9 +112,26 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public Pair<DataSet, Integer> materialize() {
-        return Pair.newPair(this, (int) rdd.count());
+        return Pair.newPair(this, (int) this.count());
     }
 
+    @Override
+    public Pair<DataSet, Integer> persistIt() {
+        rdd.persist(StorageLevel.MEMORY_AND_DISK_SER());
+        return Pair.newPair(this, (int) this.count());
+    }
+
+    @Override
+    public Pair<Pair<DataSet, DataSet>, Integer> persistIt2() {
+        rdd.persist(StorageLevel.MEMORY_AND_DISK_SER());
+        return Pair.newPair(Pair.newPair(this, this), (int) this.count());
+    }
+
+    @Override
+    public void unpersistIt() {
+        rdd.unpersist();
+        return;
+    }
     /**
      *
      * Execute the job and materialize the results as a List.  Be careful, all
