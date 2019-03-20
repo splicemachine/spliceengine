@@ -214,12 +214,12 @@ public class JavaToSQLValueNode extends ValueNode
 	// Is this a system function (defined in the SYSFUN schema)?
 	public boolean isSystemFunction() {
 	    if (javaNode != null &&
-            javaNode instanceof StaticMethodCallNode) {
+	        javaNode instanceof StaticMethodCallNode) {
 	        StaticMethodCallNode smc = (StaticMethodCallNode)javaNode;
 	        return smc.isSystemFunction();
-        }
+	    }
 	    return false;
-    }
+	}
 
 	/**
 	 * Bind this expression.  This means binding the sub-expressions,

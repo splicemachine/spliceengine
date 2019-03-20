@@ -209,10 +209,10 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 	}
 
 	@Override
-    public ValueNode getClone() throws StandardException
+	public ValueNode getClone() throws StandardException
 	{
 	    // This node is immutable, so just return the node itself
-        // as its own clone.
-        return this;
+	    // as its own clone.
+	    return this;
 	}
 }

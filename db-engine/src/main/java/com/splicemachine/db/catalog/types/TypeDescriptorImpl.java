@@ -456,12 +456,6 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 		return s;
 	}
 
-    public String toSparkString()
-	{
-		String s = getSQLstring();
-		return s;
-	}
-
 	/**
 	 * Get the type Id stored within this type descriptor.
 	 */

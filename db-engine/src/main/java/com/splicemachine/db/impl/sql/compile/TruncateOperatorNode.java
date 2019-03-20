@@ -149,11 +149,11 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
 
 		checkParameterTypes();
 
-        DataTypeDescriptor typeDescriptor = leftOperand.getTypeServices();
-        if (typeDescriptor == null) {
-            typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
-        }
-        setType(typeDescriptor);
+		DataTypeDescriptor typeDescriptor = leftOperand.getTypeServices();
+		if (typeDescriptor == null) {
+		    typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
+		}
+		setType(typeDescriptor);
 		return genSQLJavaSQLTree();
 	} // end of bindExpression
 

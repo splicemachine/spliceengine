@@ -1058,7 +1058,6 @@ public class BinaryOperatorNode extends OperatorNode
 		return leftOperand.isConstantOrParameterTreeNode() && rightOperand.isConstantOrParameterTreeNode();
 	}
 
-	// Is this a REPEAT operator?
 	public boolean isRepeat () { return this.operatorType == REPEAT; }
 }
 

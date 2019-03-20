@@ -992,8 +992,8 @@ public final class SQLDouble extends NumberDataType
 			isNull = false;
 			value = row.getDouble(ordinal);
 			if (value == Double.POSITIVE_INFINITY ||
-                value == Double.NEGATIVE_INFINITY ||
-                value == Double.NaN)
+			    value == Double.NEGATIVE_INFINITY ||
+			    value == Double.NaN)
 			    throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.DOUBLE_NAME);
 		}
 	}

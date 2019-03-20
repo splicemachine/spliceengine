@@ -155,14 +155,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				source = (SpliceOperation) in.readObject();
 				if (version >= PROJECT_RESTRICT_OPERATION_V2) {
 				    filterPred = readNullableString(in);
-                    int numexpressions = in.readInt();
-                    if (numexpressions > 0) {
-                        expressions = new String[numexpressions];
-                        for (int i = 0; i < numexpressions; i++) {
-                            expressions[i] = readNullableString(in);
-                        }
-                    }
-                }
+				    int numexpressions = in.readInt();
+				    if (numexpressions > 0) {
+				        expressions = new String[numexpressions];
+				        for (int i = 0; i < numexpressions; i++) {
+				            expressions[i] = readNullableString(in);
+				        }
+				    }
+				}
 		}
 
 		@Override
@@ -183,9 +183,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				else {
 				    out.writeInt(expressions.length);
 				    for (int i = 0; i < expressions.length; i++) {
-                        writeNullableString(expressions[i], out);
-                    }
-                }
+				        writeNullableString(expressions[i], out);
+				    }
+				}
 		}
 
 		@Override
@@ -364,10 +364,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             // to flush out bugs.
             // TODO:  Remove this after thorough regression testing.
             if (hasFilterPred() || hasExpressions())
-			    sourceSet = sourceSet.upgradeToSparkNativeDataSet(operationContext);
-			if (restrictionMethodName != null)
-				sourceSet = sourceSet.filter(new ProjectRestrictPredicateFunction<>(operationContext));
-			return sourceSet.map(new ProjectRestrictMapFunction<>(operationContext, expressions));
+                sourceSet = sourceSet.upgradeToSparkNativeDataSet(operationContext);
+            if (restrictionMethodName != null)
+                sourceSet = sourceSet.filter(new ProjectRestrictPredicateFunction<>(operationContext));
+            return sourceSet.map(new ProjectRestrictMapFunction<>(operationContext, expressions));
         } finally {
             operationContext.popScope();
         }

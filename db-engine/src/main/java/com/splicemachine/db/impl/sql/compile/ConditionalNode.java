@@ -78,7 +78,7 @@ public class ConditionalNode extends ValueNode
 	}
 
 	public ValueNode getTestCondition() { return testCondition; }
-    public ValueNodeList getThenElseList() { return thenElseList; }
+	public ValueNodeList getThenElseList() { return thenElseList; }
 	/**
 	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
 	 * how tree printing is supposed to work.

@@ -542,7 +542,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		        decimal.setPrecision(precision);
 		    if (decimal.getScale() != scale)
 		        decimal.setScale(scale);
-			return decimal;
+		    return decimal;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

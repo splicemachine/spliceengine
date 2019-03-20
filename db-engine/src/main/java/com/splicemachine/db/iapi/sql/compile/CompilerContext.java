@@ -673,7 +673,7 @@ public interface CompilerContext extends Context
 
 	public boolean getDisablePredicateSimplification();
 
-    public void setSparkMajorVersion(double newValue);
+	public void setSparkMajorVersion(double newValue);
 
 	public double getSparkMajorVersion();
 }

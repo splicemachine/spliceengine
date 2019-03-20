@@ -1389,7 +1389,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // that a null function pointer means take the current row
             // as-is, with the performance trade-off as discussed above.)
 
-			/* Generate the Row function for the projection */
+            /* Generate the Row function for the projection */
             canUseSparkSQLExpressions = resultColumns.generateCore(acb,mb,false);
         }else{
             mb.pushNull(ClassName.GeneratedMethod);

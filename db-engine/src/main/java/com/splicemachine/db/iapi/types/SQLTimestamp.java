@@ -1021,10 +1021,10 @@ public final class SQLTimestamp extends DataType
 			} else {
 				try {
 					t = new Timestamp(SQLDate.getYear(encodedDate) - 1900,
-                                      SQLDate.getMonth(encodedDate) - 1,
-                                      SQLDate.getDay(encodedDate),
-                                      SQLTime.getHour(encodedTime),
-                                      SQLTime.getMinute(encodedTime),
+					           SQLDate.getMonth(encodedDate) - 1,
+					                  SQLDate.getDay(encodedDate),
+					                  SQLTime.getHour(encodedTime),
+					                  SQLTime.getMinute(encodedTime),
                                       SQLTime.getSecond(encodedTime),
                                       nanos);
 				} catch (Exception e) {
@@ -1714,8 +1714,6 @@ public final class SQLTimestamp extends DataType
 	}
 
 	public int getNanos() { return nanos; }
-
-    public int getEncodedDate() { return encodedDate; }
-
-    public int getEncodedTime() { return encodedTime; }
+	public int getEncodedDate() { return encodedDate; }
+	public int getEncodedTime() { return encodedTime; }
 }

@@ -76,7 +76,7 @@ public interface Row
      * The column will end up holding (SQLDouble)1.0, preserving
      * the data type of the DVD that is being overwritten.
      *
-	 * @param position	The ordinal position of the column.
+     * @param position  The ordinal position of the column.
 	 */
-	void	setColumnValue (int position, DataValueDescriptor value) throws StandardException;
+     void   setColumnValue (int position, DataValueDescriptor value) throws StandardException;
 }

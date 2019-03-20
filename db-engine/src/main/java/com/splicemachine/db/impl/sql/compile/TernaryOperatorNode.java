@@ -1166,6 +1166,6 @@ public class TernaryOperatorNode extends OperatorNode
 
 	// Following 3 interfaces only applicable when this is a TRIM operator.
 	public boolean isLeading()  {return trimType == StringDataValue.LEADING;}
-    public boolean isTrailing() {return trimType == StringDataValue.TRAILING;}
-    public boolean isBoth()     {return trimType == StringDataValue.BOTH;}
+	public boolean isTrailing() {return trimType == StringDataValue.TRAILING;}
+	public boolean isBoth()     {return trimType == StringDataValue.BOTH;}
 }

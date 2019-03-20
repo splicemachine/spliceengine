@@ -76,7 +76,7 @@ public class ProjectRestrictMapFunction<Op extends SpliceOperation> extends Spli
         ProjectRestrictOperation op = (ProjectRestrictOperation) operationContext.getOperation();
         if (op.projection != null) {
             if (!op.hasExpressions())
-            return false;
+                return false;
         }
         return true;
     }
