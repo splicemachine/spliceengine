@@ -449,7 +449,7 @@ public class OperatorToString {
                     if (rightOp != null)
                         throwNotImplementedError();
                     else {
-                        String likeString =  format("%s %s %s ", opToString2(top.getReceiver()), top.getOperator(),
+                        String likeString =  format("(%s %s %s) ", opToString2(top.getReceiver()), top.getOperator(),
                         opToString2(top.getLeftOperand()));
                         RELATIONAL_OP_DEPTH.get().decrement();
                         return likeString;
