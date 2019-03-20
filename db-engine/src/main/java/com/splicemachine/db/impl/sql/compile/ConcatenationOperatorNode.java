@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
@@ -46,6 +47,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.ClassName;
+import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.sql.Types;
 
@@ -86,8 +88,19 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
             StringDataValue leftValue = (StringDataValue) leftOp.getValue();
             StringDataValue rightValue = (StringDataValue) rightOp.getValue();
 
-            StringDataValue resultValue =
-                    (StringDataValue) getTypeServices().getNull();
+			StringDataValue resultValue = null;
+            DataTypeDescriptor resultDTD = getTypeServices();
+            if (resultDTD == null) {
+            	TypeId resultTypeId =
+				    resolveConcatOperationResultType(leftOp.getTypeServices(),
+				                                     rightOp.getTypeServices(),
+				                                     new MutableInt());
+				resultValue = (StringDataValue)
+				  DataValueFactoryImpl.getNullDVD(resultTypeId.getTypeFormatId());
+			}
+            else
+                resultValue = (StringDataValue) resultDTD.getNull();
+
             resultValue.concatenate(leftValue, rightValue, resultValue);
 
             return (ValueNode) getNodeFactory().getNode(
@@ -303,29 +316,30 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
         return this.evaluateConstantExpressions();
 	}
 
-	/**
-	 * Resolve a concatenation operator
-	 * 
-	 * @param leftType
-	 *            The DataTypeDescriptor of the left operand
-	 * @param rightType
-	 *            The DataTypeDescriptor of the right operand
-	 * 
-	 * @return A DataTypeDescriptor telling the result type of the concatenate
-	 *         operation
-	 * 
-	 * @exception StandardException
-	 *                BinaryOperatorNotSupported Thrown when a BinaryOperator is
-	 *                not supported on the operand types.
-	 */
-	private DataTypeDescriptor resolveConcatOperation(
-			DataTypeDescriptor leftType, DataTypeDescriptor rightType)
-			throws StandardException {
+    /**
+     * Resolve the result type of a concatenation operation.
+     *
+     * @param leftType [in]
+     *            The DataTypeDescriptor of the left operand
+     * @param rightType [in]
+     *            The DataTypeDescriptor of the right operand
+	 * @param resultLength [out]
+	 *            The length of the result type.
+     *
+     * @return A TypeId indicating the result type of the concatenate
+     *         operation.
+     *
+     * @exception StandardException
+     *                BinaryOperatorNotSupported Thrown when a BinaryOperator is
+     *                not supported on the operand types.
+     */
+    public TypeId resolveConcatOperationResultType(DataTypeDescriptor leftType,
+                                                   DataTypeDescriptor rightType,
+												   MutableInt resultLength)
+                                              throws StandardException {
 		TypeId leftTypeId;
 		TypeId rightTypeId;
-		String higherType;
-		int resultLength;
-		boolean nullable;
+		TypeId resultTypeId;
 
 		leftTypeId = leftType.getTypeId();
 		rightTypeId = rightType.getTypeId();
@@ -340,23 +354,23 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 		 */
 
 		if (!leftTypeId.isConcatableTypeId()
-				|| !rightTypeId.isConcatableTypeId()
-				|| (rightTypeId.isBitTypeId() && leftTypeId.isStringTypeId())
-				|| (leftTypeId.isBitTypeId() && rightTypeId.isStringTypeId()))
+		|| !rightTypeId.isConcatableTypeId()
+		|| (rightTypeId.isBitTypeId() && leftTypeId.isStringTypeId())
+		|| (leftTypeId.isBitTypeId() && rightTypeId.isStringTypeId()))
 			throw StandardException.newException(
-					SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "||", "FUNCTION");
+			SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "||", "FUNCTION");
 
 		/*
 		 * * The types aren't the same. The result of the operation is the *
 		 * type of higher precedence.
 		 */
 
-		higherType = (leftTypeId.typePrecedence() >= rightTypeId
-				.typePrecedence()) ? leftType.getTypeName() : rightType
-				.getTypeName();
+		resultTypeId = (leftTypeId.typePrecedence() >= rightTypeId
+						.typePrecedence()) ? leftType.getTypeId() : rightType
+						.getTypeId();
 
 		/* Get the length of the result */
-		resultLength = leftType.getMaximumWidth() + rightType.getMaximumWidth();
+		resultLength.setValue(leftType.getMaximumWidth() + rightType.getMaximumWidth());
 
 		/*
 		 * * Use following chart to handle overflow * operands CHAR(A) CHAR(B)
@@ -403,79 +417,81 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 		// because operand datatypes
 		//mismatch has already been handled earlier
 		if (leftTypeId.getJDBCTypeId() == Types.CHAR
-				|| leftTypeId.getJDBCTypeId() == Types.BINARY) {
+		     || leftTypeId.getJDBCTypeId() == Types.BINARY) {
 			switch (rightTypeId.getJDBCTypeId()) {
-			case Types.CHAR:
-			case Types.BINARY:
-				if (resultLength > Limits.DB2_CHAR_MAXWIDTH) {
-					if (rightTypeId.getJDBCTypeId() == Types.CHAR)
-						//operands CHAR(A) CHAR(B) and A+B>254 then result is
-						// VARCHAR(A+B)
-						higherType = TypeId.VARCHAR_NAME;
-					else
-						//operands CHAR FOR BIT DATA(A) CHAR FOR BIT DATA(B)
-						// and A+B>254 then result is VARCHAR FOR BIT DATA(A+B)
-						higherType = TypeId.VARBIT_NAME;
-				}
-				break;
+				case Types.CHAR:
+				case Types.BINARY:
+					if (resultLength.getValue() > Limits.DB2_CHAR_MAXWIDTH) {
+						if (rightTypeId.getJDBCTypeId() == Types.CHAR)
+							//operands CHAR(A) CHAR(B) and A+B>254 then result is
+							// VARCHAR(A+B)
+							resultTypeId = TypeId.getBuiltInTypeId(Types.VARCHAR);
+						else
+							//operands CHAR FOR BIT DATA(A) CHAR FOR BIT DATA(B)
+							// and A+B>254 then result is VARCHAR FOR BIT DATA(A+B)
+							resultTypeId = TypeId.getBuiltInTypeId(Types.VARBINARY);
+					}
+					break;
 
-			case Types.VARCHAR:
-			case Types.VARBINARY:
-				if (resultLength > Limits.DB2_CONCAT_VARCHAR_LENGTH) {
-					if (rightTypeId.getJDBCTypeId() == Types.VARCHAR)
-						//operands CHAR(A) VARCHAR(B) and A+B>4000 then result
-						// is LONG VARCHAR
-						higherType = TypeId.LONGVARCHAR_NAME;
-					else
-						//operands CHAR FOR BIT DATA(A) VARCHAR FOR BIT DATA(B)
-						// and A+B>4000 then result is LONG VARCHAR FOR BIT DATA
-						higherType = TypeId.LONGVARBIT_NAME;
-				}
-				break;
+				case Types.VARCHAR:
+				case Types.VARBINARY:
+					if (resultLength.getValue() > Limits.DB2_CONCAT_VARCHAR_LENGTH) {
+						if (rightTypeId.getJDBCTypeId() == Types.VARCHAR)
+							//operands CHAR(A) VARCHAR(B) and A+B>4000 then result
+							// is LONG VARCHAR
+							resultTypeId = TypeId.getBuiltInTypeId(Types.LONGVARCHAR);
+						else
+							//operands CHAR FOR BIT DATA(A) VARCHAR FOR BIT DATA(B)
+							// and A+B>4000 then result is LONG VARCHAR FOR BIT DATA
+							resultTypeId = TypeId.getBuiltInTypeId(Types.LONGVARBINARY);
+					}
+					break;
 
-			case Types.CLOB:
-			case Types.BLOB:
-				//operands CHAR(A), CLOB(B) then result is CLOB(MIN(A+B,2G))
-				//operands CHAR FOR BIT DATA(A), BLOB(B) then result is
-				// BLOB(MIN(A+B,2G))
-				resultLength = clobBlobHandling(rightType, leftType);
-				break;
+				case Types.CLOB:
+				case Types.BLOB:
+					//operands CHAR(A), CLOB(B) then result is CLOB(MIN(A+B,2G))
+					//operands CHAR FOR BIT DATA(A), BLOB(B) then result is
+					// BLOB(MIN(A+B,2G))
+					resultLength.setValue(clobBlobHandling(rightType, leftType));
+					break;
 			}
 		} else if (leftTypeId.getJDBCTypeId() == Types.VARCHAR) {
 			switch (rightTypeId.getJDBCTypeId()) {
-			case Types.CHAR: //operands CHAR(A) VARCHAR(B) and A+B>4000 then
-							 // result is LONG VARCHAR
-			case Types.VARCHAR: //operands VARCHAR(A) VARCHAR(B) and A+B>4000
-								// then result is LONG VARCHAR
-				if (resultLength > Limits.DB2_CONCAT_VARCHAR_LENGTH)
-					higherType = TypeId.LONGVARCHAR_NAME;
-				break;
+				case Types.CHAR: //operands CHAR(A) VARCHAR(B) and A+B>4000 then
+					// result is LONG VARCHAR
+				case Types.VARCHAR: //operands VARCHAR(A) VARCHAR(B) and A+B>4000
+					// then result is LONG VARCHAR
+					if (resultLength.getValue() > Limits.DB2_CONCAT_VARCHAR_LENGTH) {
+						resultTypeId = TypeId.getBuiltInTypeId(Types.LONGVARCHAR);
+					}
+					break;
 
-			case Types.CLOB:
-				//operands VARCHAR(A), CLOB(B) then result is CLOB(MIN(A+B,2G))
-				resultLength = clobBlobHandling(rightType, leftType);
-				break;
+				case Types.CLOB:
+					//operands VARCHAR(A), CLOB(B) then result is CLOB(MIN(A+B,2G))
+					resultLength.setValue(clobBlobHandling(rightType, leftType));
+					break;
 			}
 		} else if (leftTypeId.getJDBCTypeId() == Types.VARBINARY) {
 			switch (rightTypeId.getJDBCTypeId()) {
-			case Types.BINARY: //operands CHAR FOR BIT DATA(A) VARCHAR FOR BIT
-							   // DATA(B) and A+B>4000 then result is LONG
-							   // VARCHAR FOR BIT DATA
-			case Types.VARBINARY://operands VARCHAR FOR BIT DATA(A) VARCHAR FOR
-								 // BIT DATA(B) and A+B>4000 then result is LONG
-								 // VARCHAR FOR BIT DATA
-				if (resultLength > Limits.DB2_CONCAT_VARCHAR_LENGTH)
-					higherType = TypeId.LONGVARBIT_NAME;
-				break;
+				case Types.BINARY: //operands CHAR FOR BIT DATA(A) VARCHAR FOR BIT
+					// DATA(B) and A+B>4000 then result is LONG
+					// VARCHAR FOR BIT DATA
+				case Types.VARBINARY://operands VARCHAR FOR BIT DATA(A) VARCHAR FOR
+					// BIT DATA(B) and A+B>4000 then result is LONG
+					// VARCHAR FOR BIT DATA
+					if (resultLength.getValue() > Limits.DB2_CONCAT_VARCHAR_LENGTH) {
+						resultTypeId = TypeId.getBuiltInTypeId(Types.LONGVARBINARY);
+					}
+					break;
 
-			case Types.BLOB:
-				//operands VARCHAR FOR BIT DATA(A), BLOB(B) then result is
-				// BLOB(MIN(A+B,2G))
-				resultLength = clobBlobHandling(rightType, leftType);
-				break;
+				case Types.BLOB:
+					//operands VARCHAR FOR BIT DATA(A), BLOB(B) then result is
+					// BLOB(MIN(A+B,2G))
+					resultLength.setValue(clobBlobHandling(rightType, leftType));
+					break;
 			}
 		} else if (leftTypeId.getJDBCTypeId() == Types.CLOB
-				|| leftTypeId.getJDBCTypeId() == Types.BLOB) {
+		            || leftTypeId.getJDBCTypeId() == Types.BLOB) {
 			//operands CLOB(A), CHAR(B) then result is CLOB(MIN(A+B,2G))
 			//operands CLOB(A), VARCHAR(B) then result is CLOB(MIN(A+B,2G))
 			//operands CLOB(A), LONG VARCHAR then result is CLOB(MIN(A+32K,2G))
@@ -487,43 +503,69 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 			//operands BLOB(A), LONG VARCHAR FOR BIT DATA then result is
 			// BLOB(MIN(A+32K,2G))
 			//operands BLOB(A), BLOB(B) then result is BLOB(MIN(A+B,2G))
-			resultLength = clobBlobHandling(leftType, rightType);
+			resultLength.setValue(clobBlobHandling(leftType, rightType));
 		} else if (rightTypeId.getJDBCTypeId() == Types.CLOB
-				|| rightTypeId.getJDBCTypeId() == Types.BLOB) {
+		            || rightTypeId.getJDBCTypeId() == Types.BLOB) {
 			//operands LONG VARCHAR, CLOB(A) then result is CLOB(MIN(A+32K,2G))
 			//operands LONG VARCHAR FOR BIT DATA, BLOB(A) then result is
 			// BLOB(MIN(A+32K,2G))
-			resultLength = clobBlobHandling(rightType, leftType);
+			resultLength.setValue(clobBlobHandling(rightType, leftType));
 		}
 
 		//bug - 5837. long varchar and long binary can't hold more data than
 		// their specific limits. If this length is violated by resulting
 		//concatenated string, an exception will be thrown at execute time.
-		if (higherType.equals(TypeId.LONGVARCHAR_NAME))
-			resultLength = TypeId.LONGVARCHAR_MAXWIDTH;
-		else if (higherType.equals(TypeId.LONGVARBIT_NAME))
-			resultLength = TypeId.LONGVARBIT_MAXWIDTH;
+		if (resultTypeId.getJDBCTypeId() == Types.LONGVARCHAR)
+			resultLength.setValue(TypeId.LONGVARCHAR_MAXWIDTH);
+		else if (resultTypeId.getJDBCTypeId() == Types.LONGVARBINARY)
+			resultLength.setValue(TypeId.LONGVARBIT_MAXWIDTH);
 
 		/*
 		 * * Result Length can't be negative
 		 */
 		if (SanityManager.DEBUG) {
-			if (resultLength < 0) {
+			if (resultLength.getValue() < 0) {
 				SanityManager
-						.THROWASSERT("There should not be an overflow of maximum length for any result type at this point. Overflow for BLOB/CLOB has already been handled earlier");
+				.THROWASSERT("There should not be an overflow of maximum length for any result type at this point. Overflow for BLOB/CLOB has already been handled earlier");
 			}
 		}
+		return resultTypeId;
+	}
+	/**
+	 * Resolve a concatenation operator
+	 *
+	 * @param leftType
+	 *            The DataTypeDescriptor of the left operand
+	 * @param rightType
+	 *            The DataTypeDescriptor of the right operand
+	 *
+	 * @return A DataTypeDescriptor telling the result type of the concatenate
+	 *         operation
+	 *
+	 * @exception StandardException
+	 *                BinaryOperatorNotSupported Thrown when a BinaryOperator is
+	 *                not supported on the operand types.
+	 */
+	private DataTypeDescriptor resolveConcatOperation(
+			DataTypeDescriptor leftType, DataTypeDescriptor rightType)
+			throws StandardException {
+
+		boolean nullable;
 
 		/* The result is nullable if either side is nullable */
 		nullable = leftType.isNullable() || rightType.isNullable();
 
+		MutableInt    resultLength     = new MutableInt();
+
+		TypeId resultTypeId =
+		         resolveConcatOperationResultType(leftType, rightType, resultLength);
 		/*
 		 * * Create a new DataTypeDescriptor that has the correct * type and
 		 * nullability. * * It's OK to call the implementation of the
 		 * DataTypeDescriptorFactory * here, because we're in the same package.
 		 */
-		DataTypeDescriptor returnDTD = new DataTypeDescriptor(TypeId
-				.getBuiltInTypeId(higherType), nullable, resultLength);
+		DataTypeDescriptor returnDTD =
+		  new DataTypeDescriptor(resultTypeId, nullable, resultLength.getValue());
 
 		//Check if collation derivations and collation types of 2 operands
 		//match?
