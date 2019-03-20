@@ -2017,21 +2017,22 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             thisRC.setExpression(newCR);
             thisRC.setType(thisRC.getTypeServices().getDominantType(otherRC.getTypeServices(),cf));
 
-			/* DB2 requires both sides of union to have same name for the result to
-			 * have that name. Otherwise, leave it or set it to a generated name */
+			/* for set operation, we can go with the name in the left branch */
+			/*
             if(thisRC.getName()!=null && !thisRC.isNameGenerated() &&
                     otherRC.getName()!=null){
-				/* Result name needs to be changed */
+				/* Result name needs to be changed
                 if(otherRC.isNameGenerated()){
                     thisRC.setName(otherRC.getName());
                     thisRC.setNameGenerated(true);
                 }else if(!thisRC.getName().equals(otherRC.getName())){
-					/* Both sides have user specified names that don't match */
+					/* Both sides have user specified names that don't match
                     thisRC.setName(null);
                     thisRC.guaranteeColumnName();
                     thisRC.setNameGenerated(true);
                 }
             }
+            */
         }
     }
 

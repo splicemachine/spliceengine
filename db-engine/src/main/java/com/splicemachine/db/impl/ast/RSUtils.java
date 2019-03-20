@@ -246,6 +246,7 @@ public class RSUtils {
         return pr.restrictionList != null ? pr.restrictionList : new PredicateList();
     }
 
+
     public static PredicateList getPreds(IndexToBaseRowNode in) throws StandardException {
         return in.restrictionList != null ? in.restrictionList : new PredicateList();
     }

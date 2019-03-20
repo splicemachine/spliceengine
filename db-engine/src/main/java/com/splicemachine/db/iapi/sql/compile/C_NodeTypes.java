@@ -275,9 +275,10 @@ int CREATE_INDEX_NODE = 146;
 	int REPEAT_OPERATOR_NODE = 264;
 	int SIMPLE_LOCALE_STRING_OPERATOR_NODE = 265;
 	int GROUP_USER_NODE = 266;
+	int FROM_SUBQUERY_HOLDER = 267;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = GROUP_USER_NODE;
+	int FINAL_VALUE = FROM_SUBQUERY_HOLDER;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

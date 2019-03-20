@@ -1069,7 +1069,12 @@ public class FromBaseTable extends FromTable {
 
                 cvn=(CreateViewNode)parseStatement(vd.getViewText(),false);
 
+                if (cvn.isRecursive()) {
+                    cvn.replaceSelfReferenceForRecursiveView();
+                }
+
                 rsn=cvn.getParsedQueryExpression();
+
 
 				/* If the view contains a '*' then we mark the views derived column list
 				 * so that the view will still work, and return the expected results,

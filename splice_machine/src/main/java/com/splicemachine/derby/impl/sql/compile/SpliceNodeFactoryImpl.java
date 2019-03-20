@@ -641,6 +641,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 			case C_NodeTypes.SET_SESSION_PROPERTY_NODE:
 				return C_NodeNames.SET_SESSION_PROPERTY_NAME;
 
+			case C_NodeTypes.FROM_SUBQUERY_HOLDER:
+				return C_NodeNames.FROM_SUBQUERY_HOLDER_NAME;
+
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
 		  // THEM TO tools/jar/DBMSnodes.properties
 
