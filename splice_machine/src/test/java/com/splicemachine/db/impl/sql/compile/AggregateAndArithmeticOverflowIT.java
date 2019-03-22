@@ -193,6 +193,38 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
 		// 1M rows have been inserted
 
         new TableCreator(conn)
+        .withCreate("create table MY_TABLE\n" +
+                    "(\n" +
+                    "        SALES_AMT DECIMAL(9,2),\n" +
+                    "        SALES_QTY INTEGER,\n" +
+                    "        ORIGINAL_SKU_CATEGORY_ID INTEGER,\n" +
+                    "        TRANSACTION_DT DATE not null,\n" +
+                    "        SKU_NBR INTEGER,\n" +
+                    "        UPC_ID BIGINT,\n" +
+                    "        DIVISION_DESC VARCHAR(40),\n" +
+                    "        DIVISION_ID INTEGER,\n" +
+                    "        STORE_NBR SMALLINT not null,\n" +
+                    "        STORE_NAME VARCHAR(40),\n" +
+                    "        SKU_DESC VARCHAR(40),\n" +
+                    "        SOURCE_SALES_INSTANCE_ID BIGINT,\n" +
+                    "        BRAND_NAME VARCHAR(30),\n" +
+                    "        CONTENTS_UNITS VARCHAR(10)\n" +
+                    ")\n")
+        .create();
+        String rows[] = {"329.18, 9, 44871, '2013-05-12', 47008, 706378384, 'pOxYjQyqCNcWHyqlndvDGuSiHMZBiZNTMmjMLlUu', 942, 1780, 'tvgTJaHeYlmajcYVCiuohCnqHZVUBUhxoxKpApNz', 'VCginDZzAxPHDOCUuAmHSbilEOksPeAMtvLbbJXn', 0, 'jQDylYCJAzqWTUomBqynJkFnpdVnXV', 'jXtURzSHlc'",
+        "35.46, 1, 44199, '2013-05-12', 83491, 514661132, 'QxtGiqjHUBFkXlbTXjnkwxbolneOkxibOXJVLCPc', 258, 1780, 'tvgTJaHeYlmajcYVCiuohCnqHZVUBUhxoxKpApNz', 'jLzRYEeMxOaTiOjngGcZUWlDPDKUAANTITIkrjzJ', 0, 'WzEERVNNGyHfuWoJNwUAkqWwYwZPYm', 'svnZHluXMq'",
+        "395.44, 2, 44238, '2013-05-12', 33868, 349162963, 'NTBqyziiuCDuQdqSBATokjRvBmertuPaEEaEcqWh', 659, 1780, 'tvgTJaHeYlmajcYVCiuohCnqHZVUBUhxoxKpApNz', 'ftHaNZRFzCXlWHImwMNvWDFmWNLMTlEEaHJxwLUv', 0, 'ExdNbcGfrcvIchKngSfZNdMtcGCSDj', 'RnBCbnQGSR'",
+        "1763.41, 8, 44410, '2013-05-12', 52315, 15756343, 'jaYIaLuHFbNJicBuLIiZyKnqXMOnBucqrkIVkbWp', 789, 1780, 'tvgTJaHeYlmajcYVCiuohCnqHZVUBUhxoxKpApNz', 'BQwlHbJgmdrGulvgvBnVIUlorWTGOVKuwmGKYNxA', 0, 'YiMzblArnFKTKXigpREReokDVfLAgu', 'kirDoVHOPV'",
+        "915.97, 4, 44797, '2013-05-12', 59186, 284481177, 'KvUyqCvDBNuQQkYgaDxLeaIlBkwNWpOmSOcALXWf', 571, 1780, 'tvgTJaHeYlmajcYVCiuohCnqHZVUBUhxoxKpApNz', 'TpiOZxkWLGJYOBzhNjnNGHFTfdSjqRgtesXMfCcG', 0, 'BaPrtSrqHqhnsRQtksfzwJhbJmAmYq', 'XDMeYqgVDW'",
+        "179.88, 3, 44837, '2013-05-12', 28020, 245664861, 'PLkmcBTYrfbxhcnnZVBVZynniSxpKSuLEErAyfRF', 211, 1780, 'tvgTJaHeYlmajcYVCiuohCnqHZVUBUhxoxKpApNz', 'cotFzzWvBNPgbPJZECfVduWhjSqvDEtpZBmiORJw', 0, 'UrIGqcCOVHHuFXPrxAWwlCYkzvIBby', 'vovFZYzSHC'",
+        "0.00, 0, 44600, '2013-05-12', 46524, 613502555, 'ZYUNzfKfutcgsAqRUpyebCCjTfZyZsnNgKpWenEZ', 864, 1780, 'tvgTJaHeYlmajcYVCiuohCnqHZVUBUhxoxKpApNz', 'THIbSyDwFLRLfoTTIAGGOgWWgZKYHsccmKHjzMxy', 0, 'vRNJxoUZgawdSjKKVXwdlUvzGnKwBn', 'ibwEwHYOwY'"};
+
+        for (int i = 0; i < rows.length; i++) {
+            sqlText = String.format("insert into MY_TABLE values(%s)", rows[i]);
+            spliceClassWatcher.executeUpdate(sqlText);
+        }
+
+        new TableCreator(conn)
                 .withCreate("create table ts_decimal (a dec(11,1), b int)")
                 .withInsert("insert into ts_decimal values(?, ?)")
                 .withRows(rows(
@@ -266,6 +298,65 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
     }
 
+    @Test
+    public void test_DB_8082() throws Exception {
+        String sqlText = format("select\n" +
+                "min(TRANSACTION_DT) over (partition by ORIGINAL_SKU_CATEGORY_ID) C1,\n" +
+                "sum(SALES_QTY) over (partition by TRANSACTION_DT,SKU_NBR,UPC_ID,DIVISION_DESC,DIVISION_ID," +
+                "STORE_NBR,STORE_NAME,SKU_DESC,SOURCE_SALES_INSTANCE_ID,BRAND_NAME,CONTENTS_UNITS) C11\n" +
+                "from MY_TABLE --splice-properties useSpark=%s", useSpark);
+
+        String expected =
+            "C1     | C11 |\n" +
+            "------------------\n" +
+            "2013-05-12 |  0  |\n" +
+            "2013-05-12 |  1  |\n" +
+            "2013-05-12 |  2  |\n" +
+            "2013-05-12 |  3  |\n" +
+            "2013-05-12 |  4  |\n" +
+            "2013-05-12 |  8  |\n" +
+            "2013-05-12 |  9  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select\n" +
+            "min(TRANSACTION_DT) over (partition by ORIGINAL_SKU_CATEGORY_ID) C1,\n" +
+            "sum(SALES_QTY+SALES_QTY-2) over (partition by TRANSACTION_DT,SKU_NBR,UPC_ID,DIVISION_DESC,DIVISION_ID," +
+            "STORE_NBR,STORE_NAME,SKU_DESC,SOURCE_SALES_INSTANCE_ID,BRAND_NAME,CONTENTS_UNITS) C11\n" +
+            "from MY_TABLE --splice-properties useSpark=%s", useSpark);
+
+        expected =
+            "C1     | C11 |\n" +
+            "------------------\n" +
+            "2013-05-12 | -2  |\n" +
+            "2013-05-12 |  0  |\n" +
+            "2013-05-12 | 14  |\n" +
+            "2013-05-12 | 16  |\n" +
+            "2013-05-12 |  2  |\n" +
+            "2013-05-12 |  4  |\n" +
+            "2013-05-12 |  6  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select\n" +
+            "min(TRANSACTION_DT) over (partition by ORIGINAL_SKU_CATEGORY_ID) C1,\n" +
+            "avg(SALES_QTY+SALES_QTY-2) over (partition by TRANSACTION_DT,SKU_NBR,UPC_ID,DIVISION_DESC,DIVISION_ID," +
+            "STORE_NBR,STORE_NAME,SKU_DESC,SOURCE_SALES_INSTANCE_ID,BRAND_NAME,CONTENTS_UNITS) C11\n" +
+            "from MY_TABLE --splice-properties useSpark=%s", useSpark);
+
+        expected =
+            "C1     |  C11   |\n" +
+            "---------------------\n" +
+            "2013-05-12 |-2.0000 |\n" +
+            "2013-05-12 |0.0000  |\n" +
+            "2013-05-12 |14.0000 |\n" +
+            "2013-05-12 |16.0000 |\n" +
+            "2013-05-12 |2.0000  |\n" +
+            "2013-05-12 |4.0000  |\n" +
+            "2013-05-12 |6.0000  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
 
     @Test
     public void testAvg() throws Exception {
