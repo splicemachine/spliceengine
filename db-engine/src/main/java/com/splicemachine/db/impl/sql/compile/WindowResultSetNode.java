@@ -815,6 +815,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             newRC.setName("##" + windowFunctionNode.getAggregateName() + "Function");
             childRCL.addElement(newRC);
             newRC.setVirtualColumnId(childRCL.size());
+            int fnVID = newRC.getVirtualColumnId();
 
 			/*
 			** Add a reference to this column in the windowing RCL.
@@ -823,7 +824,6 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                      getContextManager(), this.getLevel(), this.getLevel());
             winRCL.addElement(tmpRC);
             tmpRC.setVirtualColumnId(winRCL.size());
-            int fnVID = tmpRC.getVirtualColumnId();
 
             /*
 			** Create an window function result expression
