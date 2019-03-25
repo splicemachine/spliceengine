@@ -463,6 +463,29 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
+    public NoPutResultSet getRecursiveUnionResultSet(NoPutResultSet leftResultSet,
+                                                     NoPutResultSet rightResultSet,
+                                                     int resultSetNumber,
+                                                     double optimizerEstimatedRowCount,
+                                                     double optimizerEstimatedCost,
+                                                     String explainPlan) throws StandardException {
+        try{
+            SpliceLogUtils.trace(LOG, "getRecursiveUnionResultSet");
+            ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
+            ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+            SpliceOperation op = new RecursiveUnionOperation(left.getOperation(),
+                    right.getOperation(),
+                    leftResultSet.getActivation(),
+                    resultSetNumber,
+                    optimizerEstimatedRowCount,optimizerEstimatedCost);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
     public NoPutResultSet getRowResultSet(Activation activation,
                                           GeneratedMethod row, boolean canCacheRow, int resultSetNumber,
                                           double optimizerEstimatedRowCount, double optimizerEstimatedCost) {
@@ -1459,6 +1482,27 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 updateResultSetFieldName,
                 sourceCorrelatedColumnItem,
                 subqueryCorrelatedColumnItem);
+    }
+
+    @Override
+    public NoPutResultSet getSelfReferenceResultSet(Activation activation,
+                                                    GeneratedMethod rowAllocator,
+                                                    int resultSetNumber,
+                                                    double optimizerEstimatedRowCount,
+                                                    double optimizerEstimatedCost,
+                                                    String explainPlan) throws StandardException {
+        try{
+            SpliceLogUtils.trace(LOG, "getSelfReferenceResultSet");
+            SpliceOperation op = new SelfReferenceOperation(
+                    activation,
+                    rowAllocator,
+                    resultSetNumber,
+                    optimizerEstimatedRowCount,optimizerEstimatedCost);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override

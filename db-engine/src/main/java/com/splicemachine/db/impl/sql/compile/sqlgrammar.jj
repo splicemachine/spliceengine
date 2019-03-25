@@ -12985,6 +12985,15 @@ void withClause(Vector parameterList) throws StandardException :
     	        hasJDBClimitClause = true;
                 offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
     	    }
+
+            if (isRecursive) {
+			    if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
+				    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					    	"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
+
+			    ((UnionNode)queryExpression).setIsRecursive(true);
+			}
+
     		parameterList.add(nodeFactory.getNode(
     								C_NodeTypes.CREATE_VIEW_NODE,
     								tableName,
@@ -13045,6 +13054,16 @@ viewDefinition(Token beginToken) throws StandardException :
 	        hasJDBClimitClause = true;
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
 	    }
+
+        if (isRecursive) {
+			if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
+				    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					    	"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
+
+			((UnionNode)queryExpression).setIsRecursive(true);
+		}
+
+
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.CREATE_VIEW_NODE,
 								tableName, 

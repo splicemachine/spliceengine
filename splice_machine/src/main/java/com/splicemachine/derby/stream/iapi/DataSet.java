@@ -38,6 +38,8 @@ public interface DataSet<V> extends //Iterable<V>,
 
     Pair<DataSet, Integer> materialize();
 
+    Pair<Pair<DataSet,DataSet>, Integer> materialize2();
+
     public enum JoinType {
         INNER("inner"),
         OUTER("outer"),

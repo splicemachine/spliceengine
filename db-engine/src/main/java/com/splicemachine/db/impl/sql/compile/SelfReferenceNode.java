@@ -32,12 +32,16 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -49,6 +53,7 @@ public class SelfReferenceNode extends FromTable {
 
     // reference to a select query block, specifically, it points to the seed of a recursive query
     ResultSetNode subquery;
+    LocalField selfReferenceResultSetRef;
 
     @Override
     public void init(
@@ -179,13 +184,6 @@ public class SelfReferenceNode extends FromTable {
 
         return costEstimate;
     }
-/*
-    public boolean feasibleJoinStrategy(OptimizablePredicateList predList,
-                                        Optimizer optimizer,
-                                        CostEstimate outerCost) throws StandardException {
-        return super.feasibleJoinStrategy(predList, optimizer, outerCost);
-    }
-    */
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap) {
@@ -235,7 +233,38 @@ public class SelfReferenceNode extends FromTable {
 
     @Override
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
-        assert resultColumns != null : "Tree structure bad";
+        assignResultSetNumber();
 
+        // Get our final cost estimate based on the child estimates.
+        costEstimate=getFinalCostEstimate(false);
+
+        // push in a local variable,
+        selfReferenceResultSetRef = acb.newFieldDeclaration(Modifier.PRIVATE, ClassName.NoPutResultSet);
+
+		/* Generate the SelfReferenceResultSet:
+		 *  arg1: Activation
+		 *  arg2: resultSetNumber
+		 *  arg3: estimated row count
+		 *  arg4: estimated cost
+		 *  arg5: close method
+		 */
+        acb.pushGetResultSetFactoryExpression(mb);
+        acb.pushThisAsActivation(mb);
+
+        resultColumns.generateHolder(acb,mb);
+
+        mb.push(resultSetNumber);
+        mb.push(costEstimate.rowCount());
+        mb.push(costEstimate.getEstimatedCost());
+        mb.push(printExplainInformationForActivation());
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getSelfReferenceResultSet", ClassName.NoPutResultSet,6);
+
+        mb.setField(selfReferenceResultSetRef);
+        mb.getField(selfReferenceResultSetRef);
+    }
+
+    public LocalField getResultSetRef() {
+        return selfReferenceResultSetRef;
     }
 }

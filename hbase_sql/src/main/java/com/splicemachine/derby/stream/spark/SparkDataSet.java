@@ -115,6 +115,10 @@ public class SparkDataSet<V> implements DataSet<V> {
         return Pair.newPair(this, (int) rdd.count());
     }
 
+    @Override
+    public Pair<Pair<DataSet, DataSet>, Integer> materialize2() {
+        return Pair.newPair(Pair.newPair(this, this), (int) rdd.count());
+    }
     /**
      *
      * Execute the job and materialize the results as a List.  Be careful, all

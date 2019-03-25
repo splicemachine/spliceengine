@@ -748,6 +748,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(MiscOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SelfReferenceOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(RecursiveUnionOperation.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(org.apache.commons.lang3.mutable.MutableDouble.class,
                           new SimpleObjectSerializer<MutableDouble>() {

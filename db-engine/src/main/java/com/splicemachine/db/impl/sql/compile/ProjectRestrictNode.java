@@ -1168,6 +1168,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         generateMinion(acb,mb,true);
     }
 
+    private void generateChild(ExpressionClassBuilder acb,
+                               MethodBuilder mb,
+                               boolean genChildResultSet) throws StandardException {
+
+        if(genChildResultSet)
+            childResult.generateResultSet(acb,mb);
+        else
+            childResult.generate((ActivationClassBuilder)acb,mb);
+    }
     /**
      * Logic shared by generate() and generateResultSet().
      *
@@ -1189,10 +1198,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         if(nopProjectRestrict()){
             generateNOPProjectRestrict();
-            if(genChildResultSet)
-                childResult.generateResultSet(acb,mb);
-            else
-                childResult.generate((ActivationClassBuilder)acb,mb);
+            generateChild(acb, mb, genChildResultSet);
             costEstimate=childResult.getFinalCostEstimate(true);
             return;
         }
@@ -1275,10 +1281,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
 
         acb.pushGetResultSetFactoryExpression(mb);
-        if(genChildResultSet)
-            childResult.generateResultSet(acb,mb);
-        else
-            childResult.generate((ActivationClassBuilder)acb,mb);
+        generateChild(acb, mb, genChildResultSet);
 
 		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
 		 * ResultColumnList and ResultSet.
