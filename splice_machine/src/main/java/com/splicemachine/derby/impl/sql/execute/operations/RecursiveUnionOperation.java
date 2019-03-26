@@ -44,6 +44,10 @@ public class RecursiveUnionOperation extends UnionOperation {
         return NAME;
     }
 
+    public RecursiveUnionOperation() {
+        super();
+    }
+
     public RecursiveUnionOperation(SpliceOperation leftResultSet,
                           SpliceOperation rightResultSet,
                           Activation activation,
