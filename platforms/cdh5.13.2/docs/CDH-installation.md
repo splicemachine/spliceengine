@@ -372,10 +372,6 @@ make these changes:
             <td><code>40</code></td>
         </tr>
         <tr>
-            <td><code>RPC Timeout</code></td>
-            <td><code>20 minutes (or 1200000 milliseconds)</code></td>
-        </tr>
-        <tr>
             <td><code>HBase Client Pause</code></td>
             <td><code>90</code></td>
         </tr>
