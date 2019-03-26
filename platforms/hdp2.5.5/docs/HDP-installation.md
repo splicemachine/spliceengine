@@ -331,10 +331,6 @@ To edit the HBase configuration, click `HBase` in the Ambari *Services* sidebar.
             <td><code>200</code></td>
         </tr>
         <tr>
-            <td><code>HBase RPC Timeout</code></td>
-            <td><code>1200000 (20 minutes)</code></td>
-        </tr>
-        <tr>
             <td><code>Zookeeper Session Timeout</code></td>
             <td><code>120000 (2 minutes)</code></td>
         </tr>
