@@ -132,22 +132,25 @@ public class RecursiveUnionOperation extends UnionOperation {
 
         OperationContext operationContext = dsp.createOperationContext(this);
         operationContext.pushScope();
-        // The dataset can be read only once, so we have to return two datasets
-        Pair<Pair<DataSet, DataSet>, Integer> right = leftResultSet.getDataSet(dsp).materialize2();
+        // For control path, the dataset returned by materialize can be read only once as the iterator cannot be reset,
+        // so we have to return two datasets
+        Pair<Pair<DataSet, DataSet>, Integer> right = leftResultSet.getDataSet(dsp).persistIt2();
         DataSet resultDS = right.getFirst().getFirst();
         rightDS = right.getFirst().getSecond();
 
-        right = rightResultSet.getDataSet(dsp).materialize2();
+        right = rightResultSet.getDataSet(dsp).persistIt2();
 
         int loop = 0;
         while (right.getSecond() > 0 && loop < MAX_LOOP) {
             loop ++;
-            Pair<DataSet, Integer> result = resultDS.union(right.getFirst().getFirst(), operationContext).materialize();
+            Pair<DataSet, Integer> result = resultDS.union(right.getFirst().getFirst(), operationContext).persistIt();
+            resultDS.unpersistIt();
             rightDS = right.getFirst().getSecond();
 
             resultDS = result.getFirst();
 
-            right = rightResultSet.getDataSet(dsp).materialize2();
+            right = rightResultSet.getDataSet(dsp).persistIt2();
+            rightDS.unpersistIt();
         }
 
         operationContext.popScope();

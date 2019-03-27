@@ -53,15 +53,19 @@ public class SelfReferenceNode extends FromTable {
 
     // reference to a select query block, specifically, it points to the seed of a recursive query
     ResultSetNode subquery;
+    // reference to the recursive query
+    ResultSetNode recursiveUnionRoot;
     LocalField selfReferenceResultSetRef;
 
     @Override
     public void init(
             Object subquery,
+            Object root,
             Object correlationName,
             Object tableProperties) {
         super.init(correlationName, tableProperties);
         this.subquery = (ResultSetNode) subquery;
+        this.recursiveUnionRoot = (ResultSetNode)root;
         // the necessary privilege should be collected through the underlying subquery
         disablePrivilegeCollection();
     }
@@ -205,6 +209,13 @@ public class SelfReferenceNode extends FromTable {
         tree.add(this);
     }
 
+    public String getExposedName(){
+        if(correlationName!=null)
+            return correlationName;
+        else
+            return getOrigTableName().getFullTableName();
+    }
+
     @Override
     public String toHTMLString() {
         return "" +
@@ -227,6 +238,7 @@ public class SelfReferenceNode extends FromTable {
                 .append(attrDelim);
 
         sb.append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
+        sb.append(",reference=").append(recursiveUnionRoot.getResultSetNumber());
         sb.append(")");
         return sb.toString();
     }

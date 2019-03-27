@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
@@ -118,7 +119,17 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public Pair<Pair<DataSet,DataSet>, Integer> materialize2() {
+    public Pair<DataSet, Integer> persistIt() {
+        return materialize();
+    }
+
+    @Override
+    public void unpersistIt() {
+        return;
+    }
+
+    @Override
+    public Pair<Pair<DataSet, DataSet>, Integer> persistIt2() {
         List<ExecRow> rows = ((ControlDataSet<ExecRow>)this).map(new CloneFunction<>(null)).collect();
         return Pair.newPair(Pair.newPair(new ControlDataSet(rows.iterator()), new ControlDataSet(rows.iterator())), rows.size());
     }

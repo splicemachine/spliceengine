@@ -43,11 +43,13 @@ public class RecursiveViewReferenceVisitor implements Visitor {
     private static Logger LOG = Logger.getLogger(RecursiveViewReferenceVisitor.class);
     private TableName recursiveViewName;
     private ResultSetNode subquery;
+    private ResultSetNode recursiveRoot;
     private int numReferences = 0;
 
-    public RecursiveViewReferenceVisitor(TableName recursiveViewName, ResultSetNode subquery) {
+    public RecursiveViewReferenceVisitor(TableName recursiveViewName, ResultSetNode subquery, ResultSetNode recursiveRoot) {
         this.recursiveViewName = recursiveViewName;
         this.subquery = subquery;
+        this.recursiveRoot = recursiveRoot;
     }
 
     @Override
@@ -78,6 +80,7 @@ public class RecursiveViewReferenceVisitor implements Visitor {
                     SelfReferenceNode selfReferenceNode = (SelfReferenceNode)((SelectNode)node).getNodeFactory().getNode(
                             C_NodeTypes.FROM_SUBQUERY_HOLDER,
                             subquery,
+                            recursiveRoot,
                             recursiveViewName.getTableName(),
                             null,
                             ((SelectNode)node).getContextManager());

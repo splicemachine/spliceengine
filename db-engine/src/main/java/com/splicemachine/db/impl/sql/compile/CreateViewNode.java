@@ -337,7 +337,7 @@ public class CreateViewNode extends DDLStatementNode
 		ResultSetNode leftResultSetNode = ((UnionNode) queryExpression).getLeftResultSet();
 		ResultSetNode rightResultSetNode = ((UnionNode) queryExpression).getRightResultSet();
 		RecursiveViewReferenceVisitor recursiveViewReferenceVisitor =
-				new RecursiveViewReferenceVisitor(getObjectName(), leftResultSetNode);
+				new RecursiveViewReferenceVisitor(getObjectName(), leftResultSetNode, queryExpression);
 
 		rightResultSetNode.accept(recursiveViewReferenceVisitor);
 		int numReferences = recursiveViewReferenceVisitor.getNumReferences();

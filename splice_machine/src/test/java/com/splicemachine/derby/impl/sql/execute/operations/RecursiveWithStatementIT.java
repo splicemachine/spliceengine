@@ -102,20 +102,25 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
     @Test
     public void testSimpleRecursiveWith() throws Exception {
         String sqlText = format("with recursive dt as (" +
-                "select a1, name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                "select distinct a1, name, 1 as level from t1 --splice-properties useSpark=%s\n" +
                 ", t2 where a1=a2 and a1=1 " +
-                "UNION ALL" +
-                "select b1, name, level+1 from dt, t1, t2 where dt.a1=t1.a1 and dt.b1 = t2.a2 and dt.level < 10)" +
+                "UNION ALL \n " +
+                "select t1.b1, t2.name, level+1 from dt, t1, t2 where dt.a1=t1.a1 and t1.b1 = t2.a2 and dt.level < 10)\n" +
                 "select * from dt order by a1", this.useSparkString);
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-        String expected = "A1  | 2 | 3 |\n" +
-                "--------------\n" +
-                "  1  |18 | 0 |\n" +
-                "  2  |12 | 0 |\n" +
-                "  3  |12 | 0 |\n" +
-                "NULL |42 | 1 |";
+        String expected = "A1 |NAME | LEVEL |\n" +
+                "------------------\n" +
+                " 1 |  A  |   1   |\n" +
+                " 2 |  B  |   2   |\n" +
+                " 3 |  C  |   2   |\n" +
+                " 4 |  D  |   3   |\n" +
+                " 5 |  E  |   3   |\n" +
+                " 6 |  F  |   3   |\n" +
+                " 7 |  G  |   3   |\n" +
+                " 8 |  H  |   4   |\n" +
+                " 9 |  I  |   4   |";
 
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();

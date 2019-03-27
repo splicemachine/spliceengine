@@ -137,8 +137,21 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public Pair<Pair<DataSet, DataSet>, Integer> materialize2() {
-        return Pair.newPair(Pair.newPair(this, this), (int) dataset.count());
+    public Pair<DataSet, Integer> persistIt() {
+        dataset.persist(StorageLevel.MEMORY_AND_DISK_SER());
+        return Pair.newPair(this, (int) this.count());
+    }
+
+    @Override
+    public Pair<Pair<DataSet, DataSet>, Integer> persistIt2() {
+        dataset.persist(StorageLevel.MEMORY_AND_DISK_SER());
+        return Pair.newPair(Pair.newPair(this, this), (int) this.count());
+    }
+
+    @Override
+    public void unpersistIt() {
+        dataset.unpersist();
+        return;
     }
 
     /**
