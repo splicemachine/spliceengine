@@ -745,9 +745,5 @@ public class ControlDataSet<V> implements DataSet<V> {
         };
     }
 
-    @Override
-    public DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) {
-         return this;
-    }
 
 }

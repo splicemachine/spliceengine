@@ -1189,8 +1189,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         int i = 0;
         if (genExpressions) {
             for (ResultColumn rc : resultColumns) {
-                expressions[i] = OperatorToString.opToSparkString(rc.getExpression());
-                if (expressions[i] == null) {
+                try {
+                    expressions[i] = OperatorToString.opToSparkString(rc.getExpression());
+                    if (expressions[i] == null) {
+                        genExpressions = false;
+                        numberOfValues = 0;
+                        break;
+                    }
+                }
+                catch (StandardException e) {
                     genExpressions = false;
                     numberOfValues = 0;
                     break;
@@ -1440,7 +1447,13 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(costEstimate.getEstimatedCost());
         mb.push(printExplainInformationForActivation());
 
-        String filterPred = OperatorToString.opToSparkString(restriction);
+        String filterPred = null;
+        try {
+            OperatorToString.opToSparkString(restriction);
+        }
+        catch (StandardException e) {
+
+        }
         if (filterPred == null)
             filterPred = "";
         mb.push(filterPred);

@@ -867,9 +867,4 @@ public class SparkDataSet<V> implements DataSet<V> {
     public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
         return new SparkTableSamplerBuilder(this, operationContext);
     }
-
-    @Override
-    public DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) {
-         return new NativeSparkDataSet(this.rdd, operationContext);
-    }
 }

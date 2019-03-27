@@ -360,11 +360,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         DataSet<ExecRow> sourceSet = source.getDataSet(dsp);
         try {
             operationContext.pushScope();
-            // Temporary code to upgrade the source DataSet to a SparkNativeDataSet
-            // to flush out bugs.
-            // TODO:  Remove this after thorough regression testing.
-            if (hasFilterPred() || hasExpressions())
-                sourceSet = sourceSet.upgradeToSparkNativeDataSet(operationContext);
             if (restrictionMethodName != null)
                 sourceSet = sourceSet.filter(new ProjectRestrictPredicateFunction<>(operationContext));
             return sourceSet.map(new ProjectRestrictMapFunction<>(operationContext, expressions));

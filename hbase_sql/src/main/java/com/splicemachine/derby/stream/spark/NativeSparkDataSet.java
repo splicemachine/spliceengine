@@ -154,17 +154,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
-    // Build a Native Spark Dataset from the context of the consumer operation.
-    // Only works for an op with a single child op accessed via getLeftOperation().
-    public NativeSparkDataSet(JavaRDD<V> rdd, OperationContext context) {
-        this(NativeSparkDataSet.<V>sourceRDDToSparkRow(rdd, context), context);
-        try {
-            this.execRow = context.getOperation().getLeftOperation().getExecRowDefinition();
-        } catch (Exception e) {
-            throw Exceptions.throwAsRuntime(e);
-        }
-    }
-
     @Override
     public int partitions() {
         return dataset.rdd().getNumPartitions();
@@ -1100,11 +1089,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
         return new SparkTableSamplerBuilder(this, this.context);
-    }
-
-    @Override
-    public DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) {
-         return this;
     }
 
 }
