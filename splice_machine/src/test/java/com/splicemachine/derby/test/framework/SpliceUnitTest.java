@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.test.framework;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.junit.Assert;
@@ -39,6 +38,7 @@ public class SpliceUnitTest {
 
     private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
     private static Pattern outputRowsP = Pattern.compile("outputRows=[0-9]+\\.?[0-9]*");
+    private static Pattern scannedRowsP = Pattern.compile("scannedRows=[0-9]+\\.?[0-9]*");
 
 	public String getSchemaName() {
 		Class<?> enclosingClass = getClass().getEnclosingClass();
@@ -294,6 +294,12 @@ public class SpliceUnitTest {
         Matcher m1 = outputRowsP.matcher(planMessage);
         Assert.assertTrue("No OutputRows found!", m1.find());
         return Double.parseDouble(m1.group().substring("outputRows=".length()));
+    }
+
+    public static double parseScannedRows(String planMessage) {
+        Matcher m1 = scannedRowsP.matcher(planMessage);
+        Assert.assertTrue("No ScannedRows found!", m1.find());
+        return Double.parseDouble(m1.group().substring("scannedRows=".length()));
     }
 
     protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {

@@ -214,9 +214,16 @@ public class ScanCostFunction{
         scanCost.setFromBaseTableCost(baseCost);
         scanCost.setScannedBaseTableRows(totalRowCount);
         double lookupCost;
-        if (lookupColumns == null)
+        if (lookupColumns == null) {
             lookupCost = 0.0d;
-        else {
+
+            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
+               from the previous access path
+               see how the cost and rowcount are initialized in SimpleCostEstimate
+             */
+            scanCost.setIndexLookupRows(-1.0d);
+            scanCost.setIndexLookupCost(-1.0d);
+        } else {
             lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
             scanCost.setIndexLookupRows(totalRowCount);
             scanCost.setIndexLookupCost(lookupCost+baseCost);
@@ -317,9 +324,15 @@ public class ScanCostFunction{
         // set how many base table rows to scan
         scanCost.setScannedBaseTableRows(Math.round(baseTableSelectivity * totalRowCount));
         double lookupCost;
-        if (lookupColumns == null)
+        if (lookupColumns == null) {
             lookupCost = 0.0d;
-        else {
+            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
+               from the previous access path
+               see how the cost and rowcount are initialized in SimpleCostEstimate
+             */
+            scanCost.setIndexLookupRows(-1.0d);
+            scanCost.setIndexLookupCost(-1.0d);
+        } else {
             lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
             scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
             scanCost.setIndexLookupCost(lookupCost+baseCost);
@@ -327,9 +340,15 @@ public class ScanCostFunction{
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
 
         double projectionCost;
-        if (projectionSelectivity == 1.0d)
+        if (projectionSelectivity == 1.0d) {
             projectionCost = 0.0d;
-        else {
+            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
+               from the previous access path
+               see how the cost and rowcount are initialized in SimpleCostEstimate
+             */
+            scanCost.setProjectionRows(-1.0d);
+            scanCost.setProjectionCost(-1.0d);
+        } else {
             projectionCost = totalRowCount * filterBaseTableSelectivity * localLatency * colSizeFactor*1d/1000d;
             scanCost.setProjectionRows(Math.round(scanCost.getEstimatedRowCount()));
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
