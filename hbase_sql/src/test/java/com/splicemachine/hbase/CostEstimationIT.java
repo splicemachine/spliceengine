@@ -32,6 +32,7 @@ import org.junit.rules.TestRule;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -97,6 +98,30 @@ public class CostEstimationIT extends SpliceUnitTest {
         /* split the table at the value 20 */
         spliceClassWatcher.executeUpdate(format("CALL SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS('%s', '%s', null, '%s')",
                 spliceSchemaWatcher.toString(), "T2", "\\x94"));
+
+        new TableCreator(conn)
+                .withCreate("create table t111 (a1 int, b1 int, c1 int)")
+                .withInsert("insert into t111 values(?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,2,2),
+                        row(3,3,3),
+                        row(4,4,4),
+                        row(5,5,5),
+                        row(6,6,6),
+                        row(7,7,7),
+                        row(8,8,8),
+                        row(9,9,9),
+                        row(10,10,10)))
+                .withIndex("create index idx1_t111 on t111(c1,a1)")
+                .withIndex("create index idx2_t111 on t111(b1,a1)")
+                .create();
+
+        int multiple = 10;
+        for (int i = 0; i < 12; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t111 select a1, b1+%d, c1 from t111", multiple));
+            multiple = multiple*2;
+        }
 
         try(PreparedStatement ps = spliceClassWatcher.getOrCreateConnection().
                 prepareStatement("analyze schema " + CLASS_NAME)) {
@@ -189,5 +214,75 @@ public class CostEstimationIT extends SpliceUnitTest {
                         "on a2=a3 where a1=a2 and a1=90", methodWatcher,
                 "outputRows=1", "outputRows=1", "outputRows=1", "outputRows=219", "outputRows=219", "outputRows=18", "outputRows=20", "outputRows=18", "outputRows=270");
 
+    }
+    
+
+    /* test case for DB-8061*/
+    @Test
+    public void testProjectRestrictCostInExplain() throws Exception {
+        /* expected plan: step (n=3)'s cost should be consistent with that in step n=2
+        Plan
+        ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        Cursor(n=7,rows=81000000,updateMode=READ_ONLY (1),engine=Spark)
+          ->  ScrollInsensitive(n=6,totalCost=325093388.646,outputRows=81000000,outputHeapSize=231.743 MB,partitions=1)
+            ->  ProjectRestrict(n=5,totalCost=281012,outputRows=81000000,outputHeapSize=231.743 MB,partitions=1)
+              ->  BroadcastJoin(n=4,totalCost=281012,outputRows=81000000,outputHeapSize=231.743 MB,partitions=1,preds=[(B1[4:5] = B2[4:2])])
+                ->  ProjectRestrict(n=3,totalCost=4,outputRows=1,outputHeapSize=231.743 MB,partitions=1)
+                  ->  IndexScan[IDX2_T111(2817)](n=2,totalCost=4,scannedRows=1,outputRows=1,outputHeapSize=231.743 MB,partitions=1,baseTable=T111(2784),preds=[(B1[2:1] = 3)])
+                ->  TableScan[T22(2848)](n=1,totalCost=200004,scannedRows=100000000,outputRows=90000000,outputHeapSize=257.492 MB,partitions=1,preds=[(B2[0:2] = 3)])
+
+        7 rows selected
+         */
+        String sqlText = "explain select t111.a1, t111.b1, t22.* from --splice-properties joinOrder=fixed\n" +
+                "t22 --splice-properties useDefaultRowCount=100000000\n" +
+                ", t111 where b1=b2 and b1=3";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String projectionStep = getExplainMessage(5, sqlText, methodWatcher);
+        Assert.assertTrue(String.format("expected step 5 to be a ProjectRestrict step, actual result was '%s'", projectionStep),
+                projectionStep.contains("ProjectRestrict"));
+        double projectCost = parseTotalCost(projectionStep);
+        String scanStep = getExplainMessage(6, sqlText, methodWatcher);
+        Assert.assertTrue(String.format("expected step 6 to be an IndexScan step, actual result was '%s'", scanStep),
+                scanStep.contains("IndexScan"));
+        double scanCost = parseTotalCost(getExplainMessage(6, sqlText, methodWatcher));
+
+        Assert.assertTrue(format("projectCost is expected to be the same as the scan cost for the index, actual plan is %s",
+                TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs)), projectCost==scanCost);
+    }
+
+    @Test
+    public void testReferenceSelectivityForPredicateWithColumnReferenceFromDT() throws Exception {
+        /* expected plan: step (n=6) should access a small number of rows due to the predicate b2=b1
+        Plan
+        ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        Cursor(n=10,rows=16,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=9,totalCost=321.826,outputRows=16,outputHeapSize=262 B,partitions=1)
+            ->  NestedLoopJoin(n=8,totalCost=310.652,outputRows=16,outputHeapSize=262 B,partitions=1)
+              ->  IndexLookup(n=7,totalCost=8.001,outputRows=1,outputHeapSize=262 B,partitions=1)
+                ->  IndexScan[IDX2_T111(2817)](n=6,totalCost=4.001,scannedRows=1,outputRows=1,outputHeapSize=262 B,partitions=1,baseTable=T111(2784),preds=[(B2[7:2] = B1[9:2])])
+              ->  ProjectRestrict(n=5,totalCost=12.296,outputRows=16,outputHeapSize=68 B,partitions=1)
+                ->  BroadcastJoin(n=4,totalCost=12.296,outputRows=16,outputHeapSize=68 B,partitions=1,preds=[(A2[4:1] = A3[4:4])])
+                  ->  TableScan[T33(2864)](n=3,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=68 B,partitions=1)
+                  ->  ProjectRestrict(n=2,totalCost=4.04,outputRows=18,outputHeapSize=54 B,partitions=1)
+                    ->  TableScan[T22(2848)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=54 B,partitions=1,preds=[(A2[0:1] = 3)])
+
+        10 rows selected
+         */
+        String sqlText = "explain select * from --splice-properties joinOrder=fixed\n" +
+                "(select * from t22 where exists (select 1 from t33 where a2=a3)) dt,\n" +
+                "t111 --splice-properties joinStrategy=nestedloop, index=idx2_t111\n" +
+                "where b2=b1 and a2=3";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String indexScanStep = getExplainMessage(5, sqlText, methodWatcher);
+        Assert.assertTrue(String.format("expected step 5 to be an IndexScan step, actual result was '%s'", indexScanStep),
+                indexScanStep.contains("IndexScan"));
+        double scannedRow = parseScannedRows(indexScanStep);
+
+        Assert.assertTrue(format("Index scannedRows is expected to be a small number, actual number is %f, and the plan is %s",
+                scannedRow, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs)), scannedRow < 10);
     }
 }

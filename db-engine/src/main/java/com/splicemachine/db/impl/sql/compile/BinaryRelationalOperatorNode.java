@@ -1413,10 +1413,10 @@ public class BinaryRelationalOperatorNode
         if (leftOperand instanceof ColumnReference && rightOperand instanceof ColumnReference && optTable instanceof FromBaseTable) {
             ConglomerateDescriptor cdLeft = ((ColumnReference) leftOperand).getBaseConglomerateDescriptor();
             ConglomerateDescriptor cdRight = ((ColumnReference) rightOperand).getBaseConglomerateDescriptor();
-            if (cdLeft ==null || cdRight==null)
+            if (cdLeft ==null && cdRight==null)
                 return -1.0d;
-            boolean leftFromBaseTable = cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
-            boolean rightFromBaseTable = cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
+            boolean leftFromBaseTable = cdLeft != null && cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
+            boolean rightFromBaseTable = cdRight != null && cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
             if (leftFromBaseTable && rightFromBaseTable) {
                 return Math.max(((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity(),((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity());
             } else if (leftFromBaseTable) {
