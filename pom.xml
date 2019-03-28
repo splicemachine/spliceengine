@@ -1401,12 +1401,14 @@
                 <envHbase>hbase1.1.1</envHbase>
                 <hadoop.version>2.7.0-mapr-1607</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
-                <hbase.version>1.1.1-mapr-1602-5.2.0</hbase.version>
+                <hbase.version>1.1.1-mapr-1602</hbase.version>
+                <hbase.bundle.version>1.1.2</hbase.bundle.version>
                 <hive.version>0.13.0-mapr-1602</hive.version>
                 <zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
                 <maprfs.version>5.2.0-mapr</maprfs.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0</spark.version>
+                <assembly.spark>1.1.8-mapr-1808</assembly.spark>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
@@ -1436,11 +1438,13 @@
                 <hadoop.version>2.7.0-mapr-1710</hadoop.version>
                 <hadoop.tools.version>1.0.3-mapr-5.2.0</hadoop.tools.version>
                 <hbase.version>1.1.8-mapr-1710</hbase.version>
+                <hbase.bundle.version>1.1.8-mapr-1710</hbase.bundle.version>
                 <hive.version>2.1.1-mapr-1710</hive.version>
                 <zookeeper.version>3.4.5-mapr-1710</zookeeper.version>
                 <maprfs.version>6.0.0-mapr</maprfs.version>
                 <spark.version>2.1.0-mapr-1710</spark.version>
                 <spark.major.version>spark2.1</spark.major.version>
+                <assembly.spark>1.1.8-mapr-1710</assembly.spark>
                 <kafka.version>0.9.0.0-mapr-1710</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
@@ -1465,16 +1469,17 @@
                 </property>
             </activation>
             <properties>
-                <maven.test.skip>true</maven.test.skip>
                 <envClassifier>mapr6.1.0</envClassifier>
                 <envHbase>hbase1.1.8</envHbase>
                 <hadoop.version>2.7.0-mapr-1808</hadoop.version>
                 <hbase.version>1.1.8-mapr-1901</hbase.version>
+                <hbase.bundle.version>1.1.8-mapr-1901</hbase.bundle.version>
                 <hive.version>2.3.3-mapr-1901</hive.version>
                 <zookeeper.version>3.4.11-mapr-1808=</zookeeper.version>
                 <maprfs.version>6.1.0-mapr</maprfs.version>
                 <spark.version>2.3.2.0-mapr-1901</spark.version>
                 <spark.major.version>spark2.3</spark.major.version>
+                <assembly.spark>1.1.8-mapr-1901</assembly.spark>
                 <kafka.version>1.1.1-mapr-1901</kafka.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
