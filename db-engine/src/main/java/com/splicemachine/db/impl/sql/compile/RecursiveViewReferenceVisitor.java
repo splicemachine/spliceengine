@@ -81,7 +81,7 @@ public class RecursiveViewReferenceVisitor implements Visitor {
                             C_NodeTypes.FROM_SUBQUERY_HOLDER,
                             subquery,
                             recursiveRoot,
-                            recursiveViewName.getTableName(),
+                            fromTable.getCorrelationName()==null? recursiveViewName.getTableName(): fromTable.getCorrelationName(),
                             null,
                             ((SelectNode)node).getContextManager());
 
