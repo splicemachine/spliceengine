@@ -1729,10 +1729,6 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return false;
     }
 
-    public String printExplainInformation() throws StandardException {
-        return printExplainInformation(getResultSetNumber());
-    }
-    
     public String printExplainInformationForActivation() throws StandardException {
         String outString = WordUtils.wrap(printExplainInformation(", ", getResultSetNumber()), 40, null, false);
         

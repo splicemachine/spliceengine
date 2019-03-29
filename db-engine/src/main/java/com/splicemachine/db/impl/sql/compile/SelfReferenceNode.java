@@ -230,7 +230,16 @@ public class SelfReferenceNode extends FromTable {
     }
 
     @Override
+    public String printExplainInformation(int order, boolean fromPlanPrinter) throws StandardException {
+        return printExplainInformation(",", order, fromPlanPrinter);
+    }
+
+    @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
+        return printExplainInformation(attrDelim, order, false);
+    }
+
+    public String printExplainInformation(String attrDelim, int order, boolean fromPlanPrinter) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("SelfReference").append("(")
@@ -238,7 +247,7 @@ public class SelfReferenceNode extends FromTable {
                 .append(attrDelim);
 
         sb.append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
-        sb.append(",reference=").append(recursiveUnionRoot.getResultSetNumber());
+        sb.append(",reference=").append((fromPlanPrinter?((UnionNode)recursiveUnionRoot).getStepNumInExplain():recursiveUnionRoot.getResultSetNumber()));
         sb.append(")");
         return sb.toString();
     }
@@ -278,5 +287,9 @@ public class SelfReferenceNode extends FromTable {
 
     public LocalField getResultSetRef() {
         return selfReferenceResultSetRef;
+    }
+
+    public ResultSetNode getRecursiveUnionRoot() {
+        return recursiveUnionRoot;
     }
 }

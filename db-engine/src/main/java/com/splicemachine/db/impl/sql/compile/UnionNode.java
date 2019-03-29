@@ -61,6 +61,11 @@ public class UnionNode extends SetOperatorNode{
     boolean topTableConstructor;
 
     boolean isRecursive;
+    /* for recursive union all, we want to display the step number from the recursive reference node, so save the step number
+       here for convenience. NOte, this step number in explain may not be the same as the resultSetNumber, as some ProjectRestrict
+       node without restriction could be skipped and won't shown up in the explain
+     */
+    int stepNumInExplain;
 
 
     /**
@@ -658,6 +663,10 @@ public class UnionNode extends SetOperatorNode{
                     new CollectNodesVisitor(SelfReferenceNode.class,null);
             this.rightResultSet.accept(cnv);
             for(Object o : cnv.getList()){
+                // make sure the SelfReference points to this recursive UnionNode, in the present of nested recursive union,
+                // we may see different SelfReference pointing to different level of RecursiveUnion.
+                if (((SelfReferenceNode)o).getRecursiveUnionRoot() != this)
+                    continue;
                 LocalField selfReferenceResultSetRef = ((SelfReferenceNode)o).getResultSetRef();
                 mb.getField(selfReferenceResultSetRef);
                 mb.cast(ClassName.SelfReferenceResultSet);
@@ -715,5 +724,13 @@ public class UnionNode extends SetOperatorNode{
 
     public boolean getIsRecursive() {
         return isRecursive;
+    }
+
+    public void setStepNumInExplain(int stepNum) {
+        stepNumInExplain = stepNum;
+    }
+
+    public int getStepNumInExplain() {
+        return stepNumInExplain;
     }
 }
