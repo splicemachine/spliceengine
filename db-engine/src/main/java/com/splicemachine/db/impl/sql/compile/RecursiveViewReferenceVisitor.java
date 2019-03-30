@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import org.apache.log4j.Logger;
 
 /**
@@ -44,12 +45,14 @@ public class RecursiveViewReferenceVisitor implements Visitor {
     private TableName recursiveViewName;
     private ResultSetNode subquery;
     private ResultSetNode recursiveRoot;
+    private TableDescriptor viewDescriptor;
     private int numReferences = 0;
 
-    public RecursiveViewReferenceVisitor(TableName recursiveViewName, ResultSetNode subquery, ResultSetNode recursiveRoot) {
+    public RecursiveViewReferenceVisitor(TableName recursiveViewName, ResultSetNode subquery, ResultSetNode recursiveRoot, TableDescriptor vd) {
         this.recursiveViewName = recursiveViewName;
         this.subquery = subquery;
         this.recursiveRoot = recursiveRoot;
+        this.viewDescriptor = vd;
     }
 
     @Override
@@ -82,6 +85,7 @@ public class RecursiveViewReferenceVisitor implements Visitor {
                             subquery,
                             recursiveRoot,
                             fromTable.getCorrelationName()==null? recursiveViewName.getTableName(): fromTable.getCorrelationName(),
+                            viewDescriptor,
                             null,
                             ((SelectNode)node).getContextManager());
 

@@ -37,8 +37,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
@@ -55,6 +54,7 @@ public class SelfReferenceNode extends FromTable {
     ResultSetNode subquery;
     // reference to the recursive query
     ResultSetNode recursiveUnionRoot;
+    TableDescriptor viewDescriptor;
     LocalField selfReferenceResultSetRef;
 
     @Override
@@ -62,9 +62,11 @@ public class SelfReferenceNode extends FromTable {
             Object subquery,
             Object root,
             Object correlationName,
+            Object viewDescriptor,
             Object tableProperties) {
         super.init(correlationName, tableProperties);
         this.subquery = (ResultSetNode) subquery;
+        this.viewDescriptor = (TableDescriptor)viewDescriptor;
         this.recursiveUnionRoot = (ResultSetNode)root;
         // the necessary privilege should be collected through the underlying subquery
         disablePrivilegeCollection();
@@ -104,6 +106,19 @@ public class SelfReferenceNode extends FromTable {
         else
             newRcl.genVirtualColumnNodes(subquery, subquery.getResultColumns());
         resultColumns = newRcl;
+
+        if (viewDescriptor != null) {
+            // set the column type using that from the view definition
+            ColumnDescriptorList cdl = viewDescriptor.getColumnDescriptorList();
+            int cdlSize = cdl.size();
+
+            for (int index = 0; index < cdlSize; index++) {
+                ColumnDescriptor colDesc = cdl.elementAt(index);
+                resultColumns.elementAt(index).setType(colDesc.getType());
+            }
+        }
+
+        return;
     }
 
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException {

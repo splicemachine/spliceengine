@@ -333,11 +333,13 @@ public class CreateViewNode extends DDLStatementNode
 		return providerInfos;
 	}
 
-	public boolean replaceSelfReferenceForRecursiveView() throws StandardException {
+	public boolean replaceSelfReferenceForRecursiveView(TableDescriptor td) throws StandardException {
+		// set recursive view descriptor which contains the column type info.
+		((UnionNode)queryExpression).setViewDescreiptor(td);
 		ResultSetNode leftResultSetNode = ((UnionNode) queryExpression).getLeftResultSet();
 		ResultSetNode rightResultSetNode = ((UnionNode) queryExpression).getRightResultSet();
 		RecursiveViewReferenceVisitor recursiveViewReferenceVisitor =
-				new RecursiveViewReferenceVisitor(getObjectName(), leftResultSetNode, queryExpression);
+				new RecursiveViewReferenceVisitor(getObjectName(), leftResultSetNode, queryExpression, td);
 
 		rightResultSetNode.accept(recursiveViewReferenceVisitor);
 		int numReferences = recursiveViewReferenceVisitor.getNumReferences();
@@ -370,7 +372,7 @@ public class CreateViewNode extends DDLStatementNode
 						"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
 
 			/* step 2: replace the self-reference in the right branch with a FromSubqueryReference */
-			boolean hasRecursiveReference = replaceSelfReferenceForRecursiveView();
+			boolean hasRecursiveReference = replaceSelfReferenceForRecursiveView(null);
 			if (!hasRecursiveReference) {
 				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
 						"No recursive references found in WITH RECURSIVE");

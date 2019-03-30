@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
@@ -60,7 +61,10 @@ public class UnionNode extends SetOperatorNode{
     /* True if this is the top node of a table constructor */
     boolean topTableConstructor;
 
+    /* below variales are for recursive queries */
     boolean isRecursive;
+    /* the description of the result columns */
+    TableDescriptor viewDescriptor;
     /* for recursive union all, we want to display the step number from the recursive reference node, so save the step number
        here for convenience. NOte, this step number in explain may not be the same as the resultSetNumber, as some ProjectRestrict
        node without restriction could be skipped and won't shown up in the explain
@@ -732,5 +736,9 @@ public class UnionNode extends SetOperatorNode{
 
     public int getStepNumInExplain() {
         return stepNumInExplain;
+    }
+
+    public void setViewDescreiptor(TableDescriptor viewDescreiptor) {
+        this.viewDescriptor = viewDescreiptor;
     }
 }

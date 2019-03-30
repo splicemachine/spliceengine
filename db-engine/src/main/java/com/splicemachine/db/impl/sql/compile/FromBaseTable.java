@@ -1070,7 +1070,7 @@ public class FromBaseTable extends FromTable {
                 cvn=(CreateViewNode)parseStatement(vd.getViewText(),false);
 
                 if (cvn.isRecursive()) {
-                    cvn.replaceSelfReferenceForRecursiveView();
+                    cvn.replaceSelfReferenceForRecursiveView(tableDescriptor);
                 }
 
                 rsn=cvn.getParsedQueryExpression();

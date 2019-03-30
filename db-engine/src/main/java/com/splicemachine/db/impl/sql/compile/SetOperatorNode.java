@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -657,7 +658,13 @@ abstract class SetOperatorNode extends TableOperatorNode
 		/* Create new expressions with the dominant types after verifying
 		 * union compatibility between left and right sides.
 		 */
-		resultColumns.setUnionResultExpression(rightResultSet.getResultColumns(), tableNumber, level, getOperatorName());
+		ColumnDescriptorList cdl = null;
+		if ((this instanceof UnionNode) && ((UnionNode)this).getIsRecursive()) {
+			// recursiveUnion's viewDescriptor could be null during the binding of the view definition
+			if (((UnionNode)this).viewDescriptor != null)
+				cdl = ((UnionNode)this).viewDescriptor.getColumnDescriptorList();
+		}
+		resultColumns.setUnionResultExpression(rightResultSet.getResultColumns(), tableNumber, level, getOperatorName(), cdl);
 	}
 
 	/**

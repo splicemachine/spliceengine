@@ -1920,12 +1920,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @param tableNumber  The tableNumber for the UNION.
      * @param level        The nesting level for the UNION.
      * @param operatorName "UNION", "INTERSECT", or "EXCEPT"
+     * @param cdl          the recurisve union's column descriptor list
      * @throws StandardException Thrown on error
      */
     public void setUnionResultExpression(ResultColumnList otherRCL,
                                          int tableNumber,
                                          int level,
-                                         String operatorName) throws StandardException{
+                                         String operatorName,
+                                         ColumnDescriptorList cdl) throws StandardException{
         TableName dummyTN;
 
         if(SanityManager.DEBUG){
@@ -1992,9 +1994,15 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         operatorName);
             }
 
-            DataTypeDescriptor resultType=thisExpr.getTypeServices().getDominantType(
-                    otherExpr.getTypeServices(),
-                    cf);
+            DataTypeDescriptor resultType;
+
+            if (cdl != null) {
+                resultType = cdl.elementAt(index).getType();
+            } else {
+                resultType  =thisExpr.getTypeServices().getDominantType(
+                        otherExpr.getTypeServices(),
+                        cf);
+            }
 
             newCR=(ColumnReference)getNodeFactory().getNode(
                     C_NodeTypes.COLUMN_REFERENCE,
@@ -2015,9 +2023,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             }
             newCR.setTableNumber(tableNumber);
             thisRC.setExpression(newCR);
-            thisRC.setType(thisRC.getTypeServices().getDominantType(otherRC.getTypeServices(),cf));
+            if (cdl != null)
+                thisRC.setType(resultType);
+            else
+                thisRC.setType(thisRC.getTypeServices().getDominantType(otherRC.getTypeServices(),cf));
 
-			/* for set operation, we can go with the name in the left branch */
+			/* for set operation, we should go with the name in the left branch */
 			/*
             if(thisRC.getName()!=null && !thisRC.isNameGenerated() &&
                     otherRC.getName()!=null){
