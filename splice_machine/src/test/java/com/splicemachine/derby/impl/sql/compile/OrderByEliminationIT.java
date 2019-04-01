@@ -373,7 +373,7 @@ public class OrderByEliminationIT extends SpliceUnitTest {
         /* Q1 -- PK */
         String sqlText = "select * from (select a1,b1 from t1 where a1=1 order by b1 {limit 10}) dt1 " +
                 "union all select * from (select a2, b2 from t2 where a2=1 order by b2 {limit 10}) dt2";
-        String expected = "1 | 2 |\n" +
+        String expected = "A1 |B1 |\n" +
                 "--------\n" +
                 " 1 | 1 |\n" +
                 " 1 | 1 |\n" +
@@ -390,7 +390,7 @@ public class OrderByEliminationIT extends SpliceUnitTest {
         /* Q2 -- index */
         sqlText = "select * from (select b1, c1, d1 from t1 --splice-properties index=idx_t1\n where b1=2 and c1=3 order by d1 {limit 10}) dt1 " +
                 "union all select * from (select b2, c2, d2 from t2 --splice-properties index=idx_t2\n where b2=2 and c2=3 order by b2 {limit 10}) dt2";
-        expected = "1 | 2 | 3 |\n" +
+        expected = "B1 |C1 |D1 |\n" +
                 "------------\n" +
                 " 2 | 3 |30 |\n" +
                 " 2 | 3 |30 |\n" +
