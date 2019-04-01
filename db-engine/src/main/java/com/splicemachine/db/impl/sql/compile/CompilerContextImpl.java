@@ -57,6 +57,7 @@ import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.system.SparkVersion;
 import com.splicemachine.utils.Pair;
 
 import java.sql.SQLWarning;
@@ -246,12 +247,17 @@ public class CompilerContextImpl extends ContextImpl
 		return disablePredicateSimplification;
 	}
 
-	public void setSparkMajorVersion(double newValue) {
-		sparkMajorVersion = newValue;
+	public void setSparkVersion(SparkVersion newValue) {
+		sparkVersionInitialized = true;
+		sparkVersion = newValue;
 	}
 
-	public double getSparkMajorVersion() {
-		return sparkMajorVersion;
+	public SparkVersion getSparkVersion() {
+		return sparkVersion;
+	}
+
+	public boolean isSparkVersionInitialized() {
+		return sparkVersionInitialized;
 	}
 	
 	/**
@@ -1077,8 +1083,9 @@ public class CompilerContextImpl extends ContextImpl
 	private int                 maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
 	private boolean             multicolumnInlistProbeOnSparkEnabled = DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
 	private boolean             convertMultiColumnDNFPredicatesToInList= DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
-    private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
-    private double              sparkMajorVersion = DEFAULT_SPLICE_SPARK_MAJOR_VERSION;
+	private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+	private SparkVersion        sparkVersion = DEFAULT_SPLICE_SPARK_VERSION;
+	private boolean sparkVersionInitialized = false;
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.

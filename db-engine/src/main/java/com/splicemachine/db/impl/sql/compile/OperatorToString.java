@@ -36,10 +36,12 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.system.SimpleSparkVersion;
+import com.splicemachine.system.SparkVersion;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.zookeeper.Op;
 
-import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_MAJOR_VERSION;
+import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
+import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 import static com.splicemachine.db.iapi.services.io.StoredFormatIds.*;
 import static java.lang.String.format;
 
@@ -50,15 +52,16 @@ import static java.lang.String.format;
  */
 public class OperatorToString {
 
-    public boolean    sparkExpression;
-    public double     sparkVersion;
-    public MutableInt relationalOpDepth;
+    public boolean      sparkExpression;
+    public SparkVersion sparkVersion;
+    public MutableInt   relationalOpDepth;
+
+    private static final SparkVersion spark_2_3_0 = new SimpleSparkVersion("2.3.0");
 
     OperatorToString(boolean    sparkExpression,
-                     double     sparkVersion,
                      MutableInt relationalOpDepth) {
         this.sparkExpression   = sparkExpression;
-        this.sparkVersion      = sparkVersion;
+        this.sparkVersion      = getSparkVersion();
         this.relationalOpDepth = relationalOpDepth;
     }
 
@@ -76,17 +79,22 @@ public class OperatorToString {
     }
 
     // Helper method for initializing the spark major version.
-    private static double getSparkMajorVersion() {
-        double sparkMajorVersion = CompilerContext.DEFAULT_SPLICE_SPARK_MAJOR_VERSION;
-        try {
-            String spliceSparkMajorVersionString = System.getProperty(SPLICE_SPARK_MAJOR_VERSION);
-            if (spliceSparkMajorVersionString != null)
-                sparkMajorVersion = Double.valueOf(spliceSparkMajorVersionString);
-        } catch (Exception e) {
-            // If the property value failed to convert to a float, don't throw an error,
-            // just use the default setting.
+    private static SparkVersion getSparkVersion() {
+
+        // If splice.spark.version is manually set, use it...
+        String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);
+        SparkVersion sparkVersion =
+            (spliceSparkVersionString != null && !spliceSparkVersionString.isEmpty()) ?
+              new SimpleSparkVersion(spliceSparkVersionString) : null;
+
+        // ... otherwise pick up the splice compile-time version of spark.
+        if (sparkVersion == null || sparkVersion.isUnknown()) {
+            spliceSparkVersionString = System.getProperty(SPLICE_SPARK_COMPILE_VERSION);
+            sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
+            if (sparkVersion.isUnknown())
+                sparkVersion = CompilerContext.DEFAULT_SPLICE_SPARK_VERSION;
         }
-        return sparkMajorVersion;
+        return sparkVersion;
     }
 
     /**
@@ -118,7 +126,6 @@ public class OperatorToString {
         try {
             OperatorToString vars =
                 new OperatorToString(false,
-                                     getSparkMajorVersion(),
                                      new MutableInt(0));
             return opToString2(operand, vars);
         }
@@ -141,7 +148,6 @@ public class OperatorToString {
         try {
             OperatorToString vars =
                 new OperatorToString(true,
-                                     getSparkMajorVersion(),
                                      new MutableInt(0));
             retval = opToString2(operand, vars);
 
@@ -342,7 +348,7 @@ public class OperatorToString {
                         return format("trunc(%s, %s) ", opToString2(leftOperand, vars),
                                                        opToString2(rightOperand, vars));
                     }
-                    else if (vars.sparkVersion >= 2.3 &&
+                    else if (vars.sparkVersion.greaterThanOrEqualTo(spark_2_3_0) &&
                                leftOperand.getTypeId().getTypeFormatId() == TIMESTAMP_TYPE_ID) {
                         return format("date_trunc(%s, %s) ", opToString2(rightOperand, vars),
                                                             opToString2(leftOperand, vars));
@@ -465,7 +471,7 @@ public class OperatorToString {
                         top.getOperator().equals("replace") ||
                         top.getOperator().equals("substring") ) {
 
-                        if (vars.sparkVersion < 2.3 && top.getOperator().equals("replace"))
+                        if (vars.sparkVersion.lessThan(spark_2_3_0) && top.getOperator().equals("replace"))
                             throwNotImplementedError();
 
                         return format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
@@ -473,7 +479,7 @@ public class OperatorToString {
                     }
                     else if (top.getOperator().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
-                        if (vars.sparkVersion < 2.3)
+                        if (vars.sparkVersion.lessThan(spark_2_3_0))
                             throwNotImplementedError();
                         if (top.isLeading())
                             return format("%s(LEADING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),

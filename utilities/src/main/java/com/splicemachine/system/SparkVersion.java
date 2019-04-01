@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.access.api;
+package com.splicemachine.system;
 
 import javax.management.MXBean;
 
@@ -23,9 +23,9 @@ import javax.management.MXBean;
 public interface SparkVersion{
 
     /**
-     * @return the Spark major version, e.g. 2.2
+     * @return the running version of splice, e.g. 2.2.0
      */
-    String getSparkMajorVersion();
+    String getVersionString();
 
     /**
      * @return the Splice major release version
@@ -41,4 +41,27 @@ public interface SparkVersion{
      * @return the Splice patch number
      */
     int getPatchVersionNumber();
+
+    /**
+     * @return true if we were unable to determine the version
+     */
+    boolean isUnknown();
+
+    /**
+     * @return true if this object's version is greater than
+     * or equal to the other object's version.
+     */
+    public boolean greaterThanOrEqualTo(SparkVersion otherValue);
+
+    /**
+     * @return true if this object's version is less than
+     * the other object's version.
+     */
+    public boolean lessThan(SparkVersion otherValue);
+
+    /**
+     * @return true if this object's version is equal to
+     * the other object's version.
+     */
+    public boolean equals(SparkVersion otherValue);
 }

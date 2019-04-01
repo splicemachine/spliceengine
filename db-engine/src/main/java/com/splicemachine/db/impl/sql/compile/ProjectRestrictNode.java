@@ -1179,7 +1179,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * @return The field that holds the list data
      */
     public static void
-    generateExpressionsArrayOnStack(ExpressionClassBuilder acb, MethodBuilder mb, ResultColumnList resultColumns) {
+    generateExpressionsArrayOnStack(ExpressionClassBuilder acb,
+                                    MethodBuilder          mb,
+                                    ResultColumnList       resultColumns)
+    throws StandardException {
 
         boolean genExpressions = resultColumns != null;
         int numberOfValues = genExpressions ? resultColumns.size() : 0;
@@ -1189,15 +1192,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         int i = 0;
         if (genExpressions) {
             for (ResultColumn rc : resultColumns) {
-                try {
-                    expressions[i] = OperatorToString.opToSparkString(rc.getExpression());
-                    if (expressions[i] == null) {
-                        genExpressions = false;
-                        numberOfValues = 0;
-                        break;
-                    }
-                }
-                catch (StandardException e) {
+                expressions[i] = OperatorToString.opToSparkString(rc.getExpression());
+                if (expressions[i] == null) {
                     genExpressions = false;
                     numberOfValues = 0;
                     break;
@@ -1447,13 +1443,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(costEstimate.getEstimatedCost());
         mb.push(printExplainInformationForActivation());
 
-        String filterPred = null;
-        try {
-            OperatorToString.opToSparkString(restriction);
-        }
-        catch (StandardException e) {
-
-        }
+        String filterPred = OperatorToString.opToSparkString(restriction);
         if (filterPred == null)
             filterPred = "";
         mb.push(filterPred);

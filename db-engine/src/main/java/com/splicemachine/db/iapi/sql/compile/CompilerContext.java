@@ -48,6 +48,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
+import com.splicemachine.system.SimpleSparkVersion;
+import com.splicemachine.system.SparkVersion;
 
 import java.util.List;
 import java.util.Vector;
@@ -158,7 +160,7 @@ public interface CompilerContext extends Context
 	boolean     DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
 	boolean     DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
 	boolean     DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
-	double      DEFAULT_SPLICE_SPARK_MAJOR_VERSION = 2.2;
+	SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -673,7 +675,9 @@ public interface CompilerContext extends Context
 
 	public boolean getDisablePredicateSimplification();
 
-	public void setSparkMajorVersion(double newValue);
+	public void setSparkVersion(SparkVersion newValue);
 
-	public double getSparkMajorVersion();
+	public SparkVersion getSparkVersion();
+
+	public boolean isSparkVersionInitialized();
 }

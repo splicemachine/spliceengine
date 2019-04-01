@@ -20,6 +20,8 @@ import javax.management.ObjectName;
 import java.sql.Connection;
 import java.util.Properties;
 
+import com.splicemachine.system.SimpleSparkVersion;
+import com.splicemachine.system.SparkVersion;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.EngineDriver;
@@ -64,6 +66,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     private Snowflake snowflake;
     private Connection internalConnection;
     private DatabaseVersion spliceVersion;
+    private SparkVersion sparkVersion;
     private ManifestReader manifestReader;
     private Logging logging;
     private SpliceDatabase db;
@@ -173,22 +176,25 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
     private void loadManifest(){
         manifestReader = new ManifestReader();
         spliceVersion = manifestReader.createVersion();
+        sparkVersion = manifestReader.createSparkVersion();
         /* Make version information available to code in the derby codebase. */
         System.setProperty(Property.SPLICE_RELEASE, spliceVersion.getRelease());
         System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
         System.setProperty(Property.SPLICE_BUILD_TIME, spliceVersion.getBuildTime());
         System.setProperty(Property.SPLICE_URL, spliceVersion.getURL());
 
-        String spliceSparkMajorVersionString = spliceVersion.getSparkMajorVersion();
-        try {
-            if (spliceSparkMajorVersionString != null &&
-                spliceSparkMajorVersionString.startsWith("spark")) {
-                spliceSparkMajorVersionString =
-                  spliceSparkMajorVersionString.split("spark")[1];
-            }
-        } catch (Exception e) {
-            // Don't crash splice if we can't parse the string.
-        }
-        System.setProperty(Property.SPLICE_SPARK_MAJOR_VERSION, spliceSparkMajorVersionString);
+        // If we can't parse the compile-time spark version string, use 2.2.0
+        // as the default, the lowest expected version of spark.
+        if (sparkVersion.isUnknown())
+            sparkVersion = new SimpleSparkVersion("2.2.0");
+
+        System.setProperty(Property.SPLICE_SPARK_COMPILE_VERSION, sparkVersion.getVersionString());
+        String spliceSparkVersionString = System.getProperty(Property.SPLICE_SPARK_VERSION);
+        SparkVersion spliceSparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
+
+        // If splice.spark.version is not set, or is not a proper version string, use the
+        // splice compile-time spark version as the active spark version.
+        if (spliceSparkVersion.isUnknown())
+            System.setProperty(Property.SPLICE_SPARK_VERSION, sparkVersion.getVersionString());
     }
 }

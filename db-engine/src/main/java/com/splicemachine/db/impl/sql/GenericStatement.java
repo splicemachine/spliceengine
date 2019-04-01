@@ -53,6 +53,8 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.system.SimpleSparkVersion;
+import com.splicemachine.system.SparkVersion;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -62,7 +64,8 @@ import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_MAJOR_VERSION;
+import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
+import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
@@ -512,17 +515,20 @@ public class GenericStatement implements Statement{
             }
             cc.setDisablePredicateSimplification(disablePredicateSimplification);
 
-            String spliceSparkMajorVersionString = System.getProperty(SPLICE_SPARK_MAJOR_VERSION);
-            double sparkMajorVersion = CompilerContext.DEFAULT_SPLICE_SPARK_MAJOR_VERSION;
-            try {
-                if (spliceSparkMajorVersionString != null)
-                    sparkMajorVersion = Double.valueOf(spliceSparkMajorVersionString);
-            } catch (Exception e) {
-                // If the property value failed to convert to a double, don't throw an error,
-                // just use the default setting.
-            }
-            cc.setSparkMajorVersion(sparkMajorVersion);
+            if (! cc.isSparkVersionInitialized()) {
+                // If splice.spark.version is manually set, use it...
+                String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);
+                SparkVersion sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
 
+                // ... otherwise pick up the splice compile-time version of spark.
+                if (sparkVersion.isUnknown()) {
+                    spliceSparkVersionString = System.getProperty(SPLICE_SPARK_COMPILE_VERSION);
+                    sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
+                    if (sparkVersion.isUnknown())
+                        sparkVersion = CompilerContext.DEFAULT_SPLICE_SPARK_VERSION;
+                }
+                cc.setSparkVersion(sparkVersion);
+            }
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)
