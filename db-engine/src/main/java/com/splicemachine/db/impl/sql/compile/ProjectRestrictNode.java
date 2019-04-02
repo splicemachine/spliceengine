@@ -1193,7 +1193,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         if (genExpressions) {
             for (ResultColumn rc : resultColumns) {
                 expressions[i] = OperatorToString.opToSparkString(rc.getExpression());
-                if (expressions[i] == null) {
+                if (expressions[i].isEmpty()) {
                     genExpressions = false;
                     numberOfValues = 0;
                     break;
@@ -1444,8 +1444,6 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(printExplainInformationForActivation());
 
         String filterPred = OperatorToString.opToSparkString(restriction);
-        if (filterPred == null)
-            filterPred = "";
         mb.push(filterPred);
 
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
