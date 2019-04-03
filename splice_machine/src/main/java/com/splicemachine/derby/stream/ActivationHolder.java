@@ -162,6 +162,8 @@ public class ActivationHolder implements Externalizable {
             txnResource = new SpliceTransactionResourceImpl();
             txnResource.marshallTransaction(txn);
             impl.set(txnResource);
+            if (soi == null)
+                soi = SpliceObserverInstructions.create(this);
             activation = soi.getActivation(this, txnResource.getLcc());
 
             // Push internal connection to the current context manager

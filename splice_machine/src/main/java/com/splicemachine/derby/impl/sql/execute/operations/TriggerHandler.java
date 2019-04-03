@@ -28,15 +28,22 @@ import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.derby.iapi.sql.execute.SingleRowCursorResultSet;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import org.spark_project.guava.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 
 /**
  * Used by DMLOperation to initialize the derby classes necessary for firing row/statement triggers.  Also provides
@@ -62,6 +69,9 @@ public class TriggerHandler {
     private final boolean hasAfterRow;
     private final boolean hasAfterStatement;
 
+    private Activation activation;
+    private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
+
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
                           Activation activation,
@@ -72,6 +82,7 @@ public class TriggerHandler {
 
         this.beforeEvent = beforeEvent;
         this.afterEvent = afterEvent;
+        this.activation = activation;
         this.resultDescription = activation.getResultDescription();
         this.pendingAfterRows = Lists.newArrayListWithCapacity(AFTER_ROW_BUFFER_SIZE);
 
@@ -85,10 +96,33 @@ public class TriggerHandler {
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
         try {
+            withContext = new Function<Function<LanguageConnectionContext,Void>, Callable>() {
+                @Override
+                public Callable apply(Function<LanguageConnectionContext,Void> f) {
+                    return new Callable() {
+                        @Override
+                        public Void call() throws Exception {
+                            boolean prepared = false;
+                            ActivationHolder ah = new ActivationHolder(activation, null);
+                            try {
+                                ah.reinitialize(null, false);
+
+                                f.apply(ah.getActivation().getLanguageConnectionContext());
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            } finally {
+                                if (prepared)
+                                    ah.close();
+                            }
+                            return null;
+                        }
+                    };
+                }
+            };
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
-                    null);
+                    null, SIDriver.driver().getExecutorService(), withContext);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;
@@ -128,7 +162,21 @@ public class TriggerHandler {
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasBeforeRow) {
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
-            triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null);
+            List<Future<Void>> futures = triggerActivator.notifyRowEventConcurrent(beforeEvent, triggeringResultSet, null);
+            triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null, null);
+            for (Future<Void> f : futures) {
+                try {
+                    f.get();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof StandardException) {
+                        throw (StandardException) e.getCause();
+                    } else {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
         }
     }
 
@@ -148,19 +196,62 @@ public class TriggerHandler {
             pendingAfterRows.clear();
             throw e;
         }
+        List<Future<Void>> futures = new ArrayList<>();
 
-        for (ExecRow flushedRow : pendingAfterRows) {
-            fireAfterRowTriggers(flushedRow);
+        if (pendingAfterRows.size() <= 1) {
+            for (ExecRow flushedRow : pendingAfterRows) {
+                futures.addAll(fireAfterRowConcurrentTriggers(flushedRow));
+                fireAfterRowTriggers(flushedRow, activation.getLanguageConnectionContext());
+            }
+        } else {
+            Object lock = new Object();
+            // work concurrently
+            List<Future<Void>> rowFutures = new ArrayList<>();
+            for (ExecRow flushedRow : pendingAfterRows) {
+                rowFutures.add(SIDriver.driver().getExecutorService().submit(withContext.apply(new Function<LanguageConnectionContext,Void>() {
+                    @Override
+                    public Void apply(LanguageConnectionContext lcc) {
+                        try {
+                            List<Future<Void>> f = fireAfterRowConcurrentTriggers(flushedRow);
+                            synchronized (lock) {
+                                futures.addAll(f);
+                            }
+                        } catch (StandardException e) {
+                            throw new RuntimeException(e);
+                        }
+                        return null;
+                    }
+                })));
+            }
+
+            for (ExecRow flushedRow : pendingAfterRows) {
+                fireAfterRowTriggers(flushedRow, activation.getLanguageConnectionContext());
+            }
+            for (Future<Void> f : rowFutures) {
+                f.get(); // bubble up any exceptions
+            }
+        }
+        for (Future<Void> f : futures) {
+            f.get(); // bubble up any exceptions
         }
         pendingAfterRows.clear();
     }
 
-    private void fireAfterRowTriggers(ExecRow row) throws StandardException {
+    private void fireAfterRowTriggers(ExecRow row, LanguageConnectionContext lcc) throws StandardException {
         if (row != null && hasAfterRow) {
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
-            triggerActivator.notifyRowEvent(afterEvent, triggeringResultSet, null);
+            triggerActivator.notifyRowEvent(afterEvent, triggeringResultSet, null, lcc);
         }
     }
+
+    private List<Future<Void>> fireAfterRowConcurrentTriggers(ExecRow row) throws StandardException {
+        if (row != null && hasAfterRow) {
+            SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
+            return triggerActivator.notifyRowEventConcurrent(afterEvent, triggeringResultSet, null);
+        }
+        return Collections.emptyList();
+    }
+
 
     public void fireBeforeStatementTriggers() throws StandardException {
         if (hasBeforeStatement) {

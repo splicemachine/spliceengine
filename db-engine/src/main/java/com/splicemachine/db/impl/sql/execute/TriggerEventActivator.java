@@ -32,10 +32,16 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -53,26 +59,30 @@ public class TriggerEventActivator {
     private LanguageConnectionContext lcc;
     private TriggerInfo triggerInfo;
     private TriggerExecutionContext tec;
-    private Map<TriggerEvent, List<GenericTriggerExecutor>> statementExecutorsMap = new HashMap<>();
-    private Map<TriggerEvent, List<GenericTriggerExecutor>> rowExecutorsMap = new HashMap<>();
+    private Map<TriggerEvent, List<TriggerDescriptor>> statementExecutorsMap = new HashMap<>();
+    private Map<TriggerEvent, List<TriggerDescriptor>> rowExecutorsMap = new HashMap<>();
+    private Map<TriggerEvent, List<TriggerDescriptor>> rowConcurrentExecutorsMap = new HashMap<>();
     private Activation activation;
     private String statementText;
     private UUID tableId;
     private String tableName;
     private boolean tecPushed;
+    private ExecutorService executorService;
+    private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
     /**
      * Basic constructor
-     *
      * @param tableId     UUID of the target table
      * @param triggerInfo the trigger information
      * @param activation  the activation.
      * @param aiCounters  vector of ai counters
+     * @param executorService
+     * @param withContext
      */
     public TriggerEventActivator(UUID tableId,
                                  TriggerInfo triggerInfo,
                                  Activation activation,
-                                 Vector<AutoincrementCounter> aiCounters) throws StandardException {
+                                 Vector<AutoincrementCounter> aiCounters, ExecutorService executorService, Function<Function<LanguageConnectionContext,Void>, Callable> withContext) throws StandardException {
         if (triggerInfo == null) {
             return;
         }
@@ -89,6 +99,8 @@ public class TriggerEventActivator {
 
         initTriggerExecContext(aiCounters);
         setupExecutors(triggerInfo);
+        this.executorService = executorService;
+        this.withContext = withContext;
     }
 
     private void initTriggerExecContext(Vector<AutoincrementCounter> aiCounters) throws StandardException {
@@ -111,11 +123,16 @@ public class TriggerEventActivator {
         for (TriggerDescriptor td : triggerInfo.getTriggerDescriptors()) {
             TriggerEvent event = td.getTriggerEvent();
             if (td.isRowTrigger()) {
-                RowTriggerExecutor executor = new RowTriggerExecutor(tec, td, activation, lcc);
-                executor.forceCompile();
-                addToMap(rowExecutorsMap, event, executor);
+                String sql = td.getTriggerDefinition().toUpperCase();
+                if ((sql.contains("INSERT") && sql.contains("INTO")) ||
+                        (sql.contains("UPDATE") && sql.contains("SET")) ||
+                        (sql.contains("DELETE") && sql.contains("FROM"))) {
+                    addToMap(rowExecutorsMap, event, td);
+                } else {
+                    addToMap(rowConcurrentExecutorsMap, event, td);
+                }
             } else {
-                addToMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, lcc));
+                addToMap(statementExecutorsMap, event, td);
             }
         }
     }
@@ -130,7 +147,7 @@ public class TriggerEventActivator {
         if (statementExecutorsMap.isEmpty()) {
             return;
         }
-        List<GenericTriggerExecutor> triggerExecutors = statementExecutorsMap.get(event);
+        List<TriggerDescriptor> triggerExecutors = statementExecutorsMap.get(event);
         if (triggerExecutors == null || triggerExecutors.isEmpty()) {
             return;
         }
@@ -142,7 +159,9 @@ public class TriggerEventActivator {
                 tecPushed = true;
             }
 
-            for (GenericTriggerExecutor triggerExecutor : triggerExecutors) {
+            for (TriggerDescriptor td : triggerExecutors) {
+
+                StatementTriggerExecutor triggerExecutor = new StatementTriggerExecutor(tec, td, activation, lcc);
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
                 // Fire the statement or row trigger.
@@ -162,24 +181,31 @@ public class TriggerEventActivator {
      */
     public void notifyRowEvent(TriggerEvent event,
                                CursorResultSet rs,
-                               int[] colsReadFromTable) throws StandardException {
+                               int[] colsReadFromTable,
+                               LanguageConnectionContext lcc) throws StandardException {
+        if (lcc == null)
+            lcc = this.lcc;
 
         if (rowExecutorsMap.isEmpty()) {
             return;
         }
-        List<GenericTriggerExecutor> triggerExecutors = rowExecutorsMap.get(event);
-        if (triggerExecutors == null || triggerExecutors.isEmpty()) {
+        List<TriggerDescriptor> triggerExecutors = rowExecutorsMap.get(event);
+
+        boolean sequential = triggerExecutors != null && !triggerExecutors.isEmpty();
+        if (!sequential) {
             return;
         }
 
         try {
             lcc.pushExecutionStmtValidator(tec);
-            if (! tecPushed) {
-                lcc.pushTriggerExecutionContext(tec);
-                tecPushed = true;
-            }
+            lcc.pushTriggerExecutionContext(tec);
 
-            for (GenericTriggerExecutor triggerExecutor : triggerExecutors) {
+            for (TriggerDescriptor td : triggerExecutors) {
+                RowTriggerExecutor triggerExecutor = new RowTriggerExecutor(tec, td, activation, lcc);
+                synchronized(this) {
+                    triggerExecutor.forceCompile();
+                }
+
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
                 // Fire the statement or row trigger.
@@ -187,8 +213,71 @@ public class TriggerEventActivator {
             }
         } finally {
             lcc.popExecutionStmtValidator(tec);
+            lcc.popTriggerExecutionContext(tec);
         }
     }
+
+    /**
+     * Handle the given row event.
+     *
+     * @param event             a trigger event
+     * @param rs                the triggering result set.  Typically a TemporaryRowHolderResultSet but sometimes a BulkTableScanResultSet
+     * @param colsReadFromTable columns required from the trigger table by the triggering sql
+     */
+    public List<Future<Void>> notifyRowEventConcurrent(TriggerEvent event,
+                               CursorResultSet rs,
+                               int[] colsReadFromTable) throws StandardException {
+
+        if (rowConcurrentExecutorsMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<TriggerDescriptor> concurrentTriggerExecutors = rowConcurrentExecutorsMap.get(event);
+
+        boolean concurrent = concurrentTriggerExecutors != null && !concurrentTriggerExecutors.isEmpty();
+        if (!concurrent) {
+            return Collections.emptyList();
+        }
+
+        List<Future<Void>> futures = new ArrayList<>();
+        GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
+        for (TriggerDescriptor td : concurrentTriggerExecutors) {
+            futures.add(executorService.submit(withContext.apply(new Function<LanguageConnectionContext,Void>() {
+                @Override
+                public Void apply(LanguageConnectionContext lcc) {
+                    try {
+                        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(
+                                statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
+                                tableId, tableName, null);
+                        RowTriggerExecutor triggerExecutor = new RowTriggerExecutor(tec, td, activation, lcc);
+                        synchronized (TriggerEventActivator.this) {
+                            triggerExecutor.forceCompile();
+                        }
+                        try {
+
+                            lcc.pushExecutionStmtValidator(tec);
+                            lcc.pushTriggerExecutionContext(tec);
+
+
+                            // Reset the AI counters to the beginning before firing next trigger.
+                            tec.resetAICounters(true);
+                            // Fire the statement or row trigger.
+                            triggerExecutor.fireTrigger(event, rs, colsReadFromTable);
+                        } finally {
+                            lcc.popExecutionStmtValidator(tec);
+                            tec.clearTrigger();
+                            lcc.popTriggerExecutionContext(tec);
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    return null;
+                }
+            })));
+        }
+
+        return futures;
+    }
+
 
     /**
      * Clean up and release resources.
@@ -207,12 +296,12 @@ public class TriggerEventActivator {
         return lcc;
     }
 
-    private static void addToMap(Map<TriggerEvent, List<GenericTriggerExecutor>> map, TriggerEvent event, GenericTriggerExecutor executor) {
-        List<GenericTriggerExecutor> genericTriggerExecutors = map.get(event);
+    private static void addToMap(Map<TriggerEvent, List<TriggerDescriptor>> map, TriggerEvent event, TriggerDescriptor td) {
+        List<TriggerDescriptor> genericTriggerExecutors = map.get(event);
         if (genericTriggerExecutors == null) {
             genericTriggerExecutors = new ArrayList<>();
             map.put(event, genericTriggerExecutors);
         }
-        genericTriggerExecutors.add(executor);
+        genericTriggerExecutors.add(td);
     }
 }
