@@ -20,10 +20,12 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -42,6 +44,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
 
 /**
  * @author jessiezhang
@@ -92,6 +97,20 @@ public class UpdateOperation extends DMLWriteOperation{
         kdvds=new DataValueDescriptor[columnOrdering.length];
         for(int i=0;i<columnOrdering.length;++i){
             kdvds[i]=LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+        }
+
+        WriteCursorConstantOperation constantAction=(WriteCursorConstantOperation)writeInfo.getConstantAction();
+
+        TriggerInfo triggerInfo=constantAction.getTriggerInfo();
+        if(triggerInfo!=null){
+            this.triggerHandler=new TriggerHandler(
+                    triggerInfo,
+                    writeInfo,
+                    getActivation(),
+                    getBeforeEvent(getClass()),
+                    getAfterEvent(getClass()),
+                    getHeapList()
+            );
         }
     }
 
