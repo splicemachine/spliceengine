@@ -45,6 +45,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -88,6 +89,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private TriggerDescriptor triggerd;
     private ExecRow afterRow;   // used exclusively for InsertResultSets which have autoincrement columns.
     private TriggerEvent event;
+    private FormatableBitSet heapList;
 
     /**
      * aiCounters is a list of AutoincrementCounters used to keep state which might be used by the trigger. This is
@@ -117,7 +119,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                                    String[] changedColNames,
                                    UUID targetTableId,
                                    String targetTableName,
-                                   List<AutoincrementCounter> aiCounters) throws StandardException {
+                                   List<AutoincrementCounter> aiCounters,
+                                   FormatableBitSet heapList) throws StandardException {
 
         this.changedColIds = changedColIds;
         this.changedColNames = changedColNames;
@@ -125,6 +128,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         this.targetTableId = targetTableId;
         this.targetTableName = targetTableName;
         this.aiCounters = aiCounters;
+        this.heapList = heapList;
 
         if (SanityManager.DEBUG) {
             if ((changedColIds == null) != (changedColNames == null)) {
@@ -444,6 +448,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         } else {
             out.writeBoolean(false);
         }
+        out.writeObject(heapList);
     }
 
     @Override
@@ -463,6 +468,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (in.readBoolean()) {
             event = TriggerEvent.values()[in.readInt()];
         }
+        heapList = (FormatableBitSet)in.readObject();
     }
 
     /**
@@ -480,7 +486,24 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * @return an update exec row with either old or new transition values.
      * @throws SQLException
      */
-    private static ExecRow extractColumns(ExecRow resultSet, boolean firstHalf) throws SQLException {
+    private ExecRow extractColumns(ExecRow resultSet, boolean firstHalf) throws SQLException {
+        if (heapList != null && triggerd.getReferencedCols() != null)
+            return extractTriggerColumns(resultSet, firstHalf);
+        else {
+            return extractAllColumns(resultSet, firstHalf);
+        }
+
+    }
+
+    /**
+     * If the update trigger does not refer any particular column, the old and new full row is available. Simply extract
+     * first half or second half according to whether NEW or OLD row is referenced in trigger action
+     * @param resultSet
+     * @param firstHalf
+     * @return
+     * @throws SQLException
+     */
+    private ExecRow extractAllColumns(ExecRow resultSet, boolean firstHalf) throws SQLException {
         int nCols = (resultSet.nColumns() - 1) / 2;
         ExecRow result = new ValueRow(nCols);
         int sourceIndex = (firstHalf ? 1 : nCols + 1);
@@ -492,6 +515,51 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             } catch (StandardException e) {
                 throw Util.generateCsSQLException(e);
             }
+        }
+        return result;
+    }
+
+    /**
+     * If the update trigger references a column, execRow only contains columns that are changed and referenced by
+     * trigger action. Extract columns according to heapList and triggerDescriptor
+     * @param resultSet
+     * @param firstHalf
+     * @return
+     * @throws SQLException
+     */
+    private ExecRow extractTriggerColumns(ExecRow resultSet, boolean firstHalf) throws SQLException {
+        int[] referencedCols = triggerd.getReferencedCols();
+        int[] referencedColsInTriggerAction = triggerd.getReferencedColsInTriggerAction();
+        int nResultCols = (referencedCols!=null?referencedCols.length:0) +
+                (referencedColsInTriggerAction!=null?referencedColsInTriggerAction.length:0);
+        ExecRow result = new ValueRow(nResultCols);
+        try {
+            FormatableBitSet allTriggerColumns = new FormatableBitSet(triggerd.getTableDescriptor().getNumberOfColumns()+1);
+            if (referencedCols != null) {
+                for (int col : referencedCols) {
+                    allTriggerColumns.set(col);
+                }
+            }
+            if (referencedColsInTriggerAction != null) {
+                for (int col : referencedColsInTriggerAction) {
+                    allTriggerColumns.set(col);
+                }
+            }
+            int nCols = resultSet.nColumns()/2;
+            int sourceIndex = (firstHalf ? 1 : nCols + 1);
+            int pos = 1;
+
+            for (int i = allTriggerColumns.anySetBit(); i >= 0; i = allTriggerColumns.anySetBit(i)) {
+                int index = 0;
+                for (int j = heapList.anySetBit(); j >= 0; j = heapList.anySetBit(j)) {
+                    if (j == i) {
+                        result.setColumn(pos++, resultSet.getColumn(sourceIndex + index).cloneValue(false));
+                    }
+                    index++;
+                }
+            }
+        }catch (StandardException e) {
+            throw Util.generateCsSQLException(e);
         }
         return result;
     }
