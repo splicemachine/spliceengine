@@ -39,6 +39,7 @@ import java.util.Vector;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
@@ -60,7 +61,7 @@ public class TriggerEventActivator {
     private UUID tableId;
     private String tableName;
     private boolean tecPushed;
-
+    private FormatableBitSet heapList;
     /**
      * Basic constructor
      *
@@ -72,7 +73,8 @@ public class TriggerEventActivator {
     public TriggerEventActivator(UUID tableId,
                                  TriggerInfo triggerInfo,
                                  Activation activation,
-                                 Vector<AutoincrementCounter> aiCounters) throws StandardException {
+                                 Vector<AutoincrementCounter> aiCounters,
+                                 FormatableBitSet heapList) throws StandardException {
         if (triggerInfo == null) {
             return;
         }
@@ -86,6 +88,7 @@ public class TriggerEventActivator {
         if (context != null) {
             this.statementText = context.getStatementText();
         }
+        this.heapList = heapList;
 
         initTriggerExecContext(aiCounters);
         setupExecutors(triggerInfo);
@@ -95,7 +98,7 @@ public class TriggerEventActivator {
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
                statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
-                tableId, tableName, aiCounters);
+                tableId, tableName, aiCounters, heapList);
     }
 
     /**

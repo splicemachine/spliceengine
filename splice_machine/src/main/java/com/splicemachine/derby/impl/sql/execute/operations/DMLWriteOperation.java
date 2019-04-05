@@ -80,7 +80,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
     protected TableDescriptor td;
     private boolean isScan=true;
     protected DMLWriteInfo writeInfo;
-    private TriggerHandler triggerHandler;
+    protected TriggerHandler triggerHandler;
     private SpliceMethod<ExecRow> generationClauses;
     private String generationClausesFunMethodName;
     private SpliceMethod<ExecRow> checkGM;
@@ -160,7 +160,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
                     writeInfo,
                     getActivation(),
                     getBeforeEvent(getClass()),
-                    getAfterEvent(getClass())
+                    getAfterEvent(getClass()),
+                    null
             );
         }
     }
