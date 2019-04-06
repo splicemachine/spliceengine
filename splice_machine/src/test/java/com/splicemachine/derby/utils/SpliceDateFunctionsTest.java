@@ -16,6 +16,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.testenv.ArchitectureIndependent;
+
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -29,7 +30,6 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -135,19 +135,6 @@ public class SpliceDateFunctionsTest {
     }
 
     @Test
-    public void toDateWithTimezoneTransitionAtMidnight() throws Exception {
-        String source = "1908-04-01";
-        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-        Date date = new Date(formatter.parse("1908-04-01").getTime());
-
-        try {
-            assertEquals(date, SpliceDateFunctions.TO_DATE(source, "yyyy-MM-dd", ZoneId.of("Asia/Seoul")));
-        } catch (SQLException e) {
-            fail("Failed to parse date with timezone transition at midnight.");
-        }
-    }
-
-    @Test
     public void toDateDefaultWrongPattern() throws Exception {
         String source = "2014/06/24";
         DateFormat formatter = new SimpleDateFormat("MM/dd/yy");
@@ -157,7 +144,7 @@ public class SpliceDateFunctionsTest {
             assertEquals(date, SpliceDateFunctions.TO_DATE(source));
             fail("Expected to get an exception for parsing the wrong date pattern.");
         } catch (SQLException e) {
-           assertEquals("Error parsing datetime 2014/06/24 with pattern: yyyy-MM-dd. Try using an ISO8601 pattern such " +
+           assertEquals("Error parsing datetime 2014/06/24 with pattern: null. Try using an ISO8601 pattern such " +
                             "as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                         e.getLocalizedMessage());
         }

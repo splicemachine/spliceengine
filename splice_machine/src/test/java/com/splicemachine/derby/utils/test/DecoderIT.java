@@ -16,15 +16,6 @@ package com.splicemachine.derby.utils.test;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -32,6 +23,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.LinkedList;
 import java.util.List;
+import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
 /**
  * Test for Bug DB-923.
@@ -73,7 +73,7 @@ public class DecoderIT {
             try {
                 PreparedStatement ps =
                         SpliceNetConnection.getConnection().prepareStatement(
-                                String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,'yyyy-M-d',null,0,null,true,null)",
+                                String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,null,null,0,null,true,null)",
                                         SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME, csvLocation));
                 ResultSet rs = ps.executeQuery();
                 while (rs.next()) {
@@ -93,7 +93,7 @@ public class DecoderIT {
             try {
                 PreparedStatement ps =
                         SpliceNetConnection.getConnection().prepareStatement(
-                                String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,'yyyy-M-d',null,0,null,true,null)",
+                                String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,null,null,0,null,true,null)",
                                         SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME2, csvLocation2));
                 ResultSet rs = ps.executeQuery();
                 while (rs.next()) {
