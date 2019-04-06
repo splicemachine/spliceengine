@@ -553,7 +553,8 @@ public class CreateTriggerNode extends DDLStatementNode {
                     actionOffset,
                     triggerTableDescriptor,
                     triggerEventMask,
-                    true
+                    true,
+                    null
             );
             //Now that we know what columns we need for REFERENCEd columns in
             //trigger action, we can get rid of -1 entries for the remaining

@@ -1176,7 +1176,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     0,
                     trd.getTableDescriptor(),
                     trd.getTriggerEventDML(),
-                    true
+                    true,
+                    null
             ));
 
             /*

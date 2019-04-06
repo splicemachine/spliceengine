@@ -36,6 +36,7 @@ import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -1270,7 +1271,8 @@ public interface DataDictionary{
                                   int actionOffset,
                                   TableDescriptor triggerTableDescriptor,
                                   TriggerEventDML triggerEventMask,
-                                  boolean createTriggerTime) throws StandardException;
+                                  boolean createTriggerTime,
+                                  Activation activation) throws StandardException;
 
 
     /**

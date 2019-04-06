@@ -321,7 +321,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
                     0,
                     getTableDescriptor(),
                     null,
-                    false
+                    false,
+                    isRow ? lcc.getStatementContext().getActivation() : null
             ));
             //By this point, we are finished transforming the trigger action if
             //it has any references to old/new transition variables.

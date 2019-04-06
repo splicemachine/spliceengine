@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultDescription;
 import org.spark_project.guava.base.Optional;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -3578,6 +3580,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     };
 
+    private int
+    findTriggerRowColumn(int colPositionInTriggerTable, int baseColumnId, Activation activation) {
+        ResultDescription rd = activation.getResultDescription();
+        for (int i = baseColumnId; i <= rd.getColumnCount(); i++) {
+            if (rd.getColumnDescriptor(i).getColumnPosition() == colPositionInTriggerTable)
+                return i - baseColumnId + 1;
+        }
+        return -1;
+    }
+
     /**
      * Get the trigger action string associated with the trigger after the
      * references to old/new transition tables/variables in trigger action
@@ -3612,6 +3624,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      *                                      false if here because an invalidated row level trigger with
      *                                      REFERENCEd columns has been fired and hence trigger action
      *                                      sql associated with SPSDescriptor may be invalid too.
+     * @param activation                    The activation of the triggering statement, for locating
+     *                                      a column in the trigger row.  Only used for dynamic
+     *                                      compilation of row triggers.
      * @return Transformed trigger action sql
      * @throws StandardException
      */
@@ -3626,7 +3641,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             int actionOffset,
             TableDescriptor triggerTableDescriptor,
             TriggerEventDML triggerEventMask,
-            boolean createTriggerTime) throws StandardException{
+            boolean createTriggerTime,
+            Activation activation) throws StandardException{
 
         StringBuilder newText=new StringBuilder();
         int start=0;
@@ -3882,11 +3898,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             }
 
             TableName tableName=ref.getTableNameNode();
-            if((tableName==null) ||
-                    ((oldReferencingName==null || !oldReferencingName.equals(tableName.getTableName())) &&
-                            (newReferencingName==null || !newReferencingName.equals(tableName.getTableName())))){
+            if(tableName==null)
                 continue;
+
+            int baseColumnId = 1;
+            if (oldReferencingName != null && oldReferencingName.equals(tableName.getTableName())) {
+                // Found our column, don't "continue".
             }
+            else if (newReferencingName != null && newReferencingName.equals(tableName.getTableName())) {
+                if (activation != null &&
+                    activation.getResultDescription() != null &&
+                    activation.getResultDescription().getStatementType().equals("UPDATE"))
+                    // Same logic as TriggerExecutionContext.extractColumns
+                    baseColumnId = ((activation.getResultDescription().getColumnCount() - 1) / 2)+1;
+            }
+            else
+                continue;
 
             int tokBeginOffset=tableName.getBeginOffset();
             int tokEndOffset=tableName.getEndOffset();
@@ -3940,6 +3967,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             //that will be fetched during trigger execution, it's position
             //is 2. That is what the following code is doing.
             if(triggerColsAndTriggerActionCols!=null){
+                if (!createTriggerTime && activation != null &&
+                    activation.getResultDescription() != null) {
+                    colPositionInRuntimeResultSet =
+                        findTriggerRowColumn(colPositionInTriggerTable, baseColumnId, activation);
+                    if (colPositionInRuntimeResultSet < 1)
+                        throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND,tableName.getTableName()+"."+colName);
+                }
+                else
                 for(int j=0;j<triggerColsAndTriggerActionCols.length;j++){
                     if(triggerColsAndTriggerActionCols[j]==colPositionInTriggerTable)
                         colPositionInRuntimeResultSet=j+1;
