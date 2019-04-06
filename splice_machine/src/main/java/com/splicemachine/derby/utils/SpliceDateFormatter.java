@@ -20,17 +20,7 @@ public class SpliceDateFormatter {
     private java.time.format.DateTimeFormatter formatter;
 
     public SpliceDateFormatter(String format) {
-        this.format = format != null ? format : "yyyy-M-d";
-        
-        if (format != null) {
-            // Replace MM with M in the date format string.
-            String pattern = "([^M]*)([M])([M])([^M]*)";
-            this.format = this.format.replaceFirst(pattern, "$1$2$4");
-    
-            // Replace dd with d in the date format string.
-            pattern = "([^d]*)([d])([d])([^d]*)";
-            this.format = this.format.replaceFirst(pattern, "$1$2$4");
-        }
+        this.format = format != null ? format : "yyyy-MM-dd";
         this.formatter =
               java.time.format.DateTimeFormatter.ofPattern(this.format);
     }
