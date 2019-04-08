@@ -33,15 +33,18 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.lang.reflect.Modifier;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Objects;
 
 /**
@@ -71,6 +74,29 @@ public class SelfReferenceNode extends FromTable {
         // the necessary privilege should be collected through the underlying subquery
         disablePrivilegeCollection();
     }
+
+    @Override
+    public void verifyProperties(DataDictionary dDictionary) throws StandardException {
+        if(tableProperties==null){
+            return;
+        }
+        
+        Enumeration e = tableProperties.keys();
+        while (e.hasMoreElements()) {
+            String key = (String) e.nextElement();
+            String value = (String) tableProperties.get(key);
+
+            // currently only support joinStrategy, others will be ignored
+            if (key.equals("joinStrategy")) {
+                userSpecifiedJoinStrategy = StringUtil.SQLToUpperCase(value);
+            } else {
+                // No other "legal" values at this time
+                throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY, key,
+                        "joinStrategy");
+            }
+        }
+    }
+
 
     public ResultSetNode bindNonVTITables(DataDictionary dataDictionary,
                                           FromList fromListParam)

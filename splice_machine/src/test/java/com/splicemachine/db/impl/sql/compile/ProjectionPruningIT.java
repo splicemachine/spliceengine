@@ -561,7 +561,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
         /* case 1: DT in set operation  */
         String sqlText = "select b1 from (select * from t1  --splice-properties index=idx_t1\n ) dt union all select b2 from t2";
 
-        String expected = "B1  |\n" +
+        String expected = "1  |\n" +
                 "-----\n" +
                 "aaa |\n" +
                 "bbb |\n" +

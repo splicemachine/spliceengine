@@ -372,7 +372,7 @@ public class OuterJoinOrderByEliminationIT extends SpliceUnitTest {
                         "on a1=a2, t3 --splice-properties index=null, joinStrategy=%s\n where a1=a3 order by a1 {limit 20}) dt union all " +
                         "values (9,9,9,9)",
                 this.joinStrategy, this.useSparkString, this.joinStrategy);
-        expected = "A1 |B1 |A2 |A3 |\n" +
+        expected = "1 | 2 | 3 | 4 |\n" +
                 "----------------\n" +
                 " 1 | 1 | 1 | 1 |\n" +
                 " 1 | 1 | 1 | 1 |\n" +

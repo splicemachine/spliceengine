@@ -86,7 +86,7 @@ public class RecursiveViewReferenceVisitor implements Visitor {
                             recursiveRoot,
                             fromTable.getCorrelationName()==null? recursiveViewName.getTableName(): fromTable.getCorrelationName(),
                             viewDescriptor,
-                            null,
+                            fromTable.tableProperties,
                             ((SelectNode)node).getContextManager());
 
                     fromList.setElementAt(selfReferenceNode, i);

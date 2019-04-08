@@ -97,15 +97,27 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
                                row(7, "G"),
                                row(8, "H"),
                                row(9,"I"))).create();
+
+        new TableCreator(connection)
+                .withCreate("create table t3 (a3 int, b3 int)")
+                .withInsert("insert into t3 values(?,?)")
+                .withRows(rows(row(1, 2),
+                        row(1, 3),
+                        row(2, 4),
+                        row(2, 5),
+                        row(3, 6),
+                        row(3, 7),
+                        row(5, 8),
+                        row(7, 9))).create();
     }
 
     @Test
-    public void testSimpleRecursiveWith() throws Exception {
+    public void testRecursiveWithWithJoin() throws Exception {
         String sqlText = format("with recursive dt as (" +
                 "select distinct a1, name, 1 as level from t1 --splice-properties useSpark=%s\n" +
                 ", t2 where a1=a2 and a1=1 " +
                 "UNION ALL \n " +
-                "select t1.b1, t2.name, level+1 from dt, t1, t2 where dt.a1=t1.a1 and t1.b1 = t2.a2 and dt.level < 10)\n" +
+                "select t1.b1 as a1, t2.name, level+1 as level from dt, t1, t2 where dt.a1=t1.a1 and t1.b1 = t2.a2 and dt.level < 10)\n" +
                 "select * from dt order by a1", this.useSparkString);
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -124,5 +136,45 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
 
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
+    }
+
+    @Test
+    public void testRecursiveWithWithoutJoin() throws Exception {
+
+    }
+
+    @Test
+    public void testRecursiveWithWhereSeedHasASetOperation() throws Exception {
+
+    }
+
+    @Test
+    public void testRecursiveWithWithAlias() throws Exception {
+
+    }
+
+    @Test
+    public void testRecursiveWithWithDifferentJoinStrategy() throws Exception {
+
+    }
+
+    @Test
+    public void testMultipleRecursiveWith() throws Exception {
+
+    }
+
+    @Test
+    public void testNestedRecursiveWith() throws Exception {
+
+    }
+
+    @Test
+    public void testMultipleSelfReferencesInRecursionBody() throws Exception {
+
+    }
+
+    @Test
+    public void negativeTestWithNoRecursion() throws Exception {
+
     }
 }
