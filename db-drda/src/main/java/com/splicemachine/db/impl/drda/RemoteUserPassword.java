@@ -15,6 +15,9 @@
 
 package com.splicemachine.db.impl.drda;
 
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -29,7 +32,10 @@ public class RemoteUserPassword implements RemoteUser {
     }
 
     public Connection getRemoteConnection(String hostname) throws SQLException {
-        String databaseURL = String.format("jdbc:splice://%s/splicedb;user=%s;password=%s",hostname,userId,password);
+        String sslMode = PropertyUtil.getSystemProperty(Property.DRDA_PROP_SSL_MODE);
+        String databaseURL = sslMode==null?
+                String.format("jdbc:splice://%s/splicedb;user=%s;password=%s",hostname,userId,password):
+                String.format("jdbc:splice://%s/splicedb;user=%s;password=%s;ssl=%s",hostname,userId,password,sslMode);
         return DriverManager.getConnection(databaseURL);
     }
 }
