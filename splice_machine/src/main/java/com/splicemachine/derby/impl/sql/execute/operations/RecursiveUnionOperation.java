@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -23,12 +24,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Created by yxia on 3/22/19.
@@ -55,41 +50,6 @@ public class RecursiveUnionOperation extends UnionOperation {
                           double optimizerEstimatedRowCount,
                           double optimizerEstimatedCost) throws StandardException{
         super(leftResultSet, rightResultSet, activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-//        init();
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        leftResultSet = (SpliceOperation)in.readObject();
-        rightResultSet = (SpliceOperation)in.readObject();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(leftResultSet);
-        out.writeObject(rightResultSet);
-    }
-
-    @Override
-    public ExecRow getExecRowDefinition() throws StandardException {
-        return leftResultSet.getExecRowDefinition();
-    }
-
-    @Override
-    public SpliceOperation getLeftOperation() {
-        return leftResultSet;
-    }
-
-    @Override
-    public SpliceOperation getRightOperation() {
-        return rightResultSet;
-    }
-
-    @Override
-    public List<SpliceOperation> getSubOperations() {
-        return Arrays.asList(leftResultSet, rightResultSet);
     }
 
     @Override
@@ -107,22 +67,6 @@ public class RecursiveUnionOperation extends UnionOperation {
         return "RecursiveUnion:" + indent + "resultSetNumber:" + resultSetNumber
                 + indent + "leftResultSet:" + leftResultSet
                 + indent + "rightResultSet:" + rightResultSet;
-    }
-
-    @Override
-    public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-        if(leftResultSet.isReferencingTable(tableNumber))
-            return leftResultSet.getRootAccessedCols(tableNumber);
-        else if(rightResultSet.isReferencingTable(tableNumber))
-            return rightResultSet.getRootAccessedCols(tableNumber);
-
-        return null;
-    }
-
-    @Override
-    public boolean isReferencingTable(long tableNumber) {
-        return leftResultSet.isReferencingTable(tableNumber) || rightResultSet.isReferencingTable(tableNumber);
-
     }
 
     @Override
@@ -159,5 +103,10 @@ public class RecursiveUnionOperation extends UnionOperation {
 
     public DataSet getSelfReference() {
         return this.rightDS;
+    }
+
+    @Override
+    public void setRecursiveUnionReference(NoPutResultSet recursiveUnionReference) {
+        rightResultSet.setRecursiveUnionReference(recursiveUnionReference);
     }
 }

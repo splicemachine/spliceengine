@@ -136,6 +136,15 @@ public class SelfReferenceOperation extends SpliceBaseOperation {
         }
     }
 
+    public void writeExternalWithoutChild(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeObject(null);
+        out.writeBoolean(rowMethodName!=null);
+        if(rowMethodName!=null) {
+            out.writeUTF(rowMethodName);
+        }
+    }
+
     public ExecRow getRow() throws StandardException{
         if(rowMethod!=null){
             currentRow=rowMethod.invoke();
