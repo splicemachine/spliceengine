@@ -71,10 +71,10 @@ public class TimestampServer {
 
         bootstrap.setPipelineFactory(new TimestampPipelineFactoryLite(handler));
 
-        bootstrap.setOption("tcpNoDelay", true);
+        bootstrap.setOption("tcpNoDelay", false);
         // bootstrap.setOption("child.sendBufferSize", 1048576);
         // bootstrap.setOption("child.receiveBufferSize", 1048576);
-        bootstrap.setOption("child.tcpNoDelay", true);
+        bootstrap.setOption("child.tcpNoDelay", false);
         bootstrap.setOption("child.keepAlive", true);
         bootstrap.setOption("child.reuseAddress", true);
         // bootstrap.setOption("child.connectTimeoutMillis", 120000);
