@@ -121,7 +121,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         bootstrap.getPipeline().addLast("decoder", new FixedLengthFrameDecoder(FIXED_MSG_RECEIVED_LENGTH));
         bootstrap.getPipeline().addLast("handler", this);
 
-        bootstrap.setOption("tcpNoDelay", false);
+        bootstrap.setOption("tcpNoDelay", true);
         bootstrap.setOption("keepAlive", true);
         bootstrap.setOption("reuseAddress", true);
         // bootstrap.setOption("connectTimeoutMillis", 120000);
