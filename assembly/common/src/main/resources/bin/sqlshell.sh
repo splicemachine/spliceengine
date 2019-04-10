@@ -241,6 +241,13 @@ else
    fi
 fi
 
+if [ ! -z "${CLIENT_SSL_KEYSTORE}" ]; then
+SSL_ARGS="-Djavax.net.ssl.keyStore=${CLIENT_SSL_KEYSTORE} \
+   -Djavax.net.ssl.keyStorePassword=${CLIENT_SSL_KEYSTOREPASSWD} \
+   -Djavax.net.ssl.trustStore=${CLIENT_SSL_TRUSTSTORE} \
+   -Djavax.net.ssl.trustStore.ssl.trustStorePassword=${CLIENT_SSL_TRUSTSTOREPASSWD}"
+fi
+
 if hash rlwrap 2>/dev/null; then
    message "\n ========= rlwrap detected and enabled.  Use up and down arrow keys to scroll through command line history. ======== \n"
    RLWRAP=rlwrap
@@ -251,4 +258,4 @@ fi
 
 message "Running Splice Machine SQL shell"
 message "For help: \"splice> help;\""
-${RLWRAP} java ${GEN_SYS_ARGS} ${IJ_SYS_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT} 2> >(grep -v "^Picked up JAVA_TOOL_OPTIONS:" >&2)
+${RLWRAP} java ${GEN_SYS_ARGS} ${SSL_ARGS} ${IJ_SYS_ARGS}  com.splicemachine.db.tools.ij ${SCRIPT} 2> >(grep -v "^Picked up JAVA_TOOL_OPTIONS:" >&2)
