@@ -14,9 +14,11 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.client.am.Connection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import org.apache.commons.io.FileUtils;
@@ -2947,5 +2949,46 @@ public class ExternalTableIT extends SpliceUnitTest{
                 "PARTITIONED BY (COL1)\n" +
                 "STORED AS AVRO\n" +
                 "LOCATION '" + tablePath + "';", rs.getString(1));
+    }
+
+    @Test
+    public void testConcurrentRead() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"concurrent_test";
+        methodWatcher.execute(String.format("create external table concurrent_test ( a int)" +
+                " stored as parquet location '%s'", tablePath));
+        methodWatcher.execute("insert into concurrent_test values 1,2,3,4");
+        int n = 100;
+        ExtThread[] threads = new ExtThread[n];
+        for (int i = 0; i < n; ++i) {
+            threads[i] = new ExtThread(methodWatcher.createConnection());
+            threads[i].start();
+        }
+
+        for (int i = 0; i < n; ++i) {
+            threads[i].join();
+        }
+
+        for (int i = 0; i < n; ++i) {
+            Assert.assertEquals(true, threads[i].success);
+        }
+    }
+
+
+    public static class ExtThread extends Thread{
+        private TestConnection conn;
+        public volatile boolean success = false;
+        public ExtThread(TestConnection conn) {
+            this.conn = conn;
+        }
+        @Override
+        public void run() {
+
+            try {
+                conn.createStatement().execute("select count(*) from concurrent_test");
+                success = true;
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }
