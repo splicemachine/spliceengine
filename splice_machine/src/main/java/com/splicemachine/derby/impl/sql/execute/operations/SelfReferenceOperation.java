@@ -161,7 +161,8 @@ public class SelfReferenceOperation extends SpliceBaseOperation {
     }
 
     public void setRecursiveUnionReference(NoPutResultSet recursiveUnionReference) {
-        this.recursiveUnionReference = (SpliceOperation)recursiveUnionReference;
+        if (this.recursiveUnionReference == null)
+            this.recursiveUnionReference = (SpliceOperation)recursiveUnionReference;
     }
 
     @Override

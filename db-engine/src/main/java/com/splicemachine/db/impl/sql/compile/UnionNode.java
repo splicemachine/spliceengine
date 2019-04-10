@@ -61,7 +61,7 @@ public class UnionNode extends SetOperatorNode{
     /* True if this is the top node of a table constructor */
     boolean topTableConstructor;
 
-    /* below variales are for recursive queries */
+    /* below variables are for recursive queries */
     boolean isRecursive;
     /* the description of the result columns */
     TableDescriptor viewDescriptor;

@@ -39,6 +39,38 @@ import org.apache.log4j.Logger;
 
 /**
  * Created by yxia on 3/20/19.
+ * this visitor traverse the recursive WITH definition tree and
+ * 1) replace all the FromBaseTable node that represents a self reference by a SelfReferenceNode
+ * 2) Mark the SelfReferenceNode and all its ancestors within the recursive body as containsSelfReference
+ * For example:
+ * Given the following recursive WITH definition
+ *        with recursive dt as (
+ *        select a1, b1, 1 as level
+ *        from t1 where a1 >1
+ *        union all
+ *        select a1, b1, level+1 as level
+ *        from (select * from dt, t3 where a1=a3) X, t2 where X.a1=a2 and X.level<10)
+ *  The recursive body is:
+ *        select a1, b1, level+1 as level
+ *        from (select * from dt, t3 where a1=a3) X, t2 where X.a1=a2 and X.level<10
+ *  It is represented by the following tree
+ *           SelectNode(1)
+ *               |
+ *            FromList
+ *               |
+ *       -------------------
+ *       |                  |
+ *   FromSubquery(X)   FromBaseTable(t2)
+ *       |
+ *     SelectNode(2)
+ *       |
+ *    FromList
+ *       |
+ *   --------------------------
+ *   |                        |
+ *   SelfReference(dt)   FromBaseTable(t3)
+ *  We will mark SelfReferenceNode dt, and all the ResultSetNodes all the way up to the top
+ *  SelectNode as containsSelfReference=true.
  */
 public class RecursiveViewReferenceVisitor implements Visitor {
     private static Logger LOG = Logger.getLogger(RecursiveViewReferenceVisitor.class);
@@ -62,7 +94,7 @@ public class RecursiveViewReferenceVisitor implements Visitor {
 
     @Override
     public boolean visitChildrenFirst(Visitable node) {
-        return false;
+        return true;
     }
 
     @Override
@@ -89,9 +121,19 @@ public class RecursiveViewReferenceVisitor implements Visitor {
                             fromTable.tableProperties,
                             ((SelectNode)node).getContextManager());
 
+                    selfReferenceNode.setContainsSelfReference(true);
+                    ((SelectNode) node).setContainsSelfReference(true);
+
                     fromList.setElementAt(selfReferenceNode, i);
+                } else if (fromTable.getContainsSelfReference()) {
+                    ((SelectNode) node).setContainsSelfReference(true);
                 }
             }
+        }
+
+        if (node instanceof ResultSetNode && ((ResultSetNode)node).getContainsSelfReference()) {
+            if (parent != null && parent instanceof ResultSetNode)
+                ((ResultSetNode) parent).setContainsSelfReference(true);
         }
 
         return node;

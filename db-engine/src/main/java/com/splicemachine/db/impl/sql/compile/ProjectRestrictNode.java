@@ -131,6 +131,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             ((Optimizable)childResult).setProperties(getProperties());
             setProperties(null);
         }
+
+        if (childResult instanceof ResultSetNode && ((ResultSetNode) childResult).getContainsSelfReference())
+            containsSelfReference = true;
     }
 
 	/*
@@ -808,7 +811,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
-        if (existsTable || fromSSQ)
+        if (dependencyMap != null)
             return assignedTableMap.contains(dependencyMap);
 
         return !(childResult instanceof Optimizable) || ((Optimizable)childResult).legalJoinOrder(assignedTableMap);
