@@ -379,11 +379,20 @@ public class CreateViewNode extends DDLStatementNode
 			}
 
 			/* step 3: bind the left of the union-all */
-			queryExpression.bindNonVTITables(dataDictionary, fromList);
-			queryExpression.bindVTITables(fromList);
+			((UnionNode) queryExpression).getLeftResultSet().bindNonVTITables(dataDictionary, fromList);
+			((UnionNode) queryExpression).getLeftResultSet().bindVTITables(fromList);
 
 			/* Bind the expressions under the resultSet */
-			queryExpression.bindExpressions(fromList);
+			((UnionNode) queryExpression).getLeftResultSet().bindExpressions(fromList);
+
+			// bind the query expression
+			((UnionNode) queryExpression).getLeftResultSet().bindResultColumns(fromList);
+
+			/* bind the right only */
+			((SetOperatorNode)queryExpression).bindNonVTITables(dataDictionary, fromList, true);
+			((SetOperatorNode)queryExpression).bindVTITables(fromList, true);
+			((SetOperatorNode)queryExpression).bindExpressions(fromList, true);
+			((SetOperatorNode)queryExpression).bindResultColumns(fromList, true);
 
 			//cannot define views on temporary tables
 			//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
@@ -396,9 +405,6 @@ public class CreateViewNode extends DDLStatementNode
 							provider.getObjectName());
 				}
 			}
-
-			// bind the query expression
-			queryExpression.bindResultColumns(fromList);
 
 			// rejects any untyped nulls in the RCL
 			// e.g.:  CREATE VIEW v1 AS VALUES NULL

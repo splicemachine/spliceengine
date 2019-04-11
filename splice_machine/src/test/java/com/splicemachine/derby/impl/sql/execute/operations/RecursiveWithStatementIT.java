@@ -219,7 +219,7 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
-        String expected = "A1 |NAME | LEVEL |\n" +
+        String expected = "A |NAME | LEVEL |\n" +
                 "------------------\n" +
                 " 1 |  A  |   1   |\n" +
                 " 2 |  B  |   2   |\n" +

@@ -584,6 +584,15 @@ abstract class SetOperatorNode extends TableOperatorNode
 		buildRCL();
 	}
 
+	public void bindResultColumns(FromList fromListParam, boolean bindRightOnly)
+			throws StandardException
+	{
+		super.bindResultColumns(fromListParam, bindRightOnly);
+
+		/* Now we build our RCL */
+		buildRCL();
+	}
+
 	/**
 	 * Bind the result columns for this ResultSetNode to a base table.
 	 * This is useful for INSERT and UPDATE statements, where the
