@@ -303,7 +303,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
 
         ResultSet rs = classWatcher.executeQuery(sqlText);
         String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        assertEquals("\n" +dfgsdfgdfg sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         rs.close();
     
         sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
