@@ -132,7 +132,6 @@ public final class TransactionResourceImpl
 	private InternalDriver driver;
 	private String url;
 	private String drdaID;
-	private String rdbIntTkn;
     private CompilerContext.DataSetProcessorType useSpark;
     private boolean skipStats;
     private double defaultSelectivityFactor;
@@ -166,7 +165,6 @@ public final class TransactionResourceImpl
 		username = IdUtil.getUserNameFromURLProps(info);
 
 		drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
-		rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
 		ipAddress = info.getProperty(Property.IP_ADDRESS, null);
 		defaultSchema = info.getProperty("schema", null);
         String useSparkString = info.getProperty("useSpark",null);
@@ -239,7 +237,7 @@ public final class TransactionResourceImpl
 	void startTransaction() throws StandardException, SQLException
 	{
 		// setting up local connection
-		lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, useSpark,
+		lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname,useSpark,
                 skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
 	}
 

@@ -274,8 +274,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             LOG.trace(String.format("open operation %s",this));
         try {
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
-            String intTkn = activation.getLanguageConnectionContext().getRdbIntTkn();
-            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(),new Date(), dsp.getType(), intTkn);
+            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(),new Date(), dsp.getType());
             logExecutionStart(dsp);
             openCore();
         } catch (Exception e) {

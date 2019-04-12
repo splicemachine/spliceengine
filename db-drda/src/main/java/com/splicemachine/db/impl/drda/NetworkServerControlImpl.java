@@ -198,7 +198,8 @@ public final class NetworkServerControlImpl {
 												 1208, // UNICODE Manager
 												 7  // XAMGR
 												};
-
+											
+	
 	protected PrintWriter logWriter;                        // console
 	protected HeaderPrintWriter cloudscapeLogWriter;              // db.log
 	private static Driver cloudscapeDriver;
@@ -221,8 +222,7 @@ public final class NetworkServerControlImpl {
 	private String bootPasswordArg;
 	private String encAlgArg;
 	private String encPrvArg;
-	private String hostArg = DEFAULT_HOST;
-	private String externalHostname = DEFAULT_HOST;
+	private String hostArg = DEFAULT_HOST;	
 	private InetAddress hostAddress;
 	private int sessionArg;
 	private boolean unsecureArg;
@@ -358,22 +358,12 @@ public final class NetworkServerControlImpl {
         }
     }
 
-	/**
-	 * Get the host where we listen for connections.
-	 */
-	public  String  getHost() { return hostArg; }
+    /**
+     * Get the host where we listen for connections.
+     */
+    public  String  getHost() { return hostArg; }
 
-
-	/**
-	 * Get the external hostname where we listen for connections.
-	 */
-	public  String  getExternalHostname() { return externalHostname; }
-
-	public int getPortNumber() {
-		return portNumber;
-	}
-
-	/**
+    /**
      * Return true if the customer forcibly overrode our decision to install a
      * default SecurityManager.
      */
@@ -393,14 +383,13 @@ public final class NetworkServerControlImpl {
 	 * @throws Exception on error
 	 * @see NetworkServerControl
 	 */
-	public NetworkServerControlImpl(InetAddress address, int portNumber, String externalHostname) throws Exception
+	public NetworkServerControlImpl(InetAddress address, int portNumber) throws Exception
 	{
 		this();
 		this.hostAddress = address;
 		this.portNumber = (portNumber <= 0) ?
 			this.portNumber: portNumber;
 		this.hostArg = address.getHostAddress();
-		this.externalHostname =  externalHostname;
 	}
 
 	/**
@@ -431,14 +420,7 @@ public final class NetworkServerControlImpl {
 									String userName, String password)
 		throws Exception
 	{
-		this(address, portNumber, userName, password, "");
-	}
-
-	public NetworkServerControlImpl(InetAddress address, int portNumber,
-									String userName, String password, String externalHostname)
-			throws Exception
-	{
-		this(address, portNumber, externalHostname);
+		this(address, portNumber);
 		this.userArg = userName;
 		this.passwordArg = password;
 	}
@@ -646,7 +628,7 @@ public final class NetworkServerControlImpl {
 		throws Exception
 	{
 		DRDAServerStarter starter = new DRDAServerStarter();
-		starter.setStartInfo(hostAddress,portNumber,consoleWriter,externalHostname);
+		starter.setStartInfo(hostAddress,portNumber,consoleWriter);
         this.setLogWriter(consoleWriter);
 		startNetworkServer();
 		starter.boot(false,null);
