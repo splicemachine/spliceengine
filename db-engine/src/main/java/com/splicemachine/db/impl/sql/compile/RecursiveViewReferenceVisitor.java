@@ -99,6 +99,10 @@ public class RecursiveViewReferenceVisitor implements Visitor {
 
     @Override
     public boolean skipChildren(Visitable node) {
+        // we do not support nested recursive WITH yet, so skip the check
+        if (node instanceof UnionNode && ((UnionNode) node).getIsRecursive())
+            return true;
+
         return false;
     }
 

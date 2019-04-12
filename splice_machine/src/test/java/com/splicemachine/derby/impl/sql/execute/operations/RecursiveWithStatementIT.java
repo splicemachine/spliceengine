@@ -106,6 +106,18 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
                 .withRows(rows(row(1, 2),
                         row(3, 6),
                         row(7, 9))).create();
+
+        spliceClassWatcher.execute("create recursive view rv1 as \n" +
+                "select distinct a1 as A, name, 1 as level from t1 " +
+                ", t2 where a1=a2 and a1=1 \n" +
+                "UNION ALL \n " +
+                "select t1.b1 as A, t2.name, level+1 as level " +
+                "from t1, t2, rv1 where rv1.A=t1.a1 and t1.b1 = t2.a2 and rv1.level < 10");
+    }
+
+    @AfterClass
+    public static void cleanup() throws Exception {
+        spliceClassWatcher.execute("drop view rv1");
     }
 
     @Test
@@ -237,55 +249,313 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
 
     @Test
     public void testSelfReferenceWithAlias() throws Exception {
+        String sqlText = format("with recursive dt as (" +
+                "select distinct a1 as A, 'A' as name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                "where a1=1 \n" +
+                "UNION ALL \n " +
+                "select t1.b1 as A, t2.name, level+1 as level " +
+                "from t1, t2, dt as X where X.A=t1.a1 and t1.b1 = t2.a2 and X.level < 10)\n" +
+                "select * from dt order by A", this.useSparkString);
 
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected = "A |NAME | LEVEL |\n" +
+                "------------------\n" +
+                " 1 |  A  |   1   |\n" +
+                " 2 |  B  |   2   |\n" +
+                " 3 |  C  |   2   |\n" +
+                " 4 |  D  |   3   |\n" +
+                " 5 |  E  |   3   |\n" +
+                " 6 |  F  |   3   |\n" +
+                " 7 |  G  |   3   |\n" +
+                " 8 |  H  |   4   |\n" +
+                " 9 |  I  |   4   |";
+
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testSelfReferenceWithDifferentJoinStrategy() throws Exception {
+        /* broadcast join */
+        String sqlText = format("with recursive dt as (" +
+                "select distinct a1 as A, 'A' as name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                "where a1=1 \n" +
+                "UNION ALL \n " +
+                "select t1.b1 as A, t2.name, level+1 as level " +
+                "from --splice-properties joinOrder=fixed\n" +
+                "dt as X, t1 --splice-properties joinStrategy=broadcast\n" +
+                ", t2 where X.A=t1.a1 and t1.b1 = t2.a2 and X.level < 10)\n" +
+                "select * from dt order by A", this.useSparkString);
 
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected = "A |NAME | LEVEL |\n" +
+                "------------------\n" +
+                " 1 |  A  |   1   |\n" +
+                " 2 |  B  |   2   |\n" +
+                " 3 |  C  |   2   |\n" +
+                " 4 |  D  |   3   |\n" +
+                " 5 |  E  |   3   |\n" +
+                " 6 |  F  |   3   |\n" +
+                " 7 |  G  |   3   |\n" +
+                " 8 |  H  |   4   |\n" +
+                " 9 |  I  |   4   |";
+
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        /* sortmerge join */
+        sqlText = format("with recursive dt as (" +
+                "select distinct a1 as A, 'A' as name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                "where a1=1 \n" +
+                "UNION ALL \n " +
+                "select t1.b1 as A, t2.name, level+1 as level " +
+                "from --splice-properties joinOrder=fixed\n" +
+                "dt as X, t1 --splice-properties joinStrategy=sortmerge\n" +
+                ", t2 where X.A=t1.a1 and t1.b1 = t2.a2 and X.level < 10)\n" +
+                "select * from dt order by A", this.useSparkString);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        /* nestedloop join  */
+        sqlText = format("with recursive dt as (" +
+                "select distinct a1 as A, 'A' as name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                "where a1=1 \n" +
+                "UNION ALL \n " +
+                "select t1.b1 as A, t2.name, level+1 as level " +
+                "from --splice-properties joinOrder=fixed\n" +
+                "dt as X, t1 --splice-properties joinStrategy=nestedloop\n" +
+                ", t2 where X.A=t1.a1 and t1.b1 = t2.a2 and X.level < 10)\n" +
+                "select * from dt order by A", this.useSparkString);
+
+        rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        /* merge join */
+        sqlText = format("with recursive dt as (" +
+                "select distinct a1 as A, 'A' as name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                "where a1=1 \n" +
+                "UNION ALL \n " +
+                "select t1.b1 as A, t2.name, level+1 as level " +
+                "from --splice-properties joinOrder=fixed\n" +
+                "dt as X, t1 --splice-properties joinStrategy=merge\n" +
+                ", t2 where X.A=t1.a1 and t1.b1 = t2.a2 and X.level < 10)\n" +
+                "select * from dt order by A", this.useSparkString);
+
+        try {
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with no plan found!");
+        } catch (SQLException e) {
+            Assert.assertEquals(SQLState.LANG_NO_BEST_PLAN_FOUND, e.getSQLState());
+            Assert.assertTrue("Error message does not match, actual is: " + e.getMessage(),
+                    e.getMessage().startsWith("No valid execution plan was found for this statement."));
+        }
+    }
+
+    @Test
+    public void testSelfReferenceInADerivedTable() throws Exception {
+        String sqlText = format("with recursive dt as (" +
+                "select distinct a1 as A, 'A' as name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                "where a1=1 \n" +
+                "UNION ALL \n " +
+                "select X.b1 as A, t2.name, level+1 as level " +
+                "from t2, \n" +
+                "(select dt.*, t1.b1 from t1, dt where A=t1.a1) as X \n" +
+                "where  X.b1 = t2.a2 and X.level < 10)\n" +
+                "select * from dt order by A", this.useSparkString);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected = "A |NAME | LEVEL |\n" +
+                "------------------\n" +
+                " 1 |  A  |   1   |\n" +
+                " 2 |  B  |   2   |\n" +
+                " 3 |  C  |   2   |\n" +
+                " 4 |  D  |   3   |\n" +
+                " 5 |  E  |   3   |\n" +
+                " 6 |  F  |   3   |\n" +
+                " 7 |  G  |   3   |\n" +
+                " 8 |  H  |   4   |\n" +
+                " 9 |  I  |   4   |";
+
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testMultipleRecursiveWith() throws Exception {
+        /* two back to back recursive with */
+        String sqlText = format("with recursive dt1 as (" +
+                "select distinct a1 as A, 'A' as name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                "where a1=1 \n" +
+                "UNION ALL \n " +
+                "select X.b1 as A, t2.name, level+1 as level " +
+                "from t2, \n" +
+                "(select dt1.*, t1.b1 from t1, dt1 where A=t1.a1) as X \n" +
+                "where  X.b1 = t2.a2 and X.level < 10),\n" +
 
-    }
+                "recursive dt2 as (" +
+                "select distinct a1 as A, 'A' as name, 1 as level from t1 \n" +
+                "where a1=1 \n" +
+                "UNION ALL \n " +
+                "select X.b1 as A, t2.name, level+1 as level " +
+                "from t2, \n" +
+                "(select dt2.*, t1.b1 from t1, dt2 where A=t1.a1) as X \n" +
+                "where  X.b1 = t2.a2 and X.level < 10)\n" +
+                "select dt1.A, dt2.A from dt1, dt2 where dt1.A = dt2.A order by dt1.A", this.useSparkString);
 
-    @Test
-    public void testNestedRecursiveWith() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
 
+        String expected = "A | A |\n" +
+                "--------\n" +
+                " 1 | 1 |\n" +
+                " 2 | 2 |\n" +
+                " 3 | 3 |\n" +
+                " 4 | 4 |\n" +
+                " 5 | 5 |\n" +
+                " 6 | 6 |\n" +
+                " 7 | 7 |\n" +
+                " 8 | 8 |\n" +
+                " 9 | 9 |";
+
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
     }
 
     @Test
     public void testMainBlockReferenceRecursiveWithMultipleTimes() throws Exception {
+        /* nested loop join */
         String sqlText = format("with recursive dt as (" +
                 "select distinct a1, name, 1 as level from t1 --splice-properties useSpark=%s\n" +
                 ", t2 where a1=a2 and a1=1 " +
                 "UNION ALL \n " +
                 "select t1.b1 as a1, t2.name, level+1 as level from dt, t1, t2 where dt.a1=t1.a1 and t1.b1 = t2.a2 and dt.level < 10)\n" +
-                "select * from dt as X, dt as Y where X.a1 = Y.a1 order by X.a1", this.useSparkString);
+                "select * from --splice-properties joinOrder=fixed\n" +
+                "dt as X, dt as Y --splice-properties joinStrategy=nestedloop\n" +
+                "where X.a1 = Y.a1 order by X.a1", this.useSparkString);
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
         String expected = "A1 |NAME | LEVEL |A1 |NAME | LEVEL |\n" +
                 "------------------------------------\n" +
                 " 1 |  A  |   1   | 1 |  A  |   1   |\n" +
-                " 1 |  A  |   1   | 2 |  B  |   2   |\n" +
-                " 1 |  A  |   1   | 3 |  C  |   2   |\n" +
-                " 1 |  A  |   1   | 4 |  D  |   3   |\n" +
-                " 1 |  A  |   1   | 5 |  E  |   3   |\n" +
-                " 1 |  A  |   1   | 6 |  F  |   3   |\n" +
-                " 1 |  A  |   1   | 7 |  G  |   3   |\n" +
-                " 1 |  A  |   1   | 8 |  H  |   4   |\n" +
-                " 1 |  A  |   1   | 9 |  I  |   4   |";
+                " 2 |  B  |   2   | 2 |  B  |   2   |\n" +
+                " 3 |  C  |   2   | 3 |  C  |   2   |\n" +
+                " 4 |  D  |   3   | 4 |  D  |   3   |\n" +
+                " 5 |  E  |   3   | 5 |  E  |   3   |\n" +
+                " 6 |  F  |   3   | 6 |  F  |   3   |\n" +
+                " 7 |  G  |   3   | 7 |  G  |   3   |\n" +
+                " 8 |  H  |   4   | 8 |  H  |   4   |\n" +
+                " 9 |  I  |   4   | 9 |  I  |   4   |";
+
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        /* sortmerge */
+        sqlText = format("with recursive dt as (" +
+                "select distinct a1, name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                ", t2 where a1=a2 and a1=1 " +
+                "UNION ALL \n " +
+                "select t1.b1 as a1, t2.name, level+1 as level from dt, t1, t2 where dt.a1=t1.a1 and t1.b1 = t2.a2 and dt.level < 10)\n" +
+                "select * from --splice-properties joinOrder=fixed\n" +
+                "dt as X, dt as Y --splice-properties joinStrategy=sortmerge\n" +
+                "where X.a1 = Y.a1 order by X.a1", this.useSparkString);
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        /* broadcast join */
+        sqlText = format("with recursive dt as (" +
+                "select distinct a1, name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                ", t2 where a1=a2 and a1=1 " +
+                "UNION ALL \n " +
+                "select t1.b1 as a1, t2.name, level+1 as level from dt, t1, t2 where dt.a1=t1.a1 and t1.b1 = t2.a2 and dt.level < 10)\n" +
+                "select * from --splice-properties joinOrder=fixed\n" +
+                "dt as X, dt as Y --splice-properties joinStrategy=broadcast\n" +
+                "where X.a1 = Y.a1 order by X.a1", this.useSparkString);
+
+        rs = methodWatcher.executeQuery(sqlText);
 
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
 
-    //negative test cases
+    @Test
+    public void testSubqueryReferenceRecursiveWith() throws Exception {
+        /* nested loop join */
+        String sqlText = format("with recursive dt as (" +
+                "select distinct a1, name, 1 as level from t1 --splice-properties useSpark=%s\n" +
+                ", t2 where a1=a2 and a1=1 " +
+                "UNION ALL \n " +
+                "select t1.b1 as a1, t2.name, level+1 as level from dt, t1, t2 where dt.a1=t1.a1 and t1.b1 = t2.a2 and dt.level < 10)\n" +
+                "select * from t1 where b1 in (select a1 from dt where name <> 'C') order by a1, b1", this.useSparkString);
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected = "A1 |B1 |\n" +
+                "--------\n" +
+                " 1 | 2 |\n" +
+                " 2 | 4 |\n" +
+                " 2 | 5 |\n" +
+                " 3 | 6 |\n" +
+                " 3 | 7 |\n" +
+                " 5 | 8 |\n" +
+                " 7 | 9 |";
+
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRecursiveView() throws Exception {
+        String sqlText = "select * from rv1";
+        ResultSet rs = methodWatcher.executeQuery("select * from rv1 order by A");
+
+        String expected = "A |NAME | LEVEL |\n" +
+                "------------------\n" +
+                " 1 |  A  |   1   |\n" +
+                " 2 |  B  |   2   |\n" +
+                " 3 |  C  |   2   |\n" +
+                " 4 |  D  |   3   |\n" +
+                " 5 |  E  |   3   |\n" +
+                " 6 |  F  |   3   |\n" +
+                " 7 |  G  |   3   |\n" +
+                " 8 |  H  |   4   |\n" +
+                " 9 |  I  |   4   |";
+
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    /**
+     * negative test cases
+     */
     @Test
     public void testMultipleSelfReferencesInRecursionBody() throws Exception {
+        String sqlText = format("with recursive dt as (" +
+                "select a1, b1, 1 as level\n" +
+                "from t1 --splice-properties useSpark=%s\n" +
+                "where a1 >1\n" +
+                "union all\n" +
+                "select a1, b1, 1+1 as level\n" +
+                "from \n" +
+                "t2, dt as X, dt as Y where a2=X.a1 and a2=Y.a1)\n" +
+                "select * from dt order by a1", this.useSparkString);
 
+        try {
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+            Assert.assertTrue("Error message does not match, actual is: " + e.getMessage(),
+                    e.getMessage().startsWith("Syntax error: More than one recursive reference in WITH RECURSIVE is not supported!"));
+        }
     }
 
     @Test
@@ -304,12 +574,30 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
             Assert.fail("Query is expected to fail with syntax error!");
         } catch (SQLException e) {
             Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+            Assert.assertTrue("Error message does not match, actual is: " + e.getMessage(),
+                    e.getMessage().startsWith("Syntax error: No recursive reference found in WITH RECURSIVE."));
         }
     }
 
     @Test
     public void testSelfReferenceInASubquery() throws Exception {
+        String sqlText = format("with recursive dt as (" +
+                "select a1, b1, 1 as level\n" +
+                "from t1 --splice-properties useSpark=%s\n" +
+                "where a1 >1\n" +
+                "union all\n" +
+                "select a1, b1, (select max(level) from dt)+1 as level\n" +
+                "from t1)\n" +
+                "select * from dt order by a1", this.useSparkString);
 
+        try {
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+            Assert.assertTrue("Error message does not match, actual is: " + e.getMessage(),
+                    e.getMessage().startsWith("Syntax error: Recursive reference in Subquery is not supported!"));
+        }
     }
 
     @Test
@@ -320,15 +608,49 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
                 "where a1 >1\n" +
                 "union all\n" +
                 "select a1, b1, 1+1 as level\n" +
-                "from --splice-properties joinOrder=fixed" +
-                "t1, dt where a1=a2)\n" +
+                "from --splice-properties joinOrder=fixed\n" +
+                "t2, dt where a2=a1)\n" +
                 "select * from dt order by a1", this.useSparkString);
 
         try {
             methodWatcher.executeQuery(sqlText);
             Assert.fail("Query is expected to fail with syntax error!");
         } catch (SQLException e) {
-            Assert.assertEquals(SQLState.LANG_INVALID_JOIN_ORDER_SPEC, e.getSQLState());
+            Assert.assertEquals(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER, e.getSQLState());
+            Assert.assertTrue("Error message does not match, actual is: " + e.getMessage(),
+                    e.getMessage().startsWith("The user specified an illegal join order."));
+        }
+    }
+
+    @Test
+    public void testNestedRecursiveWith() throws Exception {
+        String sqlText = format("with recursive nested_dt as (" +
+                "select a1, b1, 1 as level\n" +
+                "from t1 --splice-properties useSpark=%s\n" +
+                "where a1 >1\n" +
+                "union all\n" +
+                "select a1, b1, level+1 as level\n" +
+                "from \n" +
+                "t2, nested_dt as X where a2=X.a1)\n" +
+
+
+                ", recursive dt as (" +
+                "select a1, b1, level\n" +
+                "from nested_dt " +
+                "where a1 = 1\n" +
+                "union all\n" +
+                "select a1, b1, 1+1 as level\n" +
+                "from \n" +
+                "t2, dt as X where a2=X.a1)\n" +
+                "select * from dt order by a1", this.useSparkString);
+
+        try {
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+            Assert.assertTrue("Error message does not match, actual is: " + e.getMessage(),
+                    e.getMessage().startsWith("Syntax error: Nested recursive WITH is not supported!"));
         }
     }
 }

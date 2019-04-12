@@ -333,7 +333,7 @@ public class CreateViewNode extends DDLStatementNode
 		return providerInfos;
 	}
 
-	public boolean replaceSelfReferenceForRecursiveView(TableDescriptor td) throws StandardException {
+	public int replaceSelfReferenceForRecursiveView(TableDescriptor td) throws StandardException {
 		// set recursive view descriptor which contains the column type info.
 		((UnionNode)queryExpression).setViewDescreiptor(td);
 		ResultSetNode leftResultSetNode = ((UnionNode) queryExpression).getLeftResultSet();
@@ -343,7 +343,7 @@ public class CreateViewNode extends DDLStatementNode
 
 		rightResultSetNode.accept(recursiveViewReferenceVisitor);
 		int numReferences = recursiveViewReferenceVisitor.getNumReferences();
-		return numReferences > 0;
+		return numReferences;
 	}
 
 	private ProviderInfo[] bindRecursiveViewDefinition(DataDictionary 	dataDictionary,
@@ -372,13 +372,18 @@ public class CreateViewNode extends DDLStatementNode
 						"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
 
 			/* step 2: replace the self-reference in the right branch with a FromSubqueryReference */
-			boolean hasRecursiveReference = replaceSelfReferenceForRecursiveView(null);
-			if (!hasRecursiveReference) {
+			int numOfSelfReferences = replaceSelfReferenceForRecursiveView(null);
+
+			/* step 3: check for valid syntax */
+			if (numOfSelfReferences <= 0) {
 				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
-						"No recursive references found in WITH RECURSIVE");
+						"No recursive reference found in WITH RECURSIVE");
+			} else if (numOfSelfReferences > 1) {
+				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+						"More than one recursive reference in WITH RECURSIVE is not supported!");
 			}
 
-			/* step 3: bind the left of the union-all */
+			/* step 4: bind the left of the union-all */
 			((UnionNode) queryExpression).getLeftResultSet().bindNonVTITables(dataDictionary, fromList);
 			((UnionNode) queryExpression).getLeftResultSet().bindVTITables(fromList);
 
@@ -388,11 +393,15 @@ public class CreateViewNode extends DDLStatementNode
 			// bind the query expression
 			((UnionNode) queryExpression).getLeftResultSet().bindResultColumns(fromList);
 
-			/* bind the right only */
+			/* step 5: bind the right only, and the union node */
 			((SetOperatorNode)queryExpression).bindNonVTITables(dataDictionary, fromList, true);
 			((SetOperatorNode)queryExpression).bindVTITables(fromList, true);
 			((SetOperatorNode)queryExpression).bindExpressions(fromList, true);
 			((SetOperatorNode)queryExpression).bindResultColumns(fromList, true);
+
+			/* step 6: more syntax check, no nested recursive view allowed */
+			RecursiveViewSyntaxCheckVisitor syntaxCheckVisitor = new RecursiveViewSyntaxCheckVisitor();
+			queryExpression.accept(syntaxCheckVisitor);
 
 			//cannot define views on temporary tables
 			//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception

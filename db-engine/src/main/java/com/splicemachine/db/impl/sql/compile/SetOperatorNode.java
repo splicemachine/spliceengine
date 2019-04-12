@@ -320,6 +320,10 @@ abstract class SetOperatorNode extends TableOperatorNode
 		if (!(this instanceof UnionNode))
 			return false;
 
+		// It is incorrect to push down predicate into the seed and recursion branches of a recursive view
+		if (((UnionNode)this).isRecursive)
+			return false;
+
 		// We only handle certain types of predicates here; if the received
 		// predicate doesn't qualify, then don't push it.
 		Predicate pred = (Predicate)optimizablePredicate;

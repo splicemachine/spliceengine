@@ -326,6 +326,12 @@ public class SelfReferenceNode extends FromTable {
         mb.getField(selfReferenceResultSetRef);
     }
 
+    @Override
+    public ResultColumnList getAllResultColumns(TableName allTableName) throws StandardException{
+        return getResultColumnsForList(allTableName,resultColumns,
+                getOrigTableName());
+    }
+
     public LocalField getResultSetRef() {
         return selfReferenceResultSetRef;
     }
