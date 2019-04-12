@@ -62,8 +62,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     
     // Use this to get internationalized strings...
     protected static MessageUtil msgutil = SqlException.getMessageUtil();
-    protected Properties properties_;
-    protected NetConnection sideConnection_;
 
     protected NetAgent netAgent_;
     //contains a reference to the PooledConnection from which this created 
@@ -153,10 +151,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     // Correlation Token of the source sent to the server in the accrdb.
     // It is saved like the prddta in case it is needed for a connect reflow.
     public byte[] crrtkn_;
-
-    // RDB Interruption Token of the server sent to the client in the accrdb.
-    // It is saved like the prddta in case it is needed for a statement abort.
-    public byte[] rdbinttkn_;
 
     // The Secmec used by the target.
     // It contains the negotiated security mechanism for the connection.
@@ -257,8 +251,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         	completeConnect();
         //DERBY-2026. reset timeout after connection is made
         netAgent_.setTimeout(0);
-        this.properties_ = new Properties();
-        this.properties_.putAll(properties);
     }
 
     // For JDBC 2 Connections
@@ -399,16 +391,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                     SQLState.NET_CONNECTION_RESET_NOT_ALLOWED_IN_UNIT_OF_WORK));
         }
         resetNetConnection(logWriter);
-    }
-
-    @Override
-    public NetConnection getSideConnection() throws SqlException {
-        return null;
-    }
-
-    @Override
-    public byte[] getInterruptToken() {
-        return rdbinttkn_;
     }
 
     java.util.List getSpecialRegisters() {
@@ -1235,14 +1217,9 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     void rdbAccessed(int svrcod,
                      String prdid,
                      boolean crrtknReceived,
-                     byte[] crrtkn,
-                     boolean rdbinttknReceived,
-                     byte[] rdbinttkn) {
+                     byte[] crrtkn) {
         if (crrtknReceived) {
             crrtkn_ = crrtkn;
-        }
-        if (rdbinttknReceived) {
-            rdbinttkn_ = rdbinttkn;
         }
 
         netAgent_.setSvrcod(svrcod);

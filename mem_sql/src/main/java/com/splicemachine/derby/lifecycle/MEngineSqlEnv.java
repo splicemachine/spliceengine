@@ -33,7 +33,6 @@ import com.splicemachine.uuid.Snowflake;
 import org.spark_project.guava.net.HostAndPort;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.sql.Connection;
 import java.util.Arrays;
 import java.util.List;
@@ -77,7 +76,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
 
             @Override
             public List<HostAndPort> listServers() throws IOException {
-                return Arrays.asList(HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), config.getNetworkBindPort()));
+                return Arrays.asList(HostAndPort.fromParts(config.getNetworkBindAddress(), config.getNetworkBindPort()));
             }
         };
     }

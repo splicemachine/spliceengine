@@ -1,8 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import java.util.Date;
-import java.util.UUID;
-
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 
 /**
@@ -15,8 +13,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 
 public class RunningOperation{
 
-    private final UUID uuid;
-    private final String rdbIntTkn;
     private Date submittedTime = null;
     private DataSetProcessor.Type engine = null;
     private SpliceOperation operation;
@@ -25,14 +21,11 @@ public class RunningOperation{
     public RunningOperation(SpliceOperation operation,
                             Thread thread,
                             Date submittedTime,
-                            DataSetProcessor.Type engine,
-                            UUID uuid, String rdbIntTkn) {
+                            DataSetProcessor.Type engine) {
         this.operation = operation;
         this.thread =thread;
         this.submittedTime = submittedTime;
         this.engine = engine;
-        this.uuid = uuid;
-        this.rdbIntTkn = rdbIntTkn;
     }
 
     public Date getSubmittedTime() {
@@ -51,11 +44,4 @@ public class RunningOperation{
         return thread;
     }
 
-    public UUID getUuid() {
-        return uuid;
-    }
-
-    public String getRdbIntTkn() {
-        return rdbIntTkn;
-    }
 }
