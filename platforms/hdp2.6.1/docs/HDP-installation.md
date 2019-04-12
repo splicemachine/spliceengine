@@ -342,4 +342,5 @@ If you are upgrading from versions before 1901, you need to follow these steps:
 
 1. Delete Splice Ambari service on web UI.
 2. Update RPM packages on each machine.
-3. Re-install Splice Ambari service from web UI.
+3. Restart Ambari server.
+4. Re-install Splice Ambari service from web UI.
