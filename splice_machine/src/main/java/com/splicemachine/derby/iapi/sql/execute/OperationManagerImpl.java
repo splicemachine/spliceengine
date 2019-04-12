@@ -42,8 +42,7 @@ public class OperationManagerImpl implements OperationManager {
         UUID uuid = UUID.randomUUID();
         RunningOperation ro = new RunningOperation(operation, executingThread, submittedTime, engine, uuid, rdbIntTkn);
         operations.put(uuid, ro);
-        if (rdbIntTkn != null)
-            drdaOperations.put(rdbIntTkn, ro);
+        drdaOperations.put(rdbIntTkn, ro);
         return uuid;
     }
 
