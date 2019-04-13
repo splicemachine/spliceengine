@@ -59,7 +59,7 @@ public final class GenericParameter implements Externalizable {
     // These defaults match the Network Server/ JCC max precision and
     // The JCC "guessed" scale. They are used as the defaults for
     // Decimal out params.
-    private static int DECIMAL_PARAMETER_DEFAULT_PRECISION = 31;
+    private static int DECIMAL_PARAMETER_DEFAULT_PRECISION = 38;
     private static int DECIMAL_PARAMETER_DEFAULT_SCALE = 15;
 
 

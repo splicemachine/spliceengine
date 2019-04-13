@@ -90,7 +90,7 @@ public interface Limits
      * DECIMAL type limits
      */
 
-	int DB2_MAX_DECIMAL_PRECISION_SCALE = 31;
+	int DB2_MAX_DECIMAL_PRECISION_SCALE = 38;
 	int DB2_DEFAULT_DECIMAL_PRECISION   = 5;
 	int DB2_DEFAULT_DECIMAL_SCALE       = 0;
 

@@ -1734,7 +1734,7 @@ class DDMWriter
 	 * @param precision Precision of decimal or numeric type
 	 * @param scale declared scale
 	 *
-	 * @exception SQLException Thrown if # digits > 31
+	 * @exception SQLException Thrown if # digits > 38
 	 */
 	void writeBigDecimal(BigDecimal b, int precision, int scale)
 	throws SQLException
@@ -1748,11 +1748,11 @@ class DDMWriter
         // Move current position to the end of the encoded decimal.
         buffer.position(offset + encodedLength);
 
-		// packed decimal may only be up to 31 digits.
-		if (precision > 31) // this is a bugcheck only !!!
+		// packed decimal may only be up to 38 digits.
+		if (precision > FdocaConstants.NUMERIC_MAX_PRECISION) // this is a bugcheck only !!!
 		{
 			clearDdm ();
-			throw new java.sql.SQLException ("Packed decimal may only be up to 31 digits!");
+			throw new java.sql.SQLException ("Packed decimal may only be up to 38 digits!");
 		}
 
 		// get absolute unscaled value of the BigDecimal as a String.
@@ -1761,7 +1761,7 @@ class DDMWriter
 		// get precision of the BigDecimal.
   	    int bigPrecision = unscaledStr.length();
 
-		if (bigPrecision > 31)
+		if (bigPrecision > FdocaConstants.NUMERIC_MAX_PRECISION)
 		{
 			clearDdm ();
   		    throw new SQLException ("The numeric literal \"" +

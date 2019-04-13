@@ -61,6 +61,7 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
         public void addTwo() throws StandardException {
                 SQLDecimal decimal1 = new SQLDecimal(new BigDecimal(100.0d));
                 SQLDecimal decimal2 = new SQLDecimal(new BigDecimal(100.0d));
+                SQLDecimal decimal3 = new SQLDecimal(new BigDecimal("100000000000000000000000000000000000000"));
                 Assert.assertEquals("Integer Add Fails", new BigDecimal(200.0d), decimal1.plus(decimal1, decimal2, null).getBigDecimal());
         }
 
@@ -151,13 +152,19 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {
                 ValueRow execRow = new ValueRow(1);
-                execRow.setRowArray(new DataValueDescriptor[]{new SQLDecimal(new BigDecimal(100.0))});
-                Row row = execRow.getSparkRow();
-                Assert.assertEquals(new BigDecimal(100.0), row.getDecimal(0));
-                ValueRow execRow2 = new ValueRow(1);
-                execRow2.setRowArray(new DataValueDescriptor[]{new SQLDecimal()});
-                execRow2.getColumn(1).setSparkObject(row.get(0));
-                Assert.assertEquals("ExecRow Mismatch", execRow, execRow2);
+
+                double initialValue = 10d;
+                double val;
+                for (int i = 1; i <= 38; i++) {
+                        val = java.lang.Math.pow(initialValue, i);
+                        execRow.setRowArray(new DataValueDescriptor[]{new SQLDecimal(new BigDecimal(val))});
+                        Row row = execRow.getSparkRow();
+                        Assert.assertEquals(new BigDecimal(val), row.getDecimal(0));
+                        ValueRow execRow2 = new ValueRow(1);
+                        execRow2.setRowArray(new DataValueDescriptor[]{new SQLDecimal()});
+                        execRow2.getColumn(1).setSparkObject(row.get(0));
+                        Assert.assertEquals("ExecRow Mismatch", execRow, execRow2);
+                }
         }
 
         @Test
@@ -187,20 +194,26 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueDataExternal() throws Exception {
-                SQLDecimal value = new SQLDecimal(new BigDecimal(100.0d));
-                SQLDecimal valueA = new SQLDecimal(null, value.precision, value.getScale());
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
-                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-                value.writeExternal(objectOutputStream);
-                objectOutputStream.flush();
 
-                ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
-                ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-                valueA.readExternal(objectInputStream);
-                Assert.assertEquals("SerdeIncorrect", new BigDecimal("100"), valueA.getBigDecimal());
+                double initialValue = 10d;
+                double val;
+                for (int i = 1; i <= 38; i++) {
+                        val = java.lang.Math.pow(initialValue, i);
+                        SQLDecimal value = new SQLDecimal(new BigDecimal(val));
+                        SQLDecimal valueA = new SQLDecimal(null, value.precision, value.getScale());
+                        ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);
+                        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                        value.writeExternal(objectOutputStream);
+                        objectOutputStream.flush();
 
-                objectInputStream.close();
-                objectOutputStream.close();
+                        ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+                        ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                        valueA.readExternal(objectInputStream);
+                        Assert.assertEquals("SerdeIncorrect", new BigDecimal(val), valueA.getBigDecimal());
+
+                        objectInputStream.close();
+                        objectOutputStream.close();
+                }
         }
 
         @Test

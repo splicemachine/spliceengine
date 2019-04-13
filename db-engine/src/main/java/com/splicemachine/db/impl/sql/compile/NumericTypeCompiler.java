@@ -58,6 +58,9 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
 import java.sql.Types;
 
+import static com.splicemachine.db.iapi.types.NumberDataValue.MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE;
+import static com.splicemachine.db.iapi.types.NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE;
+
 /**
  * This class implements TypeId for the SQL numeric datatype.
  *
@@ -300,6 +303,18 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			precision = higherTC.getPrecision(operator, leftType, rightType);
 			scale = higherTC.getScale(operator, leftType, rightType);
 
+			// No need to overflow when averaging something like DEC(37,1),
+			// just use the maximum scale that would still fit.
+			if (typeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID &&
+			    (scale + (precision - higherType.getScale())) >
+			       NumberDataValue.MAX_DECIMAL_PRECISION_SCALE &&
+		            TypeCompiler.AVG_OP.equals(operator)) {
+			  precision = higherType.getPrecision();
+			  int newScale = Math.max(higherType.getScale(),
+			                          NumberDataValue.MAX_DECIMAL_PRECISION_SCALE - precision);
+			  if (scale > newScale)
+			  	scale = newScale;
+			}
 			// Promote REAL to DOUBLE and BIGINT to DECIMAL so we don't overflow
 			// aggregate or arithmetic computations.
 			if (typeId.isRealTypeId()) {
@@ -310,14 +325,18 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			}
             else if (typeId.isBigIntTypeId()) {
                 typeId = TypeId.getBuiltInTypeId(Types.DECIMAL);
-                precision = typeId.getMaximumPrecision();
+                // Leave room for 4 digits right of the decimal place when averaging.
+                precision = MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE;
                 maximumWidth = precision + 1;
                 scale = 0;
             }
 			else if (typeId.isDecimalTypeId())
 			{
-				// Use maximum precision for decimals so we don't overflow.
-				precision = TypeId.getBuiltInTypeId(Types.DECIMAL).getMaximumPrecision();
+				// Use high precision for decimals, so we don't overflow.
+				// But don't use max precision to leave room for 4 digits to
+				// the right of the decimal place for operations like AVG.
+				if (precision < MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE)
+				    precision = MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE;
 				maximumWidth = (scale > 0) ? precision + 3 : precision + 1;
 
 				/*
@@ -542,15 +561,15 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			LanguageConnectionContext lcc = (LanguageConnectionContext)
 				(ContextService.getContext(LanguageConnectionContext.CONTEXT_ID)); 
 
-			// Scale: 31 - left precision + left scale - right scale
+			// Scale: 38 - left precision + left scale - right scale
 				val = Math.max(NumberDataValue.MAX_DECIMAL_PRECISION_SCALE - lprec + lscale - rscale, 
-						NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE);
+						MIN_DECIMAL_DIVIDE_SCALE);
 
 		}
 		else if (TypeCompiler.AVG_OP.equals(operator))
 		{
 			val = Math.max(Math.max(lscale, rscale),
-						NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE);
+						MIN_DECIMAL_DIVIDE_SCALE);
 		}
 		/*
 		** SUM, -, + all take max(lscale,rscale)

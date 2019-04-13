@@ -58,7 +58,7 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         params.add(new Object[]{false});
         return params;
     }
-    public static final String CLASS_NAME = InListMultiprobeIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = AggregateAndArithmeticOverflowIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -234,22 +234,28 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
                 .create();
 
         new TableCreator(conn)
-                .withCreate("create table ts_decimal2 (b dec(31,0), c int)")
+                .withCreate("create table ts_decimal2 (b dec(38,0), c int)")
                 .withInsert("insert into ts_decimal2 values(?, ?)")
                 .withRows(rows(
-                        row(new BigDecimal("1000000000000000000000000000000"), 1),
-                        row(new BigDecimal("1000000000000000000000000000000"), 1),
-                        row(new BigDecimal("1000000000000000000000000000000"), 1),
-                        row(new BigDecimal("1000000000000000000000000000000"), 1),
-                        row(new BigDecimal("1000000000000000000000000000000"), 1),
-                        row(new BigDecimal("1000000000000000000000000000000"), 1),
-                        row(new BigDecimal("1000000000000000000000000000000"), 1),
-                        row(new BigDecimal("1000000000000000000000000000000"), 1),
-                        row(new BigDecimal("1000000000000000000000000000000"), 1)))
+                        row(new BigDecimal("10000000000000000000000000000000"), 1),
+                        row(new BigDecimal("100000000000000000000000000000000"), 1),
+                        row(new BigDecimal("1000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("100000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("1000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1),
+                        row(new BigDecimal("10000000000000000000000000000000000000"), 1)))
                 .create();
 
         new TableCreator(conn)
-                .withCreate("create table ts_decimal3 (b dec(31,0), c int)")
+                .withCreate("create table ts_decimal3 (b dec(38,0), c int)")
                 .create();
 
         sqlText = "insert into ts_decimal3 select * from ts_decimal2";
@@ -414,12 +420,11 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select avg(i*l) from ts_int2 --splice-properties useSpark=%s", useSpark);
-
-        // For now, this query is expected to overflow.
-        List<String> expectedErrors =
-          Arrays.asList("Overflow occurred during numeric data type conversion of \"19807040628566084398385987584\".",
-                 "The numeric literal \"19807040628566084398385987584.0000\" is not valid because its value is out of range.");
-        testFail(sqlText, expectedErrors, methodWatcher);
+        expected =
+                "1                 |\n" +
+                        "------------------------------------\n" +
+                        "19807040628566084398385987584.0000 |";
+        testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select avg(a) from ts_decimal --splice-properties useSpark=%s", useSpark);
 
@@ -459,14 +464,16 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
 
         sqlText = format("select avg(b) from ts_decimal2 --splice-properties useSpark=%s", useSpark);
 
-        expectedErrors =
-          Arrays.asList("Overflow occurred during numeric data type conversion of \"1E+30\".",
-                 "The numeric literal \"1000000000000000000000000000000.0000\" is not valid because its value is out of range.");
-        testFail(sqlText, expectedErrors, methodWatcher);
+        expected =
+                "1                   |\n" +
+                "---------------------------------------\n" +
+                "6074074000000000000000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select avg(b) from ts_decimal3 --splice-properties useSpark=%s", useSpark);
 
-        testFail(sqlText, expectedErrors, methodWatcher);
+        testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select avg(distinct f1/100) from ts_float --splice-properties useSpark=%s", useSpark);
 
@@ -604,17 +611,17 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         sqlText = format("select sum(b) from ts_decimal2 --splice-properties useSpark=%s", useSpark);
 
         expected =
-                "1                |\n" +
-                "---------------------------------\n" +
-                "9000000000000000000000000000000 |";
+                "1                   |\n" +
+                "----------------------------------------\n" +
+                "91111110000000000000000000000000000000 |";
 
         testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select sum(b) from ts_decimal3 --splice-properties useSpark=%s", useSpark);
 
         List<String> expectedErrors =
-          Arrays.asList("Overflow occurred during numeric data type conversion of \"1.8E+31\".",
-                 "The numeric literal \"18000000000000000000000000000000\" is not valid because its value is out of range.");
+           Arrays.asList("Overflow occurred during numeric data type conversion of \"1.8222222E+38\".",
+                         "The numeric literal \"182222220000000000000000000000000000000\" is not valid because its value is out of range.");
         testFail(sqlText, expectedErrors, methodWatcher);
 
         sqlText = format("select sum(distinct f1/100) from ts_float --splice-properties useSpark=%s", useSpark);
@@ -835,7 +842,7 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
 
         // For now, this query is expected to overflow.
         List<String> expectedErrors =
-          Arrays.asList("The resulting value is outside the range for the data type DECIMAL/NUMERIC(31,21).");
+          Arrays.asList("The resulting value is outside the range for the data type DECIMAL/NUMERIC(38,28).");
           testFail(sqlText, expectedErrors, methodWatcher);
 
         sqlText = format("select f1+f1+f1+f1+f1+f1+f1+f1+f1+f1+f1 from ts_float --splice-properties useSpark=%s", useSpark);
