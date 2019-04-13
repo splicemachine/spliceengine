@@ -39,7 +39,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
     // JDBC 3 constant indicating that the current ResultSet object
     // should not be closed when calling getMoreResults.
     // Constant value matches that defined by JDBC 3 java.sql.Statement.KEEP_CURRENT_RESULT
-    public final static int KEEP_CURRENT_RESULT = 2;
+    public final static int KEEP_CURHRegionUtilHRegionUtilRENT_RESULT = 2;
 
     // JDBC 3 constant indicating that all ResultSet objects that
     // have previously been kept open should be closed when calling getMoreResults.

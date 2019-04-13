@@ -15,31 +15,19 @@
 package org.apache.hadoop.hbase.regionserver;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.NavigableSet;
-import java.util.NoSuchElementException;
-import java.util.concurrent.locks.Lock;
 
 import com.splicemachine.primitives.Bytes;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.RegionInfo;
-import org.apache.hadoop.hbase.io.hfile.BlockType;
 import org.apache.hadoop.hbase.io.hfile.HFile;
-import org.apache.hadoop.hbase.io.hfile.HFileBlock;
-import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
-import org.apache.hadoop.hbase.util.BloomFilter;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -94,7 +82,7 @@ public class HRegionUtil extends BaseHRegionUtil{
             long totalStoreFileInBytes = 0;
             for (StoreFile file : storeFiles) {
                 if (file != null) {
-                    totalStoreFileInBytes += ((HStoreFile)file).getFileInfo().getFileStatus().getLen();
+                    totalStoreFileInBytes += HBasePlatformUtils.getFileInfo(file).getFileStatus().getLen();
                 }
             }
             long bytesPerSplit = totalStoreFileInBytes / requestedSplits;
@@ -108,10 +96,10 @@ public class HRegionUtil extends BaseHRegionUtil{
         Pair<byte[], byte[]> range = new Pair<>(start, end);
         for (StoreFile file : storeFiles) {
             if (file != null) {
-                long storeFileInBytes = ((HStoreFile)file).getFileInfo().getFileStatus().getLen();
+                long storeFileInBytes = HBasePlatformUtils.getFileInfo(file).getFileStatus().getLen();
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
-                fileReader = ((HStoreFile)file).getReader().getHFileReader();
+                fileReader = HBasePlatformUtils.getReader(file).getHFileReader();
                 carry = addStoreFileCutpoints(cutPoints, fileReader, storeFileInBytes, carry, range, splitBlockSize);
             }
         }
@@ -131,7 +119,7 @@ public class HRegionUtil extends BaseHRegionUtil{
         cutPoints.add(store.getRegionInfo().getEndKey());
 
         if (LOG.isDebugEnabled()) {
-            RegionInfo regionInfo = store.getRegionInfo();
+            HRegionInfo regionInfo = (HRegionInfo) store.getRegionInfo();
             String startKey = "\"" + CellUtils.toHex(regionInfo.getStartKey()) + "\"";
             String endKey = "\"" + CellUtils.toHex(regionInfo.getEndKey()) + "\"";
             LOG.debug("Cutpoints for " + regionInfo.getRegionNameAsString() + " [" + startKey + "," + endKey + "]: ");

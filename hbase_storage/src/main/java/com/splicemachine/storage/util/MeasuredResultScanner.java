@@ -70,12 +70,10 @@ public class MeasuredResultScanner implements ResultScanner{
         resultScanner.close();
     }
 
-    @Override
     public boolean renewLease() {
         return false;
     }
 
-    @Override
     public ScanMetrics getScanMetrics() {
         return null;
     }

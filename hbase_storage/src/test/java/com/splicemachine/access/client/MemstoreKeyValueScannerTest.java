@@ -87,12 +87,10 @@ public class MemstoreKeyValueScannerTest {
 
             }
 
-            @Override
             public boolean renewLease() {
                 return false;
             }
 
-            @Override
             public ScanMetrics getScanMetrics() {
                 return null;
             }

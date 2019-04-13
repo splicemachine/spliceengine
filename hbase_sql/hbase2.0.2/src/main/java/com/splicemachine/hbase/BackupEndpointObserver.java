@@ -29,7 +29,10 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.regionserver.*;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.Pair;
@@ -40,13 +43,14 @@ import org.apache.zookeeper.ZooDefs;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by jyuan on 2/18/16.
  */
-public class BackupEndpointObserver extends BackupBaseRegionObserver implements CoprocessorService,Coprocessor {
+public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorService implements CoprocessorService,Coprocessor, RegionObserver {
     private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
 
     private AtomicBoolean isSplitting;
@@ -185,68 +189,67 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         return responseBuilder;
     }
 
+//    @Override
+//    public void preSplit(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
+//        try {
+//            if (LOG.isDebugEnabled())
+//                SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preSplit(): %s", regionName);
+//
+//            BackupUtils.waitForBackupToComplete(tableName, regionName);
+//            isSplitting.set(true);
+//            super.preSplit(e);
+//        } catch (Throwable t) {
+//            throw CoprocessorUtils.getIOException(t);
+//        }
+//    }
+//
+//    @Override
+//    public void postRollBackSplit(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
+//        try {
+//            if (LOG.isDebugEnabled())
+//                SpliceLogUtils.debug(LOG, "BackupEndpointObserver.postRollBackSplit(): %s", regionName);
+//            super.postRollBackSplit(ctx);
+//            isSplitting.set(false);
+//        } catch (Throwable t) {
+//            throw CoprocessorUtils.getIOException(t);
+//        }
+//
+//    }
+//
+//    @Override
+//    public void postCompleteSplit(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
+//        try {
+//            if (LOG.isDebugEnabled())
+//                SpliceLogUtils.debug(LOG, "BackupEndpointObserver.postCompleteSplit(): %s", regionName);
+//            super.postCompleteSplit(ctx);
+//            isSplitting.set(false);
+//        } catch (Throwable t) {
+//            throw CoprocessorUtils.getIOException(t);
+//        }
+//    }
+
     @Override
-    public void preSplit(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
-        try {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preSplit(): %s", regionName);
-
-            BackupUtils.waitForBackupToComplete(tableName, regionName);
-            isSplitting.set(true);
-            super.preSplit(e);
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
-    @Override
-    public void postRollBackSplit(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
-        try {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "BackupEndpointObserver.postRollBackSplit(): %s", regionName);
-            super.postRollBackSplit(ctx);
-            isSplitting.set(false);
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-
-    }
-
-    @Override
-    public void postCompleteSplit(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
-        try {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "BackupEndpointObserver.postCompleteSplit(): %s", regionName);
-            super.postCompleteSplit(ctx);
-            isSplitting.set(false);
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
-    @Override
-    public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store, InternalScanner scanner, ScanType scanType) throws IOException {
+    public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
         try {
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preCompact()");
 
             BackupUtils.waitForBackupToComplete(tableName, regionName);
             isCompacting.set(true);
-            return super.preCompact(e, store, scanner, scanType);
+            return scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
     }
 
     @Override
-    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) throws IOException {
+    public void postCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, StoreFile resultFile, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
         try {
-            super.postCompact(e, store, resultFile);
             isCompacting.set(false);
-//            if (LOG.isDebugEnabled()) {
-//                String filePath =  resultFile != null?resultFile.getFileInfo().getFileStatus().getPath().toString():null;
-//                SpliceLogUtils.debug(LOG, "Compaction result file %s", filePath);
-//            }
+            if (LOG.isDebugEnabled()) {
+                String filePath =  resultFile != null?resultFile.getPath().toString():null;
+                SpliceLogUtils.debug(LOG, "Compaction result file %s", filePath);
+            }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -254,11 +257,11 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
 
 
     @Override
-    public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) throws IOException {
+    public void postFlush(ObserverContext<RegionCoprocessorEnvironment> c, Store store, StoreFile resultFile, FlushLifeCycleTracker tracker) throws IOException {
         try {
             // Register HFiles for incremental backup
-//            String filePath =  resultFile != null?resultFile.getFileInfo().getFileStatus().getPath().toString():null;
-//            SpliceLogUtils.info(LOG, "Flushed store file %s", filePath);
+            String filePath =  resultFile != null?resultFile.getPath().toString():null;
+            SpliceLogUtils.info(LOG, "Flushed store file %s", filePath);
             if (!BackupUtils.isSpliceTable(namespace, tableName))
                 return;
 
@@ -276,7 +279,6 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         try {
             if (!BackupUtils.isSpliceTable(namespace, tableName)||
                     !BackupUtils.shouldCaptureIncrementalChanges(fs, rootDir)) {
-                super.preBulkLoadHFile(ctx, familyPaths);
                 return;
             }
 
@@ -290,12 +292,12 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     }
 
     @Override
-    public boolean postBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths, boolean hasLoaded) throws IOException {
+    public void postBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> stagingFamilyPaths, Map<byte[], List<Path>> finalPaths) throws IOException {
 
         try {
             if (!BackupUtils.isSpliceTable(namespace, tableName) ||
                     !BackupUtils.shouldCaptureIncrementalChanges(fs, rootDir))
-                return super.postBulkLoadHFile(ctx, familyPaths, hasLoaded);
+                return;
 
             try {
                 // Only one bulkload thread can register HFiles for incremental backup at a time. It registers newly
@@ -305,16 +307,16 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                 // try to register them.
 
                 bulkLoadLock.lock();
-                byte[] family = familyPaths.get(0).getFirst();
+                byte[] family = stagingFamilyPaths.get(0).getFirst();
                 Store store = region.getStore(family);
                 Collection<? extends StoreFile> postBulkLoadStoreFiles = store.getStorefiles();
-// TODO                for (StoreFile storeFile : postBulkLoadStoreFiles) {
-//                    byte[] val = storeFile.getMetadataValue(StoreFile.BULKLOAD_TASK_KEY);
-//                    if (val != null && Bytes.compareTo(val, HBaseConfiguration.BULKLOAD_TASK_KEY) == 0
-//                            && !storeFiles.get().contains(storeFile)) {
-//                        BackupUtils.registerHFile(conf, fs, backupDir, region, storeFile.getPath().getName());
-//                    }
-//                }
+                for (StoreFile storeFile : postBulkLoadStoreFiles) {
+                    byte[] val = ((HStoreFile)storeFile).getMetadataValue(HStoreFile.BULKLOAD_TASK_KEY);
+                    if (val != null && Bytes.compareTo(val, HBaseConfiguration.BULKLOAD_TASK_KEY) == 0
+                            && !storeFiles.get().contains(storeFile)) {
+                        BackupUtils.registerHFile(conf, fs, backupDir, region, storeFile.getPath().getName());
+                    }
+                }
             }
             finally {
                 storeFiles.remove();
@@ -323,7 +325,6 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                     SpliceLogUtils.debug(LOG, "released bulk load lock for region %s", regionName);
                 }
             }
-            return hasLoaded;
         }
         catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);

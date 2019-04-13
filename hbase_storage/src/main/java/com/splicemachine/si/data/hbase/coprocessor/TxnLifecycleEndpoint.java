@@ -17,6 +17,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 import java.io.IOException;
 
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.util.StringUtils;
 import org.spark_project.guava.primitives.Longs;
@@ -93,8 +94,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
                 TimestampSource timestampSource=driver.getTimestampSource();
                 int txnLockStrips = configuration.getTransactionLockStripes();
                 lifecycleStore = new StripedTxnLifecycleStore(txnLockStrips,regionStore,
-//                        new RegionServerControl(region,rce.getRegionServerServices()),timestampSource);
-                new RegionServerControl(region, (RegionServerServices) rce.getOnlineRegions()),timestampSource);
+                        new RegionServerControl(region, HBasePlatformUtils.getRegionServerServices(rce)),timestampSource);
                 isTxnTable=true;
             }
         } catch (Throwable t) {

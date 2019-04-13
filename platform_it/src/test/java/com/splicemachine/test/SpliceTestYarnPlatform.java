@@ -193,9 +193,10 @@ public class SpliceTestYarnPlatform {
         int attempt = 60;
         ContainerManagerImpl cm =
             ((ContainerManagerImpl) nm.getNMContext().getContainerManager());
-        while (cm.getBlockNewContainerRequestsStatus() && attempt-- > 0) {
-            Thread.sleep(2000);
-        }
+        // FIXME: 4/14/19 
+//        while (cm.getBlockNewContainerRequestsStatus() && attempt-- > 0) {
+//            Thread.sleep(2000);
+//        }
     }
 
     public ResourceManager getResourceManager() {

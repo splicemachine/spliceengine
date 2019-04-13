@@ -33,15 +33,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HStore;
-import org.apache.hadoop.hbase.regionserver.HStoreFile;
-import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.regionserver.StoreFile;
+import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
-import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
@@ -56,23 +50,23 @@ import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import scala.Tuple2;
 
-public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<Integer,Iterator>>,String> implements Externalizable {
-    private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
-    private long smallestReadPoint;
-    private byte[] namespace;
-    private byte[] tableName;
-    private byte[] storeColumn;
-    private RegionInfo hri;
-    private boolean isMajor;
-    private SparkCompactionContext context;
-    private InetSocketAddress[] favoredNodes;
+public abstract class BaseSparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<Integer,Iterator>>,String> implements Externalizable {
+    private static final Logger LOG = Logger.getLogger(BaseSparkCompactionFunction.class);
+    protected long smallestReadPoint;
+    protected byte[] namespace;
+    protected byte[] tableName;
+    protected byte[] storeColumn;
+    protected HRegionInfo hri;
+    protected boolean isMajor;
+    protected SparkCompactionContext context;
+    protected InetSocketAddress[] favoredNodes;
 
-    public SparkCompactionFunction() {
+    public BaseSparkCompactionFunction() {
 
     }
 
-    public SparkCompactionFunction(long smallestReadPoint, byte[] namespace,
-                                   byte[] tableName, RegionInfo hri, byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
+    public BaseSparkCompactionFunction(long smallestReadPoint, byte[] namespace,
+                                       byte[] tableName, HRegionInfo hri, byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
@@ -84,7 +78,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        byte[] hriBytes = RegionInfo.toByteArray(hri);
+        byte[] hriBytes = hri.toByteArray();
         super.writeExternal(out);
         out.writeLong(smallestReadPoint);
         out.writeInt(namespace.length);
@@ -133,62 +127,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<String> call(Iterator it) throws Exception {
-
-        ArrayList<HStoreFile> readersToClose = new ArrayList<>();
-        Configuration conf = HConfiguration.unwrapDelegate();
-        TableName tn = TableName.valueOf(namespace, tableName);
-        PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
-        Table table = (((ClientPartition)tableFactory.getTable(tn)).unwrapDelegate());
-
-        FileSystem fs = FSUtils.getCurrentFileSystem(conf);
-        Path rootDir = FSUtils.getRootDir(conf);
-
-        HTableDescriptor htd = table.getTableDescriptor();
-        HRegion region = HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyHTableDescriptor(htd), null, null, null);
-        Store store = region.getStore(storeColumn);
-
-        assert it.hasNext();
-        Tuple2 t = (Tuple2)it.next();
-        Iterator files = (Iterator)t._2;
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("compacting files: ");
-        }
-        while (files.hasNext()) {
-            String file = (String)files.next();
-            if (LOG.isTraceEnabled()) {
-                LOG.trace(file + "\n");
-            }
-            readersToClose.add(
-                    new HStoreFile(
-                            fs,
-                            new Path(file),
-                            conf,
-                            ((HStore)store).getCacheConfig(),
-                            ((HStore)store).getColumnFamilyDescriptor().getBloomFilterType(),
-                            false
-                    )
-            );
-        }
-
-        SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
-        CompactionRequest compactionRequest = new CompactionRequestImpl(readersToClose);
-// TODO        compactionRequest.setIsMajor(isMajor, isMajor);
-        List<Path> paths = null;
-// TODO                sdc.sparkCompact(compactionRequest, context, favoredNodes);
-
-        if (LOG.isTraceEnabled()) {
-            StringBuilder sb = new StringBuilder(100);
-            sb.append(String.format("Result %d paths: ", paths.size()));
-            for (Path path: paths) {
-                sb.append(String.format("\nPath: %s", path));
-            }
-            SpliceLogUtils.trace(LOG, sb.toString());
-        }
-        return (paths == null || paths.isEmpty()) ?
-                EmptyListIterator.INSTANCE:
-            new SingletonIterator(paths.get(0).toString());
-    }
+    public abstract Iterator<String> call(Iterator it) throws Exception;
 
     public void setContext(SparkCompactionContext context) {
         this.context = context;

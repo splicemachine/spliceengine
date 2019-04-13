@@ -221,19 +221,6 @@ public class ProxiedDFSClient extends DFSClient {
         }
     }
 
-    private static class CustomDFSInputStream extends DFSInputStream {
-        private String path;
-
-        CustomDFSInputStream(DFSClient dfsClient, String src, boolean verifyChecksum, LocatedBlocks locatedBlocks) throws IOException, UnresolvedLinkException {
-            super(dfsClient, src, verifyChecksum, locatedBlocks);
-            this.path = src;
-        }
-
-        public String getPath() {
-            return path;
-        }
-    }
-
     private static class CustomKeyVersion extends KeyProvider.KeyVersion {
         protected CustomKeyVersion(String name, String versionName, byte[] material) {
             super(name, versionName, material);

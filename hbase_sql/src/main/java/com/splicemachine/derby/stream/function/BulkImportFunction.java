@@ -92,7 +92,8 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
                     fs.delete(sourceDir.getParent(), true);
                 }
             }
-            loader.doBulkLoad(path.getParent(), (HTable) ((SkeletonHBaseClientPartition)partition).unwrapDelegate());
+            // TODO : FIX ME
+            //loader.doBulkLoad(path.getParent(), (HTable) ((SkeletonHBaseClientPartition)partition).unwrapDelegate());
             fs.delete(path.getParent(), true);
         }
     }

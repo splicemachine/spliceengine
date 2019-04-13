@@ -22,8 +22,6 @@ import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.MasterLifecycle;
 import com.splicemachine.olap.OlapServer;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
-import com.splicemachine.lifecycle.MasterLifecycle;
-import com.splicemachine.olap.OlapServer;
 import com.splicemachine.olap.OlapServerSubmitter;
 import com.splicemachine.pipeline.InitializationCompleted;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
@@ -39,12 +37,11 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.client.RegionInfo;
-import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.MasterObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 
 import javax.management.MBeanServer;
@@ -53,9 +50,9 @@ import java.io.IOException;
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
  */
-public class SpliceMasterObserver implements MasterObserver {
+public abstract class SpliceBaseMasterObserver extends BaseMasterObserver {
 
-    private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
+    private static final Logger LOG = Logger.getLogger(SpliceBaseMasterObserver.class);
 
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
 
@@ -63,15 +60,13 @@ public class SpliceMasterObserver implements MasterObserver {
     private DatabaseLifecycleManager manager;
     private OlapServer olapServer;
 
-    public void start(CoprocessorEnvironment ctx) throws IOException {
+    protected void spliceStartAction(CoprocessorEnvironment ctx) throws IOException {
         try {
             LOG.info("Starting SpliceMasterObserver");
 
             LOG.info("Starting Timestamp Master Observer");
 
-//            ZooKeeperWatcher zkw = ((MasterCoprocessorEnvironment)ctx).getMasterServices().getZooKeeper();
-//            RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
-
+            RecoverableZooKeeper zk = ZkUtils.getRecoverableZooKeeper();
             HBaseSIEnvironment env=HBaseSIEnvironment.loadEnvironment(new SystemClock(), null);
             SConfiguration configuration=env.configuration();
 
@@ -105,8 +100,7 @@ public class SpliceMasterObserver implements MasterObserver {
         }
     }
 
-    @Override
-    public void preStopMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
+    protected void splicePreStopMasterAction(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
             LOG.warn("Stopping SpliceMasterObserver");
             manager.shutdown();
@@ -116,14 +110,12 @@ public class SpliceMasterObserver implements MasterObserver {
         }
     }
 
-    @Override
-    public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, TableDescriptor desc, RegionInfo[] regions) throws IOException {
-        try {
+    protected void splicePreCreateTableAction(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {        try {
             SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
             if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
                 switch(manager.getState()){
                     case NOT_STARTED:
-                    	boot(ctx.getEnvironment().getServerName());
+                    	boot(HBasePlatformUtils.getServerName(ctx));
                     case BOOTING_ENGINE:
                     case BOOTING_GENERAL_SERVICES:
                     case BOOTING_SERVER:
@@ -141,10 +133,9 @@ public class SpliceMasterObserver implements MasterObserver {
         }
     }
 
-    @Override
-    public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
+    public void splicePostStartMasterAction(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
-            boot(ctx.getEnvironment().getServerName());
+            boot(HBasePlatformUtils.getServerName(ctx));
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }

@@ -15,9 +15,22 @@
 package org.apache.hadoop.hbase.regionserver;
 
 
-import org.apache.hadoop.hbase.util.Counter;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
+import org.apache.hadoop.hbase.ipc.RpcCallContext;
+import org.apache.hadoop.hbase.ipc.RpcServer;
+import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
+import org.apache.hadoop.hbase.security.User;
+import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKConfig;
+import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -76,4 +89,52 @@ public class HBasePlatformUtils{
         return scannerContext.setScannerState(ScannerContext.NextState.BATCH_LIMIT_REACHED).hasMoreValues();
     }
 
+    public static TableName getTableName(RegionCoprocessorEnvironment e) {
+        return e.getRegion().getTableDescriptor().getTableName();
+    }
+
+    public static RpcCallContext getRpcCallContext() {
+        return RpcServer.getCurrentCall().get();
+    }
+
+    public static HTableDescriptor getTableDescriptor(Region r) {
+        return (HTableDescriptor)r.getTableDescriptor();
+    }
+
+    public static StoreFileInfo getFileInfo(StoreFile file) {
+        return ((HStoreFile)file).getFileInfo();
+    }
+
+    public static StoreFileReader getReader(StoreFile file) {
+        return ((HStoreFile)file).getReader();
+    }
+
+    public static RegionServerServices getRegionServerServices(RegionCoprocessorEnvironment e) {
+        return (RegionServerServices)e.getOnlineRegions();
+    }
+
+    public static RegionServerServices getRegionServerServices(RegionServerCoprocessorEnvironment e) {
+        return (RegionServerServices)e.getOnlineRegions();
+    }
+
+    public static User getUser() {
+        return RpcServer.getRequestUser().get();
+    }
+
+    public static TableAuthManager getTableAuthManager(RegionCoprocessorEnvironment regionEnv) throws IOException{
+        ZKWatcher zk = ((RegionServerServices)regionEnv.getOnlineRegions()).getZooKeeper();
+        return TableAuthManager.getOrCreate(zk, regionEnv.getConfiguration());
+    }
+
+    public static ServerName getServerName(ObserverContext<MasterCoprocessorEnvironment> ctx) {
+        return ctx.getEnvironment().getServerName();
+    }
+
+    public static String getRsZNode(RegionServerServices regionServerServices) {
+        return regionServerServices.getZooKeeper().getZNodePaths().rsZNode;
+    }
+
+    public static int getStorefileIndexSizeMB(ClusterStatusProtos.RegionLoad load) {
+        return (int)load.getStorefileIndexSizeKB()/1024;
+    }
 }

@@ -150,7 +150,7 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
                 case WRONG_REGION:
                     return new HWrongRegion();
                 case REGION_TOO_BUSY:
-                    return new HTooBusy();
+                    return new HTooBusy("Region too busy");
                 case NOT_RUN:
                     //won't happen
                     return new IOException("Unexpected NotRun code for an error");

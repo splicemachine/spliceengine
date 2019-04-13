@@ -27,9 +27,9 @@ import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.coprocessor.BaseRegionServerObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 
 import com.splicemachine.access.api.SConfiguration;
@@ -48,8 +48,8 @@ import org.apache.log4j.Logger;
  * region and one instance for the RegionServerObserver interface.  We should probably consider splitting this into
  * two classes.
  */
-public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
-    private static final Logger LOG = Logger.getLogger(RegionServerLifecycleObserver.class);
+public class BaseRegionServerLifecycleObserver extends BaseRegionServerObserver {
+    private static final Logger LOG = Logger.getLogger(BaseRegionServerLifecycleObserver.class);
     public static volatile String regionServerZNode;
     public static volatile String rsZnode;
 
@@ -60,8 +60,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
     /**
      * Logs the start of the observer and runs the SpliceDriver if needed...
      */
-    @Override
-    public void start(CoprocessorEnvironment e) throws IOException{
+    protected void startAction(CoprocessorEnvironment e) throws IOException{
         try {
             isHbaseJVM= true;
             lifecycleManager = startEngine(e);
@@ -71,8 +70,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
         }
     }
 
-    @Override
-    public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException{
+    protected void preStopRegionServerAction(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException{
         try {
             lifecycleManager.shutdown();
             HBaseRegionLoads.INSTANCE.stopWatching();
@@ -84,9 +82,9 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private DatabaseLifecycleManager startEngine(CoprocessorEnvironment e) throws IOException{
-        RegionServerServices regionServerServices = ((RegionServerCoprocessorEnvironment) e).getRegionServerServices();
+        RegionServerServices regionServerServices = HBasePlatformUtils.getRegionServerServices((RegionServerCoprocessorEnvironment) e);
 
-        rsZnode = regionServerServices.getZooKeeper().rsZNode;
+        rsZnode = HBasePlatformUtils.getRsZNode(regionServerServices);
         regionServerZNode = regionServerServices.getServerName().getServerName();
 
         //ensure that the SI environment is booted properly
