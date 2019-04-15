@@ -27,42 +27,22 @@ import com.splicemachine.tools.EmbedConnectionMaker
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.JdbcDialects
-import org.apache.spark.sql.types.{StructType, TimestampType}
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
-import org.apache.spark.SerializableWritable
 import java.util.Properties
 
 import com.splicemachine.access.HConfiguration
-import com.splicemachine.access.hbase.HBaseConnectionFactory
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
-import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
-import org.apache.hadoop.io.Text
-import org.apache.hadoop.security.{Credentials, UserGroupInformation}
-import org.apache.spark.broadcast.Broadcast
-import org.apache.hadoop.security.token.Token
-import org.apache.hadoop.hbase.security.token.TokenUtil
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
-object Holder extends Serializable {
+class SplicemachineContext(options: Map[String, String]) extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 
-  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
-
-  def broadcastCreds(credentials: Credentials) : Unit = this.synchronized {
-    if (broadcastCredentials != null)
-      return
-
-      SpliceSpark.logCredentialsInformation(credentials)
-    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
-    SpliceSpark.setCredentials(broadcastCredentials)
-  }
-}
-
-class SplicemachineContext(options: Map[String, String]) extends Serializable {
   val url = options.get(JDBCOptions.JDBC_URL).get
 
   def this(url: String) {
@@ -73,7 +53,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   private[this] def initConnection() = {
-    Holder.log.info(f"Creating internal connection")
+    log.info(f"Creating internal connection")
 
     SpliceSpark.setupSpliceStaticComponents()
     val engineDriver = EngineDriver.driver
@@ -91,7 +71,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   @transient val internalConnection : Connection = {
-    Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
+    log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
     SpliceClient.connectionString = url
     SpliceClient.setClient(HConfiguration.getConfiguration.getAuthenticationTokenEnabled, SpliceClient.Mode.MASTER)
 
@@ -99,7 +79,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val keytab = System.getProperty("spark.yarn.keytab")
 
     if (principal != null && keytab != null) {
-      Holder.log.info(f"Authenticating as ${principal} with keytab ${keytab}")
+      log.info(f"Authenticating as ${principal} with keytab ${keytab}")
 
       val ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab)
       UserGroupInformation.setLoginUser(ugi)
@@ -107,28 +87,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       ugi.doAs(new PrivilegedExceptionAction[Connection] {
         override def run(): Connection = {
 
-          def getUniqueAlias(token: Token[AuthenticationTokenIdentifier]) =
-            new Text(f"${token.getKind}_${token.getService}_${System.currentTimeMillis}")
-
           val connection = initConnection()
-
-          // Get HBase token
-          val hbcf = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration)
-          val token = TokenUtil.obtainToken(hbcf.getConnection)
-
-          Holder.log.debug(f"Got HBase token ${token} ")
-
-          // Add it to credentials and broadcast them
-          credentials.addToken(getUniqueAlias(token), token)
-          Holder.broadcastCreds(credentials)
-
-          Holder.log.debug(f"Broadcasted credentials")
-
           connection
         }
       })
     } else {
-      Holder.log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
+      log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
 
       initConnection()
     }
@@ -249,7 +213,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     SpliceSpark.getSession.sparkContext.addSparkListener(new SparkListener {
       override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
-        Holder.log.info("Removing " + path)
+        log.info("Removing " + path)
         fs.delete(path, true)
       }
     })
