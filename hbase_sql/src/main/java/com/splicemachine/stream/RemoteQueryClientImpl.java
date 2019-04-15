@@ -82,6 +82,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             SConfiguration config = HConfiguration.getConfiguration();
             int streamingBatches = config.getSparkResultStreamingBatches();
             int streamingBatchSize = config.getSparkResultStreamingBatchSize();
+            int parallelPartitions = config.getSparkResultStreamingParallelPartitions();
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
@@ -99,7 +100,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize);
+                    streamingBatches, streamingBatchSize,parallelPartitions);
             olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest);
             olapFuture.addListener(new Runnable() {
                 @Override

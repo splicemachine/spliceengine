@@ -38,6 +38,9 @@ public class PipelineConfiguration implements ConfigurationDefault {
     public static final String SPARK_RESULT_STREAMING_BATCH_SIZE = "spark.result.streaming.batch.size";
     public static final int DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE = 1024;
 
+    public static final String SPARK_RESULT_STREAMING_PARALLEL_PARTITIONS = "spark.result.streaming.parallel.partitions";
+    public static final int DEFAULT_SPARK_RESULT_STREAMING_PARALLEL_PARTITIONS = 300;
+
     public static final String SPARK_COMPACTION_RESERVED_SLOTS = "spark.compaction.reserved.slots";
     public static final int DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS = 1;
 
@@ -187,6 +190,7 @@ public class PipelineConfiguration implements ConfigurationDefault {
         builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
         builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
         builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
+        builder.sparkResultStreamingParallelPartitions = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
         builder.compactionReservedSlots = configurationSource.getInt(SPARK_COMPACTION_RESERVED_SLOTS, DEFAULT_SPARK_COMPACTION_RESERVED_SLOTS);
 
         builder.reservedSlotsTimeout = configurationSource.getInt(SPARK_RESERVED_SLOTS_TIMEOUT, DEFAULT_SPARK_RESERVED_SLOTS_TIMEOUT);

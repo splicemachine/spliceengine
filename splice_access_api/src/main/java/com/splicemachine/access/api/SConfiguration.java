@@ -159,6 +159,8 @@ public interface SConfiguration {
 
     int getSparkResultStreamingBatchSize();
 
+    int getSparkResultStreamingParallelPartitions();
+
     double getBulkImportSampleFraction();
 
     String getAuthorizationScheme();

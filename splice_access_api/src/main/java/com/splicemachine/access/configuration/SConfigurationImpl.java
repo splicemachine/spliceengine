@@ -117,6 +117,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String sparkIoCompressionCodec;
     private final int sparkResultStreamingBatches;
     private final int sparkResultStreamingBatchSize;
+    private final int sparkResultStreamingParallelPartitions;
     private final int compactionReservedSlots;
     private final int olapCompactionMaximumWait;
     private final int olapCompactionMaximumConcurrent;
@@ -486,6 +487,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getSparkResultStreamingBatchSize() {
         return sparkResultStreamingBatchSize;
+    }
+
+    @Override
+    public int getSparkResultStreamingParallelPartitions() {
+        return sparkResultStreamingParallelPartitions;
     }
 
     // SIConfigurations
@@ -930,6 +936,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapShufflePartitions = builder.olapShufflePartitions;
         sparkResultStreamingBatches = builder.sparkResultStreamingBatches;
         sparkResultStreamingBatchSize = builder.sparkResultStreamingBatchSize;
+        sparkResultStreamingParallelPartitions = builder.sparkResultStreamingParallelPartitions;
         compactionReservedSlots = builder.compactionReservedSlots;
         olapCompactionMaximumWait = builder.olapCompactionMaximumWait;
         olapCompactionMaximumConcurrent = builder.olapCompactionMaximumConcurrent;
