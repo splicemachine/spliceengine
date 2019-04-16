@@ -66,6 +66,7 @@ public class HRegionUtil extends BaseHRegionUtil{
 
         public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end, int requestedSplits) throws IOException {
             assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
+        long requestedSplits2 = requestedSplits;
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getCutpoints");
         Collection<StoreFile> storeFiles;
@@ -88,15 +89,20 @@ public class HRegionUtil extends BaseHRegionUtil{
             }
         }
 
-        int splitBlockSize = HConfiguration.getConfiguration().getSplitBlockSize();
-        if (requestedSplits > 0) {
-            long totalStoreFileInBytes = 0;
-            for (StoreFile file : storeFiles) {
-                if (file != null) {
-                    totalStoreFileInBytes += file.getFileInfo().getFileStatus().getLen();
-                }
+        long totalStoreFileInBytes = 0;
+        for (StoreFile file : storeFiles) {
+            if (file != null) {
+                totalStoreFileInBytes += file.getFileInfo().getFileStatus().getLen();
             }
-            long bytesPerSplit = totalStoreFileInBytes / requestedSplits;
+        }
+
+        int splitBlockSize = HConfiguration.getConfiguration().getSplitBlockSize();
+
+        if (requestedSplits2 == 0)
+            requestedSplits2 = totalStoreFileInBytes / splitBlockSize;
+
+        if (requestedSplits2 > 0) {
+            long bytesPerSplit = (totalStoreFileInBytes / requestedSplits2) + requestedSplits2;
             if (bytesPerSplit > Integer.MAX_VALUE) {
                 splitBlockSize = Integer.MAX_VALUE;
             } else {
@@ -105,9 +111,44 @@ public class HRegionUtil extends BaseHRegionUtil{
         }
 
         Pair<byte[], byte[]> range = new Pair<>(start, end);
-        for (StoreFile file : storeFiles) {
+        ArrayList<StoreFile> storeFiles2 = new ArrayList<>(storeFiles);
+
+        // Process the store files in ascending rowkey order
+        if (storeFiles2.size() > 1) {
+            Collections.sort(storeFiles2, new Comparator<StoreFile>() {
+                @Override
+                public int compare(StoreFile left, StoreFile right) {
+                    // If start keys are equal, order the files so the one with greater range
+                    // comes first.
+                    if (org.apache.hadoop.hbase.util.Bytes.compareTo(left.getFirstKey(), right.getFirstKey()) == 0)
+                        return org.apache.hadoop.hbase.util.Bytes.compareTo(right.getLastKey(), left.getLastKey());
+
+                    return org.apache.hadoop.hbase.util.Bytes.compareTo(left.getFirstKey(), right.getFirstKey());
+                }
+            });
+        }
+
+        StoreFile file2;
+        for (int i = 0; i < storeFiles2.size(); i++) {
+            StoreFile file = storeFiles2.get(i);
             if (file != null) {
                 long storeFileInBytes = file.getFileInfo().getFileStatus().getLen();
+                Pair<byte[], byte[]> storeFileRange = new Pair<>(file.getFirstKey(), file.getLastKey());
+
+                if (i != storeFiles2.size()-1 && storeFiles2.get(i+1) != null)  {
+                    file2 = storeFiles2.get(i+1);
+                    byte[] start1 = file.getFirstKey();
+                    byte[] stop1 = file.getLastKey();
+                    byte[] start2 = file2.getFirstKey();
+                    byte[] stop2 = file2.getLastKey();
+                    boolean skipNextStoreFile = false;
+                    if ((start.length == 0 || org.apache.hadoop.hbase.util.Bytes.compareTo(start1, start2) <= 0) &&
+                        (stop1.length == 0 || org.apache.hadoop.hbase.util.Bytes.compareTo(stop1, stop2) >= 0)) {
+                        storeFileInBytes += file2.getFileInfo().getFileStatus().getLen();
+                        skipNextStoreFile = true;
+                        i++;
+                    }
+                }
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
                 fileReader = file.createReader().getHFileReader();
@@ -147,7 +188,7 @@ public class HRegionUtil extends BaseHRegionUtil{
         int levels = fileReader.getTrailer().getNumDataIndexLevels();
         if (levels == 1) {
             int incrementalSize = (int) (size > 0 ? storeFileInBytes / (float) size : storeFileInBytes);
-            int sizeCounter = 0;
+            int sizeCounter = carry;
             for (int i = 0; i < size; ++i) {
                 if (sizeCounter >= splitBlockSize) {
                     sizeCounter = 0;
@@ -160,6 +201,10 @@ public class HRegionUtil extends BaseHRegionUtil{
             }
 	        return sizeCounter;
         } else {
+            long totalSize = 0;
+            for (int i = 0; i < size; ++i) {
+                totalSize += indexReader.getRootBlockDataSize(i);
+            }
             for (int i = 0; i < size; ++i) {
                 HFileBlock block = fileReader.readBlock(
                         indexReader.getRootBlockOffset(i),
@@ -167,7 +212,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                         true, true, false, true,
                         levels == 2 ? BlockType.LEAF_INDEX : BlockType.INTERMEDIATE_INDEX,
                         fileReader.getDataBlockEncoding());
-                carry = addIndexCutpoints(fileReader, block.getBufferWithoutHeader(), levels - 1,  cutpoints, storeFileInBytes / size, carry, range, splitBlockSize);
+                carry = addIndexCutpoints(fileReader, block.getBufferWithoutHeader(), levels - 1,  cutpoints, storeFileInBytes * indexReader.getRootBlockDataSize(i) / totalSize, carry, range, splitBlockSize);
             }
 	        return carry;
         }
@@ -225,9 +270,9 @@ public class HRegionUtil extends BaseHRegionUtil{
             }
 
             // Leaf index
-            int incrementalSize = storeFileInBytes > numEntries ? (int) (storeFileInBytes / numEntries) : 1;
-            int step = splitBlockSize > incrementalSize ? splitBlockSize / incrementalSize : 1;
-            int firstStep = carriedSize > splitBlockSize ? 0 : (splitBlockSize - carriedSize) / incrementalSize;
+            int incrementalSize = storeFileInBytes > numEntries ? (int) (storeFileInBytes / numEntries) + 1 : 1;
+            int step = splitBlockSize > incrementalSize ? (splitBlockSize / incrementalSize) + 1 : 1;
+            int firstStep = carriedSize > splitBlockSize ? 0 : ((splitBlockSize - carriedSize) / incrementalSize) + 1;
 
             int previous = 0;
             for (int i = firstStep; i < numEntries; previous = i, i += step) {
