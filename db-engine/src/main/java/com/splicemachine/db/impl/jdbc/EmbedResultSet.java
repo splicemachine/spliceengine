@@ -5400,7 +5400,33 @@ public abstract class EmbedResultSet extends ConnectionChild
 
 		Object   retval;
 
-		if ( String.class.equals( type ) ) { retval = getString( columnIndex ); }
+		if ( SQLDate.class.equals(type)) {
+			try {
+				DataValueDescriptor dvd = getColumn(columnIndex);
+
+				wasNull = dvd.isNull();
+				if (wasNull)
+					retval = null;
+				else
+					retval = dvd;
+			} catch (Throwable t) {
+				throw noStateChangeException(t);
+			}
+		}
+		else if ( SQLTimestamp.class.equals(type)) {
+			try {
+				DataValueDescriptor dvd = getColumn(columnIndex);
+
+				wasNull = dvd.isNull();
+				if (wasNull)
+					retval = null;
+				else
+					retval = dvd;
+			} catch (Throwable t) {
+				throw noStateChangeException(t);
+			}
+		}
+		else if ( String.class.equals( type ) ) { retval = getString( columnIndex ); }
 		else if ( BigDecimal.class.equals( type ) ) { retval = getBigDecimal( columnIndex ); }
 		else if ( Boolean.class.equals( type ) ) { retval = getBoolean(columnIndex); }
 		else if ( Byte.class.equals( type ) ) { retval = getByte(columnIndex); }

@@ -780,7 +780,31 @@ public final class SQLTimestamp extends DataType
         }
 	}
 
-    /**
+	public int getYear() {
+		return SQLDate.getYear(encodedDate);
+	}
+
+	public int getMonth() {
+		return SQLDate.getMonth(encodedDate);
+	}
+
+	public int getDay() {
+		return SQLDate.getDay(encodedDate);
+	}
+
+	public int getHours() {
+		return SQLTime.getHour(encodedTime);
+	}
+	public int getMinutes() {
+		return SQLTime.getMinute(encodedTime);
+	}
+	public int getSeconds() {
+		return (int) (SQLTime.getSecond(encodedTime)
+		+ ((double)nanos)/1.0e9);
+	}
+
+
+	/**
      * @see DateTimeDataValue#getQuarter
      *
      * @exception StandardException		Thrown on error

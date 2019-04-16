@@ -648,6 +648,18 @@ public final class SQLDate extends DataType
         }
     }
 
+    public int getYear() {
+		return getYear(encodedDate);
+	}
+
+	public int getMonth() {
+		return getMonth(encodedDate);
+	}
+
+	public int getDay() {
+		return getDay(encodedDate);
+	}
+
 	/**
 	 * @see DateTimeDataValue#getQuarter
 	 * 

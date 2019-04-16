@@ -64,11 +64,13 @@ import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.iapi.types.SQLDate;
 import com.splicemachine.db.iapi.types.SQLRowId;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
 import com.splicemachine.db.iapi.jdbc.EngineLOB;
 import com.splicemachine.db.iapi.jdbc.EngineResultSet;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
@@ -7557,11 +7559,12 @@ class DRDAConnThread extends Thread {
         int ndrdaType = drdaType | 1;
         switch (ndrdaType) {
             case DRDAConstants.DRDA_TYPE_NDATE:
-                return rs.getDate(index, getCalendar());
+				return rs.getObject(index, SQLDate.class);
             case DRDAConstants.DRDA_TYPE_NTIME:
                 return rs.getTime(index, getGMTCalendar());
             case DRDAConstants.DRDA_TYPE_NTIMESTAMP:
-                return rs.getTimestamp(index, getGMTCalendar());
+//                return rs.getTimestamp(index, getGMTCalendar());
+				return rs.getObject(index, SQLTimestamp.class);
 			case DRDAConstants.DRDA_TYPE_NARRAY:
 				return rs.getArray(index);
             default:
@@ -7599,11 +7602,12 @@ class DRDAConnThread extends Thread {
         int ndrdaType = drdaType | 1;
         switch (ndrdaType) {
             case DRDAConstants.DRDA_TYPE_NDATE:
-                return cs.getDate(index, getCalendar());
+                return cs.getObject(index, SQLDate.class);
             case DRDAConstants.DRDA_TYPE_NTIME:
                 return cs.getTime(index, getGMTCalendar());
             case DRDAConstants.DRDA_TYPE_NTIMESTAMP:
-                return cs.getTimestamp(index, getGMTCalendar());
+//                return cs.getTimestamp(index, getGMTCalendar());
+				return cs.getObject(index, SQLTimestamp.class);
             case DRDAConstants.DRDA_TYPE_NLOBBYTES:
             case  DRDAConstants.DRDA_TYPE_NLOBCMIXED:
                 return EXTDTAInputStream.getEXTDTAStream(cs, index, drdaType);
@@ -8204,13 +8208,15 @@ class DRDAConnThread extends Thread {
 					writer.writeBigDecimal(bd,precision,scale);
 					break;
 				case DRDAConstants.DRDA_TYPE_NDATE:
-					writer.writeString(formatDate((java.sql.Date) val));
+//					writer.writeString(formatDate((java.sql.Date) val));
+					writer.writeString(formatDate((SQLDate) val));
 					break;
 				case DRDAConstants.DRDA_TYPE_NTIME:
 					writer.writeString(formatTime((Time) val));
 					break;
 				case DRDAConstants.DRDA_TYPE_NTIMESTAMP:
-                    writer.writeString(formatTimestamp((Timestamp) val));
+//					writer.writeString(formatTimestamp((Timestamp) val));
+					writer.writeString(formatTimestamp((SQLTimestamp) val));
 					break;
 				case DRDAConstants.DRDA_TYPE_NCHAR:
 					writer.writeString(((String) val).toString());
@@ -8264,6 +8270,25 @@ class DRDAConnThread extends Thread {
 					writer.writeLDString(val.toString(), index, stmt, isParam);
 			}
 		}
+	}
+
+	/**
+	 * Convert a {@code java.sql.Timestamp} to a string with the format
+	 * expected by the client.
+	 *
+	 * @param val the timestamp to format
+	 * @return a string on the format YYYY-MM-DD-HH.MM.SS.ffffff[fff]
+	 * @see com.splicemachine.db.client.am.DateTime#timestampBytesToTimestamp
+	 */
+	private String formatTimestamp(SQLTimestamp val) {
+		return String.format("%04d-%02d-%02d-%02d.%02d.%02d.%09d",
+				val.getYear(), val.getMonth(), val.getDay(),
+				val.getHours(), val.getMinutes(), val.getSeconds(),
+				val.getNanos());
+	}
+
+	private String formatDate(SQLDate val) {
+		return String.format("%04d-%02d-%02d", val.getYear(), val.getMonth(), val.getDay());
 	}
 
 	/**
