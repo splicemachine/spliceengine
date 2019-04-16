@@ -31,20 +31,13 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-
 import com.splicemachine.db.iapi.types.DataValueFactory;
-
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -55,6 +48,8 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
+import java.sql.Types;
 
 /**
  * Factory for creating a SYSSCHEMAS row.
@@ -233,4 +228,30 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
                 SystemColumnImpl.getIdentifierColumn("AUTHORIZATIONID", false),
             };
 	}
+
+	public static ColumnDescriptor[]	getViewColumnList(TableDescriptor view, UUID viewId)
+			throws StandardException
+	{
+		return new ColumnDescriptor[]{
+				new ColumnDescriptor("SCHEMAID"               ,1,1,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("SCHEMANAME"               ,2,2,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("AUTHORIZATIONID"               ,3,3,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+		};
+	}
+
+	public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
+	"SELECT S.* " +
+	"FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
+	"WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
+			"and P.grantee in (select name from sys.sysallroles) \n" +
+	"UNION " +
+	"SELECT S.* " +
+	"FROM SYS.SYSSCHEMAS as S " +
+	"WHERE S.authorizationId in (values current_user)";
 }

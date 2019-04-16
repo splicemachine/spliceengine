@@ -33,25 +33,24 @@ package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.GetProcedureColumns;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.info.ProductVersionHolder;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.Limits;
 
-import java.sql.*;
-import java.util.Properties;
 import java.io.IOException;
 import java.io.InputStream;
-
-import com.splicemachine.db.iapi.util.InterruptStatus;
+import java.sql.*;
+import java.util.Properties;
 
 /**
  * This class provides information about the database as a whole.
@@ -3804,6 +3803,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         PreparedStatement s = getPreparedQuery("getSchemas");
         s.setString(1, swapNull(catalog));
         s.setString(2, swapNull(schemaPattern));
+		s.setString(3, swapNull(catalog));
+		s.setString(4, swapNull(schemaPattern));
         return s.executeQuery();
     }
 

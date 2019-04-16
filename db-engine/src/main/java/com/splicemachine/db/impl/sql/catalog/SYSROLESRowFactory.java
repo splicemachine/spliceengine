@@ -32,16 +32,8 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -289,4 +281,20 @@ public class SYSROLESRowFactory extends CatalogRowFactory
             SystemColumnImpl.getColumn("DEFAULTROLE", Types.CHAR, true, 1)
         };
     }
+
+    public static ColumnDescriptor[] getAllRolesViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+        DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128);
+
+        return new ColumnDescriptor[]{
+                new ColumnDescriptor("NAME"               ,1,1,varcharType,null,null,view,viewId,0,0,0)
+        };
+    }
+    public static final String ALLROLES_VIEW_SQL = "" +
+            "create recursive view sysallroles as \n" +
+            "    select name from (values current_user) usr (name) \n" +
+            "    union all\n" +
+            "    select name from (values 'PUBLIC') usr (name) \n" +
+            "    union all\n" +
+            "    select roleid as name from sys.sysroles R, sysallroles A where A.name = R.grantee and R.isdef = 'N'";
+
 }

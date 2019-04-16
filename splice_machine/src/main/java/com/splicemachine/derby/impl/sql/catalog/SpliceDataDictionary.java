@@ -211,6 +211,54 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
     }
 
+    public void createSystemViews(TransactionController tc) throws StandardException {
+        //create AllRoles view
+        SchemaDescriptor sysSchema=getSystemSchemaDescriptor();
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSALLROLES", sysSchema, tc);
+        if (td == null)
+        {
+            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+            TableDescriptor view=ddg.newTableDescriptor("SYSALLROLES",
+                    sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+            addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+            UUID viewId=view.getUUID();
+            ColumnDescriptor[] tableViewCds=SYSROLESRowFactory.getAllRolesViewColumns(view,viewId);
+            addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
+
+            ColumnDescriptorList viewDl=view.getColumnDescriptorList();
+            Collections.addAll(viewDl,tableViewCds);
+
+
+            ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSALLROLES",
+                    SYSROLESRowFactory.ALLROLES_VIEW_SQL,0,sysSchema.getUUID());
+            addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+        }
+
+        // create sysschemalist view
+        td = getTableDescriptor("SYSSCHEMASVIEW", sysSchema, tc);
+        if (td == null)
+        {
+            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+            TableDescriptor view=ddg.newTableDescriptor("SYSSCHEMASVIEW",
+                    sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+            addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+            UUID viewId=view.getUUID();
+            ColumnDescriptor[] tableViewCds=SYSSCHEMASRowFactory.getViewColumnList(view,viewId);
+            addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
+
+            ColumnDescriptorList viewDl=view.getColumnDescriptorList();
+            Collections.addAll(viewDl,tableViewCds);
+
+
+            ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSSCHEMASVIEW",
+                    SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL,0,sysSchema.getUUID());
+            addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+        }
+    }
+
+
     public void createSourceCodeTable(TransactionController tc) throws StandardException{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
@@ -286,6 +334,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createSnapshotTable(tc);
 
         createTokenTable(tc);
+
+        createSystemViews(tc);
 
     }
 
