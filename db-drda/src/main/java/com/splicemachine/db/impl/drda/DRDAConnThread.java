@@ -46,6 +46,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Formatter;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.Vector;
@@ -8280,15 +8281,39 @@ class DRDAConnThread extends Thread {
 	 * @return a string on the format YYYY-MM-DD-HH.MM.SS.ffffff[fff]
 	 * @see com.splicemachine.db.client.am.DateTime#timestampBytesToTimestamp
 	 */
+
 	private String formatTimestamp(SQLTimestamp val) {
-		return String.format("%04d-%02d-%02d-%02d.%02d.%02d.%09d",
-				val.getYear(), val.getMonth(), val.getDay(),
-				val.getHours(), val.getMinutes(), val.getSeconds(),
-				val.getNanos());
+		char[] buf = new char[appRequester.getTimestampLength()];
+		padInt(buf, 0, 4, val.getYear());
+		buf[4] = '-';
+		padInt(buf, 5, 2, val.getMonth());
+		buf[7] = '-';
+		padInt(buf, 8, 2, val.getDay());
+		buf[10] = '-';
+		padInt(buf, 11, 2, val.getHours());
+		buf[13] = '.';
+		padInt(buf, 14, 2, val.getMinutes());
+		buf[16] = '.';
+		padInt(buf, 17, 2, val.getSeconds());
+		buf[19] = '.';
+
+		int nanos = val.getNanos();
+		if (appRequester.supportsTimestampNanoseconds()) {
+			padInt(buf, 20, 9, nanos);
+		} else {
+			padInt(buf, 20, 6, nanos / 1000);
+		}
+
+		return new String(buf);
 	}
 
 	private String formatDate(SQLDate val) {
-		return String.format("%04d-%02d-%02d", val.getYear(), val.getMonth(), val.getDay());
+		char[] buf = "YYYY-MM-DD".toCharArray();
+		padInt(buf, 0, 4, val.getYear());
+		padInt(buf, 5, 2, val.getMonth());
+		padInt(buf, 8, 2, val.getDay());
+
+		return new String(buf);
 	}
 
 	/**
