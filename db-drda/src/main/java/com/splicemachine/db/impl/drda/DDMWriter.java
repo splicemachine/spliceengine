@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -1342,15 +1343,10 @@ class DDMWriter
 	protected void writeString(String s) throws DRDAProtocolException
 	{
 		ensureLength(maxEncodedLength(s));
-		CharBuffer input = CharBuffer.wrap(s);
-		encoder.reset();
-		CoderResult res = encoder.encode(input, buffer, true);
-		if (res == CoderResult.UNDERFLOW) {
-			res = encoder.flush(buffer);
-		}
-		if (SanityManager.DEBUG) {
-			if (res != CoderResult.UNDERFLOW)
-			SanityManager.ASSERT(res == CoderResult.UNDERFLOW,"CharBuffer was not exhausted: res = " + res);
+		try {
+			buffer.put(s.getBytes("UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
