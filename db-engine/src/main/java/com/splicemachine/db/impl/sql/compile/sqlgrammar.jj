@@ -7649,7 +7649,6 @@ ansiStrip() throws StandardException  :
             <COMMA> trimSpec = ansiTrimSpec()
             (
                 // <source> COMMA LEADING COMMA <trimChar>
-                LOOKAHEAD(<COMMA>)
                 <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
                 {
                     return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
