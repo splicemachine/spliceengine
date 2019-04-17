@@ -255,8 +255,22 @@ public class TernaryOperationIT {
         iCell = rs.getInt(1);
         Assert.assertEquals("Wrong trim result", 4, iCell);
 
+        sql = "select count(*) from ( select trim (\"leading\".c) from a as \"leading\" ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
     }
-
+    @Test
+    public void testTRIMWithAliasNegative() throws Exception {
+        try {
+            String sql = "select trim (leading.c) from a as leading";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
+    }
 
     @Test
     public void testSubString() throws Exception {
