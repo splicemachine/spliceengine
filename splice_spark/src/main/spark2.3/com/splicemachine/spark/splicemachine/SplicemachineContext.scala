@@ -43,6 +43,10 @@ import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
+
+object Holder extends Serializable {
+  @transient lazy val log = Logger.getLogger(getClass.getName)
+}
 /**
   *
   * Context for Splice Machine.
@@ -50,7 +54,6 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
   * @param options
   */
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
-  @transient lazy val log = Logger.getLogger(getClass.getName)
   val url = options.get(JDBCOptions.JDBC_URL).get
   
   def this(url: String) {
@@ -61,7 +64,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   private[this] def initConnection() = {
-    log.info(f"Creating internal connection")
+    Holder.log.info(f"Creating internal connection")
     
     SpliceSpark.setupSpliceStaticComponents()
     val engineDriver = EngineDriver.driver
@@ -79,7 +82,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   @transient val internalConnection : Connection = {
-    log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
+    Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
     SpliceClient.connectionString = url
     SpliceClient.setClient(HConfiguration.getConfiguration.getAuthenticationTokenEnabled, SpliceClient.Mode.MASTER)
 
@@ -87,7 +90,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val keytab = System.getProperty("spark.yarn.keytab")
 
     if (principal != null && keytab != null) {
-      log.info(f"Authenticating as ${principal} with keytab ${keytab}")
+      Holder.log.info(f"Authenticating as ${principal} with keytab ${keytab}")
 
       val ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab)
       UserGroupInformation.setLoginUser(ugi)
@@ -100,8 +103,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         }
       })
     } else {
-      log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
-      
+      Holder.log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
       initConnection()
     }
   }
@@ -347,7 +349,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     SpliceSpark.getSession.sparkContext.addSparkListener(new SparkListener {
       override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd): Unit = {
-        log.info("Removing " + path)
+        Holder.log.info("Removing " + path)
         fs.delete(path, true)
       }
     })
