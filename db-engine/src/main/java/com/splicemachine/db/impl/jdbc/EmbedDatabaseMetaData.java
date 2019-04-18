@@ -3803,8 +3803,6 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         PreparedStatement s = getPreparedQuery("getSchemas");
         s.setString(1, swapNull(catalog));
         s.setString(2, swapNull(schemaPattern));
-		s.setString(3, swapNull(catalog));
-		s.setString(4, swapNull(schemaPattern));
         return s.executeQuery();
     }
 

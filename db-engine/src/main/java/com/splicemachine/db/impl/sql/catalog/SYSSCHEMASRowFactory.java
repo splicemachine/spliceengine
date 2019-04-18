@@ -253,5 +253,5 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	"UNION " +
 	"SELECT S.* " +
 	"FROM SYS.SYSSCHEMAS as S " +
-	"WHERE S.authorizationId in (values current_user)";
+	"WHERE S.authorizationId in (values current_user, 'PUBLIC')";
 }
