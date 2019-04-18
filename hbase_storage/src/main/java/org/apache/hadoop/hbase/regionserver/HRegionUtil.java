@@ -42,6 +42,8 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import static java.lang.Math.ceil;
+
 /**
  * Class for accessing protected methods in HBase.
  *
@@ -102,6 +104,7 @@ public class HRegionUtil extends BaseHRegionUtil{
             requestedSplits2 = totalStoreFileInBytes / splitBlockSize;
 
         if (requestedSplits2 > 0) {
+            // msirek-temp   long bytesPerSplit = (totalStoreFileInBytes / requestedSplits2) + requestedSplits2;
             long bytesPerSplit = (totalStoreFileInBytes / requestedSplits2) + requestedSplits2;
             if (bytesPerSplit > Integer.MAX_VALUE) {
                 splitBlockSize = Integer.MAX_VALUE;
@@ -113,6 +116,7 @@ public class HRegionUtil extends BaseHRegionUtil{
         Pair<byte[], byte[]> range = new Pair<>(start, end);
         ArrayList<StoreFile> storeFiles2 = new ArrayList<>(storeFiles);
 
+        /*  msirek-temp
         // Process the store files in ascending rowkey order
         if (storeFiles2.size() > 1) {
             Collections.sort(storeFiles2, new Comparator<StoreFile>() {
@@ -126,7 +130,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                     return org.apache.hadoop.hbase.util.Bytes.compareTo(left.getFirstKey(), right.getFirstKey());
                 }
             });
-        }
+        } */
 
         StoreFile file2;
         for (int i = 0; i < storeFiles2.size(); i++) {
@@ -134,7 +138,7 @@ public class HRegionUtil extends BaseHRegionUtil{
             if (file != null) {
                 long storeFileInBytes = file.getFileInfo().getFileStatus().getLen();
                 Pair<byte[], byte[]> storeFileRange = new Pair<>(file.getFirstKey(), file.getLastKey());
-
+/*
                 if (i != storeFiles2.size()-1 && storeFiles2.get(i+1) != null)  {
                     file2 = storeFiles2.get(i+1);
                     byte[] start1 = file.getFirstKey();
@@ -148,7 +152,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                         skipNextStoreFile = true;
                         i++;
                     }
-                }
+                }  msirek-temp */
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
                 fileReader = file.createReader().getHFileReader();
@@ -184,6 +188,8 @@ public class HRegionUtil extends BaseHRegionUtil{
 
     private static int addStoreFileCutpoints(List<byte[]> cutpoints, HFile.Reader fileReader, long storeFileInBytes, int carry, Pair<byte[], byte[]> range, int splitBlockSize) throws IOException {
         HFileBlockIndex.BlockIndexReader indexReader = fileReader.getDataBlockIndexReader();
+        int blockSize = fileReader.getFileContext().getBlocksize();
+
         int size = indexReader.getRootBlockCount();
         int levels = fileReader.getTrailer().getNumDataIndexLevels();
         if (levels == 1) {
@@ -199,20 +205,29 @@ public class HRegionUtil extends BaseHRegionUtil{
                 }
                 sizeCounter += incrementalSize;
             }
-	        return sizeCounter;
+            return sizeCounter;
         } else {
-            long totalSize = 0;
+            long totalIndexBlockSize = 0;
+            long totalNumBlocks = 0;
+            HFileBlock [] blockArray = new HFileBlock[size];
+            int[] numBlocks = new int[size];
             for (int i = 0; i < size; ++i) {
-                totalSize += indexReader.getRootBlockDataSize(i);
-            }
-            for (int i = 0; i < size; ++i) {
-                HFileBlock block = fileReader.readBlock(
+                totalIndexBlockSize += indexReader.getRootBlockDataSize(i);
+                blockArray[i] = fileReader.readBlock(
                         indexReader.getRootBlockOffset(i),
                         indexReader.getRootBlockDataSize(i),
                         true, true, false, true,
                         levels == 2 ? BlockType.LEAF_INDEX : BlockType.INTERMEDIATE_INDEX,
                         fileReader.getDataBlockEncoding());
-                carry = addIndexCutpoints(fileReader, block.getBufferWithoutHeader(), levels - 1,  cutpoints, storeFileInBytes * indexReader.getRootBlockDataSize(i) / totalSize, carry, range, splitBlockSize);
+                numBlocks[i] = blockArray[i].getBufferWithoutHeader().getInt(0);
+                totalNumBlocks += blockArray[i].getBufferWithoutHeader().getInt(0);
+            }
+            for (int i = 0; i < size; ++i) {
+                carry = addIndexCutpoints(fileReader, blockArray[i].getBufferWithoutHeader(), levels - 1,  cutpoints,
+                                        (storeFileInBytes  - totalIndexBlockSize) * numBlocks[i] / totalNumBlocks,
+                                         carry, range, splitBlockSize, blockSize);
+//                 carry = addIndexCutpoints(fileReader, blockArray[i].getBufferWithoutHeader(), levels - 1,  cutpoints,
+//                              storeFileInBytes / size, carry, range, splitBlockSize, blockSize);
             }
 	        return carry;
         }
@@ -226,7 +241,7 @@ public class HRegionUtil extends BaseHRegionUtil{
      */
     static final int SECONDARY_INDEX_ENTRY_OVERHEAD = Bytes.SIZEOF_INT + Bytes.SIZEOF_LONG;
 
-    private static int addIndexCutpoints(HFile.Reader fileReader, ByteBuffer nonRootIndex, int level, List<byte[]> cutpoints, long storeFileInBytes, int carriedSize, Pair<byte[], byte[]> range, int splitBlockSize) throws IOException {
+    private static int addIndexCutpoints(HFile.Reader fileReader, ByteBuffer nonRootIndex, int level, List<byte[]> cutpoints, long storeFileInBytes, int carriedSize, Pair<byte[], byte[]> range, int splitBlockSize, int blockSize) throws IOException {
         int numEntries = nonRootIndex.getInt(0);
         // Entries start after the number of entries and the secondary index.
         // The secondary index takes numEntries + 1 ints.
@@ -240,6 +255,11 @@ public class HRegionUtil extends BaseHRegionUtil{
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Processing intermediate index");
             }
+            long totalIndexBlockSize = 0;
+            long totalNumBlocks = 0;
+            HFileBlock [] blockArray = new HFileBlock[numEntries];
+            int[] numBlocks = new int[numEntries];
+
             // Intermediate index
             for (int i = 0; i < numEntries; ++i) {
                 if (LOG.isTraceEnabled()) {
@@ -255,13 +275,20 @@ public class HRegionUtil extends BaseHRegionUtil{
                 long offset = nonRootIndex.getLong(targetEntryOffset);
                 int onDiskSize = nonRootIndex.getInt(targetEntryOffset + Bytes.SIZEOF_LONG);
 
-                HFileBlock block = fileReader.readBlock(
+                blockArray[i] = fileReader.readBlock(
                         offset,
                         onDiskSize,
                         true, true, false, true,
                         level == 2 ? BlockType.LEAF_INDEX : BlockType.INTERMEDIATE_INDEX,
                         fileReader.getDataBlockEncoding());
-                carriedSize = addIndexCutpoints(fileReader, block.getBufferWithoutHeader(), level - 1, cutpoints, storeFileInBytes / numEntries, carriedSize, range, splitBlockSize);
+                numBlocks[i] = blockArray[i].getBufferWithoutHeader().getInt(0);
+                totalNumBlocks += blockArray[i].getBufferWithoutHeader().getInt(0);
+            }
+            for (int i = 0; i < numEntries; ++i) {
+                 carriedSize = addIndexCutpoints(fileReader, blockArray[i].getBufferWithoutHeader(), level - 1, cutpoints,
+                                    (storeFileInBytes  - totalIndexBlockSize) * numBlocks[i] / totalNumBlocks,
+                                                    carriedSize, range, splitBlockSize, blockSize);
+
             }
             return carriedSize;
         } else {
@@ -270,9 +297,13 @@ public class HRegionUtil extends BaseHRegionUtil{
             }
 
             // Leaf index
-            int incrementalSize = storeFileInBytes > numEntries ? (int) (storeFileInBytes / numEntries) + 1 : 1;
-            int step = splitBlockSize > incrementalSize ? (splitBlockSize / incrementalSize) + 1 : 1;
-            int firstStep = carriedSize > splitBlockSize ? 0 : ((splitBlockSize - carriedSize) / incrementalSize) + 1;
+            //int incrementalSize = blockSize;  // msirek-temp
+            int incrementalSize = storeFileInBytes > numEntries ? (int) (storeFileInBytes / numEntries) : 1;
+
+            int step = splitBlockSize > incrementalSize ? (splitBlockSize / incrementalSize): 1;
+            int firstStep = carriedSize > splitBlockSize ? 0 : ((splitBlockSize - carriedSize) / incrementalSize);
+            boolean addOne = (splitBlockSize % incrementalSize) > incrementalSize/10 ? true : false;
+            int count = 0;
 
             int previous = 0;
             for (int i = firstStep; i < numEntries; previous = i, i += step) {
@@ -301,6 +332,8 @@ public class HRegionUtil extends BaseHRegionUtil{
                 dup.position(targetKeyOffset);
                 dup.limit(targetKeyOffset + targetKeyLength);
                 KeyValue tentative = KeyValue.createKeyValueFromKey(dup.slice());
+                //if (addOne)  msirek-temp
+                //    step += ((++count % 2) == 1) ? 1 : -1;
                 if (CellUtils.isKeyValueInRange(tentative, range)) {
                     if (LOG.isTraceEnabled()) {
                         LOG.trace("Adding cutpoint " + CellUtils.toHex(CellUtil.cloneRow(tentative)));
