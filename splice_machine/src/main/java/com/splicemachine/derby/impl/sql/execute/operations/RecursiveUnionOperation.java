@@ -27,6 +27,10 @@ import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 /**
  * Created by yxia on 3/22/19.
  */
@@ -34,6 +38,7 @@ public class RecursiveUnionOperation extends UnionOperation {
     private static Logger LOG = Logger.getLogger(RecursiveUnionOperation.class);
     private DataSet rightDS;
     protected static final String NAME = RecursiveUnionOperation.class.getSimpleName().replaceAll("Operation","");
+    private int iterationLimit;
 
     @Override
     public String getName() {
@@ -49,8 +54,27 @@ public class RecursiveUnionOperation extends UnionOperation {
                           Activation activation,
                           int resultSetNumber,
                           double optimizerEstimatedRowCount,
-                          double optimizerEstimatedCost) throws StandardException{
+                          double optimizerEstimatedCost,
+                          int iterationLimit) throws StandardException{
         super(leftResultSet, rightResultSet, activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+        this.iterationLimit = iterationLimit;
+        // get the loop limit from configuration
+        if (this.iterationLimit == -1) {
+            SConfiguration configuration = EngineDriver.driver().getConfiguration();
+            this.iterationLimit = configuration.getRecursiveQueryIterationLimit();
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        iterationLimit = in.readInt();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(iterationLimit);
     }
 
     @Override
@@ -58,6 +82,7 @@ public class RecursiveUnionOperation extends UnionOperation {
         return "RecursiveUnionOperation{" +
                 "left=" + leftResultSet +
                 ", right=" + rightResultSet +
+                ", iterationLimit=" + iterationLimit +
                 '}';
     }
 
@@ -67,7 +92,8 @@ public class RecursiveUnionOperation extends UnionOperation {
 
         return "RecursiveUnion:" + indent + "resultSetNumber:" + resultSetNumber
                 + indent + "leftResultSet:" + leftResultSet
-                + indent + "rightResultSet:" + rightResultSet;
+                + indent + "rightResultSet:" + rightResultSet
+                + indent + "iterationLimit:" + iterationLimit;
     }
 
     @Override
@@ -78,31 +104,31 @@ public class RecursiveUnionOperation extends UnionOperation {
         OperationContext operationContext = dsp.createOperationContext(this);
         operationContext.pushScope();
 
-        // get the loop limit from configuration
-        SConfiguration configuration= EngineDriver.driver().getConfiguration();
-        int MAX_LOOP = configuration.getRecursiveQueryIterationLimit();
-
         // compute the seed
         // For control path, the dataset returned by materialize can be read only once as the iterator cannot be reset,
         // so we have to return two datasets
-        Pair<Pair<DataSet, DataSet>, Integer> right = leftResultSet.getDataSet(dsp).persistIt2();
-        DataSet resultDS = right.getFirst().getFirst();
-        rightDS = right.getFirst().getSecond();
+        Pair<DataSet, Integer> right = leftResultSet.getDataSet(dsp).persistIt();
+        DataSet resultDS = right.getFirst();
+        rightDS = right.getFirst().getClone();
 
         // compute the recursive body
-        right = rightResultSet.getDataSet(dsp).persistIt2();
+        right = rightResultSet.getDataSet(dsp).persistIt();
 
         int loop = 0;
-        while (right.getSecond() > 0 && loop < MAX_LOOP) {
+        while (right.getSecond() > 0 && loop < iterationLimit) {
             loop ++;
-            Pair<DataSet, Integer> result = resultDS.union(right.getFirst().getFirst(), operationContext).persistIt();
+            Pair<DataSet, Integer> result = resultDS.union(right.getFirst(), operationContext).persistIt();
             resultDS.unpersistIt();
-            rightDS = right.getFirst().getSecond();
+            rightDS = right.getFirst().getClone();
 
             resultDS = result.getFirst();
 
-            right = rightResultSet.getDataSet(dsp).persistIt2();
+            right = rightResultSet.getDataSet(dsp).persistIt();
             rightDS.unpersistIt();
+        }
+
+        if (loop == iterationLimit) {
+            throw new RuntimeException("Recursive query execution iteration limit of " + iterationLimit + " reached!");
         }
 
         operationContext.popScope();

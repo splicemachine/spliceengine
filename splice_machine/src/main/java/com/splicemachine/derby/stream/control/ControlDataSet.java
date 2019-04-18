@@ -114,7 +114,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public Pair<DataSet, Integer> materialize() {
         List<ExecRow> rows = ((ControlDataSet<ExecRow>)this).map(new CloneFunction<>(null)).collect();
-        return Pair.newPair(new ControlDataSet(rows.iterator()), rows.size());
+        return Pair.newPair(new MaterializedControlDataSet(rows), rows.size());
     }
 
     @Override
@@ -128,9 +128,8 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public Pair<Pair<DataSet, DataSet>, Integer> persistIt2() {
-        List<ExecRow> rows = ((ControlDataSet<ExecRow>)this).map(new CloneFunction<>(null)).collect();
-        return Pair.newPair(Pair.newPair(new ControlDataSet(rows.iterator()), new ControlDataSet(rows.iterator())), rows.size());
+    public DataSet getClone() {
+        throw new UnsupportedOperationException("Not Implemented for ControlDataSet");
     }
 
     @Override

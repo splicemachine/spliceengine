@@ -468,7 +468,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                      int resultSetNumber,
                                                      double optimizerEstimatedRowCount,
                                                      double optimizerEstimatedCost,
-                                                     String explainPlan) throws StandardException {
+                                                     String explainPlan,
+                                                     int iterationLimit) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getRecursiveUnionResultSet");
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -477,7 +478,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     right.getOperation(),
                     leftResultSet.getActivation(),
                     resultSetNumber,
-                    optimizerEstimatedRowCount,optimizerEstimatedCost);
+                    optimizerEstimatedRowCount,optimizerEstimatedCost, iterationLimit);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){

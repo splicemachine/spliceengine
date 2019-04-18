@@ -143,9 +143,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public Pair<Pair<DataSet, DataSet>, Integer> persistIt2() {
-        dataset.persist(StorageLevel.MEMORY_AND_DISK_SER());
-        return Pair.newPair(Pair.newPair(this, this), (int) this.count());
+    public DataSet getClone() {
+        return this;
     }
 
     @Override

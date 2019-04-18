@@ -40,7 +40,7 @@ public interface DataSet<V> extends //Iterable<V>,
 
     Pair<DataSet, Integer> persistIt();
 
-    Pair<Pair<DataSet, DataSet>, Integer> persistIt2();
+    DataSet getClone();
 
     void unpersistIt();
 

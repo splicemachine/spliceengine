@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -651,13 +652,21 @@ public class UnionNode extends SetOperatorNode{
         mb.push(printExplainInformationForActivation());
 
         String methodName;
+        int numArgs = 6;
         if (isRecursive) {
+            // also pass down the recursion limit
+            // get the loop limit from configuration
+            Integer maxIterationObject = (Integer)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.RECURSIVEQUERYITERATIONLIMIT);
+            int iterationLimit = maxIterationObject == null ? -1: maxIterationObject.intValue();
+            mb.push(iterationLimit);
+            numArgs ++;
             methodName = "getRecursiveUnionResultSet";
-        } else
+        } else {
             methodName = "getUnionResultSet";
+        }
 
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,methodName, ClassName.NoPutResultSet,6);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,methodName, ClassName.NoPutResultSet,numArgs);
 
         if (isRecursive) {
             mb.setField(recursiveUnionResultSetRef);

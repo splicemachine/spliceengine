@@ -533,6 +533,97 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testIterationLimit() throws Exception {
+        try (TestConnection conn = spliceClassWatcher.createConnection()) {
+            /* set session property recursivequeryiterationlimit=10 */
+            conn.execute("set session_property recursivequeryiterationlimit=10");
+            String sqlText1 = "values current session_property";
+            ResultSet rs = conn.query(sqlText1);
+            String expected1 = "1                |\n" +
+                    "----------------------------------\n" +
+                    "RECURSIVEQUERYITERATIONLIMIT=10; |";
+            Assert.assertEquals("\n" + sqlText1 + "\n", expected1, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            rs.close();
+
+            String sqlTemplate = "with recursive dt as (" +
+                    "select a2, 1 as level\n" +
+                    "from t2 --splice-properties useSpark=%s\n " +
+                    "where a2 <3 \n" +
+                    "union all\n" +
+                    "select a2, level+1 as level\n" +
+                    "from dt where level<%d)\n" +
+                    "select * from dt order by a2";
+            String sqlText = format(sqlTemplate, this.useSparkString, 15);
+
+            try {
+                rs = conn.query(sqlText);
+                Assert.fail("Query is expected to fail");
+            } catch (SQLException e) {
+                Assert.assertTrue("Error message does not match, actual is: " + e.getMessage(),
+                        e.getMessage().startsWith("Splice Engine exception: unexpected exception"));
+                if (e.getNextException() != null) {
+                    Assert.assertTrue("Error message does not match, actual is: " + e.getNextException().getMessage(),
+                            e.getNextException().getMessage().startsWith("Java exception: 'java.lang.RuntimeException: Recursive query execution iteration limit"));
+                } else {
+                    Assert.fail("Query is expected to fail with Recursive query execution iteration limit ... reached!");
+                }
+            } finally {
+                rs.close();
+            }
+
+            /* reset the session property, so we will use system default of limit 20 */
+            conn.execute("set session_property recursivequeryiterationlimit=null");
+            rs = conn.query(sqlText1);
+            expected1 = "1 |\n" +
+                    "----\n" +
+                    "   |";
+            Assert.assertEquals("\n" + sqlText1 + "\n", expected1, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            rs.close();
+
+            /* run the query again */
+            conn.execute(sqlText);
+
+            String expected = "A2 | LEVEL |\n" +
+                    "------------\n" +
+                    " 1 |   1   |\n" +
+                    " 1 |   2   |\n" +
+                    " 1 |   3   |\n" +
+                    " 1 |   4   |\n" +
+                    " 1 |   5   |\n" +
+                    " 1 |   6   |\n" +
+                    " 1 |   7   |\n" +
+                    " 1 |   8   |\n" +
+                    " 1 |   9   |\n" +
+                    " 1 |  10   |\n" +
+                    " 1 |  11   |\n" +
+                    " 1 |  12   |\n" +
+                    " 1 |  13   |\n" +
+                    " 1 |  14   |\n" +
+                    " 1 |  15   |\n" +
+                    " 2 |   1   |\n" +
+                    " 2 |   2   |\n" +
+                    " 2 |   3   |\n" +
+                    " 2 |   4   |\n" +
+                    " 2 |   5   |\n" +
+                    " 2 |   6   |\n" +
+                    " 2 |   7   |\n" +
+                    " 2 |   8   |\n" +
+                    " 2 |   9   |\n" +
+                    " 2 |  10   |\n" +
+                    " 2 |  11   |\n" +
+                    " 2 |  12   |\n" +
+                    " 2 |  13   |\n" +
+                    " 2 |  14   |\n" +
+                    " 2 |  15   |";
+
+            rs = conn.query(sqlText);
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            rs.close();
+
+        }
+    }
+
     /**
      * negative test cases
      */
