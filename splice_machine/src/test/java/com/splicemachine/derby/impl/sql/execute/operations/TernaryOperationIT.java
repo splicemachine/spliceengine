@@ -213,7 +213,63 @@ public class TernaryOperationIT {
             iCell = rs.getInt(1);
         }
         Assert.assertEquals("Wrong trim result", 4, iCell);
+    }
 
+    @Test
+    public void testTRIMWithAlias() throws Exception {
+        ResultSet rs;
+        int iCell = 0;
+        String sql = "select count(*) from ( select trim(b) from b ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 5, iCell);
+
+        sql = "select count(*) from ( select trim (b.b) from b ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 5, iCell);
+
+        sql = "select count(*) from ( select trim (b 'a' from c) from a b ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+        sql = "select count(*) from ( select trim (b.c) from a b ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+        sql = "select count(*) from ( select trim (l.c) from a l ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+        sql = "select count(*) from ( select trim (t.c) from a t ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+        sql = "select count(*) from ( select trim (\"leading\".c) from a as \"leading\" ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+    }
+    @Test
+    public void testTRIMWithAliasNegative() throws Exception {
+        try {
+            String sql = "select trim (leading.c) from a as leading";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
     }
 
     @Test
