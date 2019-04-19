@@ -308,6 +308,7 @@ public class OperatorToString {
                     return "PARSE_ERROR_WHILE_CONVERTING_OPERATOR";
             }
         }else if(operand instanceof BinaryListOperatorNode){
+            vars.relationalOpDepth.increment();
             BinaryListOperatorNode blon = (BinaryListOperatorNode)operand;
             StringBuilder inList = new StringBuilder("(");
             if (!blon.isSingleLeftOperand()) {
@@ -331,7 +332,9 @@ public class OperatorToString {
                 else inList = inList.append(",");
                 inList = inList.append(opToString2((ValueNode)qtn, vars));
             }
-            return inList.append("))").toString();
+            String retval = inList.append("))").toString();
+            vars.relationalOpDepth.decrement();
+            return retval;
         }else if (operand instanceof BinaryOperatorNode) {
             BinaryOperatorNode bop = (BinaryOperatorNode) operand;
             ValueNode leftOperand = bop.getLeftOperand();
@@ -467,6 +470,7 @@ public class OperatorToString {
                     }
                 }
                 else if (operand.getClass() == TernaryOperatorNode.class) {
+                    vars.relationalOpDepth.increment();
                     if (top.getOperator().equals("LOCATE") ||
                         top.getOperator().equals("replace") ||
                         top.getOperator().equals("substring") ) {
@@ -474,22 +478,29 @@ public class OperatorToString {
                         if (vars.sparkVersion.lessThan(spark_2_3_0) && top.getOperator().equals("replace"))
                             throwNotImplementedError();
 
-                        return format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
+                        vars.relationalOpDepth.decrement();
+                        String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),
                                 opToString2(top.getLeftOperand(), vars), opToString2(top.getRightOperand(), vars));
+                        vars.relationalOpDepth.decrement();
+                        return retval;
                     }
                     else if (top.getOperator().equals("trim")) {
                         // Trim is supported starting at Spark 2.3.
                         if (vars.sparkVersion.lessThan(spark_2_3_0))
                             throwNotImplementedError();
+                        String retval;
                         if (top.isLeading())
-                            return format("%s(LEADING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(LEADING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
                         else if (top.isTrailing())
-                            return format("%s(TRAILING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(TRAILING %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
                         else
-                            return format("%s(BOTH %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
+                            retval = format("%s(BOTH %s FROM %s) ",  top.getOperator(), opToString2(top.getLeftOperand(), vars),
                                 opToString2(top.getReceiver(), vars));
+
+                        vars.relationalOpDepth.decrement();
+                        return retval;
                     }
                     else
                         throwNotImplementedError();
@@ -501,6 +512,7 @@ public class OperatorToString {
                           opToString2(top.getLeftOperand(), vars), rightOp == null ? "" : ", " + opToString2(rightOp, vars));
         }
         else if (operand instanceof ArrayConstantNode) {
+            vars.relationalOpDepth.increment();
             if (vars.sparkExpression)
                 throwNotImplementedError();;
             ArrayConstantNode arrayConstantNode = (ArrayConstantNode) operand;
@@ -514,8 +526,10 @@ public class OperatorToString {
                 i++;
             }
             builder.append("]");
+            vars.relationalOpDepth.decrement();
             return builder.toString();
         } else if (operand instanceof ListValueNode) {
+            vars.relationalOpDepth.increment();
             if (vars.sparkExpression)
                 throwNotImplementedError();;
             ListValueNode lcn = (ListValueNode) operand;
@@ -528,6 +542,7 @@ public class OperatorToString {
                 builder.append(opToString2(vn, vars));
             }
             builder.append(")");
+            vars.relationalOpDepth.decrement();
             return builder.toString();
         }
         else if (operand instanceof ColumnReference) {
@@ -674,6 +689,7 @@ public class OperatorToString {
             return sb.toString();
         }
         else if (operand instanceof ConditionalNode) {
+            vars.relationalOpDepth.increment();
             ConditionalNode cn = (ConditionalNode)operand;
             StringBuilder sb = new StringBuilder();
             sb.append(format ("CASE WHEN %s ", opToString2(cn.getTestCondition(), vars)));
@@ -687,6 +703,7 @@ public class OperatorToString {
                 i++;
             }
             sb.append("END ");
+            vars.relationalOpDepth.decrement();
             return sb.toString();
         }
         else {
