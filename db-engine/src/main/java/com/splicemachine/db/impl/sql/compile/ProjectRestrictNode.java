@@ -131,6 +131,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             ((Optimizable)childResult).setProperties(getProperties());
             setProperties(null);
         }
+
+        if (childResult instanceof ResultSetNode && ((ResultSetNode) childResult).getContainsSelfReference())
+            containsSelfReference = true;
     }
 
 	/*
@@ -808,7 +811,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
-        if (existsTable || fromSSQ)
+        if (dependencyMap != null)
             return assignedTableMap.contains(dependencyMap);
 
         return !(childResult instanceof Optimizable) || ((Optimizable)childResult).legalJoinOrder(assignedTableMap);
@@ -1168,6 +1171,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         generateMinion(acb,mb,true);
     }
 
+    private void generateChild(ExpressionClassBuilder acb,
+                               MethodBuilder mb,
+                               boolean genChildResultSet) throws StandardException {
+
+        if(genChildResultSet)
+            childResult.generateResultSet(acb,mb);
+        else
+            childResult.generate((ActivationClassBuilder)acb,mb);
+    }
     /**
      * Logic shared by generate() and generateResultSet().
      *
@@ -1189,10 +1201,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         if(nopProjectRestrict()){
             generateNOPProjectRestrict();
-            if(genChildResultSet)
-                childResult.generateResultSet(acb,mb);
-            else
-                childResult.generate((ActivationClassBuilder)acb,mb);
+            generateChild(acb, mb, genChildResultSet);
             costEstimate=childResult.getFinalCostEstimate(true);
             return;
         }
@@ -1275,10 +1284,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
 
         acb.pushGetResultSetFactoryExpression(mb);
-        if(genChildResultSet)
-            childResult.generateResultSet(acb,mb);
-        else
-            childResult.generate((ActivationClassBuilder)acb,mb);
+        generateChild(acb, mb, genChildResultSet);
 
 		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
 		 * ResultColumnList and ResultSet.

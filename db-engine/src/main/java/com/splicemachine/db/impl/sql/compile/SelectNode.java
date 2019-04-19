@@ -1592,6 +1592,26 @@ public class SelectNode extends ResultSetNode{
             orderByList.setAlwaysSort();
         }
 
+        /* Currently, SelfReferenceNode cannot be used as the right table of a nested loop join or broadcast join,
+           so let all other tables in the fromList set dependency on this to ensure SelfReferenceNode to be planned first
+         */
+        FromTable selfReferenceNode = null;
+        for (int i=0; i < fromList.size(); i++) {
+            FromTable ft=(FromTable)fromList.elementAt(i);
+            /* we only allow one selfReference in recursive quer for now */
+            if (ft.getContainsSelfReference()) {
+                selfReferenceNode = ft;
+                break;
+            }
+        }
+        if (selfReferenceNode != null) {
+            for (int i=0; i < fromList.size(); i++) {
+                FromTable ft=(FromTable)fromList.elementAt(i);
+                if (ft != selfReferenceNode) {
+                    ft.addToDependencyMap(selfReferenceNode.getReferencedTableMap());
+                }
+            }
+        }
 		/* Get a new optimizer */
         optimizer=getOptimizer(fromList, wherePredicates, dataDictionary, orderByList);
         optimizer.setOuterRows(outerRows);

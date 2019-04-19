@@ -395,4 +395,5 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     ScanInformation<ExecRow> getScanInformation();
 
+    void setRecursiveUnionReference(NoPutResultSet recursiveUnionReference);
 }

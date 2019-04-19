@@ -1676,9 +1676,9 @@ public abstract class QueryTreeNode implements Node, Visitable{
         tree.add(this);
     }
 
-    public String printExplainInformation(int size, int i, boolean useSpark) throws StandardException {
+    public String printExplainInformation(int size, int i, boolean useSpark, boolean fromPlanPrinter) throws StandardException {
 
-        String s = printExplainInformation(size - i);
+        String s = printExplainInformation(size - i, fromPlanPrinter);
         if (i > 0)
             return s;
         else {
@@ -1688,7 +1688,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         return s;
     }
 
-    public String printExplainInformation(int order) throws StandardException {
+    public String printExplainInformation(int order, boolean fromPlanPrinter) throws StandardException {
         return printExplainInformation(",", order);
     }
 
