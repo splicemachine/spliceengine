@@ -535,7 +535,7 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
 
     @Test
     public void testIterationLimit() throws Exception {
-        try (TestConnection conn = spliceClassWatcher.createConnection()) {
+        try (TestConnection conn = methodWatcher.createConnection()) {
             /* set session property recursivequeryiterationlimit=10 */
             conn.execute("set session_property recursivequeryiterationlimit=10");
             String sqlText1 = "values current session_property";
