@@ -1920,14 +1920,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @param tableNumber  The tableNumber for the UNION.
      * @param level        The nesting level for the UNION.
      * @param operatorName "UNION", "INTERSECT", or "EXCEPT"
-     * @param cdl          the recurisve union's column descriptor list
      * @throws StandardException Thrown on error
      */
     public void setUnionResultExpression(ResultColumnList otherRCL,
                                          int tableNumber,
                                          int level,
-                                         String operatorName,
-                                         ColumnDescriptorList cdl) throws StandardException{
+                                         String operatorName) throws StandardException{
         TableName dummyTN;
 
         if(SanityManager.DEBUG){
@@ -1994,15 +1992,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         operatorName);
             }
 
-            DataTypeDescriptor resultType;
-
-            if (cdl != null) {
-                resultType = cdl.elementAt(index).getType();
-            } else {
-                resultType  =thisExpr.getTypeServices().getDominantType(
-                        otherExpr.getTypeServices(),
-                        cf);
-            }
+            DataTypeDescriptor resultType=thisExpr.getTypeServices().getDominantType(
+                    otherExpr.getTypeServices(),
+                    cf);
 
             newCR=(ColumnReference)getNodeFactory().getNode(
                     C_NodeTypes.COLUMN_REFERENCE,
@@ -2023,10 +2015,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             }
             newCR.setTableNumber(tableNumber);
             thisRC.setExpression(newCR);
-            if (cdl != null)
-                thisRC.setType(resultType);
-            else
-                thisRC.setType(thisRC.getTypeServices().getDominantType(otherRC.getTypeServices(),cf));
+            thisRC.setType(thisRC.getTypeServices().getDominantType(otherRC.getTypeServices(),cf));
 
 			/* DB2 requires both sides of union to have same name for the result to
 			 * have that name. Otherwise, leave it or set it to a generated name */

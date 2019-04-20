@@ -33,9 +33,29 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COM
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
-import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.iapi.*;
-import com.splicemachine.derby.stream.output.*;
+import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
+import com.splicemachine.derby.stream.function.ExportFunction;
+import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
+import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.function.SplicePairFunction;
+import com.splicemachine.derby.stream.function.SplicePredicateFunction;
+import com.splicemachine.derby.stream.function.TakeFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
+import com.splicemachine.derby.stream.iapi.TableSamplerBuilder;
+import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.BulkLoadIndexDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
@@ -47,6 +67,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapred.InvalidJobConfException;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -54,6 +75,7 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Column;
@@ -69,7 +91,13 @@ import org.apache.spark.storage.StorageLevel;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
@@ -134,23 +162,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public Pair<DataSet, Integer> materialize() {
         return Pair.newPair(this, (int) dataset.count());
-    }
-
-    @Override
-    public Pair<DataSet, Integer> persistIt() {
-        dataset.persist(StorageLevel.MEMORY_AND_DISK_SER());
-        return Pair.newPair(this, (int) this.count());
-    }
-
-    @Override
-    public DataSet getClone() {
-        return this;
-    }
-
-    @Override
-    public void unpersistIt() {
-        dataset.unpersist();
-        return;
     }
 
     /**

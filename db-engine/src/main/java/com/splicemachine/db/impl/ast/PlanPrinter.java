@@ -422,6 +422,27 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
     }
 
+
+    public class PlanToString implements Function<QueryTreeNode,String> {
+        int size;
+        int counter = 0;
+        public PlanToString(int size) {
+            this.size = size;
+        }
+
+        @Override
+        public String apply(QueryTreeNode o) {
+            try {
+                return o.printExplainInformation(size - counter);
+            } catch (StandardException se) {
+                throw new RuntimeException(se);
+            } finally {
+                counter++;
+            }
+        }
+    }
+
+
     public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final boolean useSpark) throws StandardException {
         return Iterators.transform(orderedNodes.iterator(), new Function<QueryTreeNode, String>() {
             int i = 0;
@@ -429,10 +450,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             @Override
             public String apply(QueryTreeNode queryTreeNode) {
                 try {
-                    if ((queryTreeNode instanceof UnionNode) && ((UnionNode) queryTreeNode).getIsRecursive()) {
-                        ((UnionNode) queryTreeNode).setStepNumInExplain(orderedNodes.size() - i);
-                    }
-                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, useSpark, true);
+                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, useSpark);
                 } catch (StandardException se) {
                     throw new RuntimeException(se);
                 } finally {

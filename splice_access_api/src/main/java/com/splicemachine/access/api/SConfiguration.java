@@ -355,6 +355,4 @@ public interface SConfiguration {
     String getOlapLog4jConfig();
 
     int getMaxCheckTableErrors();
-
-    int getRecursiveQueryIterationLimit();
 }

@@ -848,48 +848,5 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ExportFile.COMPRESSION.class, 298);
         instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER, 299);
         instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER, 300);
-        instance.register(SelfReferenceOperation.class,new Serializer<SelfReferenceOperation>(){
-            @Override
-            public void write(Kryo kryo,Output output,SelfReferenceOperation object){
-                try{
-                    object.writeExternalWithoutChild(new KryoObjectOutput(output,kryo));
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public SelfReferenceOperation read(Kryo kryo,Input input,Class type){
-                SelfReferenceOperation selfReferenceOperation=new SelfReferenceOperation();
-                try{
-                    selfReferenceOperation.readExternal(new KryoObjectInput(input,kryo));
-                }catch(IOException|ClassNotFoundException e){
-                    throw new RuntimeException(e);
-                }
-                return selfReferenceOperation;
-            }
-        },301);
-        instance.register(RecursiveUnionOperation.class,new Serializer<RecursiveUnionOperation>(){
-            @Override
-            public void write(Kryo kryo,Output output,RecursiveUnionOperation object){
-                try{
-                    object.writeExternal(new KryoObjectOutput(output,kryo));
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public RecursiveUnionOperation read(Kryo kryo,Input input,Class type){
-                RecursiveUnionOperation recursiveUnionOperation=new RecursiveUnionOperation();
-                try{
-                    recursiveUnionOperation.readExternal(new KryoObjectInput(input,kryo));
-                    recursiveUnionOperation.setRecursiveUnionReference(recursiveUnionOperation);
-                }catch(IOException|ClassNotFoundException e){
-                    throw new RuntimeException(e);
-                }
-                return recursiveUnionOperation;
-            }
-        },302);
     }
 }

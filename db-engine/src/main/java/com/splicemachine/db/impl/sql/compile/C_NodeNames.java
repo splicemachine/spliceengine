@@ -350,8 +350,6 @@ public interface C_NodeNames
 
 	String GROUPING_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GroupingFunctionNode";
 
-	String SELF_REFERENCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SelfReferenceNode";
-
 	// WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

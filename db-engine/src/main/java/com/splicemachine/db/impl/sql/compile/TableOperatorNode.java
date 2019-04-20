@@ -307,12 +307,7 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public ResultSetNode bindNonVTITables(DataDictionary dataDictionary,FromList fromListParam)throws StandardException{
-        return bindNonVTITables(dataDictionary, fromListParam, false);
-    }
-
-    public ResultSetNode bindNonVTITables(DataDictionary dataDictionary,FromList fromListParam, boolean bindRightOnly)throws StandardException{
-        if (!bindRightOnly)
-            leftResultSet=leftResultSet.bindNonVTITables(dataDictionary,fromListParam);
+        leftResultSet=leftResultSet.bindNonVTITables(dataDictionary,fromListParam);
         rightResultSet=rightResultSet.bindNonVTITables(dataDictionary,fromListParam);
 		/* Assign the tableNumber */
         if(tableNumber==-1)  // allow re-bind, in which case use old number
@@ -334,16 +329,12 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public ResultSetNode bindVTITables(FromList fromListParam) throws StandardException{
-        return bindVTITables(fromListParam, false);
-    }
-
-    public ResultSetNode bindVTITables(FromList fromListParam, boolean bindRightOnly) throws StandardException{
-        if (!bindRightOnly)
-            leftResultSet=leftResultSet.bindVTITables(fromListParam);
+        leftResultSet=leftResultSet.bindVTITables(fromListParam);
         rightResultSet=rightResultSet.bindVTITables(fromListParam);
 
         return this;
     }
+
     /**
      * Bind the expressions under this TableOperatorNode.  This means
      * binding the sub-expressions, as well as figuring out what the
@@ -353,24 +344,19 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
-		bindExpressions(fromListParam, false);
-    }
-
-    public void bindExpressions(FromList fromListParam, boolean bindRightOnly) throws StandardException{
 		/*
 		** Parameters not allowed in select list of either side of union,
 		** except when the union is for a table constructor.
 		*/
-		if (!bindRightOnly) {
-            if (!(this instanceof UnionNode) || !((UnionNode) this).tableConstructor()) {
-                leftResultSet.rejectParameters();
-                rightResultSet.rejectParameters();
-            }
-
-            leftResultSet.bindExpressions(fromListParam);
+        if(!(this instanceof UnionNode) || !((UnionNode)this).tableConstructor()){
+            leftResultSet.rejectParameters();
+            rightResultSet.rejectParameters();
         }
+
+        leftResultSet.bindExpressions(fromListParam);
         rightResultSet.bindExpressions(fromListParam);
     }
+
     /**
      * Check for (and reject) ? parameters directly under the ResultColumns.
      * This is done for SELECT statements.  For TableOperatorNodes, we
@@ -419,12 +405,7 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public void bindResultColumns(FromList fromListParam) throws StandardException{
-        bindResultColumns(fromListParam, false);
-    }
-
-    public void bindResultColumns(FromList fromListParam, boolean bindRightOnly) throws StandardException{
-        if (!bindRightOnly)
-            leftResultSet.bindResultColumns(fromListParam);
+        leftResultSet.bindResultColumns(fromListParam);
         rightResultSet.bindResultColumns(fromListParam);
     }
 

@@ -1809,22 +1809,4 @@ public interface ResultSetFactory {
 										 int sourceCorrelatedColumnItem,
 										 int subqueryCorrelatedColumnItem) throws StandardException;
 
-	/**
-	 * Recursive query
-	 */
-	NoPutResultSet getSelfReferenceResultSet(Activation activation,
-											 GeneratedMethod rowAllocator,
-											 int resultSetNumber,
-											 double optimizerEstimatedRowCount,
-											 double optimizerEstimatedCost,
-											 String explainPlan) throws StandardException;
-
-	NoPutResultSet getRecursiveUnionResultSet(NoPutResultSet leftResultSet,
-											  NoPutResultSet rightResultSet,
-											  int resultSetNumber,
-											  double optimizerEstimatedRowCount,
-											  double optimizerEstimatedCost,
-											  String explainPlan,
-											  int iterationLimit) throws StandardException;
-
 }

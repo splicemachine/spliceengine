@@ -511,7 +511,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     /* TableNumbers and column numbers are set in the CR in the
                      * underlying FromTable.  This ensures that they get the
                      * table number/column number from the underlying table,
-                     * not the join node.  This is important for being able to
+                     * not the join node.  This is important for beging able to
                      * push predicates down through join nodes.
                      */
                     matchingRC=resultColumn;

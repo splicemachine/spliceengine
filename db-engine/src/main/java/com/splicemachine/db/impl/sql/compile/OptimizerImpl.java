@@ -203,7 +203,7 @@ public class OptimizerImpl implements Optimizer{
         this.numTablesInQuery=numTablesInQuery;
         numOptimizables=optimizableList.size();
         proposedJoinOrder=new int[numOptimizables];
-        if(numTablesInQuery>6 && optimizableList.optimizeJoinOrder()){
+        if(numTablesInQuery>6){
             permuteState=READY_TO_JUMP;
             firstLookOrder=new int[numOptimizables];
         }else

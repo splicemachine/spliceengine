@@ -32,7 +32,9 @@ package com.splicemachine.db.impl.sql.conn;
 
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 
-import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.*;
+import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR;
+import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.SKIPSTATS;
+import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.USESPARK;
 
 /**
  * Created by yxia on 6/1/18.
@@ -60,10 +62,6 @@ public class SessionPropertiesImpl implements SessionProperties {
             case SKIPSTATS:
                 boolean skipStatsVal = Boolean.valueOf(valString);
                 properties[SKIPSTATS.getId()] = skipStatsVal;
-                break;
-            case RECURSIVEQUERYITERATIONLIMIT:
-                int recursiveQueryIterationLimit = Integer.parseInt(valString);
-                properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;
                 break;
             default:
                 break;
