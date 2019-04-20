@@ -329,9 +329,9 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     		LOG.debug(String.format("rewriteNLJColumnRefs joinNode=%s", j));
         List<Predicate> joinPreds = new LinkedList<>();
 
-        // Collect PRs, FBTs until a binary node (Union, Join) found, or end
+        // Collect PRs, FBTs until a binary node (Set operations except for Union, Join) found, or end
         Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
-                RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
+                RSUtils.nodesUntilBinaryNodeExcludeUnion(j.getRightResultSet()),
                 RSUtils.rsnHasPreds);
 
         org.spark_project.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
