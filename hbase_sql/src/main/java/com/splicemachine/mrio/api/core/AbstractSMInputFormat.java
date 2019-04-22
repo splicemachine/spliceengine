@@ -22,6 +22,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.mapreduce.SMWrappedRecordReader;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.HScan;
@@ -29,15 +30,19 @@ import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -90,11 +95,25 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         int retryCounter = 0;
         boolean refresh = false;
         this.splits = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
+
+        boolean eachRegionOneSplit = oneSplitPerRegion(conf);
+        long tableSize = 0;
         while (true) {
             List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
 
-            if (oneSplitPerRegion(conf))
-                return toSMSplits(splits);
+            if (eachRegionOneSplit  || (this.splits > 0 && this instanceof SMInputFormat))
+            {
+                List<InputSplit> regionSplits = toSMSplits(splits);
+                if (eachRegionOneSplit)
+                    return regionSplits;
+
+                SMRecordReaderImpl smrr = ((SMInputFormat)this).getRecordReader(null, conf);
+                for (InputSplit split:regionSplits) {
+                    smrr.init(conf, split);
+                    tableSize += smrr.getRegionSize();
+                    smrr.close();
+                }
+            }
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "getSplits " + splits);
                 for (Partition split : splits) {
@@ -103,7 +122,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             }
             SubregionSplitter splitter = new HBaseSubregionSplitter();
 
-            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits);
+            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits, tableSize);
             //check if split count changed in-between
             List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
             if (splits.size() != newSplits.size()) {
