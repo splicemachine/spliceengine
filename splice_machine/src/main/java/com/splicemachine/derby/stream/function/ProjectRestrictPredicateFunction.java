@@ -20,6 +20,11 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.utils.Pair;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+
 import javax.annotation.Nullable;
 
 /**
@@ -64,5 +69,21 @@ public class ProjectRestrictPredicateFunction<Op extends SpliceOperation> extend
             initialized = true;
             op = (ProjectRestrictOperation) getOperation();
         }
+    }
+
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        ProjectRestrictOperation op = (ProjectRestrictOperation) operationContext.getOperation();
+        if (op.hasFilterPred()) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public Pair<Dataset<Row>, OperationContext> nativeTransformation(Dataset<Row> input, OperationContext context) {
+        ProjectRestrictOperation op = (ProjectRestrictOperation) operationContext.getOperation();
+        Dataset<Row> df = input.where(op.getFilterPred());
+        return Pair.newPair(df, context);
     }
 }

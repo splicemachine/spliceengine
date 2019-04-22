@@ -631,6 +631,8 @@
                                 <Release>${project.version}</Release>
                                 <Build-Time>${maven.build.timestamp}</Build-Time>
                                 <URL>http://www.splicemachine.com</URL>
+                                <Spark-Major-Version>${spark.major.version}</Spark-Major-Version>
+                                <Spark-Version>${spark.version}</Spark-Version>
                             </manifestEntries>
                         </archive>
                         <excludes>

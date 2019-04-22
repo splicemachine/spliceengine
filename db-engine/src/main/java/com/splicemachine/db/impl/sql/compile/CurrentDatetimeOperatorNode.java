@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -67,6 +68,10 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 	};
 
 	private int whichType;
+
+	public boolean isCurrentDate() { return whichType == CURRENT_DATE; }
+	public boolean isCurrentTime() { return whichType == CURRENT_TIME; }
+	public boolean isCurrentTimestamp() { return whichType == CURRENT_TIMESTAMP; }
 
 	public void init(Object whichType) {
 		this.whichType = (Integer) whichType;
@@ -201,5 +206,13 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 
 	public boolean isConstantOrParameterTreeNode() {
 		return true;
+	}
+
+	@Override
+	public ValueNode getClone() throws StandardException
+	{
+	    // This node is immutable, so just return the node itself
+	    // as its own clone.
+	    return this;
 	}
 }

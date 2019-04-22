@@ -427,9 +427,20 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
         OperationContext<Op> context = f.operationContext;
         if (f.hasNativeSparkImplementation()) {
-            Pair<Dataset<Row>, OperationContext> pair = f.nativeTransformation(dataset, context);
-            OperationContext c = pair.getSecond() == null ? this.context : pair.getSecond();
-            return new NativeSparkDataSet<>(pair.getFirst(), c);
+            // TODO:  Enable the commented try-catch block after regression testing.
+            //        This would be a safeguard against unanticipated exceptions:
+            //             org.apache.spark.sql.catalyst.parser.ParseException
+            //             org.apache.spark.sql.AnalysisException
+            //    ... which may occur if the Splice parser fails to detect a
+            //        SQL expression which SparkSQL does not support.
+//          try {
+                Pair<Dataset<Row>, OperationContext> pair = f.nativeTransformation(dataset, context);
+                OperationContext c = pair.getSecond() == null ? this.context : pair.getSecond();
+                return new NativeSparkDataSet<>(pair.getFirst(), c);
+//          }
+//          catch (Exception e) {
+//               Switch back to non-native DataSet if the SparkSQL filter is not supported.
+//          }
         }
         try {
             return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context)).filter(f, isLast, pushScope, scopeDetail);
@@ -820,6 +831,27 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     .createDataFrame(
                             rdd.map(new LocatedRowToRowFunction()),
                             context.getOperation()
+                                    .getExecRowDefinition()
+                                    .schema());
+        } catch (Exception e) {
+            throw Exceptions.throwAsRuntime(e);
+        }
+    }
+
+    /**
+     * Take a Splice SparkDataSet (RDD) in the consumer's context, with a single source,
+     * and convert it to a NativeSparkDataSet (Dataset<Row>) doing a map.
+     * @param context
+     * @return
+     * @throws Exception
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    static <V> Dataset<Row> sourceRDDToSparkRow(JavaRDD<V> rdd, OperationContext context) {
+        try {
+            return SpliceSpark.getSession()
+                    .createDataFrame(
+                            rdd.map(new LocatedRowToRowFunction()),
+                            context.getOperation().getLeftOperation()
                                     .getExecRowDefinition()
                                     .schema());
         } catch (Exception e) {
