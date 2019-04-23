@@ -14,15 +14,14 @@
 
 package org.apache.hadoop.hbase.ipc;
 
-import com.google.protobuf.RpcCallback;
-
 import java.io.IOException;
 import java.io.InterruptedIOException;
 
 /**
  * Created by jyuan on 4/9/19.
  */
-public class BlockingRpcCallback<R> implements RpcCallback<R> {
+public class BlockingRpcCallback<R> implements org.apache.hbase.thirdparty.com.google.protobuf.RpcCallback<R>,
+                                               com.google.protobuf.RpcCallback<R> {
     private R result;
     private boolean resultSet = false;
 
