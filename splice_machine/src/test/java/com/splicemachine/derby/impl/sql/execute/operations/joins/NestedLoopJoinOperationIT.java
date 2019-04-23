@@ -428,4 +428,68 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void testNLJWithRightTableContainsSubquery() throws Exception {
+        /* test control path */
+        String sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=false\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4 where b4 in (values 'a', 'd')) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        String expected = "B3 |\n" +
+                "----\n" +
+                " a |";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* test spark path */
+        sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=true\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4 where b4 in (values 'a', 'd')) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNLJWithRightTableContainsUnionAndJoin() throws Exception {
+                /* test control path */
+        String sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=false\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4) S\n" +
+                "        UNION\n" +
+                "        SELECT *\n" +
+                "        FROM (select X.* from t4 as X, t4 as Y where X.a4=Y.a4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        String expected = "B3 |\n" +
+                "----\n" +
+                " a |";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* test spark path */
+        sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=true\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4) S\n" +
+                "        UNION\n" +
+                "        SELECT *\n" +
+                "        FROM (select X.* from t4 as X, t4 as Y where X.a4=Y.a4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }
