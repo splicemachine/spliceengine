@@ -1528,13 +1528,13 @@
                 <hbase.version>1.2.0-cdh5.14.0</hbase.version>
                 <hive.version>1.1.0-cdh5.14.0</hive.version>
                 <guava.version>15.0</guava.version>
-                <spark.major.version>spark2.2.2</spark.major.version>
+                <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
                 <spark.version>2.2.2</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-                <parquet.version>parquet-cloudera</parquet.version>
+                <parquet.version>dbaas-spark2.2.2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>

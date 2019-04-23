@@ -101,7 +101,6 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -339,12 +338,16 @@
                      <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-shade-plugin</artifactId>
+                        <version>3.2.1</version>
                         <configuration>
+                            <encoding>UTF-8</encoding>
+                            <extractors>
+                                <extractor>java</extractor>
+                            </extractors>
                             <artifactSet>
-                                <includes>
-                                    <include>io.netty:netty-all</include>
-                                    <!-- <include>com.typesafe.akka:akka-remote_${scala.binary.version}</include> -->
-                                </includes>
+                                <excludes>
+                                    <exclude>org.python:jython-standalone:*</exclude>
+                                </excludes>
                             </artifactSet>
                             <filters>
                                 <filter>
