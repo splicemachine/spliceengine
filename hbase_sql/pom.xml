@@ -101,6 +101,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -340,13 +341,12 @@
                         <artifactId>maven-shade-plugin</artifactId>
                         <version>3.2.1</version>
                         <configuration>
-                            <encoding>UTF-8</encoding>
-                            <extractors>
-                                <extractor>java</extractor>
-                            </extractors>
                             <artifactSet>
+                                <includes>
+                                    <include>io.netty:netty-all</include>
+                                </includes>
                                 <excludes>
-                                    <exclude>org.python:jython-standalone:*</exclude>
+                                    <exclude>com.esotericsoftware:kryo-shaded</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
