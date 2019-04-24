@@ -1533,7 +1533,7 @@
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
-                <parquet.version>dbaas-spark2.2.2</parquet.version>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
