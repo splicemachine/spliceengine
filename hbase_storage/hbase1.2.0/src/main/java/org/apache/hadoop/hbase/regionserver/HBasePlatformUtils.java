@@ -49,6 +49,8 @@ import org.apache.hadoop.yarn.server.api.protocolrecords.NodeHeartbeatRequest;
 import org.apache.hadoop.yarn.server.api.protocolrecords.NodeHeartbeatResponse;
 import org.apache.hadoop.yarn.server.api.protocolrecords.RegisterNodeManagerRequest;
 import org.apache.hadoop.yarn.server.api.protocolrecords.RegisterNodeManagerResponse;
+import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
+import org.apache.hadoop.yarn.server.nodemanager.containermanager.ContainerManagerImpl;
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceTrackerService;
 import org.apache.log4j.Logger;
 
@@ -236,5 +238,14 @@ public class HBasePlatformUtils{
                 return response;
             }
         };
+    }
+    public static void waitForNMToRegister(NodeManager nm)
+            throws Exception {
+        int attempt = 60;
+        ContainerManagerImpl cm =
+                ((ContainerManagerImpl) nm.getNMContext().getContainerManager());
+        while (cm.getBlockNewContainerRequestsStatus() && attempt-- > 0) {
+            Thread.sleep(2000);
+        }
     }
 }

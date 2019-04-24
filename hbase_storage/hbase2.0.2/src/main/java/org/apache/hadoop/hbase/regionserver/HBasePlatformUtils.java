@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.io.Reference;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileScanner;
+import org.apache.hadoop.hbase.ipc.RpcCall;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
@@ -40,13 +41,18 @@ import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.server.api.ResourceTracker;
 import org.apache.hadoop.yarn.server.api.protocolrecords.*;
+import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
+import org.apache.hadoop.yarn.server.nodemanager.security.NMContainerTokenSecretManager;
+import org.apache.hadoop.yarn.server.nodemanager.security.NMTokenSecretManagerInNM;
 import org.apache.hadoop.yarn.server.resourcemanager.ResourceTrackerService;
+import org.apache.hadoop.yarn.server.resourcemanager.security.RMContainerTokenSecretManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -108,7 +114,8 @@ public class HBasePlatformUtils{
     }
 
     public static RpcCallContext getRpcCallContext() {
-        return RpcServer.getCurrentCall().get();
+        Optional<RpcCall> rpcCall = RpcServer.getCurrentCall();
+        return rpcCall.isPresent() ? rpcCall.get() : null;
     }
 
     public static HTableDescriptor getTableDescriptor(Region r) {
@@ -215,6 +222,14 @@ public class HBasePlatformUtils{
                 RegisterNodeManagerResponse response;
                 try {
                     response = rt.registerNodeManager(request);
+
+                } catch (NullPointerException npe) {
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException ie) {
+                        throw new IOException(ie);
+                    }
+                    return registerNodeManager(request);
                 } catch (YarnException e) {
                     LOG.info("Exception in node registration from "
                             + request.getNodeId().toString(), e);
@@ -237,5 +252,22 @@ public class HBasePlatformUtils{
                 return response;
             }
         };
+    }
+
+    public static void waitForNMToRegister(NodeManager nm) throws Exception{
+        NMTokenSecretManagerInNM nmTokenSecretManagerNM =
+                nm.getNMContext().getNMTokenSecretManager();
+        NMContainerTokenSecretManager containerTokenSecretManager = nm.getNMContext().getContainerTokenSecretManager();
+        int attempt = 60;
+        while(attempt-- > 0) {
+            try {
+                if (nmTokenSecretManagerNM.getCurrentKey() != null && containerTokenSecretManager.getCurrentKey() != null) {
+                    break;
+                }
+            } catch (Exception e) {
+
+            }
+            Thread.sleep(2000);
+        }
     }
 }

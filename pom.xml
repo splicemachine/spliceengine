@@ -236,7 +236,7 @@
                 <artifactId>disruptor</artifactId>
                 <version>3.3.0</version>
             </dependency>
-            <dependency>
+            <!--dependency>
                 <groupId>com.sun.jersey</groupId>
                 <artifactId>jersey-core</artifactId>
                 <version>1.9</version>
@@ -246,7 +246,7 @@
                         <artifactId>asm</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
+            </dependency-->
             <dependency>
                 <groupId>com.yammer.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
