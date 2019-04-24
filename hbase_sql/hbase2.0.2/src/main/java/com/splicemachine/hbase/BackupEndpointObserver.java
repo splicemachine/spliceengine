@@ -24,12 +24,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.RegionObserver;
+import org.apache.hadoop.hbase.coprocessor.*;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
@@ -39,18 +35,20 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
+import org.spark_project.guava.collect.Lists;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by jyuan on 2/18/16.
  */
-public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorService implements CoprocessorService,Coprocessor, RegionObserver {
+public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorService implements RegionCoprocessor, RegionObserver {
     private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
 
     private AtomicBoolean isSplitting;
@@ -94,8 +92,10 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
     }
 
     @Override
-    public Service getService(){
-        return this;
+    public Iterable<Service> getServices() {
+        List<Service> services = Lists.newArrayList();
+        services.add(this);
+        return services;
     }
 
 
@@ -329,5 +329,10 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
         catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
+    }
+
+    @Override
+    public Optional<RegionObserver> getRegionObserver() {
+        return Optional.of(this);
     }
 }

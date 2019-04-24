@@ -115,6 +115,9 @@ public class HBasePlatformUtils{
         return (HTableDescriptor)r.getTableDescriptor();
     }
 
+    public static String getTableNameAsString(Region r) {
+        return r.getTableDescriptor().getTableName().getQualifierAsString();
+    }
     public static StoreFileInfo getFileInfo(StoreFile file) {
         return ((HStoreFile)file).getFileInfo();
     }

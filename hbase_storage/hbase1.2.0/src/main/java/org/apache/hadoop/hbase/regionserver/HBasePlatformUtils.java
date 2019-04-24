@@ -115,6 +115,10 @@ public class HBasePlatformUtils{
         return e.getRegion().getTableDesc().getTableName();
     }
 
+    public static String getTableNameAsString(Region r) {
+        return r.getTableDesc().getTableName().getQualifierAsString();
+    }
+
     public static RpcCallContext getRpcCallContext() {
         return RpcServer.getCurrentCall();
     }

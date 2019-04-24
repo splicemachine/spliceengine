@@ -45,7 +45,6 @@ import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.HPartitionLoad;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;

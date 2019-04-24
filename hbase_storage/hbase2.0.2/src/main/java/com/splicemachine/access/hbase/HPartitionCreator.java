@@ -56,9 +56,13 @@ public class HPartitionCreator implements PartitionCreator{
 
     @Override
     public PartitionCreator withDisplayNames(String[] displayNames){
-        descriptor.setValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, displayNames[0]);
+        if (displayNames[0] != null) {
+            descriptor.setValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, displayNames[0]);
+        }
         descriptor.setValue(SIConstants.TABLE_DISPLAY_NAME_ATTR, displayNames[1] != null ? displayNames[1] : descriptor.getNameAsString());
-        descriptor.setValue(SIConstants.INDEX_DISPLAY_NAME_ATTR, displayNames[2]);
+        if (displayNames[2] != null) {
+            descriptor.setValue(SIConstants.INDEX_DISPLAY_NAME_ATTR, displayNames[2]);
+        }
         return this;
     }
 

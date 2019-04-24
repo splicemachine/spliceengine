@@ -38,25 +38,18 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 1/26/16
  */
-public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorService implements CoprocessorService,Coprocessor{
-    private static final Logger LOG=Logger.getLogger(RegionSizeEndpoint.class);
+public class BaseRegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorService {
+    private static final Logger LOG=Logger.getLogger(BaseRegionSizeEndpoint.class);
     private HRegion region;
     private String hostName;
 
-    @Override
-    public void start(CoprocessorEnvironment env) throws IOException{
+    public void startAction(CoprocessorEnvironment env) throws IOException{
         hostName = HBasePlatformUtils.getRegionServerServices((RegionCoprocessorEnvironment) env).getServerName().getHostname();
         region = (HRegion)((RegionCoprocessorEnvironment) env).getRegion();
     }
 
-    @Override
-    public void stop(CoprocessorEnvironment env) throws IOException{
+    public void stopAction(CoprocessorEnvironment env) throws IOException{
 
-    }
-
-    @Override
-    public Service getService(){
-        return this;
     }
 
     @Override

@@ -20,10 +20,12 @@ import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.MasterObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Optional;
 
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
@@ -41,13 +43,20 @@ public class SpliceMasterObserver extends SpliceBaseMasterObserver implements Ma
     }
 
     @Override
-    public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, TableDescriptor desc, RegionInfo[] regions) throws IOException {
+    public void preCreateTableAction(ObserverContext<MasterCoprocessorEnvironment> ctx, TableDescriptor desc, RegionInfo[] regions) throws IOException {
         SpliceLogUtils.info(LOG, "SpliceMasterObserver.preCreateTable()");
-        splicePreCreateTableAction(ctx, (HTableDescriptor) desc, (HRegionInfo[]) regions);
+
+        splicePreCreateTableAction(ctx, desc.getTableName(), null);
     }
 
     @Override
     public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         splicePostStartMasterAction(ctx);
+    }
+
+
+    @Override
+    public Optional<MasterObserver> getMasterObserver() {
+        return Optional.of(this);
     }
 }

@@ -49,9 +49,11 @@ import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.collect.Lists;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -60,8 +62,8 @@ import java.io.IOException;
  * @author Scott Fines
  *         Created on: 3/11/13
  */
-public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implements CoprocessorService,Coprocessor{
-    private static final Logger LOG=Logger.getLogger(SpliceIndexEndpoint.class);
+public class BaseSpliceIndexEndpoint extends SpliceMessage.SpliceIndexService {
+    private static final Logger LOG=Logger.getLogger(BaseSpliceIndexEndpoint.class);
 
     private PartitionWritePipeline writePipeline;
     private PipelineWriter pipelineWriter;
@@ -71,10 +73,8 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     private volatile PipelineLoadService<TableName> service;
     private long conglomId = -1;
 
-
-    @Override
     @SuppressWarnings("unchecked")
-    public void start(final CoprocessorEnvironment env) throws IOException{
+    public void startAction(final CoprocessorEnvironment env) throws IOException{
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)env);
         final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion(),HBasePlatformUtils.getRegionServerServices(rce));
 
@@ -131,11 +131,6 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         }
     }
 
-    //    @Override
-    public SpliceIndexEndpoint getBaseIndexEndpoint(){
-        return this;
-    }
-
     @Override
     public void bulkWrite(RpcController controller,
                           SpliceMessage.BulkWriteRequest request,
@@ -154,13 +149,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         }
     }
 
-    @Override
-    public Service getService(){
-        return this;
-    }
-
-    @Override
-    public void stop(CoprocessorEnvironment env) throws IOException{
+    protected void stopAction(CoprocessorEnvironment env) throws IOException{
         if(writePipeline!=null){
             writePipeline.close();
             PipelineDriver.driver().deregisterPipeline(((RegionCoprocessorEnvironment)env).getRegion().getRegionInfo().getRegionNameAsString());

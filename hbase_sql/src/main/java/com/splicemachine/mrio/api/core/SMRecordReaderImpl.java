@@ -238,7 +238,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			this.mrs = srs;
 			ExecRow template = getExecRow();
             assert this.hregion !=null:"Returned null HRegion for htable "+htable.getName();
-			long conglomId = Long.parseLong(HBasePlatformUtils.getTableDescriptor(hregion).getTableName().getQualifierAsString());
+			long conglomId = Long.parseLong(HBasePlatformUtils.getTableNameAsString(hregion));
             TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));
             TxnView parentTxn = builder.getTxn();
             this.localTxn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(), true, null);

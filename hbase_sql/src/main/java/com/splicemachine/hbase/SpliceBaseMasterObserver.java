@@ -32,12 +32,7 @@ import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
-import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
@@ -111,9 +106,15 @@ public abstract class SpliceBaseMasterObserver extends BaseMasterObserver {
         }
     }
 
-    protected void splicePreCreateTableAction(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {        try {
-            SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
-            if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
+    protected void splicePreCreateTableAction(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {
+        splicePreCreateTableAction(ctx, desc.getTableName(), regions);
+
+    }
+
+    protected void splicePreCreateTableAction(ObserverContext<MasterCoprocessorEnvironment> ctx, TableName tableName, HRegionInfo[] regions) throws IOException {
+        try {
+            SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(tableName.getName()));
+            if (Bytes.equals(tableName.getName(), INIT_TABLE)) {
                 switch(manager.getState()){
                     case NOT_STARTED:
                         throw new PleaseHoldException("Please Hold - Master not started");

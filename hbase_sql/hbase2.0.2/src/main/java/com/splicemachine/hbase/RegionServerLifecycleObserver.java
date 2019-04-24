@@ -63,5 +63,4 @@ public class RegionServerLifecycleObserver extends BaseRegionServerLifecycleObse
     public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException{
         preStopRegionServerAction(env);
     }
-
 }

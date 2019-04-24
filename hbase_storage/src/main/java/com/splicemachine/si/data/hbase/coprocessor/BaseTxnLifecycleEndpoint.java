@@ -15,19 +15,14 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
 import java.io.IOException;
-
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.util.StringUtils;
 import org.spark_project.guava.primitives.Longs;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
-import com.google.protobuf.Service;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -55,8 +50,8 @@ import org.spark_project.guava.base.Supplier;
  * @author Scott Fines
  *         Date: 6/19/14
  */
-public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService implements CoprocessorService, Coprocessor{
-    private static final Logger LOG=Logger.getLogger(TxnLifecycleEndpoint.class);
+public class BaseTxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService {
+    private static final Logger LOG=Logger.getLogger(BaseTxnLifecycleEndpoint.class);
 
     private TxnLifecycleStore lifecycleStore;
     private volatile boolean isTxnTable=false;
@@ -73,8 +68,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         }
     });
 
-    @Override
-    public void start(CoprocessorEnvironment env) throws IOException{
+    protected void startAction(CoprocessorEnvironment env) throws IOException{
         try {
             RegionCoprocessorEnvironment rce=(RegionCoprocessorEnvironment)env;
             HRegion region=(HRegion)rce.getRegion();
@@ -102,8 +96,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         }
     }
 
-    @Override
-    public void stop(CoprocessorEnvironment env) throws IOException {
+    protected void stopAction(CoprocessorEnvironment env) throws IOException {
         try {
             SpliceLogUtils.info(LOG, "Shutting down TxnLifecycleEndpoint");
             if(isTxnTable) {
@@ -112,12 +105,6 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
-    }
-
-    @Override
-    public Service getService(){
-        SpliceLogUtils.trace(LOG,"Getting the TxnLifecycle Service");
-        return this;
     }
 
     @Override

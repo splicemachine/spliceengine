@@ -17,10 +17,16 @@ package com.splicemachine.si.data.hbase.coprocessor;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
+
+import com.google.protobuf.Service;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.filter.ByteArrayComparable;
 import org.apache.hadoop.hbase.ipc.RpcServer;
 import org.apache.hadoop.hbase.regionserver.*;
@@ -32,14 +38,16 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.wal.WALEdit;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.collect.Lists;
 
 /**
  * An HBase coprocessor that applies SI logic to HBase read/write operations.
  */
-public class SIObserver extends BaseSIObserver  {
+public class SIObserver extends BaseSIObserver implements RegionCoprocessor{
+    private static Logger LOG = Logger.getLogger(SIObserver.class);
 
     @Override
-    public void preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,Scan scan) throws IOException{
+    public void preScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan) throws IOException {
         preScannerOpenAction(scan);
     }
 
@@ -121,4 +129,8 @@ public class SIObserver extends BaseSIObserver  {
         super.preBulkLoadHFile(ctx, familyPaths);
     }
 
+    @Override
+    public Optional<RegionObserver> getRegionObserver() {
+        return Optional.of(this);
+    }
 }

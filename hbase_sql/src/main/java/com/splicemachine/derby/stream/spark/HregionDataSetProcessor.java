@@ -82,7 +82,7 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
                     });
 
 
-                    long conglomId = Long.parseLong(HBasePlatformUtils.getTableDescriptor(hregion).getTableName().getQualifierAsString());
+                    long conglomId = Long.parseLong(HBasePlatformUtils.getTableNameAsString(hregion));
                     TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));
                     this.region(region)
                             .template(template)

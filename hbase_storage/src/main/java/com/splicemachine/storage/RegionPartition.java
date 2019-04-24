@@ -63,7 +63,7 @@ public class RegionPartition implements Partition{
 
     @Override
     public String getTableName(){
-        return HBasePlatformUtils.getTableDescriptor(region).getTableName().getQualifierAsString();
+        return HBasePlatformUtils.getTableNameAsString(region);
     }
 
     @Override

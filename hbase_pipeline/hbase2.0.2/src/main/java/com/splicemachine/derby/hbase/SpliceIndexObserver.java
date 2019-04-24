@@ -44,6 +44,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -56,6 +57,7 @@ import org.spark_project.guava.base.Function;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Region Observer for managing indices.
@@ -63,7 +65,7 @@ import java.util.List;
  * @author Scott Fines
  *         Created on: 2/28/13
  */
-public class SpliceIndexObserver implements RegionObserver, Coprocessor {
+public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
     private static final Logger LOG = Logger.getLogger(SpliceIndexObserver.class);
 
     private long conglomId=-1L;
@@ -261,4 +263,8 @@ public class SpliceIndexObserver implements RegionObserver, Coprocessor {
         }
     }
 
+    @Override
+    public Optional<RegionObserver> getRegionObserver() {
+        return Optional.of(this);
+    }
 }

@@ -16,20 +16,23 @@ package com.splicemachine.hbase;
 
 import com.splicemachine.access.client.MemstoreAware;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.coprocessor.RegionObserver;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Scott Fines
  *         Date: 12/28/15
  */
-public class MemstoreAwareObserver extends BaseMemstoreAwareObserver{
+public class MemstoreAwareObserver extends BaseMemstoreAwareObserver implements RegionCoprocessor{
     private static final Logger LOG = Logger.getLogger(MemstoreAwareObserver.class);
     private AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());     // Atomic Reference to memstore aware state handling
 
@@ -56,6 +59,11 @@ public class MemstoreAwareObserver extends BaseMemstoreAwareObserver{
     public void postFlush(ObserverContext<RegionCoprocessorEnvironment> c, Store store, StoreFile resultFile,
                           FlushLifeCycleTracker tracker) throws IOException{
         postFlushAction(c, store, resultFile);
+    }
+
+    @Override
+    public Optional<RegionObserver> getRegionObserver() {
+        return Optional.of(this);
     }
 
      //FIXME: 4/12/19

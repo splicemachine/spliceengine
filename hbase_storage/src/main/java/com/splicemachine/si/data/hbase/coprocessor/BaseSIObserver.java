@@ -54,7 +54,7 @@ import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
  * Created by jyuan on 4/11/19.
  */
 public abstract class BaseSIObserver extends BaseRegionObserver {
-    private static Logger LOG=Logger.getLogger(SIObserver.class);
+    private static Logger LOG=Logger.getLogger(BaseSIObserver.class);
 
     protected boolean tableEnvMatch=false;
     protected boolean spliceTable=false;
