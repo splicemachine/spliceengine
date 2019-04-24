@@ -526,4 +526,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         rs.next();
         Assert.assertEquals("wrong result", 1280, rs.getInt(1));
     }
+
+    @Test
+    public void testDNFToCNFRewrite() throws Exception {
+        Assert.assertEquals(1,2);
+    }
 }
