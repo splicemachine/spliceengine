@@ -786,10 +786,7 @@
                                             <exclude>org.apache.hive:*</exclude>
                                             <exclude>org.apache.zookeeper:zookeeper</exclude>
                                             <exclude>org.apache.hive.shims:*</exclude>
-                                            <exclude>org.xerial.snappy:snappy-java</exclude>
                                             <exclude>com.amazonaws:*</exclude>
-                                            <exclude>com.esotericsoftware:kryo-shaded</exclude>
-                                            <exclude>com.google.guava:guava</exclude>
                                             <exclude>com.mapr*:*</exclude>
                                             <exclude>mapr.fs*:*</exclude>
                                             <exclude>com.sun.jersey:*</exclude>
@@ -814,6 +811,10 @@
                                         <relocation>
                                             <pattern>org.jboss.netty</pattern>
                                             <shadedPattern>splice.org.jboss.netty</shadedPattern>
+                                        </relocation>
+                                        <relocation>
+                                            <pattern>io.netty</pattern>
+                                            <shadedPattern>org.spark_project.io.netty</shadedPattern>
                                         </relocation>
                                         <relocation>
                                             <pattern>javax.ws</pattern>
