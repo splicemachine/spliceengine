@@ -386,6 +386,9 @@
         </profile>
         <profile>
             <id>dbaas</id>
+            <properties>
+                <scala.version>2.11.8</scala.version>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
