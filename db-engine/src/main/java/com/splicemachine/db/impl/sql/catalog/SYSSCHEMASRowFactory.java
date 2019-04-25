@@ -245,7 +245,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 		};
 	}
 
-	public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
+	private static final String REGULAR_USER_SCHEMA =
 	"SELECT S.* " +
 	"FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
 	"WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
@@ -253,5 +253,22 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	"UNION " +
 	"SELECT S.* " +
 	"FROM SYS.SYSSCHEMAS as S " +
-	"WHERE S.authorizationId in (values current_user, 'PUBLIC')";
+	"WHERE S.authorizationId " +
+	"     in (values current_user, 'PUBLIC' " +
+	"         union all " +
+	"         select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI() as b (NAME VARCHAR(128)))";
+
+	private static final String SUPER_USER_SCHEMA =
+	"SELECT S.* " +
+	"FROM SYS.SYSSCHEMAS as S ";
+
+	public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
+			SUPER_USER_SCHEMA +
+			"WHERE 'SPLICE' in (select name from (values current_user) usr (name) \n" +
+			"                   union all " +
+			"                   select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI() as b (NAME VARCHAR(128))) \n" +
+			"UNION " +
+			REGULAR_USER_SCHEMA;
+
+
 }

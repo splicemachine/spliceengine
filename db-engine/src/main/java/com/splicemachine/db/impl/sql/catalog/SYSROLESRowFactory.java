@@ -293,6 +293,8 @@ public class SYSROLESRowFactory extends CatalogRowFactory
             "create recursive view sysallroles as \n" +
             "    select name from (values current_user) usr (name) \n" +
             "    union all\n" +
+            "    select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI() as b (NAME VARCHAR(128)) \n" +
+            "    union all\n" +
             "    select name from (values 'PUBLIC') usr (name) \n" +
             "    union all\n" +
             "    select roleid as name from sys.sysroles R, sysallroles A where A.name = R.grantee and R.isdef = 'N'";
