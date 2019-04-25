@@ -337,7 +337,7 @@ abstract class SetOperatorNode extends TableOperatorNode
 
 		JBitSet tableNums = new JBitSet(getReferencedTableMap().size());
 		BaseTableNumbersVisitor btnVis =
-			new BaseTableNumbersVisitor(tableNums, true);
+			new BaseTableNumbersVisitor(tableNums);
 
 		// Check the left child.
 		leftResultSet.accept(btnVis);
