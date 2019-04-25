@@ -58,7 +58,7 @@ public class BaseTableNumbersVisitor implements Visitor
 	 * base table was.
 	 */
 	private int columnNumber;
-	private boolean doNotAllowLimitN = false;
+	private boolean doNotAllowLimitNAndJoin = false;
 	private boolean stopTraversing = false;
 
 	/**
@@ -73,11 +73,11 @@ public class BaseTableNumbersVisitor implements Visitor
 		columnNumber = -1;
 	}
 
-	public BaseTableNumbersVisitor(JBitSet tableMap, boolean doNotAllowLimitN)
+	public BaseTableNumbersVisitor(JBitSet tableMap, boolean doNotAllowLimitNAndJoin)
 	{
 		this.tableMap = tableMap;
 		columnNumber = -1;
-		this.doNotAllowLimitN = doNotAllowLimitN;
+		this.doNotAllowLimitNAndJoin = doNotAllowLimitNAndJoin;
 	}
 	/**
 	 * Set a new JBitSet to serve as the holder for base table numbers
@@ -142,11 +142,25 @@ public class BaseTableNumbersVisitor implements Visitor
 			rc = (ResultColumn)node;
 		else if (node instanceof SelectNode)
 		{
-			if (doNotAllowLimitN && (((SelectNode) node).offset != null || ((SelectNode) node).fetchFirst != null)) {
-				stopTraversing = true;
-				tableMap.clearAll();
-				columnNumber = -1;
-				return node;
+			if (doNotAllowLimitNAndJoin) {
+				boolean noPush = false;
+				// no limit n/top n
+				if (((SelectNode) node).offset != null || ((SelectNode) node).fetchFirst != null) {
+					noPush = true;
+				}
+
+				// no join
+				if (((SelectNode) node).fromList.size() > 1 ||
+						((SelectNode) node).fromList.elementAt(0) instanceof JoinNode) {
+					noPush = true;
+				}
+
+				if (noPush) {
+					stopTraversing = true;
+					tableMap.clearAll();
+					columnNumber = -1;
+					return node;
+				}
 			}
 
 			// If the node is a SelectNode we just need to look at its
