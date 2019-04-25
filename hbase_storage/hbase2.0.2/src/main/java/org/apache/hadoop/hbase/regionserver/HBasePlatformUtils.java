@@ -15,10 +15,16 @@
 package org.apache.hadoop.hbase.regionserver;
 
 
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.RegionLocator;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -185,8 +191,15 @@ public class HBasePlatformUtils{
                 smallestReadPoint, earliestPutTs);
     }
 
-    public static void bulkLoad(Configuration conf, LoadIncrementalHFiles loader, Path restorePath, String fullTableName) {
-
+    public static void bulkLoad(Configuration conf, LoadIncrementalHFiles loader,
+                                Path path, String fullTableName) throws IOException {
+        SConfiguration configuration = HConfiguration.getConfiguration();
+        org.apache.hadoop.hbase.client.Connection conn = HBaseConnectionFactory.getInstance(configuration).getConnection();
+        HBaseAdmin admin = (HBaseAdmin) conn.getAdmin();
+        TableName tableName = TableName.valueOf(fullTableName);
+        RegionLocator locator = conn.getRegionLocator(tableName);
+        Table table = conn.getTable(tableName);
+        loader.doBulkLoad(path, admin, table, locator);
     }
 
     public static HalfStoreFileReader createHalfStoreFileReader(FileSystem fs,

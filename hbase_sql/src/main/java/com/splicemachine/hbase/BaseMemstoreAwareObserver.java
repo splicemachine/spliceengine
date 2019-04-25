@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class BaseMemstoreAwareObserver extends BaseRegionObserver implements RegionObserver {
     private static final Logger LOG = Logger.getLogger(BaseMemstoreAwareObserver.class);
-    private AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());     // Atomic Reference to memstore aware state handling
+    protected AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());     // Atomic Reference to memstore aware state handling
 
     protected InternalScanner preCompactAction(ObserverContext<RegionCoprocessorEnvironment> e,
                                                Store store,
@@ -249,17 +249,17 @@ public abstract class BaseMemstoreAwareObserver extends BaseRegionObserver imple
     }
 
 
-    private boolean startRowInRange(ObserverContext<RegionCoprocessorEnvironment> c, byte[] startRow) {
+    protected boolean startRowInRange(ObserverContext<RegionCoprocessorEnvironment> c, byte[] startRow) {
         return HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), startRow);
     }
 
-    private boolean stopRowInRange(ObserverContext<RegionCoprocessorEnvironment> c, byte[] stopRow) {
+    protected boolean stopRowInRange(ObserverContext<RegionCoprocessorEnvironment> c, byte[] stopRow) {
         return HRegion.rowIsInRange(c.getEnvironment().getRegion().getRegionInfo(), stopRow)
                 || Bytes.equals(c.getEnvironment().getRegion().getRegionInfo().getEndKey(), stopRow);
 
     }
 
-    private long getReadpoint(HRegion region){
+    protected long getReadpoint(HRegion region){
         return HBasePlatformUtils.getReadpoint(region);
     }
 

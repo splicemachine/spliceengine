@@ -12,7 +12,8 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.apache.hadoop.hbase.ipc;
+
+package com.splicemachine.hbase;
 
 
 import java.io.IOException;
@@ -21,8 +22,7 @@ import java.io.InterruptedIOException;
 /**
  * Created by jyuan on 4/9/19.
  */
-public class BlockingRpcCallback<R> implements org.apache.hbase.thirdparty.com.google.protobuf.RpcCallback<R>,
-                                               com.google.protobuf.RpcCallback<R> {
+public class BlockingRpcCallback<R> implements com.google.protobuf.RpcCallback<R> {
     private R result;
     private boolean resultSet = false;
 

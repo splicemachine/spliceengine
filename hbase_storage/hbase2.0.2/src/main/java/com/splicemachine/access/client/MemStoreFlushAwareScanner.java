@@ -20,19 +20,15 @@ import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HStore;
-import org.apache.hadoop.hbase.regionserver.ScanInfo;
-import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.hadoop.hbase.regionserver.StoreScanner;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
-import org.apache.hadoop.hbase.regionserver.ScannerContext;
-import org.apache.hadoop.hbase.regionserver.NoLimitScannerContext;
 
 
 /**
@@ -55,7 +51,7 @@ import org.apache.hadoop.hbase.regionserver.NoLimitScannerContext;
  * (rowkey=null,timestamp=0l,F,F,F)
  * 
  */
-public class MemStoreFlushAwareScanner extends StoreScanner {
+public class MemStoreFlushAwareScanner extends StoreScanner implements RegionScanner {
     protected static final Logger LOG = Logger.getLogger(MemStoreFlushAwareScanner.class);
     protected AtomicReference<MemstoreAware> memstoreAware;
     protected MemstoreAware initialValue;
@@ -65,6 +61,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
     protected boolean flushAlreadyReturned = false;
     protected int counter = 0;
     private final byte[] stopRow;
+    private Filter filter;
+    private int batch;
 
     public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
                                      final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
@@ -75,6 +73,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         this.initialValue = initialValue;
         this.region = region;
         this.stopRow = Bytes.equals(scan.getStopRow(), HConstants.EMPTY_END_ROW) ? null : scan.getStopRow();
+        this.filter = scan.getFilter();
+        this.batch = scan.getBatch();
     }
     
     protected boolean isStopRow(Cell peek) {
@@ -205,4 +205,45 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
     }
 
 
+    @Override
+    public long getMvccReadPoint() {
+        return HBasePlatformUtils.getReadpoint(region);
+    }
+
+    @Override
+    public boolean nextRaw(List<Cell> result) throws IOException {
+        return next(result);
+    }
+
+    @Override
+    public boolean nextRaw(List<Cell> result, ScannerContext scannerContext) throws IOException {
+        return next(result, scannerContext);
+    }
+
+    @Override
+    public int getBatch() {
+        return batch;
+    }
+
+    @Override
+    public boolean isFilterDone() throws IOException {
+        return filter!=null && filter.filterAllRemaining();
+    }
+
+    @Override
+    public long getMaxResultSize() {
+        return Long.MAX_VALUE;
+    }
+
+    @Override
+    public boolean reseek(byte[] row) throws IOException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "reseek kv=%s",Bytes.toHex(row));
+        throw new IOException("reseek not implemented");
+    }
+
+    @Override
+    public RegionInfo getRegionInfo() {
+        return region.getRegionInfo();
+    }
 }

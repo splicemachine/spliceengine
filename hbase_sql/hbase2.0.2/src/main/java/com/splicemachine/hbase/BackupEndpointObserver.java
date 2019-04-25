@@ -48,7 +48,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Created by jyuan on 2/18/16.
  */
-public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorService implements RegionCoprocessor, RegionObserver {
+public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorService implements RegionCoprocessor, CoprocessorService, RegionObserver {
     private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
 
     private AtomicBoolean isSplitting;
@@ -335,4 +335,10 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
     public Optional<RegionObserver> getRegionObserver() {
         return Optional.of(this);
     }
+
+    @Override
+    public Service getService(){
+        return this;
+    }
+
 }

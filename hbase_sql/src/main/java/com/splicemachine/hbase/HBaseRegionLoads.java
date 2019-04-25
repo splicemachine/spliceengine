@@ -29,7 +29,6 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
