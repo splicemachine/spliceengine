@@ -58,8 +58,6 @@ public class BaseTableNumbersVisitor implements Visitor
 	 * base table was.
 	 */
 	private int columnNumber;
-	private boolean doNotAllowLimitN = false;
-	private boolean stopTraversing = false;
 
 	/**
 	 * Constructor: takes a JBitSet to use as the holder for any base table
@@ -73,12 +71,6 @@ public class BaseTableNumbersVisitor implements Visitor
 		columnNumber = -1;
 	}
 
-	public BaseTableNumbersVisitor(JBitSet tableMap, boolean doNotAllowLimitN)
-	{
-		this.tableMap = tableMap;
-		columnNumber = -1;
-		this.doNotAllowLimitN = doNotAllowLimitN;
-	}
 	/**
 	 * Set a new JBitSet to serve as the holder for base table numbers
 	 * we find while walking.
@@ -97,7 +89,6 @@ public class BaseTableNumbersVisitor implements Visitor
 	{
 		tableMap.clearAll();
 		columnNumber = -1;
-		stopTraversing = false;
 	}
 
 	/**
@@ -142,13 +133,6 @@ public class BaseTableNumbersVisitor implements Visitor
 			rc = (ResultColumn)node;
 		else if (node instanceof SelectNode)
 		{
-			if (doNotAllowLimitN && (((SelectNode) node).offset != null || ((SelectNode) node).fetchFirst != null)) {
-				stopTraversing = true;
-				tableMap.clearAll();
-				columnNumber = -1;
-				return node;
-			}
-
 			// If the node is a SelectNode we just need to look at its
 			// FROM list.
 			((SelectNode)node).getFromList().accept(this);
@@ -241,7 +225,7 @@ public class BaseTableNumbersVisitor implements Visitor
 	 */
 	public boolean stopTraversal()
 	{
-		return stopTraversing;
+		return false;
 	}
 
 	/**
