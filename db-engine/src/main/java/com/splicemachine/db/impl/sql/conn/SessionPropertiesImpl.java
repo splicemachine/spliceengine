@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.conn;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 
 import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR;
+import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.YARNQUEUE;
 import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.SKIPSTATS;
 import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.USESPARK;
 
@@ -63,6 +64,8 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean skipStatsVal = Boolean.valueOf(valString);
                 properties[SKIPSTATS.getId()] = skipStatsVal;
                 break;
+            case YARNQUEUE:
+                properties[YARNQUEUE.getId()] = valString;
             default:
                 break;
         }

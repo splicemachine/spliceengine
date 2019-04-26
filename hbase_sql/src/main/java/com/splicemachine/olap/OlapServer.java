@@ -30,6 +30,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -76,10 +77,23 @@ public class OlapServer {
         bootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
         bootstrap.childOption(ChannelOption.SO_REUSEADDR, true);
 
-        try {
-            this.channel = bootstrap.bind(new InetSocketAddress(getPortNumber())).sync().channel();
-        } catch (InterruptedException e) {
-            throw new IOException(e);
+        int portToTry = getPortNumber();
+        while(true) {
+            try {
+                this.channel = bootstrap.bind(new InetSocketAddress(portToTry)).sync().channel();
+                // channel is bound, break from retry loop
+                break;
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            } catch (Exception e){
+                if (e instanceof BindException && e.getMessage().contains("Address already in use")) {
+                    // try next port number
+                } else {
+                    throw e;
+                }
+            }
+            // Increase port number and try again
+            portToTry++;
         }
         port = ((InetSocketAddress)channel.localAddress()).getPort();
 

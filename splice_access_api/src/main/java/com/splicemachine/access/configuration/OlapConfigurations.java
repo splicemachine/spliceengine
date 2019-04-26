@@ -16,6 +16,14 @@
 package com.splicemachine.access.configuration;
 
 
+import org.spark_project.guava.base.Splitter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Repository for holding configuration keys for Olap client/server.
  * <p/>
@@ -116,6 +124,27 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_LOG4J_CONFIG = "splice.olap.log4j.configuration";
     public static final String DEFAULT_OLAP_LOG4J_CONFIG = null;
 
+    /* Map of roles to Splice queue names. Role names are case sensitive, typically they are all uppercase
+
+    Examples:
+        ISOLATEDROLE=customQueue
+        ROLE1=queue1,role2=queue2
+     */
+    public static final String OLAP_SERVER_ISOLATED_ROLES = "splice.olap_server.isolated.roles";
+    public static final String DEFAULT_OLAP_SERVER_ISOLATED_ROLES = "";
+
+    public static final String OLAP_SERVER_YARN_DEFAULT_QUEUE = "splice.olap_server.queue.default";
+    public static final String DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE = "default";
+
+    /* Map of Splice queues to YARN queues
+
+    Examples:
+       splice.olap_server.queue.customQueue=project1
+       splice.olap_server.queue.queue1=yarnQueue1
+       splice.olap_server.queue.queue2=yarnQueue2
+    */
+    public static final String OLAP_SERVER_YARN_QUEUES = "splice.olap_server.queue.";
+
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -144,5 +173,15 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.olapCompactionResolutionBufferSize = configurationSource.getInt(SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE);
         builder.olapCompactionBlocking = configurationSource.getBoolean(SPARK_COMPACTION_BLOCKING, DEFAULT_SPARK_COMPACTION_BLOCKING);
         builder.olapLog4jConfig = configurationSource.getString(OLAP_LOG4J_CONFIG, DEFAULT_OLAP_LOG4J_CONFIG);
+        String isolatedRoles = configurationSource.getString(OLAP_SERVER_ISOLATED_ROLES, DEFAULT_OLAP_SERVER_ISOLATED_ROLES);
+        builder.olapServerIsolatedRoles = isolatedRoles.isEmpty() ? Collections.emptyMap() : Splitter.on(",")
+                .withKeyValueSeparator("=")
+                .split(isolatedRoles);
+
+        Map<String, String> queues = new HashMap();
+        for (String queue : builder.olapServerIsolatedRoles.values()) {
+            queues.put(queue, configurationSource.getString(OLAP_SERVER_YARN_DEFAULT_QUEUE + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE));
+        }
+        builder.olapServerYarnQueues = queues;
     }
 }

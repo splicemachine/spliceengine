@@ -67,22 +67,25 @@ public class OlapServerMaster implements Watcher {
     private final ServerName serverName;
     private final AtomicBoolean end = new AtomicBoolean(false);
     private final int port;
+    private final String roleName;
     private RecoverableZooKeeper rzk;
     private String masterPath;
 
     UserGroupInformation ugi;
     UserGroupInformation yarnUgi;
 
-    public OlapServerMaster(ServerName serverName, int port) {
+    public OlapServerMaster(ServerName serverName, int port, String roleName) {
         this.serverName = serverName;
         this.port = port;
+        this.roleName = roleName;
     }
 
     public static void main(String[] args) throws Exception {
         try {
             final ServerName serverName = ServerName.parseServerName(args[0]);
             final int port = Integer.parseInt(args[1]);
-            new OlapServerMaster(serverName, port).run();
+            final String roleName = args[2];
+            new OlapServerMaster(serverName, port, roleName).run();
         } catch (Throwable t) {
             LOG.error("Failed due to unexpected exception, exiting forcefully", t);
         } finally {
@@ -192,7 +195,7 @@ public class OlapServerMaster implements Watcher {
 
         try {
             HostAndPort hostAndPort = HostAndPort.fromParts(hostname, port);
-            masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName;
+            masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName + ":" + roleName;
             rzk.create(masterPath, Bytes.toBytes(hostAndPort.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             rzk.getData(masterPath, this, null);
         } catch (Exception e) {

@@ -62,6 +62,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     private final ProtobufDecoder decoder=new ProtobufDecoder(OlapMessage.Response.getDefaultInstance(),buildExtensionRegistry());
     private final OlapServerProvider hostProvider;
     private final Object connectionLock = new Object();
+    private final String queue;
     private volatile boolean connected = false;
 
     private ExtensionRegistry buildExtensionRegistry(){
@@ -74,9 +75,10 @@ public class AsyncOlapNIOLayer implements JobExecutor{
     }
 
 
-    public AsyncOlapNIOLayer(OlapServerProvider hostProvider, int retries){
+    public AsyncOlapNIOLayer(OlapServerProvider hostProvider, String queue, int retries){
         this.maxRetries = retries;
         this.hostProvider = hostProvider;
+        this.queue = queue;
     }
 
     private void connect() throws IOException {
@@ -88,7 +90,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                 channelPool.close();
             if (executorService != null)
                 executorService.shutdown();
-            HostAndPort hap = hostProvider.olapServerHost();
+            HostAndPort hap = hostProvider.olapServerHost(queue);
             LOG.info("Connecting to " + hap);
 
             InetSocketAddress socketAddr = new InetSocketAddress(hap.getHostText(), hap.getPort());

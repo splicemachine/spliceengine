@@ -50,6 +50,11 @@ import org.apache.log4j.Logger;
 
 import javax.management.MBeanServer;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
@@ -161,14 +166,22 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         if (HConfiguration.getConfiguration().getOlapServerExternal()) {
             try {
                 manager.registerNetworkService(new DatabaseLifecycleService() {
-                    OlapServerSubmitter serverSubmitter;
+                    List<OlapServerSubmitter> serverSubmitter;
 
                     @Override
                     public void start() throws Exception {
-                        serverSubmitter = new OlapServerSubmitter(serverName);
-                        Thread thread = new Thread(serverSubmitter, "OlapServerSubmitter");
-                        thread.setDaemon(true);
-                        thread.start();
+                        Collection<String> queues = HConfiguration.getConfiguration().getOlapServerIsolatedRoles().values();
+                        serverSubmitter = new ArrayList<>();
+                        Set<String> names = new HashSet<>(queues);
+                        names.add("default");
+
+                        for (String queue : names) {
+                            OlapServerSubmitter oss = new OlapServerSubmitter(serverName, queue);
+                            serverSubmitter.add(oss);
+                            Thread thread = new Thread(oss, "OlapServerSubmitter-"+queue);
+                            thread.setDaemon(true);
+                            thread.start();
+                        }
                     }
 
                     @Override
@@ -177,7 +190,9 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
                     @Override
                     public void shutdown() throws Exception {
-                        serverSubmitter.stop();
+                        for (OlapServerSubmitter oss : serverSubmitter) {
+                            oss.stop();
+                        }
                     }
                 });
             } catch(Exception e){
