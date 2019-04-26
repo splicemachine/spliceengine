@@ -795,7 +795,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         List<ExecRow> results=new ArrayList<>();
         try(PreparedStatement preparedStatement=SpliceAdmin.getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, " +
                 "C.ISINDEX, "+
-                "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S "+
+                "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMASVIEW S "+
                 "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLETYPE not in ('S','E') "+
                 "ORDER BY S.SCHEMANAME")){
             try(ResultSet allTablesInSchema=preparedStatement.executeQuery()){
@@ -1054,7 +1054,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     private static final String sqlConglomsInSchema=
-            "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S "+
+            "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMASVIEW S "+
                     "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
 
     private static final String sqlConglomsInTable=
@@ -1399,7 +1399,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     {
         String sql1 =
                 "select tablename,conglomeratenumber " +
-                        "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c " +
+                        "from sys.sysschemasview s, sys.systables t, sys.sysconglomerates c " +
                         "where s.schemaid=t.schemaid and " +
                         "c.tableid = t.tableid and " +
                         "c.schemaid=s.schemaid and " +
@@ -1410,7 +1410,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         String sql2 =
                 "select conglomeratename, conglomeratenumber " +
-                        "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c " +
+                        "from sys.sysschemasview s, sys.systables t, sys.sysconglomerates c " +
                         "where s.schemaid=t.schemaid and " +
                         "c.schemaid=s.schemaid and " +
                         "c.tableid = t.tableid and " +
@@ -1451,7 +1451,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     {
         String sql1 =
                 "select tablename,conglomeratenumber " +
-                        "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c " +
+                        "from sys.sysschemasview s, sys.systables t, sys.sysconglomerates c " +
                         "where s.schemaid=t.schemaid and " +
                         "c.tableid = t.tableid and " +
                         "c.schemaid=s.schemaid and " +
@@ -1463,7 +1463,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         String sql2 =
                 "select conglomeratename, conglomeratenumber " +
-                        "from sys.sysschemas s, sys.systables t, sys.sysconglomerates c " +
+                        "from sys.sysschemasview s, sys.systables t, sys.sysconglomerates c " +
                         "where s.schemaid=t.schemaid and " +
                         "c.schemaid=s.schemaid and " +
                         "s.schemaname=? and " +
@@ -2158,7 +2158,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
             ResultSet tableIdRs = stmt.executeQuery("SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
                     "T.ESCAPED, T.LINES, T.STORED, T.LOCATION" +
-                    " FROM SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                    " FROM SYS.SYSTABLES T, SYS.SYSSCHEMASVIEW S " +
                     "WHERE T.TABLETYPE IN ('T','E') AND T.SCHEMAID = S.SCHEMAID " +
                     "AND T.TABLENAME LIKE '" + tableName + "' AND S.SCHEMANAME = '" + schemaName + "'");
 
@@ -2310,7 +2310,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         StringBuffer chkStr = new StringBuffer();
         PreparedStatement getCheckStmt =
                 theConnection.prepareStatement("SELECT CS.CONSTRAINTNAME, CK.CHECKDEFINITION" +
-                        " FROM SYS.SYSCONSTRAINTS CS, SYS.SYSCHECKS CK, SYS.SYSSCHEMAS S, SYS.SYSTABLES T" +
+                        " FROM SYS.SYSCONSTRAINTS CS, SYS.SYSCHECKS CK, SYS.SYSSCHEMASVIEW S, SYS.SYSTABLES T" +
                         " WHERE CS.CONSTRAINTID = CK.CONSTRAINTID AND" +
                         " CS.STATE != 'D' AND" +
                         " S.SCHEMANAME LIKE ? AND" +
@@ -2330,7 +2330,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         StringBuffer uniqueStr = new StringBuffer();
         PreparedStatement getUniqueStmt =
                 theConnection.prepareStatement("SELECT CS.CONSTRAINTNAME, COLS.COLUMNNAME" +
-                        " FROM SYS.SYSSCHEMAS S, SYS.SYSTABLES T, SYS.SYSCONSTRAINTS CS, SYS.SYSCONGLOMERATES CONGLOMS, SYS.SYSCOLUMNS COLS , SYS.SYSKEYS K" +
+                        " FROM SYS.SYSSCHEMASVIEW S, SYS.SYSTABLES T, SYS.SYSCONSTRAINTS CS, SYS.SYSCONGLOMERATES CONGLOMS, SYS.SYSCOLUMNS COLS , SYS.SYSKEYS K" +
                         " WHERE  CS.TYPE = 'U' AND" +
                         " S.SCHEMAID = T.SCHEMAID AND" +
                         " S.SCHEMANAME LIKE ? AND" +
