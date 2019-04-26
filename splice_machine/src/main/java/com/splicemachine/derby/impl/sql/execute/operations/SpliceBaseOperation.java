@@ -280,7 +280,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         } catch (Exception e) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
             checkInterruptedException(e);
-            throw e;
+            throw Exceptions.parseException(e);
         }
     }
 

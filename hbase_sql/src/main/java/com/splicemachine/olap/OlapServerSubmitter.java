@@ -95,6 +95,7 @@ public class OlapServerSubmitter implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(OlapServerSubmitter.class);
     private final ServerName serverName;
+    private final String queueName;
     private volatile boolean stop = false;
     private CountDownLatch stopLatch = new CountDownLatch(1);
     private Path appStagingBaseDir;
@@ -102,8 +103,9 @@ public class OlapServerSubmitter implements Runnable {
 
     private Configuration conf;
 
-    public OlapServerSubmitter(ServerName serverName) {
+    public OlapServerSubmitter(ServerName serverName, String queueName) {
         this.serverName = serverName;
+        this.queueName = queueName;
     }
 
     public void run() {
@@ -124,6 +126,12 @@ public class OlapServerSubmitter implements Runnable {
             int cpuCores = sconf.getOlapVirtualCores();
             int olapPort = sconf.getOlapServerBindPort();
             String stagingDir = sconf.getOlapServerStagingDirectory();
+            Map<String, String> yarnQueues = sconf.getOlapServerYarnQueues();
+
+            String sparkYarnQueue = yarnQueues.get(queueName);
+            if (sparkYarnQueue == null)
+                sparkYarnQueue = "default";
+
             if (stagingDir != null) {
                 this.appStagingBaseDir = new Path(stagingDir);
             } else {
@@ -218,9 +226,10 @@ public class OlapServerSubmitter implements Runnable {
                                     "$JAVA_HOME/bin/java",
                                     " -Xmx" + memory + "M " + outOfMemoryErrorArgument() + " " +
                                             OlapServerMaster.class.getCanonicalName() +
-                                            " " + serverName.toString() + " " + olapPort +
+                                            " " + serverName.toString() + " " + olapPort + " " + queueName +
                                             " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout" +
-                                            " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr"
+                                            " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr",
+                                    sparkYarnQueue
                             ))
                     );
 
@@ -441,11 +450,13 @@ public class OlapServerSubmitter implements Runnable {
     }
 
 
-    private String prepareCommands(String exec, String parameters) throws IOException {
+    private String prepareCommands(String exec, String parameters, String sparkYarnQueue) throws IOException {
         StringBuilder result = new StringBuilder();
         result.append(exec);
         for (Object sysPropertyKey : System.getProperties().keySet()) {
             String spsPropertyName = (String) sysPropertyKey;
+            if (spsPropertyName.contains("spark.yarn.queue"))
+                continue; // we'll set the appropriate yarn queue later
             if (spsPropertyName.startsWith("splice.spark") || spsPropertyName.startsWith("spark")) {
                 if (spsPropertyName.equals(KEYTAB_KEY)) {
                     LOG.info(KEYTAB_KEY + " is set, substituting it for " + amKeytabFileName);
@@ -458,6 +469,7 @@ public class OlapServerSubmitter implements Runnable {
                 }
             }
         }
+        result.append(' ').append("-Dspark.yarn.queue=\\\""+sparkYarnQueue+"\\\"");
         // If user does not specify a kerberos keytab or principal, use HBase master's.
         if (UserGroupInformation.isSecurityEnabled()) {
             Configuration configuration = HConfiguration.unwrapDelegate();
