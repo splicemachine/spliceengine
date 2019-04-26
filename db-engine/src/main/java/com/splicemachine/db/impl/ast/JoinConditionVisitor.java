@@ -329,9 +329,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     		LOG.debug(String.format("rewriteNLJColumnRefs joinNode=%s", j));
         List<Predicate> joinPreds = new LinkedList<>();
 
-        // Collect PRs, FBTs until a binary node (Union, Join) found, or end
-        Iterable<ResultSetNode> rightsUntilBinary = Iterables.filter(
-                RSUtils.nodesUntilBinaryNode(j.getRightResultSet()),
+        // Collect PRs, FBTs from the right source of NLJ. We need to collect ResultSet until leave nodes
+        // except for Except and Intersect node.
+        // because for NLJ, join condition could be pushed down under union operation and joins.
+        Iterable<ResultSetNode> rights = Iterables.filter(
+                RSUtils.nodesUntilBinaryNodeExcludeUnion(j.getRightResultSet()),
                 RSUtils.rsnHasPreds);
 
         org.spark_project.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
@@ -339,9 +341,9 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
     	if (LOG.isDebugEnabled())
     		LOG.debug(String.format("joinScoped joinScoped=%s",joinScoped));
 
-        for (ResultSetNode rsn: rightsUntilBinary) {
+        for (ResultSetNode rsn: rights) {
         	if (LOG.isDebugEnabled())
-        		LOG.debug(String.format("rewriteNLJColumnRefs rightsUntilBinary=%s",rsn));
+        		LOG.debug(String.format("rewriteNLJColumnRefs rights=%s",rsn));
         	// Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
             org.spark_project.guava.base.Predicate<Predicate> predOfInterest =
@@ -365,13 +367,14 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
      */
     public static Set<Integer> resultSetRefs(Predicate p) throws StandardException {
         return Sets.newHashSet(
-                Lists.transform(RSUtils.collectNodes(p, ColumnReference.class),
+                Iterables.filter(Lists.transform(RSUtils.collectNodes(p, ColumnReference.class),
                         new Function<ColumnReference, Integer>() {
                             @Override
                             public Integer apply(ColumnReference cr) {
-                                return (int) (cr.getSource().getCoordinates() >> 32);
+                                // ColumnReference pointing to a subquery may have source set to null
+                                return (int) ((cr.getSource()==null)?-1:cr.getSource().getCoordinates() >> 32);
                             }
-                        }));
+                        }), (rsnNumber -> rsnNumber >= 0)));
     }
 
 
