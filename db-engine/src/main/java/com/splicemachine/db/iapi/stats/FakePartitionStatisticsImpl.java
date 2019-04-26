@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -225,11 +225,12 @@ public class FakePartitionStatisticsImpl implements PartitionStatistics {
      * @param includeStart if {@code true}, then include entries which are equal to {@code start}
      * @param includeStop if {@code true}, then include entries which are <em>equal</em> to {@code stop}
      * @param positionNumber
+     * @param useExtrapolation if {@code true}, then do extrapolation if the range falls beyond the min-max range recorded in stats
      * @param <T>
      * @return
      */
     @Override
-    public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber) {
+    public <T extends Comparator<T>> long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop, int positionNumber, boolean useExtrapolation) {
         return (long) (extraQualifierMultiplier * (double) rowCount());
     }
 

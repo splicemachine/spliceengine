@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -25,7 +25,6 @@ import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.hbase.ZkUtils;
-import com.splicemachine.pipeline.AclCheckerService;
 import com.splicemachine.pipeline.MappedPipelineFactory;
 import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.PipelineDriver;
@@ -37,7 +36,6 @@ import com.splicemachine.pipeline.api.PipelineMeter;
 import com.splicemachine.pipeline.api.WritePipelineFactory;
 import com.splicemachine.pipeline.client.RpcChannelFactory;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
-import com.splicemachine.pipeline.security.AclChecker;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.pipeline.utils.SimplePipelineCompressor;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -45,7 +43,7 @@ import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;

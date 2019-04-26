@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -130,6 +130,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 
 	private boolean		isSystemCode;
 	private boolean		alreadyBound;
+	private boolean     systemFunction = false;
 
     /**
      * Generated boolean field to hold the indicator
@@ -173,6 +174,9 @@ public class StaticMethodCallNode extends MethodCallNode {
 
     /** Flag that this function invocation appears in a GROUP BY clause */
     public  void    setAppearsInGroupBy() { appearsInGroupBy = true; }
+
+    public void setIsSystemFunction(boolean newVal) { systemFunction = newVal; }
+    public boolean isSystemFunction() { return systemFunction; }
 
 	/**
 	 * Bind this expression.  This means binding the sub-expressions,
@@ -236,6 +240,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 				sd = getSchemaDescriptor("SYSFUN", true);
 
 				resolveRoutine(fromList, subqueryList, aggregateVector, sd);
+				setIsSystemFunction(true);
 			}
 
 			if ( (ad != null) && (ad.getAliasType() == AliasInfo.ALIAS_TYPE_AGGREGATE_AS_CHAR) )

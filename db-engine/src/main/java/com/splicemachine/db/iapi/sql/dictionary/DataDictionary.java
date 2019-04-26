@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -790,6 +790,19 @@ public interface DataDictionary{
                          UUID tableUUID,
                          String columnName,
                          boolean collectStats) throws StandardException;
+
+    /**
+     * sets whether extrapolation is allowed for a column
+     *
+     * @param tc              Transaction Controller to use.
+     * @param tableUUID
+     * @param columnName      Name of the column.
+     * @param useExtrapolation   Value to write to SYSCOLUMNS.
+     */
+    void setUseExtrapolation(TransactionController tc,
+                         UUID tableUUID,
+                         String columnName,
+                         byte useExtrapolation) throws StandardException;
 
     /**
      * Removes Table Statistics from SYSTABLESTATS.
@@ -1800,6 +1813,8 @@ public interface DataDictionary{
      */
     SchemaPermsDescriptor getSchemaPermissions(UUID schemaUUID,String authorizationId) throws StandardException;
 
+    SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID) throws StandardException;
+
     /**
      * Get one user's privileges on a table using tablePermsUUID
      *
@@ -2114,10 +2129,6 @@ public interface DataDictionary{
     void addBackupItems(TupleDescriptor[] descriptor, TransactionController tc) throws StandardException;
 
     void deleteAllBackupItems(long backupId, TransactionController tc) throws StandardException;
-
-    void addBackupJob(TupleDescriptor descriptor, TransactionController tc) throws StandardException;
-
-    void deleteBackupJob(long jobId, TransactionController tc) throws StandardException;
 
     void saveSourceCode(SourceCodeDescriptor descriptor, TransactionController tc) throws StandardException;
 

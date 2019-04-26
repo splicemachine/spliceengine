@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -118,6 +118,8 @@ public interface Partition extends AutoCloseable{
     void delete(List<DataDelete> delete) throws IOException;
 
     void mutate(DataMutation put) throws IOException;
+
+    void batchMutate(List<DataMutation> mutations) throws IOException;
 
     boolean containsRow(byte[] row);
 

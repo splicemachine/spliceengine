@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.output.delete;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
@@ -37,6 +38,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     protected TxnView txn;
     protected OperationContext operationContext;
     protected byte[] token;
+    protected int[] updateCounts;
 
     public DeleteTableWriterBuilder heapConglom(long heapConglom) {
         this.heapConglom = heapConglom;
@@ -82,6 +84,12 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     }
 
     @Override
+    public DataSetWriterBuilder updateCounts(int[] updateCounts) {
+        this.updateCounts = updateCounts;
+        return this;
+    }
+    
+    @Override
     public DataSetWriterBuilder operationContext(OperationContext operationContext) {
         this.operationContext = operationContext;
         return this;
@@ -94,6 +102,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
         out.writeBoolean(operationContext!=null);
         if (operationContext!=null)
             out.writeObject(operationContext);
+        ArrayUtil.writeIntArray(out, updateCounts);
     }
 
     @Override
@@ -102,6 +111,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
+        updateCounts = ArrayUtil.readIntArray(in);
     }
 
     public static DeleteTableWriterBuilder getDeleteTableWriterBuilderFromBase64String(String base64String) throws IOException {

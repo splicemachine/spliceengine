@@ -12,7 +12,7 @@
  *
  * Splice Machine, Inc. has modified this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the License; you may not use this file except in
  * compliance with the License.
  *
@@ -45,6 +45,19 @@ public interface MaterialPreparedStatement extends MaterialStatement {
                        // Can the blob code
                        boolean chainedWritesFollowingSetLob) throws SqlException;
 
+
+    void writeExecuteBatch_(Section section,
+                       ColumnMetaData parameterMetaData,
+                       Object[] inputs,
+                       int numInputColumns,
+                       boolean outputExpected,
+                       // This is a hint to the material layer that more write commands will follow.
+                       // It is ignored by the driver in all cases except when blob data is written,
+                       // in which case this boolean is used to optimize the implementation.
+                       // Otherwise we wouldn't be able to chain after blob data is sent.
+                       // Current servers have a restriction that blobs can only be chained with blobs
+                       // Can the blob code
+                       boolean chainedWritesFollowingSetLob) throws SqlException;
 
     void readExecute_() throws SqlException;
 

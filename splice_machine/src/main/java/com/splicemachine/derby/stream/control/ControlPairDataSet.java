@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -57,7 +57,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
 
     @Override
-    public DataSet<V> values() {
+    public DataSet<V> values(OperationContext context) {
         return new ControlDataSet<>(Iterators.transform(source,new Function<Tuple2<K,V>, V>() {
             @Nullable @Override
             public V apply(@Nullable Tuple2<K,V>t) {
@@ -67,13 +67,13 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> values(String name) {
-        return values();
+    public DataSet<V> values(String name, OperationContext context) {
+        return values(context);
     }
 
     @Override
     public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetails) {
-        return values();
+        return values(context);
     }
 
     @Override

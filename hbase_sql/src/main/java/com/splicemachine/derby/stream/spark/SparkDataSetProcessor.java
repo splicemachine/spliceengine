@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -81,7 +81,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private String statusDirectory;
     private String importFileName;
     private static final Joiner CSV_JOINER = Joiner.on(",").skipNulls();
-
+    private final String TEMP_DIR_PREFIX = "_temp";
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
@@ -149,7 +149,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         setupBroadcastedActivation(spliceOperation.getActivation(), spliceOperation);
-        OperationContext<Op> operationContext =new SparkOperationContext<>(spliceOperation,broadcastedActivation.get());
+        OperationContext<Op> operationContext = new SparkOperationContext<>(spliceOperation, broadcastedActivation);
         spliceOperation.setOperationContext(operationContext);
         if (permissive) {
             operationContext.setPermissive(statusDirectory, importFileName, failBadRecordCount);
@@ -161,7 +161,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
         if (activation !=null) {
-            return new SparkOperationContext<>(activation, broadcastedActivation.get());
+            return new SparkOperationContext<>(activation, broadcastedActivation);
         } else {
             return new SparkOperationContext<>(activation, null);
         }
@@ -236,7 +236,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         }
                     });
             SparkUtils.setAncestorRDDNames(rdd, 1, new String[] {fileInfo.toSummary()}, null);
-            return new SparkDataSet<>(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
+            return new SparkDataSet(rdd,OperationContext.Scope.READ_TEXT_FILE.displayName());
         } catch (IOException | StandardException ioe) {
             throw new RuntimeException(ioe);
         } finally {
@@ -276,22 +276,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         this.failBadRecordCount = badRecordThreshold;
     }
 
-
-    @Override
-    public void clearBroadcastedOperation(){
-        broadcastedActivation.remove();
-    }
-
     @Override
     public void stopJobGroup(String jobName) {
         SpliceSpark.getContext().cancelJobGroup(jobName);
     }
 
-    private transient ThreadLocal<BroadcastedActivation> broadcastedActivation = new ThreadLocal<>();
+    private transient BroadcastedActivation broadcastedActivation;
 
     private void setupBroadcastedActivation(Activation activation, SpliceOperation root){
-        if(broadcastedActivation.get()==null){
-            broadcastedActivation.set(new BroadcastedActivation(activation, root));
+        if (broadcastedActivation == null) {
+            broadcastedActivation = new BroadcastedActivation(activation, root);
         }
     }
 
@@ -332,14 +326,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .sample(false, sampleFraction)
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                return new NativeSparkDataSet(table
+                        .sample(false, sampleFraction), context);
             } else {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                return new NativeSparkDataSet(table, context);
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -363,6 +353,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                     return getEmpty();
 
+                StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
+
                 // Infer schema from external files\
                 StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "a");
 
@@ -370,8 +362,16 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 // Creates a DataFrame from a specified file
                 table = spark.read().schema(dataSchema).format("com.databricks.spark.avro").load(location);
 
-                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+                int i = 0;
+                for (StructField sf : copy.fields()) {
+                    if (sf.dataType().sameType(DataTypes.DateType)) {
+                        String colName = table.schema().fields()[i].name();
+                        table = table.withColumn(colName, table.col(colName).cast(DataTypes.DateType));
+                    }
+                    i++;
+                }
 
+                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
@@ -379,14 +379,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .sample(false, sampleFraction)
-                        .map(new RowToLocatedRowAvroFunction(context,execRow)));
+                return new NativeSparkDataSet(table
+                        .sample(false, sampleFraction), context);
             } else {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .map(new RowToLocatedRowAvroFunction(context, execRow)));
+                return new NativeSparkDataSet(table, context);
             }
         } catch (Exception e) {
             throw StandardException.newException(
@@ -429,7 +425,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 fs = FileSystem.get(URI.create(location), conf);
                 String fileName = getFile(fs, location);
                 if (fileName != null) {
-                    temp = new Path(location, "temp");
+                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-",""));
                     fs.mkdirs(temp);
                     SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
 
@@ -504,9 +500,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             if (!fs.isDirectory(path) || fileStatuses.length == 0)
                 return null;
             for (FileStatus fileStatus : fileStatuses) {
-                String file = getFile(fs, fileStatus.getPath().toString());
-                if (file != null)
-                    return file;
+                String p = fileStatus.getPath().getName();
+                if (!p.startsWith(TEMP_DIR_PREFIX)) {
+                    String file = getFile(fs, fileStatus.getPath().toString());
+                    if (file != null)
+                        return file;
+                }
             }
         }
         return  null;
@@ -708,14 +707,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .sample(false, sampleFraction)
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                return new NativeSparkDataSet(table
+                        .sample(false, sampleFraction), context);
             } else {
-                return new SparkDataSet(table
-                        .rdd().toJavaRDD()
-                        .map(new RowToLocatedRowFunction(context, execRow)));
+                return new NativeSparkDataSet(table, context);
             }
         } catch (Exception e) {
             throw StandardException.newException(

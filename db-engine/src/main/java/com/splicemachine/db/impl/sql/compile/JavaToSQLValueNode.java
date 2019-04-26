@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -211,6 +211,16 @@ public class JavaToSQLValueNode extends ValueNode
 		return javaNode;
 	}
 
+	// Is this a system function (defined in the SYSFUN schema)?
+	public boolean isSystemFunction() {
+	    if (javaNode != null &&
+	        javaNode instanceof StaticMethodCallNode) {
+	        StaticMethodCallNode smc = (StaticMethodCallNode)javaNode;
+	        return smc.isSystemFunction();
+	    }
+	    return false;
+	}
+
 	/**
 	 * Bind this expression.  This means binding the sub-expressions,
 	 * as well as figuring out what the return type is for this expression.
@@ -373,4 +383,8 @@ public class JavaToSQLValueNode extends ValueNode
 		javaNode.setHashableJoinColumnReference(cr);
 	}
 
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+    	return javaNode.isConstantOrParameterTreeNode();
+	}
 }

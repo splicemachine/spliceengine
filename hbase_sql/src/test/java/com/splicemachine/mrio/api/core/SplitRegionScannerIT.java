@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -168,7 +168,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
 	}
 
-    @Test @Ignore("DB-7320")
+    @Test
     public void simpleScanPostFlush() throws SQLException, IOException, InterruptedException {
         Partition partition = driver.getTableFactory()
                 .getTable(sqlUtil.getConglomID(spliceTableWatcherB.toString()));
@@ -194,7 +194,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
 
     }
 
-    @Test @Ignore("DB-7320")
+    @Test
     public void simpleScanPostSplit() throws SQLException, IOException, InterruptedException {
         String tableName = sqlUtil.getConglomID(spliceTableWatcherC.toString());
         Partition partition = driver.getTableFactory()
@@ -216,7 +216,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
     }
 
-    @Test @Ignore("DB-7320")
+    @Test
     public void simpleMergeTest() throws Exception {
         // Test Records at end
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
@@ -247,7 +247,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",2*ITERATIONS+1,i);
     }
 
-    @Test @Ignore("DB-7320")
+    @Test
     public void simpleMergeWithConcurrentSplitTest() throws Exception {
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
                 ,SCHEMA + ".E",SCHEMA + ".A"));
@@ -276,7 +276,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",2*ITERATIONS,i);
     }
 
-    @Test @Ignore("DB-7320")
+    @Test
     public void simpleMergeWithConcurrentFlushTest() throws Exception {
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
                 ,SCHEMA + ".F",SCHEMA + ".A"));
@@ -338,7 +338,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",ITERATIONS,i);
     }
 
-    @Test @Ignore("DB-7320")
+    @Test
     public void multipleSplits() throws Exception {
         spliceClassWatcher.executeUpdate(String.format("insert into %s select col1+" + ITERATIONS+", col2 from %s"
                 ,SCHEMA + ".G",SCHEMA + ".A"));
@@ -370,7 +370,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         Assert.assertEquals("Did not return all rows ",2*ITERATIONS,i);
     }
 
-    @Test @Ignore("DB-7320")
+    @Test
     public void testSplitRegionScannerReinit() throws Exception {
         String tableName = sqlUtil.getConglomID(spliceTableWatcherH.toString());
         Partition partition = driver.getTableFactory()

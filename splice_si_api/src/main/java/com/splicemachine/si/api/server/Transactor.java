@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,7 +15,7 @@
 package com.splicemachine.si.api.server;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataPut;
 import com.splicemachine.storage.MutationStatus;
@@ -50,6 +50,7 @@ public interface Transactor{
                                     TxnView txn,
                                     ConstraintChecker constraintChecker,
                                     boolean skipConflictDetection,
-                                    boolean skipWAL) throws IOException;
+                                    boolean skipWAL, boolean rollforward) throws IOException;
 
+    void setDefaultConstraintChecker(ConstraintChecker constraintChecker);
 }

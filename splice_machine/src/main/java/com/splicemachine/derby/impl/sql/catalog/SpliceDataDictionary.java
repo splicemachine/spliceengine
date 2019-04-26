@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -21,6 +21,8 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
+import com.splicemachine.db.catalog.Dependable;
+import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -28,9 +30,14 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
@@ -65,8 +72,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl pkTable=null;
     private volatile TabInfoImpl backupTable=null;
     private volatile TabInfoImpl backupItemsTable=null;
-    private volatile TabInfoImpl backupStatesTable=null;
-    private volatile TabInfoImpl backupJobsTable=null;
     private volatile TabInfoImpl tableStatsTable=null;
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
@@ -229,22 +234,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return backupItemsTable;
     }
 
-    private TabInfoImpl getBackupStatesTable() throws StandardException{
-        if(backupStatesTable==null){
-            backupStatesTable=new TabInfoImpl(new SYSBACKUPFILESETRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(backupStatesTable);
-        return backupStatesTable;
-    }
-
-    private TabInfoImpl getBackupJobsTable() throws StandardException{
-        if(backupJobsTable==null){
-            backupJobsTable=new TabInfoImpl(new SYSBACKUPJOBSRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(backupJobsTable);
-        return backupJobsTable;
-    }
-
     public void createLassenTables(TransactionController tc) throws StandardException{
         SchemaDescriptor systemSchemaDescriptor=getSystemSchemaDescriptor();
 
@@ -275,36 +264,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
                         systemSchemaDescriptor.getSchemaName(),backupItemsTabInfo.getTableName()));
-            }
-        }
-
-        // Create BACKUPFILESET
-        TabInfoImpl backupStatesTabInfo=getBackupStatesTable();
-        if(getTableDescriptor(backupStatesTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
-                        backupStatesTabInfo.getTableName()));
-            }
-            makeCatalog(backupStatesTabInfo,systemSchemaDescriptor,tc);
-        }else{
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(),backupStatesTabInfo.getTableName()));
-            }
-        }
-
-        // Create BACKUPJOBS
-        TabInfoImpl backupJobsTabInfo=getBackupJobsTable();
-        if(getTableDescriptor(backupJobsTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
-                        backupJobsTabInfo.getTableName()));
-            }
-            makeCatalog(backupJobsTabInfo,systemSchemaDescriptor,tc);
-        }else{
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(),backupJobsTabInfo.getTableName()));
             }
         }
     }
@@ -1062,5 +1021,161 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
         
         SpliceLogUtils.info(LOG, "SYS.SYSROUTINEPERMS upgraded: obsolete rows deleted");
+    }
+
+    public void removeFKDependencyOnPrivileges(TransactionController tc) throws StandardException {
+        // scan the sysdepends table
+        TabInfoImpl ti = getNonCoreTI(SYSDEPENDS_CATALOG_NUM);
+        SYSDEPENDSRowFactory rf=(SYSDEPENDSRowFactory)ti.getCatalogRowFactory();
+        ExecRow outRow = rf.makeEmptyRow();
+        ScanController scanController=tc.openScan(
+                ti.getHeapConglomerate(),      // conglomerate to open
+                false,                          // don't hold open across commit
+                0,                              // for read
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,               // all fields as objects
+                null, // start position - first row
+                0,                          // startSearchOperation - none
+                null,              // scanQualifier,
+                null, // stop position -through last row
+                0);                          // stopSearchOperation - none
+
+        List<RowLocation> rowsToDelete = new ArrayList<>();
+
+        try{
+            while(scanController.fetchNext(outRow.getRowArray())){
+                RowLocation rowLocation = scanController.newRowLocationTemplate();
+                scanController.fetchLocation(rowLocation);
+                DependencyDescriptor dependencyDescriptor=(DependencyDescriptor)rf.buildDescriptor(outRow,null, this);
+                // check if the dependencyDescriptors are the ones that we want
+                DependableFinder finder = dependencyDescriptor.getDependentFinder();
+                if (finder == null)
+                    continue;
+                String dependentObjectType = finder.getSQLObjectType();
+                if (dependentObjectType == null || !dependentObjectType.equals(Dependable.CONSTRAINT))
+                    continue;
+
+                Dependent tempD = (Dependent) finder.getDependable(this, dependencyDescriptor.getUUID());
+                if (tempD == null || !(tempD instanceof ForeignKeyConstraintDescriptor))
+                    continue;
+
+                // is the provider a role definition, or a permission descriptor
+                finder = dependencyDescriptor.getProviderFinder();
+                String objectType = finder == null? "":finder.getSQLObjectType();
+                if (objectType.equals(Dependable.ROLE_GRANT) ||
+                    objectType.equals(Dependable.SCHEMA_PERMISSION) ||
+                    objectType.equals(Dependable.TABLE_PERMISSION) ||
+                    objectType.equals(Dependable.COLUMNS_PERMISSION)) {
+                        rowsToDelete.add(rowLocation);
+                }
+            }
+        }finally{
+            scanController.close();
+        }
+
+        // delete the unwanted dependency rows
+        for (RowLocation rowLocation: rowsToDelete) {
+            ti.deleteRowBasedOnRowLocation(tc, rowLocation, true, null);
+        }
+
+        SpliceLogUtils.info(LOG,
+                "SYS.SYSDEPENDS updated: Foreign keys dependencies on RoleDescriptors or permission descriptors deleted, total rows deleted: " + rowsToDelete.size());
+    }
+
+    public void upgradeSysColumnsWithUseExtrapolationColumn(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSCOLUMNSRowFactory.TABLENAME_STRING, sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor("USEEXTRAPOLATION");
+        if (cd == null) {
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence()+1);
+            // add the table descriptor with new name
+            addDescriptor(td,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+
+            ColumnDescriptor columnDescriptor;
+            UUID uuid = getUUIDFactory().createUUID();
+
+            /**
+             *  Add the column USEEXTRAPOLATION
+             */
+            DataValueDescriptor storableDV = getDataValueFactory().getNullByte(null);
+            int colNumber = SYSCOLUMNSRowFactory.SYSCOLUMNS_USEEXTRAPOLATION;
+            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TINYINT);
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+            columnDescriptor = new ColumnDescriptor("USEEXTRAPOLATION",colNumber,
+                    colNumber,dtd,null,null,td,uuid,0,0,td.getColumnSequence());
+
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc,false);
+            // now add the column to the tables column descriptor list.
+            td.getColumnDescriptorList().add(columnDescriptor);
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+            SpliceLogUtils.info(LOG, "SYS.SYSCOLUMNS upgraded: added column: USEEXTRAPOLATION.");
+        }
+    }
+
+    public void removeUnusedBackupTables(TransactionController tc) throws StandardException {
+        dropUnusedBackupTable("SYSBACKUPFILESET", tc);
+        dropUnusedBackupTable("SYSBACKUPJOBS", tc);
+    }
+
+    public void removeUnusedBackupProcedures(TransactionController tc) throws StandardException {
+        AliasDescriptor ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
+                "SYSCS_SCHEDULE_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        if (ad != null) {
+            dropAliasDescriptor(ad, tc);
+            SpliceLogUtils.info(LOG, "Dropped system procedure SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP");
+        }
+
+        ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
+                "SYSCS_CANCEL_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        if (ad != null) {
+            dropAliasDescriptor(ad, tc);
+            SpliceLogUtils.info(LOG, "Dropped system procedure SYSCS_UTIL.SYSCS_CANCEL_DAILY_BACKUP");
+        }
+    }
+
+    private void dropUnusedBackupTable(String tableName, TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(tableName, sd, tc);
+        SpliceTransactionManager sm = (SpliceTransactionManager) tc;
+        if (td != null) {
+            UUID tableId = td.getUUID();
+
+            // Drop column descriptors
+            dropAllColumnDescriptors(tableId, tc);
+
+            long heapId = td.getHeapConglomerateId();
+
+            /*
+             * Drop all the conglomerates.  Drop the heap last, because the
+             * store needs it for locking the indexes when they are dropped.
+             */
+            ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
+            for (ConglomerateDescriptor cd : cds) {
+                // Remove Statistics
+                deletePartitionStatistics(cd.getConglomerateNumber(), tc);
+
+                // Drop index conglomerates
+                if (cd.getConglomerateNumber() != heapId) {
+                    Conglomerate conglomerate = sm.findConglomerate(cd.getConglomerateNumber());
+                    conglomerate.drop(sm);
+                }
+            }
+            // Drop the conglomerate descriptors
+            dropAllConglomerateDescriptors(td, tc);
+
+            // Drop table descriptors
+            dropTableDescriptor(td, sd, tc);
+
+            // Drop base table conglomerate
+            Conglomerate conglomerate = sm.findConglomerate(heapId);
+            conglomerate.drop(sm);
+
+            SpliceLogUtils.info(LOG, "Dropped table %s", tableName);
+        }
     }
 }

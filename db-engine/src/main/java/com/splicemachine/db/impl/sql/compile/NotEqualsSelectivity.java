@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -44,17 +44,19 @@ public class NotEqualsSelectivity extends AbstractSelectivityHolder {
     private DataValueDescriptor value;
     private StoreCostController storeCost;
     private double selectivityFactor;
+    private boolean useExtrapolation;
 
-    public NotEqualsSelectivity(StoreCostController storeCost, int colNum, QualifierPhase phase, DataValueDescriptor value, double selectivityFactor){
+    public NotEqualsSelectivity(StoreCostController storeCost, int colNum, QualifierPhase phase, DataValueDescriptor value, double selectivityFactor, boolean useExtrapolation){
         super(colNum,phase);
         this.value = value;
         this.storeCost = storeCost;
         this.selectivityFactor = selectivityFactor;
+        this.useExtrapolation = useExtrapolation;
     }
 
     public double getSelectivity() throws StandardException {
         if (selectivity == -1.0d) {
-            double tmpSelectivity = storeCost.getSelectivity(colNum, value, true, value, true);
+            double tmpSelectivity = storeCost.getSelectivity(colNum, value, true, value, true, useExtrapolation);
             if (selectivityFactor > 0)
                 tmpSelectivity *= selectivityFactor;
             selectivity = 1 - tmpSelectivity;

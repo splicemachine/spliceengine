@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -65,7 +65,7 @@ public class SimpleCostEstimate implements CostEstimate{
     public SimpleCostEstimate(double localCost,double remoteCost,double numRows,double singleScanRowCount,int numPartitions){
         this.localCost=localCost;
         this.remoteCost=remoteCost;
-        this.numRows=numRows=numRows>1?numRows:1;
+        this.numRows=numRows>1?numRows:1;
         this.singleScanRowCount=singleScanRowCount;
         this.numPartitions=numPartitions;
     }

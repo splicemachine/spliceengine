@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -20,6 +20,7 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -27,9 +28,13 @@ import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.storage.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 
 import static com.splicemachine.si.constants.SIConstants.*;
 
@@ -133,12 +138,17 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
         //throw away the allow reads bit, since we won't care anyway
         decoder.decodeNextBoolean();
 
+        TaskId taskId = new TaskId(decoder.decodeNextInt(), decoder.decodeNextInt(), decoder.decodeNextInt());
+        if (taskId.getStageId() == -1 && taskId.getPartitionId() == -1 && taskId.getTaskAttemptNumber() == -1) {
+            taskId = null;
+        }
+
         TxnView parent=Txn.ROOT_TRANSACTION;
         while(decoder.available()){
             long id=decoder.decodeNextLong();
             parent=new ActiveWriteTxn(id,id,parent,additive,level);
         }
-        return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
+        return new ActiveWriteTxn(txnId,beginTs,parent,additive,level,taskId);
     }
 
     @Override
@@ -156,18 +166,62 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
     }
 
     @Override
+    public TxnView readTxnStack(ObjectInput oi) throws IOException{
+        int size=oi.readInt();
+        byte[] txnData=new byte[size];
+        oi.readFully(txnData);
+
+
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(txnData)) {
+            try (ObjectInputStream ois = new ObjectInputStream(bis)) {
+                return decodeStack(ois);
+            }
+        }
+    }
+
+    @Override
     public byte[] encode(TxnView txn){
-        MultiFieldEncoder encoder=MultiFieldEncoder.create(6)
+        MultiFieldEncoder encoder=MultiFieldEncoder.create(9)
                 .encodeNext(txn.getTxnId())
                 .encodeNext(txn.getBeginTimestamp())
                 .encodeNext(txn.isAdditive())
                 .encodeNext(txn.getIsolationLevel().encode())
                 .encodeNext(txn.allowsWrites());
 
+        TaskId taskId = txn.getTaskId();
+        if (taskId != null) {
+            encoder.encodeNext(taskId.getStageId()).encodeNext(taskId.getPartitionId()).encodeNext(taskId.getTaskAttemptNumber());
+        } else {
+            encoder.encodeNext(-1).encodeNext(-1).encodeNext(-1);
+        }
+
         LongArrayList parentTxnIds= new LongArrayList();
         byte[] build=encodeParentIds(txn,parentTxnIds);
         encoder.setRawBytes(build);
         return encoder.build();
+    }
+
+    public TxnView decodeStack(ObjectInputStream ois) throws IOException {
+        int len = ois.readInt();
+        byte[] bytes = new byte[len];
+        ois.readFully(bytes);
+
+        MultiFieldDecoder decoder=MultiFieldDecoder.wrap(bytes, 0, bytes.length);
+        long txnId=decoder.decodeNextLong();
+        long beginTs=decoder.decodeNextLong();
+        boolean additive=decoder.decodeNextBoolean();
+        Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
+        boolean allowsWrites=decoder.decodeNextBoolean();
+
+        TxnView parent=Txn.ROOT_TRANSACTION;
+        while(ois.available() > 0){
+            parent = decodeStack(ois);
+        }
+
+        if(allowsWrites)
+            return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
+        else
+            return new ReadOnlyTxn(txnId,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
     }
 
     public TxnView decode(byte[] data,int offset,int length){
@@ -178,6 +232,11 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
         Txn.IsolationLevel level=Txn.IsolationLevel.fromByte(decoder.decodeNextByte());
         boolean allowsWrites=decoder.decodeNextBoolean();
 
+        TaskId taskId = new TaskId(decoder.decodeNextInt(), decoder.decodeNextInt(), decoder.decodeNextInt());
+        if (taskId.getStageId() == -1 && taskId.getPartitionId() == -1 && taskId.getTaskAttemptNumber() == -1) {
+            taskId = null;
+        }
+
         TxnView parent=Txn.ROOT_TRANSACTION;
         while(decoder.available()){
             long id=decoder.decodeNextLong();
@@ -187,9 +246,9 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
                 parent=new ReadOnlyTxn(id,id,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
         }
         if(allowsWrites)
-            return new ActiveWriteTxn(txnId,beginTs,parent,additive,level);
+            return new ActiveWriteTxn(txnId,beginTs,parent,additive,level,taskId);
         else
-            return new ReadOnlyTxn(txnId,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive);
+            return new ReadOnlyTxn(txnId,beginTs,level,parent,UnsupportedLifecycleManager.INSTANCE,exceptionLib,additive,taskId);
     }
 
     @Override
@@ -197,6 +256,29 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
         byte[] eData= encode(txn);
         out.writeInt(eData.length);
         out.write(eData,0,eData.length);
+    }
+
+    @Override
+    public void writeTxnStack(TxnView txn,ObjectOutput out) throws IOException{
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            ObjectOutput oo = new ObjectOutputStream(bos);
+            while(txn != Txn.ROOT_TRANSACTION) {
+                MultiFieldEncoder encoder=MultiFieldEncoder.create(5)
+                        .encodeNext(txn.getTxnId())
+                        .encodeNext(txn.getBeginTimestamp())
+                        .encodeNext(txn.isAdditive())
+                        .encodeNext(txn.getIsolationLevel().encode())
+                        .encodeNext(txn.allowsWrites());
+                byte[] bytes = encoder.build();
+                oo.writeInt(bytes.length);
+                oo.write(bytes);
+                txn = txn.getParentTxnView();
+            }
+            oo.flush();
+            byte[] bytes = bos.toByteArray();
+            out.writeInt(bytes.length);
+            out.write(bytes);
+        }
     }
 
     @Override

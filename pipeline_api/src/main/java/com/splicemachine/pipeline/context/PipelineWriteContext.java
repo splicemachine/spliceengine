@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -58,6 +58,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     private final PipelineExceptionFactory pef;
     private final boolean skipConflictDetection;
     private final boolean skipWAL;
+    private final boolean rollforward;
 
     private WriteNode tail;
 
@@ -69,6 +70,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
                                  boolean skipIndexWrites,
                                  boolean skipConflictDetection,
                                  boolean skipWAL,
+                                 boolean rollforward,
                                  ServerControl env,
                                 PipelineExceptionFactory pef) {
         this.indexSharedCallBuffer = indexSharedCallBuffer;
@@ -83,6 +85,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
         this.pef = pef;
         this.skipConflictDetection = skipConflictDetection;
         this.skipWAL = skipWAL;
+        this.rollforward = rollforward;
     }
 
     public void addLast(WriteHandler handler) {
@@ -249,6 +252,11 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     @Override
     public boolean skipWAL() {
         return this.skipWAL;
+    }
+
+    @Override
+    public boolean rollforward() {
+        return rollforward;
     }
 
     @Override

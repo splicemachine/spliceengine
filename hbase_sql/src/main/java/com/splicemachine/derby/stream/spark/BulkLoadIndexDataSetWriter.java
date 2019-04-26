@@ -1,5 +1,6 @@
+
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -17,6 +18,10 @@ import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -24,6 +29,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -44,6 +50,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
     private boolean sampling;
     private DDLMessage.TentativeIndex tentativeIndex;
     private String indexName;
+    private String tableVersion;
 
     public BulkLoadIndexDataSetWriter(DataSet dataSet,
                                       String  bulkLoadDirectory,
@@ -52,13 +59,15 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
                                       TxnView txn,
                                       OperationContext operationContext,
                                       DDLMessage.TentativeIndex tentativeIndex,
-                                      String indexName) {
+                                      String indexName,
+                                      String tableVersion) {
 
         super(dataSet, operationContext, destConglomerate, txn);
         this.bulkLoadDirectory = bulkLoadDirectory;
         this.sampling = sampling;
         this.tentativeIndex = tentativeIndex;
         this.indexName = indexName;
+        this.tableVersion = tableVersion;
     }
 
     @Override
@@ -94,8 +103,8 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
 
         // Write to HFile
         HFileGenerationFunction hfileGenerationFunction =
-                new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
-                        heapConglom, compressionAlgorithm, bulkLoadPartitions);
+                new BulkLoadIndexHFileGenerationFunction(operationContext, txn.getTxnId(),
+                        heapConglom, compressionAlgorithm, bulkLoadPartitions, tableVersion, tentativeIndex);
 
         DataSet rowAndIndexes = dataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true,
@@ -112,8 +121,9 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
     }
 
     private void sampleAndSplitIndex() throws StandardException {
-        SConfiguration sConfiguration = HConfiguration.getConfiguration();
-        double sampleFraction = sConfiguration.getBulkImportSampleFraction();
+        Activation activation = operationContext.getActivation();
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        double sampleFraction = BulkLoadUtils.getSampleFraction(lcc);
         DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
         DataSet sampleRowAndIndexes = sampledDataSet
                 .map(new IndexTransformFunction(tentativeIndex), null, false, true,
@@ -135,7 +145,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
         ImportUtils.dumpCutPoints(cutPoints, bulkLoadDirectory);
 
         if (cutPoints != null && cutPoints.size() > 0) {
-            splitTables(cutPoints);
+            BulkLoadUtils.splitTables(cutPoints);
         }
     }
 }

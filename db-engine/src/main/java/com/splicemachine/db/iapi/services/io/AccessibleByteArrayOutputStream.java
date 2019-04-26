@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -79,7 +79,7 @@ public class AccessibleByteArrayOutputStream extends ByteArrayOutputStream {
         
         for(;;)
         {
-            int read = in.read(buffer, 0, buf.length);
+            int read = in.read(buffer, 0, buffer.length);
             if (read == -1)
                 break;
             write(buffer, 0, read);

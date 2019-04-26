@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -32,7 +32,14 @@ public class SpliceZoo implements Runnable {
 	protected QuorumPeer peer;
 	public SpliceZoo(QuorumPeerConfig config, int number) throws IOException {
 		this.config = config;
-		this.peer = new QuorumPeer();
+		try {
+			if (QuorumPeer.class.getMethod("testingQuorumPeer", null) != null)
+				this.peer = (QuorumPeer) QuorumPeer.class.getMethod("testingQuorumPeer", null).invoke(null,null);
+			else
+				this.peer = QuorumPeer.class.newInstance();
+		} catch (Exception e) {
+			throw new RuntimeException("Quorum Peer Signature Issue for Unit Tests");
+		}
 		ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
 		cnxnFactory.configure(config.getClientPortAddress(),config.getMaxClientCnxns());
 		peer.setClientPortAddress(config.getClientPortAddress());

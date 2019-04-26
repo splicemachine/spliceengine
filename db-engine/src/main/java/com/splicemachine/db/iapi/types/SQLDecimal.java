@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -55,6 +55,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -321,10 +322,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			return localValue.toPlainString();
 	}
 
-	public Object	getObject() {
-		/*
-		** BigDecimal is immutable
-		*/
+	public Object getSparkObject() {
+		return getObject();
+	}
+
+	@Override
+	public Object getObject() {
 		return getBigDecimal();
 	}
 
@@ -398,7 +401,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 		int scale;
 		byte[] byteArray;
-
 		if (value != null) {
 			scale = value.scale();
 
@@ -535,7 +537,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
     public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
 		try {
-			return new SQLDecimal(getBigDecimal(), precision, scale);
+		    SQLDecimal decimal = new SQLDecimal(getBigDecimal(), precision, scale);
+		    if (decimal.getPrecision() != precision)
+		        decimal.setPrecision(precision);
+		    if (decimal.getScale() != scale)
+		        decimal.setScale(scale);
+		    return decimal;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -1286,7 +1293,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	@Override
 	public StructField getStructField(String columnName) {
 		if (precision == -1 || scale == -1) {
-			return DataTypes.createStructField(columnName,DataTypes.createDecimalType(),true);
+			return DataTypes.createStructField(columnName, DecimalType.SYSTEM_DEFAULT(),true);
 		} else {
 			return DataTypes.createStructField(columnName, DataTypes.createDecimalType(precision, scale), true);
 		}

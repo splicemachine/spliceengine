@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,10 +14,13 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.KeyValue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,11 +31,15 @@ public class BulkInsertHFileGenerationFunction extends HFileGenerationFunction {
     public BulkInsertHFileGenerationFunction() {}
 
     public BulkInsertHFileGenerationFunction(OperationContext operationContext,
-                                   long txnId,
-                                   Long heapConglom,
-                                   String compressionAlgorithm,
-                                   List<BulkImportPartition> partitionList) {
-        super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList);
+                                             long txnId,
+                                             Long heapConglom,
+                                             String compressionAlgorithm,
+                                             List<BulkImportPartition> partitionList,
+                                             int[] pkCols,
+                                             String tableVersion,
+                                             ArrayList<DDLMessage.TentativeIndex> tentativeIndexList) {
+        super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList, pkCols, tableVersion, tentativeIndexList);
+        this.operationType = OperationType.INSERT;
     }
 
     @Override

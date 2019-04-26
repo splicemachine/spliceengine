@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -228,6 +228,13 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String MAX_CHECK_TABLE_ERRORS="splice.max.checktable.error";
     private static final int DEFAULT_MAX_CHECK_TABLE_ERRORS = 1000;
 
+    /**
+     * specify the maximal number of iterations recursive query should do to avoid infinite loop
+     */
+    public static final String RECURSIVE_QUERY_ITERATION_LIMIT = "splice.execution.recursiveQueryIterationLimit";
+    public static final int DEFAULT_RECURSIVE_QUERY_ITERATION_LIMIT = 20;
+
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
@@ -258,6 +265,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.broadcastRegionMbThreshold = configurationSource.getLong(BROADCAST_REGION_MB_THRESHOLD, DEFAULT_BROADCAST_REGION_MB_THRESHOLD);
         builder.broadcastRegionRowThreshold = configurationSource.getLong(BROADCAST_REGION_ROW_THRESHOLD, DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
         builder.broadcastDatasetCostThreshold = configurationSource.getLong(BROADCAST_DATASET_COST_THRESHOLD, DEFAULT_BROADCAST_DATASET_COST_THRESHOLD);
+        builder.recursiveQueryIterationLimit = configurationSource.getInt(RECURSIVE_QUERY_ITERATION_LIMIT, DEFAULT_RECURSIVE_QUERY_ITERATION_LIMIT);
 
         //always disable debug statements by default
         builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);

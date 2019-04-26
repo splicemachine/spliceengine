@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -36,6 +36,8 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+
+import java.util.ArrayList;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -142,6 +144,7 @@ public interface ResultSetFactory {
 								 boolean samplingOnly,
                                  boolean outputKeysOnly,
 								 boolean skipSampling,
+								 double sampleFraction,
 								 String indexName)
         throws StandardException;
 
@@ -339,21 +342,27 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@param filterPred  The filter predicate to apply on a source
+		                   NativeSparkDataSet, if applicable.
+		@param expressions The projected expressions to select from a source
+		                   NativeSparkDataSet, if applicable.
 		@return the project restrict operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
 	NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
-		GeneratedMethod restriction, 
-		GeneratedMethod projection, int resultSetNumber,
-		GeneratedMethod constantRestriction,
-		int mapArrayItem,
-        int cloneMapItem,
-		boolean reuseResult,
-		boolean doesProjection,
-		double optimizerEstimatedRowCount,
-		double optimizerEstimatedCost,
-		String explainPlan) throws StandardException;
+                                               GeneratedMethod restriction,
+                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod constantRestriction,
+                                               int mapArrayItem,
+                                               int cloneMapItem,
+                                               boolean reuseResult,
+                                               boolean doesProjection,
+                                               double optimizerEstimatedRowCount,
+                                               double optimizerEstimatedCost,
+                                               String explainPlan,
+                                               String filterPred,
+                                               String[] expressions) throws StandardException;
 
 	/**
 		A hash table result set builds a hash table on its source,
@@ -533,6 +542,9 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 		@param isRollup true if this is a GROUP BY ROLLUP()
+	    @param groupingIdColPosition column position of the groupingId column which is only used for rollup
+	    @param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
+	                               which is only used for rollup
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -547,6 +559,8 @@ public interface ResultSetFactory {
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
 		boolean isRollup,
+		int groupingIdColPosition,
+		int groupingIdArrayItem,
 		String explainPlan) 
 			throws StandardException;
 
@@ -570,6 +584,9 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 		@param isRollup true if this is a GROUP BY ROLLUP()
+	    @param groupingIdColPosition column position of the groupingId column which is only used for rollup
+	    @param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
+	                                which is only used for rollup
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -584,6 +601,8 @@ public interface ResultSetFactory {
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
         boolean isRollup,
+		int groupingIdColPosition,
+		int groupingIdArrayItem,
         String explainPlan) 
 			throws StandardException;
 
@@ -1769,7 +1788,7 @@ public interface ResultSetFactory {
 									  Activation activation,
 									  int resultSetNumber,
 									  String exportPath,
-									  boolean compression,
+									  String compression,
 									  int replicationCount,
 									  String encoding,
 									  String fieldSeparator,
@@ -1784,7 +1803,7 @@ public interface ResultSetFactory {
 									  Activation activation,
 									  int resultSetNumber,
 									  String exportPath,
-									  boolean compression,
+									  String compression,
 									  String format,
 									  int srcResultDescriptionSavedObjectNum) throws StandardException;
     /**
@@ -1797,5 +1816,23 @@ public interface ResultSetFactory {
 										 String updateResultSetFieldName,
 										 int sourceCorrelatedColumnItem,
 										 int subqueryCorrelatedColumnItem) throws StandardException;
+
+	/**
+	 * Recursive query
+	 */
+	NoPutResultSet getSelfReferenceResultSet(Activation activation,
+											 GeneratedMethod rowAllocator,
+											 int resultSetNumber,
+											 double optimizerEstimatedRowCount,
+											 double optimizerEstimatedCost,
+											 String explainPlan) throws StandardException;
+
+	NoPutResultSet getRecursiveUnionResultSet(NoPutResultSet leftResultSet,
+											  NoPutResultSet rightResultSet,
+											  int resultSetNumber,
+											  double optimizerEstimatedRowCount,
+											  double optimizerEstimatedCost,
+											  String explainPlan,
+											  int iterationLimit) throws StandardException;
 
 }

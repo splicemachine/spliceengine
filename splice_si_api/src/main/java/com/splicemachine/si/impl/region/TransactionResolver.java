@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -28,6 +28,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Asynchronous element for "resolving" transaction elements.
@@ -142,7 +143,12 @@ public class TransactionResolver{
     }
     
     public void shutdown() {
-        disruptor.shutdown();
+        try {
+            disruptor.shutdown(10, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            LOG.warn("Disruptor shutdown timed out", e);
+            disruptor.halt();
+        }
         consumerThreads.shutdownNow();
     }
 

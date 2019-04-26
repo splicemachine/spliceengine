@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -36,14 +36,16 @@ public class PartitionBuffer{
     private boolean skipIndexWrites;
     private boolean skipConflictDetection;
     private boolean skipWAL;
+    private boolean rollforward;
 
-    public PartitionBuffer(Partition partition, PreFlushHook preFlushHook, boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL) {
+    public PartitionBuffer(Partition partition, PreFlushHook preFlushHook, boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL, boolean rollforward) {
         this.partition=partition;
         this.buffer = new ArrayList<>();
         this.preFlushHook = preFlushHook;
         this.skipIndexWrites = skipIndexWrites;
         this.skipConflictDetection = skipConflictDetection;
         this.skipWAL = skipWAL;
+        this.rollforward = rollforward;
     }
 
     public void add(KVPair element) throws Exception {
@@ -76,7 +78,7 @@ public class PartitionBuffer{
     }
 
     public BulkWrite getBulkWrite() throws Exception {
-        return new BulkWrite(heapSize, preFlushHook.transform(buffer), partition.getName(), skipIndexWrites, skipConflictDetection, skipWAL);
+        return new BulkWrite(heapSize, preFlushHook.transform(buffer), partition.getName(), skipIndexWrites, skipConflictDetection, skipWAL, rollforward);
     }
 
     /**

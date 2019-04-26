@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -18,6 +18,7 @@ import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.splicemachine.annotations.ThreadSafe;
+import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.impl.rollforward.RollForwardStatus;
 import com.splicemachine.storage.Partition;
@@ -118,7 +119,7 @@ public class AsyncReadResolver{
                         status,
                         false,
                         trafficControl)){
-                    event.rollForward.recordResolved(event.rowKey,event.txnId);
+//                    event.rollForward.recordResolved(event.rowKey,event.txnId);
                 }
             }catch(Exception e){
                 LOG.info("Error during read resolution",e);

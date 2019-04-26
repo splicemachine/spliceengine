@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -20,23 +20,34 @@ import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLDriver;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.stream.function.FileFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
 import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -49,16 +60,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLDriver;
-import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.procedures.external.DistributedCreateExternalTableJob;
-import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
-import com.splicemachine.procedures.external.GetSchemaExternalResult;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.DataTypes;
@@ -67,10 +68,7 @@ import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
 import java.sql.SQLWarning;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -97,6 +95,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     private String location;
     private String compression;
     private boolean mergeSchema;
+    private boolean presplit;
+    private boolean isLogicalKey;
+    private String splitKeyPath;
+    private String columnDelimiter;
+    private String characterDelimiter;
+    private String timestampFormat;
+    private String dateFormat;
+    private String timeFormat;
 
 
     /**
@@ -131,7 +137,15 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             String storedAs,
             String location,
             String compression,
-            boolean mergeSchema) {
+            boolean mergeSchema,
+            boolean presplit,
+            boolean isLogicalKey,
+            String splitKeyPath,
+            String columnDelimiter,
+            String characterDelimiter,
+            String timestampFormat,
+            String dateFormat,
+            String timeFormat) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tableType = tableType;
@@ -149,6 +163,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.location = location;
         this.compression = compression;
         this.mergeSchema = mergeSchema;
+        this.presplit = presplit;
+        this.isLogicalKey = isLogicalKey;
+        this.splitKeyPath = splitKeyPath;
+        this.columnDelimiter = columnDelimiter;
+        this.characterDelimiter = characterDelimiter;
+        this.timestampFormat = timestampFormat;
+        this.dateFormat = dateFormat;
+        this.timeFormat = timeFormat;
 
         if (SanityManager.DEBUG) {
             if (tableType == TableDescriptor.BASE_TABLE_TYPE && lockGranularity != TableDescriptor.TABLE_LOCK_GRANULARITY &&
@@ -278,6 +300,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         properties.setProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, this.schemaName);
         properties.setProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR, this.tableName);
 
+        byte[][] splitKeys = null;
+        try {
+            if (presplit) {
+                splitKeys = calculateSplitKeys(activation, columnOrdering, columnInfo);
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
         /* create the conglomerate to hold the table's rows
 		 * RESOLVE - If we ever have a conglomerate creator
 		 * that lets us specify the conglomerate number then
@@ -291,8 +321,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 properties, // properties
                 tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
                         (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
-                        TransactionController.IS_DEFAULT);
-
+                        TransactionController.IS_DEFAULT,
+                splitKeys);
         SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
         //
@@ -364,7 +394,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         columnInfo[ix].autoincStart,
                         columnInfo[ix].autoincInc,
                         columnInfo[ix].autoinc_create_or_modify_Start_Increment,
-                        columnInfo[ix].partitionPosition
+                        columnInfo[ix].partitionPosition,
+                        (byte)0
                 );
             else {
                 columnDescriptor = new ColumnDescriptor(
@@ -605,5 +636,73 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         return String.format("Create Table %s", tableName);
     }
 
+    private byte[][] calculateSplitKeys(Activation activation,
+                                        ColumnOrdering[] columnOrderings,
+                                        ColumnInfo[] columnInfo) throws IOException, StandardException{
+
+        Map<String, byte[]> keysMap = new HashMap<>();
+        DataSetProcessor dsp = EngineDriver.driver().processorFactory().localProcessor(null,null);
+        DataSet<String> text = dsp.readTextFile(splitKeyPath);
+        if (isLogicalKey) {
+            int[] pkCols = new int[columnOrderings.length];
+            for (int i = 0; i < columnOrderings.length; ++i) {
+                pkCols[i] = columnOrderings[i].getColumnId();
+            }
+            int[] allFormatIds = new int[columnInfo.length];
+            for (int i = 0; i < columnInfo.length; ++i) {
+                allFormatIds[i] = columnInfo[i].dataType.getNull().getTypeFormatId();
+            }
+
+            int[] pkFormatIds = new int[pkCols.length];
+            for (int i = 0; i < pkCols.length; ++i) {
+                pkFormatIds[i] = allFormatIds[pkCols[i]];
+            }
+
+            OperationContext operationContext = dsp.createOperationContext(activation);
+            ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(pkFormatIds);
+            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
+                    null, timeFormat, dateFormat, timestampFormat, operationContext), true);
+            List<ExecRow> rows = dataSet.collect();
+            DataHash encoder = getEncoder(execRow);
+            for (ExecRow row : rows) {
+                encoder.setRow(row);
+                byte[] bytes = encoder.encode();
+                String s = Bytes.toHex(bytes);
+                if (keysMap.get(s) == null) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "execRow = %s, splitKey = %s", execRow,
+                                Bytes.toStringBinary(bytes));
+                    }
+                    keysMap.put(s, bytes);
+                }
+            }
+        }
+        else {
+            List<String> physicalKeys = text.collect();
+            for (String key : physicalKeys) {
+                byte[] bytes = Bytes.toBytesBinary(key);
+                String s = Bytes.toHex(bytes);
+                if (keysMap.get(s) == null) {
+                    keysMap.put(s, bytes);
+                }
+            }
+        }
+        byte[][] splitKeys = new byte[keysMap.size()][];
+        splitKeys = keysMap.values().toArray(splitKeys);
+        return splitKeys;
+    }
+
+    private DataHash getEncoder(ExecRow execRow) {
+        DescriptorSerializer[] serializers= VersionedSerializers
+                .forVersion(SYSTABLESRowFactory.CURRENT_TABLE_VERSION, false)
+                .getSerializers(execRow.getRowArray());
+        int[] rowColumns = IntArrays.count(execRow.nColumns());
+        boolean[] sortOrder = new boolean[execRow.nColumns()];
+        for (int i = 0; i < sortOrder.length; i++) {
+            sortOrder[i] = true;
+        }
+        DataHash dataHash = BareKeyHash.encoder(rowColumns, sortOrder, serializers);
+        return dataHash;
+    }
 }
 

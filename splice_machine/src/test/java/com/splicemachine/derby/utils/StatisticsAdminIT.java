@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -188,6 +189,13 @@ public class StatisticsAdminIT{
                         row("E","E")))
                 .create();
 
+        new TableCreator(conn4)
+                .withCreate("create table t5 (a5 tinyint, b5 smallint, c5 int, d5 bigint, e5 real, f5 double, g5 decimal(10,2), " +
+                        "h5 date, i5 timestamp, j5 time, k5 varchar(10),  primary key(c5))")
+                .withInsert("insert into t5 values (?,?,?,?,?,?,?,?,?,?,?)")
+                .withRows(rows(
+                        row(1,1,1,1,1.0,1.0,10.01,"2018-12-12","2013-03-23 09:45:00", "15:09:02", "AAAA")))
+                .create();
 
     }
 
@@ -1019,6 +1027,97 @@ public class StatisticsAdminIT{
         outputRows = (long)(SpliceUnitTest.parseOutputRows(SpliceUnitTest.getExplainMessage(3, sqlText, methodWatcher4)));
         Assert.assertEquals("OutputRows estimation does not match", 5, outputRows);
 
+        rs.close();
+    }
+
+    @Test
+    public void testSetUseExtrapolation() throws Exception {
+        /* 1 check the useExtrapolation column */
+        String expected1 = "COLUMNNAME |USEEXTRAPOLATION |\n" +
+                "------------------------------\n" +
+                "    A5     |        0        |\n" +
+                "    B5     |        0        |\n" +
+                "    C5     |        0        |\n" +
+                "    D5     |        0        |\n" +
+                "    E5     |        0        |\n" +
+                "    F5     |        0        |\n" +
+                "    G5     |        0        |\n" +
+                "    H5     |        0        |\n" +
+                "    I5     |        0        |\n" +
+                "    J5     |        0        |\n" +
+                "    K5     |        0        |";
+        ResultSet rs = methodWatcher4.executeQuery(format("select columnname, useExtrapolation\n" +
+                "from sys.systables as T, sys.syscolumns as C, sys.sysschemas as S\n" +
+                "where S.schemaId = T.schemaId and T.tableId=C.referenceId and S.schemaName='%s' and t.tablename='T5'", SCHEMA4));
+        String resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals("UseExtrapolation properties of columns do not match expected result.", expected1, resultString);
+        rs.close();
+
+        /* 2 enable extraploation */
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "A5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "B5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "C5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "D5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "E5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "F5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "G5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "H5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "I5"));
+        try {
+            methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "J5"));
+        }  catch (SQLException e) {
+            assertEquals(format("Wrong error state! Expected: %s, actual:%s", ErrorState.LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED.getSqlState(), e.getSQLState()),
+                    ErrorState.LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED.getSqlState(), e.getSQLState());
+        }
+        try {
+            methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 1)", SCHEMA4, "K5"));
+        } catch (SQLException e) {
+            assertEquals(format("Wrong error state! Expected: %s, actual:%s", ErrorState.LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED.getSqlState(), e.getSQLState()),
+                    ErrorState.LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED.getSqlState(), e.getSQLState());
+        }
+
+        /* check the useExtrapolation property of all columns */
+        String expected2 = "COLUMNNAME |USEEXTRAPOLATION |\n" +
+                "------------------------------\n" +
+                "    A5     |        1        |\n" +
+                "    B5     |        1        |\n" +
+                "    C5     |        1        |\n" +
+                "    D5     |        1        |\n" +
+                "    E5     |        1        |\n" +
+                "    F5     |        1        |\n" +
+                "    G5     |        1        |\n" +
+                "    H5     |        1        |\n" +
+                "    I5     |        1        |\n" +
+                "    J5     |        0        |\n" +
+                "    K5     |        0        |";
+        rs = methodWatcher4.executeQuery(format("select columnname, useExtrapolation\n" +
+                "from sys.systables as T, sys.syscolumns as C, sys.sysschemas as S\n" +
+                "where S.schemaId = T.schemaId and T.tableId=C.referenceId and S.schemaName='%s' and t.tablename='T5'", SCHEMA4));
+        resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals("UseExtrapolation properties of columns do not match expected result.", expected2, resultString);
+        rs.close();
+
+        /* reset useExtrapolation */
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "A5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "B5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "C5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "D5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "E5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "F5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "G5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "H5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "I5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "J5"));
+        methodWatcher4.executeUpdate(format("call syscs_util.set_stats_extrapolation_for_column('%s', 'T5', '%s', 0)", SCHEMA4, "K5"));
+
+
+
+        /* check useExtrapolation property again */
+        rs = methodWatcher4.executeQuery(format("select columnname, useExtrapolation\n" +
+                "from sys.systables as T, sys.syscolumns as C, sys.sysschemas as S\n" +
+                "where S.schemaId = T.schemaId and T.tableId=C.referenceId and S.schemaName='%s' and t.tablename='T5'", SCHEMA4));
+        resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals("UseExtrapolation properties of columns do not match expected result.", expected1, resultString);
         rs.close();
     }
 

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -99,28 +99,34 @@ public class BinaryOperatorNode extends OperatorNode
 
 	public final static int XMLEXISTS_OP = 0;
 	public final static int XMLQUERY_OP = 1;
+	public final static int REPEAT = 2;
+	public final static int SIMPLE_LOCALE_STRING = 3;
 
 	// NOTE: in the following 4 arrays, order
 	// IS important.
 
 	static final String[] BinaryOperators = {
 		"xmlexists",
-		"xmlquery"
+		"xmlquery",
+		"repeat"
 	};
 
 	static final String[] BinaryMethodNames = {
 		"XMLExists",
-		"XMLQuery"
+		"XMLQuery",
+		"repeat"
 	};
 
 	static final String[] BinaryResultTypes = {
 		ClassName.BooleanDataValue,		// XMLExists
-		ClassName.XMLDataValue			// XMLQuery
+		ClassName.XMLDataValue,			// XMLQuery
+		ClassName.StringDataValue       // repeat
 	};
 
 	static final String[][] BinaryArgTypes = {
 		{ClassName.StringDataValue, ClassName.XMLDataValue},	// XMLExists
-		{ClassName.StringDataValue, ClassName.XMLDataValue}		// XMLQuery
+		{ClassName.StringDataValue, ClassName.XMLDataValue},	// XMLQuery
+		{ClassName.StringDataValue, ClassName.NumberDataValue}  // repeat
 	};
 
     /** The query expression if the operator is XMLEXISTS or XMLQUERY. */
@@ -167,6 +173,22 @@ public class BinaryOperatorNode extends OperatorNode
 		this.rightInterfaceType = (String) rightInterfaceType;
 		this.operatorType = -1;
 	}
+
+	public void init(
+			Object leftOperand,
+			Object rightOperand,
+			Object operator,
+			Object methodName,
+			Object leftInterfaceType,
+			Object rightInterfaceType,
+			Object resultInterfaceType,
+			int operatorType)
+	{
+	    init(leftOperand, rightOperand, operator, methodName, leftInterfaceType, rightInterfaceType);
+		this.operatorType = operatorType;
+		this.resultInterfaceType = (String) resultInterfaceType;
+	}
+
 
 	/**
 	 * Initializer for a BinaryOperatorNode
@@ -301,6 +323,8 @@ public class BinaryOperatorNode extends OperatorNode
 
 		if ((operatorType == XMLEXISTS_OP) || (operatorType == XMLQUERY_OP))
 			return bindXMLQuery();
+		else if (operatorType == REPEAT)
+			return bindRepeat();
 
 		/* Is there a ? parameter on the left? */
 		if (leftOperand.requiresTypeFromContext())
@@ -422,6 +446,62 @@ public class BinaryOperatorNode extends OperatorNode
         return genSQLJavaSQLTree();
     }
 
+	public ValueNode bindRepeat() throws StandardException {
+		/*
+		 * Is there a ? parameter for the first arg.
+		 */
+		if( leftOperand.requiresTypeFromContext())
+		{
+			leftOperand.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
+			leftOperand.setCollationUsingCompilationSchema();
+		}
+
+		/*
+		 * Is there a ? paramter for the second arg.  It will be an int.
+		 */
+		if( rightOperand.requiresTypeFromContext())
+		{
+			rightOperand.setType(
+					new DataTypeDescriptor(TypeId.INTEGER_ID, true));
+		}
+
+		/*
+		** Check the type of the operand - this function is allowed only
+		** for: leftOperand = CHAR, VARCHAR, LONG VARCHAR
+		**      rightOperand = INT
+		*/
+		TypeId stringOperandType = leftOperand.getTypeId();
+		TypeId repeatOperandType = rightOperand.getTypeId();
+
+		if (!stringOperandType.isStringTypeId() || stringOperandType.isClobTypeId())
+			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARG_TYPE, stringOperandType.getSQLTypeName(),
+					1, "FUNCTION");
+
+		if (!repeatOperandType.isIntegerNumericTypeId())
+			throw StandardException.newException(SQLState.LANG_INVALID_FUNCTION_ARG_TYPE, repeatOperandType.getSQLTypeName(),
+					2, "FUNCTION");
+
+		/*
+		** The result type of a repeat is of the same type as the leftOperand
+		*/
+		if (rightOperand instanceof ConstantNode) {
+			int repeatTimes = ((ConstantNode) rightOperand).getValue().getInt();
+			if (repeatTimes < 0)
+				throw StandardException.newException(
+						SQLState.LANG_INVALID_FUNCTION_ARGUMENT, rightOperand, "REPEAT");
+			int resultLength = leftOperand.getTypeId().getMaximumMaximumWidth();
+			if (leftOperand.getTypeServices().getMaximumWidth() * repeatTimes < resultLength) {
+				resultLength = leftOperand.getTypeServices().getMaximumWidth() * repeatTimes;
+			}
+			setType(new DataTypeDescriptor(stringOperandType, true, resultLength));
+		} else {
+			setType(new DataTypeDescriptor(stringOperandType, true));
+		}
+
+		return genSQLJavaSQLTree();
+
+	}
+
 	/** generate a SQL->Java->SQL conversion tree above the left and right
 	 * operand of this Binary Operator Node if needed. Subclasses can override
 	 * the default behavior.
@@ -474,6 +554,12 @@ public class BinaryOperatorNode extends OperatorNode
 	public boolean checkCRLevel(int level){
 		return leftOperand.checkCRLevel(level) || rightOperand.checkCRLevel(level);
 	}
+
+    public boolean leftIsReceiver() throws StandardException {
+        return (leftOperand.getTypeId().typePrecedence() >
+                rightOperand.getTypeId().typePrecedence() ||
+                operatorType == REPEAT || operatorType == SIMPLE_LOCALE_STRING);
+    }
 
 	/**
 	 * Do code generation for this binary operator.
@@ -533,13 +619,18 @@ public class BinaryOperatorNode extends OperatorNode
 		boolean xmlGen =
 			(operatorType == XMLQUERY_OP) || (operatorType == XMLEXISTS_OP);
 
+		boolean leftIsReceiver = leftIsReceiver();
+		boolean receiverIsNumeric =
+                 (leftIsReceiver ? leftOperand.getTypeCompiler() instanceof NumericTypeCompiler :
+                                   rightOperand.getTypeCompiler() instanceof NumericTypeCompiler);
+		boolean dupReceiver = (xmlGen ||
+                              !(this instanceof BinaryArithmeticOperatorNode && receiverIsNumeric));
 		/*
 		** The receiver is the operand with the higher type precedence.
 		** Like always makes the left the receiver.
 		**
 		*/
-		if (leftOperand.getTypeId().typePrecedence() >
-			rightOperand.getTypeId().typePrecedence())
+		if (leftIsReceiver)
 		{
 			receiver = leftOperand;
 			/*
@@ -549,27 +640,32 @@ public class BinaryOperatorNode extends OperatorNode
 			** a class, they can note that in the implementation
 			** of the node that uses the method.
 			*/
-		    receiverType = (operatorType == -1)
-				? getReceiverInterfaceName()
-				: leftInterfaceType;
+		    receiverType = !dupReceiver ? getTypeCompiler().interfaceName() :
+                (operatorType == -1) ? getReceiverInterfaceName() : leftInterfaceType;
 
 			/*
 			** Generate (with <left expression> only being evaluated once)
 			**
 			**	<left expression>.method(<left expression>, <right expression>...)
 			*/
+            if (dupReceiver)
+                leftOperand.generateExpression(acb, mb);
+			else
+                acb.generateNull(mb, getTypeCompiler(), getTypeServices());
 
-			leftOperand.generateExpression(acb, mb);
 			mb.cast(receiverType); // cast the method instance
-			// stack: left
-			
-			mb.dup();
+			// stack: receiver
+
+            if (dupReceiver)
+                mb.dup();
+            else
+                leftOperand.generateExpression(acb, mb);
 			mb.cast(leftInterfaceType);
 			// stack: left, left
 			
 			rightOperand.generateExpression(acb, mb);
 			mb.cast(rightInterfaceType); // second arg with cast
-			// stack: left, left, right
+			// stack: receiver, left, right
 
             // We've pushed two arguments
             numArgs = 2;
@@ -584,9 +680,8 @@ public class BinaryOperatorNode extends OperatorNode
 			** a class, they can note that in the implementation
 			** of the node that uses the method.
 			*/
-		    receiverType = (operatorType == -1)
-				? getReceiverInterfaceName()
-				: rightInterfaceType;
+            receiverType = !dupReceiver ? getTypeCompiler().interfaceName() :
+                (operatorType == -1) ? getReceiverInterfaceName() : rightInterfaceType;
 
 			/*
 			** Generate (with <right expression> only being evaluated once)
@@ -599,9 +694,13 @@ public class BinaryOperatorNode extends OperatorNode
 			**  <right expression>.method(sqlXmlUtil)
 			*/
 
-			rightOperand.generateExpression(acb, mb);			
+            if (dupReceiver)
+                rightOperand.generateExpression(acb, mb);
+			else
+                acb.generateNull(mb, getTypeCompiler(), getTypeServices());
+
 			mb.cast(receiverType); // cast the method instance
-			// stack: right
+			// stack: receiver
 			
             if (xmlGen) {
                 // Push one argument (the SqlXmlUtil instance)
@@ -612,16 +711,19 @@ public class BinaryOperatorNode extends OperatorNode
                 // Push two arguments (left, right)
                 numArgs = 2;
 
-				mb.dup();
-				mb.cast(rightInterfaceType);
-				// stack: right,right
+                if (dupReceiver)
+                    mb.dup();
+                else
+                    rightOperand.generateExpression(acb, mb);
+                mb.cast(rightInterfaceType);
+				// stack: receiver,right
 			
                 leftOperand.generateExpression(acb, mb);
                 mb.cast(leftInterfaceType); // second arg with cast
-                // stack: right,right,left
+                // stack: receiver,right,left
 
                 mb.swap();
-                // stack: right,left,right
+                // stack: receiver,left,right
             }
 		}
 
@@ -632,16 +734,23 @@ public class BinaryOperatorNode extends OperatorNode
 
         // Boolean return types don't need a result field. For other types,
         // allocate an object for re-use to hold the result of the operator.
-        LocalField resultField = getTypeId().isBooleanTypeId() ?
-            null : acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
+        boolean genResultField = !getTypeId().isBooleanTypeId();
 
         // Push the result field onto the stack, if there is a result field.
-		if (resultField != null) {
+		if (genResultField) {
 			/*
-			** Call the method for this operator.
-			*/
-			mb.getField(resultField); // third arg
-
+             ** Call the method for this operator.
+             */
+			// Don't push a null for decimal types, because it causes
+            // easy overflow.
+			if (getTypeId().isDecimalTypeId()) {
+                LocalField resultField = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
+                mb.getField(resultField);
+            }
+			else {
+                acb.generateNull(mb, getTypeCompiler(), getTypeServices());
+                mb.cast(resultTypeName); // cast the method instance; // third arg
+            }
             // Adjust number of arguments for the result field
             numArgs++;
 
@@ -663,9 +772,10 @@ public class BinaryOperatorNode extends OperatorNode
                       methodName, resultTypeName, numArgs);
 
         // Store the result of the method call, if there is a result field.
-        if (resultField != null) {
+        if (genResultField) {
 			//the need for following if was realized while fixing bug 5704 where decimal*decimal was resulting an overflow value but we were not detecting it
-			if (getTypeId().variableLength())//since result type is numeric variable length, generate setWidth code.
+			if (getTypeId().variableLength() && //since result type is numeric variable length, generate setWidth code.
+                receiver.getTypeServices().getTypeId().variableLength()) //receiver type may be different from result.
 			{
 				if (getTypeId().isNumericTypeId())
 				{
@@ -678,14 +788,6 @@ public class BinaryOperatorNode extends OperatorNode
 					mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.VariableSizeDataValue, "setWidth", "void", 3);
 				}
 			}
-
-
-			/*
-			** Store the result of the method call in the field, so we can re-use
-			** the object.
-			*/
-
-//			mb.putField(resultField);
 		}
 	}
 
@@ -951,5 +1053,11 @@ public class BinaryOperatorNode extends OperatorNode
 		else return l;
 	}
 
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		return leftOperand.isConstantOrParameterTreeNode() && rightOperand.isConstantOrParameterTreeNode();
+	}
+
+	public boolean isRepeat () { return this.operatorType == REPEAT; }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -112,7 +112,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, null, rce, false, false, false, env,pipelineExceptionFactory);
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, null, rce, false, false, false, false, env,pipelineExceptionFactory);
         BatchConstraintChecker checker = buildConstraintChecker(txn);
         context.addLast(new PartitionWriteHandler(rce, tableWriteLatch, checker));
         addWriteHandlerFactories(1000, context);
@@ -122,13 +122,13 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
     @Override
     public WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
                                TxnView txn, byte[] token, TransactionalRegion region, int expectedWrites,
-                               boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL,
+                               boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL, boolean rollforward,
                                ServerControl env) throws IOException, InterruptedException {
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,
-                pf,txn, token, region, skipIndexWrites,skipConflictDetection, skipWAL, env,pipelineExceptionFactory);
+                pf,txn, token, region, skipIndexWrites,skipConflictDetection, skipWAL, rollforward, env,pipelineExceptionFactory);
         BatchConstraintChecker checker = buildConstraintChecker(txn);
         context.addLast(new PartitionWriteHandler(region, tableWriteLatch, checker));
         addWriteHandlerFactories(expectedWrites, context);
@@ -159,7 +159,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, pf,txn, null, region, false, false, false, env,pipelineExceptionFactory);
+        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, pf,txn, null, region, false, false, false, false, env,pipelineExceptionFactory);
         addWriteHandlerFactories(expectedWrites, context);
         return context;
     }

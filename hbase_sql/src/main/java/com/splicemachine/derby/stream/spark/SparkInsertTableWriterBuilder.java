@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.spark;
 
 import java.io.IOException;
 
+import com.splicemachine.derby.stream.iapi.DataSet;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -34,10 +35,10 @@ import scala.util.Either;
  *         Date: 1/25/16
  */
 public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder{
-    private transient JavaPairRDD<K,Either<Exception, V>> rdd;
+    private DataSet dataSet;
 
-    public SparkInsertTableWriterBuilder(JavaPairRDD<K,Either<Exception, V>> rdd){
-        this.rdd=rdd;
+    public SparkInsertTableWriterBuilder(DataSet dataSet){
+        this.dataSet = dataSet;
     }
 
     public SparkInsertTableWriterBuilder(){
@@ -58,7 +59,7 @@ public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder
             throw Exceptions.parseException(e);
         }
         conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
-        return new InsertDataSetWriter<>(rdd,
+        return new InsertDataSetWriter<>(dataSet,
                 operationContext,
                 conf,
                 pkCols,
@@ -67,6 +68,8 @@ public class SparkInsertTableWriterBuilder<K,V> extends InsertTableWriterBuilder
                 autoIncrementRowLocationArray,
                 spliceSequences,
                 heapConglom,
-                isUpsert);
+                isUpsert,
+                sampleFraction,
+                updateCounts);
     }
 }

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -3258,6 +3258,33 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public String getCurrentGroupUserDelimited(Activation a) throws StandardException {
+        if(LOG.isDebugEnabled()) {
+            LOG.debug(String.format("getCurrentGroupUserDelimited():\n" +
+                            "sessionUser: %s,\n" +
+                            "defaultRoles: %s,\n" +
+                            "groupUserList: %s\n",
+                    sessionUser,
+                    (defaultRoles==null?"null":defaultRoles.toString()),
+                    (groupuserlist==null?"null":groupuserlist.toString())));
+        }
+        List<String> groupUsers = getCurrentSQLSessionContext(a).getCurrentGroupUser();
+
+        if (groupUsers == null)
+            return null;
+
+        String listString = null;
+        for (String groupUser: groupUsers) {
+            if (listString == null)
+                listString = IdUtil.normalToDelimited(groupUser);
+            else
+                listString = listString + ", " + IdUtil.normalToDelimited(groupUser);
+        }
+
+        return listString;
+    }
+
+    @Override
     public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
         if(LOG.isDebugEnabled()) {
             LOG.debug(String.format("getCurrentRoleIdDelimited():\n" +
@@ -3742,6 +3769,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
                     getLogHeader(), uuid, engine, formatLogStmt(stmt),
                     pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
+        }
+    }
+
+    @Override
+    public void logNextBatch(ParameterValueSet pvs) {
+        if (stmtLogger.isDebugEnabled()) {
+            stmtLogger.debug(String.format(
+                    "Next batch for query. %s, paramsCount=%d, params=[ %s ]",
+                    getLogHeader(),
+                    pvs.getParameterCount(), pvs.toString()));
         }
     }
 

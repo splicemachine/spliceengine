@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -47,9 +47,10 @@ public class RangeSelectivity extends AbstractSelectivityHolder {
     public boolean includeStop;
     public StoreCostController storeCost;
     private double selectivityFactor;
+    private boolean useExtrapolation;
 
     public RangeSelectivity(StoreCostController storeCost,DataValueDescriptor start, DataValueDescriptor stop,boolean includeStart, boolean includeStop,
-                            int colNum, QualifierPhase phase, double selectivityFactor){
+                            int colNum, QualifierPhase phase, double selectivityFactor, boolean useExtrapolation){
         super(colNum,phase);
         this.start = start;
         this.stop = stop;
@@ -57,11 +58,12 @@ public class RangeSelectivity extends AbstractSelectivityHolder {
         this.includeStop = includeStop;
         this.storeCost = storeCost;
         this.selectivityFactor = selectivityFactor;
+        this.useExtrapolation = useExtrapolation;
     }
 
     public double getSelectivity()  throws StandardException {
         if (selectivity==-1.0d) {
-            selectivity = storeCost.getSelectivity(colNum, start, includeStart, stop, includeStop);
+            selectivity = storeCost.getSelectivity(colNum, start, includeStart, stop, includeStop, useExtrapolation);
             if (selectivityFactor > 0)
                 selectivity *= selectivityFactor;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -57,7 +57,7 @@ public class ConfigurationBuilder {
     public String authenticationLdapSearchbase;
     public String authenticationLdapSearchfilter;
     public String authenticationLdapServer;
-    public String authenticationLdapMapGroupAttr;
+    public String authenticationMapGroupAttr;
     public String authenticationNativeAlgorithm;
     public int authenticationTokenLength;
     public int authenticationTokenMaxLifetime;
@@ -66,6 +66,8 @@ public class ConfigurationBuilder {
     public boolean authenticationTokenDebugConnections;
     public int authenticationTokenMaxConnections;
     public int authenticationTokenPermissionCacheSize;
+    public boolean authenticationImpersonationEnabled;
+    public String authenticationImpersonationUsers;
 
     // Authorization Configuration
     public String authorizationScheme;
@@ -107,6 +109,9 @@ public class ConfigurationBuilder {
     public long backupMaxBandwidthMB;
     public boolean backupUseDistcp;
     public int backupIOBufferSize;
+    public int replicationSnapshotInterval;
+    public int replicationSinkPort;
+    public int replicationProgressUpdateInterval;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
@@ -139,6 +144,7 @@ public class ConfigurationBuilder {
     public long broadcastRegionMbThreshold;
     public long broadcastRegionRowThreshold;
     public long broadcastDatasetCostThreshold;
+    public int recursiveQueryIterationLimit;
     public long optimizerPlanMaximumTimeout;
     public long optimizerPlanMinimumTimeout;
     public long determineSparkRowThreshold;
@@ -147,6 +153,11 @@ public class ConfigurationBuilder {
     public String storageFactoryHome;
     public int nestedLoopJoinBatchSize;
     public int maxCheckTableErrors;
+    public int rollForwardQueueSize;
+    public int rollForwardFirstWait;
+    public int rollForwardSecondWait;
+    public int rollForwardFirstThreads;
+    public int rollForwardSecondThreads;
 
     // PipelineConfiguration
     public int coreWriterThreads;
@@ -182,6 +193,7 @@ public class ConfigurationBuilder {
     public long controlExecutionRowLimit;
     public int olapShufflePartitions;
     public String olapLog4jConfig;
+
 
     /**
      * Build the {@link SConfiguration} given the list of subsystem defaults and the configuration source.<br/>

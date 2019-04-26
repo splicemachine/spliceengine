@@ -221,3 +221,4 @@ tramp
 # cask packages
 .cask/
 
+/platform_it/src/test/resources/ee.txt

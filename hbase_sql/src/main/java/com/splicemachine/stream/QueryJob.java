@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -22,11 +22,14 @@ import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.derby.stream.function.IdentityFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -67,7 +70,8 @@ public class QueryJob implements Callable<Void>{
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
-            long txnId = root.getCurrentTransaction().getTxnId();
+            TxnView parent = root.getCurrentTransaction();
+            long txnId = parent.getTxnId();
             String sql = queryRequest.sql;
             String session = queryRequest.session;
             String userId = queryRequest.userId;
@@ -79,16 +83,18 @@ public class QueryJob implements Callable<Void>{
             }
 
             dsp.setJobGroup(jobName, sql);
-            dsp.clearBroadcastedOperation();
             dataset = root.getDataSet(dsp);
             context = dsp.createOperationContext(root);
-            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset.map(new CloneFunction<>());
+            SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset
+                    .map(new CloneFunction<>(context))
+                    .map(new IdentityFunction<>(context)); // force materialization into Derby's format
             String clientHost = queryRequest.host;
             int clientPort = queryRequest.port;
             UUID uuid = queryRequest.uuid;
-            int numPartitions = sparkDataSet.rdd.getNumPartitions();
+            int numPartitions = sparkDataSet.rdd.rdd().getNumPartitions();
 
-            StreamableRDD streamableRDD = new StreamableRDD<>(sparkDataSet.rdd, context, uuid, clientHost, clientPort,
+            JavaRDD rdd =  sparkDataSet.rdd;
+            StreamableRDD streamableRDD = new StreamableRDD<>(rdd, context, uuid, clientHost, clientPort,
                     queryRequest.streamingBatches, queryRequest.streamingBatchSize);
             streamableRDD.setJobStatus(status);
             streamableRDD.submit();
@@ -96,7 +102,6 @@ public class QueryJob implements Callable<Void>{
             status.markCompleted(new QueryResult(numPartitions));
 
             LOG.info("Completed query for session: " + session);
-
         } catch (CancellationException e) {
             if (jobName != null)
                 SpliceSpark.getContext().sc().cancelJobGroup(jobName);

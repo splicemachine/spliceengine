@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -104,7 +104,7 @@ public final class WindowDefinitionNode extends WindowNode
             FromList fromList = parent.getFromList();
             for (int i=0; i<orderByList.size(); ++i) {
                 OrderByColumn obc = orderByList.getOrderByColumn(i);
-                obc.getColumnExpression().bindExpression(fromList, null, aggregates);
+                    obc.setColumnExpression(obc.getColumnExpression().bindExpression(fromList, null, aggregates));
             }
         }
     }
@@ -258,4 +258,5 @@ public final class WindowDefinitionNode extends WindowNode
         result = 31 * result + (overClause != null ? overClause.hashCode() : 0);
         return result;
     }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -215,7 +215,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             //update compactRow with the default value info
             if (defaultRow != null && defaultValueMap != null) {
                 for (int i=defaultValueMap.anySetBit(); i>=0; i=defaultValueMap.anySetBit(i)) {
-                    compactRow.setColumn(i+1, defaultRow.getColumn(i+1));
+                    compactRow.setColumnValue(i+1, defaultRow.getColumn(i+1));
                 }
             }
             int[] baseColumnMap = operationInformation.getBaseColumnMap();
@@ -311,7 +311,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .mainTableVersion(tableVersion)
                     .mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
                     .mainTableAccessedRowColumns(getMainTableRowColumns())
-                    .numConcurrentLookups((getEstimatedRowCount()>2*indexBatchSize?lookupBlocks:-1))
+                    .numConcurrentLookups(lookupBlocks)
                     .lookupBatchSize(indexBatchSize);
         }
         OperationContext context = dsp.createOperationContext(this);

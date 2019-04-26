@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -57,16 +57,18 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                     left = leftRS.next().getClone();
                 else
                     left.transfer(leftRS.next());
-                currentRightIterator = rightsForLeft(left);
-                while (currentRightIterator.hasNext()) {
-                    currentExecRow = mergeRows(left, currentRightIterator.next());
-                    if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
-                        if (isSemiJoin) {
-                            left = null; // only one joined row needed, force iteration on left side next time
+                if (!joinColumnHasNull(left, true)) {
+                    currentRightIterator = rightsForLeft(left);
+                    while (currentRightIterator.hasNext()) {
+                        currentExecRow = mergeRows(left, currentRightIterator.next());
+                        if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
+                            if (isSemiJoin) {
+                                left = null; // only one joined row needed, force iteration on left side next time
+                            }
+                            return true;
                         }
-                        return true;
+                        operationContext.recordFilter();
                     }
-                    operationContext.recordFilter();
                 }
             }
             return false;

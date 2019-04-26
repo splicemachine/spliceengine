@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -43,7 +43,11 @@ public interface TxnOperationFactory{
 
     TxnView readTxn(ObjectInput oi) throws IOException;
 
+    TxnView readTxnStack(ObjectInput oi) throws IOException;
+
     void writeTxn(TxnView txn,ObjectOutput out) throws IOException;
+
+    void writeTxnStack(TxnView txn,ObjectOutput out) throws IOException;
 
     void writeScan(DataScan scan, ObjectOutput out) throws IOException;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -83,16 +83,18 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 									  String storedAs,
 									  String location,
 									  String compression,
-									  boolean mergeSchema) {
+									  boolean mergeSchema,
+									  boolean presplit,
+									  boolean isLogicalKey,
+									  String splitKeyPath,
+									  String columnDelimiter,
+									  String characterDelimiter,
+									  String timestampFormat,
+									  String dateFormat,
+									  String timeFormat) {
 		super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows, isExternal,
-				delimited,
-				escaped,
-				lines,
-				storedAs,
-				location,
-				compression,
-                mergeSchema
-				);
+				delimited, escaped, lines, storedAs, location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
+                columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat);
 		this.tableType = tableType;
 		this.tableName = tableName;
 		this.schemaName = schemaName;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -32,6 +32,7 @@ import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.procedures.external.ExternalTableSystemProcedures;
+import com.splicemachine.replication.ReplicationSystemProcedure;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -594,6 +595,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disableStatsForAllColumns);
 
+                    Procedure setStatsExtrapolationForColumn = Procedure.newBuilder().name("SET_STATS_EXTRAPOLATION_FOR_COLUMN")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .modifiesSql()
+                            .varchar("schema",1024)
+                            .varchar("table",1024)
+                            .varchar("column",1024)
+                            .smallint("useExtrapolation")
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(setStatsExtrapolationForColumn);
+
         			/*
         			 * Procedure to get the session details
         			 */
@@ -902,28 +915,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build());
 
                     /*
-                     * Procedure to schedule a daily backup job
-                     */
-                    procedures.add(Procedure.newBuilder().name("SYSCS_SCHEDULE_DAILY_BACKUP")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                            .varchar("directory", 32672)
-                            .varchar("type", 32672)
-                            .integer("hour")
-                            .build());
-
-                    /*
-                     * Procedure to cancel a daily backup job
-                     */
-                    procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_DAILY_BACKUP")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
-                            .bigint("jobId")
-                            .build());
-
-                    /*
                      * Procedure to delete a backup
                      */
                     procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_BACKUP")
@@ -1104,6 +1095,22 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .returnType(null).isDeterministic(false)
                             .build());
 
+                    procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TIMESTAMP")
+                            .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .varchar("directory", 32672)
+                            .bigint("backupId")
+                            .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .varchar("pointInTime", 100)
+                            .build());
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE_TO_TRANSACTION")
+                            .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .varchar("directory", 32672)
+                            .bigint("backupId")
+                            .arg("validate", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .bigint("transactionId")
+                            .build());
+
                     procedures.add(Procedure.newBuilder().name("SYSCS_SAVE_SOURCECODE")
                             .numResultSets(0).numOutputParams(0).modifiesSql()
                             .returnType(null).isDeterministic(false)
@@ -1276,6 +1283,95 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(SpliceTableAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(checkTable);
+
+                    Procedure showCreateTable = Procedure.newBuilder().name("SHOW_CREATE_TABLE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(showCreateTable);
+
+                    Procedure addPeer = Procedure.newBuilder().name("ADD_PEER")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .smallint("peerId")
+                            .varchar("clusterKey", 32672)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(addPeer);
+
+                    Procedure removePeer = Procedure.newBuilder().name("REMOVE_PEER")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .smallint("peerId")
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(removePeer);
+
+                    Procedure enablePeer = Procedure.newBuilder().name("ENABLE_PEER")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .smallint("peerId")
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(enablePeer);
+
+                    Procedure disablePeer = Procedure.newBuilder().name("DISABLE_PEER")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .smallint("peerId")
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(disablePeer);
+
+                    Procedure setupReplicationSink = Procedure.newBuilder().name("SETUP_REPLICATION_SINK")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(setupReplicationSink);
+
+                    Procedure setupReplicationSinkLocal = Procedure.newBuilder().name("SETUP_REPLICATION_SINK_LOCAL")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(setupReplicationSinkLocal);
+
+                    Procedure shutdownReplicationSink = Procedure.newBuilder().name("SHUTDOWN_REPLICATION_SINK")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(shutdownReplicationSink);
+
+                    Procedure shutdownReplicationSinkLocal = Procedure.newBuilder().name("SHUTDOWN_REPLICATION_SINK_LOCAL")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(shutdownReplicationSinkLocal);
+
+                    Procedure enableTableReplication = Procedure.newBuilder().name("ENABLE_TABLE_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .build();
+                    procedures.add(enableTableReplication);
+
+                    Procedure disableTableReplication = Procedure.newBuilder().name("DISABLE_TABLE_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .build();
+                    procedures.add(disableTableReplication);
+
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

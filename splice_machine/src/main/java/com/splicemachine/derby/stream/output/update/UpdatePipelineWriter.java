@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -35,6 +35,9 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.PreFlushHook;
 import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
+import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
+import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
@@ -119,10 +122,13 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             finalPkColumns=new int[0];
         }
 
+        WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+        if(rollforward)
+            writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);
 
         RecordingCallBuffer<KVPair> bufferToTransform=null;
         try{
-            bufferToTransform=writeCoordinator.writeBuffer(destinationTable,txn,null,Metrics.noOpMetricFactory());
+            bufferToTransform=writeCoordinator.writeBuffer(destinationTable,txn,null, PipelineUtils.noOpFlushHook,writeConfiguration,Metrics.noOpMetricFactory());
         }catch(IOException e){
             throw Exceptions.parseException(e);
         }

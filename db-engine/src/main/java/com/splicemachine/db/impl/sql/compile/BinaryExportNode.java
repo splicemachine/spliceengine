@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -27,7 +27,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -62,7 +62,7 @@ public class BinaryExportNode extends DMLStatementNode {
     private StatementNode node;
     /* HDFS, local, etc */
     private String exportPath;
-    private boolean compression;
+    private String compression;
     private String format;
 
     @Override
@@ -83,9 +83,9 @@ public class BinaryExportNode extends DMLStatementNode {
         List argsList = (List) argumentsVector;
         this.node = (StatementNode) statementNode;
 
-        this.exportPath = stringValue(argsList.get(0));
-        this.compression = booleanValue(argsList.get(1));
-        this.format = stringValue(argsList.get(2));
+        this.exportPath = ExportNode.stringValue(argsList.get(0));
+        this.compression = ExportNode.stringValue(argsList.get(1));
+        this.format = ExportNode.stringValue(argsList.get(2));
     }
 
     @Override
@@ -139,20 +139,6 @@ public class BinaryExportNode extends DMLStatementNode {
         return object instanceof ConstantNode && ((ConstantNode) object).isNull();
     }
 
-
-
-    private static String stringValue(Object object) throws StandardException {
-        // MethodBuilder can't handle null, so we use empty string when the user types NULL as argument
-        if (isNullConstant(object)) {
-            return "";
-        }
-
-        if (object instanceof CharConstantNode) {
-           return ((CharConstantNode) object).getString();
-        }
-
-        throw newException(object);
-    }
 
     private static int intValue(Object object) throws StandardException {
         if (isNullConstant(object)) {

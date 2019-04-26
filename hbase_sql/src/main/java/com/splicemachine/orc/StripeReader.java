@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -57,6 +57,7 @@ public class StripeReader
     private final int rowsInRowGroup;
     private final OrcPredicate predicate;
     private final MetadataReader metadataReader;
+    private final List<Integer> partitionIds;
 
     public StripeReader(OrcDataSource orcDataSource,
             CompressionKind compressionKind,
@@ -66,13 +67,17 @@ public class StripeReader
             int rowsInRowGroup,
             OrcPredicate predicate,
             HiveWriterVersion hiveWriterVersion,
-            MetadataReader metadataReader)
+            MetadataReader metadataReader,
+            List<Integer> partitionIds)
     {
         this.orcDataSource = requireNonNull(orcDataSource, "orcDataSource is null");
         this.compressionKind = requireNonNull(compressionKind, "compressionKind is null");
         this.types = ImmutableList.copyOf(requireNonNull(types, "types is null"));
+        this.partitionIds = ImmutableList.copyOf(requireNonNull(partitionIds, "partitionIds is null"));
         this.bufferSize = bufferSize;
-        this.includedOrcColumns = getIncludedOrcColumns(types, requireNonNull(includedColumns, "includedColumns is null"));
+        this.includedOrcColumns = getIncludedOrcColumns(types,
+                requireNonNull(includedColumns, "includedColumns is null"),
+                this.partitionIds);
         this.rowsInRowGroup = rowsInRowGroup;
         this.predicate = requireNonNull(predicate, "predicate is null");
         this.hiveWriterVersion = requireNonNull(hiveWriterVersion, "hiveWriterVersion is null");
@@ -363,7 +368,7 @@ public class StripeReader
         int remainingRows = rowsInStripe;
         for (int rowGroup = 0; rowGroup < groupsInStripe; ++rowGroup) {
             int rows = Math.min(remainingRows, rowsInRowGroup);
-            Map<Integer, ColumnStatistics> statistics = getRowGroupStatistics(types.get(0), columnIndexes, rowGroup);
+            Map<Integer, ColumnStatistics> statistics = getRowGroupStatistics(types.get(0), columnIndexes, rowGroup, partitionIds);
             if (predicate.matches(rows, statistics)) {
                 selectedRowGroups.add(rowGroup);
             }
@@ -372,19 +377,25 @@ public class StripeReader
         return selectedRowGroups.build();
     }
 
-    private static Map<Integer, ColumnStatistics> getRowGroupStatistics(OrcType rootStructType, Map<Integer, List<RowGroupIndex>> columnIndexes, int rowGroup)
+    private static Map<Integer, ColumnStatistics> getRowGroupStatistics(OrcType rootStructType, Map<Integer, List<RowGroupIndex>> columnIndexes, int rowGroup, List<Integer> partitionCols)
     {
         requireNonNull(rootStructType, "rootStructType is null");
         checkArgument(rootStructType.getOrcTypeKind() == OrcTypeKind.STRUCT);
         requireNonNull(columnIndexes, "columnIndexes is null");
         checkArgument(rowGroup >= 0, "rowGroup is negative");
+        requireNonNull(partitionCols, "partitionCols is null");
 
+        int numColumns = rootStructType.getFieldCount() + partitionCols.size();
         ImmutableMap.Builder<Integer, ColumnStatistics> statistics = ImmutableMap.builder();
-        for (int ordinal = 0; ordinal < rootStructType.getFieldCount(); ordinal++) {
+        int ordinal = 0;
+        for (int columnId = 0; columnId < numColumns; columnId++) {
+            if (partitionCols.contains(columnId))
+                continue;
             List<RowGroupIndex> rowGroupIndexes = columnIndexes.get(rootStructType.getFieldTypeIndex(ordinal));
             if (rowGroupIndexes != null) {
-                statistics.put(ordinal, rowGroupIndexes.get(rowGroup).getColumnStatistics());
+                statistics.put(columnId, rowGroupIndexes.get(rowGroup).getColumnStatistics());
             }
+            ordinal ++;
         }
         return statistics.build();
     }
@@ -411,15 +422,38 @@ public class StripeReader
         return streamDiskRanges.build();
     }
 
-    private static Set<Integer> getIncludedOrcColumns(List<OrcType> types, Set<Integer> includedColumns)
+    private static Set<Integer> getIncludedOrcColumns(List<OrcType> types, Set<Integer> includedColumns, List<Integer> partitionIds)
     {
         Set<Integer> includes = new LinkedHashSet<>();
 
         OrcType root = types.get(0);
-        for (int i = 0; i < root.getFieldCount(); i++) {
-            includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(i));
-        }
 
+        if (partitionIds.isEmpty()) {
+            // not a partitioned ORC table
+            for (int includedColumn : includedColumns) {
+                includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(includedColumn));
+            }
+        } else {
+            int lastColumn = 0;
+            for (int i : includedColumns) {
+                if (i > lastColumn) {
+                    lastColumn = i;
+                }
+            }
+
+            int index = 0;
+            for (int col = 0; col <= lastColumn; col++) {
+                // skip partitionIds
+                if (partitionIds.contains(col)) {
+                    continue;
+                }
+
+                if (includedColumns.contains(col)) {
+                    includeOrcColumnsRecursive(types, includes, root.getFieldTypeIndex(index));
+                }
+                index++;
+            }
+        }
         return includes;
     }
 

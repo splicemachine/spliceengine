@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1068,7 +1068,7 @@ public class SubqueryNode extends ValueNode{
         }
 
         // Get cost estimate for underlying subquery
-        CostEstimate costEstimate=resultSet.getFinalCostEstimate();
+        CostEstimate costEstimate=resultSet.getFinalCostEstimate(false);
 
 		/* Generate a new method.  It's only used within the other
 		 * exprFuns, so it could be private. but since we don't
@@ -1109,7 +1109,7 @@ public class SubqueryNode extends ValueNode{
                 ResultSetNode materialSubNode=new MaterializeSubqueryNode(subRS);
 
                 // Propagate the resultSet's cost estimate to the new node.
-                materialSubNode.costEstimate=resultSet.getFinalCostEstimate();
+                materialSubNode.costEstimate=resultSet.getFinalCostEstimate(false);
 
                 ((ProjectRestrictNode)resultSet).setChildResult(materialSubNode);
 
@@ -1666,7 +1666,7 @@ public class SubqueryNode extends ValueNode{
      * contains a single entry which is a FBT or a PRN/FBT, or {@code null}
      * if the subquery does not contain a single FBT
      */
-    private FromBaseTable singleFromBaseTable(FromList fromList){
+    public FromBaseTable singleFromBaseTable(FromList fromList){
         FromBaseTable fbt=null;
 
         if(fromList.size()==1){
@@ -2450,7 +2450,7 @@ public class SubqueryNode extends ValueNode{
                 .append("Subquery(")
                 .append("n=").append(order);
                 if (resultSet!=null) {
-                    sb.append(attrDelim).append(resultSet.getFinalCostEstimate().prettyScrollInsensitiveString(attrDelim));
+                    sb.append(attrDelim).append(resultSet.getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
                 }
                 sb.append(attrDelim).append(String.format("correlated=%b%sexpression=%b%sinvariant=%b",
                         hasCorrelatedCRs(),attrDelim,getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY,attrDelim,isInvariant()))

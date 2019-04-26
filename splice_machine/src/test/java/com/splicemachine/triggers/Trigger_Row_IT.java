@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -465,6 +465,34 @@ public class Trigger_Row_IT {
             String message = e.getLocalizedMessage();
             Assert.assertTrue(message.compareTo("Operation on table 'CAS3' caused a violation of foreign key constraint 'TEST_ROLLBACK' for key (STR_F).  The statement has been rolled back.") == 0);
         }
+    }
+
+    @Test
+    public void testUpdateColumnTrigger() throws Exception {
+        conn.execute("create table tu(c1 int, c2 varchar(10), c3 bigint)");
+        conn.execute("insert into tu values (1, 'varchar', 123456)");
+        conn.execute("create table tr2(c2 varchar(10))");
+        conn.execute("create table tr3(c3 bigint)");
+        conn.execute("CREATE TRIGGER trigger2\n" +
+                "after update of c1 on tu\n" +
+                "referencing new as N\n" +
+                "for each row\n" +
+                "insert into tr2 values (N.c2)");
+        conn.execute("CREATE TRIGGER trigger3\n" +
+                "after update of c1 on tu\n" +
+                "referencing new as N\n" +
+                "for each row\n" +
+                "insert into tr3 values (N.c3)");
+        conn.execute("update tu set c1=c1+1");
+
+        ResultSet rs = conn.query("select * from tr2");
+        rs.next();
+        Assert.assertEquals("varchar", rs.getString(1));
+
+        rs = conn.query("select * from tr3");
+        rs.next();
+        Assert.assertEquals(123456, rs.getLong(1));
+
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

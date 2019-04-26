@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -112,7 +112,7 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
 
     @Test
     public void testBulkIndexCreation() throws Exception {
-        String sql = format("create index idx_t1 on t1 (c1, b1) splitkeys auto hfile location '%s'", SpliceUnitTest.getResourceDirectory()+"data");
+        String sql = format("create index idx_t1 on t1 (c1, b1) auto splitkeys hfile location '%s'", SpliceUnitTest.getResourceDirectory()+"data");
         methodWatcher.executeUpdate(sql);
 
         /* verify the correctness of the index */

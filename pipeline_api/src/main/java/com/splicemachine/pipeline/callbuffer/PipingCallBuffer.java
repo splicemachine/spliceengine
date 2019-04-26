@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -238,7 +238,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
 
             	// Create a new PartitionBuffer, add it to the map, and add it to the ServerCallBuffer.
                 PartitionBuffer newBuffer = new PartitionBuffer(region, preFlushHook, skipIndexWrites,
-                        writeConfiguration.skipConflictDetection(), writeConfiguration.skipWAL());
+                        writeConfiguration.skipConflictDetection(), writeConfiguration.skipWAL(), writeConfiguration.rollForward());
                 startKeyToRegionCBMap.put(startKey, Pair.newPair(newBuffer,server));
                 regionServerCB.add(Pair.newPair(startKey, newBuffer));
             } else {

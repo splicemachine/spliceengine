@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -1501,5 +1501,39 @@ public class ExternalTablePartitionIT {
                 " Sam | 20  | CA  |\n" +
                 " Tom | 21  | NY  |";
         assertEquals(actual, expected, actual);
+    }
+
+    @Test
+    public void testOrcRowGroupStatsWherePartitionColumnIsNotTheLast() throws Exception {
+        try {
+            String tablePath = SpliceUnitTest.getResourceDirectory() +"orc_test_rowgroupstats";
+            methodWatcher.executeUpdate(String.format("create external table orc_test_rowgroupstats (a1 int, b1 date, c1 int) " +
+                    "partitioned by (b1) STORED AS ORC LOCATION '%s'",tablePath));
+
+            /* Q1 predicate on partition column */
+            ResultSet rs = methodWatcher.executeQuery("select c1 from orc_test_rowgroupstats where b1=date('2018-11-26') order by c1 {limit 2}");
+            assertEquals("C1 |\n" +
+                    "----\n" +
+                    " 1 |\n" +
+                    " 2 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+
+            /* Q2 predicte on non-partition column */
+            rs = methodWatcher.executeQuery("select c1 from orc_test_rowgroupstats where c1<10");
+            assertEquals("C1 |\n" +
+                    "----\n" +
+                    " 1 |\n" +
+                    " 2 |\n" +
+                    " 3 |\n" +
+                    " 4 |\n" +
+                    " 5 |\n" +
+                    " 6 |\n" +
+                    " 7 |\n" +
+                    " 8 |\n" +
+                    " 9 |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        } catch (SQLException e) {
+            Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
+        }
     }
 }

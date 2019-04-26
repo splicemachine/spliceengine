@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -60,16 +60,31 @@ public class SimpleTxnFilter implements TxnFilter{
      */
     private TxnView currentTxn;
 
-    @SuppressWarnings("unchecked")
+    /**
+     * In some cases we can safely ignore any data with a txnId greater than our
+     * transaction begin timestamp, for instance during Spark reads
+     */
+    private final boolean ignoreNewerTransactions;
+
     public SimpleTxnFilter(String tableName,
                            TxnView myTxn,
                            ReadResolver readResolver,
-                           TxnSupplier baseSupplier){
+                           TxnSupplier baseSupplier,
+                           boolean ignoreNewerTransactions) {
         assert readResolver!=null;
         this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier,1024); //TODO -sf- configure
         this.tableName=tableName;
         this.myTxn=myTxn;
         this.readResolver=readResolver;
+        this.ignoreNewerTransactions = ignoreNewerTransactions;
+    }
+
+    @SuppressWarnings("unchecked")
+    public SimpleTxnFilter(String tableName,
+                           TxnView myTxn,
+                           ReadResolver readResolver,
+                           TxnSupplier baseSupplier){
+        this(tableName, myTxn, readResolver, baseSupplier, false);
     }
 
     @Override
@@ -80,6 +95,10 @@ public class SimpleTxnFilter implements TxnFilter{
     @Override
     public void reset(){
         nextRow();
+    }
+
+    public TxnSupplier getTxnSupplier() {
+        return transactionStore;
     }
 
     @Override
@@ -209,6 +228,9 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private boolean isVisible(long txnId) throws IOException{
+        if (ignoreNewerTransactions && myTxn.getBeginTimestamp() < txnId)
+            return false;
+
         TxnView toCompare=fetchTransaction(txnId);
         // If the database is restored from a backup, it may contain data that were written by a transaction which
         // is not present in SPLICE_TXN table, because SPLICE_TXN table is copied before the transaction begins.

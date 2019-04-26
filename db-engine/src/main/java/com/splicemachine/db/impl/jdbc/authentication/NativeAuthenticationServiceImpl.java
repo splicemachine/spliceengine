@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -53,7 +53,9 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -326,14 +328,28 @@ public final class NativeAuthenticationServiceImpl
             // authentication in this database.
             //
 
+            String authenticatedUser;
             if ( (databaseName == null) || !authenticatingInThisDatabase( databaseName ) )
             {
-                return (authenticateRemotely(  userName, userPassword, databaseName ) ? userName : null);
+                authenticatedUser = (authenticateRemotely(  userName, userPassword, databaseName ) ? userName : null);
             }
             else
             {
-                return (authenticateLocally( userName, userPassword, databaseName ) ? userName : null);
+                authenticatedUser = (authenticateLocally( userName, userPassword, databaseName ) ? userName : null);
             }
+
+            String proxyUser = info.getProperty(Attribute.PROXY_USER_ATTR);
+            if (proxyUser != null) {
+                authenticatedUser = impersonate(authenticatedUser, proxyUser);
+            }
+
+            // check group mapping
+            if (authenticatedUser != null) {
+                List<String> groupList = new ArrayList<>();
+                groupList.add(authenticatedUser);
+                return mapUserGroups(groupList);
+            }
+            return authenticatedUser;
         }
         catch (StandardException se)
         {

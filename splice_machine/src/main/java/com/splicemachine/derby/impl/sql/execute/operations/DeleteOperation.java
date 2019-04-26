@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -23,6 +23,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -30,6 +31,10 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
@@ -84,7 +89,10 @@ public class DeleteOperation extends DMLWriteOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        DataSet set = source.getDataSet(dsp);
+
+        Pair<DataSet, int[]> pair = getBatchedDataset(dsp);
+        DataSet set = pair.getFirst();
+        int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
 		operationContext.pushScope();
@@ -100,6 +108,7 @@ public class DeleteOperation extends DMLWriteOperation {
                 dataSetWriterBuilder = set.deleteData(operationContext);
             }
             DataSetWriter dataSetWriter = dataSetWriterBuilder
+                    .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn).build();

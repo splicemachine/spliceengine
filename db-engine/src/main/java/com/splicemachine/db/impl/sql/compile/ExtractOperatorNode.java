@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -47,6 +47,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import java.sql.Types;
 
 import java.util.List;
+
+import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
 
 /**
  * This node represents a unary extract operator, used to extract
@@ -170,7 +172,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 							operand.getTypeServices().isNullable()
 						)
 				);
-		} else if (extractField == DateTimeDataValue.MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
+		} else if (extractField == MONTHNAME_FIELD || extractField == DateTimeDataValue.WEEKDAYNAME_FIELD) {
             // name fields return varchar
             setType(new DataTypeDescriptor(
                         TypeId.CHAR_ID,
@@ -200,6 +202,12 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 			return "";
 		}
 	}
+
+	public String sparkFunctionName() throws StandardException{
+	    if (extractField == MONTHNAME_FIELD)
+	        throw StandardException.newException(SQLState.LANG_DOES_NOT_IMPLEMENT);
+	    return fieldName[extractField];
+    }
 
     @Override
     public long nonZeroCardinality(long numberOfRows) {

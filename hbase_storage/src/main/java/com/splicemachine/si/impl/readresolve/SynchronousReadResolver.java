@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -124,9 +124,7 @@ public class SynchronousReadResolver implements KeyedReadResolver{
         }
     }
 
-    /******************************************************************************************************************/
-    /*private helper methods */
-    private void resolveCommitted(Partition region,ByteSlice rowKey,long txnId,long commitTimestamp,boolean failOnError){
+    public void resolveCommitted(Partition region,ByteSlice rowKey,long txnId,long commitTimestamp,boolean failOnError){
         assert region instanceof RegionPartition: "Not on a region!";
         /*
          * Resolve the row as committed directly.
@@ -155,7 +153,7 @@ public class SynchronousReadResolver implements KeyedReadResolver{
         }
     }
 
-    private void resolveRolledback(Partition region,ByteSlice rowKey,long txnId,boolean failOnError){
+    public void resolveRolledback(Partition region,ByteSlice rowKey,long txnId,boolean failOnError){
         assert region instanceof RegionPartition: "Not on a region!";
         /*
          * Resolve the row as rolled back directly.

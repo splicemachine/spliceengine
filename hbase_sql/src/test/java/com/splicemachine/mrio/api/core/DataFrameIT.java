@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -344,7 +344,7 @@ public class DataFrameIT extends SpliceUnitTest {
             // Construct Stored Procedure Result
             List<ExecRow> rows = Lists.newArrayList();
             ExecRow row = new ValueRow(1);
-            // System.out.println(resultSetDF.rdd().count());
+            // System.out.println(resultSetDF.dataset().count());
             row.setColumn(1, new SQLLongint(resultSetDF.count()));
             rows.add(row);
             IteratorNoPutResultSet resultsToWrap = wrapResults((EmbedConnection) conn, rows, DATAFRAME_COUNT_STORED_PROCEDURE_COLUMN_DECSRIPTOR);

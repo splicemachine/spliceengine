@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.Assert;
@@ -259,6 +260,24 @@ public class UpdateOperationIT {
                         "NUM | ZIP  |\n" +
                         "-------------\n" +
                         " 101 |94114 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        updated = methodWatcher.getStatement().executeUpdate("update b1 X set (num, zip) =(select LOCATION.num+2, LOCATION.zip from LOCATION where LOCATION.zip = X.zip)");
+        assertEquals("Incorrect num rows updated!", 1, updated);
+        rs = methodWatcher.executeQuery("select num, zip from b1");
+        assertEquals("" +
+                        "NUM | ZIP  |\n" +
+                        "-------------\n" +
+                        " 102 |94114 |",
+                TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        updated = methodWatcher.getStatement().executeUpdate("update b1 X set (num, zip) =(select num, zip from LOCATION where LOCATION.zip = '94114')");
+        assertEquals("Incorrect num rows updated!", 1, updated);
+        rs = methodWatcher.executeQuery("select num, zip from b1");
+        assertEquals("" +
+                        "NUM | ZIP  |\n" +
+                        "-------------\n" +
+                        " 100 |94114 |",
                 TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
@@ -682,6 +701,24 @@ public class UpdateOperationIT {
             conn.rollback();
             conn.setAutoCommit(oldAutoCommit);
         }
+    }
+
+    @Test
+    public void testUpdateWithTableAlias() throws Exception {
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table alias1 (a1 int, b1 int, c1 int)")
+                .create();
+
+        new TableCreator(methodWatcher.getOrCreateConnection())
+                .withCreate("create table alias2 (a2 int, b2 int, c2 int)")
+                .create();
+
+        Assert.assertTrue("expected result having Update",
+                SpliceUnitTest.getExplainMessage(1,"explain update alias1 X set a1 = (select y.a2 from alias2 y where b1=y.b2)",methodWatcher).contains("Update"));
+        Assert.assertTrue("expected result having Update",
+            SpliceUnitTest.getExplainMessage(1,"explain update alias1 X set (a1) = (select y.a2 from alias2 y where b1=y.b2)",methodWatcher).contains("Update"));
+        Assert.assertTrue("expected result having Update",
+                SpliceUnitTest.getExplainMessage(1,"explain update updateoperationit.alias1 set (a1) = (select a2 from updateoperationit.alias2 y)",methodWatcher).contains("Update"));
     }
 
 }

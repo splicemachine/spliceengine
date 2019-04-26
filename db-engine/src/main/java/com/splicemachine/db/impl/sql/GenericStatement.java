@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -53,6 +53,8 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.system.SimpleSparkVersion;
+import com.splicemachine.system.SparkVersion;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -61,6 +63,9 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
+import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
@@ -447,14 +452,83 @@ public class GenericStatement implements Statement{
             cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
 
             /* check if the optimization to do projection pruning is enabled or not */
-            String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.PROJECTION_PRUNING_DISABLED);
+            String projectionPruningOptimizationString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                    Property.PROJECTION_PRUNING_DISABLED);
             // if database property is not set, treat it as false
             Boolean projectionPruningOptimizationDisabled = false;
-            if (projectionPruningOptimizationString != null)
-                projectionPruningOptimizationDisabled = Boolean.valueOf(projectionPruningOptimizationString);
-
+            try {
+                if (projectionPruningOptimizationString != null)
+                    projectionPruningOptimizationDisabled = Boolean.valueOf(projectionPruningOptimizationString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
             cc.setProjectionPruningEnabled(!projectionPruningOptimizationDisabled);
+    
+            // User can specify the max length of multicolumn IN list the optimizer may build for
+            // use as a probe predicate.  Single-column IN lists can be combined up until the point
+            // where adding in the next IN predicate would push us over the limit.
+            String maxMulticolumnProbeValuesString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MAX_MULTICOLUMN_PROBE_VALUES);
+            int maxMulticolumnProbeValues = CompilerContext.DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+            try {
+                if (maxMulticolumnProbeValuesString != null)
+                    maxMulticolumnProbeValues = Integer.valueOf(maxMulticolumnProbeValuesString);
+            }
+            catch (Exception e) {
+                // If the property value failed to convert to an int, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setMaxMulticolumnProbeValues(maxMulticolumnProbeValues);
+    
+            String multicolumnInlistProbeOnSparkEnabledString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED);
+            boolean multicolumnInlistProbeOnSparkEnabled = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
+            try {
+                if (multicolumnInlistProbeOnSparkEnabledString != null)
+                    multicolumnInlistProbeOnSparkEnabled = Boolean.valueOf(multicolumnInlistProbeOnSparkEnabledString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setMulticolumnInlistProbeOnSparkEnabled(multicolumnInlistProbeOnSparkEnabled);
+    
+            String convertMultiColumnDNFPredicatesToInListString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST);
+            boolean convertMultiColumnDNFPredicatesToInList = CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
+            try {
+                if (convertMultiColumnDNFPredicatesToInListString != null)
+                    convertMultiColumnDNFPredicatesToInList = Boolean.valueOf(convertMultiColumnDNFPredicatesToInListString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setConvertMultiColumnDNFPredicatesToInList(convertMultiColumnDNFPredicatesToInList);
 
+            String disablePredicateSimplificationString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PREDICATE_SIMPLIFICATION);
+            boolean disablePredicateSimplification = CompilerContext.DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
+            try {
+                if (disablePredicateSimplificationString != null)
+                    disablePredicateSimplification =
+                        Boolean.valueOf(disablePredicateSimplificationString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setDisablePredicateSimplification(disablePredicateSimplification);
+
+            if (! cc.isSparkVersionInitialized()) {
+                // If splice.spark.version is manually set, use it...
+                String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);
+                SparkVersion sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
+
+                // ... otherwise pick up the splice compile-time version of spark.
+                if (sparkVersion.isUnknown()) {
+                    spliceSparkVersionString = System.getProperty(SPLICE_SPARK_COMPILE_VERSION);
+                    sparkVersion = new SimpleSparkVersion(spliceSparkVersionString);
+                    if (sparkVersion.isUnknown())
+                        sparkVersion = CompilerContext.DEFAULT_SPLICE_SPARK_VERSION;
+                }
+                cc.setSparkVersion(sparkVersion);
+            }
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)

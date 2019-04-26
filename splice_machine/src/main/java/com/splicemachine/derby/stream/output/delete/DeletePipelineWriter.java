@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -26,6 +26,9 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
+import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import java.io.IOException;
 import java.util.Iterator;
@@ -54,7 +57,10 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         super.open(triggerHandler, operation);
         try{
-            writeBuffer=writeCoordinator.writeBuffer(destinationTable,txn,null,Metrics.noOpMetricFactory());
+            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+            if(rollforward)
+                writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);
+            writeBuffer=writeCoordinator.writeBuffer(destinationTable,txn,null, PipelineUtils.noOpFlushHook, writeConfiguration, Metrics.noOpMetricFactory());
             encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
             flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
         }catch(IOException ioe){

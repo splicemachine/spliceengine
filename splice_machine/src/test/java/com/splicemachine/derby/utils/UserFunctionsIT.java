@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -18,15 +18,15 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.junit.AfterClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.core.Is.is;
@@ -52,12 +52,15 @@ public class UserFunctionsIT {
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+    public SpliceWatcher forestWatcher = new SpliceWatcher(EXISTING_USER_NAME_4);
 
     private static final String EXISTING_USER_NAME = "FOO";
 
     private static final String EXISTING_USER_NAME_2 = "JDoe";
 
     private static final String EXISTING_USER_NAME_3 = "GHITA";
+
+    private static final String EXISTING_USER_NAME_4 = "FOREST";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
@@ -69,6 +72,7 @@ public class UserFunctionsIT {
                         // TBD
                         classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_CREATE_USER('" + EXISTING_USER_NAME + "', 'bar')").execute();
                         classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_CREATE_USER('" + EXISTING_USER_NAME_2 + "', 'jdoe')").execute();
+                        classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_CREATE_USER('" + EXISTING_USER_NAME_4 + "', 'bubba_gump')").execute();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -84,6 +88,39 @@ public class UserFunctionsIT {
         classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_DROP_USER('" + EXISTING_USER_NAME_2 + "')").execute();
         classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_DROP_USER('" + EXISTING_USER_NAME_3 + "')").execute();
         classWatcher.prepareStatement("DROP SCHEMA " + EXISTING_USER_NAME_3.toUpperCase() +" RESTRICT").execute();
+        classWatcher.prepareStatement("CALL SYSCS_UTIL.SYSCS_DROP_USER('" + EXISTING_USER_NAME_4 + "')").execute();
+    }
+
+    @Test
+    public void testSchemaNotExist() throws Exception {
+
+
+        Connection connection = forestWatcher.getOrCreateConnection();
+        Statement statement = connection.createStatement();
+        statement.execute("set schema " + EXISTING_USER_NAME_4);
+
+        String query = String.format("create table t1 (a1 int, b1 int, c1 int)");
+        try {
+            methodWatcher.execute(query);
+            query = String.format("create table t2 (a2 int, b2 int, c2 int)");
+            methodWatcher.execute(query);
+            query = String.format("drop schema %s restrict", EXISTING_USER_NAME_4.toUpperCase());
+            methodWatcher.execute(query);
+        }
+        catch (Exception e){
+            fail("Could not set up SchemaNotExist test.");
+        }
+
+        try {
+            statement.execute("with v1 as\n" +
+                "(select a1 from USERFUNCTIONSIT.t1)\n" +
+                "select count(distinct b2)\n" +
+                "from USERFUNCTIONSIT.t2 inner join v1 on a1=a2");
+            fail("Expected query to fail.");
+        }
+        catch(SQLException e) {
+            Assert.assertEquals("Unexpected failure: "+ e.getMessage(), "Schema 'FOREST' does not exist", e.getMessage());
+        }
     }
 
     /**

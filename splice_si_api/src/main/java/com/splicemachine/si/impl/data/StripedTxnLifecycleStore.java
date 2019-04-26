@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -50,7 +50,7 @@ public class StripedTxnLifecycleStore implements TxnLifecycleStore{
 
         NONEXISTENT_TXN=TxnMessage.Txn.newBuilder().setState(Txn.State.ROLLEDBACK.getId()).setInfo(nonExistentInfo).build();
 
-        NONEXISTENT_TASK_ID=TxnMessage.TaskId.newBuilder().setJtId("").setJobId(0).setStageId(0).setPartitionId(0).setTaskAttemptNumber(0).build();
+        NONEXISTENT_TASK_ID=TxnMessage.TaskId.newBuilder().setStageId(0).setPartitionId(0).setTaskAttemptNumber(0).build();
     }
 
     private final LongStripedSynchronizer<ReadWriteLock> lockStriper;

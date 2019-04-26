@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -338,12 +338,18 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 				
 				/* Create stored dependency on the referenced constraint */
 				dm.addDependency(conDesc, referencedConstraint, lcc.getContextManager());
-				//store constraint's dependency on REFERENCES privileges in the dependeny system
+				/**
+				 * It is problematic to make the FK constraint depend on a privileges or role definition,
+				 * as when the depended privilege or role is dropped, the FK constraint will be dropped too
+				 *
+
+				 //store constraint's dependency on REFERENCES privileges in the dependeny system
 				storeConstraintDependenciesOnPrivileges
 					(activation,
 					 conDesc,
 					 referencedConstraint.getTableId(),
 					 providerInfo);
+				 */
 				break;
 
 			default:

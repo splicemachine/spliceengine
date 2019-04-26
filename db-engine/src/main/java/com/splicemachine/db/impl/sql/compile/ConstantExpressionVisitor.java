@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -61,6 +61,23 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
  */
 class ConstantExpressionVisitor implements Visitor {
 
+    private Class	skipOverClass;
+
+    public ConstantExpressionVisitor()
+    {
+        this.skipOverClass = null;
+    }
+    /**
+     * Construct a visitor
+     *
+     * @param skipOverClass do not go below this
+     * node when searching for nodeClass.
+     */
+    public ConstantExpressionVisitor(Class skipOverClass)
+    {
+        this.skipOverClass = skipOverClass;
+    }
+
     /**
      * Visit the node and call {@code evaluateConstantExpressions()} if it
      * is a {@code ValueNode}.
@@ -84,11 +101,14 @@ class ConstantExpressionVisitor implements Visitor {
     }
 
     /**
-     * {@inheritDoc}
-     * @return {@code false}, since the entire tree should be visited
+     * Don't visit childen under the skipOverClass
+     * node, if it isn't null.
+     *
+     * @return true/false
      */
-    public boolean skipChildren(Visitable node) {
-        return false;
+    public boolean skipChildren(Visitable node)
+    {
+        return skipOverClass != null && skipOverClass.isInstance(node);
     }
 
     /**

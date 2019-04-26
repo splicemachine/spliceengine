@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -281,7 +281,7 @@ class DRDAProtocolException extends Exception
 		}
 		else if (cpArg == CodePoint.PRDID) {
 			this.svrcod = exceptionInfo.svrcod;
-			msg = "Execution failed because of invalid client connection attempt, please use Slice Machine Driver.";
+			msg = "Execution failed because of invalid client connection attempt, please use Splice Machine Driver.";
 		}
 		else
 		{

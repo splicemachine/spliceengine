@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -116,8 +116,8 @@ public class IndexToBaseRowNode extends FromTable{
     }
 
     @Override
-    public CostEstimate getFinalCostEstimate(){
-        return source.getFinalCostEstimate();
+    public CostEstimate getFinalCostEstimate(boolean useSelf){
+        return source.getFinalCostEstimate(true);
     }
 
     /**
@@ -158,7 +158,7 @@ public class IndexToBaseRowNode extends FromTable{
         assignResultSetNumber();
 
         // Get the CostEstimate info for the underlying scan
-        costEstimate=getFinalCostEstimate();
+        costEstimate=getFinalCostEstimate(false);
 
 		/* Put the predicates back into the tree */
         if(restrictionList!=null){
@@ -407,7 +407,7 @@ public class IndexToBaseRowNode extends FromTable{
         return spaceToLevel() +
                 "IndexLookup" + "(" +
                 "n=" + order +
-                attrDelim + getFinalCostEstimate().prettyIndexLookupString(attrDelim) +
+                attrDelim + getFinalCostEstimate(false).prettyIndexLookupString(attrDelim) +
                 ")";
     }
 }

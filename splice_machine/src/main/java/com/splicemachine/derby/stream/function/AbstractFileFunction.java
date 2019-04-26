@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -31,6 +31,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
+import com.splicemachine.derby.utils.SpliceDateFormatter;
 import com.splicemachine.derby.utils.SpliceDateFunctions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
@@ -42,6 +43,8 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+
+import static com.splicemachine.derby.utils.SpliceDateFunctions.TO_DATE;
 
 /**
  *
@@ -57,6 +60,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     protected ExecRow execRow;
     private String timeFormat;
     private String dateTimeFormat;
+    private SpliceDateFormatter formatter;
     private String timestampFormat;
     private int[] columnIndex;
 
@@ -77,6 +81,10 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
         this.dateTimeFormat = dateTimeFormat;
         this.timestampFormat = timestampFormat;
         this.columnIndex = columnIndex;
+
+        // Create a date formatter that can be reused, to save memory, instead of
+        // constructing a new one every to TO_DATE is called.
+        this.formatter = new SpliceDateFormatter(dateTimeFormat);
     }
 
     @Override
@@ -128,14 +136,15 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public ExecRow call(List<String> values,BooleanList quotedColumns) throws Exception {
         return getRow(values, quotedColumns, operationContext, execRow, calendar, timeFormat,
-                dateTimeFormat, timestampFormat);
+                dateTimeFormat, timestampFormat, this.formatter);
     }
 
 
     public static ExecRow getRow(List<String> values,BooleanList quotedColumns,
                                  OperationContext operationContext, ExecRow execRow,
                                  Calendar calendar, String timeFormat,
-                                 String dateTimeFormat, String timestampFormat)  throws Exception {
+                                 String dateTimeFormat, String timestampFormat,
+                                 SpliceDateFormatter dateFormatter)  throws Exception {
         int columnID = 0;
         String columnValue = null;
         int numofColumnsinTable = 0;
@@ -199,7 +208,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                         if (dateTimeFormat == null || value == null)
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
                         else
-                            dvd.setValue(SpliceDateFunctions.TO_DATE(value, dateTimeFormat),calendar);
+                            dvd.setValue(TO_DATE(value, dateTimeFormat, dateFormatter),calendar);
                         break;
                     case StoredFormatIds.SQL_TIMESTAMP_ID:
                         if(calendar==null)

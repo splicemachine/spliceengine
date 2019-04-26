@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1021,8 +1021,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * not know about the position of the columns in the list.
      * <p/>
      * This is the method that does the work.
+     *
+     * @return true, if all of the result columns are non-special expressions, which
+     *         could be represented as normal expressions in spark sql.
      */
-    void generateCore(ExpressionClassBuilder acb, MethodBuilder mb, boolean genNulls) throws StandardException{
+    boolean generateCore(ExpressionClassBuilder acb, MethodBuilder mb, boolean genNulls) throws StandardException{
         // generate the function and initializer:
         // private ExecRow fieldX;
         // In the constructor:
@@ -1039,11 +1042,13 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         // this sets up the method and the static field.
         MethodBuilder userExprFun = acb.newUserExprFun();
 
-        generateEvaluatedRow( acb, userExprFun, genNulls, false );
+        boolean isExpressableInSparkSQL = generateEvaluatedRow( acb, userExprFun, genNulls, false );
 
         // what we return is the access of the field, i.e. the pointer to the method.
         acb.pushMethodReference(mb, userExprFun);
-           }
+
+        return isExpressableInSparkSQL;
+    }
 
     /**
      * Build an empty row with the size and shape of the ResultColumnList.
@@ -1920,12 +1925,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @param tableNumber  The tableNumber for the UNION.
      * @param level        The nesting level for the UNION.
      * @param operatorName "UNION", "INTERSECT", or "EXCEPT"
+     * @param cdl          the recurisve union's column descriptor list
      * @throws StandardException Thrown on error
      */
     public void setUnionResultExpression(ResultColumnList otherRCL,
                                          int tableNumber,
                                          int level,
-                                         String operatorName) throws StandardException{
+                                         String operatorName,
+                                         ColumnDescriptorList cdl) throws StandardException{
         TableName dummyTN;
 
         if(SanityManager.DEBUG){
@@ -1992,9 +1999,15 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         operatorName);
             }
 
-            DataTypeDescriptor resultType=thisExpr.getTypeServices().getDominantType(
-                    otherExpr.getTypeServices(),
-                    cf);
+            DataTypeDescriptor resultType;
+
+            if (cdl != null) {
+                resultType = cdl.elementAt(index).getType();
+            } else {
+                resultType  =thisExpr.getTypeServices().getDominantType(
+                        otherExpr.getTypeServices(),
+                        cf);
+            }
 
             newCR=(ColumnReference)getNodeFactory().getNode(
                     C_NodeTypes.COLUMN_REFERENCE,
@@ -2015,7 +2028,10 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             }
             newCR.setTableNumber(tableNumber);
             thisRC.setExpression(newCR);
-            thisRC.setType(thisRC.getTypeServices().getDominantType(otherRC.getTypeServices(),cf));
+            if (cdl != null)
+                thisRC.setType(resultType);
+            else
+                thisRC.setType(thisRC.getTypeServices().getDominantType(otherRC.getTypeServices(),cf));
 
 			/* DB2 requires both sides of union to have same name for the result to
 			 * have that name. Otherwise, leave it or set it to a generated name */
@@ -3635,8 +3651,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * </p>
      *
      * This is the method that does the work.
+     *
+     * @return true, if all of the result columns are non-special expressions, which
+     *         could be represented as normal expressions in spark sql.
      */
-    void generateEvaluatedRow
+    boolean generateEvaluatedRow
     (
             ExpressionClassBuilder acb,
             MethodBuilder userExprFun,
@@ -3668,6 +3687,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
         MethodBuilder cb = acb.getConstructor();
 
+        boolean isExpressableInSparkSQL = true;
+
         for (int index = 0; index < size; index++)
         {
             // generate statements of the form
@@ -3684,6 +3705,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                 if ( sourceExpr instanceof VirtualColumnNode && ! ( ((VirtualColumnNode) sourceExpr).getCorrelated()) )
                 {
+                    isExpressableInSparkSQL = false;
                     continue;
                 }
 
@@ -3697,6 +3719,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 //2)If the left table's column value is non-null,
                 // then pick up that value
                 if (rc.getJoinResultSet() != null) {
+                    isExpressableInSparkSQL = false;
+
                     //We are dealing with a join column for
                     // RIGHT OUTER JOIN with USING/NATURAL eg
                     //	 select c from t1 right join t2 using (c)
@@ -3811,6 +3835,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             //
             if ( rc.hasGenerationClause() )
             {
+                isExpressableInSparkSQL = false;
                 ValueNode   expr = rc.getExpression();
                 if ( (expr != null) && !(expr instanceof VirtualColumnNode) )
                 {
@@ -3856,6 +3881,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
             if (rc.isAutoincrementGenerated())
             {
+                isExpressableInSparkSQL = false;
                 // (com.ibm.db2j.impl... DataValueDescriptor)
                 // this.getSetAutoincValue(column_number)
 
@@ -3873,6 +3899,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     ((rc.getExpression() instanceof ConstantNode) &&
                             ((ConstantNode) rc.getExpression()).isNull()))
             {
+                isExpressableInSparkSQL = false;
                 userExprFun.getField(field);
                 userExprFun.push(index + 1);
                 userExprFun.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "getColumn",
@@ -3896,6 +3923,8 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
         // we are now done modifying userExprFun
         userExprFun.complete();
+
+        return isExpressableInSparkSQL;
     }
 
 

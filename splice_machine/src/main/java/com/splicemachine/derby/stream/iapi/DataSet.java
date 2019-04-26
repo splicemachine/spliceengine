@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -21,6 +21,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOp
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.*;
+import com.splicemachine.utils.Pair;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -34,6 +35,14 @@ public interface DataSet<V> extends //Iterable<V>,
         Serializable {
 
     int partitions();
+
+    Pair<DataSet, Integer> materialize();
+
+    Pair<DataSet, Integer> persistIt();
+
+    DataSet getClone();
+
+    void unpersistIt();
 
     public enum JoinType {
         INNER("inner"),
@@ -87,6 +96,14 @@ public interface DataSet<V> extends //Iterable<V>,
      * @return
      */
     <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
+
+
+    /**
+     *
+     * Shuffle partitions in no-cost operation
+     * @return
+     */
+    DataSet<V> shufflePartitions();
 
     /**
      *
@@ -165,21 +182,24 @@ public interface DataSet<V> extends //Iterable<V>,
      */
     DataSet<V> coalesce(int numPartitions, boolean shuffle, boolean isLast, OperationContext context, boolean pushScope, String scopeDetail);
 
-    <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function);
+    <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function) throws StandardException;
+
+    <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, OperationContext context) throws StandardException;
     
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast);
 
     <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function, boolean isLast, boolean pushScope, String scopeDetail);
 
-    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function);
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) throws StandardException;
 
-    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast);
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, boolean isLast) throws StandardException;
 
-    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name, boolean isLast, boolean pushScope, String scopeDetail);
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function, String name, boolean isLast, boolean pushScope, String scopeDetail) throws StandardException;
 
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function);
 
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, String name);
+    <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, OperationContext context) throws StandardException;
 
     <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function, String name, boolean pushScope, String scopeDetail);
 
@@ -195,6 +215,8 @@ public interface DataSet<V> extends //Iterable<V>,
 
     DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext);
 
+    DataSet<V> orderBy(OperationContext operationContext, int[] keyColumns, boolean[] descColumns, boolean[] nullsOrderedLow);
+
     DataSet<V> parallelProbe(List<ScanSetBuilder<ExecRow>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) throws StandardException;
 
     DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext, String name, boolean pushScope, String scopeDetail);
@@ -203,13 +225,13 @@ public interface DataSet<V> extends //Iterable<V>,
 
     <Op extends SpliceOperation> DataSet<V> filter(SplicePredicateFunction<Op,V> f, boolean isLast, boolean pushScope, String scopeDetail);
 
-    DataSet<V> intersect(DataSet<V> dataSet, OperationContext context);
+    DataSet<V> intersect(DataSet<V> dataSet, OperationContext context) throws StandardException;
 
-    DataSet<V> intersect(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail);
+    DataSet<V> intersect(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException;
 
-    DataSet<V> subtract(DataSet<V> dataSet, OperationContext context);
+    DataSet<V> subtract(DataSet<V> dataSet, OperationContext context) throws StandardException;
 
-    DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail);
+    DataSet<V> subtract(DataSet<V> dataSet, String name, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException;
 
     boolean isEmpty();
 
@@ -246,9 +268,9 @@ public interface DataSet<V> extends //Iterable<V>,
 
     void saveAsTextFile(String path);
 
-    PairDataSet<V, Long> zipWithIndex();
+    PairDataSet<V, Long> zipWithIndex(OperationContext operationContext) throws StandardException;
 
-    DataSet<V> join(OperationContext operationContext, DataSet<V> rightDataSet,JoinType joinType, boolean isBroadcast);
+    DataSet<V> join(OperationContext operationContext, DataSet<V> rightDataSet,JoinType joinType, boolean isBroadcast) throws StandardException;
 
     /**
      *  Window Function abstraction. Take a window context that defines the the partition, the sorting , the frame boundary
@@ -260,7 +282,7 @@ public interface DataSet<V> extends //Iterable<V>,
      * @return
      */
 
-    DataSet<V> windows(WindowContext windowContext, OperationContext context, boolean pushScope, String scopeDetail);
+    DataSet<V> windows(WindowContext windowContext, OperationContext context, boolean pushScope, String scopeDetail) throws StandardException;
 
     /**
      *
@@ -273,7 +295,7 @@ public interface DataSet<V> extends //Iterable<V>,
      * @return
      */
     DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression,
-                                         OperationContext context) ;
+                                         OperationContext context) throws StandardException;
 
     /**
      *
@@ -286,7 +308,7 @@ public interface DataSet<V> extends //Iterable<V>,
      * @return
      */
     DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp, int[] partitionBy, String location,
-                                   String compression, OperationContext context) ;
+                                   String compression, OperationContext context) throws StandardException;
 
 
     /**
@@ -300,7 +322,7 @@ public interface DataSet<V> extends //Iterable<V>,
      * @return
      */
     DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
-                                     OperationContext context) ;
+                                     OperationContext context) throws StandardException;
 
     /**
      *
@@ -315,7 +337,7 @@ public interface DataSet<V> extends //Iterable<V>,
      * @return
      */
     DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                      OperationContext context);
+                                      OperationContext context) throws StandardException;
 
     /**
      *

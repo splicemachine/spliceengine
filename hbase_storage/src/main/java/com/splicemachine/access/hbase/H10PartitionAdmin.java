@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -419,6 +419,52 @@ public class H10PartitionAdmin implements PartitionAdmin{
             throw new IOException(e);
         } catch (Throwable t) {
             throw new IOException(t);
+        }
+    }
+
+    @Override
+    public void enableTableReplication(String tableName) throws IOException {
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
+        boolean tableEnabled = admin.isTableEnabled(tn);
+        try {
+            HTableDescriptor htd = admin.getTableDescriptor(tn);
+            if (tableEnabled) {
+                admin.disableTable(tn);
+            }
+
+            for (HColumnDescriptor hcd : htd.getFamilies()) {
+                hcd.setScope(HConstants.REPLICATION_SCOPE_GLOBAL);
+            }
+            admin.modifyTable(tn, htd);
+            SpliceLogUtils.info(LOG, "enabled replication for table %s", tn);
+        }
+        finally {
+            if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
+                admin.enableTable(tn);
+            }
+        }
+    }
+
+    @Override
+    public void disableTableReplication(String tableName) throws IOException {
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
+        boolean tableEnabled = admin.isTableEnabled(tn);
+        try {
+            HTableDescriptor htd = admin.getTableDescriptor(tn);
+            if (tableEnabled) {
+                admin.disableTable(tn);
+            }
+
+            for (HColumnDescriptor hcd : htd.getFamilies()) {
+                hcd.setScope(HConstants.REPLICATION_SCOPE_LOCAL);
+            }
+            admin.modifyTable(tn, htd);
+            SpliceLogUtils.info(LOG, "disabled replication for table %s", tn);
+        }
+        finally {
+            if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
+                admin.enableTable(tn);
+            }
         }
     }
 

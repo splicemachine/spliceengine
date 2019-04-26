@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -42,6 +42,8 @@ import java.io.ObjectOutput;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Objects;
+
+import static com.splicemachine.db.iapi.types.SQLDecimal.getBigDecimal;
 
 /**
  * @author Scott Fines
@@ -71,7 +73,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 
 		@Override
 		protected void accumulate(DataValueDescriptor addend) throws StandardException {
-				buffer[position] = (BigDecimal)addend.getObject();
+				buffer[position] = getBigDecimal(addend);
 				incrementPosition();
 		}
 
@@ -164,11 +166,12 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		}
 
 		private void incrementPosition() throws StandardException {
-				isNull=false;
-				position = (position+1) & length;
-				if(position==0){
+				int newposition = (position+1) & length;
+				if(newposition==0){
 						sum(buffer.length);
 				}
+				isNull=false;
+				position = newposition;
 		}
 
 		public void addDirect(BigDecimal bigDecimal) throws StandardException {

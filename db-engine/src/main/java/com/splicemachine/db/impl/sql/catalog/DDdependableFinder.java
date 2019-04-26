@@ -25,15 +25,11 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.catalog;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -46,6 +42,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  *	Class for most DependableFinders in the core DataDictionary.
@@ -189,7 +189,10 @@ public class DDdependableFinder implements	DependableFinder, Formatable
 
 			case StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID:
 				return Dependable.TABLE_PERMISSION;
-			
+
+			case StoredFormatIds.SCHEMA_PERMISSION_FINDER_V01_ID:
+				return Dependable.SCHEMA_PERMISSION;
+
 			case StoredFormatIds.COLUMNS_PERMISSION_FINDER_V01_ID:
 				return Dependable.COLUMNS_PERMISSION;
 
@@ -281,6 +284,9 @@ public class DDdependableFinder implements	DependableFinder, Formatable
 
 			case StoredFormatIds.TABLE_PERMISSION_FINDER_V01_ID:
                 return dd.getTablePermissions(dependableObjectID);
+
+			case StoredFormatIds.SCHEMA_PERMISSION_FINDER_V01_ID:
+				return dd.getSchemaPermissions(dependableObjectID);
 
 			case StoredFormatIds.ROUTINE_PERMISSION_FINDER_V01_ID:
                 return dd.getRoutinePermissions(dependableObjectID);

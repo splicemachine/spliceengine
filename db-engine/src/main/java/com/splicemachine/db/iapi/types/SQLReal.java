@@ -25,33 +25,19 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-
+import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-
-import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.services.cache.ClassSize;
-
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
-
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
@@ -61,6 +47,14 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * SQLReal satisfies the DataValueDescriptor
@@ -159,7 +153,7 @@ public final class SQLReal
 	 */
 	public double	getDouble()
 	{
-		return (double) value;
+		return Double.parseDouble(Float.valueOf(value).toString());
 	}
 
 	/**
@@ -877,7 +871,7 @@ public final class SQLReal
 
 		if (longVal != value)
 		{
-			longVal = Double.doubleToLongBits(value);
+			longVal = Double.doubleToLongBits(getDouble());
 		}
 
 		return (int) (longVal ^ (longVal >> 32));	

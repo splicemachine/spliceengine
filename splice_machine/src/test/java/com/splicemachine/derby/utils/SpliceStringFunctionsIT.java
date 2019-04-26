@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,15 +14,12 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-
+import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -30,6 +27,13 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLDataException;
+import java.sql.SQLSyntaxErrorException;
+
+import static junit.framework.Assert.assertEquals;
 
 /**
  * Tests associated with the String functions as defined in
@@ -43,6 +47,10 @@ public class SpliceStringFunctionsIT {
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+
+    // Table for repeat testing
+    private static final SpliceTableWatcher tableWatcherA = new SpliceTableWatcher(
+            "A", schemaWatcher.schemaName, "(a int, b char(6), c varchar(6))");
 
     // Table for INSTR testing.
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(
@@ -59,6 +67,7 @@ public class SpliceStringFunctionsIT {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
+            .around(tableWatcherA)
             .around(tableWatcherB)
             .around(tableWatcherC)
             .around(tableWatcherD)
@@ -67,7 +76,22 @@ public class SpliceStringFunctionsIT {
                 protected void starting(Description description) {
                     try{
                         PreparedStatement ps;
-                        
+
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherA + " (a, b, c) values (?, ?, ?)");
+                        ps.setInt   (1, 2); // row 1
+                        ps.setString(2, "aaa");
+                        ps.setString(3, "aaa");
+                        ps.execute();
+                        ps.setInt   (1, 3);
+                        ps.setObject(2, "bbb");
+                        ps.setString(3, "bbb");
+                        ps.execute();
+                        ps.setInt   (1, 4);
+                        ps.setObject(2, null);
+                        ps.setString(3, null);
+                        ps.execute();
+
                         // Each of the following inserted rows represents an individual test,
                         // including expected result (column 'd'), for less test code in the
                         // testInstr methods.
@@ -223,9 +247,93 @@ public class SpliceStringFunctionsIT {
     }
 
     @Test
+    public void testConcatAliasFunction() throws Exception {
+	    String sCell1 = null;
+	    String sCell2 = null;
+	    ResultSet rs;
+
+	    rs = methodWatcher.executeQuery("SELECT a CONCAT b, c from " + tableWatcherD);
+	    while (rs.next()) {
+            sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell2, sCell1);
+	    }
+    }
+
+    @Test
     public void testReges() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select count(*) from d where REGEXP_LIKE(a, 'aa*')");
         rs.next();
         Assert.assertEquals(3, rs.getInt(1));
+    }
+
+    @Test
+    public void testRepeat() throws Exception {
+        // Q1: repeat for fixed char type
+        String sqlText = "select '-'|| repeat(b, 3) || '-' from A order by 1";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "1          |\n" +
+                        "----------------------\n" +
+                        "-aaa   aaa   aaa   - |\n" +
+                        "-bbb   bbb   bbb   - |\n" +
+                        "        NULL         |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // Q2: repeat for varchar type
+        sqlText = "select '-'|| repeat(c, 3) || '-' from A order by 1";
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+                "1      |\n" +
+                        "-------------\n" +
+                        "-aaaaaaaaa- |\n" +
+                        "-bbbbbbbbb- |\n" +
+                        "   NULL     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+
+        // Q3: repeat with column reference as the repeated time
+        sqlText = "select '-'|| repeat(c, a) || '-' from A";
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+                "1      |\n" +
+                        "-------------\n" +
+                        " -aaaaaa-   |\n" +
+                        "-bbbbbbbbb- |\n" +
+                        "   NULL     |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // Q4: repeat 0 times, empty string should b returned
+        sqlText = "select '-'|| repeat(c, 0) || '-' from A";
+        rs = methodWatcher.executeQuery(sqlText);
+        expected =
+                "1  |\n" +
+                        "------\n" +
+                        " --  |\n" +
+                        " --  |\n" +
+                        "NULL |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testRepeatNegative() throws Exception {
+        try {
+            String sqlText = "select repeat(a, 3) from A order by 1";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(e.getSQLState(), SQLState.LANG_INVALID_FUNCTION_ARG_TYPE);
+        }
+
+        try {
+            String sqlText = "select repeat(b, -3) from A order by 1";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLDataException e) {
+            Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_INVALID_FUNCTION_ARGUMENT.startsWith(e.getSQLState()));
+        }
     }
 }

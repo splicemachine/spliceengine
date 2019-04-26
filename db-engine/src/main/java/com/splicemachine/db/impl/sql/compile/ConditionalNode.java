@@ -25,27 +25,26 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.loader.ClassInspector;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -78,6 +77,8 @@ public class ConditionalNode extends ValueNode
 		this.thisIsNullIfNode = (Boolean) thisIsNullIfNode;
 	}
 
+	public ValueNode getTestCondition() { return testCondition; }
+	public ValueNodeList getThenElseList() { return thenElseList; }
 	/**
 	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
 	 * how tree printing is supposed to work.
@@ -750,4 +751,15 @@ public class ConditionalNode extends ValueNode
 
         return c;
     }
+
+    @Override
+	public boolean isConstantOrParameterTreeNode() {
+		if (testCondition!= null && !testCondition.isConstantOrParameterTreeNode())
+			return false;
+
+		if (thenElseList != null && !thenElseList.containsOnlyConstantAndParamNodes())
+			return false;
+
+		return true;
+	}
 }

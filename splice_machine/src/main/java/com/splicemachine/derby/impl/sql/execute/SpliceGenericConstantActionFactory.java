@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -90,13 +90,22 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        String storedAs,
                                                        String location,
                                                        String compression,
-                                                       boolean mergeSchema) {
+                                                       boolean mergeSchema,
+                                                       boolean presplit,
+                                                       boolean isLogicalKey,
+                                                       String splitKeyPath,
+                                                       String columnDelimiter,
+                                                       String characterDelimiter,
+                                                       String timestampFormat,
+                                                       String dateFormat,
+                                                       String timeFormat) {
         SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
             schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
             constantActions,properties,lockGranularity,
             onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString, isExternal,
-                delimited,escaped,lines,storedAs,location, compression, mergeSchema);
+                delimited,escaped,lines,storedAs,location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
+                columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat);
     }
 
 

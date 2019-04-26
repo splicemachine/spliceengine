@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,8 +15,11 @@
 package com.splicemachine.si;
 
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
+import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
 import com.splicemachine.si.constants.SIConstants;
@@ -26,6 +29,9 @@ import com.splicemachine.si.impl.txn.DDLTxnView;
 import com.splicemachine.si.impl.txn.InheritingTxnView;
 import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.si.testenv.*;
+import com.splicemachine.storage.DataPut;
+import com.splicemachine.storage.DataResult;
+import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.utils.ByteSlice;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.*;
@@ -36,6 +42,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 @SuppressWarnings("unchecked")
 @Category(ArchitectureSpecific.class)
@@ -253,7 +262,7 @@ public class SITransactorTest {
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
         try {
             testUtility.insertAge(t2, "joe012", 30);
-            Assert.fail("was able to insert age");
+            fail("was able to insert age");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -263,7 +272,7 @@ public class SITransactorTest {
         t1.commit();
         error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
         t2.commit(); //should not work, probably need to change assertion
-        Assert.fail("Was able to commit a rolled back transaction");
+        fail("Was able to commit a rolled back transaction");
     }
 
     @Test
@@ -280,7 +289,7 @@ public class SITransactorTest {
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
         try {
             testUtility.insertAge(t2, "joe142", 30);
-            Assert.fail();
+            fail();
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         }
@@ -305,7 +314,7 @@ public class SITransactorTest {
         Txn t1 = control.beginTransaction();
         try{
             testUtility.insertAge(t1,"scott2",20);
-            Assert.fail("Was able to insert age!");
+            fail("Was able to insert age!");
         }catch(IOException ioe){
             ioe =testEnv.getExceptionFactory().processRemoteException(ioe);
             Assert.assertTrue("Incorrect exception",ReadOnlyModificationException.class.isAssignableFrom(ioe.getClass()));
@@ -574,7 +583,7 @@ public class SITransactorTest {
         Txn t2 = control.beginTransaction(DESTINATION_TABLE);
         try {
             testUtility.deleteRow(t2, "joe2");
-            Assert.fail("No Write conflict was detected!");
+            fail("No Write conflict was detected!");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -585,7 +594,7 @@ public class SITransactorTest {
         error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
         error.expectMessage(String.format("[%1$d]Transaction %1$d cannot be committed--it is in the %2$s state",t2.getTxnId(),Txn.State.ROLLEDBACK));
         t2.commit();
-        Assert.fail("Did not throw CannotCommit exception!");
+        fail("Did not throw CannotCommit exception!");
     }
 
     @Test
@@ -601,7 +610,7 @@ public class SITransactorTest {
         Assert.assertEquals("joe013 age=20 job=null",testUtility.read(t2,"joe013"));
         try {
             testUtility.insertAge(t2, "joe013", 21);
-            Assert.fail("No WriteConflict thrown!");
+            fail("No WriteConflict thrown!");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -611,7 +620,7 @@ public class SITransactorTest {
         t1.commit();
         try {
             t2.commit();
-            Assert.fail();
+            fail();
         } catch (IOException dnrio) {
             Assert.assertTrue("Was not a CannotCommitException!",dnrio instanceof CannotCommitException);
             CannotCommitException cce = (CannotCommitException)dnrio;
@@ -1003,7 +1012,7 @@ public class SITransactorTest {
         Assert.assertEquals("joe18 age=20 job=null", testUtility.read(t2, "joe18"));
         try {
             testUtility.insertAge(t2, "joe18", 21);
-            Assert.fail("expected exception performing a write on a read-only transaction");
+            fail("expected exception performing a write on a read-only transaction");
         } catch (IOException e) {
         }
     }
@@ -1347,7 +1356,7 @@ public class SITransactorTest {
         Txn other = control.beginTransaction(Txn.IsolationLevel.READ_COMMITTED, DESTINATION_TABLE);
         try {
             testUtility.insertAge(other, "joe34", 21);
-            Assert.fail("No write conflict detected");
+            fail("No write conflict detected");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -1381,11 +1390,76 @@ public class SITransactorTest {
 
         try {
             testUtility.insertAge(other, "joe36", 21);
-            Assert.fail();
+            fail();
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
             other.rollback();
+        }
+    }
+
+    @Test
+    public void taskRetryTest() throws IOException {
+        CountingConstraintChecker ccc = new CountingConstraintChecker(testEnv.getOperationStatusFactory());
+        transactorSetup.transactor.setDefaultConstraintChecker(ccc);
+        try {
+            Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+            TaskId task1 = new TaskId(1, 1, 0);
+            Txn t11 = control.beginChildTransaction(t1, t1.getIsolationLevel(), true, DESTINATION_TABLE, false, task1);
+            testUtility.insertAge(t11, "joe43", 20);
+            TaskId task2 = new TaskId(1, 1, 1);
+            Txn t12 = control.beginChildTransaction(t1, t1.getIsolationLevel(), true, DESTINATION_TABLE, false, task2);
+            testUtility.insertAge(t12, "joe43", 25);
+            t11.rollback();
+            t12.commit();
+
+            assertEquals("Constraints checked, transactions 'conflicted'",0,  ccc.count);
+
+            Assert.assertEquals("joe43 age=25 job=null", testUtility.read(t1, "joe43"));
+            t1.commit();
+        } finally {
+            transactorSetup.transactor.setDefaultConstraintChecker(testEnv.getOperationStatusFactory().getNoOpConstraintChecker());
+        }
+    }
+
+    private static class CountingConstraintChecker implements ConstraintChecker {
+
+        private final OperationStatusFactory opFactory;
+        private int count = 0;
+
+        CountingConstraintChecker(OperationStatusFactory opFactory) {
+            this.opFactory = opFactory;
+        }
+
+        @Override
+        public MutationStatus checkConstraint(KVPair mutation, DataResult existingRow) throws IOException {
+            count++;
+            return opFactory.success();
+        }
+    }
+
+    @Ignore
+    @Test
+    public void taskRetryConflict() throws IOException {
+        CountingConstraintChecker ccc = new CountingConstraintChecker(testEnv.getOperationStatusFactory());
+        transactorSetup.transactor.setDefaultConstraintChecker(ccc);
+        try {
+            Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+            TaskId task2 = new TaskId(1, 1, 1);
+            Txn t12 = control.beginChildTransaction(t1, t1.getIsolationLevel(), true, DESTINATION_TABLE, false, task2);
+            testUtility.insertAge(t12, "joe133", 25);
+            TaskId task1 = new TaskId(1, 1, 0);
+            Txn t11 = control.beginChildTransaction(t1, t1.getIsolationLevel(), true, DESTINATION_TABLE, false, task1);
+            testUtility.insertAge(t11, "joe133", 20);
+            t12.commit();
+            t11.rollback();
+
+            assertEquals("No constraints checked, transactions didn't 'conflict'",1, ccc.count);
+
+            Assert.assertEquals("joe133 age=25 job=null", testUtility.read(t1, "joe133"));
+            t1.commit();
+        } finally {
+            transactorSetup.transactor.setDefaultConstraintChecker(testEnv.getOperationStatusFactory().getNoOpConstraintChecker());
         }
     }
 
@@ -1764,6 +1838,48 @@ public class SITransactorTest {
         }
     }
 
+
+    @Test
+    public void testRolledBackTxnDoesntMaskEarlierConflicts() throws IOException, InterruptedException {
+        try {
+            final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+            final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
+            final Txn t3 = control.beginTransaction(DESTINATION_TABLE);
+            testUtility.insertAge(t2, "joe66", 20);
+            t2.rollback();
+            testUtility.insertAge(t1, "joe66", 22);
+            testUtility.insertAge(t3, "joe66", 23);
+
+            fail("Expected WW conflict");
+        } catch (IOException e) {
+            testUtility.assertWriteConflict(e);
+        }
+    }
+
+
+    @Test
+    public void testRolledBackTxnDoesntMaskConflictsWithChildTxn() throws IOException, InterruptedException {
+        try {
+            final Txn t1 = control.beginTransaction(DESTINATION_TABLE);
+            final Txn t2 = control.beginTransaction(DESTINATION_TABLE);
+            testUtility.insertAge(t1, "joe66", 22);
+            t1.commit();
+
+            final Txn t3 = control.beginTransaction(DESTINATION_TABLE);
+            testUtility.insertAge(t3, "joe66", 23);
+            t3.rollback();
+
+            final Txn t22 = control.beginChildTransaction(t2, DESTINATION_TABLE);
+
+            testUtility.insertAge(t22, "joe66", 20);
+            t2.commit();
+
+            fail("Expected WW conflict");
+        } catch (IOException e) {
+            testUtility.assertWriteConflict(e);
+        }
+    }
+
     @Test
     public void childIndependentTransactionWriteCommitRollbackRead() throws IOException {
         Txn t1 = control.beginTransaction(DESTINATION_TABLE);
@@ -1892,7 +2008,7 @@ public class SITransactorTest {
         testUtility.insertAge(t2, "moe31", 21);
         try {
             testUtility.insertJob(t3, "moe31", "baker");
-            Assert.fail();
+            fail();
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -1973,7 +2089,7 @@ public class SITransactorTest {
         t2 = t2.elevateToWritable(DESTINATION_TABLE);
         try {
             testUtility.insertAge(t2, "joe116", 30);
-            Assert.fail("Allowed insertion");
+            fail("Allowed insertion");
         } catch (IOException e) {
             testUtility.assertWriteConflict(e);
         } finally {
@@ -1983,7 +2099,7 @@ public class SITransactorTest {
         t1.commit();
         error.expect(IsInstanceOf.instanceOf(CannotCommitException.class));
         t2.commit();
-        Assert.fail("Was able to comit a rolled back transaction");
+        fail("Was able to comit a rolled back transaction");
     }
 
     @Test
@@ -2167,6 +2283,6 @@ public class SITransactorTest {
 //            control.beginChildTransaction(t3, true, true, false, null, null, t2);
         error.expect(IOException.class);
         control.chainTransaction(t3, t3.getIsolationLevel(), true, DESTINATION_TABLE, t2);
-        Assert.fail();
+        fail();
     }
 }

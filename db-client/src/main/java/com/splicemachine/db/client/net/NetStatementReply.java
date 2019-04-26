@@ -12,7 +12,7 @@
  *
  * Splice Machine, Inc. has modified this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the License; you may not use this file except in
  * compliance with the License.
  *
@@ -319,10 +319,12 @@ public class NetStatementReply extends NetPackageReply implements StatementReply
         // an SQLCARD may be retunred if there was no output data, result sets or parameters,
         // or in the case of an error.
         if (peekCP == CodePoint.SQLCARD) {
-            NetSqlca netSqlca = parseSQLCARD(null);
+            while (peekCP == CodePoint.SQLCARD) {
+                NetSqlca netSqlca = parseSQLCARD(null);
 
-            statementI.completeExecute(netSqlca);
-            peekCP = peekCodePoint();
+                statementI.completeExecute(netSqlca);
+                peekCP = peekCodePoint();
+            }
         } else if (peekCP == CodePoint.SQLDTARD) {
             // in the case of singleton select or if a stored procedure was called which had
             // parameters but no result sets, an SQLSTARD may be returned

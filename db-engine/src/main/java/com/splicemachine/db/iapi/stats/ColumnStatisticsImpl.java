@@ -25,13 +25,21 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 package com.splicemachine.db.iapi.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLDate;
+import com.splicemachine.db.iapi.types.SQLDouble;
+import com.splicemachine.db.iapi.types.SQLTime;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.yahoo.memory.NativeMemory;
 import com.yahoo.sketches.frequencies.ErrorType;
 import com.yahoo.sketches.quantiles.ItemsSketch;
@@ -228,9 +236,92 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         // Use Null Data
         if (element == null || element.isNull())
             return nullCount;
+
         // Frequent Items Sketch?
-        long count = frequenciesSketch.getEstimate(element);
-        if (count>0)
+
+        // When look up predicate value in quantilesSketch, the hashCodes of two different data types having different values may be same by coincident
+        // We should follow this checking sequence
+        // 1. Checking if predicate and column's data  types are same
+        // 2. Checking if they are in the same data type family
+        // 3. Checking if column typePrecedence >= predicate typePrecedence, then convert predicate's data type to column
+        // 4. So far, we can't use quantilesSketch.ReverseRurgeItemHashMap to look up predicate, we need to compare the predicate with each elements in frequent item sketch iteratively.
+
+        DataValueDescriptor lookUpElement = element;
+        int typeFormatId = dvd.getTypeFormatId();
+        int eTypeFormatId = element.getTypeFormatId();
+        boolean isSameType = false;
+        boolean isSameFamily = false;
+        boolean isConverted = false;
+
+        // Checking same datatype
+        if (typeFormatId == eTypeFormatId)
+            {isSameType = true;}
+        // Checking datatype family
+        else if ((eTypeFormatId == StoredFormatIds.SQL_INTEGER_ID || eTypeFormatId == StoredFormatIds.SQL_TINYINT_ID
+                || eTypeFormatId == StoredFormatIds.SQL_SMALLINT_ID ||eTypeFormatId == StoredFormatIds.SQL_LONGINT_ID)
+                &&
+                (typeFormatId == StoredFormatIds.SQL_INTEGER_ID || typeFormatId == StoredFormatIds.SQL_TINYINT_ID
+                || typeFormatId == StoredFormatIds.SQL_SMALLINT_ID || typeFormatId == StoredFormatIds.SQL_LONGINT_ID)) {
+            isSameFamily = true;
+        }
+        else if ((eTypeFormatId == StoredFormatIds.SQL_REAL_ID || eTypeFormatId == StoredFormatIds.SQL_DOUBLE_ID || eTypeFormatId == StoredFormatIds.SQL_DECIMAL_ID) &&
+                    (typeFormatId == StoredFormatIds.SQL_REAL_ID || typeFormatId == StoredFormatIds.SQL_DOUBLE_ID || typeFormatId == StoredFormatIds.SQL_DECIMAL_ID )) {
+            isSameFamily = true;
+        }
+        else  if (lookUpElement instanceof SQLChar && dvd instanceof SQLChar) //Handle Char, Varchar, Long Varchar
+        {
+            isSameFamily = true;
+        }
+        // Checking if convertible
+        else if (dvd.typePrecedence() >= lookUpElement.typePrecedence()){
+            try {
+                switch (typeFormatId) {
+                    case StoredFormatIds.SQL_BOOLEAN_ID:
+                        lookUpElement = new SQLBoolean(element.getBoolean());
+                        break;
+                    case StoredFormatIds.SQL_TIME_ID:
+                        lookUpElement = new SQLTime(element.getTime(null));
+                        break;
+                    case StoredFormatIds.SQL_TIMESTAMP_ID:
+                        lookUpElement = new SQLTimestamp(element.getTimestamp(SQLDate.GREGORIAN_CALENDAR.get()));
+                        break;
+                    case StoredFormatIds.SQL_DATE_ID:
+                        lookUpElement = new SQLDate(element.getDate(SQLDate.GREGORIAN_CALENDAR.get()));
+                        break;
+                    case StoredFormatIds.SQL_DOUBLE_ID:
+                    case StoredFormatIds.SQL_REAL_ID:
+                    case StoredFormatIds.SQL_DECIMAL_ID:
+                        lookUpElement = new SQLDouble(element.getDouble()); // These types are in the same family
+                        break;
+                    default:
+                        throw  StandardException.newException(SQLState.TYPE_MISMATCH,"Failure convert from " + element.getTypeName() + " to " + dvd.getTypeName() );
+                }
+                isConverted = true;
+            } catch (StandardException e) {
+                LOG.warn("Data type conversion failure when looking up frequencies.ItemsSketch", e);
+            }
+        }
+
+        long count = 0;
+        if (isSameType || isSameFamily || isConverted) {
+            count = frequenciesSketch.getEstimate(lookUpElement);
+        } else {
+        // Iterated comparing
+            com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor>[] items = frequenciesSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+            for (com.yahoo.sketches.frequencies.ItemsSketch.Row<DataValueDescriptor> row: items) {
+                DataValueDescriptor skewedValue = row.getItem();
+                try {
+                    if (skewedValue != null && skewedValue.compare(ORDER_OP_EQUALS, lookUpElement, false, false)) {
+                        count = row.getEstimate();
+                        break;
+                    }
+                } catch (StandardException e) {
+                    // this should not happen, but if it happens, cost estimation error does not need to fail the query
+                    LOG.warn("Failure is not expected but we don't want to fail the query because of estimation error", e);
+                }
+            }
+        }
+        if (count > 0)
             return count;
         // Return Cardinality Based Estimate
         if (rpv == -1)
@@ -286,50 +377,137 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
      *             in the entire data set.
      * @param includeStart if {@code true}, then include entries which are equal to {@code start}
      * @param includeStop if {@code true}, then include entries which are <em>equal</em> to {@code stop}
+     * @param useExtrapolation if {@code true}, then do extrapolation if the range falls beyond the min-max range recorded in stats
      * @return
      */
     @Override
-    public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+    public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop, boolean useExtrapolation) {
         long qualifiedRows = 0;
 
-        //for range beyond [min,max], return directly
+
+        /** rule if extrapolation is enabled
+         *  For point range: use average rows per value if the value falls beyond the min-max range.
+         *  For regular range: compute the range that is in the min-max range, for the range fall outside the min-max range, linearly project based on the
+         *  following formula::
+         *         range_outside_min_max/(max-min)*total_rows
+         */
+        //check if range beyond [min,max]
+        boolean outOfRange = false;
+        DataValueDescriptor maxValue = quantilesSketch.getMaxValue();
+        DataValueDescriptor minValue = quantilesSketch.getMinValue();
+
         try {
-            DataValueDescriptor maxValue = quantilesSketch.getMaxValue();
             if (maxValue != null &&
                     start != null && !start.isNull() && start.compare(includeStart ? ORDER_OP_GREATERTHAN : ORDER_OP_GREATEROREQUALS, maxValue, false, false))
-                return 0;
-            DataValueDescriptor minValue = quantilesSketch.getMinValue();
-            if (minValue != null &&
-                    stop != null && !stop.isNull() && stop.compare(includeStop ? ORDER_OP_LESSTHAN : ORDER_OP_LESSOREQUALS, minValue, false, false))
-                return 0;
+                outOfRange = true;
+
+            if (!outOfRange) {
+                if (minValue != null &&
+                        stop != null && !stop.isNull() && stop.compare(includeStop ? ORDER_OP_LESSTHAN : ORDER_OP_LESSOREQUALS, minValue, false, false))
+                    outOfRange = true;
+            }
         } catch (StandardException e) {
             // this should not happen, but if it happens, cost estimation error does not need to fail the query
             LOG.warn("Failure is not expected but we don't want to fail the query because of estimation error", e);
         }
 
-        //if point range, take the point range selectivity path
-        if ((start == null || start.isNull()) && (stop == null || stop.isNull()) && includeStart && includeStop)
-            return selectivity(start);
-        if (includeStart && includeStop && start != null && stop != null && start.equals(stop))
-            return selectivity(start);
+        if (outOfRange && !useExtrapolation)
+            return 0;
 
+        //if point range, take the point range selectivity path
+        boolean isPointRange = false;
+        if ((start == null || start.isNull()) && (stop == null || stop.isNull()) && includeStart && includeStop)
+            isPointRange = true;
+        if (includeStart && includeStop && start != null && stop != null && start.equals(stop))
+            isPointRange = true;
+
+        if (isPointRange) {
+            if (outOfRange && useExtrapolation) {
+                if (rpv == -1)
+                    rpv = getAvgRowsPerValueExcludingSkews();
+                return rpv;
+            }
+            else /* not out of range */
+                return selectivity(start);
+        }
+
+        if (!useExtrapolation) {
+            qualifiedRows = computeRangeSelectivity(start, stop, includeStart, includeStop);
+        } else {
+            // compute the range that falls in the min-max range
+            DataValueDescriptor newStart = start, newStop = stop;
+            double length = 0;
+
+            try {
+                // is start < min?
+                if (minValue != null &&
+                      start != null && !start.isNull() && start.compare(ORDER_OP_LESSTHAN, minValue, false, false)) {
+                    // check if even stop < min
+                    if (stop != null && !stop.isNull() && stop.compare(ORDER_OP_LESSTHAN, minValue, false, false))
+                        length = computeRange(start, stop);
+                    else
+                        length = computeRange(start, minValue);
+                    newStart = minValue;
+                    includeStart = true;
+                }
+
+                // is stop > max?
+                if (maxValue != null &&
+                      stop != null && !stop.isNull() && stop.compare(ORDER_OP_GREATERTHAN, maxValue, false, false)) {
+                    // check if even start > max
+                    if (start != null && !start.isNull() && start.compare(ORDER_OP_GREATERTHAN, maxValue, false, false))
+                        length += computeRange(start, stop);
+                    else
+                        length += computeRange(maxValue, stop);
+                    newStop = maxValue;
+                    includeStop = true;
+                }
+
+                qualifiedRows = computeRangeSelectivity(newStart, newStop, includeStart, includeStop);
+
+                //do the linear projection for the range that falls out of the min-max range
+                if (length > 0.0)
+                    qualifiedRows += length/computeRange(minValue, maxValue) * quantilesSketch.getN();
+            } catch (StandardException e) {
+                // this should not happen, but if it happens, cost estimation error does not need to fail the query
+                LOG.warn("Failure is not expected but we don't want to fail the query because of estimation error", e);
+            }
+        }
+
+        /* Use average selectivity as a lower bound */
+        if (rpv == -1)
+            rpv = getAvgRowsPerValueExcludingSkews();
+
+        if (qualifiedRows < rpv)
+            qualifiedRows = rpv;
+
+        /* with extrapolation, there is a possibility that the qualifiedRows is bigger than the total row, bound it with total row */
+        if (qualifiedRows > quantilesSketch.getN())
+            qualifiedRows = quantilesSketch.getN();
+
+        return qualifiedRows;
+    }
+
+    private long computeRangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
         /** range selectivity path:
-         * we want to be a bit conservative to avoid extreme under-estimation. So we compare the following 3 points:
+         * we want to be a bit conservative to avoid extreme under-estimation. So we compare the following 2 points:
          * 1. range selectivity returned by CDF
          * 2. selectivity of skewed values fall in the current range
-         * 3. average selectivity
-         * And take the maximum among 3.
+         * And take the maximum among 2. Coming out of this function, at the caller function rangeSelectivity(), we need to further bound
+         * it with the lower bound of rpv and upper bound of total not-null rows.
          */
+
+        long qualifiedRows = 0;
         /* 1. range selectivity returned by CDF */
-        if (!includeStart && start!=null&& !start.isNull())
+        if (!includeStart && start != null && !start.isNull())
             start = new StatsExcludeStartDVD(start);
-        double startSelectivity = start==null||start.isNull()?0.0d:quantilesSketch.getCDF(new DataValueDescriptor[]{start})[0];
-        if (includeStop && stop !=null && !stop.isNull())
+        double startSelectivity = start == null || start.isNull() ? 0.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{start})[0];
+        if (includeStop && stop != null && !stop.isNull())
             stop = new StatsIncludeEndDVD(stop);
-        double stopSelectivity = stop==null||stop.isNull()?1.0d:quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
-        double totalSelectivity = stopSelectivity-startSelectivity;
-        double count = (double)quantilesSketch.getN();
-        if (totalSelectivity==Double.NaN || count == 0)
+        double stopSelectivity = stop == null || stop.isNull() ? 1.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
+        double totalSelectivity = stopSelectivity - startSelectivity;
+        double count = (double) quantilesSketch.getN();
+        if (totalSelectivity == Double.NaN || count == 0)
             qualifiedRows = 0;
         else
             qualifiedRows = Math.round(totalSelectivity * count);
@@ -339,22 +517,84 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         if (qualifiedRows < skewedRowCountInRange)
             qualifiedRows = skewedRowCountInRange;
 
-        /* 3. average selectivity */
-        if (rpv == -1)
-            rpv = getAvgRowsPerValueExcludingSkews();
-
-        if (qualifiedRows < rpv)
-            qualifiedRows = rpv;
-
         return qualifiedRows;
     }
 
-    /**
-     *
-     * Updating the column's value for the three sketches and the null count.
-     *
-     * @param dvd
-     */
+    private double computeRange(DataValueDescriptor low, DataValueDescriptor high) throws StandardException {
+        int typeFormatId = dvd.getTypeFormatId();
+        switch (typeFormatId) {
+            case StoredFormatIds.SQL_TINYINT_ID:
+            case StoredFormatIds.SQL_SMALLINT_ID:
+            case StoredFormatIds.SQL_INTEGER_ID:
+            case StoredFormatIds.SQL_LONGINT_ID:
+            case StoredFormatIds.SQL_REAL_ID:
+            case StoredFormatIds.SQL_DOUBLE_ID:
+            case StoredFormatIds.SQL_DECIMAL_ID:
+                return high.getDouble() - low.getDouble();
+            case StoredFormatIds.SQL_DATE_ID:
+                SQLDate newLowDate, newHighDate;
+                if (low.getTypeFormatId() != typeFormatId) {
+                    try {
+                        newLowDate = new SQLDate(low.getDate(SQLDate.GREGORIAN_CALENDAR.get()));
+                    } catch (StandardException e) {
+                        LOG.warn("Failure conversion from " + low.getTypeName() + " to " + dvd.getTypeName() + " in stats estimation.", e);
+                        throw StandardException.newException(SQLState.TYPE_MISMATCH, "Failure conversion from " + low.getTypeName() + " to " + dvd.getTypeName() + " in stats estimation.");
+                    }
+                } else {
+                    newLowDate = (SQLDate) low;
+                }
+
+                if (high.getTypeFormatId() != typeFormatId) {
+                    try {
+                        newHighDate = new SQLDate(high.getDate(SQLDate.GREGORIAN_CALENDAR.get()));
+                    } catch (StandardException e) {
+                        LOG.warn("Failure conversion from " + high.getTypeName() + " to " + dvd.getTypeName() + " in stats estimation.", e);
+                        throw StandardException.newException(SQLState.TYPE_MISMATCH, "Failure conversion from " + high.getTypeName() + " to " + dvd.getTypeName() + " in stats estimation.");
+                    }
+                } else {
+                    newHighDate = (SQLDate) high;
+                }
+                return newHighDate.minus(newHighDate, newLowDate, null).getDouble();
+            case StoredFormatIds.SQL_TIMESTAMP_ID:
+                SQLTimestamp newLowTimestamp, newHighTimeStamp;
+                if (low.getTypeFormatId() != typeFormatId) {
+                    try {
+                        newLowTimestamp = new SQLTimestamp(low.getTimestamp(SQLDate.GREGORIAN_CALENDAR.get()));
+                    } catch (StandardException e) {
+                        LOG.warn("Failure conversion from " + low.getTypeName() + " to " + dvd.getTypeName() + " in stats estimation.", e);
+                        throw StandardException.newException(SQLState.TYPE_MISMATCH, "Failure conversion from " + low.getTypeName() + " to " + dvd.getTypeName() + " in stats estimation.");
+                    }
+                } else {
+                    newLowTimestamp = (SQLTimestamp)low;
+                }
+                if (high.getTypeFormatId() != typeFormatId) {
+                    try {
+                        newHighTimeStamp = new SQLTimestamp(high.getTimestamp(SQLDate.GREGORIAN_CALENDAR.get()));
+                    } catch (StandardException e) {
+                        LOG.warn("Failure conversion from " + high.getTypeName() + " to " + dvd.getTypeName() + " in stats estimation.", e);
+                        throw StandardException.newException(SQLState.TYPE_MISMATCH, "Failure conversion from " + high.getTypeName() + " to " + dvd.getTypeName() + " in stats estimation.");
+                    }
+                } else {
+                    newHighTimeStamp = (SQLTimestamp)high;
+                }
+                return newHighTimeStamp.minus(newHighTimeStamp, newLowTimestamp, null).getDouble();
+            default:
+                break;
+        }
+        return 1.0;
+    }
+
+    @Override
+    public long rangeSelectivity(DataValueDescriptor start, DataValueDescriptor stop, boolean includeStart, boolean includeStop) {
+        return rangeSelectivity(start, stop, includeStart, includeStop, false);
+    }
+
+        /**
+         *
+         * Updating the column's value for the three sketches and the null count.
+         *
+         * @param dvd
+         */
     @Override
     public void update(DataValueDescriptor dvd) {
         if (dvd.isNull()) {

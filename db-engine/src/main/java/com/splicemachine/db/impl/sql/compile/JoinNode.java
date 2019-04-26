@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -214,7 +214,7 @@ public class JoinNode extends TableOperatorNode{
         // RESOLVE: NEED TO SET ROW ORDERING OF SOURCES IN THE ROW ORDERING
         // THAT WAS PASSED IN.
 
-        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),outerCost);
+        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),null);
 
 		/* Move all joinPredicates down to the right.
 		 * RESOLVE - When we consider the reverse join order then
@@ -980,13 +980,16 @@ public class JoinNode extends TableOperatorNode{
      * Get the final CostEstimate for this JoinNode.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
+        if (useSelf && trulyTheBestAccessPath != null) {
+            return getTrulyTheBestAccessPath().getCostEstimate();
+        }
         // If we already found it, just return it.
         if(finalCostEstimate!=null)
             return finalCostEstimate;
 
 //        CostEstimate leftCE=leftResultSet.getFinalCostEstimate();
-        CostEstimate rightCE=rightResultSet.getFinalCostEstimate();
+        CostEstimate rightCE=rightResultSet.getFinalCostEstimate(true);
         finalCostEstimate=getNewCostEstimate();
         finalCostEstimate.setCost(rightCE);
         finalCostEstimate.setBase(null);
@@ -1494,6 +1497,7 @@ public class JoinNode extends TableOperatorNode{
 
             // SQL 2003, section 7.7 SR 5
             SelectNode.checkNoWindowFunctions(joinClause,"ON");
+            SelectNode.checkNoGroupingFunctions(joinClause,"ON");
 
 			/*
 			** We cannot have aggregates in the ON clause.
@@ -1839,7 +1843,7 @@ public class JoinNode extends TableOperatorNode{
 
         }
         // Get our final cost estimate based on child estimates.
-        costEstimate=getFinalCostEstimate();
+        costEstimate=getFinalCostEstimate(false);
 
         // for the join clause, we generate an exprFun
         // that evaluates the expression of the clause
@@ -1961,7 +1965,7 @@ public class JoinNode extends TableOperatorNode{
         sb.append(spaceToLevel())
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
+                .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (joinPreds != null && !joinPreds.isEmpty())

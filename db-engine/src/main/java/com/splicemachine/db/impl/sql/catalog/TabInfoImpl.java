@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -802,6 +802,63 @@ public class TabInfoImpl
         rc.close();
 
         return rowsDeleted;
+    }
+
+    /**
+     * Delete row given its row location
+     * @param tc
+     * @param rowLocation
+     * @param wait
+     * @param cols
+     * @return
+     * @throws StandardException
+     */
+    public int deleteRowBasedOnRowLocation(TransactionController tc,
+                                            RowLocation rowLocation,
+                                            boolean wait,
+                                            FormatableBitSet cols)
+            throws StandardException
+    {
+        ConglomerateController		heapCC;
+
+        RowChanger 					rc;
+        ExecRow						baseRow = crf.makeEmptyRow();
+        int                         rowsDeleted = 0;
+
+        rc = getRowChanger( tc, (int[])null,baseRow );
+
+        // we know the row location
+        int lockMode = tc.MODE_RECORD;
+
+        // Row level locking
+        rc.open(lockMode, wait);
+
+		/* Open the heap conglomerate */
+        heapCC = tc.openConglomerate(
+                getHeapConglomerate(),
+                false,
+                (TransactionController.OPENMODE_FORUPDATE |
+                        ((wait) ? 0 : TransactionController.OPENMODE_LOCK_NOWAIT)),
+                lockMode,
+                TransactionController.ISOLATION_REPEATABLE_READ);
+
+        boolean row_exists =
+                heapCC.fetch(
+                        rowLocation, baseRow, (FormatableBitSet) cols);
+
+        if (!row_exists) {
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(row_exists, "base row not found");
+            }
+            return 0;
+        }
+        rc.deleteRow( baseRow, rowLocation);
+
+        heapCC.close();
+        rc.close();
+
+        return 1;
+
     }
 
     /**

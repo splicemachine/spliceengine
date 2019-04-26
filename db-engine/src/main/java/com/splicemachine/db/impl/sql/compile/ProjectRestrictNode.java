@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -35,6 +35,7 @@ import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -49,6 +50,7 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.Lists;
 
+import java.lang.reflect.Modifier;
 import java.util.*;
 
 /**
@@ -131,6 +133,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             ((Optimizable)childResult).setProperties(getProperties());
             setProperties(null);
         }
+
+        if (childResult instanceof ResultSetNode && ((ResultSetNode) childResult).getContainsSelfReference())
+            containsSelfReference = true;
     }
 
 	/*
@@ -808,7 +813,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
-        if (existsTable || fromSSQ)
+        if (dependencyMap != null)
             return assignedTableMap.contains(dependencyMap);
 
         return !(childResult instanceof Optimizable) || ((Optimizable)childResult).legalJoinOrder(assignedTableMap);
@@ -1107,7 +1112,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * the final cost estimate for the child node.
      */
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         if(finalCostEstimate!=null)
             // we already set it, so just return it.
             return finalCostEstimate;
@@ -1121,7 +1126,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         // hold "trulyTheBestAccessPath" for it's child so we pull
         // the final cost from there.
         if(childResult instanceof Optimizable)
-            finalCostEstimate=childResult.getFinalCostEstimate();
+            finalCostEstimate = childResult.getFinalCostEstimate(true);
         else
             finalCostEstimate=getTrulyTheBestAccessPath().getCostEstimate();
 
@@ -1168,6 +1173,67 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         generateMinion(acb,mb,true);
     }
 
+    private void generateChild(ExpressionClassBuilder acb,
+                               MethodBuilder mb,
+                               boolean genChildResultSet) throws StandardException {
+
+        if(genChildResultSet)
+            childResult.generateResultSet(acb,mb);
+        else
+            childResult.generate((ActivationClassBuilder)acb,mb);
+    }
+    /**
+     * Generate a new array with "numberOfValues" Strings and place it on the stack.
+     *
+     * @param acb            The ActivationClassBuilder for the class we're building
+     * @param mb             The MethodBuilder on whose stack to place the String[].
+     * @param resultColumns  The expressions to add to the list.
+     * @return The field that holds the list data
+     */
+    public static void
+    generateExpressionsArrayOnStack(ExpressionClassBuilder acb,
+                                    MethodBuilder          mb,
+                                    ResultColumnList       resultColumns)
+    throws StandardException {
+
+        boolean genExpressions = resultColumns != null;
+        int numberOfValues = genExpressions ? resultColumns.size() : 0;
+
+        String [] expressions = new String[numberOfValues];
+
+        int i = 0;
+        if (genExpressions) {
+            for (ResultColumn rc : resultColumns) {
+                expressions[i] = OperatorToString.opToSparkString(rc.getExpression());
+                if (expressions[i].isEmpty()) {
+                    genExpressions = false;
+                    numberOfValues = 0;
+                    break;
+                }
+                i++;
+            }
+        }
+
+        String stringClassName = "java.lang.String";
+        LocalField arrayField = acb.newFieldDeclaration(
+		                            Modifier.PRIVATE, stringClassName + "[]");
+        mb.pushNewArray(stringClassName, numberOfValues);
+        mb.setField(arrayField);
+
+        i = 0;
+        if (genExpressions) {
+            // Now copy the strings we built previously into the String[].
+            for (ResultColumn rc : resultColumns) {
+                mb.getField(arrayField);
+                mb.push(expressions[i]);
+                mb.setArrayElement(i++);
+            }
+        }
+
+        // Now push a reference to the String array we just built onto the stack.
+        mb.getField(arrayField);
+    }
+
     /**
      * Logic shared by generate() and generateResultSet().
      *
@@ -1189,11 +1255,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         if(nopProjectRestrict()){
             generateNOPProjectRestrict();
-            if(genChildResultSet)
-                childResult.generateResultSet(acb,mb);
-            else
-                childResult.generate((ActivationClassBuilder)acb,mb);
-            costEstimate=childResult.getFinalCostEstimate();
+            generateChild(acb, mb, genChildResultSet);
+            costEstimate=childResult.getFinalCostEstimate(true);
             return;
         }
 
@@ -1275,10 +1338,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
 
         acb.pushGetResultSetFactoryExpression(mb);
-        if(genChildResultSet)
-            childResult.generateResultSet(acb,mb);
-        else
-            childResult.generate((ActivationClassBuilder)acb,mb);
+        generateChild(acb, mb, genChildResultSet);
 
 		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
 		 * ResultColumnList and ResultSet.
@@ -1286,7 +1346,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         assignResultSetNumber();
 
         // Load our final cost estimate.
-        costEstimate=getFinalCostEstimate();
+        costEstimate=getFinalCostEstimate(false);
 
         // if there is no restriction, we just want to pass null.
         if(restriction==null){
@@ -1327,6 +1387,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 		 * Reflection is not needed if all of the columns map directly to source
 		 * columns.
 		 */
+		boolean canUseSparkSQLExpressions = false;
         if(reflectionNeededForProjection()){
             // for the resultColumns, we generate a userExprFun
             // that creates a new row from expressions against
@@ -1337,8 +1398,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // that a null function pointer means take the current row
             // as-is, with the performance trade-off as discussed above.)
 
-			/* Generate the Row function for the projection */
-            resultColumns.generateCore(acb,mb,false);
+            /* Generate the Row function for the projection */
+            canUseSparkSQLExpressions = resultColumns.generateCore(acb,mb,false);
         }else{
             mb.pushNull(ClassName.GeneratedMethod);
         }
@@ -1388,7 +1449,12 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(costEstimate.getEstimatedCost());
         mb.push(printExplainInformationForActivation());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,12);
+        String filterPred = OperatorToString.opToSparkString(restriction);
+        mb.push(filterPred);
+
+        ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,14);
     }
 
     /**
@@ -1668,7 +1734,13 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         sb.append(spaceToLevel())
                 .append("ProjectRestrict").append("(")
                 .append("n=").append(order)
-                .append(attrDelim).append(getFinalCostEstimate().prettyProjectionString(attrDelim));
+                .append(attrDelim);
+
+        if (childResult instanceof FromBaseTable || childResult instanceof FromVTI || childResult instanceof IndexToBaseRowNode) {
+            sb.append(getFinalCostEstimate(false).prettyProjectionString(attrDelim));
+        } else
+            sb.append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
+
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && !qualifiers.isEmpty()) //add
             sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");

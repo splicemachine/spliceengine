@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -157,6 +157,10 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
         else doDelete(((HDelete)put).unwrapDelegate());
     }
 
+    @Override
+    public void batchMutate(List<DataMutation> mutations) {
+        throw new UnsupportedOperationException("batchMutate not implemented");
+    }
 
     @Override
     @SuppressWarnings("ForLoopReplaceableByForEach")

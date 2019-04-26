@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -88,6 +88,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected ExecRow defaultRow;
     protected FormatableBitSet defaultValueMap;
     protected byte[] token = SpliceClient.token;
+
+    protected boolean ignoreRecentTransactions = false;
 
     @Override
     public ScanSetBuilder<V> metricFactory(MetricFactory metricFactory){
@@ -411,7 +413,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                     demarcationPoint,
                     optionalProbeValue,
                     defaultRow,
-                    defaultValueMap);
+                    defaultValueMap,
+                    ignoreRecentTransactions);
     }
 
     @Override
@@ -486,6 +489,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             out.writeBoolean(defaultValueMap != null);
             if (defaultValueMap != null)
                 out.writeObject(defaultValueMap);
+            out.writeBoolean(ignoreRecentTransactions);
     }
     private void writeNullableString (String nullableString,ObjectOutput out) throws IOException {
         out.writeBoolean(nullableString!=null);
@@ -566,6 +570,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
                 defaultRow = (ExecRow)in.readObject();
             if (in.readBoolean())
                 defaultValueMap = (FormatableBitSet) in.readObject();
+            ignoreRecentTransactions = in.readBoolean();
     }
 
     protected TxnView readTxn(ObjectInput in) throws IOException{
@@ -717,4 +722,14 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
+    @Override
+    public ScanSetBuilder<V> ignoreRecentTransactions(boolean ignoreRecentTransactions) {
+        this.ignoreRecentTransactions = ignoreRecentTransactions;
+        return this;
+    }
+
+    @Override
+    public boolean getIgnoreRecentTransactions() {
+        return ignoreRecentTransactions;
+    }
 }

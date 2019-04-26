@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -362,14 +362,8 @@ public class StatementColumnPermission extends StatementTablePermission
 		//If table permission found for authorizationid, then simply return that
 		if (oneAuthHasPermissionOnTable( dd, authid, false) == AUTHORIZED)
 			return dd.getTablePermissions(tableUUID, authid);
-		//If table permission found for PUBLIC, then simply return that
-		if (oneAuthHasPermissionOnTable( dd, Authorizer.PUBLIC_AUTHORIZATION_ID, false) == AUTHORIZED)
-			return dd.getTablePermissions(tableUUID, Authorizer.PUBLIC_AUTHORIZATION_ID);
 
 		if (oneAuthHasPermissionOnSchema( dd, authid, false) == AUTHORIZED)
-			return dd.getSchemaPermissions(schemaUUID, authid);
-
-		if (oneAuthHasPermissionOnSchema( dd, Authorizer.PUBLIC_AUTHORIZATION_ID, false) == AUTHORIZED)
 			return dd.getSchemaPermissions(schemaUUID, authid);
 		
 		//If table level permission not found, then we have to find permissions 

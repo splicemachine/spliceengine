@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -145,12 +145,15 @@ public interface StoreCostController extends RowCountable{
      * @param includeStart whether to include the start value in the estimate
      * @param stop         the value for the stop of the range, or {@code null} if no stop is estimated
      * @param includeStop  whether to include the stop value in the estimate
+     * @param useExtrapolation whether to do extrapolation if the range falls beyond the min-max range recorded in stats
      * @return an estimate of the selectivity fraction
      */
     double getSelectivity(int columnNumber,
                           DataValueDescriptor start,
                           boolean includeStart,
-                          DataValueDescriptor stop,boolean includeStop);
+                          DataValueDescriptor stop,
+                          boolean includeStop,
+                          boolean useExtrapolation);
 
     /**
      * @return the total number of rows in the store (including null and non-null)

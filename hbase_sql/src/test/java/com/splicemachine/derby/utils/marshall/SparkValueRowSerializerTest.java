@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -90,22 +90,6 @@ public class SparkValueRowSerializerTest {
         InputStream in = new ByteArrayInputStream(out.toByteArray());
         Input input = new Input(in);
         DoubleBufferedSumAggregator lbsa2 = (DoubleBufferedSumAggregator) kryo.readClassAndObject(input);
-        assertEquals(lbsa.getResult(), lbsa2.getResult());
-        input.close();
-    }
-
-    @Test
-    public void testFloatBufferedSumAggregator() throws IOException, StandardException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Output output = new Output(out);
-        FloatBufferedSumAggregator lbsa = new FloatBufferedSumAggregator(64);
-        lbsa.add(new SQLReal(100));
-        lbsa.add(new SQLReal(200));
-        kryo.writeClassAndObject(output, lbsa);
-        output.close();
-        InputStream in = new ByteArrayInputStream(out.toByteArray());
-        Input input = new Input(in);
-        FloatBufferedSumAggregator lbsa2 = (FloatBufferedSumAggregator) kryo.readClassAndObject(input);
         assertEquals(lbsa.getResult(), lbsa2.getResult());
         input.close();
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -54,11 +54,13 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String authenticationLdapSearchbase;
     private final  String authenticationLdapSearchfilter;
     private final  String authenticationLdapServer;
-    private final  String authenticationLdapMapGroupAttr;
+    private final  String authenticationMapGroupAttr;
     private final  String authenticationNativeAlgorithm;
     public int authenticationTokenLength;
     public int authenticationTokenMaxLifetime;
     public int authenticationTokenRenewInterval;
+    public boolean authenticationImpersonationEnabled;
+    public String authenticationImpersonationUsers;
     public boolean authenticationTokenEnabled;
     public boolean authenticationTokenDebugConnections;
     public int authenticationTokenMaxConnections;
@@ -92,6 +94,9 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long backupMaxBandwidthMB;
     private final  boolean backupUseDistcp;
     private final  int backupIOBufferSize;
+    private final  int replicationSnapshotInterval;
+    private final  int replicationSinkPort;
+    private final int replicationProgressUpdateInterval;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -127,6 +132,11 @@ public final class SConfigurationImpl implements SConfiguration {
     private final double bulkImportSampleFraction;
     private final int bulkImportTasksPerRegion;
     private final int regionToLoadPerTask;
+    private final int rollForwardQueueSize;
+    private final int rollForwardFirstWait;
+    private final int rollForwardSecondWait;
+    private final int rollForwardFirstThreads;
+    private final int rollForwardSecondThreads;
 
     // OLAP client/server configurations
     private final int olapClientWaitTime;
@@ -187,6 +197,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int nestedLoopJoinBatchSize;
     private final long controlExecutionRowLimit;
     private final int maxCheckTableErrors;
+    private final int recursiveQueryIterationLimit;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -260,7 +271,7 @@ public final class SConfigurationImpl implements SConfiguration {
         return authenticationLdapServer;
     }
     @Override
-    public String getAuthenticationLdapMapGroupAttr() { return authenticationLdapMapGroupAttr; }
+    public String getAuthenticationMapGroupAttr() { return authenticationMapGroupAttr; }
     @Override
     public String getAuthenticationNativeAlgorithm() {
         return authenticationNativeAlgorithm;
@@ -276,6 +287,14 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getAuthenticationTokenRenewInterval() {
         return authenticationTokenRenewInterval;
+    }
+    @Override
+    public String getAuthenticationImpersonationUsers() {
+        return authenticationImpersonationUsers;
+    }
+    @Override
+    public boolean getAuthenticationImpersonationEnabled() {
+        return authenticationImpersonationEnabled;
     }
     @Override
     public boolean getAuthenticationTokenEnabled() {
@@ -352,6 +371,18 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getBackupIOBufferSize() {
         return backupIOBufferSize;
+    }
+    @Override
+    public int getReplicationSnapshotInterval() {
+        return replicationSnapshotInterval;
+    }
+    @Override
+    public int getReplicationSinkPort() {
+        return replicationSinkPort;
+    }
+    @Override
+    public int getReplicationProgressUpdateInterval() {
+        return replicationProgressUpdateInterval;
     }
     @Override
     public String getCompressionAlgorithm() {
@@ -494,6 +525,32 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getReadResolverThreads() {
         return readResolverThreads;
     }
+
+    @Override
+    public int getRollforwardQueueSize() {
+        return rollForwardQueueSize;
+    }
+
+    @Override
+    public int getRollforwardFirstWait() {
+        return rollForwardFirstWait;
+    }
+
+    @Override
+    public int getRollforwardSecondWait() {
+        return rollForwardSecondWait;
+    }
+
+    @Override
+    public int getRollforwardFirstThreads() {
+        return rollForwardFirstThreads;
+    }
+
+    @Override
+    public int getRollforwardSecondThreads() {
+        return rollForwardSecondThreads;
+    }
+
     @Override
     public int getOlapClientWaitTime() {
         return olapClientWaitTime;
@@ -683,6 +740,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getNestedLoopJoinBatchSize() {
         return nestedLoopJoinBatchSize;
     }
+    @Override
+    public int getRecursiveQueryIterationLimit() {
+        return recursiveQueryIterationLimit;
+    }
 
     // StatsConfiguration
     @Override
@@ -791,7 +852,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationLdapSearchbase = builder.authenticationLdapSearchbase;
         authenticationLdapSearchfilter = builder.authenticationLdapSearchfilter;
         authenticationLdapServer = builder.authenticationLdapServer;
-        authenticationLdapMapGroupAttr = builder.authenticationLdapMapGroupAttr;
+        authenticationMapGroupAttr = builder.authenticationMapGroupAttr;
         authenticationNativeAlgorithm = builder.authenticationNativeAlgorithm;
         authenticationTokenLength = builder.authenticationTokenLength;
         authenticationTokenRenewInterval = builder.authenticationTokenRenewInterval;
@@ -800,6 +861,8 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationTokenMaxConnections = builder.authenticationTokenMaxConnections;
         authenticationTokenPermissionCacheSize = builder.authenticationTokenPermissionCacheSize;
         authenticationTokenMaxLifetime = builder.authenticationTokenMaxLifetime;
+        authenticationImpersonationEnabled = builder.authenticationImpersonationEnabled;
+        authenticationImpersonationUsers = builder.authenticationImpersonationUsers;
         authorizationScheme = builder.authorizationScheme;
         rangerServiceName = builder.rangerServiceName;
         sentryPollingInterval = builder.sentryPollingInterval;
@@ -827,6 +890,9 @@ public final class SConfigurationImpl implements SConfiguration {
         backupMaxBandwidthMB = builder.backupMaxBandwidthMB;
         backupUseDistcp = builder.backupUseDistcp;
         backupIOBufferSize = builder.backupIOBufferSize;
+        replicationSnapshotInterval = builder.replicationSnapshotInterval;
+        replicationSinkPort = builder.replicationSinkPort;
+        replicationProgressUpdateInterval = builder.replicationProgressUpdateInterval;
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;
@@ -850,6 +916,7 @@ public final class SConfigurationImpl implements SConfiguration {
         broadcastRegionMbThreshold = builder.broadcastRegionMbThreshold;
         broadcastRegionRowThreshold = builder.broadcastRegionRowThreshold;
         broadcastDatasetCostThreshold = builder.broadcastDatasetCostThreshold;
+        recursiveQueryIterationLimit = builder.recursiveQueryIterationLimit;
         optimizerPlanMaximumTimeout = builder.optimizerPlanMaximumTimeout;
         optimizerPlanMinimumTimeout = builder.optimizerPlanMinimumTimeout;
         determineSparkRowThreshold = builder.determineSparkRowThreshold;
@@ -905,6 +972,11 @@ public final class SConfigurationImpl implements SConfiguration {
         regionToLoadPerTask = builder.regionToLoadPerTask;
         ignoreMissingTxns = builder.ignoreMissingTxns;
         maxCheckTableErrors = builder.maxCheckTableErrors;
+        rollForwardQueueSize = builder.rollForwardQueueSize;
+        rollForwardFirstWait = builder.rollForwardFirstWait;
+        rollForwardSecondWait = builder.rollForwardSecondWait;
+        rollForwardFirstThreads = builder.rollForwardFirstThreads;
+        rollForwardSecondThreads = builder.rollForwardSecondThreads;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

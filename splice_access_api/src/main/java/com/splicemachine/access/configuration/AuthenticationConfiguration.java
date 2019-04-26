@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -69,8 +69,8 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public static final String AUTHENTICATION_CUSTOM_PROVIDER = "splice.authentication.custom.provider";
     public static final String DEFAULT_AUTHENTICATION_CUSTOM_PROVIDER = "com.splicemachine.derby.authentication.SpliceUserAuthentication";
 
-    public static final String AUTHENTICATION_LDAP_MAPGROUPATTR = "splice.authentication.ldap.mapGroupAttr";
-    private static final String DEFAULT_AUTHENTICATION_LDAP_MAPGROUPATTR = "";
+    public static final String AUTHENTICATION_MAPGROUPATTR = "splice.authentication.ldap.mapGroupAttr";
+    private static final String DEFAULT_AUTHENTICATION_MAPGROUPATTR = "";
 
     public static final String AUTHENTICATION_TOKEN_LENGTH = "splice.authentication.token.length";
     public static final int DEFAULT_AUTHENTICATION_TOKEN_LENGTH = 32;
@@ -93,6 +93,12 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
     public static final String AUTHENTICATION_TOKEN_PERMISSION_CACHE_SIZE = "splice.authentication.permission.cache.size";
     public static final int DEFAULT_AUTHENTICATION_PERMISSION_CACHE_SIZE = 10000;
 
+    public static final String AUTHENTICATION_IMPERSONATION_ENABLED = "splice.authentication.impersonation.enabled";
+    public static final boolean DEFAULT_AUTHENTICATION_IMPERSONATION_ENABLED = false;
+
+    public static final String AUTHENTICATION_IMPERSONATION_USERS = "splice.authentication.impersonation.users";
+    public static final String DEFAULT_AUTHENTICATION_IMPERSONATION_USERS = "";
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.authentication = configurationSource.getString(AUTHENTICATION, DEFAULT_AUTHENTICATION);
@@ -108,7 +114,6 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
             builder.authenticationLdapSearchauthpw = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHAUTH_PASSWORD, DEFAULT_AUTHENTICATION_LDAP_SEARCHAUTHPW);
             builder.authenticationLdapSearchbase = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHBASE, DEFAULT_AUTHENTICATION_LDAP_SEARCHBASE);
             builder.authenticationLdapSearchfilter = configurationSource.getString(AUTHENTICATION_LDAP_SEARCHFILTER, DEFAULT_AUTHENTICATION_LDAP_SEARCHFILTER);
-            builder.authenticationLdapMapGroupAttr = configurationSource.getString(AUTHENTICATION_LDAP_MAPGROUPATTR, DEFAULT_AUTHENTICATION_LDAP_MAPGROUPATTR);
         } else {
             builder.authenticationNativeAlgorithm = configurationSource.getString(AUTHENTICATION_NATIVE_ALGORITHM,
                                                                                   DEFAULT_AUTHENTICATION_NATIVE_ALGORITHM);
@@ -123,6 +128,9 @@ public class AuthenticationConfiguration implements ConfigurationDefault {
         builder.authenticationTokenEnabled =  configurationSource.getBoolean(AUTHENTICATION_TOKEN_ENABLED, DEFAULT_AUTHENTICATION_TOKEN_ENABLED);
         builder.authenticationTokenDebugConnections =  configurationSource.getBoolean(AUTHENTICATION_TOKEN_DEBUG_CONNECTIONS, DEFAULT_AUTHENTICATION_DEBUG_CONNECTIONS);
         builder.authenticationTokenMaxConnections =  configurationSource.getInt(AUTHENTICATION_TOKEN_MAX_CONNECTIONS, DEFAULT_AUTHENTICATION_MAX_CONNECTIONS);
-        builder.authenticationTokenPermissionCacheSize = configurationSource.getInt(AUTHENTICATION_TOKEN_PERMISSION_CACHE_SIZE, DEFAULT_AUTHENTICATION_PERMISSION_CACHE_SIZE);;
+        builder.authenticationTokenPermissionCacheSize = configurationSource.getInt(AUTHENTICATION_TOKEN_PERMISSION_CACHE_SIZE, DEFAULT_AUTHENTICATION_PERMISSION_CACHE_SIZE);
+        builder.authenticationImpersonationEnabled = configurationSource.getBoolean(AUTHENTICATION_IMPERSONATION_ENABLED, DEFAULT_AUTHENTICATION_IMPERSONATION_ENABLED);
+        builder.authenticationImpersonationUsers = configurationSource.getString(AUTHENTICATION_IMPERSONATION_USERS, DEFAULT_AUTHENTICATION_IMPERSONATION_USERS);
+        builder.authenticationMapGroupAttr = configurationSource.getString(AUTHENTICATION_MAPGROUPATTR, DEFAULT_AUTHENTICATION_MAPGROUPATTR);
     }
 }

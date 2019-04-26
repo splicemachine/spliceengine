@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -80,7 +80,7 @@ public class LimitOffsetVisitorIT extends SpliceUnitTest {
     @Test
     public void limitOverGroupBy() throws Exception {
         rowContainsQuery(new int[]{1,2,3,4,5,6,7},"explain select top 10 col1,max(col2) from A group by col1",methodWatcher,
-                "rows=10,","outputRows=10,","outputRows=10,","outputRows=20,","outputRows=20,",
+                "rows=10,","outputRows=10,","outputRows=10,","outputRows=10,","outputRows=10,",
                 "outputRows=20,","outputRows=20,");
     }
 

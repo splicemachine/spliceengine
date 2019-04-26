@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -135,10 +135,12 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         if (isHinted || estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold &&
                 (!currentAccessPath.isMissingHashKeyOK() || (innerTable instanceof FromBaseTable &&  // non-equality broadcast join only costed if using spark
                 ((FromBaseTable)innerTable).isSpark(((FromBaseTable)innerTable).getdataSetProcessorTypeForAccessPath(currentAccessPath))))) {
-            double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
+            double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
             double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
+            double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
+            double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
             innerCost.setNumPartitions(outerCost.partitionCount());
-            double joinCost = SelectivityUtil.broadcastJoinStrategyLocalCost(innerCost, outerCost);
+            double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
             innerCost.setLocalCost(joinCost);
             innerCost.setLocalCostPerPartition(joinCost);
             innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalOutputRows));
@@ -151,6 +153,24 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             innerCost.setLocalCost(Double.MAX_VALUE);
             innerCost.setRemoteCost(Double.MAX_VALUE);
         }
+    }
+
+    /**
+     *
+     * Broadcast Join Local Cost Computation
+     *
+     * Total Cost = (Left Side Cost/Partition Count) + Right Side Cost + Right Side Transfer Cost + Open Cost + Close Cost + 0.1
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
+    public static double broadcastJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double numOfJoinedRows) {
+        SConfiguration config = EngineDriver.driver().getConfiguration();
+        double localLatency = config.getFallbackLocalLatency();
+        double joiningRowCost = numOfJoinedRows * localLatency;
+        return (outerCost.localCostPerPartition())+innerCost.localCost()+innerCost.remoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
+               + joiningRowCost/outerCost.partitionCount();
     }
 
     @Override

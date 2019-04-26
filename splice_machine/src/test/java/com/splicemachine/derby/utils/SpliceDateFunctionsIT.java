@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,14 +15,11 @@
 package com.splicemachine.derby.utils;
 
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -31,11 +28,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
+import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import static org.junit.Assert.*;
 
 public class SpliceDateFunctionsIT {
 
@@ -97,7 +94,7 @@ public class SpliceDateFunctionsIT {
                         "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-17'), -1, " +
                             "date('2013-12-17'))").execute();
                     classWatcher.prepareStatement(
-                        "insert into " + tableWatcherB + " (col1, col2, col3) values ('01/27/2001', 'mm/dd/yyyy'," +
+                        "insert into " + tableWatcherB + " (col1, col2, col3) values ('01/27/2001', 'MM/dd/yyyy'," +
                             " date('2001-01-27'))").execute();
                     classWatcher.prepareStatement(
                         "insert into " + tableWatcherB + " (col1, col2, col3) values ('2002/02/26', 'yyyy/MM/dd'," +
@@ -122,10 +119,10 @@ public class SpliceDateFunctionsIT {
                             "('2014-04-29'), 1.0)").execute();
                     classWatcher.prepareStatement(
                         "insert into " + tableWatcherF + " (col1, col2, col3) values (date('2014-05-29'), " +
-                            "'mm/dd/yyyy', '05/29/2014')").execute();
+                            "'MM/dd/yyyy', '05/29/2014')").execute();
                     classWatcher.prepareStatement(
                         "insert into " + tableWatcherF + " (col1, col2, col3) values (date('2012-12-31'), " +
-                            "'yyyy/mm/dd', '2012/12/31')").execute();
+                            "'yyyy/MM/dd', '2012/12/31')").execute();
                     classWatcher.prepareStatement(
                         "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
                             "20:38:40'), 'hour', Timestamp('2012-12-31 20:00:00'))").execute();
@@ -217,7 +214,7 @@ public class SpliceDateFunctionsIT {
             String expected =
                 "DATESTR  |  PATTERN  |  TODATE   |   DATE    |\n" +
                     "------------------------------------------------\n" +
-                    "01/27/2001 |mm/dd/yyyy |2001-01-27 |2001-01-27 |\n" +
+                    "01/27/2001 |MM/dd/yyyy |2001-01-27 |2001-01-27 |\n" +
                     "2002/02/26 |yyyy/MM/dd |2002-02-26 |2002-02-26 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }

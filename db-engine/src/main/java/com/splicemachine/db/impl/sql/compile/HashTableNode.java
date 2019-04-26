@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -299,7 +299,7 @@ public class HashTableNode extends SingleChildResultSetNode
 		assignResultSetNumber();
 
 		// Get the final cost estimate based on child's cost.
-		costEstimate = childResult.getFinalCostEstimate();
+		costEstimate = childResult.getFinalCostEstimate(true);
 
 		// if there is no searchClause, we just want to pass null.
 		if (searchClause == null)

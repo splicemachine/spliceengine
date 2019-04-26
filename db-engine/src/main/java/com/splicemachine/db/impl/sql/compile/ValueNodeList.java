@@ -25,21 +25,22 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -61,7 +62,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void addValueNode(ValueNode valueNode) throws StandardException
+	public void addValueNode(ValueNode valueNode)
 	{
 		addElement(valueNode);
 	}
@@ -253,11 +254,12 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 * type precendence as the specified value.
 	 *
 	 * @param precedence	The specified precedence.
+	 * @param cidx         The index into the ListValueNode, if present.
 	 *
 	 * @return	Whether or not all of the entries in the list have the same
 	 *			type precendence as the specified value.
 	 */
-	boolean allSamePrecendence(int precedence)
+	boolean allSamePrecendence(int precedence, int cidx)
 	throws StandardException
 	{
 		boolean allSame = true;
@@ -268,6 +270,8 @@ public class ValueNodeList extends QueryTreeNodeVector
 			ValueNode			valueNode;
 
 			valueNode = (ValueNode) elementAt(index);
+			if (valueNode instanceof ListValueNode)
+				valueNode = ((ListValueNode)valueNode).getValue(cidx);
 			DataTypeDescriptor valueNodeDTS = valueNode.getTypeServices();
 
 			if (valueNodeDTS == null)
@@ -427,9 +431,15 @@ public class ValueNodeList extends QueryTreeNodeVector
 
 		for (int index = 0; index < size; index++)
 		{
-			if (! ((ValueNode) elementAt(index) instanceof ConstantNode))
+			ValueNode literalVal = (ValueNode) elementAt(index);
+			if (! (literalVal instanceof ConstantNode))
 			{
-				return false;
+				if (literalVal instanceof ListValueNode) {
+					if (!((ListValueNode) literalVal).containsAllConstantNodes())
+						return false;
+				}
+				else
+				    return false;
 			}
 		}
 		return true;
@@ -448,13 +458,11 @@ public class ValueNodeList extends QueryTreeNodeVector
 		for (int index = 0; index < size; index++)
 		{
 			ValueNode vNode = (ValueNode)elementAt(index);
-			if (!vNode.requiresTypeFromContext() &&
-			    !(vNode instanceof ConstantNode))
+			if (!vNode.isConstantOrParameterTreeNode())
 			{
 				return false;
 			}
 		}
-
 		return true;
 	}
 
@@ -466,6 +474,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
+
 	void sortInAscendingOrder(DataValueDescriptor judgeODV)
 		throws StandardException
 	{
@@ -481,27 +490,60 @@ public class ValueNodeList extends QueryTreeNodeVector
 		 * the list to be in sorted order > 90% of the time.
 		 */
 		boolean continueSort = true;
-
+		
+		boolean multiColumn = false;
+		ListDataType combinedJudgeODV = null;
+		ListValueNode lvn = null, prevLVN = null;
+		if (elementAt(0) instanceof ListValueNode) {
+			multiColumn = true;
+			if (combinedJudgeODV != null && !(combinedJudgeODV instanceof ListDataType))
+				SanityManager.THROWASSERT("Expected ListDataType when comparing IN list items for sorting.");
+			combinedJudgeODV = (ListDataType)judgeODV;
+		}
+		int numColumns = multiColumn ? ((ListValueNode) elementAt(0)).numValues() : 1;
 		while (continueSort)
 		{
 			continueSort = false;
 			
 			for (int index = 1; index < size; index++)
 			{
-				ConstantNode currCN = (ConstantNode) elementAt(index);
-				DataValueDescriptor currODV =
-					 currCN.getValue();
-				ConstantNode prevCN = (ConstantNode) elementAt(index - 1);
-				DataValueDescriptor prevODV =
-					 prevCN.getValue();
 
-				/* Swap curr and prev if prev > curr */
-				if ((judgeODV == null && (prevODV.compare(currODV)) > 0) ||
-					(judgeODV != null && judgeODV.greaterThan(prevODV, currODV).equals(true)))
-				{
-					setElementAt(currCN, index - 1);
-					setElementAt(prevCN, index);
-					continueSort = true;
+				for (int i = 0; i < numColumns; i++) {
+					ConstantNode currCN;
+					DataValueDescriptor currODV;
+					ConstantNode prevCN;
+					if (multiColumn) {
+						lvn = (ListValueNode) elementAt(index);
+						currCN = (ConstantNode)lvn.getValue(i);
+						currODV = currCN.getValue();
+						prevLVN = (ListValueNode) elementAt(index - 1);
+						prevCN = (ConstantNode)(prevLVN.getValue(i));
+						if (combinedJudgeODV != null)
+							judgeODV = combinedJudgeODV.getDVD(i);
+					}
+					else {
+						currCN = (ConstantNode) elementAt(index);
+						currODV =
+							currCN.getValue();
+						prevCN = (ConstantNode) elementAt(index - 1);
+					}
+					DataValueDescriptor prevODV =
+						prevCN.getValue();
+					
+					/* Swap curr and prev if prev > curr */
+					if ((judgeODV == null && (prevODV.compare(currODV)) > 0) ||
+						(judgeODV != null && judgeODV.greaterThan(prevODV, currODV).equals(true))) {
+						if (multiColumn) {
+							setElementAt(lvn, index - 1);
+							setElementAt(prevLVN, index);
+						}
+						else {
+							setElementAt(currCN, index - 1);
+							setElementAt(prevCN, index);
+						}
+						continueSort = true;
+						break;
+					}
 				}
 			}
 		}
@@ -738,23 +780,44 @@ public class ValueNodeList extends QueryTreeNodeVector
 
 	/**
 	 * Eliminate duplicates from the IN list and adjust the CharConstantNode with correct padding
-	 * @param dtd dataTypeDescriptor
+	 * @param dtdList dataTypeDescriptor list
 	 * @throws StandardException
 	 */
-	public void eliminateDuplicates(DataTypeDescriptor dtd) throws StandardException {
-		int maxSize = dtd.getMaximumWidth();
-		String typeid = dtd.getTypeName();
+	public void eliminateDuplicates(ArrayList<DataTypeDescriptor> dtdList) throws StandardException {
+		int numNodes = dtdList.size();
+		int [] maxSize = new int[numNodes];
+		String [] typeid = new String[numNodes];
 
+		
+		for (int i = 0; i < numNodes; i++) {
+			DataTypeDescriptor dtd = dtdList.get(i);
+			maxSize[i] = dtd.getMaximumWidth();
+			typeid[i] = dtd.getTypeName();
+		}
+		
 		HashSet<ValueNode> vset = new HashSet<ValueNode>(getNodes());
 		removeAllElements();
 		Iterator iterator = vset.iterator();
+
+		ValueNode valueNode = null;
 		while (iterator.hasNext())
 		{
-			ValueNode valueNode = (ValueNode) iterator.next();
-			if (valueNode instanceof CharConstantNode && typeid.equals(TypeId.CHAR_NAME)) {
-				rightPadCharConstantNode((CharConstantNode) valueNode, maxSize);
+
+			ValueNode constant = (ValueNode) iterator.next();
+			for (int i = 0; i < numNodes; i++) {
+				if (numNodes == 1)
+					valueNode = constant;
+				else
+					valueNode = ((ListValueNode)constant).getValue(i);
+
+    			if (valueNode instanceof CharConstantNode && typeid[i].equals(TypeId.CHAR_NAME)) {
+				    rightPadCharConstantNode((CharConstantNode) valueNode, maxSize[i]);
+			    }
 			}
-			addElement(valueNode);
+			if (numNodes == 1)
+			    addElement(valueNode);
+			else
+				addElement(constant);
 		}
 
 	}

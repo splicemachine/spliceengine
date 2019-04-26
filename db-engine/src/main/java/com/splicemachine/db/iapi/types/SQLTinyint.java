@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -632,7 +632,7 @@ public final class SQLTinyint
 	{
 		if (result == null)
 		{
-			result = new SQLTinyint();
+			result = getNullDVD(left, right);
 		}
 
 		if (left.isNull() || right.isNull())
@@ -745,7 +745,8 @@ public final class SQLTinyint
 	 */
 	public int hashCode()
 	{
-		return (int) value;
+		long longVal = (long) value;
+		return (int) (longVal ^ (longVal >> 32));
 	}
 	
 	public Format getFormat() {

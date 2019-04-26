@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -32,6 +32,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
 import com.splicemachine.timestamp.impl.TimestampServer;
+import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
@@ -81,7 +82,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             int timestampBlockSize = configuration.getTimestampBlockSize();
 
             TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);
-            this.timestampServer =new TimestampServer(timestampPort,tbm,timestampBlockSize);
+            this.timestampServer =new TimestampServer(timestampPort,new TimestampServerHandler(tbm, timestampBlockSize));
 
             this.timestampServer.startServer();
 
@@ -125,7 +126,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
             if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
                 switch(manager.getState()){
                     case NOT_STARTED:
-                    	boot(ctx.getEnvironment().getMasterServices().getServerName());
+                        throw new PleaseHoldException("Please Hold - Master not started");
                     case BOOTING_ENGINE:
                     case BOOTING_GENERAL_SERVICES:
                     case BOOTING_SERVER:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,30 +14,20 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
-
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
+import java.sql.*;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static java.lang.String.format;
 
 /**
  * Test constraints.
@@ -48,9 +38,33 @@ import org.junit.runner.Description;
 //@Category(SerialTest.class)
 public class ConstraintConstantOperationIT {
     private static final String SCHEMA = ConstraintConstantOperationIT.class.getSimpleName().toUpperCase();
+    private static final String ROLE1 = "CONS_TEST_ROLE1";
+    private static final String ROLE2 = "CONS_TEST_ROLE2";
+    private static final String USER1 = "CONS_TEST_USER";
+    private static final String ROLE3 = "CONS_TEST_ROLE3";
+    private static final String ROLE4 = "CONS_TEST_ROLE4";
+    private static final String USER2 = "CONS_TEST_USER2";
+    private static final String PASSWORD1 = "test";
+
+    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
+    private static SpliceRoleWatcher spliceRoleWatcher1 = new SpliceRoleWatcher(ROLE1);
+    private static SpliceRoleWatcher spliceRoleWatcher2 = new SpliceRoleWatcher(ROLE2);
+    private static SpliceUserWatcher spliceUserWatcher2 = new SpliceUserWatcher(USER2, PASSWORD1);
+    private static SpliceRoleWatcher spliceRoleWatcher3 = new SpliceRoleWatcher(ROLE3);
+    private static SpliceRoleWatcher spliceRoleWatcher4 = new SpliceRoleWatcher(ROLE4);
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static TestRule chain =
+            RuleChain.outerRule(spliceClassWatcher)
+                    .around(schemaWatcher)
+                    .around(spliceUserWatcher1)
+                    .around(spliceRoleWatcher1)
+                    .around(spliceRoleWatcher2)
+                    .around(spliceUserWatcher2)
+                    .around(spliceRoleWatcher3)
+                    .around(spliceRoleWatcher4);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
@@ -75,6 +89,16 @@ public class ConstraintConstantOperationIT {
         "(TaskId INT UNIQUE not null, empId int not null, StartedAt INT not null, FinishedAt INT not null, CONSTRAINT" +
             " " + TASK_TABLE_CONSTRAINT_NAME + " CHECK (StartedAt < FinishedAt))";
     protected static SpliceTableWatcher taskTable = new SpliceTableWatcher(TASK_TABLE_NAME, SCHEMA, TASK_TABLE_DEF);
+
+    @AfterClass
+    public static void tearDown() throws Exception {
+        spliceClassWatcher.execute(String.format("drop role %s", ROLE1));
+        spliceClassWatcher.execute(String.format("drop role %s", ROLE2));
+        spliceClassWatcher.execute(String.format("call syscs_util.syscs_drop_user('%s')", USER1));
+        spliceClassWatcher.execute(String.format("drop role %s", ROLE3));
+        spliceClassWatcher.execute(String.format("drop role %s", ROLE4));
+        spliceClassWatcher.execute(String.format("call syscs_util.syscs_drop_user('%s')", USER2));
+    }
 
     @Before
     public void setupBefore() throws Exception {
@@ -310,5 +334,131 @@ public class ConstraintConstantOperationIT {
 
         methodWatcher.execute("drop table C");
         methodWatcher.execute("drop table P");
+    }
+
+    @Test
+    public void testCreateTableWithFKConstraint() throws Exception {
+        // this test makes sure that we don't add dependency of FK constraint on role descriptor and permission descriptor,
+        // and that revoke role won't drop the FK automatically
+
+        /*** TEST1 test dependency on role descriptor ***/
+        // step 1: grant roles with permissions, and grant roles to the USER1
+        TestConnection conn = spliceClassWatcher.createConnection();
+        conn.execute(format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SCHEMA, ROLE1));
+        conn.execute(format("GRANT %s TO %s", ROLE1, USER1));
+        conn.execute(format("GRANT %s TO %s", ROLE2, USER1));
+
+        // step 2: create child table with PK-FK constraint using the privileges from the role
+        TestConnection user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+        user1Conn.execute(format("create table %1$s.child (a2 int, b2 int, c2 int, constraint it_fkCons foreign key (a2) references %1$s.%2$s(empId))", SCHEMA, EMP_PRIV_TABLE_NAME));
+
+        // step 3: check sys.sysdepends, there should only be one entry corresponding to the FK dependency on PK
+        long c = user1Conn.count("select * from sys.sysdepends as D, sys.sysconstraints as C where D.dependentId = C.constraintid and C.constraintname='IT_FKCONS'");
+        Assert.assertTrue("rowcount incorrect", (c == 1));
+
+        // step 4: revoke role from user, and check the existence of FK
+        conn.execute(format("REVOKE %s from %s", ROLE1, USER1));
+
+        c = conn.count("select * from sys.sysconstraints as C where C.constraintname='IT_FKCONS'");
+        Assert.assertTrue("rowcount incorrect", (c == 1));
+
+        // cleanup
+        conn.execute(format("drop table %1$s.child", SCHEMA));
+        conn.execute(format("revoke %s from %s", ROLE2, USER1));
+        conn.execute(format("revoke all privileges on schema %s from %s", SCHEMA, ROLE1));
+        user1Conn.close();
+
+        /*** TEST2 test dependency on permission descriptor granted to user ***/
+        // step 1: grant privileges to USER1
+        conn.execute(format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SCHEMA, USER1));
+
+        // step 2: create child table with PK-FK constraint using the privileges from the role
+        user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+        user1Conn.execute(format("create table %1$s.child (a2 int, b2 int, c2 int, constraint it_fkCons foreign key (a2) references %1$s.%2$s(empId))", SCHEMA, EMP_PRIV_TABLE_NAME));
+
+        // step 3: check sys.sysdepends, there should only be one entry corresponding to the FK dependency on PK
+        c = user1Conn.count("select * from sys.sysdepends as D, sys.sysconstraints as C where D.dependentId = C.constraintid and C.constraintname='IT_FKCONS'");
+        Assert.assertTrue("rowcount incorrect", (c == 1));
+
+        // step 4: revoke privilege from user, and check the existence of FK
+        conn.execute(format("REVOKE REFERENCES on SCHEMA %s from %s", SCHEMA, USER1));
+
+        c = conn.count("select * from sys.sysconstraints as C where C.constraintname='IT_FKCONS'");
+        Assert.assertTrue("rowcount incorrect", (c == 1));
+
+        // cleanup
+        conn.execute(format("drop table %s.child", SCHEMA));
+        conn.execute(format("revoke all privileges on schema %s from %s", SCHEMA, USER1));
+
+        conn.close();
+        user1Conn.close();
+
+    }
+
+    @Test
+    public void testCreateTableWithCheckConstraint() throws Exception {
+        // this test makes sure that we only add the dependency of Check constraint on relevant role descriptor
+
+        /*** TEST1 test dependency on role descriptor ***/
+        TestConnection conn = spliceClassWatcher.createConnection();
+        // step 1: create user defined function and load library
+        // install jar file and set classpath
+        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
+        String JAR_FILE_SQL_NAME = SCHEMA + "." + "SQLJ_IT_PROCS_JAR";
+        conn.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
+        conn.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
+        try {
+            conn.execute("DROP FUNCTION SPLICE.WORD_LIMITER");
+        } catch (SQLSyntaxErrorException e) {
+            // the function may not exists, ignore this exception
+        }
+        conn.execute("CREATE FUNCTION SPLICE.WORD_LIMITER(\n" +
+                "                    MY_SENTENCE VARCHAR(9999),\n" +
+                "                    NUM_WORDS INT) RETURNS VARCHAR(9999)\n" +
+                "LANGUAGE JAVA\n" +
+                "PARAMETER STYLE JAVA\n" +
+                "NO SQL\n" +
+                "EXTERNAL NAME 'org.splicetest.sqlj.SqlJTestProcs.wordLimiter'");
+
+
+        // step 2: grant roles with permissions, and grant roles to the USER1
+        conn.execute(format("grant execute on function splice.word_limiter to %s", ROLE3));
+        conn.execute(format("GRANT %s TO %s", ROLE3, USER2));
+        conn.execute(format("GRANT %s TO %s", ROLE4, USER2));
+
+        // step 3: create child table with check constraint using the privileges from the role
+        TestConnection user2Conn = spliceClassWatcher.createConnection(USER2, PASSWORD1);
+        user2Conn.execute(format("create table %s.tt(a1 int, b1 varchar(30), c1 int, constraint IT_check_cons1 CHECK(splice.word_limiter(b1, 5) > 'ABC'))", USER2));
+
+        // step 4: check sys.sysdepends, check constraint should depend on only one role
+        Statement s = user2Conn.createStatement();
+        ResultSet rs = s.executeQuery("select R.roleid from sys.sysdepends as D, sys.sysconstraints as C, sys.sysroles as R " +
+                "where D.dependentId = C.constraintid and C.constraintname='IT_CHECK_CONS1'" +
+                "and D.providerId=R.UUID");
+        String expected = "ROLEID      |\n" +
+                "-----------------\n" +
+                "CONS_TEST_ROLE3 |";
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+        s.close();
+
+
+        // step 5: revoke role from user, and check the existence of the check constraint
+        // Note, this may not be the desired behavior, but it is the current behavior
+        conn.execute(format("REVOKE %s from %s", ROLE3, USER2));
+
+        long c = conn.count("select * from sys.sysconstraints as C where C.constraintname='IT_CHECK_CONS1'");
+        Assert.assertTrue("rowcount incorrect", (c == 0));
+
+        // cleanup
+        user2Conn.close();
+        conn.execute(format("drop table %s.tt", USER2));
+        conn.execute(format("revoke %s from %s", ROLE4, USER2));
+        conn.execute(format("revoke execute on function splice.word_limiter from %s restrict", ROLE3));
+        conn.execute("DROP FUNCTION SPLICE.WORD_LIMITER");
+        conn.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)");
+        conn.execute(format("CALL SQLJ.REMOVE_JAR('%s', 0)", JAR_FILE_SQL_NAME));
+        conn.close();
+
     }
 }

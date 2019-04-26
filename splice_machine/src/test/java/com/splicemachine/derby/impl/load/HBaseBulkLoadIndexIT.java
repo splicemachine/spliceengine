@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,11 +14,13 @@
 
 package com.splicemachine.derby.impl.load;
 
+import com.splicemachine.db.client.am.Connection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
@@ -33,7 +35,10 @@ import java.sql.SQLException;
 import static com.splicemachine.subquery.SubqueryITUtil.ONE_SUBQUERY_NODE;
 import static com.splicemachine.subquery.SubqueryITUtil.ZERO_SUBQUERY_NODES;
 import static com.splicemachine.subquery.SubqueryITUtil.assertSubqueryNodeCount;
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * Created by jyuan on 10/9/17.
@@ -78,13 +83,13 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             spliceClassWatcher.prepareStatement(format("create index O_CUST_IDX on ORDERS(\n" +
                     " O_CUSTKEY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) splitkeys auto sample fraction 0.1 hfile location '%s'", getResource("data"))).execute();
+                    " ) auto splitkeys sample fraction 0.1 hfile location '%s'", getResource("data"))).execute();
 
             spliceClassWatcher.prepareStatement(format("create index O_DATE_PRI_KEY_IDX on ORDERS(\n" +
                     " O_ORDERDATE,\n" +
                     " O_ORDERPRIORITY,\n" +
                     " O_ORDERKEY\n" +
-                    " ) splitkeys auto hfile location '%s'", getResource("data"))).execute();
+                    " ) auto splitkeys hfile location '%s'", getResource("data"))).execute();
 
             spliceClassWatcher.prepareStatement(format("create index L_SHIPDATE_IDX on LINEITEM(\n" +
                     " L_SHIPDATE,\n" +
@@ -132,7 +137,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
                     " L_EXTENDEDPRICE,\n" +
                     " L_DISCOUNT,\n" +
                     " L_SHIPINSTRUCT\n" +
-                    " ) splitkeys auto sample fraction 0.1")).execute();
+                    " ) auto splitkeys sample fraction 0.1")).execute();
 
             spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
             spliceClassWatcher.prepareStatement(format("create table A(c varchar(200))"));
@@ -151,6 +156,14 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             String sql = String.format("call syscs_util.SYSCS_SPLIT_TABLE_OR_INDEX('%s', 'T', null, 'COL1', '%s', null,null,null,null,null,0,'/BAD',true,null)",
                     SCHEMA_NAME, SpliceUnitTest.getResourceDirectory()+"largeKey.csv");
             spliceClassWatcher.execute(sql);
+            TestConnection conn = spliceClassWatcher.getOrCreateConnection();
+            new TableCreator(conn)
+                    .withCreate("create table b(i int)")
+                    .withInsert("insert into b values(?)")
+                    .withRows(rows(
+                            row(1),
+                            row(1)))
+                    .create();
         }
         catch (Exception e) {
             java.lang.Throwable ex = Throwables.getRootCause(e);
@@ -463,6 +476,22 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
         }
 
     }
+
+    @Test
+    public void testUniqueConstraintsViolation() throws Exception {
+        if (notSupported)
+            return;
+        try {
+            methodWatcher.execute(String.format("create unique index bi on b(i) auto splitkeys hfile location '%s'", getResource("data")));
+            fail();
+        }
+        catch (Exception e) {
+            String errorMessage = e.getMessage();
+            String expected = "The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'BI' defined on 'B'.";
+            Assert.assertEquals(expected, errorMessage);
+        }
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void executeQuery(String query, String expected, boolean isResultSetOrdered) throws Exception {

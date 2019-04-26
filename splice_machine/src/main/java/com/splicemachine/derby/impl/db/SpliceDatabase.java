@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -221,8 +221,19 @@ public class SpliceDatabase extends BasicDatabase{
             default:// Default is Native with warning:
                 configureNative(configuration,true);
         }
+        configureImpersonation(configuration);
+        configureUserMapping(configuration);
     }
 
+    private void configureImpersonation(SConfiguration configuration) {
+        System.setProperty("derby.authentication.impersonation.enabled",Boolean.toString(configuration.getAuthenticationImpersonationEnabled()));
+        System.setProperty("derby.authentication.impersonation.users",configuration.getAuthenticationImpersonationUsers());
+    }
+
+    private void configureUserMapping(SConfiguration config) {
+        String authenticationMapGroupAttr = config.getAuthenticationMapGroupAttr();
+        System.setProperty("derby.authentication.ldap.mapGroupAttr",authenticationMapGroupAttr);
+    }
     private void configureKerberosAuth(SConfiguration config){
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
@@ -238,20 +249,18 @@ public class SpliceDatabase extends BasicDatabase{
         String authenticationLDAPSearchBase = config.getAuthenticationLdapSearchbase();
         String authenticationLDAPSearchFilter = config.getAuthenticationLdapSearchfilter();
         String authenticationLDAPServer = config.getAuthenticationLdapServer();
-        String authenticationLDAPMapGroupAttr = config.getAuthenticationLdapMapGroupAttr();
+
         SpliceLogUtils.info(LOG,"using LDAP to authorize Splice Machine with "+
-                        "{ldap={searchAuthDN=%s,searchBase=%s, searchFilter=%s, mapGroupAttr=%s}}",
+                        "{ldap={searchAuthDN=%s,searchBase=%s, searchFilter=%s}}",
                 authenticationLDAPSearchAuthDN,
                 authenticationLDAPSearchBase,
-                authenticationLDAPSearchFilter,
-                authenticationLDAPMapGroupAttr);
+                authenticationLDAPSearchFilter);
         System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_LDAP);
         System.setProperty("derby.authentication.ldap.searchAuthDN",authenticationLDAPSearchAuthDN);
         System.setProperty("derby.authentication.ldap.searchAuthPW",authenticationLDAPSearchAuthPW);
         System.setProperty("derby.authentication.ldap.searchBase",authenticationLDAPSearchBase);
         System.setProperty("derby.authentication.ldap.searchFilter",authenticationLDAPSearchFilter);
         System.setProperty("derby.authentication.server",authenticationLDAPServer);
-        System.setProperty("derby.authentication.ldap.mapGroupAttr",authenticationLDAPMapGroupAttr);
 
     }
 

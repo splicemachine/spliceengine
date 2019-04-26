@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -18,7 +18,10 @@ import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -64,6 +67,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
     private boolean outputKeysOnly;
     private boolean skipSampling;
     private String indexName;
+    private double sampleFraction;
 
     public BulkInsertDataSetWriter(){
     }
@@ -81,7 +85,8 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                                    boolean samplingOnly,
                                    boolean outputKeysOnly,
                                    boolean skipSampling,
-                                   String indexName) {
+                                   String indexName,
+                                   double sampleFraction) {
         super(dataSet, operationContext, heapConglom, txn);
         this.tableVersion = tableVersion;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
@@ -160,7 +165,6 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                     DataValueDescriptor dvd =
                             td.getColumnDescriptor(
                                     searchCD.getIndexDescriptor().baseColumnPositions()[0]).getDefaultValue();
-                    ValueRow defaultRow = new ValueRow(new DataValueDescriptor[]{dvd});
                     DDLMessage.DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
                             td.getHeapConglomerateId(), searchCD.getConglomerateNumber(),
@@ -192,8 +196,10 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
             }
             List<Tuple2<Long, byte[][]>> cutPoints = null;
             if (!skipSampling) {
-                SConfiguration sConfiguration = HConfiguration.getConfiguration();
-                double sampleFraction = sConfiguration.getBulkImportSampleFraction();
+                if (sampleFraction == 0) {
+                    LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+                    sampleFraction = BulkLoadUtils.getSampleFraction(lcc);
+                }
                 DataSet sampledDataSet = dataSet.sampleWithoutReplacement(sampleFraction);
 
                 // encode key/vale pairs for table and indexes
@@ -220,7 +226,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
 
                 // split table and indexes using the calculated cutpoints
                 if (cutPoints != null && !cutPoints.isEmpty()) {
-                    splitTables(cutPoints);
+                    BulkLoadUtils.splitTables(cutPoints);
                 }
 
                 // get the actual start/end key for each partition after split
@@ -236,7 +242,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                 // Write to HFile
                 HFileGenerationFunction hfileGenerationFunction =
                         new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
-                                heapConglom, compressionAlgorithm, bulkImportPartitions);
+                                heapConglom, compressionAlgorithm, bulkImportPartitions, pkCols, tableVersion, tentativeIndexList);
 
                 DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
                 assert rowAndIndexes instanceof SparkDataSet;

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -120,9 +120,9 @@ public class OrderByNode extends SingleChildResultSetNode {
     }
 
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         if(costEstimate==null) {
-            costEstimate = childResult.getFinalCostEstimate().cloneMe();
+            costEstimate = childResult.getFinalCostEstimate(true).cloneMe();
             orderByList.estimateCost(optimizer, null, costEstimate);
         }
         return costEstimate;
@@ -132,7 +132,7 @@ public class OrderByNode extends SingleChildResultSetNode {
     public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
         // Get the cost estimate for the child
         if (costEstimate == null) {
-            costEstimate = getFinalCostEstimate();
+            costEstimate = getFinalCostEstimate(false);
         }
 
         orderByList.generate(acb, mb, this, childResult,costEstimate);

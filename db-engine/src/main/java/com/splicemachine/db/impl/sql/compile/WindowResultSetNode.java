@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -259,12 +259,15 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         // Keep track of the refs we've added to our RCLs
         Map<String, ColumnRefPosition> pulledUp = new HashMap<>();
 
+        // Keep track of the expressions we've added to our RCLs
+        Map<ResultColumn, ColumnRefPosition> cachedExpressionMap = new HashMap<>();
+
         // Splice up (repair) existing RCs since we've now broken the connection between parent PR
         // and grandchild ResultSetNode.
         splicePreviousResultColumns(pulledUp);
 
         // Add columns we reference in the over clause
-        addOverColumns(pulledUp);
+        addOverColumns(pulledUp, cachedExpressionMap);
 
         // Add any columns to our projection that are required by nodes above us
         // that we disconnected when we inserted ourselves into the tree
@@ -414,6 +417,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @param srcRC  Result column being found from findOrPullUpRC()
      * @param pulledUp  a mapping to CRs we've spliced together that we can point to if it's determined that
      *                 we have a dependency on them.
+     * @param cachedExpressionMap a mapping of an expression's ResultColumn in the child to the source ResultColumn
+     *                            in its child, plus the position in the RCL.
      * @param exp over column expression Node
      * @param expRC Result col for over col expression
      * @param expKey Name of over col
@@ -421,14 +426,17 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @param winRCL  window function result colummn list
      * @throws StandardException
      */
-    private void createInsertRC_CR_Pair(ResultColumn srcRC, Map<String, ColumnRefPosition> pulledUp, ValueNode exp, ResultColumn expRC,
-                     String expKey, ResultColumnList childRCL, ResultColumnList winRCL) throws StandardException {
+    private void createInsertRC_CR_Pair(ResultColumn srcRC, Map<String, ColumnRefPosition> pulledUp,
+                                        Map<ResultColumn, ColumnRefPosition> cachedExpressionMap,
+                                        ValueNode exp, ResultColumn expRC,
+                                        String expKey, ResultColumnList childRCL, ResultColumnList winRCL) throws StandardException {
         if (srcRC != null) {
             // We found the RC referenced by this column from the over clause. Create RC->CR pairs
             // in our two RCLs (our projection -- this RCL -- and the PR we created as a staging
             // below us. Then cache the PR's RC so that we can reference repeated columns to the
             // same RC.
-            String baseName = exp.getColumnName();
+            String baseName = isSimpleColumnExpression(exp) ? exp.getColumnName() :
+                               exp instanceof UnaryOperatorNode ? ((UnaryOperatorNode)exp).getOperatorString() : "";
 
             // create RC->CR->srcRC for bottom PR
             ResultColumn bottomRC = createRC_CR_Pair(srcRC, baseName, getNodeFactory(),
@@ -443,46 +451,72 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             winRC.setVirtualColumnId(winRCL.size());
 
             // Cache the ref
-            pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
+            ColumnRefPosition colRefPos = new ColumnRefPosition(bottomRC, childRCL.size());
+            if (expKey != null)
+                pulledUp.put(expKey, colRefPos);
+            else
+                cachedExpressionMap.put(srcRC, colRefPos);
         }
     }
 
+    private static ColumnRefPosition findCachedResultColumn(String expKey, ResultColumn srcRC,
+                                                            Map<String, ColumnRefPosition> pulledUp,
+                                                            Map<ResultColumn, ColumnRefPosition> cachedExpressionMap) {
+        ColumnRefPosition crp = null;
+        if (expKey != null)
+            crp = pulledUp.get(expKey);
+        if (crp == null)
+            crp = cachedExpressionMap.get(srcRC);
+        return crp;
+    }
+
     /**
-     * Now we find expressions from the grand child result set node below us that we require as given in the columns
-     * defined in our over clause. We create RC->CR pairs and append them to ours and our child's RCL.
-     * <p/>
-     * Columns from the window function over clause (over columns) are the essence of splice window functions.
-     * They're used to form the row key by which rows are sorted and thus their order of evaluation. It's imperative
-     * to have their column position properly defined. We assert that they're >= 1 (they're one-based in this class)
-     * before the end of processing.
-     * <p/>
-     * We don't pull up duplicate expressions, one will suffice, but we still need to re-point all over column CRs
-     * to the pulled up src CRs.
-     * <p/>
-     * Also during this stage, we track all the expressions we pull up and visit parent RCs replacing any existing
-     * references to the expressions that live below us with VCNs that point to the expressions we've pulled up.
-     *
-     * @param pulledUp  a mapping to CRs we've spliced together that we can point to if it's determined that
-     *                 we have a dependency on them.
-     *
-     * @throws StandardException
-     */
-    private void addOverColumns(Map<String, ColumnRefPosition> pulledUp) throws StandardException{
+         * Now we find expressions from the grand child result set node below us that we require as given in the columns
+         * defined in our over clause. We create RC->CR pairs and append them to ours and our child's RCL.
+         * <p/>
+         * Columns from the window function over clause (over columns) are the essence of splice window functions.
+         * They're used to form the row key by which rows are sorted and thus their order of evaluation. It's imperative
+         * to have their column position properly defined. We assert that they're >= 1 (they're one-based in this class)
+         * before the end of processing.
+         * <p/>
+         * We don't pull up duplicate expressions, one will suffice, but we still need to re-point all over column CRs
+         * to the pulled up src CRs.
+         * <p/>
+         * Also during this stage, we track all the expressions we pull up and visit parent RCs replacing any existing
+         * references to the expressions that live below us with VCNs that point to the expressions we've pulled up.
+         *
+         * @param pulledUp a mapping to CRs we've spliced together that we can point to if it's determined that
+         *                 we have a dependency on them.
+         * @param cachedExpressionMap a mapping of an expression's ResultColumn in the child to the source ResultColumn
+         *                           in its child, plus the position in the RCL.
+         * @throws StandardException
+         */
+    private void addOverColumns(Map<String, ColumnRefPosition> pulledUp,
+                                Map<ResultColumn, ColumnRefPosition> cachedExpressionMap) throws StandardException {
         ResultColumnList childRCL = childResult.getResultColumns();
         ResultColumnList winRCL = resultColumns;
+        ColumnRefPosition crp;
+        ColumnPullupVisitor columnPuller = new ColumnPullupVisitor(WindowFunctionNode.class, LOG, ((SingleChildResultSetNode) childResult).getChildResult(), rCtoCRfactory);
 
         for (OrderedColumn overCol : wdn.getOverColumns()) {
             ValueNode exp = overCol.getColumnExpression();
             ResultColumn expRC = getResultColumn(exp);
+            ResultColumn srcRC = null;
             String expKey = getExpressionKey(expRC);
 
             if (pulledUp.get(expKey) == null) {
-                if (! contains(expRC, winRCL)) {
-                    ResultColumn srcRC = findOrPullUpRC(expRC,
-                            ((SingleChildResultSetNode) childResult).getChildResult(),
-                            rCtoCRfactory);
+                ResultColumn complexExpressionRCMatch =
+                      findEquivalentExpression(exp,
+                          ((SingleChildResultSetNode) childResult).getChildResult().
+                          getResultColumns());
+                if (!contains(expRC, winRCL) &&
+                     complexExpressionRCMatch == null) {
+                    srcRC = findOrPullUpRC(expRC,
+                                ((SingleChildResultSetNode) childResult).getChildResult(),
+                                rCtoCRfactory);
                     if (srcRC != null) {
-                        createInsertRC_CR_Pair(srcRC, pulledUp, exp, expRC, expKey, childRCL, winRCL);
+                        createInsertRC_CR_Pair(srcRC, pulledUp, cachedExpressionMap,
+                                               exp, expRC, expKey, childRCL, winRCL);
 
                     } else if (exp instanceof ColumnReference &&
                             ((((ColumnReference)exp).getGeneratedToReplaceAggregate())  ||
@@ -510,12 +544,37 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         // Cache the ref
                         pulledUp.put(expKey, new ColumnRefPosition(bottomRC, childRCL.size()));
                     }
+                    // expRC is null when we have an expression which is not just a simple column
+                    // reference, but some combination of operators and expressions.
+                    else if (expRC == null) {
+                        exp.accept(columnPuller);
+                        srcRC = addExpressionToRCL(childResult,
+                                             "", exp, getNodeFactory(), getContextManager());
+
+                        // Add a reference to this column into the windowing RCL.
+                        expRC = createRC_CR_Pair(srcRC, srcRC.getName(), getNodeFactory(),
+                                    getContextManager(), this.getLevel(), this.getLevel());
+                        winRCL.addElement(expRC);
+                        expRC.setVirtualColumnId(winRCL.size());
+
+                        ColumnRefPosition colRefPos = new ColumnRefPosition(srcRC, srcRC.getVirtualColumnId());
+                        cachedExpressionMap.put(srcRC, colRefPos);
+
+                    }
                 } else {
                     // We have equivalent match, so find the matching RC and add it in the map
-                    ResultColumn srcRC = findOrPullUpRC(expRC,
-                            ((SingleChildResultSetNode) childResult).getChildResult(),
-                            rCtoCRfactory);
-                    createInsertRC_CR_Pair(srcRC, pulledUp, exp, expRC, expKey, childRCL, winRCL);
+                    if (expRC == null) {
+                        srcRC = complexExpressionRCMatch;
+                    }
+                    else
+                        srcRC = findOrPullUpRC(expRC,
+                                               ((SingleChildResultSetNode) childResult).getChildResult(),
+                                               rCtoCRfactory);
+
+                    // Only add this expression if not already added.
+                    crp = findCachedResultColumn(expKey, srcRC, pulledUp, cachedExpressionMap);
+                    if (crp == null)
+                        createInsertRC_CR_Pair(srcRC, pulledUp, cachedExpressionMap, exp, expRC, expKey, childRCL, winRCL);
 
                 }
             } else {
@@ -525,7 +584,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             }
 
             // re-point the overCol exp to the RC's expression we've cached
-            ColumnRefPosition crp = pulledUp.get(expKey);
+            crp = findCachedResultColumn(expKey, srcRC, pulledUp, cachedExpressionMap);
             assert crp != null : "Failed to find CR for "+expKey;
             overCol.setColumnExpression(crp.rc.getExpression());
             overCol.setColumnPosition(crp.position);
@@ -677,6 +736,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             List<ValueNode> operands = windowFunctionNode.getOperands();
             int[] inputVIDs = new int[operands.size()];
             int i = 0;
+            ColumnPullupVisitor columnPuller =
+               new ColumnPullupVisitor(WindowFunctionNode.class, LOG, ((SingleChildResultSetNode) this.childResult).getChildResult(), rCtoCRfactory);
             for (ValueNode exp : operands) {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("addWindowFunctionColumns() operand expression instance of : " + exp.getClass().getSimpleName());
@@ -720,12 +781,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         LOG.debug("addWindowFunctionColumns() operand does not have an RC: " + exp.getColumnName() +
                                       ". Creating one for it in " + wdn.toString());
                     }
+                    exp.accept(columnPuller);
 
                     tmpRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                                                                           "##" + windowFunctionNode.getAggregateName() +
-                                                                               "_Input_" + exp.getColumnName(),
-                                                                           exp,
-                                                                           getContextManager());
+                             "##" + windowFunctionNode.getAggregateName() + "_Input_" +
+                             exp.getColumnName(), exp, getContextManager());
+
                     tmpRC.markGenerated();
                     tmpRC.bindResultColumnToExpression();
                 }
@@ -992,7 +1053,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         assignResultSetNumber();
 
         // Get the final cost estimate from the child.
-        costEstimate = childResult.getFinalCostEstimate();
+        costEstimate = childResult.getFinalCostEstimate(true);
 
 		/*
 		** We have aggregates, so save the windowInfoList
@@ -1082,14 +1143,22 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     /**
      * Determine if the given RCL contains an RC equivalent to the the given RC.<br/>
      * Equivalency is determined by an RC representing the same column in the same table in the same schema
-     * as determined by the RC's ColumnDescriptor and the base column node it originates
+     * as determined by the RC's ColumnDescriptor and the base column node it originates.
+     * For expressions, equivalency is determined by comparing the expression tree via the
+     * isEquivalent method.  If this indicates true, or if the RC is the same exact reference
+     * in both rc and rcl, then contains() returns true.
      * @param rc the RC for which to search
      * @param rcl the RCL to search
      * @return true if the given RCL contains an equivalent RC
      * @throws StandardException
      */
     private static boolean contains(ResultColumn rc, ResultColumnList rcl) throws StandardException {
-        return findEquivalent(rc, rcl) != null;
+        if (rc == null || rcl == null)
+            return false;
+        if (findEquivalent(rc, rcl) == null)
+            return findExactExpression(rc.getExpression(), rcl) != null;
+        else
+            return true;
     }
 
     /**
@@ -1104,7 +1173,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * @return a result column residing in <code>currentNode</code> that matches the given <code>rcToMatch</code>
      * @throws StandardException
      */
-    private static ResultColumn findOrPullUpRC(ResultColumn rc, ResultSetNode currentNode, RCtoCRfactory rCtoCRfactory)
+    public static ResultColumn findOrPullUpRC(ResultColumn rc, ResultSetNode currentNode, RCtoCRfactory rCtoCRfactory)
         throws StandardException {
         if (rc == null)
             return null;
@@ -1115,6 +1184,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
 
         ResultColumn matchedRC = findEquivalent(rc, currentNode.getResultColumns());
+        if (matchedRC == null)
+            matchedRC = findExactExpression(rc.getExpression(), currentNode.getResultColumns());
         // match at this level. if not null, return it to next stack frame. if null, recurse...
         if (matchedRC == null) {
             if (currentNode instanceof SingleChildResultSetNode) {
@@ -1136,13 +1207,73 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         return matchedRC;
     }
 
-    public static ResultColumn findEquivalent(ResultColumn srcRC, ResultColumnList rcl) {
+    /**
+     * Test to see if an expression is composed completely of a simple <code>ColumnReference</code>,
+     * <code>VirtualColumnNode</code> or <code>BaseColumnNode</code>.
+     * @param expression The expression to test.
+     * @return True, if expression is a ColumnReference, VirtualColumnNode or BaseColumnNode, otherwise false.
+     * @throws StandardException
+     */
+    public static boolean isSimpleColumnExpression (ValueNode expression) {
+        return expression instanceof ColumnReference ||
+               expression instanceof VirtualColumnNode ||
+               expression instanceof BaseColumnNode;
+    }
+
+    // To find any expression in the RCL which could replace "expression", while maintaining the
+    // query behavior and valid result set.  Note, nodes like JavaToSQLValueNode which represent
+    // Java functions could be nondeterministic, so can never be used to replace another expression.
+    // For example two different calls to the RANDOM function should each be evaluated to return
+    // two different numbers instead of reusing the result of the first function call.
+    public static ResultColumn findEquivalentExpression(ValueNode expression, ResultColumnList rcl) throws StandardException{
+        if (expression == null)
+            return null;
+        if (isSimpleColumnExpression(expression))
+            return null;
+
+        for (ResultColumn col : rcl) {
+            if (col.getExpression() != null &&
+                    col.getExpression().isEquivalent(expression)) {
+                return col;
+            }
+        }
+        return null;
+    }
+
+    // To find the ResultColumn node which is holding the exact node passed in as "expression"
+    // (the same exact node in memory, not a clone).
+    public static ResultColumn findExactExpression(ValueNode expression, ResultColumnList rcl) throws StandardException{
+        if (expression == null)
+            return null;
+
+        for (ResultColumn col : rcl) {
+            if (col.getExpression() != null &&
+                col.getExpression() == expression) {
+                return col;
+            }
+        }
+        return null;
+    }
+
+    public static ResultColumn findEquivalent(ResultColumn srcRC, ResultColumnList rcl) throws StandardException{
         if (srcRC == null)
             return null;
+        if (srcRC.getExpression() == null)
+            return null;
+        boolean simpleColumnExpression = isSimpleColumnExpression(srcRC.getExpression());
+
         Pair<ColumnDescriptor, BaseColumnNode> basePair = findResultcolumnIdentifier(srcRC);
+        if (basePair.getSecond() == null)
+            simpleColumnExpression = false;
         for (ResultColumn col : rcl) {
-            if (isMatchingResultColumn(col, basePair))
-                return col;
+            if (simpleColumnExpression) {
+                if (isMatchingResultColumn(col, basePair))
+                    return col;
+            }
+            else {
+                if (col.isEquivalent(srcRC))
+                    return col;
+            }
         }
         return null;
     }
@@ -1209,6 +1340,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
         return false;
     }
+
     /**
      * Get the immediate child source result column from an expression, if one exists.
      * <p/>
@@ -1295,7 +1427,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     /**
      * Convenience class to minimize argument passing and getter calling required to create nodes.
      */
-    private static class RCtoCRfactory {
+    public static class RCtoCRfactory {
         private final NodeFactory nodeFactory;
         private final ContextManager contextManager;
 
@@ -1363,6 +1495,42 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
     }
 
     /**
+     * Create a new result column referencing the expression passed in.<br/>
+     * If resultSet is a ProjectRestrictNode, a new ResultColumn is added
+     * to its ResultColumnList, and is given the expression passed in.
+     * If resultSet
+     *
+     * @param resultSet The ResultSetNode to modify and add expression to its RCL.
+     * @param name name of the ResultColumn added.
+     * @param expression The expression involving columns to add to the RCL.
+     * @param nodeFactory for creating nodes
+     * @param contextManager for creating nodes
+     * @return the new result column
+     * @throws StandardException on error
+     */
+    private static ResultColumn addExpressionToRCL(ResultSetNode resultSet,
+                                                   String name,
+                                                   ValueNode expression,
+                                                   NodeFactory nodeFactory,
+                                                   ContextManager contextManager) throws StandardException {
+
+
+        ResultColumnList resultColumnList = resultSet.getResultColumns();
+        ResultColumnList origResultColumnList = resultColumnList;
+
+        resultColumnList = origResultColumnList;
+        ResultColumn resultColumn = (ResultColumn)
+        nodeFactory.getNode(C_NodeTypes.RESULT_COLUMN,
+                            name,
+                            expression,
+                            contextManager);
+        resultColumn.markGenerated();
+        resultColumn.bindResultColumnToExpression();
+        resultColumnList.addResultColumn(resultColumn);
+        return resultColumn;
+    }
+
+    /**
      * Structure used to track an RC's position in an RCL as they're found.
      */
     private static class ColumnRefPosition {
@@ -1370,14 +1538,14 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         final int position;
         public ColumnRefPosition(ResultColumn rc, int position) {
             this.rc = rc;
-            this. position = position;
+            this.position = position;
         }
     }
 
     @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {
         return spaceToLevel() + "WindowFunction" + "(" + "n=" + order + attrDelim +
-            getFinalCostEstimate().prettyProjectionString(attrDelim) + ")";
+            getFinalCostEstimate(false).prettyProjectionString(attrDelim) + ")";
     }
 
     @Override

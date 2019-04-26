@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -99,7 +99,6 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             out.writeObject(activationHolder);
             out.writeInt(op.resultSetNumber());
             out.writeObject(badRecordsRecorder);
-            SIDriver.driver().getOperationFactory().writeTxn(txn, out);
        }
 
         @Override
@@ -108,12 +107,8 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             int rsn = in.readInt();
             op = (Op)activationHolder.getOperationsMap().get(rsn);
             badRecordsRecorder = (BadRecordsRecorder) in.readObject();
-            txn = SIDriver.driver().getOperationFactory().readTxn(in);
-            boolean prepared = false;
+            txn = activationHolder.getTxn();
             try {
-                impl = new SpliceTransactionResourceImpl();
-
-                prepared = impl.marshallTransaction(txn);
                 activation = activationHolder.getActivation();
                 context = SpliceOperationContext.newContext(activation);
                 op.init(context);
@@ -121,9 +116,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
-                if (prepared) {
-                    impl.close();
-                }
+                activationHolder.close();
             }
         }
 

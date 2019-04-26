@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -23,12 +23,14 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -363,6 +365,17 @@ public class TableScanOperation extends ScanOperation{
                 .location(location)
                 .partitionByColumns(getPartitionColumnMap())
                 .defaultRow(defaultRow,scanInformation.getDefaultValueMap())
-                .buildDataSet(this).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+                .ignoreRecentTransactions(isReadOnly(txn))
+                .buildDataSet(this)
+                .map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+    }
+
+    private boolean isReadOnly(TxnView txn) {
+        while(txn != Txn.ROOT_TRANSACTION) {
+            if (txn.allowsWrites())
+                return false;
+            txn = txn.getParentTxnView();
+        }
+        return true;
     }
 }

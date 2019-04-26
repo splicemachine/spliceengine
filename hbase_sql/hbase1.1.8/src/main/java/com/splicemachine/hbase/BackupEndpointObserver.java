@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -52,7 +52,6 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
 
     private AtomicBoolean isSplitting;
-    private AtomicBoolean isFlushing;
     private AtomicBoolean isCompacting;
     private HRegion region;
     private String namespace;
@@ -85,7 +84,6 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
             fs = FSUtils.getCurrentFileSystem(conf);
             backupDir = new Path(rootDir, BackupRestoreConstants.BACKUP_DIR + "/data/splice/" + tableName + "/" + regionName);
             preparing = new AtomicBoolean(false);
-            isFlushing = new AtomicBoolean(false);
             isCompacting = new AtomicBoolean(false);
             isSplitting = new AtomicBoolean(false);
         } catch (Throwable t) {
@@ -137,9 +135,10 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
         String backupJobPath = BackupUtils.getBackupPath() + "/" + backupId;
         String regionBackupPath = backupJobPath + "/" + tableName + "/" + regionName;
 
-        if (isSplitting.get() || isFlushing.get() || isCompacting.get()) {
-            SpliceLogUtils.info(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
-                    tableName , regionName, isSplitting.get(), isCompacting.get(), isFlushing.get());
+        if (isSplitting.get() || isCompacting.get()) {
+            SpliceLogUtils.info(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s",
+                    tableName , regionName, isSplitting.get(), isCompacting.get());
+
             // return false to client if the region is being split
             responseBuilder.setReadyForBackup(false);
         } else {
@@ -165,9 +164,9 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                     }
 
 
-                    if (isFlushing.get() || isCompacting.get() || isSplitting.get()) {
-                        SpliceLogUtils.info(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s, isFlushing=%s",
-                                tableName, regionName, isSplitting.get(), isCompacting.get(), isFlushing.get());
+                    if (isCompacting.get() || isSplitting.get()) {
+                        SpliceLogUtils.info(LOG, "table %s region %s is not ready for backup: isSplitting=%s, isCompacting=%s",
+                                tableName, regionName, isSplitting.get(), isCompacting.get());
                         SpliceLogUtils.info(LOG, "delete znode %d", regionBackupPath);
                         ZkUtils.recursiveDelete(regionBackupPath);
                     }
@@ -253,43 +252,15 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
     }
 
     @Override
-    public void preFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
-        try {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "BackupEndpointObserver.preFlush(): %s", regionName);
-            if (!BackupUtils.isSpliceTable(namespace, tableName))
-                return;
-            BackupUtils.waitForBackupToComplete(tableName, regionName);
-            isFlushing.set(true); // Mark beginning of flush
-            super.preFlush(e);
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
-    @Override
     public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e, Store store, StoreFile resultFile) throws IOException {
         try {
             // Register HFiles for incremental backup
             String filePath =  resultFile != null?resultFile.getFileInfo().getFileStatus().getPath().toString():null;
-            SpliceLogUtils.info(LOG, "Flushing store file %s", filePath);
+            SpliceLogUtils.info(LOG, "Flushed store file %s", filePath);
             if (!BackupUtils.isSpliceTable(namespace, tableName))
                 return;
             BackupUtils.captureIncrementalChanges(conf, region, fs, rootDir, backupDir,
                     tableName, resultFile.getPath().getName(), preparing.get());
-        } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
-        }
-    }
-
-    @Override
-    public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e) throws IOException {
-        try {
-            SpliceLogUtils.info(LOG, "Flushing region %s.%s", tableName, regionName);
-            if (!BackupUtils.isSpliceTable(namespace, tableName))
-                return;
-            super.postFlush(e);
-            isFlushing.set(false); // end of flush
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }

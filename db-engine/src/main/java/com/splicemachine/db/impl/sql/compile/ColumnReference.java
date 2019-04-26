@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1291,8 +1291,18 @@ public class ColumnReference extends ValueNode {
 			return false;
 		}
 		ColumnReference other = (ColumnReference)o;
-		return (tableNumber == other.tableNumber
-				&& columnName.equals(other.getColumnName()));
+		if (tableNumber != other.tableNumber)
+			return false;
+        if (columnName.equals(other.getColumnName())) {
+            // A ColumnReference with zero-length column name may be an expression.
+            // Compare the source trees in this case to see if they really
+            // are equivalent.
+            if (columnName.length() == 0)
+                return this.getSource().isEquivalent(other.getSource());
+            else
+                return true;
+        }
+        return false;
 	}
 
 	@Override
@@ -1474,6 +1484,9 @@ public class ColumnReference extends ValueNode {
 		return getSourceResultColumn();
 	}
 
-
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		return false;
+	}
 
 }

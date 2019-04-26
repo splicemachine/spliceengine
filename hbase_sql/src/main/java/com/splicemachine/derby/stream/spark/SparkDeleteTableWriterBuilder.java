@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -51,7 +51,7 @@ public class SparkDeleteTableWriterBuilder<K,V> extends DeleteTableWriterBuilder
             conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
             TableWriterUtils.serializeDeleteTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
-            return new DeleteDataSetWriter<>(rdd,operationContext,conf);
+            return new DeleteDataSetWriter<>(rdd,operationContext,conf,updateCounts);
         }catch(Exception e){
             throw new RuntimeException(e);
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -102,7 +102,7 @@ public class OlapConfigurations implements ConfigurationDefault {
 
     // Share of time spent on transaction resolution, between 0 and 1 (no time vs infinite time)
     public static final String SPARK_COMPACTION_RESOLUTION_SHARE = "spark.compaction.resolution.share";
-    public static final double DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE = 1f;
+    public static final double DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE = 0.2f;
 
     // Size of buffer for asynchronous transaction resolution
     public static final String SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = "spark.compaction.resolution.bufferSize";

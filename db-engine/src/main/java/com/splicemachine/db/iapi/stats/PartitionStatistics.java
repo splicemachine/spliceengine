@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 package com.splicemachine.db.iapi.stats;
@@ -97,10 +97,12 @@ public interface PartitionStatistics {
      *             in the entire data set.
      * @param includeStart if {@code true}, then include entries which are equal to {@code start}
      * @param includeStop if {@code true}, then include entries which are <em>equal</em> to {@code stop}
+     * @param positionNumber
+     * @param useExtrapolation if {@code true}, then do extrapolation if the range falls beyond the min-max range recorded in stats
      * @return the number of rows which fall in the range {@code start},{@code stop}, with
      * inclusion determined by {@code includeStart} and {@code includeStop}
      */
-    <T extends Comparator<T>> long rangeSelectivity(T start,T stop, boolean includeStart,boolean includeStop,int positionNumber);
+    <T extends Comparator<T>> long rangeSelectivity(T start,T stop, boolean includeStart,boolean includeStop,int positionNumber, boolean useExtrapolation);
 
     /**
      * @param columnId the identifier of the column to fetch(indexed from 0)

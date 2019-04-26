@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -83,10 +85,12 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         }
         //set the base costing so that we don't lose the underlying table costs
         innerCost.setBase(innerCost.cloneMe());
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
+        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
+        double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
+        double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
         innerCost.setNumPartitions(outerCost.partitionCount());
-        double joinCost = SelectivityUtil.mergeSortJoinStrategyLocalCost(innerCost, outerCost);
+        double joinCost = mergeSortJoinStrategyLocalCost(innerCost, outerCost,totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
@@ -94,6 +98,35 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setRowOrdering(null);
+    }
+
+    /**
+     *
+     * Merge Sort Join Local Cost Computation
+     *
+     * Total Cost = Max( (Left Side Cost+ReplicationFactor*Left Transfer Cost)/Left Number of Partitions),
+     *              (Right Side Cost+ReplicationFactor*Right Transfer Cost)/Right Number of Partitions)
+     *
+     * Replication Factor Based
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
+    public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double numOfJoinedRows) {
+        SConfiguration config = EngineDriver.driver().getConfiguration();
+        double localLatency = config.getFallbackLocalLatency();
+        double joiningRowCost = numOfJoinedRows * localLatency;
+
+        double outerShuffleCost = outerCost.localCostPerPartition()+outerCost.getRemoteCost()/outerCost.partitionCount()
+                +outerCost.getOpenCost()+outerCost.getCloseCost();
+        double innerShuffleCost = innerCost.localCostPerPartition()+innerCost.getRemoteCost()/innerCost.partitionCount()
+                +innerCost.getOpenCost()+innerCost.getCloseCost();
+        double outerReadCost = outerCost.localCost()/outerCost.partitionCount();
+        double innerReadCost = innerCost.localCost()/outerCost.partitionCount();
+
+        return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost
+                +joiningRowCost/outerCost.partitionCount();
     }
 
     @Override

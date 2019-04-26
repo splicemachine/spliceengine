@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,7 +15,9 @@
 
 package com.splicemachine.db.impl.drda;
 
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.sun.security.jgss.GSSUtil;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
@@ -39,7 +41,10 @@ public class RemoteUserKerberos implements RemoteUser {
             GSSCredential clientCr = context.getDelegCred();
             GSSName clientName = clientCr.getName(); 
             Subject subject = GSSUtil.createSubject(clientName, clientCr);
-            String databaseURL = String.format("jdbc:splice://%s/splicedb;principal=%s",hostname, clientName.toString());
+            String sslMode = PropertyUtil.getSystemProperty(Property.DRDA_PROP_SSL_MODE);
+            String databaseURL = sslMode==null?
+                    String.format("jdbc:splice://%s/splicedb;principal=%s",hostname, clientName.toString()):
+                    String.format("jdbc:splice://%s/splicedb;principal=%s;ssl=%s",hostname, clientName.toString(), sslMode);
             return UserManagerService.loadPropertyManager().getUserFromSubject(subject).doAs(
                     (PrivilegedExceptionAction<Connection>) () -> DriverManager.getConnection(databaseURL));
         } catch (Exception e) {

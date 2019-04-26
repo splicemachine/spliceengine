@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -16,16 +16,13 @@ package com.splicemachine.derby.security;
 
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUserWatcher;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
+import com.splicemachine.homeless.TestUtils;
+import org.junit.*;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
+import java.sql.*;
 import java.util.Properties;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class AuthenticationIT {
 
@@ -34,6 +31,22 @@ public class AuthenticationIT {
 
     @Rule
     public SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(AUTH_IT_USER, AUTH_IT_PASS);
+
+    @BeforeClass
+    public static void setup() throws SQLException {
+        Statement s = SpliceNetConnection.getConnection().createStatement();
+        s.execute("call SYSCS_UTIL.SYSCS_CREATE_USER('dgf','dgf')");
+        s.execute("call SYSCS_UTIL.SYSCS_CREATE_USER('jy','jy')");
+        s.execute("call SYSCS_UTIL.SYSCS_CREATE_USER('tom','tom')");
+    }
+
+    @AfterClass
+    public static void cleanup() throws SQLException {
+        Statement s = SpliceNetConnection.getConnection().createStatement();
+        s.execute("call SYSCS_UTIL.SYSCS_DROP_USER('dgf')");
+        s.execute("call SYSCS_UTIL.SYSCS_DROP_USER('jy')");
+        s.execute("call SYSCS_UTIL.SYSCS_DROP_USER('tom')");
+    }
 
     @Test
     public void valid() throws SQLException {
@@ -94,5 +107,119 @@ public class AuthenticationIT {
         } catch (SQLNonTransientConnectionException e) {
             Assert.assertTrue(e.getSQLState().compareTo("08004") == 0);
         }
+    }
+
+
+    @Test
+    public void impersonation() throws SQLException {
+        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;impersonate=dgf";
+        try (Connection c = DriverManager.getConnection(url, new Properties())) {
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values USER")) {
+                    assertTrue(rs.next());
+                    assertEquals("DGF", rs.getString(1));
+                }
+            }
+
+        }
+        url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;impersonate=jy";
+        try (Connection c = DriverManager.getConnection(url, new Properties())) {
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values USER")) {
+                    assertTrue(rs.next());
+                    assertEquals("JY", rs.getString(1));
+                }
+            }
+
+        }
+        url = "jdbc:splice://localhost:1527/splicedb;user=dgf;password=dgf;impersonate=splice";
+        try (Connection c = DriverManager.getConnection(url, new Properties())) {
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values USER")) {
+                    assertTrue(rs.next());
+                    assertEquals("SPLICE", rs.getString(1));
+                }
+            }
+        }
+    }
+
+    @Test(expected = Exception.class)
+    public void failedImpersonation() throws SQLException {
+        String url = "jdbc:splice://localhost:1527/splicedb;user=dgf;password=dgf;impersonate=jy";
+        try (Connection c = DriverManager.getConnection(url, new Properties())) {
+            fail("Expected error");
+        }
+    }
+
+    @Test(expected = Exception.class)
+    public void userWithNoImpersonation() throws SQLException {
+        String url = "jdbc:splice://localhost:1527/splicedb;user=jy;password=jy;impersonate=dgf";
+        try (Connection c = DriverManager.getConnection(url, new Properties())) {
+            fail("Expected error");
+        }
+    }
+
+    @Test
+    public void testUserMapping() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;user=jy;password=jy";
+        try (Connection c = DriverManager.getConnection(url, new Properties())) {
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values USER")) {
+                    assertTrue(rs.next());
+                    assertEquals("JY", rs.getString(1));
+                }
+            }
+
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values GROUP_USER")) {
+                    String expected = "1    |\n" +
+                            "----------\n" +
+                            "\"SPLICE\" |";
+                    assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testNoGroupUser() throws Exception {
+        String url = "jdbc:splice://localhost:1527/splicedb;user=tom;password=tom";
+        try (Connection c = DriverManager.getConnection(url, new Properties())) {
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values USER")) {
+                    assertTrue(rs.next());
+                    assertEquals("TOM", rs.getString(1));
+                }
+            }
+
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values GROUP_USER")) {
+                    String expected = "1  |\n" +
+                            "------\n" +
+                            "NULL |";
+                    assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                }
+            }
+        }
+    }
+    @Test
+    public void testUserMappingInteractionWithImpersonation() throws SQLException {
+        String url = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin;impersonate=dgf";
+        try (Connection c = DriverManager.getConnection(url, new Properties())) {
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values USER")) {
+                    assertTrue(rs.next());
+                    assertEquals("DGF", rs.getString(1));
+                }
+            }
+
+            try (Statement s = c.createStatement()) {
+                try (ResultSet rs = s.executeQuery("values GROUP_USER")) {
+                    assertTrue(rs.next());
+                    assertEquals("\"SPLICE\"", rs.getString(1));
+                }
+            }
+        }
+
     }
 }

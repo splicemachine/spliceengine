@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -220,6 +220,12 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         public boolean hasNext() {
             try {
                 while (rightRS.hasNext()) {
+                    // skip null rows
+                    if (joinColumnHasNull(rightRS.peek(), false)) {
+                        rightRS.next();
+                        continue;
+                    }
+
                     int comparison = compare(left, rightRS.peek());
                     if (comparison == 0) { // if matches left, add to buffer
                         return true;
@@ -240,6 +246,17 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         public ExecRow next() {
             return rightRS.next();
         }
+    }
+
+    protected boolean joinColumnHasNull(ExecRow row, boolean isLeft) throws StandardException {
+        int i=0;
+        if (!isLeft)
+            i++;
+        for (; i < joinKeys.length; i = i + 2) {
+            if (row.getColumn(joinKeys[i]).isNull())
+                return true;
+        }
+        return false;
     }
 
 }

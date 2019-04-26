@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -991,6 +991,10 @@ public final class SQLDouble extends NumberDataType
 		else {
 			isNull = false;
 			value = row.getDouble(ordinal);
+			if (value == Double.POSITIVE_INFINITY ||
+			    value == Double.NEGATIVE_INFINITY ||
+			    value == Double.NaN)
+			    throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.DOUBLE_NAME);
 		}
 	}
 

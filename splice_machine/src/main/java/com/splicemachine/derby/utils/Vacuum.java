@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import com.carrotsearch.hppc.LongHashSet;
 
@@ -53,6 +55,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 /**
@@ -123,8 +126,14 @@ public class Vacuum{
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Found " + Iterables.size(hTableDescriptors) + " HBase tables.");
             }
+            List<Future> deletionFutures = new ArrayList<>();
 
             for(TableDescriptor table:hTableDescriptors){
+                boolean restoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
+                if (restoreMode) {
+                    SpliceLogUtils.info(LOG, "The database is in restore mode, exiting...");
+                    break;
+                }
                 try{
                     String[] tableName = parseTableName(table.getTableName());
                     if (tableName.length < 2) {
@@ -180,12 +189,26 @@ public class Vacuum{
                         }
                     } else if (requiresDroppedId) {
                         // This table must have a dropped transaction id before we can process it for vacuum
+                        if(!activeConglomerates.contains(tableConglom)){
+                            LOG.info("Ignoring table without dropped id, even though is not in activeConglomerates list: " + tableConglom);
+                        } else if (LOG.isTraceEnabled()) {
+                            LOG.trace("Ignoring table without dropped id: " + table.getTableName());
+                        }
                         continue;
                     }
                     if(!activeConglomerates.contains(tableConglom)){
-                        LOG.info("Deleting inactive table: " + table.getTableName());
-                        partitionAdmin.deleteTable(tableName[1]);
-                        toDelete.add(tableConglom);
+                        deletionFutures.add(SIDriver.driver().getExecutorService().submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                LOG.info("Deleting inactive table: " + table.getTableName());
+                                try {
+                                    partitionAdmin.deleteTable(tableName[1]);
+                                    toDelete.add(tableConglom);
+                                } catch (IOException e) {
+                                    LOG.error("Vacuum Unexpected exception", e);
+                                }
+                            }
+                        }));
                     } else if(LOG.isTraceEnabled()) {
                         LOG.trace("Skipping still active table: " + table.getTableName());
                     }
@@ -197,13 +220,17 @@ public class Vacuum{
                 }
             }
 
+            for (Future f : deletionFutures) {
+                f.get();
+            }
+
             List<DataDelete> deletes = new ArrayList<>();
             for (long removed : toDelete) {
                 DataDelete delete = driver.baseOperationFactory().newDelete(Bytes.toBytes(removed));
                 deletes.add(delete);
             }
             dropped.delete(deletes);
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException | ExecutionException e) {
             LOG.error("Vacuum Unexpected exception", e);
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         } finally {

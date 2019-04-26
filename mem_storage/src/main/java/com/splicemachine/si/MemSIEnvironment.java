@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -17,14 +17,11 @@ package com.splicemachine.si;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
-import java.util.Arrays;
-import java.util.List;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.ServiceDiscovery;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.access.configuration.ConfigurationBuilder;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
@@ -35,7 +32,7 @@ import com.splicemachine.si.api.data.OperationFactory;
 import com.splicemachine.si.api.data.OperationStatusFactory;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
-import com.splicemachine.si.api.readresolve.RollForward;
+import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ClusterHealth;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -49,7 +46,6 @@ import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import com.splicemachine.storage.*;
 import com.splicemachine.timestamp.api.TimestampSource;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.net.HostAndPort;
 
 /**
  * @author Scott Fines
@@ -76,14 +72,10 @@ public class MemSIEnvironment implements SIEnvironment{
     private transient SIDriver siDriver;
     private final DistributedFileSystem fileSystem = new MemFileSystem(FileSystems.getDefault().provider());
 
-    public MemSIEnvironment(PartitionFactory tableFactory){
-       this(tableFactory,new ConcurrentTicker(0l));
-    }
-
-    public MemSIEnvironment(PartitionFactory tableFactory,Clock clock){
+    public MemSIEnvironment(PartitionFactory tableFactory, Clock clock, SConfiguration config){
         this.tableFactory = tableFactory;
         this.txnStore = new MemTxnStore(clock,tsSource,exceptionFactory,1000);
-        this.config=new ConfigurationBuilder().build(new HConfigurationDefaultsList(), new ReflectingConfigurationSource());
+        this.config=config;
         this.opFactory = new MOperationFactory(clock);
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
         this.kaScheduler = new ManualKeepAliveScheduler(txnStore);

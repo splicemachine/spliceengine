@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -54,6 +54,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Created by jyuan on 3/28/16.
@@ -271,16 +272,24 @@ public class KillOperationIT {
     }
 
     public static void checkReadCounts() throws Exception {
-        LOG.info("checking counts");
-        Thread.sleep(5000);
-        int reads = getClusterReads();
-        LOG.info("reads: "  + reads);
-        Thread.sleep(3000);
-        int readsNow = getClusterReads();
-        LOG.info("readsnow: "  + readsNow);
+        int reads = 0;
+        int readsNow = 0;
+        for (int i = 0; i < 5; ++i) {
+            LOG.info("checking counts " + i);
+            Thread.sleep(5000);
+            reads = getClusterReads();
+            LOG.info("reads: " + reads);
+            Thread.sleep(3000);
+            readsNow = getClusterReads();
+            LOG.info("readsnow: " + readsNow);
 
-        assertTrue("Too many reads, statement not killed properly? readsNow " + readsNow + " reads "+ reads,
-                readsNow - reads < 500);
+            if (readsNow - reads < 500) {
+                LOG.info("no reads, OK");
+                return;
+            }
+
+        }
+        fail("Too many reads, statement not killed properly? readsNow " + readsNow + " reads " + reads);
     }
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -19,7 +19,6 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTestDataSource;
-import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
@@ -34,6 +33,7 @@ import org.apache.hadoop.hbase.client.Table;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -148,6 +148,8 @@ public class TransactionResolutionIT {
                     ps.execute();
                 }
 
+                Thread.sleep(12000); // make sure rollforward won't kick in
+
                 conn1.commit();
 
 
@@ -175,7 +177,8 @@ public class TransactionResolutionIT {
 
                     hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
 
-                    Thread.sleep(2000);
+                    Thread.sleep(4000);
+                    
                     try (ResultScanner rs = table.getScanner(scan)) {
 
                         Result result;

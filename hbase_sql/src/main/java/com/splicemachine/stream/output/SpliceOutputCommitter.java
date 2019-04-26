@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -86,16 +86,14 @@ public class SpliceOutputCommitter extends OutputCommitter {
         TaskContext sparkTaskContext = TaskContext.get();
         TaskId taskId = null;
         if (sparkTaskContext != null) {
-            String jtid = taskContext.getTaskAttemptID().getJobID().getJtIdentifier();
-            int jobId = taskContext.getTaskAttemptID().getJobID().getId();
             int stageId = sparkTaskContext.stageId();
             int partitionId = sparkTaskContext.partitionId();
             int attemptNumber = sparkTaskContext.attemptNumber();
-            taskId = new TaskId(jtid, jobId, stageId, partitionId, attemptNumber);
+            taskId = new TaskId(stageId, partitionId, attemptNumber);
         }
         TxnView txn = SIDriver.driver().lifecycleManager().beginChildTransaction(parentTxn, parentTxn.getIsolationLevel(),
                 true, destinationTable, false, taskId);
-        ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, true, parentTxn.getIsolationLevel());
+        ActiveWriteTxn childTxn = new ActiveWriteTxn(txn.getTxnId(), txn.getTxnId(), parentTxn, true, parentTxn.getIsolationLevel(), taskId);
         currentTxn.set(childTxn);
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"beginTxn=%s and destinationTable=%s",childTxn,destinationTable);

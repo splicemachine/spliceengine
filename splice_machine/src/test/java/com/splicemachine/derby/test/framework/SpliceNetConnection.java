@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -35,6 +35,10 @@ public class SpliceNetConnection {
 
     public static Connection getConnectionAs(String userName, String password) throws SQLException {
         return getConnectionAs(DB_URL_LOCAL, userName, password);
+    }
+
+    public static Connection getConnectionAs(String userName, String password, boolean useSpark) throws SQLException {
+        return getConnectionAs(DB_URL_LOCAL+";useSpark="+useSpark, userName, password);
     }
 
     public static String getDefaultLocalURL() {

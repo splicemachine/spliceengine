@@ -25,16 +25,14 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 package com.splicemachine.db.impl.sql.conn;
 
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 
-import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR;
-import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.SKIPSTATS;
-import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.USESPARK;
+import static com.splicemachine.db.iapi.sql.conn.SessionProperties.PROPERTYNAME.*;
 
 /**
  * Created by yxia on 6/1/18.
@@ -62,6 +60,10 @@ public class SessionPropertiesImpl implements SessionProperties {
             case SKIPSTATS:
                 boolean skipStatsVal = Boolean.valueOf(valString);
                 properties[SKIPSTATS.getId()] = skipStatsVal;
+                break;
+            case RECURSIVEQUERYITERATIONLIMIT:
+                int recursiveQueryIterationLimit = Integer.parseInt(valString);
+                properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;
                 break;
             default:
                 break;

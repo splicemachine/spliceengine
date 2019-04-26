@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -644,7 +644,7 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
 		// Generate the child ResultSet
 
 		// Get the cost estimate for the child
-		costEstimate = childResult.getFinalCostEstimate();
+		costEstimate = childResult.getFinalCostEstimate(true);
 
 		erdNumber = acb.addItem(makeResultDescription());
 
@@ -708,7 +708,7 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
         sb = sb.append(spaceToLevel())
                 .append("NormalizeResult").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyScrollInsensitiveString(attrDelim));
+        sb.append(attrDelim).append(getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

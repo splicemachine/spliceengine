@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -243,7 +243,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                         .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
             } else {
-                if (this.leftHashKeys.length != 0)
+                if (this.leftHashKeys.length != 0 && !this.notExistsRightSide)
                     leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
                 if (this.notExistsRightSide) { // antijoin
                     if (restriction != null) { // with restriction

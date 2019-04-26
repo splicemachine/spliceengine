@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -1149,4 +1150,22 @@ public class TernaryOperatorNode extends OperatorNode
 		else
 			receiver.setHashableJoinColumnReference(cr);
 	}
+
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+		if (leftOperand != null && !leftOperand.isConstantOrParameterTreeNode())
+			return false;
+		if (rightOperand != null && !rightOperand.isConstantOrParameterTreeNode())
+			return false;
+
+		if (receiver != null && !receiver.isConstantOrParameterTreeNode())
+			return false;
+
+		return true;
+	}
+
+	// Following 3 interfaces only applicable when this is a TRIM operator.
+	public boolean isLeading()  {return trimType == StringDataValue.LEADING;}
+	public boolean isTrailing() {return trimType == StringDataValue.TRAILING;}
+	public boolean isBoth()     {return trimType == StringDataValue.BOTH;}
 }

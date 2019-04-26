@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.junit.Assert;
 import org.junit.runner.Description;
@@ -37,6 +38,7 @@ public class SpliceUnitTest {
 
     private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
     private static Pattern outputRowsP = Pattern.compile("outputRows=[0-9]+\\.?[0-9]*");
+    private static Pattern scannedRowsP = Pattern.compile("scannedRows=[0-9]+\\.?[0-9]*");
 
 	public String getSchemaName() {
 		Class<?> enclosingClass = getClass().getEnclosingClass();
@@ -142,14 +144,14 @@ public class SpliceUnitTest {
          *
          * Of course, if we are in the correct location to begin with, then we are good to go.
          */
-        if(userDir.endsWith("hbase_sql")) return userDir;
+        if(userDir.endsWith("platform_it")) return userDir;
 
         Path nioPath = Paths.get(userDir);
         while(nioPath!=null){
             /*
              * Look for splice_machine in our parent hierarchy. If we can find it, then we are good
              */
-            if(nioPath.endsWith("hbase_sql")) break;
+            if(nioPath.endsWith("platform_it")) break;
             nioPath = nioPath.getParent();
         }
         if(nioPath==null){
@@ -158,13 +160,13 @@ public class SpliceUnitTest {
              * directory of us, so look around at it directly
              */
             Path us = Paths.get(userDir);
-            nioPath = Paths.get(us.toString(),"hbase_sql");
+            nioPath = Paths.get(us.toString(),"platform_it");
             if(!Files.exists(nioPath)){
              /* Try to go up and to the left. If it's not
              * there, then we are screwed anyway, so just go with it
              */
                 Path parent=Paths.get(userDir).getParent();
-                nioPath=Paths.get(parent.toString(),"hbase_sql");
+                nioPath=Paths.get(parent.toString(),"platform_it");
             }
         }
         return nioPath.toString();
@@ -292,6 +294,44 @@ public class SpliceUnitTest {
         Matcher m1 = outputRowsP.matcher(planMessage);
         Assert.assertTrue("No OutputRows found!", m1.find());
         return Double.parseDouble(m1.group().substring("outputRows=".length()));
+    }
+
+    public static double parseScannedRows(String planMessage) {
+        Matcher m1 = scannedRowsP.matcher(planMessage);
+        Assert.assertTrue("No ScannedRows found!", m1.find());
+        return Double.parseDouble(m1.group().substring("scannedRows=".length()));
+    }
+
+    protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
+    protected void testFail(String sqlText,
+                            List<String> expectedErrors,
+                            SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            String failMsg = format("Query not expected to succeed.\n%s", sqlText);
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = expectedErrors.contains(e.getMessage());
+            if (!found)
+                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
     }
 
     public static class Contains {

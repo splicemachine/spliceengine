@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -22,6 +22,7 @@ import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 import com.splicemachine.encryption.EncryptionManager;
+import com.splicemachine.replication.ReplicationManager;
 
 /**
  * Manager
@@ -38,6 +39,7 @@ public interface Manager {
 
     EncryptionManager getEncryptionManager() throws StandardException;
 
-    boolean isEnabled();
+    ReplicationManager getReplicationManager() throws StandardException;
 
+    boolean isEnabled();
 }

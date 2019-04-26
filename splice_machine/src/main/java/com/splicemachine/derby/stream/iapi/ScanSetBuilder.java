@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -109,6 +109,8 @@ public interface ScanSetBuilder<V>{
     ScanSetBuilder<V> useSample(boolean useSample);
 
     ScanSetBuilder<V> sampleFraction(double sampleFraction);
+
+    ScanSetBuilder<V> ignoreRecentTransactions(boolean ignoreRecentTransactions);
 
     DataSet<V> buildDataSet() throws StandardException;
 
@@ -256,6 +258,12 @@ public interface ScanSetBuilder<V>{
      * @return
      */
     double getSampleFraction();
+
+    /**
+     * Whether to ignore recent transactions with a txnId greater than our begin timestamp
+     * @return
+     */
+    boolean getIgnoreRecentTransactions();
 
     /**
      * Get the default row

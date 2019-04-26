@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -249,6 +249,11 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 	// position is 1-based.
 	public void setColumn(int position, DataValueDescriptor col) {
 		valueRow.setColumn(position, col);
+	}
+
+	// position is 1-based.
+	public void setColumnValue(int position, DataValueDescriptor col) throws StandardException {
+		valueRow.setColumnValue(position, col);
 	}
 
 	// position is 1-based

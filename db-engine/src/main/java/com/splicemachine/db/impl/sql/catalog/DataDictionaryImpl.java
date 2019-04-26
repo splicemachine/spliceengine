@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1388,6 +1388,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 }
             return retval;
         }
+        if (schemaUUID == null)
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, sd.getSchemaName());
         retval = getTableDescriptorIndex1Scan(tableName,schemaUUID.toString());
         if (retval!=null) {
             dataDictionaryCache.nameTdCacheAdd(tableKey, retval);
@@ -5633,6 +5635,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 			 */
             conglomIDOrderable=getIDValueAsCHAR(cd.getUUID());
 
+            tc.markConglomerateDropped(cd.getConglomerateNumber());
+
 			/* Set up the start/stop position for the scan */
             keyRow1=exFactory.getIndexableRow(1);
             keyRow1.setColumn(1,conglomIDOrderable);
@@ -6213,7 +6217,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 int catalogNumber=noncoreCtr+NUM_CORE;
                 boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
-                makeCatalog(ti,isDummy?sysIBMSchemaDesc:systemSchemaDesc,tc);
+                if (ti != null) {
+                    makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc);
+                }
                 if(isDummy)
                     populateSYSDUMMY1(tc);
                 // Clear the table entry for this non-core table,
@@ -6227,8 +6233,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 System.exit(1);
             }
         }
-
-
     }
 
 
@@ -7371,13 +7375,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     retval=new TabInfoImpl(new SYSBACKUPRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSBACKUPFILESET_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSBACKUPFILESETRowFactory(luuidFactory,exFactory,dvf));
+                    retval=null;
                     break;
                 case SYSBACKUPITEMS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSBACKUPJOBS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSBACKUPJOBSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=null;
                     break;
                 case SYSCOLUMNSTATS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSCOLUMNSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
@@ -7401,8 +7405,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     retval=new TabInfoImpl(new SYSTOKENSRowFactory(luuidFactory,exFactory,dvf));
                     break;
             }
-            initSystemIndexVariables(retval);
-            noncoreInfo[nonCoreNum]=retval;
+            if (retval != null) {
+                initSystemIndexVariables(retval);
+                noncoreInfo[nonCoreNum] = retval;
+            }
         }
 
         return retval;
@@ -7746,7 +7752,38 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ti.updateRow(keyRow,row,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID,bArray,colsToUpdate,tc);
     }
 
+    /**
+     * sets whether extrapolation is allowed for a column
+     *
+     * @param tc              Transaction Controller to use.
+     * @param tableUUID
+     * @param columnName      Name of the column.
+     * @param useExtrapolation   Value to write to SYSCOLUMNS.
+     */
+    @Override
+    public void setUseExtrapolation(TransactionController tc,
+                                UUID tableUUID,
+                                String columnName,
+                                byte useExtrapolation) throws StandardException{
+        TabInfoImpl ti=coreInfo[SYSCOLUMNS_CORE_NUM];
+        ExecIndexRow keyRow;
 
+        keyRow=exFactory.getIndexableRow(2);
+        keyRow.setColumn(1,getIDValueAsCHAR(tableUUID));
+        keyRow.setColumn(2,new SQLChar(columnName));
+
+        SYSCOLUMNSRowFactory rf=(SYSCOLUMNSRowFactory)ti.getCatalogRowFactory();
+        ExecRow row=rf.makeEmptyRow();
+
+        boolean[] bArray=new boolean[2];
+        for(int index=0;index<2;index++){
+            bArray[index]=false;
+        }
+        int[] colsToUpdate=new int[1];
+        colsToUpdate[0]=SYSCOLUMNSRowFactory.SYSCOLUMNS_USEEXTRAPOLATION;
+        row.setColumn(SYSCOLUMNSRowFactory.SYSCOLUMNS_USEEXTRAPOLATION,new SQLTinyint(useExtrapolation));
+        ti.updateRow(keyRow,row,SYSCOLUMNSRowFactory.SYSCOLUMNS_INDEX1_ID,bArray,colsToUpdate,tc);
+    }
 
     /**
      * Computes the RowLocation in SYSCOLUMNS for a particular
@@ -9191,6 +9228,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return (SchemaPermsDescriptor)getPermissions(key);
     }
 
+    @Override
+    public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID) throws StandardException{
+        SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,schemaPermsUUID);
+        return getUncachedSchemaPermsDescriptor(key);
+    }
+
     public Object getPermissions(PermissionsDescriptor key) throws StandardException{
 
         Optional<PermissionsDescriptor> optional = dataDictionaryCache.permissionCacheFind(key);
@@ -9506,7 +9549,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no table-level permissions have been granted to him on the table.
      * @throws StandardException
      */
-    TablePermsDescriptor getUncachedTablePermsDescriptor(TablePermsDescriptor key) throws StandardException{
+    public TablePermsDescriptor getUncachedTablePermsDescriptor(TablePermsDescriptor key) throws StandardException{
         if(key.getObjectID()==null){
             //the TABLEPERMSID for SYSTABLEPERMS is not known, so use
             //table id, grantor and granteee to find TablePermsDescriptor
@@ -9532,7 +9575,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * if no schema-table permissions have been granted to him on the schema
      * @throws StandardException
      */
-    SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key) throws StandardException{
+    public SchemaPermsDescriptor getUncachedSchemaPermsDescriptor(SchemaPermsDescriptor key) throws StandardException{
         if(key.getObjectID()==null){
             //the SCHEMAPERMSID for SYSTABLEPERMS is not known, so use
             //table id, grantor and granteee to find SchemaPermsDescriptor
@@ -10308,21 +10351,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1, new SQLLongint(backupId));
         ti.deleteRow(tc, keyRow, SYSBACKUPITEMSRowFactory.SYSBACKUPITEMS_INDEX1_ID);
     }
-
-    @Override
-    public void addBackupJob(TupleDescriptor descriptor, TransactionController tc) throws StandardException {
-        TabInfoImpl ti=getNonCoreTI(SYSBACKUPJOBS_CATALOG_NUM);
-        ExecRow row = ti.getCatalogRowFactory().makeRow(descriptor, null);
-        int insertRetCode=ti.insertRow(row,tc);
-    }
-
-    @Override
-    public void deleteBackupJob(long jobId, TransactionController tc) throws StandardException {
-        TabInfoImpl ti=getNonCoreTI(SYSBACKUPJOBS_CATALOG_NUM);
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1, new SQLLongint(jobId));
-        ti.deleteRow(tc, keyRow, SYSBACKUPJOBSRowFactory.SYSBACKUPJOBS_INDEX1_ID);
-}
 
     @Override
     public void addSnapshot(TupleDescriptor descriptor, TransactionController tc) throws StandardException

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -946,9 +946,8 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
-        // Only an issue for EXISTS FBTs and table converted from SSQ
         /* Have all of our dependencies been satisfied? */
-        return !existsTable && !fromSSQ || assignedTableMap.contains(dependencyMap);
+        return dependencyMap == null || assignedTableMap.contains(dependencyMap);
     }
 
     /**
@@ -1069,7 +1068,12 @@ public class FromBaseTable extends FromTable {
 
                 cvn=(CreateViewNode)parseStatement(vd.getViewText(),false);
 
+                if (cvn.isRecursive()) {
+                    cvn.replaceSelfReferenceForRecursiveView(tableDescriptor);
+                }
+
                 rsn=cvn.getParsedQueryExpression();
+
 
 				/* If the view contains a '*' then we mark the views derived column list
 				 * so that the view will still work, and return the expected results,
@@ -2070,7 +2074,7 @@ public class FromBaseTable extends FromTable {
      *
      * @return The final CostEstimate for this ResultSetNode.
      */
-    public CostEstimate getFinalCostEstimate(){
+    public CostEstimate getFinalCostEstimate(boolean useSelf){
         return getTrulyTheBestAccessPath().getCostEstimate();
     }
 
@@ -2117,7 +2121,7 @@ public class FromBaseTable extends FromTable {
 		*/
     private void generateMaxSpecialResultSet ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
-        CostEstimate costEstimate=getFinalCostEstimate();
+        CostEstimate costEstimate=getFinalCostEstimate(false);
         int colRefItem=(referencedCols==null)?
                 -1:
                 acb.addItem(referencedCols);
@@ -2153,7 +2157,7 @@ public class FromBaseTable extends FromTable {
 
     private void generateDistinctScan ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
-        CostEstimate costEstimate=getFinalCostEstimate();
+        CostEstimate costEstimate=getFinalCostEstimate(false);
         int colRefItem=(referencedCols==null)? -1: acb.addItem(referencedCols);
         boolean tableLockGranularity=tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY;
 
@@ -2943,7 +2947,7 @@ public class FromBaseTable extends FromTable {
     @Override
     void markForDistinctScan() throws StandardException {
         distinctScan=true;
-        resultColumns.computeDistinctCardinality(getFinalCostEstimate());
+        resultColumns.computeDistinctCardinality(getFinalCostEstimate(false));
     }
 
 
@@ -3336,7 +3340,7 @@ public class FromBaseTable extends FromTable {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
         sb.append(getClassName(indexName)).append("(")
-                .append(",").append(getFinalCostEstimate().prettyFromBaseTableString());
+                .append(",").append(getFinalCostEstimate(false).prettyFromBaseTableString());
         if (indexName != null)
             sb.append(",baseTable=").append(getPrettyTableName());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
@@ -3353,7 +3357,7 @@ public class FromBaseTable extends FromTable {
         sb.append(spaceToLevel());
         sb.append(getClassName(indexName)).append("(");
         sb.append("n=").append(order).append(attrDelim);
-        sb.append(getFinalCostEstimate().prettyFromBaseTableString(attrDelim));
+        sb.append(getFinalCostEstimate(false).prettyFromBaseTableString(attrDelim));
         if (indexName != null)
             sb.append(attrDelim).append("baseTable=").append(getPrettyTableName());
         List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);

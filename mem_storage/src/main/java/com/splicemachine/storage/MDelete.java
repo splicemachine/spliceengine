@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,6 +14,7 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.*;
@@ -31,6 +32,10 @@ public class MDelete implements DataDelete{
     public MDelete(byte[] key){
         this.key=key;
         this.exactColsToDelete = new TreeSet<>();
+    }
+
+    public MDelete(ByteSlice rowKey) {
+        this(rowKey.getByteCopy());
     }
 
     @SuppressFBWarnings("EI_EXPOSE_REP")
@@ -64,6 +69,11 @@ public class MDelete implements DataDelete{
     @Override
     public Iterable<DataCell> cells(){
         return exactColsToDelete;
+    }
+
+    @Override
+    public void skipWAL() {
+        // no-op in mem
     }
 
     @Override

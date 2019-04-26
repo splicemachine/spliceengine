@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -59,10 +59,11 @@ public class TimestampServerHandler extends TimestampBaseHandler {
         ensureReadableBytes(buf, TimestampServer.FIXED_MSG_RECEIVED_LENGTH);
 
         final short callerId = buf.readShort();
+        final byte refresh = buf.readByte();
         ensureReadableBytes(buf, 0);
 
         SpliceLogUtils.trace(LOG, "Received timestamp request from client. Caller id = %s", callerId);
-        long nextTimestamp = oracle.getNextTimestamp();
+        long nextTimestamp = oracle.getNextTimestamp(refresh==(byte)1 ? true : false);
         assert nextTimestamp > 0;
 
 

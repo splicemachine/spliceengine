@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -354,6 +354,25 @@ public class RegionPartition implements Partition{
                 region.put(((HPut)put).unwrapDelegate());
             else
                 region.delete(((HDelete)put).unwrapDelegate());
+        }catch(NotServingRegionException | ConnectionClosingException nsre){
+            throw new HNotServingRegion(nsre.getMessage());
+        }catch(WrongRegionException wre){
+            throw new HWrongRegion(wre.getMessage());
+        }
+    }
+
+    @Override
+    public void batchMutate(List<DataMutation> mutations) throws IOException{
+        try{
+            Mutation[] ms = new Mutation[mutations.size()];
+            int i = 0;
+            for (DataMutation dm : mutations) {
+                if(dm instanceof HPut)
+                    ms[i++] = ((HPut)dm).unwrapDelegate();
+                else
+                    ms[i++] = ((HDelete)dm).unwrapDelegate();
+            }
+            region.batchMutate(ms);
         }catch(NotServingRegionException | ConnectionClosingException nsre){
             throw new HNotServingRegion(nsre.getMessage());
         }catch(WrongRegionException wre){

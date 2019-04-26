@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -24,59 +24,54 @@ public class MemstoreAware {
     public int totalFlushCount;
     public int currentCompactionCount;
     public int currentScannerCount;
-    public int currentFlushCount;
+    public boolean flush = false;
 
     public MemstoreAware() {
         this.splitMerge = false;
         this.totalFlushCount = 0;
         this.currentCompactionCount = 0;
         this.currentScannerCount = 0;
-        this.currentFlushCount = 0;
+        this.flush = false;
     }
     
-    public MemstoreAware(boolean splitMerge, int totalFlushCount, int currentCompactionCount, int currentScannerCount, int currentFlushCount) {
+    public MemstoreAware(boolean splitMerge, int totalFlushCount, int currentCompactionCount, int currentScannerCount, boolean isFlushing) {
         this.splitMerge = splitMerge;
         this.totalFlushCount = totalFlushCount;
         this.currentCompactionCount = currentCompactionCount;
         this.currentScannerCount = currentScannerCount;
-        this.currentFlushCount = currentFlushCount;
+        this.flush = isFlushing;
     }
     
     
 
         public static MemstoreAware changeSplitMerge(MemstoreAware clone, boolean splitMerge) {
             return new MemstoreAware(splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
-                    clone.currentScannerCount,clone.currentFlushCount);
+                    clone.currentScannerCount,clone.flush);
         }
 
-        public static MemstoreAware incrementFlushCount(MemstoreAware clone) {
+        public static MemstoreAware changeFlush(MemstoreAware clone, boolean flush) {
             return new MemstoreAware(clone.splitMerge, clone.totalFlushCount+1, clone.currentCompactionCount,
-                    clone.currentScannerCount,clone.currentFlushCount+1);
-        }
-
-        public static MemstoreAware decrementFlushCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
-                    clone.currentScannerCount,clone.currentFlushCount-1);
+                    clone.currentScannerCount,flush);
         }
        
         public static MemstoreAware incrementCompactionCount(MemstoreAware clone) {
             return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount+1,
-                    clone.currentScannerCount,clone.currentFlushCount);
+                    clone.currentScannerCount,clone.flush);
         }
 
         public static MemstoreAware decrementCompactionCount(MemstoreAware clone) {
             return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount-1,
-                    clone.currentScannerCount,clone.currentFlushCount);
+                    clone.currentScannerCount,clone.flush);
         }
 
         public static MemstoreAware incrementScannerCount(MemstoreAware clone) {
             return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
-                    clone.currentScannerCount+1,clone.currentFlushCount);
+                    clone.currentScannerCount+1,clone.flush);
         }
 
         public static MemstoreAware decrementScannerCount(MemstoreAware clone) {
             return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
-                    clone.currentScannerCount-1,clone.currentFlushCount);
+                    clone.currentScannerCount-1,clone.flush);
         }
 
     @Override
@@ -86,7 +81,7 @@ public class MemstoreAware {
                 ", totalFlushCount=" + totalFlushCount +
                 ", currentCompactionCount=" + currentCompactionCount +
                 ", currentScannerCount=" + currentScannerCount +
-                ", currentFlushCount=" + currentFlushCount +
+                ", flush=" + flush +
                 '}';
     }
 }

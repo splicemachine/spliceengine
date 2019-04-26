@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -55,8 +55,7 @@ public class SparkDirectWriterBuilder<K,V> extends DirectTableWriterBuilder{
             conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
             TableWriterUtils.serializeHTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,HTableOutputFormat.class,HTableOutputFormat.class);
-            JavaSparkContext context=SpliceSpark.getContext();
-            return new SparkDirectDataSetWriter<>(rdd,context,opCtx,conf,skipIndex,destConglomerate,txn);
+            return new SparkDirectDataSetWriter<>(rdd,SpliceSpark.getSession(),opCtx,conf,skipIndex,destConglomerate,txn);
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

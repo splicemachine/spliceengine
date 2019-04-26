@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -73,6 +73,8 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
 
         methodWatcher.executeUpdate("delete from A");
         methodWatcher.executeUpdate("insert into a values(1,1), (2,2)");
+
+        Thread.sleep(2000); // wait for commit markers to be written
 
         try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
             long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -88,7 +88,7 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
             PairDataSet leftDataSet = left.map(new CountJoinedLeftFunction(operationContext))
                     .keyBy(new KeyerFunction<ExecRow, JoinOperation>(operationContext, leftHashKeys));
 
-            DataSet<ExecRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder()), operationContext).values();
+            DataSet<ExecRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder()), operationContext).values(operationContext);
             if (isOuterJoin)
                 return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
             else {

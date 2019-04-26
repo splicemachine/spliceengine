@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -290,7 +290,7 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
     public void adjustCost(ResultSetNode rsn) throws StandardException {
         if (fetchFirst==-1 && offset ==-1) // No Limit Adjustment
             return;
-        CostEstimate costEstimate = rsn.getFinalCostEstimate();
+        CostEstimate costEstimate = rsn.getFinalCostEstimate(false);
         long totalRowCount = costEstimate.getEstimatedRowCount();
         long currentOffset = offset==-1?0:offset;
         long currentFetchFirst = fetchFirst==-1?totalRowCount:fetchFirst;
@@ -316,7 +316,7 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
     public void adjustBaseTableCost(ResultSetNode rsn) throws StandardException {
         if (fetchFirst==-1 && offset ==-1) // No Limit Adjustment
             return;
-        CostEstimate costEstimate = rsn.getFinalCostEstimate();
+        CostEstimate costEstimate = rsn.getFinalCostEstimate(false);
         long totalRowCount = costEstimate.getEstimatedRowCount();
         long currentOffset = offset==-1?0:offset;
         long currentFetchFirst = fetchFirst==-1?totalRowCount:fetchFirst;

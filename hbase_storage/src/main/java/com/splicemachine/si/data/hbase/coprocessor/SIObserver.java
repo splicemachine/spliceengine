@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -339,7 +339,7 @@ public class SIObserver extends BaseRegionObserver{
                     boolean processed = false;
                     while (!processed) {
                         @SuppressWarnings("unchecked") Iterable<MutationStatus> status =
-                                region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false);
+                                region.bulkWrite(txn, fam, column.getKey(), operationStatusFactory.getNoOpConstraintChecker(), Collections.singleton(column.getValue()), false, false, true);
                         Iterator<MutationStatus> itr = status.iterator();
                         if (!itr.hasNext())
                             throw new IllegalStateException();

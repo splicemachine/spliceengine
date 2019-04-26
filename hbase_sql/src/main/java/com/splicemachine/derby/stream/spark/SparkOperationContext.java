@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -29,12 +29,12 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
-import org.apache.hadoop.security.Credentials;
 import org.apache.log4j.Logger;
 import org.apache.spark.Accumulable;
-import org.apache.spark.SerializableWritable;
-import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.TaskContext;
 import org.apache.spark.util.LongAccumulator;
+import org.apache.spark.util.TaskCompletionListener;
+
 import java.io.*;
 import java.sql.SQLException;
 import java.util.List;
@@ -134,13 +134,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
-        Broadcast<SerializableWritable<Credentials>> credentials = SpliceSpark.getCredentials();
-        if (credentials != null) {
-            out.writeBoolean(true);
-            out.writeObject(credentials);
-        } else {
-            out.writeBoolean(false);
-        }
         if (SpliceClient.isClient()) {
             out.writeBoolean(true);
             out.writeUTF(SpliceClient.connectionString);
@@ -180,12 +173,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException{
-        Credentials credentials = null;
-        if (in.readBoolean()) {
-            // we've got credentials to apply
-            Broadcast<SerializableWritable<Credentials>> bcast = (Broadcast<SerializableWritable<Credentials>>) in.readObject();
-            credentials = bcast.getValue().value();
-        }
         if (in.readBoolean()) {
             SpliceClient.connectionString = in.readUTF();
             SpliceClient.setClient(HConfiguration.getConfiguration().getAuthenticationTokenEnabled(), SpliceClient.Mode.EXECUTOR);
@@ -193,12 +180,17 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         badRecordsSeen = in.readLong();
         badRecordThreshold = in.readLong();
         permissive=in.readBoolean();
-        SpliceSpark.setupSpliceStaticComponents(credentials);
+        SpliceSpark.setupSpliceStaticComponents();
         boolean isOp=in.readBoolean();
         if(isOp){
             broadcastedActivation = (BroadcastedActivation)in.readObject();
-            op=(Op)broadcastedActivation.getActivationHolder().getOperationsMap().get(in.readInt());
-            activation=broadcastedActivation.getActivationHolder().getActivation();
+            ActivationHolder ah = broadcastedActivation.getActivationHolder();
+            op=(Op)ah.getOperationsMap().get(in.readInt());
+            activation = ah.getActivation();
+            TaskContext taskContext = TaskContext.get();
+            if (taskContext != null) {
+                taskContext.addTaskCompletionListener((TaskCompletionListener)(ctx) -> ah.close());
+            }
         }
         rowsRead=(LongAccumulator)in.readObject();
         rowsFiltered=(LongAccumulator)in.readObject();

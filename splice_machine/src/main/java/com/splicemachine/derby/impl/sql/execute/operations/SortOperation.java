@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -201,40 +201,18 @@ public class SortOperation extends SpliceBaseOperation{
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext=dsp.createOperationContext(this);
-        DataSet dataSet=source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
+        DataSet dataSet=source.getDataSet(dsp)
+                .map(new CloneFunction<>(operationContext));
 
         if (distinct) {
             dataSet = dataSet.distinct(OperationContext.Scope.DISTINCT.displayName(),
                 false, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
-            try {
-                //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
-                dataSet = dataSet.map(new SetCurrentLocatedRowFunction(operationContext), true);
-
-            } finally {
-               // operationContext.popScope();
-            }
         }
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
-        KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
-        PairDataSet pair=dataSet.keyBy(f);
-        //operationContext.popScope();
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
-        PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
-            OperationContext.Scope.SORT.displayName(), operationContext);
-        //operationContext.popScope();
+        DataSet sortedValues = dataSet.orderBy(operationContext, keyColumns,descColumns,nullsOrderedLow);
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);
-        DataSet sortedValues=sortedByKey.values(OperationContext.Scope.READ_SORTED.displayName());
-        //operationContext.popScope();
-
-        try{
-            //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
-            return sortedValues.map(new SetCurrentLocatedRowFunction(operationContext),true);
-        }finally{
-          //  operationContext.popScope();
-        }
+        return sortedValues;
     }
 
     public String getScopeName(){

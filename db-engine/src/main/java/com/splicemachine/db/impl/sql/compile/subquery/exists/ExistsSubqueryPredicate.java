@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -109,6 +109,19 @@ class ExistsSubqueryPredicate implements org.spark_project.guava.base.Predicate<
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         // The subquery is correlated
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        // For correlated exists/not exists subquery, if it is just a non-aggregate subquery with one table,
+        // inner join(for exists) and anti-join(for not exists) with the base table directly(through the flattening logic
+        // in SubqueryNode) are heuristically more efficient than rewriting the exists subquery to a derived table(in this module).
+        // So for such cases, return false here and let the flattening logic in SubqueryNode take care of them.
+        FromList fromList = subqueryResultSet.getFromList();
+        if (subqueryNode.singleFromBaseTable(fromList) != null) {
+            boolean hasAggregation = subquerySelectNode.hasAggregatesInSelectList() || subquerySelectNode.hasHavingClause()
+                    || (subquerySelectNode.getGroupByList()!= null && subquerySelectNode.getGroupByList().isRollup());
+            if (!hasAggregation &&
+                    !subquerySelectNode.getOriginalWhereClauseHadSubqueries())
+                return false;
+        }
 
         /* correlated subquery cannot contain a union */
         if (subqueryResultSet.getFromList().containsNode(UnionNode.class)) {

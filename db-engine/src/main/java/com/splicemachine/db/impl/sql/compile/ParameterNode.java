@@ -25,16 +25,11 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.compile;
-
-import java.sql.Types;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Vector;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -47,6 +42,11 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.JSQLType;
 import com.splicemachine.db.iapi.types.TypeId;
+
+import java.sql.Types;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Vector;
 
 /**
  * This node type represents a ? parameter.
@@ -546,5 +546,10 @@ public class ParameterNode extends ValueNode
 				add(valToGenerate);
 			}
 		}};
+	}
+
+	@Override
+	public boolean isConstantOrParameterTreeNode() {
+    	return true;
 	}
 }

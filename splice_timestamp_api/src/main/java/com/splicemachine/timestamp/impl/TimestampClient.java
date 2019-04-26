@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -104,7 +104,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         this.timeoutMillis = timeoutMillis;
         this.timestampHostProvider = timestampHostProvider;
         clientCallbacks = new ConcurrentHashMap<>();
-
+        
         ExecutorService workerExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-worker-%d").setDaemon(true).build());
         ExecutorService bossExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-boss-%d").setDaemon(true).build());
 
@@ -121,7 +121,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         bootstrap.getPipeline().addLast("decoder", new FixedLengthFrameDecoder(FIXED_MSG_RECEIVED_LENGTH));
         bootstrap.getPipeline().addLast("handler", this);
 
-        bootstrap.setOption("tcpNoDelay", false);
+        bootstrap.setOption("tcpNoDelay", true);
         bootstrap.setOption("keepAlive", true);
         bootstrap.setOption("reuseAddress", true);
         // bootstrap.setOption("connectTimeoutMillis", 120000);
@@ -171,8 +171,23 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         boolean shouldContinue = true;
         while(shouldContinue){
             State s = state.get();
-            if(s !=State.DISCONNECTED) return;
-            shouldContinue = !state.compareAndSet(s,State.CONNECTING);
+            switch (s) {
+                case CONNECTED:
+                    return;
+                case DISCONNECTED:
+                    shouldContinue = !state.compareAndSet(s, State.CONNECTING);
+                    break;
+                case SHUTDOWN:
+                    throw new TimestampIOException("Shutting down");
+                default:
+                    // somebody else is trying to connect
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        throw new TimestampIOException("Interrupted", e);
+                    }
+                    continue;
+            }
         }
 
         try {
@@ -180,6 +195,9 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
             if (LOG.isInfoEnabled()) {
                 SpliceLogUtils.info(LOG, "Attempting to connect to server (host %s, port %s)", timestampHostProvider.getHost(), getPort());
             }
+
+            // clear clientCallback mappings
+            clientCallbacks.clear();
 
             ChannelFuture futureConnect = bootstrap.connect(new InetSocketAddress(timestampHostProvider.getHost(), getPort()));
             final CountDownLatch latchConnect = new CountDownLatch(1);
@@ -208,11 +226,17 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
             }
         }
 
-        // Can only assume connecting (not connected) until channelConnected method is invoked
-        state.set(State.CONNECTING);
+    }
+
+    public long refresh() throws TimestampIOException {
+        return getNextTimestamp(true);
     }
 
     public long getNextTimestamp() throws TimestampIOException {
+        return getNextTimestamp(false);
+    }
+
+    public long getNextTimestamp(boolean refresh) throws TimestampIOException {
 
         // Measure duration of full client request for JMX
         long requestStartTime = System.currentTimeMillis();
@@ -227,12 +251,15 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         // If an entry was already present for this caller id, that is a bug,
         // so throw an exception.
         if (clientCallbacks.putIfAbsent(clientCallId, callback) != null) {
-            doClientErrorThrow(LOG, "Found existing client callback with caller id %s, so unable to handle new call.", null, clientCallId);
+            String msg = String.format("Found existing client callback with caller id %s, so unable to handle new call.", clientCallId);
+            LOG.error(msg + " Callback map size = " + clientCallbacks.size());
+            throw new TimestampIOException(msg);
         }
 
         try {
-            ChannelBuffer buffer = ChannelBuffers.buffer(2);
+            ChannelBuffer buffer = ChannelBuffers.buffer(3);
             buffer.writeShort(clientCallId);
+            buffer.writeByte(refresh?1:0);
             SpliceLogUtils.trace(LOG, "Writing request message to server for client: %s", callback);
             if(channel == null) {
                 throw new TimestampIOException("Unable to connect to TimestampServer");
@@ -242,6 +269,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     if (!future.isSuccess()) {
+                        clientCallbacks.remove(clientCallId);
                         doClientErrorThrow(LOG, "Error writing message from timestamp client to server", future.getCause());
                     } else {
                         SpliceLogUtils.trace(LOG, "Request sent. Waiting for response for client: %s", callback);
@@ -263,10 +291,12 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
             if (!success) {
                 // We timed out, close the channel so that the next request recreates the connection
                 channel.close();
+                clientCallbacks.remove(clientCallId);
                 
                 doClientErrorThrow(LOG, "Client timed out after %s ms waiting for new timestamp: %s", null, timeoutMillis, callback);
             }
         } catch (InterruptedException e) {
+            clientCallbacks.remove(clientCallId);
             doClientErrorThrow(LOG, "Interrupted waiting for timestamp client: %s", e, callback);
         }
 
@@ -275,6 +305,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
 
         long timestamp = callback.getNewTimestamp();
         if (timestamp < 0) {
+            clientCallbacks.remove(clientCallId); // defensive call, this should have already been removed
             doClientErrorThrow(LOG, "Invalid timestamp found for client: %s", null, callback);
         }
 
@@ -372,7 +403,8 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
 
     public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object... args) throws TimestampIOException {
         if (message == null) message = "";
+        message = String.format(message, args);
         TimestampIOException t1 = t != null ? new TimestampIOException(message, t) : new TimestampIOException(message);
-        SpliceLogUtils.logAndThrow(logger, String.format(message, args), t1);
+        SpliceLogUtils.logAndThrow(logger, message, t1);
     }
 }

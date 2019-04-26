@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -46,9 +47,12 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfoList;
 
+import java.sql.Types;
 import java.util.*;
 
 
@@ -103,6 +107,8 @@ public class GroupByNode extends SingleChildResultSetNode{
     private ValueNode havingClause;
 
     private SubqueryList havingSubquerys;
+
+    private GroupByColumn groupingIdColumn;
 
     @Override
     public boolean isParallelizable(){
@@ -257,7 +263,7 @@ public class GroupByNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         if(costEstimate==null){
             throw new RuntimeException("Should not be null");
         }
@@ -311,6 +317,11 @@ public class GroupByNode extends SingleChildResultSetNode{
             if(groupingList!=null){
                 printLabel(depth,"groupingList: ");
                 groupingList.treePrint(depth+1);
+            }
+
+            if (groupingIdColumn != null) {
+                printLabel(depth, "groupingId: ");
+                groupingIdColumn.treePrint(depth+1);
             }
 
             if(havingClause!=null){
@@ -419,7 +430,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         assignResultSetNumber();
 
         // Get the final cost estimate from the child.
-        costEstimate=childResult.getFinalCostEstimate();
+        childResult.getFinalCostEstimate(true);
 
 		/*
 		** Get the column ordering for the sort.  Note that
@@ -484,7 +495,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         }
 		/* Generate a (Distinct)GroupedAggregateResultSet if grouped aggregates */
         else{
-            genGroupedAggregateResultSet(mb);
+            genGroupedAggregateResultSet(acb, mb);
         }
     }
 
@@ -703,11 +714,10 @@ public class GroupByNode extends SingleChildResultSetNode{
      * @see #addNewColumnsForAggregation
      */
     @SuppressWarnings("Convert2Diamond")
-    private List<SubstituteExpressionVisitor> addUnAggColumns() throws StandardException{
+    private List<SubstituteExpressionVisitor> addUnAggColumns(List<SubstituteExpressionVisitor> referencesToSubstitute) throws StandardException{
         ResultColumnList bottomRCL=childResult.getResultColumns();
         ResultColumnList groupByRCL=resultColumns;
 
-        List<SubstituteExpressionVisitor> referencesToSubstitute=new ArrayList<SubstituteExpressionVisitor>();
         List<SubstituteExpressionVisitor> havingRefsToSubstitute=null;
         if(havingClause!=null)
             havingRefsToSubstitute=new ArrayList<SubstituteExpressionVisitor>();
@@ -805,8 +815,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         }
         Comparator<SubstituteExpressionVisitor> sorter=new ExpressionSorter();
         Collections.sort(referencesToSubstitute,sorter);
-        for(SubstituteExpressionVisitor refVisistor : referencesToSubstitute)
-            parent.getResultColumns().accept(refVisistor);
+
         if(havingRefsToSubstitute!=null){
             Collections.sort(havingRefsToSubstitute,sorter);
             // DERBY-4071 Don't substitute quite yet; we need the AggrateNodes
@@ -816,6 +825,62 @@ public class GroupByNode extends SingleChildResultSetNode{
             // havingClause).
         }
         return havingRefsToSubstitute;
+    }
+
+    private void addGroupingIdColumnAndUpdateGroupingFunction() throws StandardException {
+        ResultColumnList bottomRCL=childResult.getResultColumns();
+        ResultColumnList groupByRCL=resultColumns;
+
+        // step 1: add result column to the bottom rcl
+
+        // define groupingId as SQLBit type, where each bit represent one grouping column
+        // in the order the grouping columns appear in the groupByList
+        DataTypeDescriptor bitType = new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.BINARY), true);
+          //      DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BINARY, true);
+
+        groupingIdColumn = (GroupByColumn)getNodeFactory().getNode(
+                C_NodeTypes.GROUP_BY_COLUMN,
+                getNullNode(bitType),
+                getContextManager());
+
+        ResultColumn newRC=(ResultColumn)getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                "##UnaggColumn-GroupingId",
+                groupingIdColumn.getColumnExpression(),
+                getContextManager());
+
+        bottomRCL.addElement(newRC);
+        newRC.markGenerated();
+        newRC.bindResultColumnToExpression();
+        newRC.setVirtualColumnId(bottomRCL.size());
+
+        // add result column to the groupbylist
+        ResultColumn gbRC=(ResultColumn)getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                "##UnaggColumn-GroupingId",
+                groupingIdColumn.getColumnExpression(),
+                getContextManager());
+        groupByRCL.addElement(gbRC);
+        gbRC.markGenerated();
+        gbRC.bindResultColumnToExpression();
+        gbRC.setVirtualColumnId(groupByRCL.size());
+
+        groupingIdColumn.setColumnPosition(bottomRCL.size());
+
+        VirtualColumnNode vc=(VirtualColumnNode)getNodeFactory().getNode(
+                C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                this, // source result set.
+                gbRC,
+                new Integer(groupByRCL.size()), //sometimes the boxing is needed to make it compile
+                getContextManager());
+
+        //update the GROUPING function in the parent result column if any
+        UpdateGroupingFunctionVisitor updateGroupingFunctionVisitor = new UpdateGroupingFunctionVisitor(vc, groupingList, null);
+        parent.getResultColumns().accept(updateGroupingFunctionVisitor);
+        if (havingClause != null)
+            havingClause.accept(updateGroupingFunctionVisitor);
+
+        return;
     }
 
     /**
@@ -897,8 +962,25 @@ public class GroupByNode extends SingleChildResultSetNode{
         List<SubstituteExpressionVisitor> havingRefsToSubstitute=null;
 
         if(groupingList!=null){
-            havingRefsToSubstitute=addUnAggColumns();
+            List<SubstituteExpressionVisitor> referencesToSubstitute=new ArrayList<SubstituteExpressionVisitor>();
+            havingRefsToSubstitute=addUnAggColumns(referencesToSubstitute);
+
+            /* add a grouping_id field as an extra grouping column for rollup.
+               this field is useful for two purpose:
+               1. It can differentiate the rows where the group by column has null value
+                  vs. a rollup row where we set a group by column's value to null
+               2. It provide essential information to support GROUPING() function
+            */
+            if (groupingList.isRollup()) {
+                addGroupingIdColumnAndUpdateGroupingFunction();
+            }
+
+            // let the column references in the parent's result columns point to the aggregate result's result columns
+            for(SubstituteExpressionVisitor refVisistor : referencesToSubstitute)
+                parent.getResultColumns().accept(refVisistor);
         }
+
+
 
         addAggregateColumns();
 
@@ -1148,7 +1230,7 @@ public class GroupByNode extends SingleChildResultSetNode{
     /**
      * Generate the code to evaluate grouped aggregates.
      */
-    private void genGroupedAggregateResultSet(MethodBuilder mb) throws StandardException{
+    private void genGroupedAggregateResultSet(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
 		/* Generate the (Distinct)GroupedAggregateResultSet:
 		 *	arg1: childExpress - Expression for childResult
 		 *  arg2: isInSortedOrder - true if source result set in sorted order
@@ -1166,10 +1248,28 @@ public class GroupByNode extends SingleChildResultSetNode{
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
         mb.push(groupingList.isRollup());
+
+        // pass down groupingId column position and the groupingId value for rollup rows
+        if (groupingList.isRollup()) {
+            mb.push(groupingIdColumn.getColumnPosition()-1);
+            FormatableBitSet[] groupingIds = new FormatableBitSet[groupingList.size()];
+            FormatableBitSet base = new FormatableBitSet(groupingList.size());
+            for (int i=0; i< groupingList.size(); i++) {
+                base.set(i);
+                groupingIds[i] = (FormatableBitSet)base.clone();
+            }
+            FormatableArrayHolder groupingIdArrayHolder = new FormatableArrayHolder(groupingIds);
+            int groupIdArrayItem = acb.addItem(groupingIdArrayHolder);
+            mb.push(groupIdArrayItem);
+        } else {
+            mb.push(-1);
+            mb.push(-1);
+        }
+
         mb.push(printExplainInformationForActivation());
         
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,resultSet,
-                ClassName.NoPutResultSet,11);
+                ClassName.NoPutResultSet, 13);
     }
 
     /**
@@ -1247,7 +1347,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         sb = sb.append(spaceToLevel())
                 .append("GroupBy").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
+        sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

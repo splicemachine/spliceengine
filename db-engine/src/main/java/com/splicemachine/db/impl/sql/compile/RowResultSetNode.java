@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -133,9 +133,9 @@ public class RowResultSetNode extends FromTable {
 
 
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException{
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         if(costEstimate==null){
-            costEstimate = super.getFinalCostEstimate();
+            costEstimate = super.getFinalCostEstimate(false);
         }
         return costEstimate;
     }
@@ -780,7 +780,7 @@ public class RowResultSetNode extends FromTable {
 			SanityManager.ASSERT(resultColumns != null, "Tree structure bad");
 
 		// Get our final cost estimate.
-		costEstimate = getFinalCostEstimate();
+		costEstimate = getFinalCostEstimate(false);
 
 		/*
 		** Check and see if everything below us is a constant or not.
@@ -877,7 +877,7 @@ public class RowResultSetNode extends FromTable {
         return spaceToLevel() +
                 "Values" + "(" +
                 "n=" + order +
-                attrDelim + getFinalCostEstimate().prettyProcessingString(attrDelim) +
+                attrDelim + getFinalCostEstimate(false).prettyProcessingString(attrDelim) +
                 ")";
     }
     @Override

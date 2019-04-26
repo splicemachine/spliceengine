@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -19,11 +19,15 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.pipeline.ErrorState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
@@ -154,5 +158,26 @@ public class EngineUtils{
                 }
             }
         }
+    }
+
+    public static TableDescriptor verifyTableExists(Connection conn, String schema, String table) throws
+            SQLException, StandardException {
+        LanguageConnectionContext lcc = ((EmbedConnection) conn).getLanguageConnection();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor schemaDescriptor = getSchemaDescriptor(schema, lcc, dd);
+        TableDescriptor tableDescriptor = dd.getTableDescriptor(table, schemaDescriptor, lcc.getTransactionExecute());
+        if (tableDescriptor == null)
+            throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schema + "." + table);
+
+        return tableDescriptor;
+    }
+
+    public static SchemaDescriptor getSchemaDescriptor(String schema,
+                                                        LanguageConnectionContext lcc,
+                                                        DataDictionary dd) throws StandardException {
+        SchemaDescriptor schemaDescriptor;
+        if (schema ==null || (schemaDescriptor = dd.getSchemaDescriptor(schema, lcc.getTransactionExecute(), true))==null)
+            throw ErrorState.LANG_SCHEMA_DOES_NOT_EXIST.newException(schema);
+        return schemaDescriptor;
     }
 }

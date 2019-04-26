@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -28,7 +28,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 public abstract class DataValueDescriptorSerializer<T extends DataValueDescriptor> extends Serializer<T> {
 
     @Override
-    public final void write(Kryo kryo, Output output, T object) {
+    public void write(Kryo kryo, Output output, T object) {
         output.writeBoolean(object.isNull());
         if(!object.isNull()){
             try{
@@ -42,7 +42,7 @@ public abstract class DataValueDescriptorSerializer<T extends DataValueDescripto
     protected abstract void writeValue(Kryo kryo, Output output, T object) throws StandardException;
 
     @Override
-    public final T read(Kryo kryo, Input input, Class<T> type) {
+    public T read(Kryo kryo, Input input, Class<T> type) {
         try {
             T dvd = type.newInstance();
             if(!input.readBoolean())

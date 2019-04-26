@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -41,11 +41,11 @@ import java.util.List;
 
 public class V2TxnDecoder implements TxnDecoder{
     public static final V2TxnDecoder INSTANCE=new V2TxnDecoder();
-    private static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
+    public static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
     static final byte[] DATA_QUALIFIER_BYTES=Bytes.toBytes("d");
     static final byte[] KEEP_ALIVE_QUALIFIER_BYTES=Bytes.toBytes("k");
-    static final byte[] COMMIT_QUALIFIER_BYTES=Bytes.toBytes("t");
-    static final byte[] GLOBAL_COMMIT_QUALIFIER_BYTES=Bytes.toBytes("g");
+    public static final byte[] COMMIT_QUALIFIER_BYTES=Bytes.toBytes("t");
+    public static final byte[] GLOBAL_COMMIT_QUALIFIER_BYTES=Bytes.toBytes("g");
     static final byte[] STATE_QUALIFIER_BYTES=Bytes.toBytes("s");
     static final byte[] DESTINATION_TABLE_QUALIFIER_BYTES=Bytes.toBytes("e"); //had to pick a letter that was unique
     static final byte[] ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES=Bytes.toBytes("r"); //had to pick a letter that was unique
@@ -81,18 +81,24 @@ public class V2TxnDecoder implements TxnDecoder{
                 destinationTables=kv;
             else if(CellUtils.singleMatchingColumn(kv,FAMILY,ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES))
                 rollbackIds=kv;
+            else if(CellUtils.singleMatchingColumn(kv,FAMILY,TASK_QUALIFIER_BYTES))
+                taskId=kv;
         }
         if(dataKv==null) return null;
 
         long txnId=TxnUtils.txnIdFromRowKey(dataKv.getRowArray(),dataKv.getRowOffset(),dataKv.getRowLength());
-        return decodeInternal(txnStore,dataKv,keepAliveKv,commitKv,globalCommitKv,stateKv,destinationTables,txnId, rollbackIds);
+        return decodeInternal(txnStore,dataKv,keepAliveKv,commitKv,globalCommitKv,stateKv,destinationTables,txnId, rollbackIds,taskId);
     }
 
     @Override
     public TxnMessage.TaskId decodeTaskId(RegionTxnStore txnStore,
-                                 long txnId,Result result) throws IOException{
+                                 long txnId,Result result) throws IOException {
         Cell taskKv=result.getColumnLatestCell(FAMILY,TASK_QUALIFIER_BYTES);
+        return decodeTaskId(taskKv);
+    }
 
+
+    public TxnMessage.TaskId decodeTaskId(Cell taskKv) {
         if(taskKv==null) return null;
         MultiFieldDecoder decoder=MultiFieldDecoder.wrap(taskKv.getValueArray(),taskKv.getValueOffset(),taskKv.getValueLength());
         String jtId=decoder.decodeNextString();
@@ -101,7 +107,7 @@ public class V2TxnDecoder implements TxnDecoder{
         int partitionId=decoder.decodeNextInt();
         int attemptNumber=decoder.decodeNextInt();
 
-        return TxnMessage.TaskId.newBuilder().setJtId(jtId).setJobId(jobId).setStageId(stageId).setPartitionId(partitionId).setTaskAttemptNumber(attemptNumber).build();
+        return TxnMessage.TaskId.newBuilder().setStageId(stageId).setPartitionId(partitionId).setTaskAttemptNumber(attemptNumber).build();
     }
 
     @Override
@@ -114,9 +120,10 @@ public class V2TxnDecoder implements TxnDecoder{
         Cell destinationTables=result.getColumnLatestCell(FAMILY,DESTINATION_TABLE_QUALIFIER_BYTES);
         Cell kaTime=result.getColumnLatestCell(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES);
         Cell rollbackIds=result.getColumnLatestCell(FAMILY,ROLLBACK_SUBTRANSACTIONS_QUALIFIER_BYTES);
+        Cell taskKv=result.getColumnLatestCell(FAMILY,TASK_QUALIFIER_BYTES);
 
         if(dataKv==null) return null;
-        return decodeInternal(txnStore,dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId,rollbackIds);
+        return decodeInternal(txnStore,dataKv,kaTime,commitTsVal,globalTsVal,stateKv,destinationTables,txnId,rollbackIds, taskKv);
     }
 
     protected long toLong(Cell data){
@@ -125,7 +132,7 @@ public class V2TxnDecoder implements TxnDecoder{
 
     protected TxnMessage.Txn decodeInternal(RegionTxnStore txnStore,
                                             Cell dataKv, Cell keepAliveKv, Cell commitKv, Cell globalCommitKv,
-                                            Cell stateKv, Cell destinationTables, long txnId, Cell rollbackIds){
+                                            Cell stateKv, Cell destinationTables, long txnId, Cell rollbackIds, Cell taskKv){
         long subId = txnId & SIConstants.SUBTRANSANCTION_ID_MASK;
 
         MultiFieldDecoder decoder=MultiFieldDecoder.wrap(dataKv.getValueArray(),dataKv.getValueOffset(),dataKv.getValueLength());
@@ -176,8 +183,12 @@ public class V2TxnDecoder implements TxnDecoder{
         if (subId != 0 && rollbackSubIds.contains(subId)) {
             state = Txn.State.ROLLEDBACK;
         }
+        TxnMessage.TaskId taskId = null;
+        if (taskKv != null) {
+            taskId = decodeTaskId(taskKv);
+        }
         return composeValue(destinationTables,level,txnId,beginTs,parentTxnId,hasAdditive,
-                isAdditive,commitTs,globalTs,state,kaTime,rollbackSubIds);
+                isAdditive,commitTs,globalTs,state,kaTime,rollbackSubIds,taskId);
 
     }
 
@@ -266,7 +277,7 @@ public class V2TxnDecoder implements TxnDecoder{
         if (txnInfo.hasTaskId()) {
             TxnMessage.TaskId taskId = txnInfo.getTaskId();
             MultiFieldEncoder taskIdEncoder=MultiFieldEncoder.create(5);
-            taskIdEncoder.encodeNext(taskId.getJtId()).encodeNext(taskId.getJobId())
+            taskIdEncoder.encodeNext("").encodeNext(0)
                     .encodeNext(taskId.getStageId()).encodeNext(taskId.getPartitionId()).encodeNext(taskId.getTaskAttemptNumber());
             put.addColumn(FAMILY,TASK_QUALIFIER_BYTES,taskIdEncoder.build());
         }
@@ -275,8 +286,8 @@ public class V2TxnDecoder implements TxnDecoder{
 
     protected TxnMessage.Txn composeValue(Cell destinationTables,
                                           Txn.IsolationLevel level, long txnId, long beginTs, long parentTs, boolean hasAdditive,
-                                          boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime, List<Long> rollbackSubIds){
-        return TXNDecoderUtils.composeValue(destinationTables,level,txnId,beginTs,parentTs,hasAdditive,additive,commitTs,globalCommitTs,state,kaTime,rollbackSubIds);
+                                          boolean additive, long commitTs, long globalCommitTs, Txn.State state, long kaTime, List<Long> rollbackSubIds, TxnMessage.TaskId taskId){
+        return TXNDecoderUtils.composeValue(destinationTables,level,txnId,beginTs,parentTs,hasAdditive,additive,commitTs,globalCommitTs,state,kaTime,rollbackSubIds,taskId);
     }
 
     @Override
@@ -332,6 +343,6 @@ public class V2TxnDecoder implements TxnDecoder{
         }
         long kaTime=decodeKeepAlive(keepAliveKv,false);
         return composeValue(destinationTables,level,txnId,beginTs,parentTxnId,hasAdditive,
-                isAdditive,commitTs,globalTs,state,kaTime,Collections.emptyList());
+                isAdditive,commitTs,globalTs,state,kaTime,Collections.emptyList(), null);
     }
 }

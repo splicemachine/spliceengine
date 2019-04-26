@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -174,7 +174,7 @@ public class DistinctNode extends SingleChildResultSetNode
 			throws StandardException
 	{
         costEstimate = getNewCostEstimate();
-        CostEstimate baseCost = childResult.getFinalCostEstimate();
+        CostEstimate baseCost = childResult.getFinalCostEstimate(true);
 		double rc = baseCost.rowCount() > 1? baseCost.rowCount():1;
         double outputHeapSizePerRow = baseCost.getEstimatedHeapSize()/rc;
         double remoteCostPerRow=baseCost.remoteCost()/rc;
@@ -303,7 +303,7 @@ public class DistinctNode extends SingleChildResultSetNode
 		assignResultSetNumber();
 
 		// Get the final cost estimate based on the child's cost.
-		costEstimate = getFinalCostEstimate();
+		costEstimate = getFinalCostEstimate(false);
 
 		/*
 			create the orderItem and stuff it in.
@@ -341,13 +341,13 @@ public class DistinctNode extends SingleChildResultSetNode
 
 
     @Override
-    public CostEstimate getFinalCostEstimate() throws StandardException {
+    public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException {
 
         if (costEstimate != null) {
             finalCostEstimate = costEstimate;
         }
         else {
-            finalCostEstimate = childResult.getFinalCostEstimate();
+            finalCostEstimate = childResult.getFinalCostEstimate(true);
         }
         return finalCostEstimate;
     }
@@ -358,7 +358,7 @@ public class DistinctNode extends SingleChildResultSetNode
         sb = sb.append(spaceToLevel())
                 .append("Distinct").append("(")
                 .append("n=").append(order);
-        sb.append(attrDelim).append(getFinalCostEstimate().prettyProcessingString(attrDelim));
+        sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
     }

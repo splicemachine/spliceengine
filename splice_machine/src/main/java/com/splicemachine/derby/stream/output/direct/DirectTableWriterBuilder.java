@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -61,6 +61,11 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     @Override
     public DataSetWriterBuilder skipIndex(boolean skipIndex){
         this.skipIndex = skipIndex;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder updateCounts(int[] updateCounts) {
         return this;
     }
 

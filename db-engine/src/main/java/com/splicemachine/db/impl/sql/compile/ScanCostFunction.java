@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
@@ -154,9 +155,9 @@ public class ScanCostFunction{
      * @throws StandardException
      */
     public void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException{
-        if (p.isMultiProbeQualifier(keyColumns)) // MultiProbeQualifier against keys (BASE)
-            addSelectivity(new InListSelectivity(scc,p,QualifierPhase.BASE, defaultSelectivityFactor));
-        else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
+        if (p.isMultiProbeQualifier(keyColumns)) {// MultiProbeQualifier against keys (BASE)
+            addSelectivity(new InListSelectivity(scc, p, QualifierPhase.BASE, defaultSelectivityFactor));
+        } else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
             addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
         else if (p.isInQualifier(lookupColumns)) // In Qualifier against looked up columns (FILTER_PROJECTION)
             addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
@@ -213,9 +214,16 @@ public class ScanCostFunction{
         scanCost.setFromBaseTableCost(baseCost);
         scanCost.setScannedBaseTableRows(totalRowCount);
         double lookupCost;
-        if (lookupColumns == null)
+        if (lookupColumns == null) {
             lookupCost = 0.0d;
-        else {
+
+            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
+               from the previous access path
+               see how the cost and rowcount are initialized in SimpleCostEstimate
+             */
+            scanCost.setIndexLookupRows(-1.0d);
+            scanCost.setIndexLookupCost(-1.0d);
+        } else {
             lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
             scanCost.setIndexLookupRows(totalRowCount);
             scanCost.setIndexLookupCost(lookupCost+baseCost);
@@ -316,9 +324,15 @@ public class ScanCostFunction{
         // set how many base table rows to scan
         scanCost.setScannedBaseTableRows(Math.round(baseTableSelectivity * totalRowCount));
         double lookupCost;
-        if (lookupColumns == null)
+        if (lookupColumns == null) {
             lookupCost = 0.0d;
-        else {
+            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
+               from the previous access path
+               see how the cost and rowcount are initialized in SimpleCostEstimate
+             */
+            scanCost.setIndexLookupRows(-1.0d);
+            scanCost.setIndexLookupCost(-1.0d);
+        } else {
             lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
             scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
             scanCost.setIndexLookupCost(lookupCost+baseCost);
@@ -326,9 +340,15 @@ public class ScanCostFunction{
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
 
         double projectionCost;
-        if (projectionSelectivity == 1.0d)
+        if (projectionSelectivity == 1.0d) {
             projectionCost = 0.0d;
-        else {
+            /* we need to reset the lookup cost here, otherwise, we may see the lookup cost
+               from the previous access path
+               see how the cost and rowcount are initialized in SimpleCostEstimate
+             */
+            scanCost.setProjectionRows(-1.0d);
+            scanCost.setProjectionCost(-1.0d);
+        } else {
             projectionCost = totalRowCount * filterBaseTableSelectivity * localLatency * colSizeFactor*1d/1000d;
             scanCost.setProjectionRows(Math.round(scanCost.getEstimatedRowCount()));
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
@@ -475,15 +495,21 @@ public class ScanCostFunction{
     private boolean addRangeQualifier(Predicate p,QualifierPhase phase, double selectivityFactor) throws StandardException{
         DataValueDescriptor value=p.getCompareValue(baseTable);
         RelationalOperator relop=p.getRelop();
-        int colNum = relop.getColumnOperand(baseTable).getColumnNumber();
+        ColumnReference cr = relop.getColumnOperand(baseTable);
+        ColumnDescriptor columnDescriptor = cr.getSource().getTableColumnDescriptor();
+        boolean useExtrapolation = false;
+        if (columnDescriptor != null)
+            useExtrapolation = columnDescriptor.getUseExtrapolation() != 0;
+
+        int colNum = cr.getColumnNumber();
         int relationalOperator = relop.getOperator();
         List<SelectivityHolder> columnHolder = getSelectivityListForColumn(colNum);
         OP_SWITCH: switch(relationalOperator){
             case RelationalOperator.EQUALS_RELOP:
-                columnHolder.add(new RangeSelectivity(scc,value,value,true,true,colNum,phase, selectivityFactor));
+                columnHolder.add(new RangeSelectivity(scc,value,value,true,true,colNum,phase, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.NOT_EQUALS_RELOP:
-                columnHolder.add(new NotEqualsSelectivity(scc,colNum,phase,value, selectivityFactor));
+                columnHolder.add(new NotEqualsSelectivity(scc,colNum,phase,value, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.IS_NULL_RELOP:
                 columnHolder.add(new NullSelectivity(scc,colNum,phase));
@@ -502,7 +528,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,true,true,colNum,phase, selectivityFactor));
+                columnHolder.add(new RangeSelectivity(scc,value,null,true,true,colNum,phase, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.GREATER_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -515,7 +541,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,false,true,colNum,phase, selectivityFactor));
+                columnHolder.add(new RangeSelectivity(scc,value,null,false,true,colNum,phase, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.LESS_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -528,7 +554,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,true,colNum,phase, selectivityFactor));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,true,colNum,phase, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -541,7 +567,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,false,colNum,phase, selectivityFactor));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,false,colNum,phase, selectivityFactor, useExtrapolation));
                 break;
             default:
                 throw new RuntimeException("Unknown Qualifier Type");

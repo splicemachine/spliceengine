@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -45,7 +45,7 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
      * @return a new transactional filter for the region
      * @throws IOException if something goes wrong.
      */
-    TxnFilter unpackedFilter(TxnView txn) throws IOException;
+    TxnFilter unpackedFilter(TxnView txn, boolean ignoreRecentTransactions) throws IOException;
 
     TxnFilter packedFilter(TxnView txn, EntryPredicateFilter predicateFilter, boolean countStar) throws IOException;
 
@@ -67,7 +67,8 @@ public interface TransactionalRegion<InternalScanner> extends AutoCloseable{
     Iterable<MutationStatus> bulkWrite(TxnView txn,
                                        byte[] family, byte[] qualifier,
                                        ConstraintChecker constraintChecker,
-                                       Collection<KVPair> data, boolean skipConflictDetection, boolean skipWAL) throws IOException;
+                                       Collection<KVPair> data, boolean skipConflictDetection,
+                                       boolean skipWAL, boolean rollforward) throws IOException;
 
     String getRegionName();
 
