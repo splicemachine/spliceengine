@@ -127,6 +127,31 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
                 "USING (v_o_id)")
             .create();
 
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE t3 (\n" +
+                        "a3 varchar(6), b3 varchar(6))")
+                .withInsert("insert into t3(a3,b3) values(?,?)")
+                .withRows(rows(row("1", "a"),
+                        row("2", "b"),
+                        row("3", "c"),
+                        row("4", "d"),
+                        row("5", "e"),
+                        row("6", "f"),
+                        row("7", "g"),
+                        row("8", "h"),
+                        row("9", "i"),
+                        row("10", "j"),
+                        row("11", "k"),
+                        row("12", "l")))
+                .create();
+        conn.commit();
+
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE t4 (\n" +
+                        "a4 varchar(6), b4 varchar(6))")
+                .withInsert("insert into t4(a4, b4) values(?,?)")
+                .withRows(rows(row("1", "a")))
+                .create();
         conn.commit();
     }
 
@@ -301,5 +326,170 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
             conn.rollback();
             conn.setAutoCommit(oldAutoCommit);
         }
+    }
+
+    @Test
+    public void testNLJWithUnionAndTopN() throws Exception {
+        /* test control path */
+        String sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=false\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select top 1 * from t4) S\n" +
+                "        UNION\n" +
+                "        SELECT *\n" +
+                "        FROM (select  top 1 * from t4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        String expected = "B3 |\n" +
+                "----\n" +
+                " a |";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* check that plan should not push down the predicate under top N */
+        /* the plan should look like the following: the predicate of t3.A3=V.A4 should not be applied on TableScan(n=3,5) of T4
+           due to the limit operation, but on the ProjectRestrict step (n=9)
+        Plan
+        ---------------------------------------------------------------------------------------------------
+        Cursor(n=13,rows=400,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=12,totalCost=177.8,outputRows=400,outputHeapSize=400 B,partitions=1)
+            ->  ProjectRestrict(n=11,totalCost=169.4,outputRows=400,outputHeapSize=400 B,partitions=1)
+              ->  NestedLoopJoin(n=10,totalCost=169.4,outputRows=400,outputHeapSize=400 B,partitions=1)
+                ->  ProjectRestrict(n=9,totalCost=169.4,outputRows=400,outputHeapSize=400 B,partitions=1,preds=[(T3.A3[1:1] = V.A4[16:1])])
+                  ->  Distinct(n=8,totalCost=169.4,outputRows=400,outputHeapSize=400 B,partitions=1)
+                    ->  Union(n=7,totalCost=169.4,outputRows=400,outputHeapSize=400 B,partitions=1)
+                      ->  Limit(n=6,totalCost=0.212,outputRows=1,outputHeapSize=2 B,partitions=1,fetchFirst=1)
+                        ->  TableScan[T4(44240)](n=5,totalCost=0.202,scannedRows=1,outputRows=1,outputHeapSize=2 B,partitions=1)
+                      ->  Limit(n=4,totalCost=0.212,outputRows=1,outputHeapSize=2 B,partitions=1,fetchFirst=1)
+                        ->  TableScan[T4(44240)](n=3,totalCost=0.202,scannedRows=1,outputRows=1,outputHeapSize=2 B,partitions=1)
+                ->  ProjectRestrict(n=2,totalCost=4.04,outputRows=10,outputHeapSize=20 B,partitions=1,preds=[like(B3[0:2], %)])
+                  ->  TableScan[T3(44224)](n=1,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
+        13 rows selected
+         */
+        rs = methodWatcher.executeQuery("explain " + sql);
+        int level = 5;
+        for(int i=0;i<level;i++){
+            rs.next();
+        }
+        String actualString=rs.getString(1);
+        String failMessage=String.format("expected result of query '%s' to contain '%s' at row %,d but did not, actual result was '%s'",
+                sql,"ProjectRestrict and preds",level,actualString);
+        Assert.assertTrue(failMessage,actualString.contains("ProjectRestrict") && actualString.contains("preds"));
+
+
+        /* test spark path */
+        sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=true\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select top 1 * from t4) S\n" +
+                "        UNION\n" +
+                "        SELECT *\n" +
+                "        FROM (select  top 1 * from t4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNLJWithUnion() throws Exception {
+        /* test control path */
+        String sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=false\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4) S\n" +
+                "        UNION\n" +
+                "        SELECT *\n" +
+                "        FROM (select * from t4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        String expected = "B3 |\n" +
+                "----\n" +
+                " a |";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* test spark path */
+        sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=true\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4) S\n" +
+                "        UNION\n" +
+                "        SELECT *\n" +
+                "        FROM (select * from t4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNLJWithRightTableContainsSubquery() throws Exception {
+        /* test control path */
+        String sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=false\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4 where b4 in (values 'a', 'd')) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        String expected = "B3 |\n" +
+                "----\n" +
+                " a |";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* test spark path */
+        sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=true\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4 where b4 in (values 'a', 'd')) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNLJWithRightTableContainsUnionAndJoin() throws Exception {
+                /* test control path */
+        String sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=false\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4) S\n" +
+                "        UNION\n" +
+                "        SELECT *\n" +
+                "        FROM (select X.* from t4 as X, t4 as Y where X.a4=Y.a4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        String expected = "B3 |\n" +
+                "----\n" +
+                " a |";
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* test spark path */
+        sql = "select b3\n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "        t3 --splice-properties useSpark=true\n" +
+                "        , (SELECT *\n" +
+                "        FROM (select * from t4) S\n" +
+                "        UNION\n" +
+                "        SELECT *\n" +
+                "        FROM (select X.* from t4 as X, t4 as Y where X.a4=Y.a4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
+        rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 }
