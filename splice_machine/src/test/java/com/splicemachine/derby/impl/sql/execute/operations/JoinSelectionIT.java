@@ -526,4 +526,59 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         rs.next();
         Assert.assertEquals("wrong result", 1280, rs.getInt(1));
     }
+
+    @Test
+    public void testRepetivePredicateWithAndedPreds() throws Exception {
+
+        // predicates that repeat in all sub-clauses are all extracted as hashable join predicates
+        rowContainsQuery(4,
+                "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)",
+                BROADCAST_JOIN, methodWatcher);
+
+        rowContainsQuery(4,
+                "explain select * from a, b where ((a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)) and a.k=3",
+                "preds=[(A.I[4:4] = B.I[4:1])]", methodWatcher);
+
+        rowContainsQuery(5,
+                "explain select * from a, b where ((a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)) and b.k=3",
+                "preds=[(A.J[0:2] IN (1,2))]", methodWatcher);
+
+        rowContainsQuery(4,
+                "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
+                BROADCAST_JOIN, methodWatcher);
+
+        rowContainsQuery(3,
+                "explain select * from a, b where ((a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)) and b.k=3",
+                "preds=[(A.J[4:2] = B.J[4:5]),(A.I[4:1] = B.I[4:4])]", methodWatcher);
+
+        rowContainsQuery(5,
+                "explain select * from a, b where ((a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)) and b.k=3",
+                "preds=[(A.J[0:2] IN (1,2))]", methodWatcher);
+
+        rowContainsQuery(4,
+                "explain select * from a, b where ((a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)) and b.k=3",
+                "preds=[(B.K[2:3] = 3)]", methodWatcher);
+
+        // Test DNF in nested level
+        rowContainsQuery(5,
+                "explain select * from a, b where (((a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)) and a.k=3) and b.k=3",
+                "preds=[(A.J[2:2] IN (1,2))]", methodWatcher);
+
+
+        // Negative test: predicate does not repeat in all clauses
+        thirdRowContainsQuery(
+                "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2) or (b.j=1)",
+                NESTED_LOOP_JOIN, methodWatcher);
+
+        fourthRowContainsQuery(
+                "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2) or (b.j=1)",
+                "preds=[(((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 1) and true)) or (((A.I[1:1] = B.I[2:1]) and ((A.J[1:2] = 2) and true)) or ((B.J[2:2] = 1) or false)))]", methodWatcher);
+
+        thirdRowContainsQuery(
+                "explain select * from a, b where ((a.i = b.i and a.j=1) or (a.i = b.i+1 and a.j=2)) and a.k=3",
+                NESTED_LOOP_JOIN, methodWatcher);
+
+
+    }
+
 }
