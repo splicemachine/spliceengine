@@ -174,6 +174,17 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
             // is the predicate a DNF?
             if (isDNF(newNode))
                 n = numClauses(newNode);
+            else if (newNode instanceof AndNode) {
+                ValueNode newLeftNode= (ValueNode)defaultVisit(((AndNode) node).getLeftOperand());
+                ValueNode newRightNode = (ValueNode)defaultVisit(((AndNode) node).getRightOperand());
+                if (!newLeftNode.equals(((AndNode) node).getLeftOperand()) || !newRightNode.equals(((AndNode) node).getRightOperand()))
+                    newNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
+                            C_NodeTypes.AND_NODE,
+                            newLeftNode,
+                            newRightNode,
+                            ((ValueNode) node).getContextManager());
+                updatedNode = newNode;
+            }
 
             if (n<=1)
                  return updatedNode;
@@ -191,7 +202,6 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
                             newNode,
                             ((ValueNode) node).getContextManager());
                 }
-
             }
             updatedNode = newNode;
         }
