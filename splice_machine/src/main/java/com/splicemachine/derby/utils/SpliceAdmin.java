@@ -39,10 +39,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.drda.RemoteUser;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.db.impl.jdbc.EmbedResultSet;
-import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
-import com.splicemachine.db.impl.jdbc.ResultSetBuilder;
+import com.splicemachine.db.impl.jdbc.*;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
@@ -793,62 +790,59 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     public static void SYSCS_GET_SCHEMA_INFO(final ResultSet[] resultSet) throws SQLException{
         List<ExecRow> results=new ArrayList<>();
-        try(PreparedStatement preparedStatement=SpliceAdmin.getDefaultConn().prepareStatement("SELECT S.SCHEMANAME, T.TABLENAME, " +
-                "C.ISINDEX, "+
-                "C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMASVIEW S "+
-                "WHERE C.TABLEID = T.TABLEID AND T.SCHEMAID = S.SCHEMAID AND T.TABLETYPE not in ('S','E') "+
-                "ORDER BY S.SCHEMANAME")){
-            try(ResultSet allTablesInSchema=preparedStatement.executeQuery()){
+        EmbedConnection defaultConn=(EmbedConnection)SpliceAdmin.getDefaultConn();
+        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)defaultConn.getMetaData();
 
-                ExecRow template;
-                try{
-                    DataValueDescriptor[] columns=new DataValueDescriptor[SpliceAdmin.SCHEMA_INFO_COLUMNS.length];
-                    for(int i=0;i<SpliceAdmin.SCHEMA_INFO_COLUMNS.length;i++){
-                        columns[i]=SpliceAdmin.SCHEMA_INFO_COLUMNS[i].getType().getNull();
-                    }
-                    template=new ValueRow(columns.length);
-                    template.setRowArray(columns);
-                }catch(StandardException e){
-                    throw PublicAPI.wrapStandardException(e);
+        try(ResultSet allTablesInSchema=dmd.getSchemasInfo()){
+
+            ExecRow template;
+            try{
+                DataValueDescriptor[] columns=new DataValueDescriptor[SpliceAdmin.SCHEMA_INFO_COLUMNS.length];
+                for(int i=0;i<SpliceAdmin.SCHEMA_INFO_COLUMNS.length;i++){
+                    columns[i]=SpliceAdmin.SCHEMA_INFO_COLUMNS[i].getType().getNull();
                 }
+                template=new ValueRow(columns.length);
+                template.setRowArray(columns);
+            }catch(StandardException e){
+                throw PublicAPI.wrapStandardException(e);
+            }
 
-                try(PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin()){
-                    while(allTablesInSchema.next()){
-                        String conglom=allTablesInSchema.getObject("CONGLOMERATENUMBER").toString();
-                        for(Partition ri : admin.allPartitions(conglom)){
-                            String regionName=ri.getName();//Bytes.toString(ri.getRegionName());
-                            int storefileSizeMB=0;
-                            int memStoreSizeMB=0;
-                            int storefileIndexSizeMB=0;
-                            if(regionName!=null && !regionName.isEmpty()){
-                                PartitionLoad regionLoad=ri.getLoad();//regionLoadMap.get(regionName);
-                                if(regionLoad!=null){
-                                    storefileSizeMB=regionLoad.getStorefileSizeMB();
-                                    memStoreSizeMB=regionLoad.getMemStoreSizeMB();
-                                    storefileIndexSizeMB=regionLoad.getStorefileIndexSizeMB();
-                                }
+            try(PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin()){
+                while(allTablesInSchema.next()){
+                    String conglom=allTablesInSchema.getObject("CONGLOMERATENUMBER").toString();
+                    for(Partition ri : admin.allPartitions(conglom)){
+                        String regionName=ri.getName();//Bytes.toString(ri.getRegionName());
+                        int storefileSizeMB=0;
+                        int memStoreSizeMB=0;
+                        int storefileIndexSizeMB=0;
+                        if(regionName!=null && !regionName.isEmpty()){
+                            PartitionLoad regionLoad=ri.getLoad();//regionLoadMap.get(regionName);
+                            if(regionLoad!=null){
+                                storefileSizeMB=regionLoad.getStorefileSizeMB();
+                                memStoreSizeMB=regionLoad.getMemStoreSizeMB();
+                                storefileIndexSizeMB=regionLoad.getStorefileIndexSizeMB();
                             }
-                            DataValueDescriptor[] cols=template.getRowArray();
-                            try{
-                                cols[0].setValue(allTablesInSchema.getString("SCHEMANAME"));
-                                cols[1].setValue(allTablesInSchema.getString("TABLENAME"));
-                                cols[2].setValue(regionName);
-                                cols[3].setValue(allTablesInSchema.getBoolean("ISINDEX"));
-                                cols[4].setValue(storefileSizeMB);
-                                cols[5].setValue(memStoreSizeMB);
-                                cols[6].setValue(storefileIndexSizeMB);
-                            }catch(StandardException se){
-                                throw PublicAPI.wrapStandardException(se);
-                            }
-                            results.add(template.getClone());
                         }
+                        DataValueDescriptor[] cols=template.getRowArray();
+                        try{
+                            cols[0].setValue(allTablesInSchema.getString("SCHEMANAME"));
+                            cols[1].setValue(allTablesInSchema.getString("TABLENAME"));
+                            cols[2].setValue(regionName);
+                            cols[3].setValue(allTablesInSchema.getBoolean("ISINDEX"));
+                            cols[4].setValue(storefileSizeMB);
+                            cols[5].setValue(memStoreSizeMB);
+                            cols[6].setValue(storefileIndexSizeMB);
+                        }catch(StandardException se){
+                            throw PublicAPI.wrapStandardException(se);
+                        }
+                        results.add(template.getClone());
                     }
-                }catch(IOException ioe){
-                    throw PublicAPI.wrapStandardException(Exceptions.parseException(ioe));
                 }
+            }catch(IOException ioe){
+                throw PublicAPI.wrapStandardException(Exceptions.parseException(ioe));
             }
         }
-        EmbedConnection defaultConn=(EmbedConnection)SpliceAdmin.getDefaultConn();
+
         Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
         IteratorNoPutResultSet resultsToWrap=new IteratorNoPutResultSet(results,SpliceAdmin.SCHEMA_INFO_COLUMNS,lastActivation);
         try{
@@ -1397,36 +1391,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
      */
     public static void SNAPSHOT_SCHEMA(String schemaName, String snapshotName) throws Exception
     {
-        String sql1 =
-                "select tablename,conglomeratenumber " +
-                        "from sys.sysschemasview s, sys.systables t, sys.sysconglomerates c " +
-                        "where s.schemaid=t.schemaid and " +
-                        "c.tableid = t.tableid and " +
-                        "c.schemaid=s.schemaid and " +
-                        "s.schemaname=? and " +
-                        "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
-                        "isindex=false and " +
-                        "isconstraint=false";
-
-        String sql2 =
-                "select conglomeratename, conglomeratenumber " +
-                        "from sys.sysschemasview s, sys.systables t, sys.sysconglomerates c " +
-                        "where s.schemaid=t.schemaid and " +
-                        "c.schemaid=s.schemaid and " +
-                        "c.tableid = t.tableid and " +
-                        "s.schemaname=? and " +
-                        "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
-                        "(isconstraint=true or isindex=true)";
-
         ensureSnapshot(snapshotName, false);
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
-        if (sd == null)
-        {
-            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
-        }
+
+        EngineUtils.checkSchemaVisibility(schemaName);
 
         dd.startWriting(lcc);
 
@@ -1434,10 +1404,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         List<String> snapshotList = Lists.newArrayList();
         try
         {
-            ResultSet rs = getResultSet(sql1, schemaName, null);
-            snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
-
-            rs = getResultSet(sql2, schemaName, null);
+            ResultSet rs = getTablesForSnapshot(schemaName, null);
             snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
         }
         catch (Exception e)
@@ -1449,33 +1416,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
     public static void SNAPSHOT_TABLE(String schemaName, String tableName, String snapshotName) throws Exception
     {
-        String sql1 =
-                "select tablename,conglomeratenumber " +
-                        "from sys.sysschemasview s, sys.systables t, sys.sysconglomerates c " +
-                        "where s.schemaid=t.schemaid and " +
-                        "c.tableid = t.tableid and " +
-                        "c.schemaid=s.schemaid and " +
-                        "s.schemaname=? and " +
-                        "isindex=false and " +
-                        "isconstraint=false and " +
-                        "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
-                        "t.tablename=?"; 
-
-        String sql2 =
-                "select conglomeratename, conglomeratenumber " +
-                        "from sys.sysschemasview s, sys.systables t, sys.sysconglomerates c " +
-                        "where s.schemaid=t.schemaid and " +
-                        "c.schemaid=s.schemaid and " +
-                        "s.schemaname=? and " +
-                        "(s.schemaname<>'SYS' or t.tablename<>'SYSSNAPSHOTS') and " +
-                        "t.tablename=? and" +
-                        "(isconstraint=true or isindex=true) and " +
-                        "t.tableid=c.tableid";
-
         ensureSnapshot(snapshotName, false);
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
+
+        EngineUtils.checkSchemaVisibility(schemaName);
+
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
         if (sd == null)
         {
@@ -1494,10 +1441,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         try {
             dd.startWriting(lcc);
 
-            ResultSet rs = getResultSet(sql1, schemaName, tableName);
-            snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
-
-            rs = getResultSet(sql2, schemaName, tableName);
+            ResultSet rs = getTablesForSnapshot(schemaName, tableName);
             snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
         }
         catch (Exception e)
@@ -1522,25 +1466,22 @@ public class SpliceAdmin extends BaseAdminProcedures{
         dd.startWriting(lcc);
 
         PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
-        String sql = "select conglomeratenumber from sys.syssnapshots where snapshotname=?";
         Connection connection = getDefaultConn();
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ps.setString(1, snapshotName);
-        ResultSet rs = ps.executeQuery();
-        while (rs.next())
-        {
-            long conglomerateNumber = rs.getLong(1);
-            String sname = snapshotName + "_" + conglomerateNumber;
-            if (LOG.isDebugEnabled())
-            {
-                SpliceLogUtils.debug(LOG, "deleting snapshot %s for table %d", sname, conglomerateNumber);
-            }
-            admin.deleteSnapshot(sname);
-            dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
+        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)connection.getMetaData();
+        try (ResultSet rs = dmd.checkSnapshotExists(snapshotName)) {
 
-            if (LOG.isDebugEnabled())
-            {
-                SpliceLogUtils.debug(LOG, "deleted snapshot %s for table %d", sname, conglomerateNumber);
+            while (rs.next()) {
+                long conglomerateNumber = rs.getLong(3);
+                String sname = snapshotName + "_" + conglomerateNumber;
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "deleting snapshot %s for table %d", sname, conglomerateNumber);
+                }
+                admin.deleteSnapshot(sname);
+                dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
+
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "deleted snapshot %s for table %d", sname, conglomerateNumber);
+                }
             }
         }
     }
@@ -1559,53 +1500,41 @@ public class SpliceAdmin extends BaseAdminProcedures{
         dd.startWriting(lcc);
 
         PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin();
-        String sql =
-                "select schemaName, objectName, conglomeratenumber, creationTime " +
-                "from sys.syssnapshots " +
-                "where snapshotname=?";
-
         Connection connection = getDefaultConn();
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ps.setString(1, snapshotName);
-        ResultSet rs = ps.executeQuery();
-        while (rs.next())
-        {
-            String schemaName = rs.getString(1);
-            String objectName = rs.getString(2);
-            long conglomerateNumber = rs.getLong(3);
-            DateTime creationTime = new DateTime(rs.getTimestamp(4));
-            DateTime lastRestoreTime = new DateTime(System.currentTimeMillis());
-            String sname = snapshotName + "_" + conglomerateNumber;
+        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)connection.getMetaData();
+        try (ResultSet rs = dmd.checkSnapshotExists(snapshotName)) {
 
-            if (LOG.isDebugEnabled())
-            {
-                SpliceLogUtils.debug(LOG, "restoring snapshot %s for table %d", sname, conglomerateNumber);
-            }
+            while (rs.next()) {
+                String schemaName = rs.getString(1);
+                String objectName = rs.getString(2);
+                long conglomerateNumber = rs.getLong(3);
+                DateTime creationTime = new DateTime(rs.getTimestamp(4));
+                DateTime lastRestoreTime = new DateTime(System.currentTimeMillis());
+                String sname = snapshotName + "_" + conglomerateNumber;
 
-            admin.disableTable("splice:" + conglomerateNumber);
-            admin.restoreSnapshot(sname);
-            admin.enableTable("splice:" + conglomerateNumber);
-            dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
-            SnapshotDescriptor descriptor = new SnapshotDescriptor(snapshotName, schemaName, objectName,
-                    conglomerateNumber, creationTime, lastRestoreTime);
-            dd.addSnapshot(descriptor, tc);
-            if (LOG.isDebugEnabled())
-            {
-                SpliceLogUtils.debug(LOG, "restored snapshot %s for table %d", sname, conglomerateNumber);
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "restoring snapshot %s for table %d", sname, conglomerateNumber);
+                }
+
+                admin.disableTable("splice:" + conglomerateNumber);
+                admin.restoreSnapshot(sname);
+                admin.enableTable("splice:" + conglomerateNumber);
+                dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
+                SnapshotDescriptor descriptor = new SnapshotDescriptor(snapshotName, schemaName, objectName,
+                        conglomerateNumber, creationTime, lastRestoreTime);
+                dd.addSnapshot(descriptor, tc);
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "restored snapshot %s for table %d", sname, conglomerateNumber);
+                }
             }
         }
     }
 
-    private static ResultSet getResultSet(String sql, String schemaName, String tableName) throws Exception
+    private static ResultSet getTablesForSnapshot(String schemaName, String tableName) throws Exception
     {
-        Connection connection = getDefaultConn();
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ps.setString(1, schemaName);
-        if (tableName != null)
-        {
-            ps.setString(2, tableName);
-        }
-        ResultSet rs = ps.executeQuery();
+        EmbedConnection defaultConn=(EmbedConnection)getDefaultConn();
+        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)defaultConn.getMetaData();
+        ResultSet rs = dmd.getTablesForSnaphot(schemaName, tableName);
         return rs;
     }
 
@@ -1643,13 +1572,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
         int count = 0;
         try {
-            String sql = "select count(*) from sys.syssnapshots where snapshotname=?";
             Connection connection = getDefaultConn();
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, snapshotName);
-            ResultSet rs = ps.executeQuery();
-            rs.next();
-            count = rs.getInt(1);
+            EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)connection.getMetaData();
+            try (ResultSet rs = dmd.checkSnapshotExists(snapshotName)) {
+                if (rs.next()) {
+                    count++;
+                }
+            }
         }
         catch (SQLException e)
         {

@@ -3220,6 +3220,24 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		return s.executeQuery();
 	}
 
+	public ResultSet getSchemasInfo() throws SQLException {
+		PreparedStatement s = getPreparedQuery("getSchemasInfo");
+		return s.executeQuery();
+	}
+
+	public ResultSet getTablesForSnaphot(String schemaname, String tablename) throws SQLException {
+		PreparedStatement s = getPreparedQuery("getTablesForSnapshot");
+		s.setString(1, swapNull(schemaname));
+		s.setString(2, swapNull(tablename));
+		return s.executeQuery();
+	}
+
+	public ResultSet checkSnapshotExists(String snapshotname) throws SQLException {
+		PreparedStatement s = getPreparedQuery("checkSnapshotExists");
+		s.setString(1, swapNull(snapshotname));
+		return s.executeQuery();
+	}
+
 	/////////////////////////////////////////////////////////////////////////
 	//
 	//	JDBC 2.0	-	New public methods
