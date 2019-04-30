@@ -31,23 +31,23 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import com.splicemachine.db.catalog.Dependable;
+import com.splicemachine.db.catalog.DependableFinder;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.depend.Provider;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.catalog.DependableFinder;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.Dependable;
 
 /**
  * This class represents a schema descriptor
@@ -97,7 +97,8 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
     public static final	String	IBM_SYSTEM_STAT_SCHEMA_NAME     = "SYSSTAT";
     public static final	String	IBM_SYSTEM_NULLID_SCHEMA_NAME   = "NULLID";
 
-    /**
+
+	/**
      * This schema is used for jar handling procedures.
      **/
     public static final	String	STD_SQLJ_SCHEMA_NAME      = "SQLJ";
@@ -121,6 +122,8 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
      * See com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext#getDefaultSchemaName
      */
     public	static	final	String	STD_DEFAULT_SCHEMA_NAME = Property.DEFAULT_USER_NAME;
+
+	public static final String  STD_SYSTEM_VIEW_SCHEMA_NAME         = "SYSVW";
 
 
     /**
@@ -148,6 +151,8 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
         "c013800d-00f8-5b53-28a9-00000019ed88";
 	public static final	String DEFAULT_SCHEMA_UUID = 
         "80000000-00d2-b38f-4cda-000a0a412c00";
+	public static final	String SYSVW_SCHEMA_UUID =
+		"c013800d-00fb-264d-07ec-000000134f30";
 
 
 
@@ -172,6 +177,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 
     private boolean isSystem;
     private boolean isSYSIBM;
+    private boolean isSYSVW;
     
     /**
      * For system schemas, the only possible value for collation type is
@@ -210,6 +216,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		this.oid = oid;
         this.isSystem = isSystem;
 		isSYSIBM = isSystem && IBM_SYSTEM_SCHEMA_NAME.equals(name);
+		isSYSVW = isSystem && STD_SYSTEM_VIEW_SCHEMA_NAME.equals(name);
 		if (isSystem)
 			collationType = dataDictionary.getCollationTypeOfSystemSchemas();
 		else
@@ -375,6 +382,9 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		return(isSystem);
 	}
 
+	public boolean isSystemViewSchema() {
+		return isSYSVW;
+	}
 	/**
 	 * Indicate whether this is a system schema with grantable routines
 	 *
@@ -470,6 +480,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		isSystem = input.readBoolean();
 		isSYSIBM = input.readBoolean();
 		collationType = input.readInt();
+		isSYSVW = input.readBoolean();
 	}
 
 	public void writeExternal(ObjectOutput output) throws IOException {
@@ -478,7 +489,8 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 		output.writeObject(oid);		
 		output.writeBoolean(isSystem);
 		output.writeBoolean(isSYSIBM);
-		output.writeInt(collationType);		
+		output.writeInt(collationType);
+		output.writeBoolean(isSYSVW);
 	}
 	public void setDataDictionary(DataDictionary dataDictionary) {
 		this.dataDictionary = dataDictionary;

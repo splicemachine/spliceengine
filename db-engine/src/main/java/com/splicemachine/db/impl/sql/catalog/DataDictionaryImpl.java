@@ -116,6 +116,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     protected SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
     protected SchemaDescriptor systemUtilSchemaDesc;
     protected SchemaDescriptor sysFunSchemaDesc;
+    protected SchemaDescriptor sysViewSchemaDesc;
+
     /**
      * Dictionary version of the on-disk database
      */
@@ -658,6 +660,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         sysIBMSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID);
         systemUtilSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID);
         sysFunSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,SchemaDescriptor.SYSFUN_SCHEMA_UUID);
+        sysViewSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID);
+
     }
 
     // returns null if database is at rev level 10.5 or earlier
@@ -6393,6 +6397,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 false);
 
         addDescriptor(appSchemaDesc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
+
+        //Add the SYSVW schema
+        addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID,tc);
     }
 
     /**
@@ -9251,13 +9258,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // The owner has all privileges unless they have been revoked.
                 TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID());
                 SchemaDescriptor sd = td.getSchemaDescriptor();
-                /*
-                if( sd.isSystemSchema())
+
+                if( sd.isSystemViewSchema())
                 {
-                    // RESOLVE The access to system tables is hard coded to SELECT only to everyone.
-                    // Is this the way we want Derby to work? Should we allow revocation of read access
-                    // to system tables? If so we must explicitly add a row to the SYS.SYSTABLEPERMISSIONS
-                    // table for each system table when a database is created.
+                    // make views publicly accessible and readable
                     permissions = new TablePermsDescriptor( this,
                             tablePermsKey.getGrantee(),
                             (String) null,
@@ -9266,8 +9270,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     // give the permission the same UUID as the system table
                     ((TablePermsDescriptor) permissions).setUUID( tablePermsKey.getTableUUID() );
                 }
-                else */
-                if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
+                else if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
                 {
                     permissions = new TablePermsDescriptor( this,
                             tablePermsKey.getGrantee(),
@@ -9329,19 +9332,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 try {
                     // The owner has all privileges unless they have been revoked.
                     SchemaDescriptor sd = getSchemaDescriptor(schemaPermsKey.getSchemaUUID(), ConnectionUtil.getCurrentLCC().getTransactionExecute());
-                    /*
-                    if (sd.isSystemSchema()) {
-                        // RESOLVE The access to system tables is hard coded to SELECT only to everyone.
-                        // Is this the way we want Derby to work? Should we allow revocation of read access
-                        // to system tables? If so we must explicitly add a row to the SYS.SYSTABLEPERMISSIONS
-                        // table for each system table when a database is created.
+
+                    if (sd.isSystemViewSchema()) {
+                        // allow read access to public
                         permissions = new SchemaPermsDescriptor(this,
                                 schemaPermsKey.getGrantee(),
                                 (String) null,
                                 schemaPermsKey.getSchemaUUID(),
-                                "N", "N", "N", "N", "N", "N", "N", "Y");
-                    } else */
-                    if (schemaPermsKey.getGrantee().equals(sd.getAuthorizationId())) {
+                                "Y", "N", "N", "N", "N", "N", "N", "Y");
+                    } else if (schemaPermsKey.getGrantee().equals(sd.getAuthorizationId())) {
                         permissions = new SchemaPermsDescriptor(this,
                                 schemaPermsKey.getGrantee(),
                                 Authorizer.SYSTEM_AUTHORIZATION_ID,

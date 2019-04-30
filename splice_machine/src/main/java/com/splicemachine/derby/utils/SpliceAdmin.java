@@ -1048,11 +1048,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     private static final String sqlConglomsInSchema=
-            "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMASVIEW S "+
-                    "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+            "SELECT CONGLOMERATENUMBER FROM SYSVW.SYSCONGLOMERATEINSCHEMAS "+
+                    "WHERE SCHEMANAME = ?";
 
     private static final String sqlConglomsInTable=
-            sqlConglomsInSchema+" AND T.TABLENAME = ?";
+            sqlConglomsInSchema+" AND TABLENAME = ?";
 
     public static String getSqlConglomsInSchema(){
         return sqlConglomsInSchema;

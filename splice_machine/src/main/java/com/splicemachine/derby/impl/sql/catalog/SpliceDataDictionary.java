@@ -236,7 +236,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         }
 
-        // create sysschemalist view
+        // create sysschemasview
         td = getTableDescriptor("SYSSCHEMASVIEW", sysSchema, tc);
         if (td == null)
         {
@@ -255,6 +255,28 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSSCHEMASVIEW",
                     SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL,0,sysSchema.getUUID());
             addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+        }
+
+        // create conglomeratesInSchemas view
+        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
+        td = getTableDescriptor("SYSCONGLOMERATEINSCHEMAS", sysSchema, tc);
+        if (td == null)
+        {
+            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+            TableDescriptor view=ddg.newTableDescriptor("SYSCONGLOMERATEINSCHEMAS",
+                    sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+            addDescriptor(view,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+            UUID viewId=view.getUUID();
+            ColumnDescriptor[] tableViewCds=SYSCONGLOMERATESRowFactory.getConglomerateInSchemasViewColumns(view,viewId);
+            addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
+
+            ColumnDescriptorList viewDl=view.getColumnDescriptorList();
+            Collections.addAll(viewDl,tableViewCds);
+
+
+            ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSCONGLOMERATEINSCHEMAS",
+                    SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL,0,sysSchema.getUUID());
+            addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         }
     }
 

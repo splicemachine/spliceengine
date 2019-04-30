@@ -262,13 +262,19 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	"SELECT S.* " +
 	"FROM SYS.SYSSCHEMAS as S ";
 
+	private static final String PUBLIC_SCHEMA =
+	"SELECT S.* " +
+	"FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW') ";
+
 	public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
 			SUPER_USER_SCHEMA +
 			"WHERE 'SPLICE' in (select name from (values current_user) usr (name) \n" +
 			"                   union all " +
 			"                   select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI() as b (NAME VARCHAR(128))) \n" +
 			"UNION " +
-			REGULAR_USER_SCHEMA;
+			REGULAR_USER_SCHEMA +
+			"UNION " +
+			PUBLIC_SCHEMA;
 
 
 }
