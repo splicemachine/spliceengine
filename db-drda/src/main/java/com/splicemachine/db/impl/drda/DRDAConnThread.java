@@ -3743,7 +3743,9 @@ class DRDAConnThread extends Thread {
 								 CodePoint.TYPDEFNAM_QTDSQLASC);
 		writeTYPDEFOVR();
 		String token = generateToken();
-		writer.writeScalarBytes(CodePoint.RDBINTTKN, Bytes.toBytes(token));
+		if (appRequester.greaterThanOrEqualTo(10, 9, 1)) {
+			writer.writeScalarBytes(CodePoint.RDBINTTKN, Bytes.toBytes(token));
+		}
 		writer.endDdmAndDss ();
 
          // Write the initial piggy-backed data, currently the isolation level
