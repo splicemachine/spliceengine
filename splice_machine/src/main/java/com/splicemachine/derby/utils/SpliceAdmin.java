@@ -1886,7 +1886,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
         }
         if (needle == null)
-            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, uuidString));
+            throw  PublicAPI.wrapStandardException(StandardException.newException(LANG_NO_SUCH_RUNNING_OPERATION, token));
 
         try (Connection connection = RemoteUser.getConnection(hostname)) {
             try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION_LOCAL(?)")) {
