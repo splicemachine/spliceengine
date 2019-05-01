@@ -31,14 +31,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -554,4 +548,58 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
         };
 	}
 
+	public static ColumnDescriptor[] getTableViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+		return new ColumnDescriptor[]{
+				new ColumnDescriptor("TABLEID",1,1,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TABLENAME"               ,2,2,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("TABLETYPE"               ,3,3,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("SCHEMAID"               ,4,4,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("LOCKGRANULARITY"               ,5,5,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("VERSION"               ,6,6,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COLSEQUENCE"               ,7,7,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER, false),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("DELIMITED"               ,8,8,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("ESCAPED"               ,9,9,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("LINES"               ,10,10,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("STORED"               ,11,11,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("LOCATION"               ,12,12,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("COMPRESSION"               ,13,13,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("IS_PINNED"               ,14,14,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("PURGE_DELETED_ROWS"               ,15,15,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
+						null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("SCHEMANAME"               ,16,16,
+						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+						null,null,view,viewId,0,0,0)
+		};
+	}
+	public static String SYSTABLE_VIEW_SQL = "create view SYSTABLESVIEW as \n" +
+			"SELECT T.*, S.SCHEMANAME FROM SYS.SYSTABLES T, SYS.SYSSCHEMASVIEW S "+
+			"WHERE T.SCHEMAID = S.SCHEMAID";
 }

@@ -3238,6 +3238,20 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		return s.executeQuery();
 	}
 
+	public ResultSet getCheckConstraints(String schemaname, String tablename) throws SQLException {
+		PreparedStatement s = getPreparedQuery("getCheckConstraints");
+		s.setString(1, swapNull(schemaname));
+		s.setString(2, swapNull(tablename));
+		return s.executeQuery();
+	}
+
+	public ResultSet getUniqueConstraints(String schemaname, String tablename) throws SQLException {
+		PreparedStatement s = getPreparedQuery("getUniqueConstraints");
+		s.setString(1, swapNull(schemaname));
+		s.setString(2, swapNull(tablename));
+		return s.executeQuery();
+	}
+
 	/////////////////////////////////////////////////////////////////////////
 	//
 	//	JDBC 2.0	-	New public methods

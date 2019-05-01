@@ -2087,17 +2087,17 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
             ResultSet tableIdRs = stmt.executeQuery("SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
                     "T.ESCAPED, T.LINES, T.STORED, T.LOCATION" +
-                    " FROM SYS.SYSTABLES T, SYS.SYSSCHEMASVIEW S " +
-                    "WHERE T.TABLETYPE IN ('T','E') AND T.SCHEMAID = S.SCHEMAID " +
-                    "AND T.TABLENAME LIKE '" + tableName + "' AND S.SCHEMANAME = '" + schemaName + "'");
+                    " FROM SYSVW.SYSTABLESVIEW T " +
+                    "WHERE T.TABLETYPE IN ('T','E') " +
+                    "AND T.TABLENAME LIKE '" + tableName + "' AND T.SCHEMANAME = '" + schemaName + "'");
 
             PreparedStatement getColumnInfoStmt = connection.prepareStatement("SELECT C.COLUMNNAME, C.REFERENCEID, " +
-                    "C.COLUMNNUMBER FROM SYS.SYSCOLUMNS C, SYS.SYSTABLES T WHERE T.TABLEID = ? " +
-                    "AND T.TABLEID = C.REFERENCEID ORDER BY C.COLUMNNUMBER");
+                    "C.COLUMNNUMBER FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
+                    "ORDER BY C.COLUMNNUMBER");
 
             PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
-                    "FROM SYS.SYSCOLUMNS C, SYS.SYSTABLES T WHERE T.TABLEID = ? " +
-                    "AND T.TABLEID = C.REFERENCEID AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
+                    "FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
+                    "AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
 
             String tableId = "" ;
             boolean firstCol = true;
@@ -2175,7 +2175,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     firstCol = false;
                 }
 
-                colStringBuilder.append(createConstraint(connection, schemaName, tableName));
+                colStringBuilder.append(createConstraint((EmbedConnection)connection, schemaName, tableName));
                 String DDL = "CREATE " + isExternal + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
                 StringBuilder sb=new StringBuilder("SELECT * FROM (VALUES '");
                 sb.append(DDL);
@@ -2195,11 +2195,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
     private static String createColumn(Connection theConnection, String colName, String tableId, int colNum) throws SQLException
     {
         PreparedStatement getColumnTypeStmt =
-                theConnection.prepareStatement("SELECT COLUMNDATATYPE, COLUMNDEFAULT FROM SYS.SYSCOLUMNS " +
+                theConnection.prepareStatement("SELECT COLUMNDATATYPE, COLUMNDEFAULT FROM SYSVW.SYSCOLUMNSVIEW " +
                         "WHERE REFERENCEID = ? AND COLUMNNAME = ?");
         PreparedStatement getAutoIncStmt =
                 theConnection.prepareStatement("SELECT AUTOINCREMENTSTART, " +
-                        "AUTOINCREMENTINC, COLUMNNAME, REFERENCEID, COLUMNDEFAULT FROM SYS.SYSCOLUMNS " +
+                        "AUTOINCREMENTINC, COLUMNNAME, REFERENCEID, COLUMNDEFAULT FROM SYSVW.SYSCOLUMNSVIEW " +
                         "WHERE COLUMNNAME = ? AND REFERENCEID = ?");
 
         getColumnTypeStmt.setString(1, tableId);
@@ -2231,66 +2231,38 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return colDef.toString();
     }
 
-    private static String createConstraint(Connection theConnection, String schemaName, String tableName) throws SQLException
+    private static String createConstraint(EmbedConnection theConnection, String schemaName, String tableName) throws SQLException
     {
-        ResultSet rs;
+        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)theConnection.getMetaData();
 
         //Check
         StringBuffer chkStr = new StringBuffer();
-        PreparedStatement getCheckStmt =
-                theConnection.prepareStatement("SELECT CS.CONSTRAINTNAME, CK.CHECKDEFINITION" +
-                        " FROM SYS.SYSCONSTRAINTS CS, SYS.SYSCHECKS CK, SYS.SYSSCHEMASVIEW S, SYS.SYSTABLES T" +
-                        " WHERE CS.CONSTRAINTID = CK.CONSTRAINTID AND" +
-                        " CS.STATE != 'D' AND" +
-                        " S.SCHEMANAME LIKE ? AND" +
-                        " T.TABLENAME LIKE ? AND" +
-                        " CS.SCHEMAID = S.SCHEMAID AND" +
-                        " CS.TABLEID = T.TABLEID" +
-                        " ORDER BY CS.CONSTRAINTNAME");
-        getCheckStmt.setString(1,schemaName);
-        getCheckStmt.setString(2,tableName);
-        rs = getCheckStmt.executeQuery();
-        while (rs.next()){
-            chkStr.append(", CONSTRAINT " + rs.getString(1) + " CHECK " + rs.getString(2).replace("'","''"));
+        try(ResultSet rs=dmd.getCheckConstraints(schemaName, tableName)) {
+            while (rs.next()) {
+                chkStr.append(", CONSTRAINT " + rs.getString(1) + " CHECK " + rs.getString(2).replace("'", "''"));
+            }
         }
         //End Check
 
         //Unique
         StringBuffer uniqueStr = new StringBuffer();
-        PreparedStatement getUniqueStmt =
-                theConnection.prepareStatement("SELECT CS.CONSTRAINTNAME, COLS.COLUMNNAME" +
-                        " FROM SYS.SYSSCHEMASVIEW S, SYS.SYSTABLES T, SYS.SYSCONSTRAINTS CS, SYS.SYSCONGLOMERATES CONGLOMS, SYS.SYSCOLUMNS COLS , SYS.SYSKEYS K" +
-                        " WHERE  CS.TYPE = 'U' AND" +
-                        " S.SCHEMAID = T.SCHEMAID AND" +
-                        " S.SCHEMANAME LIKE ? AND" +
-                        " T.TABLENAME LIKE ? AND" +
-                        " CS.SCHEMAID = S.SCHEMAID AND" +
-                        " CS.TABLEID = T.TABLEID AND" +
-                        " COLS.REFERENCEID = T.TABLEID AND" +
-                        " CS.STATE != 'D' AND" +
-                        " CS.CONSTRAINTID = K.CONSTRAINTID AND" +
-                        " K.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID AND" +
-                        " (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE 0 END) <> 0" +
-                        " ORDER BY CS.CONSTRAINTNAME");
-
-        getUniqueStmt.setString(1,schemaName);
-        getUniqueStmt.setString(2,tableName);
-        rs = getUniqueStmt.executeQuery();
-        String uniqueName = null;
-        List<String> cols = null;
-        boolean uniqueFirst = true;
-        while (rs.next()) {
-            if (uniqueName == null || !rs.getString(1).equals(uniqueName)){
-                if (uniqueName != null)
-                    uniqueStr.append(", CONSTRAINT " + uniqueName + " UNIQUE " + buildColumnsFromList(cols));
-                uniqueName = rs.getString(1);
-                cols = new LinkedList<>();
-                uniqueFirst = false;
+        try(ResultSet rs=dmd.getUniqueConstraints(schemaName, tableName)) {
+            String uniqueName = null;
+            List<String> cols = null;
+            boolean uniqueFirst = true;
+            while (rs.next()) {
+                if (uniqueName == null || !rs.getString(1).equals(uniqueName)) {
+                    if (uniqueName != null)
+                        uniqueStr.append(", CONSTRAINT " + uniqueName + " UNIQUE " + buildColumnsFromList(cols));
+                    uniqueName = rs.getString(1);
+                    cols = new LinkedList<>();
+                    uniqueFirst = false;
+                }
+                cols.add(rs.getString(2));
             }
-            cols.add(rs.getString(2));
+            if (!uniqueFirst)
+                uniqueStr.append(", CONSTRAINT " + uniqueName + " UNIQUE " + buildColumnsFromList(cols));
         }
-        if (!uniqueFirst)
-            uniqueStr.append(", CONSTRAINT " + uniqueName + " UNIQUE " + buildColumnsFromList(cols));
         //End Unique
 
         //Primary Key
@@ -2302,7 +2274,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         cs.setString(3,tableName);
         cs.setString(4,"");
 
-        rs = cs.executeQuery();
+        ResultSet rs = cs.executeQuery();
         while (rs.next()) {
             priKeys.append(pkFirstCol ? ", CONSTRAINT " + rs.getString("PK_NAME")+ " PRIMARY KEY(" + rs.getString("COLUMN_NAME") : "," + rs.getString("COLUMN_NAME"));
             pkFirstCol = false;
