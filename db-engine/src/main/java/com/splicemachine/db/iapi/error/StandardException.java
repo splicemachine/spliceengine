@@ -31,13 +31,13 @@
 
 package com.splicemachine.db.iapi.error;
 
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
+import java.sql.SQLException;
+import java.sql.SQLWarning;
 
 /**
 	StandardException is the root of all exceptions that are handled
@@ -630,6 +630,16 @@ public class StandardException extends Exception
 
 		if (t instanceof StandardException)
 			return (StandardException) t;
+
+		if (t instanceof SQLSyntaxErrorExceptionArgs) {
+			SQLSyntaxErrorExceptionArgs sqle = (SQLSyntaxErrorExceptionArgs) t;
+
+			String sqlState = sqle.getSQLState();
+			if (sqlState != null) {
+				StandardException se = new StandardException(sqlState, sqle.getArgs());
+				return se;
+			}
+		}
 
 		if (t instanceof SQLException) {
 

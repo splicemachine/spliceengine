@@ -25,8 +25,9 @@
 
 package com.splicemachine.db.client.am;
 
-import java.sql.SQLException;
 import com.splicemachine.db.shared.common.reference.SQLState;
+
+import java.sql.SQLException;
 
 /**
  * class to create SQLException
@@ -48,6 +49,10 @@ public class SQLExceptionFactory {
     public SQLException getSQLException (String message, String sqlState, 
             int errCode) {
         return new SQLException (message, sqlState, errCode);           
-    }    
+    }
+
+    public SQLException getSQLException(String message, String sqlState, int errorCode, Object[] args) {
+        return new SQLException (message, sqlState, errorCode);
+    }
 }
  

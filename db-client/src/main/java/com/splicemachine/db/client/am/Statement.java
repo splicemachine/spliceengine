@@ -24,11 +24,12 @@
  */
 package com.splicemachine.db.client.am;
 
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.db.shared.common.sanity.SanityManager;
 
 public class Statement implements java.sql.Statement, StatementCallbackInterface{
 
@@ -1611,7 +1612,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
 
         int sqlcode = sqlca.getSqlCode();
         if (sqlcode < 0) {
-            agent_.accumulateReadException(new SqlException(agent_.logWriter_, sqlca));
+            agent_.accumulateReadException(new SqlExceptionArgs(agent_.logWriter_, sqlca));
             returnValueFromProcedure_ = sqlcode;
         } else {
             if (updateCounts_ != null) {
