@@ -15,6 +15,7 @@
 package com.splicemachine.pipeline;
 
 import com.splicemachine.db.client.am.SqlException;
+import com.splicemachine.db.client.am.SqlExceptionArgs;
 import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Throwables;
@@ -53,6 +54,17 @@ public class Exceptions {
             Throwable rootCause = Throwables.getRootCause(e);
             if (rootCause instanceof StandardException) {
                 return (StandardException) rootCause;
+            } else if (rootCause instanceof SqlExceptionArgs) {
+                SqlExceptionArgs sqlException = (SqlExceptionArgs) rootCause;
+                Throwable next = sqlException.getNextException();
+                Object[] args = sqlException.getArgs();
+                String messageID = null;
+                if (args.length >= 6) {
+                    messageID = (String) args[5];
+                    return StandardException.newException(messageID, next, args[0], args[1], args[2], args[3], args[4]);
+                } else {
+                    return StandardException.newPreLocalizedException(sqlException.getSQLState(), next, messageID);
+                }
             } else if (rootCause instanceof SqlException) {
                 SqlException sqlException = (SqlException) rootCause;
                 String state = sqlException.getSQLState();

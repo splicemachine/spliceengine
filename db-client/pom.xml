@@ -54,6 +54,10 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>db-engine</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

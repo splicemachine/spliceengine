@@ -24,18 +24,11 @@
  */
 package com.splicemachine.db.client.am;
 
-import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.iapi.error.SQLSyntaxErrorExceptionArgs;
 import com.splicemachine.db.shared.common.error.ExceptionSeverity;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
-import java.sql.SQLDataException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.SQLInvalidAuthorizationSpecException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.SQLTimeoutException;
-import java.sql.SQLTransactionRollbackException;
+import java.sql.*;
 
 
 /**
@@ -64,7 +57,7 @@ public class SQLExceptionFactory40 extends SQLExceptionFactory {
      * @param errCode db error code
      */
     public SQLException getSQLException (String message, String sqlState, 
-                                                            int errCode) { 
+                                                            int errCode) {
         SQLException ex = null;
         if (sqlState == null) {
             ex = new SQLException(message, sqlState, errCode); 
@@ -104,4 +97,13 @@ public class SQLExceptionFactory40 extends SQLExceptionFactory {
         }
         return ex;
     }
+
+    public SQLException getSQLException (String message, String sqlState,
+                                         int errCode, Object[] args) {
+        SQLSyntaxErrorExceptionArgs ex = null;
+        ex = new SQLSyntaxErrorExceptionArgs(message, sqlState, errCode);
+        ex.setArgs(args);
+        return ex;
+    }
+
 }

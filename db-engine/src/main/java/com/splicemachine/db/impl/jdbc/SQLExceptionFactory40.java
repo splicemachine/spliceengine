@@ -31,17 +31,11 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import java.sql.SQLDataException;
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.SQLInvalidAuthorizationSpecException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.SQLTimeoutException;
-import java.sql.SQLTransactionRollbackException;
-import java.sql.SQLFeatureNotSupportedException;
+import com.splicemachine.db.iapi.error.SQLSyntaxErrorExceptionArgs;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
+
+import java.sql.*;
 
 /**
  * SQLExceptionFactory40 overwrites getSQLException method
@@ -99,7 +93,8 @@ public class SQLExceptionFactory40 extends SQLExceptionFactory {
             ex = new SQLTransactionRollbackException(message, sqlState,
                     severity, t);
         } else if (sqlState.startsWith(SQLState.LSE_COMPILATION_PREFIX)) {
-            ex = new SQLSyntaxErrorException(message, sqlState, severity, t);
+            //ex = new SQLSyntaxErrorException(message, sqlState, severity, t);
+            ex = new SQLSyntaxErrorExceptionArgs(message, sqlState, severity, t, args);
         } else if (sqlState.startsWith(SQLState.UNSUPPORTED_PREFIX)) {
             ex = new SQLFeatureNotSupportedException(message, sqlState, severity, t);
         } else if (sqlState.equals(SQLState.LANG_STATEMENT_CANCELLED_OR_TIMED_OUT.substring(0, 5))) {

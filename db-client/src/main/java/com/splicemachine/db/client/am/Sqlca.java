@@ -25,9 +25,12 @@
 
 package com.splicemachine.db.client.am;
 
-import java.sql.DataTruncation;
-import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.client.net.Typdef;
+import com.splicemachine.db.shared.common.reference.SQLState;
+
+import java.sql.DataTruncation;
+
 
 public abstract class Sqlca {
     transient protected Connection connection_;
@@ -42,6 +45,8 @@ public abstract class Sqlca {
     protected String[] sqlErrmcMessages_;
     /** SQL states for all the messages in the exception chain. */
     private String[] sqlStates_;
+    /** Arguments to be formatted into error message */
+    protected Object[] sqlErrorArgs;
     // contain an error token
     protected String sqlErrp_;        // function name issuing error
     protected int[] sqlErrd_;        // 6 diagnostic Information
@@ -409,13 +414,18 @@ public abstract class Sqlca {
         try {
             // tokenize and convert tokenBytes
             String fullString = bytes2String(tokenBytes, 0, length);
-            String[] tokens = fullString.split("\\u0014{3}");
+            String[] tokens = fullString.split(SystemProcedures.SQLERRMC_MESSAGE_DELIMITER);
             String[] states = new String[tokens.length];
             states[0] = getSqlState();
-            for (int i = 1; i < tokens.length; i++) {
+
+            int numMessages = tokens.length;
+            if (numMessages > 0) {
+                sqlErrorArgs = tokens[0].split(SQLERRMC_TOKEN_DELIMITER);
+            }
+
+            for (int i = 1; i < numMessages; i++) {
                 // All but the first message are preceded by the SQL state
-                // (five characters) and a colon. Extract the SQL state and
-                // clean up the token. See
+                // (five characters) and a colon. Extract the SQL state and// clean up the token. See
                 // DRDAConnThread.buildTokenizedSqlerrmc() for more details.
                 int colonpos = tokens[i].indexOf(":");
                 states[i] = tokens[i].substring(0, colonpos);

@@ -25,12 +25,12 @@
 
 package com.splicemachine.db.client.am;
 
-import java.sql.SQLException;
-
-import com.splicemachine.db.shared.common.i18n.MessageUtil;
 import com.splicemachine.db.shared.common.error.ExceptionUtil;
+import com.splicemachine.db.shared.common.i18n.MessageUtil;
 import com.splicemachine.db.shared.common.reference.MessageId;
 import com.splicemachine.db.shared.common.reference.SQLState;
+
+import java.sql.SQLException;
 
 
 // The signature of the stored procedure SQLCAMessage I have come out so far is as follows:
