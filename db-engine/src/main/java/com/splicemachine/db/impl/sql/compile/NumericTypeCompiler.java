@@ -283,7 +283,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 
 		int highTypeId = higherType.getTypeId().getJDBCTypeId();
 		if (java.sql.Types.TINYINT == highTypeId ||
-			java.sql.Types.SMALLINT == highTypeId ||
+		    java.sql.Types.SMALLINT == highTypeId ||
 		    java.sql.Types.INTEGER == highTypeId)
 		{
 			return new DataTypeDescriptor(
@@ -309,9 +309,11 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 			    (scale + (precision - higherType.getScale())) >
 			       NumberDataValue.MAX_DECIMAL_PRECISION_SCALE &&
 		            TypeCompiler.AVG_OP.equals(operator)) {
-			  precision = higherType.getPrecision();
+			  precision = Math.max(higherType.getPrecision(), precision);
+			  int precisionDelta = precision - higherType.getPrecision();
 			  int newScale = Math.max(higherType.getScale(),
-			                          NumberDataValue.MAX_DECIMAL_PRECISION_SCALE - precision);
+			                          NumberDataValue.MAX_DECIMAL_PRECISION_SCALE -
+						  higherType.getPrecision() + precisionDelta);
 			  if (scale > newScale)
 			  	scale = newScale;
 			}
@@ -323,20 +325,22 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 				precision = typeId.getMaximumPrecision();
 				scale = typeId.getMaximumScale();
 			}
-            else if (typeId.isBigIntTypeId()) {
-                typeId = TypeId.getBuiltInTypeId(Types.DECIMAL);
-                // Leave room for 4 digits right of the decimal place when averaging.
-                precision = MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE;
-                maximumWidth = precision + 1;
-                scale = 0;
-            }
+			else if (typeId.isBigIntTypeId()) {
+				typeId = TypeId.getBuiltInTypeId(Types.DECIMAL);
+				// Leave room for 4 digits right of the decimal place when averaging.
+				precision = MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE;
+				maximumWidth = precision + 1;
+				scale = 0;
+			}
 			else if (typeId.isDecimalTypeId())
 			{
 				// Use high precision for decimals, so we don't overflow.
 				// But don't use max precision to leave room for 4 digits to
 				// the right of the decimal place for operations like AVG.
-				if (precision < MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE)
-				    precision = MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE;
+				int scaleAllowance = Math.max(0, MIN_DECIMAL_DIVIDE_SCALE - Math.max(scale, 0));
+				int upCastPrecision = MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE + scaleAllowance;
+				if (precision < upCastPrecision)
+				    precision = upCastPrecision;
 				maximumWidth = (scale > 0) ? precision + 3 : precision + 1;
 
 				/*
