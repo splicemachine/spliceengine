@@ -461,27 +461,27 @@ public class NumericConstantsIT {
 
 
     @Test
-    public void decimal_38_0_minMinusOne() throws Exception {
-        String DECIMAL_MIN_MINUS_1 = "-100000000000000000000000000000000000000";
+    public void decimal_38_0_minPlusOne() throws Exception {
+        String DECIMAL_MIN_PLUS_1 = "-99999999999999999999999999999999999998";
 
-        assertCount(0, "table_decimal_38_0", "a", "=", DECIMAL_MIN_MINUS_1);
-        assertCount(5, "table_decimal_38_0", "a", "!=", DECIMAL_MIN_MINUS_1);
-        assertCount(0, "table_decimal_38_0", "a", "<", DECIMAL_MIN_MINUS_1);
-        assertCount(0, "table_decimal_38_0", "a", "<=", DECIMAL_MIN_MINUS_1);
-        assertCount(5, "table_decimal_38_0", "a", ">", DECIMAL_MIN_MINUS_1);
-        assertCount(5, "table_decimal_38_0", "a", ">=", DECIMAL_MIN_MINUS_1);
+        assertCount(0, "table_decimal_38_0", "a", "=", DECIMAL_MIN_PLUS_1);
+        assertCount(5, "table_decimal_38_0", "a", "!=", DECIMAL_MIN_PLUS_1);
+        assertCount(4, "table_decimal_38_0", "a", ">", DECIMAL_MIN_PLUS_1);
+        assertCount(4, "table_decimal_38_0", "a", ">=", DECIMAL_MIN_PLUS_1);
+        assertCount(1, "table_decimal_38_0", "a", "<", DECIMAL_MIN_PLUS_1);
+        assertCount(1, "table_decimal_38_0", "a", "<=", DECIMAL_MIN_PLUS_1);
     }
 
     @Test
     public void decimal_38_0_maxPlusOne() throws Exception {
-        String DECIMAL_MAX_PLUS_1 = "100000000000000000000000000000000000000";
+        String DECIMAL_MAX_MINUS_1 = "99999999999999999999999999999999999998";
 
-        assertCount(0, "table_decimal_38_0", "a", "=", DECIMAL_MAX_PLUS_1);
-        assertCount(5, "table_decimal_38_0", "a", "!=", DECIMAL_MAX_PLUS_1);
-        assertCount(5, "table_decimal_38_0", "a", "<", DECIMAL_MAX_PLUS_1);
-        assertCount(5, "table_decimal_38_0", "a", "<=", DECIMAL_MAX_PLUS_1);
-        assertCount(0, "table_decimal_38_0", "a", ">", DECIMAL_MAX_PLUS_1);
-        assertCount(0, "table_decimal_38_0", "a", ">=", DECIMAL_MAX_PLUS_1);
+        assertCount(0, "table_decimal_38_0", "a", "=", DECIMAL_MAX_MINUS_1);
+        assertCount(5, "table_decimal_38_0", "a", "!=", DECIMAL_MAX_MINUS_1);
+        assertCount(1, "table_decimal_38_0", "a", ">", DECIMAL_MAX_MINUS_1);
+        assertCount(1, "table_decimal_38_0", "a", ">=", DECIMAL_MAX_MINUS_1);
+        assertCount(4, "table_decimal_38_0", "a", "<", DECIMAL_MAX_MINUS_1);
+        assertCount(4, "table_decimal_38_0", "a", "<=", DECIMAL_MAX_MINUS_1);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - -
@@ -517,7 +517,7 @@ public class NumericConstantsIT {
 
     @Test
     public void decimal_38_38_minMinusOne() throws Exception {
-        String DECIMAL_MIN_MINUS_1 = "-1.99999999999999999999999999999999999999";
+        String DECIMAL_MIN_MINUS_1 = "-1.9999999999999999999999999999999999999";
 
         assertCount(0, "table_decimal_38_38", "a", "=", DECIMAL_MIN_MINUS_1);
         assertCount(5, "table_decimal_38_38", "a", "!=", DECIMAL_MIN_MINUS_1);
@@ -529,7 +529,7 @@ public class NumericConstantsIT {
 
     @Test
     public void decimal_38_38_maxPlusOne() throws Exception {
-        String DECIMAL_MAX_PLUS_1 = "1.99999999999999999999999999999999999999";
+        String DECIMAL_MAX_PLUS_1 = "1.9999999999999999999999999999999999999";
 
         assertCount(0, "table_decimal_38_38", "a", "=", DECIMAL_MAX_PLUS_1);
         assertCount(5, "table_decimal_38_38", "a", "!=", DECIMAL_MAX_PLUS_1);
