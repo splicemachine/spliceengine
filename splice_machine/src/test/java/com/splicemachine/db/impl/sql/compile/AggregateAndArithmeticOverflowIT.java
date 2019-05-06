@@ -14,19 +14,13 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
@@ -39,7 +33,6 @@ import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.assertEquals;
 
 /**
  * Test aggregations that used to overflow or produce incorrect results.

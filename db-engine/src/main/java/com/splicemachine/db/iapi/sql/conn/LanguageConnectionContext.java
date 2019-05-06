@@ -1429,4 +1429,10 @@ public interface LanguageConnectionContext extends Context {
 	CommentStripper getCommentStripper();
 	boolean getIgnoreCommentOptEnabled();
 
+	// True if the connecting client can read decimal
+	// data with 38 digits of precision.
+	boolean clientSupportsDecimal38();
+
+	void setClientSupportsDecimal38(boolean newVal);
+
 }
