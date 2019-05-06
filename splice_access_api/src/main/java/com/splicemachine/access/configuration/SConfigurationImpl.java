@@ -198,6 +198,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final long controlExecutionRowLimit;
     private final int maxCheckTableErrors;
     private final int recursiveQueryIterationLimit;
+    private boolean metadataRestrictionEnabled;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -744,6 +745,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getRecursiveQueryIterationLimit() {
         return recursiveQueryIterationLimit;
     }
+    @Override
+    public boolean getMetadataRestrictionEnabled() {
+        return metadataRestrictionEnabled;
+    }
 
     // StatsConfiguration
     @Override
@@ -977,6 +982,7 @@ public final class SConfigurationImpl implements SConfiguration {
         rollForwardSecondWait = builder.rollForwardSecondWait;
         rollForwardFirstThreads = builder.rollForwardFirstThreads;
         rollForwardSecondThreads = builder.rollForwardSecondThreads;
+        metadataRestrictionEnabled = builder.metadataRestrictionEnabled;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

@@ -69,7 +69,9 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1851), new UpgradeScriptToAddUseExtrapolationInSysColumns(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1901), new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1909), new UpgradeScriptForReplication(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1915), new UpgradeScriptForMultiTenancy(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1917), new UpgradeScriptForMultiTenancy(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,4,0,0, 0), new UpgradeScriptForMetadataRestrictionCheck(sdd,tc));
+
     }
 
     public void run() throws StandardException{

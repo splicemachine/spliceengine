@@ -213,16 +213,16 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void createSystemViews(TransactionController tc) throws StandardException {
         //create AllRoles view
-        SchemaDescriptor sysSchema=getSystemSchemaDescriptor();
+        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
         tc.elevate("dictionary");
 
-        TableDescriptor td = getTableDescriptor("SYSALLROLES", sysSchema, tc);
+        TableDescriptor td = getTableDescriptor("SYSALLROLES", sysVWSchema, tc);
         if (td == null)
         {
             DataDescriptorGenerator ddg=getDataDescriptorGenerator();
             TableDescriptor view=ddg.newTableDescriptor("SYSALLROLES",
-                    sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-            addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+                    sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+            addDescriptor(view,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
             UUID viewId=view.getUUID();
             ColumnDescriptor[] tableViewCds=SYSROLESRowFactory.getAllRolesViewColumns(view,viewId);
             addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
@@ -232,18 +232,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
             ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSALLROLES",
-                    SYSROLESRowFactory.ALLROLES_VIEW_SQL,0,sysSchema.getUUID());
-            addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+                    SYSROLESRowFactory.ALLROLES_VIEW_SQL,0,sysVWSchema.getUUID());
+            addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         }
 
         // create sysschemasview
-        td = getTableDescriptor("SYSSCHEMASVIEW", sysSchema, tc);
+        td = getTableDescriptor("SYSSCHEMASVIEW", sysVWSchema, tc);
         if (td == null)
         {
             DataDescriptorGenerator ddg=getDataDescriptorGenerator();
             TableDescriptor view=ddg.newTableDescriptor("SYSSCHEMASVIEW",
-                    sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-            addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+                    sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+            addDescriptor(view,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
             UUID viewId=view.getUUID();
             ColumnDescriptor[] tableViewCds=SYSSCHEMASRowFactory.getViewColumnList(view,viewId);
             addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
@@ -253,12 +253,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
             ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSSCHEMASVIEW",
-                    SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL,0,sysSchema.getUUID());
-            addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+                    SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL,0,sysVWSchema.getUUID());
+            addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         }
 
         // create conglomeratesInSchemas view
-        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
         td = getTableDescriptor("SYSCONGLOMERATEINSCHEMAS", sysVWSchema, tc);
         if (td == null)
         {
@@ -275,7 +274,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
             ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSCONGLOMERATEINSCHEMAS",
-                    SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL,0,sysSchema.getUUID());
+                    SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL,0,sysVWSchema.getUUID());
             addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         }
 
@@ -296,7 +295,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
             ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSTABLESVIEW",
-                    SYSTABLESRowFactory.SYSTABLE_VIEW_SQL,0,sysSchema.getUUID());
+                    SYSTABLESRowFactory.SYSTABLE_VIEW_SQL,0,sysVWSchema.getUUID());
             addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         }
 
@@ -317,11 +316,60 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
             ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSCOLUMNSVIEW",
-                    SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL,0,sysSchema.getUUID());
+                    SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL,0,sysVWSchema.getUUID());
             addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
         }
+
+        SpliceLogUtils.info(LOG, "Views in SYSVW created!");
     }
 
+    public void updateSystemSchemasView(TransactionController tc) throws StandardException {
+        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
+        tc.elevate("dictionary");
+
+        SConfiguration configuration=SIDriver.driver().getConfiguration();
+
+        boolean metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
+
+        // check sysschemasview
+        TableDescriptor td = getTableDescriptor("SYSSCHEMASVIEW", sysVWSchema, tc);
+
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+            boolean existingViewRestrictMetadataAccess = !vd.getViewText().equals(SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1);
+
+            // view definition matches the setting, no update needed
+            if (metadataRestrictionEnabled && existingViewRestrictMetadataAccess ||
+                !metadataRestrictionEnabled && !existingViewRestrictMetadataAccess)
+                return;
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysVWSchema, tc);
+
+        }
+
+        // add new view deifnition
+        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+        td=ddg.newTableDescriptor("SYSSCHEMASVIEW",
+                sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+        addDescriptor(td,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+        UUID viewId=td.getUUID();
+        ColumnDescriptor[] tableViewCds=SYSSCHEMASRowFactory.getViewColumnList(td,viewId);
+        addDescriptorArray(tableViewCds,td,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
+
+        ColumnDescriptorList viewDl=td.getColumnDescriptorList();
+        Collections.addAll(viewDl,tableViewCds);
+
+
+        ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSSCHEMASVIEW",
+                metadataRestrictionEnabled?SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL:SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1,
+                0,sysVWSchema.getUUID());
+        addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+
+        SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + (metadataRestrictionEnabled?"restrict " : "not restrict ") + "schema access!");
+    }
 
     public void createSourceCodeTable(TransactionController tc) throws StandardException{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();

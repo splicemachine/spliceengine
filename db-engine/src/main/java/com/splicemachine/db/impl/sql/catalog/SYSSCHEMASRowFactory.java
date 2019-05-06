@@ -249,7 +249,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	"SELECT S.* " +
 	"FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
 	"WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
-			"and P.grantee in (select name from sys.sysallroles) \n" +
+			"and P.grantee in (select name from sysvw.sysallroles) \n" +
 	"UNION " +
 	"SELECT S.* " +
 	"FROM SYS.SYSSCHEMAS as S " +
@@ -276,5 +276,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 			"UNION " +
 			PUBLIC_SCHEMA;
 
+	public static final String SYSSCHEMASVIEW_VIEW_SQL1 = "create view sysschemasView as \n" +
+			SUPER_USER_SCHEMA;
 
 }
