@@ -166,7 +166,7 @@ public class EngineUtils{
     public static void checkSchemaVisibility(String schemaName) throws SQLException, StandardException {
         EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
         EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)conn.getMetaData();
-        try (ResultSet rs = dmd.getTables(null,schemaName, null,null)) {
+        try (ResultSet rs = dmd.getSchemas(null,schemaName)) {
             if (!rs.next()) {
                 throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
             }
