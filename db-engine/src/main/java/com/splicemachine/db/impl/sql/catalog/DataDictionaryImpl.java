@@ -527,6 +527,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
             assert authorizationDatabaseOwner!=null:"Failed to get Database Owner authorization";
 
+            // is metadataAccessRestrictionEnabled?
+
+
             // Update (or create) the system stored procedures if requested.
             updateSystemProcedures(bootingTC);
 
@@ -9212,7 +9215,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public TablePermsDescriptor getTablePermissions(UUID tableUUID,String authorizationId) throws StandardException{
         TablePermsDescriptor key=new TablePermsDescriptor(this,authorizationId,null,tableUUID);
-        return (TablePermsDescriptor)getPermissions(key);
+        return (TablePermsDescriptor)getPermissions(key, true);
     } // end of getTablePermissions
 
     @Override
@@ -9232,7 +9235,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID, String authorizationId) throws StandardException{
         SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,authorizationId,null,schemaPermsUUID);
-        return (SchemaPermsDescriptor)getPermissions(key);
+        return (SchemaPermsDescriptor)getPermissions(key, true);
     }
 
     @Override
@@ -9241,7 +9244,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getUncachedSchemaPermsDescriptor(key);
     }
 
-    public Object getPermissions(PermissionsDescriptor key) throws StandardException{
+    public Object getPermissions(PermissionsDescriptor key, boolean metadataAccessRestrictionEnabled) throws StandardException{
 
         Optional<PermissionsDescriptor> optional = dataDictionaryCache.permissionCacheFind(key);
         if (optional != null)
@@ -9259,7 +9262,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 TableDescriptor td = getTableDescriptor(tablePermsKey.getTableUUID());
                 SchemaDescriptor sd = td.getSchemaDescriptor();
 
-                if( sd.isSystemViewSchema())
+                if( metadataAccessRestrictionEnabled && sd.isSystemViewSchema() ||
+                        !metadataAccessRestrictionEnabled && sd.isSystemSchema())
                 {
                     // make views publicly accessible and readable
                     permissions = new TablePermsDescriptor( this,
@@ -9269,8 +9273,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                             "Y", "N", "N", "N", "N", "N");
                     // give the permission the same UUID as the system table
                     ((TablePermsDescriptor) permissions).setUUID( tablePermsKey.getTableUUID() );
-                }
-                else if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
+                } else if( tablePermsKey.getGrantee().equals( sd.getAuthorizationId()))
                 {
                     permissions = new TablePermsDescriptor( this,
                             tablePermsKey.getGrantee(),
@@ -9333,7 +9336,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     // The owner has all privileges unless they have been revoked.
                     SchemaDescriptor sd = getSchemaDescriptor(schemaPermsKey.getSchemaUUID(), ConnectionUtil.getCurrentLCC().getTransactionExecute());
 
-                    if (sd.isSystemViewSchema()) {
+                    if (metadataAccessRestrictionEnabled && sd.isSystemViewSchema() ||
+                            !metadataAccessRestrictionEnabled && sd.isSystemSchema()) {
                         // allow read access to public
                         permissions = new SchemaPermsDescriptor(this,
                                 schemaPermsKey.getGrantee(),
@@ -9442,7 +9446,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,String authorizationId) throws StandardException{
         RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,authorizationId,null,routineUUID);
 
-        return (RoutinePermsDescriptor)getPermissions(key);
+        return (RoutinePermsDescriptor)getPermissions(key, true);
     } // end of getRoutinePermissions
 
     @Override
@@ -10199,7 +10203,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                 String granteeAuthId) throws StandardException{
         PermDescriptor key=new PermDescriptor(this,null,objectType,objectUUID,privilege,null,granteeAuthId,false);
 
-        return (PermDescriptor)getPermissions(key);
+        return (PermDescriptor)getPermissions(key, true);
     }
 
     /**

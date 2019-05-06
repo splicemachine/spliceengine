@@ -79,6 +79,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
+    protected boolean metadataAccessRestrictionEnabled;
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap=null;
@@ -211,116 +212,102 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
     }
 
+    private void createOneSystemView(TransactionController tc,
+                                     int catalogNum,
+                                     String viewName,
+                                     int viewIndex,
+                                     SchemaDescriptor sd,
+                                     String viewDef) throws StandardException {
+
+        TableDescriptor td = getTableDescriptor(viewName, sd, tc);
+        if (td != null) {
+            SpliceLogUtils.info(LOG, "View: " + viewName + " in SYSVW already exists!");
+            return;
+        }
+
+        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
+        TableDescriptor view=ddg.newTableDescriptor(viewName,
+                sd,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+        addDescriptor(view,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
+        UUID viewId=view.getUUID();
+        TabInfoImpl ti;
+        if (catalogNum < 4)
+            ti=coreInfo[catalogNum];
+        else
+            ti=getNonCoreTI(catalogNum);
+        CatalogRowFactory crf=ti.getCatalogRowFactory();
+
+        ColumnDescriptor[] tableViewCds=crf.getViewColumns(view, viewId).get(viewIndex);
+        addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
+
+        ColumnDescriptorList viewDl=view.getColumnDescriptorList();
+        Collections.addAll(viewDl,tableViewCds);
+
+        ViewDescriptor vd=ddg.newViewDescriptor(viewId,viewName, viewDef,0,sd.getUUID());
+        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+
+        SpliceLogUtils.info(LOG, "View: " + viewName + " in SYSVW is created!");
+    }
+
     public void createSystemViews(TransactionController tc) throws StandardException {
         //create AllRoles view
         SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
         tc.elevate("dictionary");
 
-        TableDescriptor td = getTableDescriptor("SYSALLROLES", sysVWSchema, tc);
-        if (td == null)
-        {
-            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-            TableDescriptor view=ddg.newTableDescriptor("SYSALLROLES",
-                    sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-            addDescriptor(view,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-            UUID viewId=view.getUUID();
-            ColumnDescriptor[] tableViewCds=SYSROLESRowFactory.getAllRolesViewColumns(view,viewId);
-            addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
-
-            ColumnDescriptorList viewDl=view.getColumnDescriptorList();
-            Collections.addAll(viewDl,tableViewCds);
-
-
-            ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSALLROLES",
-                    SYSROLESRowFactory.ALLROLES_VIEW_SQL,0,sysVWSchema.getUUID());
-            addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
-        }
+        createOneSystemView(tc, SYSROLES_CATALOG_NUM, "SYSALLROLES", 0, sysVWSchema, SYSROLESRowFactory.ALLROLES_VIEW_SQL);
 
         // create sysschemasview
-        td = getTableDescriptor("SYSSCHEMASVIEW", sysVWSchema, tc);
-        if (td == null)
-        {
-            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-            TableDescriptor view=ddg.newTableDescriptor("SYSSCHEMASVIEW",
-                    sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-            addDescriptor(view,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-            UUID viewId=view.getUUID();
-            ColumnDescriptor[] tableViewCds=SYSSCHEMASRowFactory.getViewColumnList(view,viewId);
-            addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
-
-            ColumnDescriptorList viewDl=view.getColumnDescriptorList();
-            Collections.addAll(viewDl,tableViewCds);
-
-
-            ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSSCHEMASVIEW",
-                    SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL,0,sysVWSchema.getUUID());
-            addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
-        }
+        SConfiguration configuration=SIDriver.driver().getConfiguration();
+        boolean metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
+        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema,
+                (metadataRestrictionEnabled ? SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL:SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1));
 
         // create conglomeratesInSchemas view
-        td = getTableDescriptor("SYSCONGLOMERATEINSCHEMAS", sysVWSchema, tc);
-        if (td == null)
-        {
-            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-            TableDescriptor view=ddg.newTableDescriptor("SYSCONGLOMERATEINSCHEMAS",
-                    sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-            addDescriptor(view,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-            UUID viewId=view.getUUID();
-            ColumnDescriptor[] tableViewCds=SYSCONGLOMERATESRowFactory.getConglomerateInSchemasViewColumns(view,viewId);
-            addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
-
-            ColumnDescriptorList viewDl=view.getColumnDescriptorList();
-            Collections.addAll(viewDl,tableViewCds);
-
-
-            ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSCONGLOMERATEINSCHEMAS",
-                    SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL,0,sysVWSchema.getUUID());
-            addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
-        }
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "SYSCONGLOMERATEINSCHEMAS", 0, sysVWSchema, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
 
         // create systablesView
-        td = getTableDescriptor("SYSTABLESVIEW", sysVWSchema, tc);
-        if (td == null)
-        {
-            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-            TableDescriptor view=ddg.newTableDescriptor("SYSTABLESVIEW",
-                    sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-            addDescriptor(view,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-            UUID viewId=view.getUUID();
-            ColumnDescriptor[] tableViewCds=SYSTABLESRowFactory.getTableViewColumns(view,viewId);
-            addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
+        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLESVIEW", 0, sysVWSchema, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
 
-            ColumnDescriptorList viewDl=view.getColumnDescriptorList();
-            Collections.addAll(viewDl,tableViewCds);
-
-
-            ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSTABLESVIEW",
-                    SYSTABLESRowFactory.SYSTABLE_VIEW_SQL,0,sysVWSchema.getUUID());
-            addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
-        }
 
         // create syscolumnsView
-        td = getTableDescriptor("SYSCOLUMNSVIEW", sysVWSchema, tc);
-        if (td == null)
-        {
-            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-            TableDescriptor view=ddg.newTableDescriptor("SYSCOLUMNSVIEW",
-                    sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-            addDescriptor(view,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-            UUID viewId=view.getUUID();
-            ColumnDescriptor[] tableViewCds=SYSCOLUMNSRowFactory.getColumnsViewColumns(view,viewId);
-            addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
-
-            ColumnDescriptorList viewDl=view.getColumnDescriptorList();
-            Collections.addAll(viewDl,tableViewCds);
-
-
-            ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSCOLUMNSVIEW",
-                    SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL,0,sysVWSchema.getUUID());
-            addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
-        }
+        createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNSVIEW", 0, sysVWSchema, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
 
         SpliceLogUtils.info(LOG, "Views in SYSVW created!");
+    }
+
+    public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
+        //drop table descriptor corresponding to the tablestats view
+        SchemaDescriptor sd=getSystemSchemaDescriptor();
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSTABLESTATISTICS", sd, tc);
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sd, tc);
+        }
+        // create tablestats view in sysvw schema
+        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
+        createOneSystemView(tc, SYSTABLESTATS_CATALOG_NUM, "SYSTABLESTATISTICS", 0, sysVWSchema, SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL );
+
+
+        // drop table descriptor corresponding to the columnstats view
+        td = getTableDescriptor("SYSCOLUMNSTATISTICS", sd, tc);
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sd, tc);
+        }
+        // create columnstats view in sysvw schema
+        createOneSystemView(tc, SYSCOLUMNSTATS_CATALOG_NUM, "SYSCOLUMNSTATISTICS", 0, sysVWSchema, SYSCOLUMNSTATISTICSRowFactory.STATS_VIEW_SQL );
+
+        SpliceLogUtils.info(LOG, "move stats views to the sysvw schema");
     }
 
     public void updateSystemSchemasView(TransactionController tc) throws StandardException {
@@ -351,22 +338,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // add new view deifnition
-        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-        td=ddg.newTableDescriptor("SYSSCHEMASVIEW",
-                sysVWSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
-        addDescriptor(td,sysVWSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
-        UUID viewId=td.getUUID();
-        ColumnDescriptor[] tableViewCds=SYSSCHEMASRowFactory.getViewColumnList(td,viewId);
-        addDescriptorArray(tableViewCds,td,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
-
-        ColumnDescriptorList viewDl=td.getColumnDescriptorList();
-        Collections.addAll(viewDl,tableViewCds);
-
-
-        ViewDescriptor vd=ddg.newViewDescriptor(viewId,"SYSSCHEMASVIEW",
-                metadataRestrictionEnabled?SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL:SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1,
-                0,sysVWSchema.getUUID());
-        addDescriptor(vd,sysVWSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
+        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema,
+                (metadataRestrictionEnabled?SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL:
+                        SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1));
 
         SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + (metadataRestrictionEnabled?"restrict " : "not restrict ") + "schema access!");
     }
@@ -514,6 +488,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         super.boot(create,startParams);
+
+        metadataAccessRestrictionEnabled = SIDriver.driver().getConfiguration().getMetadataRestrictionEnabled();
     }
 
     @Override
@@ -831,23 +807,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
 
-    private void updateSysTableStatsView1(TransactionController tc) throws StandardException{
-        //drop table descriptor corresponding to the tablestats view and add
-        SchemaDescriptor sd=getSystemSchemaDescriptor();
-        TableDescriptor td = getTableDescriptor("SYSTABLESTATISTICS", sd, tc);
-
-        ViewDescriptor vd=getViewDescriptor(td);
-        // check if the view definition is the same or not
-        if (Objects.equals(vd.getViewText(), SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL))
-            return;
-        dropViewDescriptor(vd, tc);
-        DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-        vd=ddg.newViewDescriptor(td.getUUID(),"SYSTABLESTATISTICS",
-                SYSTABLESTATISTICSRowFactory.STATS_VIEW_SQL,0,sd.getUUID());
-        addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
-        SpliceLogUtils.info(LOG, "SYS.SYSVIEWS upgraded: updated view SYSTABLESTATISTICS's definition");
-    }
-
     private void addTableIfAbsent(TransactionController tc,SchemaDescriptor systemSchema,TabInfoImpl sysTableToAdd,
                                   ColumnOrdering[] columnOrder) throws StandardException{
         if(getTableDescriptor(sysTableToAdd.getTableName(),systemSchema,tc)==null){
@@ -860,14 +819,16 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private void createSysTableStatsView(TransactionController tc) throws StandardException{
         //create statistics views
-        SchemaDescriptor sysSchema=getSystemSchemaDescriptor();
+        SchemaDescriptor sysSchema=sysViewSchemaDesc;
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSTABLESTATISTICS",
                 sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
-        ColumnDescriptor[] tableViewCds=SYSTABLESTATISTICSRowFactory.getViewColumns(view,viewId);
+        TabInfoImpl ti = getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
+        CatalogRowFactory crf=ti.getCatalogRowFactory();
+        ColumnDescriptor[] tableViewCds=crf.getViewColumns(view,viewId).get(0);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
@@ -881,14 +842,16 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private void createSysColumnStatsView(TransactionController tc) throws StandardException{
         //create statistics views
-        SchemaDescriptor sysSchema=getSystemSchemaDescriptor();
+        SchemaDescriptor sysSchema=sysViewSchemaDesc;
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSCOLUMNSTATISTICS",
                 sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
-        ColumnDescriptor[] tableViewCds=SYSCOLUMNSTATISTICSRowFactory.getViewColumns(view,viewId);
+        TabInfoImpl ti = getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
+        CatalogRowFactory crf=ti.getCatalogRowFactory();
+        ColumnDescriptor[] tableViewCds=crf.getViewColumns(view,viewId).get(0);
         addDescriptorArray(tableViewCds,view,DataDictionary.SYSCOLUMNS_CATALOG_NUM,false,tc);
 
         ColumnDescriptorList viewDl=view.getColumnDescriptorList();
@@ -1373,5 +1336,33 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             SpliceLogUtils.info(LOG, "SYS.SYSSCHEMAPERMS upgraded: added columns: ACCESSPRIV.");
         }
+    }
+
+    @Override
+    public TablePermsDescriptor getTablePermissions(UUID tableUUID,String authorizationId) throws StandardException{
+        TablePermsDescriptor key=new TablePermsDescriptor(this,authorizationId,null,tableUUID);
+        return (TablePermsDescriptor)getPermissions(key, metadataAccessRestrictionEnabled);
+    } // end of getTablePermissions
+
+    @Override
+    public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID, String authorizationId) throws StandardException{
+        SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,authorizationId,null,schemaPermsUUID);
+        return (SchemaPermsDescriptor)getPermissions(key, metadataAccessRestrictionEnabled);
+    }
+
+    public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,String authorizationId) throws StandardException{
+        RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,authorizationId,null,routineUUID);
+
+        return (RoutinePermsDescriptor)getPermissions(key, metadataAccessRestrictionEnabled);
+    } // end of getRoutinePermissions
+
+    @Override
+    public PermDescriptor getGenericPermissions(UUID objectUUID,
+                                                String objectType,
+                                                String privilege,
+                                                String granteeAuthId) throws StandardException{
+        PermDescriptor key=new PermDescriptor(this,null,objectType,objectUUID,privilege,null,granteeAuthId,false);
+
+        return (PermDescriptor)getPermissions(key, metadataAccessRestrictionEnabled);
     }
 }

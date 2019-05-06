@@ -32,6 +32,8 @@ public class UpgradeScriptForMultiTenancy extends UpgradeScriptBase {
 
         sdd.createSystemViews(tc);
 
+        sdd.moveSysStatsViewsToSysVWSchema(tc);
+
         SpliceLogUtils.info(LOG, "Catalog upgraded: added support for multi-tenancy");
 
     }

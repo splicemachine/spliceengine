@@ -44,6 +44,8 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSCOLUMNS row.
@@ -441,8 +443,10 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         };
     }
 
-    public static ColumnDescriptor[] getColumnsViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
-        return new ColumnDescriptor[]{
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+            new ColumnDescriptor[]{
                 new ColumnDescriptor("REFERENCEID",1,1,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
                         null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("COLUMNNAME"               ,2,2,
@@ -487,7 +491,8 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 new ColumnDescriptor("SCHEMANAME"               ,15,15,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
                         null,null,view,viewId,0,0,0)
-        };
+        });
+        return cdsl;
     }
     public static String SYSCOLUMNS_VIEW_SQL = "create view SYSCOLUMNSVIEW as \n" +
             "SELECT C.*, " +

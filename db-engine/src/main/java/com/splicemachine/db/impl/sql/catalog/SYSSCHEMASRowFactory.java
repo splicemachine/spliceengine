@@ -31,25 +31,18 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
-import com.splicemachine.db.iapi.types.DataValueFactory;
-
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
-import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSSCHEMAS row.
@@ -229,10 +222,12 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
             };
 	}
 
-	public static ColumnDescriptor[]	getViewColumnList(TableDescriptor view, UUID viewId)
+	public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId)
 			throws StandardException
 	{
-		return new ColumnDescriptor[]{
+		List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+		cdsl.add(
+		    new ColumnDescriptor[]{
 				new ColumnDescriptor("SCHEMAID"               ,1,1,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
 						null,null,view,viewId,0,0,0),
@@ -241,8 +236,9 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 						null,null,view,viewId,0,0,0),
 				new ColumnDescriptor("AUTHORIZATIONID"               ,3,3,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
-						null,null,view,viewId,0,0,0),
-		};
+						null,null,view,viewId,0,0,0)
+		});
+		return cdsl;
 	}
 
 	private static final String REGULAR_USER_SCHEMA =

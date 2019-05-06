@@ -31,17 +31,20 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.*;
+
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSTABLES row.
@@ -548,8 +551,10 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
         };
 	}
 
-	public static ColumnDescriptor[] getTableViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
-		return new ColumnDescriptor[]{
+	public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+		List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+		cdsl.add(
+		    new ColumnDescriptor[]{
 				new ColumnDescriptor("TABLEID",1,1,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
 						null,null,view,viewId,0,0,0),
 				new ColumnDescriptor("TABLENAME"               ,2,2,
@@ -597,7 +602,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 				new ColumnDescriptor("SCHEMANAME"               ,16,16,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
 						null,null,view,viewId,0,0,0)
-		};
+		});
+		return cdsl;
 	}
 	public static String SYSTABLE_VIEW_SQL = "create view SYSTABLESVIEW as \n" +
 			"SELECT T.*, S.SCHEMANAME FROM SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+

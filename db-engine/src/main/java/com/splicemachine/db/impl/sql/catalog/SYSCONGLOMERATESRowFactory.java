@@ -42,6 +42,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSCONGLOMERATES row.
@@ -395,9 +397,11 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
            };
 	}
 
-	public static ColumnDescriptor[] getConglomerateInSchemasViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+	public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
 
-		return new ColumnDescriptor[]{
+		List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+		cdsl.add(
+		    new ColumnDescriptor[]{
 				new ColumnDescriptor("CONGLOMERATENUMBER",1,1,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
 						null,null,view,viewId,0,0,0),
 				new ColumnDescriptor("SCHEMANAME"               ,2,2,
@@ -413,7 +417,8 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
 						null,null,view,viewId,0,0,0)
 
-		};
+		});
+		return cdsl;
 	}
 	public static String SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL = "create view SYSCONGLOMERATEINSCHEMAS as \n" +
 			"SELECT C.CONGLOMERATENUMBER, S.SCHEMANAME, T.TABLENAME, C.ISINDEX, C.ISCONSTRAINT FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+
