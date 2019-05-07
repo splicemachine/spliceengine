@@ -4,13 +4,24 @@
 This topic describes installing and configuring Splice Machine on a
 Hortonworks Ambari-managed cluster. Follow these steps:
 
-1. [Verify Prerequisites](#verify-prerequisites)
-2. [Download and Install Splice Machine](#download-and-install-splice-machine)
-3. [Stop Hadoop Services](#stop-hadoop-services)
-4. [Configure Hadoop Services](#configure-hadoop-services)
-5. [Start Any Additional Services](#start-any-additional-services)
-6. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
-7. [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
+- [Installing and Configuring Splice Machine for Hortonworks HDP](#installing-and-configuring-splice-machine-for-hortonworks-hdp)
+  - [Verify Prerequisites](#verify-prerequisites)
+  - [Download and Install Splice Machine](#download-and-install-splice-machine)
+  - [Install splicemachine using Ambari service](#install-splicemachine-using-ambari-service)
+  - [Start any Additional Services](#start-any-additional-services)
+  - [Optional Configuration Modifications](#optional-configuration-modifications)
+    - [Modify the Authentication Mechanism](#modify-the-authentication-mechanism)
+    - [Enabling Ranger for Authorization](#enabling-ranger-for-authorization)
+      - [Config Splice Machine Ambari Service](#config-splice-machine-ambari-service)
+      - [Add Ranger Service for Splice Machine](#add-ranger-service-for-splice-machine)
+      - [Config Ranger Policies](#config-ranger-policies)
+        - [Config HBase](#config-hbase)
+    - [Modify the Log Location](#modify-the-log-location)
+      - [Query Statement log](#query-statement-log)
+      - [OLAP Server Log](#olap-server-log)
+  - [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
+  - [Upgrade from Old Version](#upgrade-from-old-version)
+- [Backdown procedure](#backdown-procedure)
 
 ## Verify Prerequisites
 
@@ -37,9 +48,62 @@ Setup local yum repo on ambari server node ( or a node that all the nodes in the
 
 1. Make sure there is a http server on the node that your_node_url is accessable.
 2. Make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
-3. Put the splicemachine rpm under `/var/www/html/ambari-repo/` ( or the path you choose)
+3. Put the splicemachine rpm under `/var/www/html/ambari-repo/` ( create directory if it doesn't exist)
 4. Use `createrepo /var/www/html/ambari-repo/` to create the repo metadata.
 5. Open the url `your_node_url/ambari-repo` to confirm it can be accessed by yum.
+
+Perform the following steps 6 and 7 **on each node** in your cluster:
+
+In order to run it all on each node, it is useful to use the "all_ssh" bash script, create the file in the master node:
+
+````
+#!/bin/bash
+tmpdir=${TMPDIR:-/tmp}/pssh.$$
+if [ -z "$1" ]
+then
+   echo "Usage: $0 <command to run on all nodes>"
+   echo "userhost.lst file should contain all target nodes."
+   exit
+fi
+echo "Output logs -> $tmpdir"
+cmd=$1
+echo "Running command [${cmd}] on all nodes."
+mkdir -p $tmpdir
+count=0
+while IFS= read -r userhost; do
+    ssh -n -o BatchMode=yes ${userhost} "${cmd}" > ${tmpdir}/${userhost} 2>&1 &
+    count=`expr $count + 1`
+done < userhost.lst
+while [ $count -gt 0 ]; do
+    wait $pids
+    count=`expr $count - 1`
+done
+while IFS= read -r userhost; do
+    echo
+    echo "=====> START OUTPUT FROM ${userhost} [${cmd}] <======= "
+    cat ${tmpdir}/${userhost}
+    echo "=====> END OUTPUT FROM ${userhost} "
+    echo
+done < userhost.lst
+#echo "Output for hosts are in $tmpdir ”
+````
+
+it will also require execute permissions, use:
+`chmod 700 all_ssh`
+
+
+The all_ssh script requires that a "userhost.lst" file be created in the same directory from which it is being executed,
+the userhost.lst file contains a list of hostnames as in:
+    ````
+    host1
+    host2
+    host3
+    ````
+
+The all_ssh script will also require execute permissions, use:
+`chmod 700 all_ssh`
+
+
 6. Put a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content is as below
 
   ````
@@ -49,22 +113,33 @@ Setup local yum repo on ambari server node ( or a node that all the nodes in the
   enabled=1
   gpgcheck=0
   ````
+copy to the other nodes with:
+  ````
+  ./all_ssh "scp splice@stl-colo-srv006:/etc/yum.repos.d/splicemachine.repo /tmp/splicemachine.repo"
+  ./all_ssh "sudo chown root:root /tmp/splicemachine.repo"
+  ./all_ssh "sudo mv /tmp/splicemachine.repo /etc/yum.repos.d/"
+  ````
+
 7. Run `yum list | grep splicemachine` to make sure the custom repo is up and running.
 
-Perform the following steps **on each node** in your cluster:
 
-Install the Splice Machine custom Ambari service rpm using the following command (take version 2.5.0.1811 for example) :
+Install the Splice Machine custom Ambari service rpm using the following command (take version for example) :
 
 ```
-sudo yum install splicemachine_ambari_service
+./all_ssh "sudo yum install -y splicemachine_ambari_service"
 ```
 
-After install the rpm, restart ambari-server using `service ambari-server restart`.
+After install the rpm, restart ambari-server using `service ambari-server restart` on the master node.
+
+
 
 
 ## Install splicemachine using Ambari service
 
 Follow the steps to install splicemachine server.
+
+0. On the Ambari UI - Make a note of the current version of each service running on the cluster by looking at their individual config views.
+Note: These versions will be used for the backout procedure when uninstalling Splice Machine
 
 1. Click the action button on the left bottom of the ambari page,then click on 'Add Services'
 
@@ -74,23 +149,20 @@ Follow the steps to install splicemachine server.
 
 <img src="docs/add_service_wizard.jpg" alt="Add Service Wizard" width="400" height="200">
 
-3. Choose the master machine. It needs to be the same machine as the HBase master.
-
-4. Choose hosts needed to install splice machine. Only choose hosts that have hbase region server 
-installed.Then click next.
+3. Choose hosts needed to install splice machine. Choose both HBase master and HBase region servers. Then click next.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-5. On the page of custom services, no properties need to customized by hand unless you would 
+4. On the page of custom services, no properties need to customized by hand unless you would
 like to add Apache Ranger Support.
 
 <img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
 
-6. Please review all the configuration changes made by Ambari and click OK to continue.
+5. Please review all the configuration changes made by Ambari and click OK to continue.
 
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-**Note**: Ambari will not show all the recommended values in some situations. Make sure these 
+**Note**: Ambari will not show all the recommended values in some situations. Make sure these
 important configurations are set properly by clicking "recommend" button next to the configs:
 
 (1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes `com.splicemachine.hbase.SpliceMasterObserver`.
@@ -99,16 +171,31 @@ important configurations are set properly by clicking "recommend" button next to
 
 (3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`. If the property is not found, you can add the property in "Custom hbase-site".
 
-(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific 
+(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific
 Information" are in the configurations.
 
 
-7. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
+6. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
  Machine is installed.
 
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
+7. Create HDFS folders:
+hadoop fs -mkdir /user/splice
+hadoop fs -mkdir /user/splice/history
+hadoop fs -mkdir /user/splice/spark-warehouse
+
+hadoop fs -chmod 1777 /user/splice
+hadoop fs -chmod 1777 /user/splice/history
+hadoop fs -chmod 755 /user/splice/spark-warehouse
+
+hadoop fs -chown hbase:hbase /user/splice
+hadoop fs -chown hbase:spark /user/splice/history
+hadoop fs -chown hbase:hbase /user/splice/spark-warehouse
+
+
 8. Restart all the services affected to start Splice Machine!
+Splice Machine is now functional, the rest of this installation procedures are optional.
 
 
 
@@ -148,7 +235,7 @@ If you're using Kerberos, you need to add this option to your HBase Master Java 
    ````
    -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true
    ````
-   
+
 ### Enabling Ranger for Authorization
 
 Splice Machine installs with Native authorization configured; native
@@ -162,7 +249,7 @@ In the tab:  Advanced ranger-splicemachine-audit
 
 1. Check audit to HDFS
 2. Check audit to SOLR
-3. For the config: xasecure.audit.destination.solr.urls change localhost to the hostname / node 
+3. For the config: xasecure.audit.destination.solr.urls change localhost to the hostname / node
 for SOLR
 4. Set xasecure.audit.is.enabled to true
 
@@ -174,12 +261,12 @@ In the tab:  Advanced ranger-splicemachine-security
 
 #### Add Ranger Service for Splice Machine
 
-Before changing the authorization scheme, the Splice Machine ranger service needs to be installed.  As part of the Splice Machine Ambari Service, 
+Before changing the authorization scheme, the Splice Machine ranger service needs to be installed.  As part of the Splice Machine Ambari Service,
 the admin plugin for Splice Machine is added to the Ranger web application.
 
 The service can be installed by executing the following from a command line on the machine where the Ambari Service resides.
 
-Then post this file to Ranger API. Run the command bellow on master. `admin:admin` here is 
+Then post this file to Ranger API. Run the command bellow on master. `admin:admin` here is
 Ranger's username and password.
 
 ```
@@ -198,10 +285,10 @@ Unable to retrieve any files using given parameters, You can still save the repo
 creating policies, but you would not be able to use autocomplete for resource names.
 Check ranger_admin.log for more info.
 
-org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop environment [splicemachine]. 
-Unable to login to Hadoop environment [splicemachine]. 
-Unable to decrypt password due to error. 
-Input length must be multiple of 8 when decrypting with padded cipher. 
+org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop environment [splicemachine].
+Unable to login to Hadoop environment [splicemachine].
+Unable to decrypt password due to error.
+Input length must be multiple of 8 when decrypting with padded cipher.
 ```
 
 It is because of a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640).
@@ -226,7 +313,7 @@ call syscs_util.syscs_create_user('ranger_test', 'admin');
 Actually the username is parsed as uppercase. So you need to config the username as `RANGER_TEST`
  in Ranger. If you want to create a database user with lower case, quote the username with double
   quote in a single quote:
-  
+
 ```sql
 call syscs_util.syscs_create_user('"ranger_test"', 'admin');
 ```
@@ -271,9 +358,9 @@ Configuration:
    # Uncomment to not replicate statements to the spliceDerby file:
    #log4j.additivity.splice-derby.statement=false
    ````
-   
+
 #### OLAP Server Log
-   
+
 Splice Machine uses log4j to config OLAP server's log.  If you want to change the default log behavior of OLAP server,
 config `splice.olap.log4j.configuration` in `hbase-site.xml`. It specifies the log4j.properties file you want to use.
 This file needs to be available on HBase master server.
@@ -337,3 +424,38 @@ everything is working with your Splice Machine installation.
 See the [Command Line (splice&gt;)  Reference](https://doc.splicemachine.com/cmdlineref_intro.html)
 section of our *Developer's Guide* for information about our commands
 and command syntax.
+
+## Upgrade from Old Version
+
+If you are upgrading from versions before 1901, you need to follow these steps:
+
+1. Delete Splice Ambari service on web UI.
+2. Update RPM packages on each machine.
+3. Restart Ambari server.
+4. Re-install Splice Ambari service from web UI.
+
+# Backdown procedure
+
+To remove Splice Machine from the HDP cluster:
+
+1. Remove Splice service
+ Click on Splice Machine service, on the top right click on Service Actions dropdown - and select Delete Service -
+
+2. Rollback configurations
+   within each service in the config tab, select prior versions if they were changed during install and click on "Make Current".
+
+3. From Ambari UI using the cluster Actions dropdown, select "Stop All" and wait for cluster to stop.
+   From the master node terminal do :
+   ````
+   ./all_ssh “sudo yum remove -y splicemachine_ambari_service”
+   sudo yum remove -y splicemachine_ambari_service
+
+   ./all_ssh “sudo rm /etc/yum.repos.d/splicemachine.repo”
+   sudo rm /etc/yum.repos.d/splicemachine.repo
+   ````
+
+   If the ambari-repo folder was created at install time under /var/www/html on the master node at install time, then remove it:
+   `sudo rm -r /var/www/html/ambari-repo`
+
+1. Restart cluster - From Ambari UI using the cluster Actions dropdown, select "Start All".
+   Note that even after start completes, some alerts may still be active until service restarts complete. Just wait for alerts to clear.
