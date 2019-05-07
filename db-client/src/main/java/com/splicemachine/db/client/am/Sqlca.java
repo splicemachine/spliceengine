@@ -25,7 +25,11 @@
 
 package com.splicemachine.db.client.am;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.DataTruncation;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.client.net.Typdef;
 
@@ -441,7 +445,7 @@ public abstract class Sqlca {
         return sqlErrd_[2];
     }
 
-    public long getRowCount() throws com.splicemachine.db.client.am.DisconnectException {
+    public long getRowCount() {
         return ((long) sqlErrd_[0] << 32) + sqlErrd_[1];
     }
 
@@ -469,6 +473,26 @@ public abstract class Sqlca {
 
     public long getRowsetRowCount() {
         return rowsetRowCount_;
+    }
+
+    public String [] getArgs() {
+        if (sqlErrmcBytes_ == null || sqlErrmcBytes_.length == 0)
+            return null;
+        int beginOffset = 0;
+        List<String> argList = new ArrayList<>();
+        char delimiter = Sqlca.SQLERRMC_TOKEN_DELIMITER.charAt(0);
+        try {
+            for (int i = 0; i < sqlErrmcBytes_.length; i++) {
+                if (sqlErrmcBytes_[i] == delimiter) {
+                    argList.add(bytes2String(sqlErrmcBytes_, beginOffset, i - beginOffset));
+                    beginOffset = i + 1;
+                }
+            }
+            return argList.toArray(new String[0]);
+        }
+        catch (UnsupportedEncodingException e) {
+            return null;
+        }
     }
 }
 
