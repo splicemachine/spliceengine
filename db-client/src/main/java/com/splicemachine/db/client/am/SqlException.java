@@ -102,7 +102,7 @@ public class SqlException extends Exception implements Diagnosable {
     /** 
      *  The message utility instance we use to find messages
      *  It's primed with the name of the client message bundle so that
-     *  it knows to look there if the message isn't found in the
+     *  ∫it knows to look there if the message isn't found in the
      *  shared message bundle.
      */
     private static MessageUtil msgutil_;
