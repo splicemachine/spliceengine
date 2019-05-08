@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -15,6 +15,8 @@
 package com.splicemachine.tools.version;
 
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.system.SparkVersion;
+import com.splicemachine.system.SimpleSparkVersion;
 
 import javax.management.*;
 import java.util.HashMap;
@@ -65,6 +67,10 @@ public class ManifestReader {
      */
     public DatabaseVersion createVersion() {
         return new SimpleDatabaseVersion(getManifestProps());
+    }
+
+    public SparkVersion createSparkVersion() {
+        return new SimpleSparkVersion(getManifestProps());
     }
 
     private Map<String, String> getManifestProps() {

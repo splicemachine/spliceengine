@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 
 import org.junit.Assert;
@@ -26,6 +27,8 @@ import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLDataException;
+import java.sql.SQLSyntaxErrorException;
 import java.sql.Timestamp;
 
 
@@ -210,7 +213,63 @@ public class TernaryOperationIT {
             iCell = rs.getInt(1);
         }
         Assert.assertEquals("Wrong trim result", 4, iCell);
+    }
 
+    @Test
+    public void testTRIMWithAlias() throws Exception {
+        ResultSet rs;
+        int iCell = 0;
+        String sql = "select count(*) from ( select trim(b) from b ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 5, iCell);
+
+        sql = "select count(*) from ( select trim (b.b) from b ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 5, iCell);
+
+        sql = "select count(*) from ( select trim (b 'a' from c) from a b ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+        sql = "select count(*) from ( select trim (b.c) from a b ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+        sql = "select count(*) from ( select trim (l.c) from a l ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+        sql = "select count(*) from ( select trim (t.c) from a t ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+
+        sql = "select count(*) from ( select trim (\"leading\".c) from a as \"leading\" ) tab";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        iCell = rs.getInt(1);
+        Assert.assertEquals("Wrong trim result", 4, iCell);
+    }
+    @Test
+    public void testTRIMWithAliasNegative() throws Exception {
+        try {
+            String sql = "select trim (leading.c) from a as leading";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
     }
 
     @Test
@@ -253,6 +312,113 @@ public class TernaryOperationIT {
             iCell = rs.getInt(1);
         }
         Assert.assertEquals("Wrong timestampdiff result", 2, iCell);
+    }
+
+    @Test
+    public void testSTRIP() throws Exception {
+        ResultSet rs;
+        int iCell = 0;
+        String sql = "select a.a from a where exists ( select 1 from d where a.c = strip(d.c))";
+
+        rs = methodWatcher.executeQuery(sql);
+        while (rs.next()) {
+            iCell = rs.getInt(1);
+        }
+        Assert.assertEquals("Wrong strip result", 4, iCell);
+
+        sql  = "values strip('   space case   ')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","space case",rs.getString(1));
+
+        sql  = "values strip('   space case   ',both)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","space case",rs.getString(1));
+
+        sql  = "values strip('   space case   ',leading)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","space case   ",rs.getString(1));
+
+        sql  = "values strip('   space case   ',trailing)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","   space case",rs.getString(1));
+
+        sql  = "values strip('aabbccaa','a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bbcc",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',both,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bbcc",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',leading,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bbccaa",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',trailing,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","aabbcc",rs.getString(1));
+
+    }
+
+    @Test
+    public void testSTRIPShortName() throws Exception {
+        ResultSet rs;
+        String sql  = "values strip('   space case   ',b)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","space case",rs.getString(1));
+
+        sql  = "values strip('   space case   ',l)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","space case   ",rs.getString(1));
+
+        sql  = "values strip('   space case   ',t)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","   space case",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',b,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bbcc",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',l,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bbccaa",rs.getString(1));
+
+        sql  = "values strip('aabbccaa',t,'a')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","aabbcc",rs.getString(1));
+    }
+
+    @Test
+    public void testSTRIPNegative() throws Exception {
+        try {
+            String sql = "values strip(1,2)";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_INVALID_CAST, e.getSQLState());
+        }
+
+        try {
+            String sql = "values strip('abc','bc')";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLDataException e) {
+            Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_INVALID_TRIM_CHARACTER.startsWith(e.getSQLState()));
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2012 - 2017 Splice Machine, Inc.
+  ~ Copyright (c) 2012 - 2019 Splice Machine, Inc.
   ~
   ~ This file is part of Splice Machine.
   ~ Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.8.0.1852-SNAPSHOT</version>
+        <version>2.8.0.1916-SNAPSHOT</version>
     </parent>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
@@ -263,6 +263,18 @@
                 </executions>
                 <configuration>
                     <mainClass>com.splicemachine.derby.lifecycle.MemDatabase</mainClass>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>com.splicemachine.enableLegacyAsserts</key>
+                            <value>true</value>
+                        </systemProperty>
+                     <!-- Uncomment the following to dump activation class files for mem platform to the mem_sql directory.
+                        <systemProperty>
+                            <key>splice.debug.dumpClassFile</key>
+                            <value>true</value>
+                        </systemProperty>
+                      -->
+                    </systemProperties>
                 </configuration>
             </plugin>
             <plugin>

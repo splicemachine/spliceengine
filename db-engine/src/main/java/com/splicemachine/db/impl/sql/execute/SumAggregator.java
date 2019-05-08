@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -68,11 +68,10 @@ public  class SumAggregator
 						case StoredFormatIds.LONGINT_TYPE_ID:
 								return new LongBufferedSumAggregator(64); //todo -sf- make this configurable?
 						case StoredFormatIds.REAL_TYPE_ID:
-								return new FloatBufferedSumAggregator(64);
 						case StoredFormatIds.DOUBLE_TYPE_ID:
 								return new DoubleBufferedSumAggregator(64);
 						case StoredFormatIds.DECIMAL_TYPE_ID:
-								return new DecimalBufferedSumAggregator(64);
+						    return new DecimalBufferedSumAggregator(64);
 						default: //default to Derby's typical behavior, which has crappy performance, but will work in all cases
 								return null;
 				}

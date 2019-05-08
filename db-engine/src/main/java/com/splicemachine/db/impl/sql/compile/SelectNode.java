@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -128,6 +128,16 @@ public class SelectNode extends ResultSetNode{
 
         if(visitor.hasNode()){
             throw StandardException.newException( SQLState.LANG_WINDOW_FUNCTION_CONTEXT_ERROR, clauseName);
+        }
+    }
+
+    public static void checkNoGroupingFunctions(QueryTreeNode clause, String clauseName) throws StandardException{
+        // Clause cannot contain grouping function except inside subqueries
+        HasNodeVisitor visitor=new HasNodeVisitor(GroupingFunctionNode.class, SubqueryNode.class);
+        clause.accept(visitor);
+
+        if(visitor.hasNode()){
+            throw StandardException.newException( SQLState.LANG_GROUPING_FUNCTION_CONTEXT_ERROR, clauseName);
         }
     }
 
@@ -516,6 +526,45 @@ public class SelectNode extends ResultSetNode{
             return;
         }
 
+        // Evaluate expressions with constant operands here to simplify the
+        // query tree and to reduce the runtime cost. Do it before optimize()
+        // since the simpler tree may have more accurate information for
+        // the optimizer. (Example: The selectivity for 1=1 is estimated to
+        // 0.1, whereas the actual selectivity is 1.0. In this step, 1=1 will
+        // be rewritten to TRUE, which is known by the optimizer to have
+        // selectivity 1.0.)
+        // This is also done before predicate simplification to enable
+        // more predicates to be pruned away.
+        Visitor constantExpressionVisitor =
+                new ConstantExpressionVisitor(SelectNode.class);
+        if (whereClause != null)
+            whereClause = (ValueNode)whereClause.accept(constantExpressionVisitor);
+        if (havingClause != null)
+            havingClause = (ValueNode)havingClause.accept(constantExpressionVisitor);
+
+        // Perform predicate simplification.  Currently only
+        // simple rewrites involving boolean TRUE/FALSE are done, such as:
+        // TRUE AND col1 IN (1,2,3)  ==>  col1 IN (1,2,3)
+        // FALSE OR col1 = 1         ==>  col1 = 1
+        //
+        // Predicate simplification is done before binding because
+        // Subqueries and aggregates in the WHERE clause and HAVING
+        // clause get added to the whereSubquerys, whereAggregates,
+        // havingSubquerys and havingAggregates lists during binding.
+        // If the predicates containing those SubqueryNodes and
+        // AggregateNodes are subsequently removed from the WHERE or
+        // HAVING clause, query compilation will fail.
+        // Nested SelectNodes will not be scanned by this Visitor.
+        if (!getCompilerContext().getDisablePredicateSimplification()) {
+            Visitor predSimplVisitor =
+                new PredicateSimplificationVisitor(fromListParam,
+                                                   SelectNode.class);
+            if (whereClause != null)
+                whereClause = (ValueNode)whereClause.accept(predSimplVisitor);
+            if (havingClause != null)
+                havingClause = (ValueNode)havingClause.accept(predSimplVisitor);
+        }
+
         whereAggregates=new LinkedList<>();
         whereSubquerys=(SubqueryList)getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
 
@@ -550,6 +599,7 @@ public class SelectNode extends ResultSetNode{
             getCompilerContext().popCurrentPrivType();
 
             checkNoWindowFunctions(whereClause,"WHERE");
+            checkNoGroupingFunctions(whereClause, "WHERE");
         }
 
         if(havingClause!=null){
@@ -567,7 +617,7 @@ public class SelectNode extends ResultSetNode{
 		/* Restore fromList */
         for(int index=0;index<fromListSize;index++){
             fromListParam.removeElementAt(0);
-        }
+        }// those items
 
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(fromListParam.size()==fromListParamSize,
@@ -611,6 +661,9 @@ public class SelectNode extends ResultSetNode{
         if((groupByList!=null || !selectAggregates.isEmpty())){
             VerifyAggregateExpressionsVisitor visitor= new VerifyAggregateExpressionsVisitor(groupByList);
             resultColumns.accept(visitor);
+        } else {
+            // non aggregate query should not contain GROUPING function
+            checkNoGroupingFunctions(resultColumns, "SELECT");
         }
     }
 
@@ -949,8 +1002,9 @@ public class SelectNode extends ResultSetNode{
 		/* A valid group by without any aggregates or a having clause
 		 * is equivalent to a distinct without the group by.  We do the transformation
 		 * in order to simplify the group by code.
+		 * The conversion cannot be done if it is a rollup
 		 */
-        if(groupByList!=null && havingClause==null && !hasAggregatesInSelectList() && whereAggregates.isEmpty()){
+        if(groupByList!=null && !groupByList.isRollup() && havingClause==null && !hasAggregatesInSelectList() && whereAggregates.isEmpty()){
             isDistinct=true;
             groupByList=null;
             wasGroupBy=true;
@@ -1538,6 +1592,26 @@ public class SelectNode extends ResultSetNode{
             orderByList.setAlwaysSort();
         }
 
+        /* Currently, SelfReferenceNode cannot be used as the right table of a nested loop join or broadcast join,
+           so let all other tables in the fromList set dependency on this to ensure SelfReferenceNode to be planned first
+         */
+        FromTable selfReferenceNode = null;
+        for (int i=0; i < fromList.size(); i++) {
+            FromTable ft=(FromTable)fromList.elementAt(i);
+            /* we only allow one selfReference in recursive quer for now */
+            if (ft.getContainsSelfReference()) {
+                selfReferenceNode = ft;
+                break;
+            }
+        }
+        if (selfReferenceNode != null) {
+            for (int i=0; i < fromList.size(); i++) {
+                FromTable ft=(FromTable)fromList.elementAt(i);
+                if (ft != selfReferenceNode) {
+                    ft.addToDependencyMap(selfReferenceNode.getReferencedTableMap());
+                }
+            }
+        }
 		/* Get a new optimizer */
         optimizer=getOptimizer(fromList, wherePredicates, dataDictionary, orderByList);
         optimizer.setOuterRows(outerRows);
@@ -2652,5 +2726,13 @@ public class SelectNode extends ResultSetNode{
             return false;
 
         return true;
+    }
+
+    public boolean getOriginalWhereClauseHadSubqueries() {
+        return this.originalWhereClauseHadSubqueries;
+    }
+
+    public boolean hasHavingClause() {
+        return havingClause != null;
     }
 }

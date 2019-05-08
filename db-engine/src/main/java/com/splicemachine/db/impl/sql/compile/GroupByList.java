@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -130,6 +130,14 @@ public class GroupByList extends OrderedColumnList{
                 if (visitor.hasNode())
                 {
                     throw StandardException.newException(SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
+                }
+
+                visitor =
+                        new HasNodeVisitor(GroupingFunctionNode.class);
+                resultCol.expression.accept(visitor);
+                if (visitor.hasNode())
+                {
+                    throw StandardException.newException(SQLState.LANG_GROUPING_FUNCTION_CONTEXT_ERROR, "GROUPBY");
                 }
 
                 groupByCol.setColumnExpression(resultCol.expression);

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -72,6 +72,8 @@ public interface C_NodeNames
 	String BIT_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BitConstantNode";
 
 	String BOOLEAN_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BooleanConstantNode";
+	
+	String LIST_VALUE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ListValueNode";
 
 	String CALL_STATEMENT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CallStatementNode";
 
@@ -268,6 +270,8 @@ public interface C_NodeNames
 
 	String SIMPLE_STRING_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SimpleStringOperatorNode";
 
+	String SIMPLE_LOCALE_STRING_OPERATOR_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SimpleLocaleStringOperatorNode";
+
 	String STATIC_CLASS_FIELD_REFERENCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StaticClassFieldReferenceNode";
 
 	String STATIC_METHOD_CALL_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StaticMethodCallNode";
@@ -342,7 +346,11 @@ public interface C_NodeNames
 
 	String DROP_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropPinNode";
 
-	static final String SET_SESSION_PROPERTY_NAME = "com.splicemachine.db.impl.sql.compile.SetSessionPropertyNode";
+	String SET_SESSION_PROPERTY_NAME = "com.splicemachine.db.impl.sql.compile.SetSessionPropertyNode";
+
+	String GROUPING_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GroupingFunctionNode";
+
+	String SELF_REFERENCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SelfReferenceNode";
 
 	// WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties

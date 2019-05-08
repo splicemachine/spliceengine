@@ -1,4 +1,4 @@
-/*
+ /*
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
  * GNU Affero General Public License as published by the Free Software Foundation, either
@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -157,7 +157,7 @@ public class BinaryRelationalOperatorNode
      * left operand of the inListProbeSource is set correctly before
      * returning it.
      */
-    public InListOperatorNode getInListOp(){
+    public InListOperatorNode getInListOp() throws StandardException {
         if(inListProbeSource!=null){
             /* Depending on where this probe predicate currently sits
 			 * in the query tree, this.leftOperand *may* have been
@@ -186,7 +186,9 @@ public class BinaryRelationalOperatorNode
 			 * to ensure the underlying InListOperatorNode also has an
 			 * up-to-date leftOperand is to set it to this.leftOperand.
 			 */
-            inListProbeSource.setLeftOperand(this.leftOperand);
+            // No remapping of multicolumn IN list for now.
+            if (inListProbeSource.leftOperandList.size() == 1)
+                inListProbeSource.setLeftOperand(this.leftOperand);
         }
 
         return inListProbeSource;
@@ -1019,7 +1021,7 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    private boolean isKnownConstant(ValueNode node, boolean considerParameters) {
+    public static boolean isKnownConstant(ValueNode node, boolean considerParameters) {
         if (node instanceof CastNode)
             node = ((CastNode) node).castOperand;
 
@@ -1411,10 +1413,10 @@ public class BinaryRelationalOperatorNode
         if (leftOperand instanceof ColumnReference && rightOperand instanceof ColumnReference && optTable instanceof FromBaseTable) {
             ConglomerateDescriptor cdLeft = ((ColumnReference) leftOperand).getBaseConglomerateDescriptor();
             ConglomerateDescriptor cdRight = ((ColumnReference) rightOperand).getBaseConglomerateDescriptor();
-            if (cdLeft ==null || cdRight==null)
+            if (cdLeft ==null && cdRight==null)
                 return -1.0d;
-            boolean leftFromBaseTable = cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
-            boolean rightFromBaseTable = cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
+            boolean leftFromBaseTable = cdLeft != null && cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
+            boolean rightFromBaseTable = cdRight != null && cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
             if (leftFromBaseTable && rightFromBaseTable) {
                 return Math.max(((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity(),((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity());
             } else if (leftFromBaseTable) {
@@ -1422,20 +1424,25 @@ public class BinaryRelationalOperatorNode
             } else if (rightFromBaseTable) {
                 return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
             }
-        } else if (leftOperand instanceof ColumnReference && rightOperand instanceof ParameterNode) {
-            // it is possible that this is a special case that actually represents an inlist condition, then it is better to facter in the
-            // number of inlist elements in the selectivity estimation
-            int factor = 1;
-            if (inListProbeSource != null) {
-                factor = inListProbeSource.getRightOperandList().size();
+        } else if (leftOperand instanceof ColumnReference) {
+            // generalize the estimation from ParameterNode to any expression
+            double sel = ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
+            if (rightOperand instanceof ParameterNode) {
+                // it is possible that this is a special case that actually represents an inlist condition, then it is better to facter in the
+                // number of inlist elements in the selectivity estimation
+                int factor = 1;
+                if (inListProbeSource != null) {
+                    factor = inListProbeSource.getRightOperandList().size();
+                }
+                sel = factor * sel;
+                // avoid the estimation to go over 1, in case it happens, round down to 0.9 to be consistent with the logic in
+                // InListSelectivity.getSelectivity()
+                if (sel > 0.9d)
+                    sel = 0.9d;
             }
-            double sel = factor * ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
-            // avoid the estimation to go over 1, in case it happens, round down to 0.9 to be consistent with the logic in
-            // InListSelectivity.getSelectivity()
-            if (sel > 0.9d)
-                sel = 0.9d;;
             return sel;
-        } else if (rightOperand instanceof ColumnReference && leftOperand instanceof ParameterNode) {
+        } else if (rightOperand instanceof ColumnReference) {
+            // generalize the estimation from ParameterNode to any expression
             return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
         }
         return -1.0d;
@@ -1455,6 +1462,11 @@ public class BinaryRelationalOperatorNode
                     return 0.1;
                 return selectivity;
             case RelationalOperator.NOT_EQUALS_RELOP:
+                selectivity = getReferenceSelectivity(optTable);
+                if (selectivity < 0.0d) // No Stats, lets just guess 10%
+                    return 0.9;
+                else
+                    return 1-selectivity;
             case RelationalOperator.LESS_THAN_RELOP:
             case RelationalOperator.LESS_EQUALS_RELOP:
             case RelationalOperator.GREATER_EQUALS_RELOP:
@@ -1648,7 +1660,7 @@ public class BinaryRelationalOperatorNode
      * inListProbeSource's leftOperand through this method.
      */
     @Override
-    public boolean isInListProbeNode(){
+    public boolean  isInListProbeNode(){
         return (inListProbeSource!=null);
     }
 

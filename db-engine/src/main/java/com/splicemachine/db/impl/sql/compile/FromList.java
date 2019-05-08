@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -511,7 +511,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     /* TableNumbers and column numbers are set in the CR in the
                      * underlying FromTable.  This ensures that they get the
                      * table number/column number from the underlying table,
-                     * not the join node.  This is important for beging able to
+                     * not the join node.  This is important for being able to
                      * push predicates down through join nodes.
                      */
                     matchingRC=resultColumn;

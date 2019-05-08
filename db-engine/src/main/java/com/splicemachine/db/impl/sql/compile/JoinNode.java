@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1497,6 +1497,7 @@ public class JoinNode extends TableOperatorNode{
 
             // SQL 2003, section 7.7 SR 5
             SelectNode.checkNoWindowFunctions(joinClause,"ON");
+            SelectNode.checkNoGroupingFunctions(joinClause,"ON");
 
 			/*
 			** We cannot have aggregates in the ON clause.

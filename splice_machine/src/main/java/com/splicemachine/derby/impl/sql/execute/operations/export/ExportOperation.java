@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -68,7 +68,7 @@ public class ExportOperation extends SpliceBaseOperation {
                            Activation activation,
                            int rsNumber,
                            String exportPath,
-                           boolean compression,
+                           String compression,
                            String format,
                            int replicationCount,
                            String encoding,
@@ -208,7 +208,15 @@ public class ExportOperation extends SpliceBaseOperation {
             case "parquet": {
                 OperationContext<?> writeContext = dsp.createOperationContext(this);
                 long start = System.currentTimeMillis();
-                dataset.writeParquetFile(dsp, new int[]{}, exportParams.getDirectory(), exportParams.isCompression() ? "snappy" : "none", writeContext);
+                String compression = null;
+                if (exportParams.getCompression() == ExportFile.COMPRESSION.SNAPPY) {
+                    compression = "snappy";
+                }
+                else if (exportParams.getCompression() == ExportFile.COMPRESSION.NONE) {
+                    compression = "none";
+                }
+
+                dataset.writeParquetFile(dsp, new int[]{}, exportParams.getDirectory(), compression, writeContext);
                 long end = System.currentTimeMillis();
                 ValueRow vr = new ValueRow(2);
                 vr.setColumn(1,new SQLLongint(writeContext.getRecordsWritten()));

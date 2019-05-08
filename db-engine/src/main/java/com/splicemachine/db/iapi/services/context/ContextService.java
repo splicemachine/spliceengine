@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -292,22 +292,24 @@ public final class ContextService{
         if (current == null) return;
 
         if (current.activeCount != -1) {
-            if (current == cm && --cm.activeCount <= 0) {
-                cm.activeThread=null;
+            if (current == cm ) {
+                if (--cm.activeCount <= 0) {
+                    cm.activeThread = null;
 
-                // If the ContextManager is empty
-                // then don't keep a reference to it
-                // when it is not in use. The ContextManager
-                // has been closed (most likely) and this
-                // is now unwanted. Keeping the reference
-                // would hold onto memory and increase the
-                // chance of holding onto a another reference
-                // will could cause issues for future operations.
-                if(cm.isEmpty()) {
-                    threadContextList.get().clear();
+                    // If the ContextManager is empty
+                    // then don't keep a reference to it
+                    // when it is not in use. The ContextManager
+                    // has been closed (most likely) and this
+                    // is now unwanted. Keeping the reference
+                    // would hold onto memory and increase the
+                    // chance of holding onto a another reference
+                    // will could cause issues for future operations.
+                    if (cm.isEmpty()) {
+                        threadContextList.get().remove(cm);
+                    }
                 }
+                return;
             }
-            return;
         }
 
         if (LOG.isTraceEnabled()) {

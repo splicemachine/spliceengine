@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -24,6 +24,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
@@ -31,6 +32,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaRDDLike;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -221,17 +223,21 @@ public class SparkUtils {
         com.splicemachine.db.iapi.sql.ResultSet serverSideResultSet = ers.getUnderlyingResultSet();
         SpliceBaseOperation operation = (SpliceBaseOperation) serverSideResultSet;
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
-        SparkDataSet<ExecRow> spliceDataSet = (SparkDataSet) operation.getResultDataSet(dsp);
-        JavaRDD<ExecRow> rdd = spliceDataSet.rdd;
-        final ResultColumnDescriptor[] columns = serverSideResultSet.getResultDescription().getColumnInfo();
+        DataSet<ExecRow> spliceDataSet = operation.getResultDataSet(dsp);
+        if(spliceDataSet instanceof SparkDataSet) {
+            JavaRDD<ExecRow> rdd = ((SparkDataSet)spliceDataSet).rdd;
+            final ResultColumnDescriptor[] columns = serverSideResultSet.getResultDescription().getColumnInfo();
 
-        // Generate the schema based on the ResultColumnDescriptors
-        List<StructField> fields = new ArrayList<>();
-        for (ResultColumnDescriptor column : columns) {
-            fields.add(column.getStructField());
+            // Generate the schema based on the ResultColumnDescriptors
+            List<StructField> fields = new ArrayList<>();
+            for (ResultColumnDescriptor column : columns) {
+                fields.add(column.getStructField());
+            }
+            StructType schema = DataTypes.createStructType(fields);
+            return SpliceSpark.getSession().createDataFrame(rdd.map(new LocatedRowToRowFunction()), schema);
+        } else {
+            return ((NativeSparkDataSet) spliceDataSet).dataset;
         }
-        StructType schema = DataTypes.createStructType(fields);
-        return SpliceSpark.getSession().createDataFrame(rdd.map(new LocatedRowToRowFunction()), schema);
     }
 
     /**

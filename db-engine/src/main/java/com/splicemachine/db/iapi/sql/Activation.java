@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -54,8 +54,13 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.utils.Pair;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Vector;
 import java.util.Hashtable;
 
@@ -628,4 +633,12 @@ public interface Activation extends Dependent
 	void materialize() throws StandardException;
 
     boolean isMaterialized();
+
+    boolean isBatched();
+
+    boolean nextBatchElement() throws StandardException;
+
+	Pair<PreparedStatement, Iterator<ParameterValueSet>> getBatch();
+
+    void setBatch(Iterator<ParameterValueSet> params, PreparedStatement ps);
 }

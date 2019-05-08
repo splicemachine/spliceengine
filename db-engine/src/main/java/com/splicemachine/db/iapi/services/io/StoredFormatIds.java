@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1361,6 +1361,15 @@ public interface StoredFormatIds {
     int SQL_VARCHAR_ID =
             (MIN_ID_2 + 85);
 
+    int LIST_ID =
+        (MIN_ID_2 + 478);
+    
+    int LIST_TYPE_ID_IMPL =
+        (MIN_ID_2 + 480);
+    
+    int LIST_TYPE_ID =
+        (MIN_ID_2 + 481);
+    
     //public static final int SQL_USERTYPE_ID = 
     //      (MIN_ID_2 + 86);
 
@@ -1754,7 +1763,7 @@ public interface StoredFormatIds {
      * Make sure this is updated when a new module is added
      */
    int MAX_ID_2 =
-    		(MIN_ID_2 + 477);
+    		(MIN_ID_2 + 481);
 
     // DO NOT USE 4 BYTE IDS ANYMORE
     int MAX_ID_4 =

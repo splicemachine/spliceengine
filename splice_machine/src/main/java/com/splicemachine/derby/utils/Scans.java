@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -18,10 +18,7 @@ import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataType;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -308,6 +305,8 @@ public class Scans extends SpliceUtils {
         assert row!=null:"row passed in is null";
         assert qual_list!=null:"qualifier[][] passed in is null";
         boolean     row_qualifies = true;
+        int numProbeValues = (probeValue != null && (probeValue instanceof ListDataType)) ?
+            ((ListDataType) probeValue).getLength() : 1;
         for (int i = 0; i < qual_list[0].length; i++) {
             // process each AND clause
             row_qualifies = false;
@@ -321,12 +320,15 @@ public class Scans extends SpliceUtils {
             if ( filterNull(q.getOperator(),columnValue,probeValue==null || i!=0?q.getOrderable():probeValue,q.getVariantType())) {
                 return false;
             }
+
             row_qualifies =
                     columnValue.compare(
                             q.getOperator(),
-                            probeValue==null || i!=0?q.getOrderable():probeValue,
+                            (probeValue==null || i >= numProbeValues) ? q.getOrderable():
+                            (numProbeValues == 1 ? probeValue : ((ListDataType) probeValue).getDVD(i)),
                             q.getOrderedNulls(),
                             q.getUnknownRV());
+            
             if (q.negateCompareResult())
                 row_qualifies = !row_qualifies;
 //            System.out.println(String.format("And Clause -> value={%s}, operator={%s}, orderable={%s}, " +

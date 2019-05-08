@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -20,10 +20,12 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -32,11 +34,19 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
 
 /**
  * @author jessiezhang
@@ -87,6 +97,20 @@ public class UpdateOperation extends DMLWriteOperation{
         kdvds=new DataValueDescriptor[columnOrdering.length];
         for(int i=0;i<columnOrdering.length;++i){
             kdvds[i]=LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+        }
+
+        WriteCursorConstantOperation constantAction=(WriteCursorConstantOperation)writeInfo.getConstantAction();
+
+        TriggerInfo triggerInfo=constantAction.getTriggerInfo();
+        if(triggerInfo!=null){
+            this.triggerHandler=new TriggerHandler(
+                    triggerInfo,
+                    writeInfo,
+                    getActivation(),
+                    getBeforeEvent(getClass()),
+                    getAfterEvent(getClass()),
+                    getHeapList()
+            );
         }
     }
 
@@ -170,7 +194,10 @@ public class UpdateOperation extends DMLWriteOperation{
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        DataSet set=source.getDataSet(dsp).shufflePartitions();
+
+        Pair<DataSet, int[]> pair = getBatchedDataset(dsp);
+        DataSet set = pair.getFirst();
+        int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext=dsp.createOperationContext(this);
         TxnView txn=getCurrentTransaction();
         ExecRow execRow=getExecRowDefinition();
@@ -186,6 +213,7 @@ public class UpdateOperation extends DMLWriteOperation{
                     .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
                     .heapList(getHeapListStorage())
                     .tableVersion(tableVersion)
+                    .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -104,8 +104,9 @@ public class Exceptions {
         return t instanceof RuntimeException ? (RuntimeException) t : new RuntimeException(t);
     }
 
-    public static void throwAsRuntime(Throwable t) {
+    public static RuntimeException throwAsRuntime(Throwable t) {
         Exceptions.<RuntimeException> doThrow(t);
+        return new RuntimeException();
     }
 
     @SuppressWarnings("unchecked")

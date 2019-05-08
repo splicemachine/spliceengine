@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -268,10 +270,29 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setRowCount(totalRowCount);
         innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalRowCount));
-        double joinCost = SelectivityUtil.nestedLoopJoinStrategyLocalCost(innerCost, outerCost);
+        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
+    }
+
+    /**
+     *
+     * Nested Loop Join Local Cost Computation
+     *
+     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Left Side Row Count/Left Side Partition Count)*(Right Side Cost + Right Side Transfer Cost)
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
+
+    public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double numOfJoinedRows) {
+        SConfiguration config = EngineDriver.driver().getConfiguration();
+        double localLatency = config.getFallbackLocalLatency();
+        double joiningRowCost = numOfJoinedRows * localLatency;
+        return outerCost.localCostPerPartition() + (outerCost.rowCount()/outerCost.partitionCount())*(innerCost.localCost()+innerCost.getRemoteCost())
+                + joiningRowCost/outerCost.partitionCount();
     }
 
     /**

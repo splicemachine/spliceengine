@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -114,6 +114,7 @@ public class ResultCountIT {
         int rows = ps.executeUpdate();
 
         Assert.assertEquals(1, rows);
+        conn.rollback();
     }
 
     /**
@@ -156,6 +157,7 @@ public class ResultCountIT {
         rs.next();
         Assert.assertEquals(102, rs.getInt(1));
         Assert.assertFalse("Only one row expected.", rs.next());
+        connection.rollback();
     }
 
     /**
@@ -266,6 +268,7 @@ public class ResultCountIT {
 
         ResultSet rs = connection.createStatement().executeQuery(query);
         Assert.assertFalse("No rows expected.", rs.next());
+        connection.rollback();
     }
 
     @Test
@@ -288,6 +291,7 @@ public class ResultCountIT {
 
         ResultSet rs = connection.createStatement().executeQuery(query);
         Assert.assertFalse("No rows expected.", rs.next());
+        connection.rollback();
     }
 
     @Test

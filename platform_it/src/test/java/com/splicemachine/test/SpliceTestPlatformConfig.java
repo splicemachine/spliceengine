@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -36,12 +36,18 @@ import org.apache.hadoop.security.UserGroupInformation;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.OlapConfigurations;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
+import com.splicemachine.compactions.SpliceDefaultCompactor;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.hbase.*;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import com.splicemachine.utils.BlockingProbeEndpoint;
+import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HConstants;
@@ -59,6 +65,24 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.spark_project.guava.collect.Lists.transform;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.google.common.collect.Lists.transform;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.derby.hbase.SpliceIndexObserver;
+import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
+import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
+import com.splicemachine.utils.BlockingProbeEndpoint;
+import com.splicemachine.hbase.SpliceReplicationService;
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
  */
@@ -66,7 +90,8 @@ class SpliceTestPlatformConfig {
 
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
             RegionServerLifecycleObserver.class,
-            BlockingProbeEndpoint.class
+            BlockingProbeEndpoint.class,
+            SpliceReplicationService.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
@@ -134,6 +159,25 @@ class SpliceTestPlatformConfig {
             config.set("hbase.master.keytab.file", keytab);
             config.set("yarn.nodemanager.principal", "yarn/example.com@EXAMPLE.COM");
             config.set("yarn.resourcemanager.principal", "yarn/example.com@EXAMPLE.COM");
+            //read ee_key from a resource file
+            ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+            try (InputStream is = classloader.getResourceAsStream("ee.txt")) {
+                if (is != null) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                    String eeKey = reader.lines().collect(Collectors.joining(System.lineSeparator()));
+                    config.set("splicemachine.enterprise.key", eeKey);
+                    config.set("splice.authentication", "LDAP");
+                    config.set("splice.authentication.ldap.server", "ldap://localhost:4016");
+                    config.set("splice.authentication.ldap.searchAuthDN", "uid=admin,ou=system");
+                    config.set("splice.authentication.ldap.searchAuth.password", "secret");
+                    config.set("splice.authentication.ldap.searchBase", "ou=users,dc=example,dc=com");
+                    config.set("splice.authentication.ldap.searchFilter", "(&(objectClass=inetOrgPerson)(uid=%USERNAME%))");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
         }
 
 //        UserGroupInformation.setLoginUser(Us);
@@ -281,6 +325,8 @@ class SpliceTestPlatformConfig {
         config.setInt("splice.authentication.token.renew-interval",120);
         config.set("splice.authentication.impersonation.users", "dgf=splice;splice=*");
         config.setBoolean("splice.authentication.impersonation.enabled", true);
+        config.set("splice.authentication.ldap.mapGroupAttr", "jy=splice,dgf=splice");
+
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing
             config.setBoolean("splice.ignore.missing.transactions", true);

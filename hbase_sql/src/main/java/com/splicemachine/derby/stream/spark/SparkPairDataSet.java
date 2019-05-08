@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -55,12 +55,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     }
 
     @Override
-    public DataSet<V> values(){
-        return values(RDDName.GET_VALUES.displayName());
+    public DataSet<V> values(OperationContext context){
+        return values(RDDName.GET_VALUES.displayName(), context);
     }
 
     @Override
-    public DataSet<V> values(String name){
+    public DataSet<V> values(String name, OperationContext context){
         return new SparkDataSet<>(rdd.values(),name);
     }
 
@@ -75,7 +75,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     }
 
     @Override
-    public DataSet<K> keys(){
+    public DataSet<K> keys() {
         return new SparkDataSet<>(rdd.keys());
     }
 
@@ -177,7 +177,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public <Op extends SpliceOperation,U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K, V>, U> f){
-        return new SparkDataSet<>(rdd.flatMap(new SparkFlatMapFunction<>(f)),f.getSparkName());
+        return new SparkDataSet<U>(rdd.flatMap(new SparkFlatMapFunction<>(f)),f.getSparkName());
     }
 
     @Override

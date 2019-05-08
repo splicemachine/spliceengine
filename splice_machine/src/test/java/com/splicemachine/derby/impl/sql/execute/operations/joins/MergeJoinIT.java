@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -438,6 +438,17 @@ public class MergeJoinIT extends SpliceUnitTest {
                 row(8,8,8)))
             .create();
 
+
+        new TableCreator(conn)
+                .withCreate("create table tt9 (col1 int, col2 int, col3 int)")
+                .withIndex("create index tt9_idx on tt9(col1, col2)")
+                .withInsert("insert into tt9 values(?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,2,2),
+                        row(6,6,6),
+                        row(null, null, null)))
+                .create();
 
     }
     @Test
@@ -1534,6 +1545,28 @@ public class MergeJoinIT extends SpliceUnitTest {
          String expected = "";
          ResultSet rs = methodWatcher.executeQuery(sql);
          assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+         rs.close();
+     }
+
+     @Test
+     public void testMergeJoinWithNull() throws Exception {
+         String sql = "select X.col1, X.col2, Y.col1, Y.col2 from tt9 as X, tt9 as Y --splice-properties joinStrategy=merge, useSpark=false\n" +
+                 "where X.col1 = Y.col1";
+
+         ResultSet rs = methodWatcher.executeQuery(sql);
+         String expected = "COL1 |COL2 |COL1 |COL2 |\n" +
+                 "------------------------\n" +
+                 "  1  |  1  |  1  |  1  |\n" +
+                 "  2  |  2  |  2  |  2  |\n" +
+                 "  6  |  6  |  6  |  6  |";
+         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+         rs.close();
+
+         //test spark path
+         sql = "select X.col1, X.col2, Y.col1, Y.col2 from tt9 as X, tt9 as Y --splice-properties joinStrategy=merge, useSpark=true\n" +
+                 "where X.col1 = Y.col1";
+         rs = methodWatcher.executeQuery(sql);
+         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
          rs.close();
      }
 

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -58,9 +58,7 @@ import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
-import java.util.Dictionary;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * <p>
@@ -141,6 +139,7 @@ public abstract class AuthenticationServiceBase
 
 	private static final String IMPERSONATION_ENABLED = "derby.authentication.impersonation.enabled";
 	private static final String IMPERSONATION_USERS = "derby.authentication.impersonation.users";
+	private static final String LDAP_GROUP_ATTR = "derby.authentication.ldap.mapGroupAttr";
 
 	//
 	// constructor
@@ -169,6 +168,57 @@ public abstract class AuthenticationServiceBase
 		}
 
 		return null;
+	}
+
+	protected String mapUserGroups(List<String> groupList) {
+		if (groupList == null || groupList.isEmpty())
+			return null;
+
+		String mapGroupAttrStr = getProperty(LDAP_GROUP_ATTR);
+		if (mapGroupAttrStr != null) {
+			HashMap<String, String> groupmap = parseGroupAttr(mapGroupAttrStr);
+			updateGroupList(groupList, groupmap);
+		}
+		return groupList.toString().replace("[", "")
+				.replace("]", "").replace(", ",",");
+	}
+
+	/**
+	 * Parse and prepare hashmap of group mappings
+	 *
+	 * @param mapGroupAttrStr ldap group to splice user mapping string as provided
+	 * @return hashmap of ldap group to splice user map
+	 */
+	private HashMap<String,String> parseGroupAttr(String mapGroupAttrStr) {
+		HashMap<String,String> groupAttrMap = new HashMap<>();
+		String attrArr[] = mapGroupAttrStr.split(",");
+		for (String elem : attrArr) {
+			String mapAttr[] = elem.split("=");
+			if (mapAttr.length == 2) {
+				//add the mapping, but ignore the case for the cn from ldap
+				groupAttrMap.put(mapAttr[0].trim().toLowerCase(), mapAttr[1].trim());
+			}
+		}
+		return groupAttrMap;
+	}
+
+
+	/**
+	 * Update the group list with the override property
+	 * @param grouplist list of ldap groups tobe updated
+	 * @param groupmap Map to override with
+	 */
+	private static void updateGroupList(List<String> grouplist, HashMap<String, String> groupmap) {
+		if (groupmap.isEmpty())
+			return;
+
+		// Go through the grouplist and replace groupnames with the override name
+		for (int i = 0; i < grouplist.size(); i++) {
+			//ignore the case for the cn from ldap when looking up the mapped splice correspondent.
+			String mappedGroupName = groupmap.get(grouplist.get(i).toLowerCase());
+			if (mappedGroupName != null)
+				grouplist.set(i, mappedGroupName);
+		}
 	}
 
 	protected void setAuthenticationService(UserAuthenticator aScheme) {

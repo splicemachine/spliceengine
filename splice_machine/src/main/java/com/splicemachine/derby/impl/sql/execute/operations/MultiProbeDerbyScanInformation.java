@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.ListDataType;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SerializationUtils;
 import com.splicemachine.si.api.txn.TxnView;
@@ -80,7 +81,14 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 		protected ExecIndexRow getStopPosition() throws StandardException {
 				ExecIndexRow stopPosition = sameStartStopPosition?super.getStartPosition():super.getStopPosition();
 				if (stopPosition != null) {
-					stopPosition.getRowArray()[inlistPosition] = probeValue;
+					if (probeValue instanceof ListDataType) {
+						ListDataType listData = (ListDataType) probeValue;
+						int numVals = listData.getLength();
+						for (int i = 0; i < numVals; i++) {
+							stopPosition.getRowArray()[inlistPosition + i] = listData.getDVD(i);
+						}
+					} else
+					    stopPosition.getRowArray()[inlistPosition] = probeValue;
 				}
 				return stopPosition;
 		}
@@ -90,8 +98,17 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 		ExecIndexRow startPosition = super.getStartPosition();
         if(sameStartStopPosition)
             startSearchOperator = ScanController.NA;
-		if(startPosition!=null)
-            startPosition.getRowArray()[inlistPosition] = probeValue;
+		if(startPosition!=null) {
+			if (probeValue instanceof ListDataType) {
+				ListDataType listData = (ListDataType) probeValue;
+				int numVals = listData.getLength();
+				for (int i = 0; i < numVals; i++) {
+					startPosition.getRowArray()[inlistPosition+i] = listData.getDVD(i);
+				}
+			}
+			else
+			    startPosition.getRowArray()[inlistPosition] = probeValue;
+		}
 		return startPosition;
 	}
 
@@ -125,15 +142,34 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 			 * set it on that field.
 			 */
 			Qualifier[] ands  = qualifiers[0];
+			int numColumns = (probeValue instanceof ListDataType) ?
+				((ListDataType)probeValue).getLength() : 1;
 			if(ands!=null){
-					Qualifier first = ands[0];
-					if(first!=null && probeValue != null){
-							first.clearOrderableCache();
-							//Qualifiers are sorted in the code generation phase,
-						    //and inlist will already be put in the first
-							first.getOrderable().setValue(probeValue);
+				for (int i = 0; i < numColumns; i++) {
+					Qualifier qual = ands[i];
+					if (qual != null && probeValue != null) {
+						qual.clearOrderableCache();
+						//Qualifiers are sorted in the code generation phase,
+						//and inlist will already be put in the first
+						DataValueDescriptor dvd = probeValue;
+						if (numColumns != 1)
+							dvd = ((ListDataType)dvd).getDVD(i);
+						// A dvd could be null if the source is a parameter value.
+						if (dvd != null)
+					  	    qual.getOrderable().setValue(dvd);
 					}
+				}
 			}
+
+			// populate the orderableCache if invariant for qualifiers, to avoid
+			// setting them by multiple-threads
+			for (int i = 0; i < qualifiers.length; i++) {
+				if (qualifiers[i] != null) {
+					for (int j = 0; j<qualifiers[i].length; j++)
+						qualifiers[i][j].getOrderable();
+				}
+			}
+
 		}
 		return qualifiers;
 	}

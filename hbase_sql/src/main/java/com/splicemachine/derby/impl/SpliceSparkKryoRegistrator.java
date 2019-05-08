@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -25,29 +25,41 @@ import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.catalog.types.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.*;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
-import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
-import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
-import com.splicemachine.derby.ddl.TentativeDropPKConstraintDesc;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
-import com.splicemachine.derby.serialization.ActivationSerializer;
-import com.splicemachine.derby.serialization.SpliceObserverInstructions;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.db.impl.sql.*;
+import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
+import com.splicemachine.db.impl.sql.catalog.DD_Version;
+import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
+import com.splicemachine.db.impl.sql.execute.*;
+import com.splicemachine.db.impl.store.access.PC_XenaVersion;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.kryo.SparkValueRowSerializer;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
+import com.splicemachine.derby.serialization.ActivationSerializer;
+import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
+import com.splicemachine.derby.utils.kryo.ListDataTypeSerializer;
+import com.splicemachine.derby.utils.kryo.SimpleObjectSerializer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.stream.ResultStreamer;
@@ -59,19 +71,7 @@ import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.UUIDSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-import com.splicemachine.db.catalog.types.*;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.*;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.*;
-import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
-import com.splicemachine.db.impl.sql.catalog.DD_Version;
-import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
-import com.splicemachine.db.impl.sql.execute.*;
-import com.splicemachine.db.impl.store.access.PC_XenaVersion;
+import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
 
@@ -362,6 +362,36 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             }
         });
         instance.register(SQLRef.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ListDataType.class, new ListDataTypeSerializer<ListDataType>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, ListDataType object) throws StandardException {
+                int forLim = object.getLength();
+                output.writeInt(forLim);
+                for (int i = 0; i < forLim; i++) {
+                    boolean dvdPresent = (object.getDVD(i) != null);
+                    output.writeBoolean(dvdPresent);
+                    if (dvdPresent)
+                        kryo.writeClassAndObject(output, object.getDVD(i));
+                }
+            }
+    
+            @Override
+            protected void readValue(Kryo kryo, Input input, ListDataType dvd) {
+                int forLim = input.readInt();
+                dvd.setLength(forLim);
+                for (int i = 0; i < forLim; i++) {
+                    DataValueDescriptor inputDVD;
+                    if (input.readBoolean()) {
+                        inputDVD = (DataValueDescriptor) kryo.readClassAndObject(input);
+                        try {
+                            dvd.setFrom(inputDVD, i);
+                        } catch (StandardException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            }
+        });
         //register Activation-related classes
         instance.register(ActivationSerializer.ArrayFieldStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ActivationSerializer.DataValueStorage.class,EXTERNALIZABLE_SERIALIZER);
@@ -716,6 +746,65 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(JoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DMLWriteOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MiscOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SelfReferenceOperation.class,new Serializer<SelfReferenceOperation>(){
+            @Override
+            public void write(Kryo kryo,Output output,SelfReferenceOperation object){
+                try{
+                    object.writeExternalWithoutChild(new KryoObjectOutput(output,kryo));
+                }catch(IOException e){
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public SelfReferenceOperation read(Kryo kryo,Input input,Class type){
+                SelfReferenceOperation selfReferenceOperation=new SelfReferenceOperation();
+                try{
+                    selfReferenceOperation.readExternal(new KryoObjectInput(input,kryo));
+                }catch(IOException|ClassNotFoundException e){
+                    throw new RuntimeException(e);
+                }
+                return selfReferenceOperation;
+            }
+        });
+
+        instance.register(RecursiveUnionOperation.class,new Serializer<RecursiveUnionOperation>(){
+            @Override
+            public void write(Kryo kryo,Output output,RecursiveUnionOperation object){
+                try{
+                    object.writeExternal(new KryoObjectOutput(output,kryo));
+                }catch(IOException e){
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public RecursiveUnionOperation read(Kryo kryo,Input input,Class type){
+                RecursiveUnionOperation recursiveUnionOperation=new RecursiveUnionOperation();
+                try{
+                    recursiveUnionOperation.readExternal(new KryoObjectInput(input,kryo));
+                    recursiveUnionOperation.setRecursiveUnionReference(recursiveUnionOperation);
+                }catch(IOException|ClassNotFoundException e){
+                    throw new RuntimeException(e);
+                }
+                return recursiveUnionOperation;
+            }
+        });
+
+        instance.register(org.apache.commons.lang3.mutable.MutableDouble.class,
+                          new SimpleObjectSerializer<MutableDouble>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, MutableDouble object) throws RuntimeException {
+                output.writeDouble(object.doubleValue());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, MutableDouble object) throws RuntimeException {
+                object.setValue(input.readDouble());
+            }
+        });
 
         instance.register(LongBufferedSumAggregator.class,new Serializer<LongBufferedSumAggregator>(){
             @Override
@@ -782,28 +871,5 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
                 return aggregator;
             }
         });
-
-        instance.register(FloatBufferedSumAggregator.class,new Serializer<FloatBufferedSumAggregator>(){
-            @Override
-            public void write(Kryo kryo,Output output,FloatBufferedSumAggregator object){
-                try{
-                    object.writeExternal(new KryoObjectOutput(output,kryo));
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public FloatBufferedSumAggregator read(Kryo kryo,Input input,Class type){
-                FloatBufferedSumAggregator aggregator=new FloatBufferedSumAggregator(64); //todo -sf- make configurable
-                try{
-                    aggregator.readExternal(new KryoObjectInput(input,kryo));
-                }catch(IOException|ClassNotFoundException e){
-                    throw new RuntimeException(e);
-                }
-                return aggregator;
-            }
-        });
-
     }
 }

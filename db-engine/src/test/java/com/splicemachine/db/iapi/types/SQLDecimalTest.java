@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 package com.splicemachine.db.iapi.types;
@@ -232,8 +232,8 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                 valueA.readExternal(objectInputStream);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-                Assert.assertEquals("Incorrect Precision", 5, valueA.precision);
-                Assert.assertEquals("Incorrect Scale", 2, valueA.scale);
+                Assert.assertEquals("Incorrect Precision", -1, valueA.precision);
+                Assert.assertEquals("Incorrect Scale", -1, valueA.scale);
 
                 objectInputStream.close();
                 objectOutputStream.close();

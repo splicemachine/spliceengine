@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -51,6 +51,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     protected int[] execRowTypeFormatIds;
     protected OperationContext operationContext;
     protected byte[] token;
+    protected int[] updateCounts;
 
 
     @Override
@@ -67,6 +68,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         out.writeUTF(tableVersion);
         SIDriver.driver().getOperationFactory().writeTxn(txn, out);
         ArrayUtil.writeIntArray(out, execRowTypeFormatIds);
+        ArrayUtil.writeIntArray(out, updateCounts);
     }
 
     @Override
@@ -88,6 +90,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
         execRowTypeFormatIds = ArrayUtil.readIntArray(in);
         execRowDefinition = WriteReadUtils.getExecRowFromTypeFormatIds(execRowTypeFormatIds);
+        updateCounts = ArrayUtil.readIntArray(in);
     }
 
     @Override
@@ -201,6 +204,12 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
 
     public String getUpdateTableWriterBuilderBase64String() throws IOException, StandardException {
         return Base64.encodeBase64String(SerializationUtils.serialize(this));
+    }
+
+    @Override
+    public DataSetWriterBuilder updateCounts(int[] updateCounts) {
+        this.updateCounts = updateCounts;
+        return this;
     }
 
 //    public UpdatePipelineWriter build() throws StandardException {

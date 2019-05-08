@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -223,6 +223,16 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         @Override
         public void markDropped(long conglomId, long txn) throws IOException {
             // do nothing
+        }
+
+        @Override
+        public void enableTableReplication(String tableName) throws IOException {
+
+        }
+
+        @Override
+        public void disableTableReplication(String tableName) throws IOException {
+
         }
     }
 }

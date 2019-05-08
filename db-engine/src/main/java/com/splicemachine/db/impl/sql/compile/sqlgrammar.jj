@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1029,10 +1029,30 @@ public class SQLParser
 
     private boolean ansiTrimSpecFollows()
     {
-        return (getToken(2).kind == LEADING || getToken(2).kind == TRAILING
-                || getToken(2).kind == BOTH);
+        Token tPre = getToken(1);
+        Token t = getToken(2);
+        Token tPost = getToken(3);
+
+        // In TRIM() function
+        if (tPre.kind == LEFT_PAREN)
+        {
+            if (t.kind == LEADING || t.kind == TRAILING || t.kind == BOTH)
+                return true;
+            else if ((t.kind == L || t.kind == T || t.kind == B ) && tPost.kind != RIGHT_PAREN && tPost.kind != PERIOD)
+                return true;
+            else
+                return false;
+        }
+        // In STRIP() function
+        else if (tPre.kind == COMMA)
+        {
+            return (getToken(2).kind == LEADING || getToken(2).kind == L || getToken(2).kind == TRAILING || getToken(2).kind == T
+                || getToken(2).kind == BOTH || getToken(2).kind == B);
+        }
+        else
+            return false;
     }
-    
+
 	/**
 	 * Determine whether the next sequence of tokens can be the beginning
 	 * of a remainingPredicate() rule.
@@ -2589,6 +2609,7 @@ TOKEN [IGNORE_CASE] :
 |	<AND: "and">
 |	<ANY: "any">
 |	<ARE: "are">
+|	<ARRAY: "array">
 |	<AS: "as">
 |	<ASC: "asc">
 |	<ASSERTION: "assertion">
@@ -2757,22 +2778,21 @@ TOKEN [IGNORE_CASE] :
 |   <SESSION_PROPERTY: "session_property">
 |	<SET: "set">
 |	<SMALLINT: "smallint">
-|	<ARRAY: "array">
-|	<TINYINT: "tinyint">
 |	<SOME: "some">
 |	<SPACE: "space">
 |	<SQL: "sql">
 |	<SQLCODE: "sqlcode">
 |	<SQLERROR: "sqlerror">
 |	<SQLSTATE: "sqlstate">
+|	<STRIP: "strip">
 |	<SUBSTRING: "substring">
 |	<SUM: "sum">
 |	<SYSTEM_USER: "system_user">
-|	<T: "t">
 |	<TABLE: "table">
 |	<TEMPORARY: "temporary">
 |	<TIMEZONE_HOUR: "timezone_hour">
 |	<TIMEZONE_MINUTE: "timezone_minute">
+|	<TINYINT: "tinyint">
 |	<TO: "to">
 |	<TOP: "top">
 |	<TRANSACTION: "transaction">
@@ -2824,6 +2844,7 @@ TOKEN [IGNORE_CASE] :
 |	<ACTION: "action">
 |	<ALWAYS: "always">
 |   <AUTO: "auto">
+|	<B: "b">
 |	<BLOB: "blob">
 |	<C: "c">
 |   <CALLED: "called">
@@ -2847,6 +2868,8 @@ TOKEN [IGNORE_CASE] :
 |   <EXTRACT: "extract">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|   <GROUPING: "grouping">
+|   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
 |	<IGNORE: "ignore">
@@ -2856,6 +2879,7 @@ TOKEN [IGNORE_CASE] :
 |	<INTERVAL: "interval">
 |	<INVOKER: "invoker">
 |	<KEYS: "keys">
+|	<L: "l">
 |	<LANGUAGE: "language">
 |	<LARGE: "large">
 |	<LENGTH: "length">
@@ -2885,8 +2909,10 @@ TOKEN [IGNORE_CASE] :
 |   <PHYSICAL: "physical">
 |	<PLI: "pli">
 |	<PRECISION: "precision">
+|   <RECURSIVE: "recursive">
 |	<RELEASE: "release">
 |	<QUARTER: "quarter">
+|   <REPEAT: "repeat">
 |	<REPEATABLE: "repeatable">
 |	<RESPECT: "respect">
 |	<RESTART: "restart">
@@ -2930,6 +2956,7 @@ TOKEN [IGNORE_CASE] :
 |	<START: "start">
 |	<STATEMENT: "statement">
 |	<SYNONYM: "synonym">
+|	<T: "t">
 |	<THEN: "then">
 |	<TIME: "time">
 |	<TIMESTAMP: "timestamp">
@@ -3070,7 +3097,6 @@ TOKEN [IGNORE_CASE] :
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
 |	<STATISTICS: "statistics">
-|   <STRIP: "strip">
 |   <STYLE: "style">
 |	<TRIGGER: "trigger">
 |	<TRUNCATE_END: "truncate_end">
@@ -6610,6 +6636,11 @@ multiplicativeOperator() throws StandardException :
 	{
 		return BinaryOperatorNode.CONCATENATE;
 	}
+|
+	<CONCAT>
+	{
+		return BinaryOperatorNode.CONCATENATE;
+	}
 }
 
 /*
@@ -7382,6 +7413,7 @@ characterValueFunction() throws StandardException :
 	ValueNode 	value = null;
 	ValueNode 	str1;
 	ValueNode 	str2;
+	ValueNode 	locale = null;
 	Token		upperTok = null;
 	Token		lowerTok = null;
 	ValueNode	startPosition;
@@ -7398,28 +7430,70 @@ characterValueFunction() throws StandardException :
         return getReplaceNode( value, str1, str2 );
 	}
 |
-	( upperTok = <UPPER> | lowerTok = <LOWER> ) <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+	( upperTok = <UPPER> | lowerTok = <LOWER> ) <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> locale = additiveExpression(null,0) ] <RIGHT_PAREN>
 	{
-		return (ValueNode) nodeFactory.getNode(
+	    if (locale == null)
+	    {
+		    return (ValueNode) nodeFactory.getNode(
 					C_NodeTypes.SIMPLE_STRING_OPERATOR_NODE,
 					value,
 					(upperTok != null) ? "upper" : "lower",
 					getContextManager());
+		}
+		else
+		{
+		    return (ValueNode) nodeFactory.getNode(
+					C_NodeTypes.SIMPLE_LOCALE_STRING_OPERATOR_NODE,
+					value,
+					locale,
+					(upperTok != null) ? "upperWithLocale" : "lowerWithLocale",
+					getContextManager());
+		}
+
 	}
 |
-	( upperTok = <UCASE> | lowerTok = <LCASE> ) <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+	( upperTok = <UCASE> | lowerTok = <LCASE> ) <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> locale = additiveExpression(null,0) ] <RIGHT_PAREN>
 	{
-		return (ValueNode) nodeFactory.getNode(
+	    if (locale == null)
+	    {
+		    return (ValueNode) nodeFactory.getNode(
 					C_NodeTypes.SIMPLE_STRING_OPERATOR_NODE,
 					value,
 					(upperTok != null) ? "upper" : "lower",
 					getContextManager());
+		}
+		else
+		{
+		    return (ValueNode) nodeFactory.getNode(
+					C_NodeTypes.SIMPLE_LOCALE_STRING_OPERATOR_NODE,
+					value,
+					locale,
+					(upperTok != null) ? "upperWithLocale" : "lowerWithLocale",
+					getContextManager());
+		}
 	}
+|
+    /* REPEAT(string, num) */
+    <REPEAT> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA>
+            str2 = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+	    					C_NodeTypes.REPEAT_OPERATOR_NODE,
+		    				str1,
+			    			str2,
+			    			ReuseFactory.getInteger(BinaryOperatorNode.REPEAT),
+						    getContextManager());
+    }
 |
 	value = trimFunction()
 	{
 		return value;
 	}
+|
+    value = stripFunction()
+    {
+        return value;
+    }
 |
     /* LOCATE( string1, string2[, start] )
      * LOCATE is a SQLJ reserved word.
@@ -7513,17 +7587,17 @@ ansiTrimSpec() :
 {
 }
 {
-	<TRAILING>
+	(<TRAILING>|<T>)
 	{
 		return ReuseFactory.getInteger(StringDataValue.TRAILING);
 	}
 |
-	<LEADING>
+	(<LEADING>|<L>)
 	{
 		return ReuseFactory.getInteger(StringDataValue.LEADING);
 	}
 |
-	<BOTH>
+	(<BOTH>|<B>)
 	{
 		return ReuseFactory.getInteger(StringDataValue.BOTH);
 	}
@@ -7545,6 +7619,69 @@ trimType() :
 		return ReuseFactory.getInteger(StringDataValue.LEADING);
 	}
 }
+
+ValueNode
+stripFunction() throws StandardException :
+{
+	ValueNode	source;
+	Integer		trimType;
+	ValueNode	ansiTrimNode;
+}
+{
+	<STRIP> ansiTrimNode = ansiStrip()
+	{
+		return ansiTrimNode;
+	}
+
+}
+
+ValueNode
+ansiStrip() throws StandardException  :
+{
+    Integer trimSpec = ReuseFactory.getInteger(StringDataValue.BOTH);
+    ValueNode trimChar = null;
+    ValueNode trimSource = null;
+}
+{
+    <LEFT_PAREN> trimSource = additiveExpression(null,0)
+    (
+        LOOKAHEAD ({ansiTrimSpecFollows()})
+        (
+            <COMMA> trimSpec = ansiTrimSpec()
+            (
+                // <source> COMMA LEADING COMMA <trimChar>
+                <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
+                {
+                    return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
+                }
+            |
+                // <source> COMMA LEADING
+                <RIGHT_PAREN>
+                {
+                    return getTrimOperatorNode(trimSpec, null, trimSource, null);
+                }
+            )
+        )
+    |
+        LOOKAHEAD ({!ansiTrimSpecFollows()})
+        (
+            // <source> COMMA <trimChar>
+            <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
+            {
+                return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
+            }
+        |
+            // <source>
+            <RIGHT_PAREN>
+            {
+                return getTrimOperatorNode(trimSpec, null, trimSource, null);
+            }
+
+        )
+    )
+}
+
+
 
 /*
  * <A NAME="valueExpressionPrimary">valueExpressionPrimary</A>
@@ -7697,6 +7834,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == VALUE ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
+                getToken(1).kind == REPEAT ||
                 getToken(1).kind == REPLACE ||
                 getToken(1).kind == UPPER ||
                 getToken(1).kind == LOWER ||
@@ -7705,6 +7843,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == LTRIM ||
                 getToken(1).kind == RTRIM ||
                 getToken(1).kind == TRIM ||
+                getToken(1).kind == STRIP ||
                 getToken(1).kind == DATE ||
                 getToken(1).kind == TIME ||
                 getToken(1).kind == TIMESTAMP ||
@@ -7737,7 +7876,8 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLPARSE ||
                 getToken(1).kind == XMLSERIALIZE ||
                 getToken(1).kind == XMLEXISTS ||
-                getToken(1).kind == XMLQUERY ) &&
+                getToken(1).kind == XMLQUERY ||
+                getToken(1).kind == GROUPING) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -7843,6 +7983,14 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                                         value,
                                                         localCM);
 	}
+|
+    <GROUPING> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+        							C_NodeTypes.GROUPING_FUNCTION_NODE,
+                                    value,
+                                    getContextManager());
+    }
 |
 	value = xmlFunction()
 	{
@@ -8641,6 +8789,13 @@ userNode() throws StandardException :
 						C_NodeTypes.SESSION_USER_NODE,
 						getContextManager());
 	}
+|
+    <GROUP_USER>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                        C_NodeTypes.GROUP_USER_NODE,
+        						getContextManager());
+    }
 }
 
 
@@ -11410,7 +11565,7 @@ partitionByClause() throws StandardException :
 {
 	<PARTITION> <BY>
         (
-	groupingCols = groupingColumnReferenceList()
+	groupingCols = groupingColumnReferenceList(true)
 	{
 		return new Partition(groupingCols);
 	}
@@ -11427,13 +11582,13 @@ groupByClause() throws StandardException :
         (
 	LOOKAHEAD ( { getToken(1).kind == ROLLUP &&
 			getToken(2).kind == LEFT_PAREN } )
-        <ROLLUP> <LEFT_PAREN> groupingCols = groupingColumnReferenceList() <RIGHT_PAREN>
+        <ROLLUP> <LEFT_PAREN> groupingCols = groupingColumnReferenceList(false) <RIGHT_PAREN>
 	{
 		groupingCols.setRollup();
 		return groupingCols;
 	}
 |
-	groupingCols = groupingColumnReferenceList()
+	groupingCols = groupingColumnReferenceList(false)
 	{
 		return groupingCols;
 	}
@@ -11441,21 +11596,21 @@ groupByClause() throws StandardException :
 }
 
 GroupByList
-groupingColumnReferenceList() throws StandardException :
+groupingColumnReferenceList(boolean fromPartitionBy) throws StandardException :
 {
 	GroupByList groupingCols = (GroupByList) nodeFactory.getNode(
 									C_NodeTypes.GROUP_BY_LIST,
 									getContextManager());
 }
 {
-	groupingColumnReference(groupingCols) ( <COMMA> groupingColumnReference(groupingCols) ) *
+	groupingColumnReference(groupingCols, fromPartitionBy) ( <COMMA> groupingColumnReference(groupingCols, fromPartitionBy) ) *
 	{
 		return groupingCols;
 	}
 }
 
 void
-groupingColumnReference(GroupByList groupingCols) throws StandardException :
+groupingColumnReference(GroupByList groupingCols, boolean fromPartitionBy) throws StandardException :
 {
         ValueNode columnExpression;
 }
@@ -11470,7 +11625,17 @@ groupingColumnReference(GroupByList groupingCols) throws StandardException :
 		{
 			throw StandardException.newException(SQLState.LANG_AGGREGATE_IN_GROUPBY_LIST);
 		}
-		
+
+        if (!fromPartitionBy) {
+		    visitor =
+        	        new HasNodeVisitor(GroupingFunctionNode.class);
+                    columnExpression.accept(visitor);
+            if (visitor.hasNode())
+            {
+                throw StandardException.newException(SQLState.LANG_GROUPING_FUNCTION_CONTEXT_ERROR, "GROUPBY");
+            }
+         }
+
         // Look for user-defined aggregates too. At the parsing stage,
         // they appear as function calls. Look for function calls
         // inside the expression and mark them so that at bind() time
@@ -12813,8 +12978,12 @@ void withClause(Vector parameterList) throws StandardException :
         ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
         ValueNode[] topNOut = new ValueNode[ 1 ];
         boolean     hasJDBClimitClause = false;
+        boolean isRecursive = false;
     }
     {
+    	[<RECURSIVE> {
+    	   isRecursive = true;
+    	}]
     	tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     		beginToken = <AS>
     		[<LEFT_PAREN>]
@@ -12835,6 +13004,15 @@ void withClause(Vector parameterList) throws StandardException :
     	        hasJDBClimitClause = true;
                 offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
     	    }
+
+            if (isRecursive) {
+			    if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
+				    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					    	"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
+
+			    ((UnionNode)queryExpression).setIsRecursive(true);
+			}
+
     		parameterList.add(nodeFactory.getNode(
     								C_NodeTypes.CREATE_VIEW_NODE,
     								tableName,
@@ -12848,6 +13026,7 @@ void withClause(Vector parameterList) throws StandardException :
                                     offsetClauses[ OFFSET_CLAUSE ],
                                     offsetClauses[ FETCH_FIRST_CLAUSE ],
                                     Boolean.valueOf( hasJDBClimitClause ),
+                                    Boolean.valueOf(isRecursive),
     								getContextManager()));
     }
 }
@@ -12865,9 +13044,13 @@ viewDefinition(Token beginToken) throws StandardException :
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
     ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
+    boolean     isRecursive = false;
 }
 {
-	<VIEW> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	[<RECURSIVE> {
+        isRecursive = true;
+	}]
+	<VIEW> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		[ <LEFT_PAREN> resultColumns = viewColumnList() <RIGHT_PAREN> ]
 		<AS>
 		    		[<LEFT_PAREN>]
@@ -12890,6 +13073,16 @@ viewDefinition(Token beginToken) throws StandardException :
 	        hasJDBClimitClause = true;
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
 	    }
+
+        if (isRecursive) {
+			if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
+				    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					    	"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
+
+			((UnionNode)queryExpression).setIsRecursive(true);
+		}
+
+
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.CREATE_VIEW_NODE,
 								tableName, 
@@ -12903,6 +13096,7 @@ viewDefinition(Token beginToken) throws StandardException :
                                 offsetClauses[ OFFSET_CLAUSE ],
                                 offsetClauses[ FETCH_FIRST_CLAUSE ],
                                 Boolean.valueOf( hasJDBClimitClause ),
+                                Boolean.valueOf(isRecursive),
 								getContextManager());
 	}
 }
@@ -16697,6 +16891,7 @@ reservedKeyword() :
 |	tok = <LTRIM>
 |	tok = <RTRIM>
 |	tok = <TRIM>
+|	tok = <STRIP>
 |	tok = <SUBSTR>
 |	tok = <XML>
 |	tok = <XMLPARSE>
@@ -16736,6 +16931,7 @@ nonReservedKeyword()  :
 	|	tok = <AGGREGATE>
 	|	tok = <ALWAYS>
 	|   tok = <AUTO>
+	|   tok = <B>
 	|	tok = <BEFORE>
 	|	tok = <BINARY>
 	|	tok = <BLOB>
@@ -16784,6 +16980,7 @@ nonReservedKeyword()  :
 	|	tok = <FORTRAN>
 	|   tok = <FRACTION>
 	|	tok = <GENERATED>
+	|   tok = <GROUPING>
 	|   tok = <HFILE>
 	|	tok = <IDENTITY_VAL_LOCAL>
 	|	tok = <IGNORE>
@@ -16795,6 +16992,7 @@ nonReservedKeyword()  :
 	|	tok = <INTERVAL>
 	|   tok = <JAVA>
 	|   tok = <KEYS>
+	|   tok = <L>
 	|	tok = <LAG>
 	|	tok = <LANGUAGE>
 	|	tok = <LARGE>
@@ -16867,10 +17065,12 @@ nonReservedKeyword()  :
 	|	tok = <QUARTER>
 	|	tok = <RANK>
 	|	tok = <READS>
+	|   tok = <RECURSIVE>
 	|	tok = <REF>
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <RELEASE>
 	|	tok = <RENAME>
+	|	tok = <REPEAT>
 	|	tok = <REPEATABLE>
 	|	tok = <REFERENCING>
 	|	tok = <RESET>
@@ -16913,7 +17113,6 @@ nonReservedKeyword()  :
 	|	tok = <START>
 	|	tok = <STATEMENT>
 	|	tok = <STATISTICS>
-	|	tok = <STRIP>
 	|	tok = <SYNONYM>
 	|	tok = <STYLE>
 	|	tok = <T>

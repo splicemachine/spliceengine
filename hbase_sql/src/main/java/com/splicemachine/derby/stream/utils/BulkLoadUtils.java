@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -19,6 +19,9 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.types.SQLBlob;
@@ -167,6 +170,28 @@ public class BulkLoadUtils {
             e.printStackTrace();
             throw StandardException.plainWrapException(e);
         }
+    }
+
+    public static double getSampleFraction(LanguageConnectionContext lcc) throws StandardException {
+
+        double sampleFraction;
+        String sampleFractionString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                Property.BULK_IMPORT_SAMPLE_FRACTION);
+        if (sampleFractionString != null) {
+            try {
+                sampleFraction = Double.parseDouble(sampleFractionString);
+            }
+            catch (NumberFormatException e) {
+                SConfiguration sConfiguration = HConfiguration.getConfiguration();
+                sampleFraction = sConfiguration.getBulkImportSampleFraction();
+            }
+        }
+        else {
+            SConfiguration sConfiguration = HConfiguration.getConfiguration();
+            sampleFraction = sConfiguration.getBulkImportSampleFraction();
+        }
+
+        return sampleFraction;
     }
 
 }

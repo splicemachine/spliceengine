@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -29,13 +29,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import scala.util.Either;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Scott Fines
  *         Date: 1/25/16
  */
 public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
+    private int[] updateCounts;
     private JavaPairRDD<K,Either<Exception, V>> rdd;
     private final OperationContext operationContext;
     private final Configuration conf;
@@ -59,7 +62,7 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
                                     FormatableBitSet pkColumns,
                                     String tableVersion,
                                     ExecRow execRowDefinition,
-                                    FormatableBitSet heapList){
+                                    FormatableBitSet heapList, int[] updateCounts){
         this.rdd=rdd;
         this.operationContext=operationContext;
         this.conf=conf;
@@ -71,6 +74,7 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
         this.tableVersion=tableVersion;
         this.execRowDefinition=execRowDefinition;
         this.heapList=heapList;
+        this.updateCounts=updateCounts;
     }
 
     @Override
@@ -78,6 +82,18 @@ public class SparkUpdateDataSetWriter<K,V> implements DataSetWriter{
         rdd.saveAsNewAPIHadoopDataset(conf); //actually does the writing
         if (operationContext.getOperation() != null) {
             operationContext.getOperation().fireAfterStatementTriggers();
+        }
+        if (updateCounts != null) {
+            int total = 0;
+            List<ExecRow> rows = new ArrayList<>();
+            for (int count : updateCounts) {
+                total += count;
+                ValueRow valueRow = new ValueRow(1);
+                valueRow.setColumn(1, new SQLLongint(count));
+                rows.add(valueRow);
+            }
+            assert total == operationContext.getRecordsWritten();
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(rows, 1));
         }
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(operationContext.getRecordsWritten()));

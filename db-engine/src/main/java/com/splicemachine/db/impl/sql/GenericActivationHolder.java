@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -60,7 +60,11 @@ import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.utils.Pair;
+
+import java.sql.PreparedStatement;
 import java.sql.SQLWarning;
+import java.util.Iterator;
 import java.util.Vector;
 import java.util.Hashtable;
 
@@ -302,6 +306,9 @@ final public class GenericActivationHolder implements Activation
 				newAC.setupActivation(ps, ac.getScrollable());
 
 				newAC.setParameters(ac.getParameterValueSet(), paramTypes);
+
+				Pair<PreparedStatement, Iterator<ParameterValueSet>> batch = ac.getBatch();
+				newAC.setBatch(batch.getSecond(), batch.getFirst());
 
 
 				/*
@@ -824,4 +831,24 @@ final public class GenericActivationHolder implements Activation
     public boolean isMaterialized() {
         return ac.isMaterialized();
     }
+
+	@Override
+	public boolean isBatched() {
+		return ac.isBatched();
+	}
+
+	@Override
+	public boolean nextBatchElement() throws StandardException {
+		return ac.nextBatchElement();
+	}
+
+	@Override
+	public void setBatch(Iterator<ParameterValueSet> params, PreparedStatement ps) {
+		ac.setBatch(params, ps);
+	}
+
+	@Override
+	public Pair<PreparedStatement, Iterator<ParameterValueSet>> getBatch() {
+		return ac.getBatch();
+	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -64,6 +64,9 @@ import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+
+import static com.splicemachine.derby.utils.EngineUtils.getSchemaDescriptor;
+import static com.splicemachine.derby.utils.EngineUtils.verifyTableExists;
 
 
 /**
@@ -499,7 +502,13 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             useSample = false;
             sampleFraction = 0.0d;
         }
-        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample, sampleFraction, mergeStats, scope,activation);
+        List<ColumnDescriptor> colsToCollect = getCollectedColumns(conn, table);
+        DataTypeDescriptor[] dtds = new DataTypeDescriptor[colsToCollect.size()];
+        int index = 0;
+        for (ColumnDescriptor descriptor : colsToCollect ) {
+            dtds[index++] = descriptor.getType();
+        }
+        StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample,sampleFraction,mergeStats,scope,activation,dtds);
         op.openCore();
         return op;
     }
@@ -528,7 +537,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(conn, table);
         ExecRow row = new ValueRow(colsToCollect.size());
-  //      int[] execRowFormatIds = new int[colsToCollect.size()];
         BitSet accessedColumns = new BitSet(table.getMaxStorageColumnID());
         int outputCol = 0;
         int[] columnPositionMap = new int[table.getNumberOfColumns()];
@@ -646,27 +654,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);
         }
-    }
-
-    private static TableDescriptor verifyTableExists(Connection conn, String schema, String table) throws
-        SQLException, StandardException {
-        LanguageConnectionContext lcc = ((EmbedConnection) conn).getLanguageConnection();
-        DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor schemaDescriptor = getSchemaDescriptor(schema, lcc, dd);
-        TableDescriptor tableDescriptor = dd.getTableDescriptor(table, schemaDescriptor, lcc.getTransactionExecute());
-        if (tableDescriptor == null)
-            throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schema + "." + table);
-
-        return tableDescriptor;
-    }
-
-    private static SchemaDescriptor getSchemaDescriptor(String schema,
-                                                        LanguageConnectionContext lcc,
-                                                        DataDictionary dd) throws StandardException {
-        SchemaDescriptor schemaDescriptor;
-        if (schema ==null || (schemaDescriptor = dd.getSchemaDescriptor(schema, lcc.getTransactionExecute(), true))==null)
-            throw ErrorState.LANG_SCHEMA_DOES_NOT_EXIST.newException(schema);
-        return schemaDescriptor;
     }
 
     private static final Comparator<ColumnDescriptor> order = new Comparator<ColumnDescriptor>() {

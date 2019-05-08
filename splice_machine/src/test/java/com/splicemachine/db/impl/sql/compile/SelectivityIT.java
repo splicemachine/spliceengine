@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -592,6 +592,18 @@ public class SelectivityIT extends SpliceUnitTest {
         Assert.assertEquals(1000, rowCount, 100);
         rangeRowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1s where c1>30 and c1<=31", methodWatcher));
         Assert.assertTrue(rangeRowCount >= rowCount);
+    }
+
+    @Test
+    public void testEqualityPredicateWithUnknownConstantExpression() throws Exception {
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1 where a1=CAST (new java.lang.Object() AS CHAR(10))", methodWatcher));
+        Assert.assertEquals(100, rowCount, 10);
+    }
+
+    @Test
+    public void testNoteEqualPredicateWithUnknownConstantExpression() throws Exception {
+        double rowCount = parseOutputRows(getExplainMessage(3, "explain select * from t1 where a1 != CAST (new java.lang.Object() AS CHAR(10))", methodWatcher));
+        Assert.assertEquals(99900, rowCount, 10);
     }
 
     @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -18,6 +18,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -73,6 +74,7 @@ import java.io.StringReader;
 import java.sql.ResultSet;
 import java.sql.Types;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by jyuan on 8/14/17.
@@ -140,8 +142,9 @@ public class SpliceRegionAdmin {
                 // Merge the region with its neighbor
                 if (p.getStartKey().length > 0 || p.getEndKey().length > 0) {
                     Partition p2 = getNeighbor(td, index, p);
+                    SpliceLogUtils.info(LOG, "Merging regions %s and %s", p.getEncodedName(), p2.getEncodedName());
                     admin.mergeRegions(p.getEncodedName(), p2.getEncodedName());
-                    SpliceLogUtils.info(LOG, "Merged regions %s and %s", p.getEncodedName(), p2.getEncodedName());
+                    waitUntilMergeDone(p.getEncodedName(), p2.getEncodedName(), admin, conglomId);
                 }
             }
 
@@ -342,14 +345,16 @@ public class SpliceRegionAdmin {
                 throw StandardException.newException(SQLState.LANG_INDEX_NOT_FOUND, indexName);
             }
         }
-
+        String conglomId = Long.toString(index == null ? td.getHeapConglomerateId() : index.getConglomerateNumber());
         PartitionAdmin admin= SIDriver.driver().getTableFactory().getAdmin();
         Partition p1 = getPartition(td, index, regionName1);
         Partition p2 = getPartition(td, index, regionName2);
 
         if (Bytes.compareTo(p1.getEndKey(), p2.getStartKey()) == 0 ||
                 Bytes.compareTo(p1.getStartKey(), p2.getEndKey()) == 0) {
+            SpliceLogUtils.info(LOG, "Merging regions %s and %s", regionName1, regionName2);
             admin.mergeRegions(regionName1, regionName2);
+            waitUntilMergeDone(regionName1, regionName2, admin, conglomId);
         }
         else
             throw StandardException.newException(SQLState.REGION_NOT_ADJACENT, regionName1, regionName2);
@@ -678,7 +683,7 @@ public class SpliceRegionAdmin {
         return dataHash;
     }
 
-    private static TableDescriptor getTableDescriptor(String schemaName, String tableName) throws Exception {
+    public static TableDescriptor getTableDescriptor(String schemaName, String tableName) throws Exception {
         EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
         Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
         LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
@@ -937,6 +942,41 @@ public class SpliceRegionAdmin {
             decoder.set(key, 0, key.length);
             decoder.decode(execRow);
             SpliceLogUtils.info(LOG, "Use %s %s as %s", Bytes.toHex(key), execRow, reverse ? "endKey" : "startKey");
+        }
+    }
+
+    private static void waitUntilMergeDone(String r1, String r2, PartitionAdmin admin, String conglomId)
+            throws IOException, InterruptedException, StandardException {
+
+        boolean done = false;
+        int wait = 0;
+        int maxWait = 12000;
+        SystemClock clock = new SystemClock();
+        while (!done && wait < maxWait) {
+            done = true;
+            Iterable<? extends Partition> partitions = admin.allPartitions(conglomId);
+            List<Partition> partitionList = Lists.newArrayList(partitions);
+
+            // If one of the region is still present, break and wait
+            for (Partition p : partitionList) {
+                if (p.getEncodedName().compareTo(r1) == 0 || p.getEncodedName().compareTo(r2) == 0) {
+                    done = false;
+                    break;
+                }
+            }
+            if (!done) {
+                if (wait % 10 == 0) {
+                    SpliceLogUtils.info(LOG, "waiting for %s and %s to be merged", r1, r2);
+                }
+                clock.sleep(100, TimeUnit.MILLISECONDS);
+                wait++;
+            }
+        }
+        if (done) {
+            SpliceLogUtils.info(LOG, "merged region %s and %s", r1, r2);
+        }
+        else {
+           throw StandardException.newException(SQLState.CANNOT_MERGE_REGION, r1, r2);
         }
     }
 }

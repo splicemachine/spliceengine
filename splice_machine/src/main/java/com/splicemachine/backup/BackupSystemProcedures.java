@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -176,6 +176,42 @@ public class BackupSystemProcedures {
      * @throws SQLException
      */
     public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, boolean validate, ResultSet[] resultSets) throws StandardException, SQLException {
+        restoreDatabase(directory, backupId, validate, null, -1, resultSets);
+    }
+
+    /**
+     * Entry point for system procedure SYSCS_UTIL.SYSCS_RESTORE_DATABASE
+     * @param directory A directory in file system where backup data are stored
+     * @param backupId backup ID
+     * @param resultSets returned results
+     * @throws StandardException
+     * @throws SQLException
+     */
+    public static void SYSCS_RESTORE_DATABASE_TO_TIMESTAMP(String directory,
+                                                           long backupId,
+                                                           boolean validate,
+                                                           String timestamp,
+                                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        restoreDatabase(directory, backupId, validate, timestamp, -1, resultSets);
+    }
+
+    public static void SYSCS_RESTORE_DATABASE_TO_TRANSACTION(String directory,
+                                                           long backupId,
+                                                           boolean validate,
+                                                           long transactionId,
+                                                           ResultSet[] resultSets) throws StandardException, SQLException {
+        if (transactionId > backupId) {
+            throw StandardException.newException(SQLState.RESTORE_TXNID_TOO_LARGE, transactionId);
+        }
+        restoreDatabase(directory, backupId, validate, null, transactionId, resultSets);
+    }
+
+    private static void restoreDatabase(String directory,
+                                        long backupId,
+                                        boolean validate,
+                                        String timestamp,
+                                        long txnId,
+                                        ResultSet[] resultSets) throws StandardException, SQLException {
         IteratorNoPutResultSet inprs = null;
 
         Connection conn = SpliceAdmin.getDefaultConn();
@@ -188,7 +224,7 @@ public class BackupSystemProcedures {
                 long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId, true, validate);
+            backupManager.restoreDatabase(directory,backupId, true, validate, timestamp, txnId);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {
@@ -238,6 +274,7 @@ public class BackupSystemProcedures {
             resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
         }
     }
+
     /**
      * Entry point for system procedure SYSCS_UTIL.SYSCS_BACKUP_DATABASE
      *
@@ -298,7 +335,7 @@ public class BackupSystemProcedures {
                 long runningBackupId = backupJobStatuses[0].getBackupId();
                 throw StandardException.newException(SQLState.NO_RESTORE_DURING_BACKUP, runningBackupId);
             }
-            backupManager.restoreDatabase(directory,backupId, false, validate);
+            backupManager.restoreDatabase(directory,backupId, false, validate, null, -1);
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = {
@@ -331,63 +368,6 @@ public class BackupSystemProcedures {
 
         } finally {
             resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
-        }
-    }
-
-    /**
-     * Entry point for system procedure SYSCS_SCHEDULE_DAILY_BACKUP. Submit a scheduled job to back up database
-     *
-     * @param directory A directory in file system to stored backup data
-     * @param type type of backup, either 'FULL' or 'INCREMENTAL'
-     * @param hour hour of every day(relative to UTC/GMT time) the backup job is executed
-     * @param resultSets returned results
-     * @throws StandardException
-     * @throws SQLException
-     */
-    public static void SYSCS_SCHEDULE_DAILY_BACKUP(final String directory,
-                                                   final String type,
-                                                   final int hour,
-                                                   ResultSet[] resultSets) throws StandardException, SQLException {
-
-        try{
-            if (directory == null || directory.isEmpty()) {
-                throw StandardException.newException(SQLState.INVALID_BACKUP_DIRECTORY, directory);
-            }
-
-            if (type.compareToIgnoreCase("FULL") != 0 && type.compareToIgnoreCase("INCREMENTAL") != 0) {
-                throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
-            }
-
-            if (hour < 0 || hour >= 24) {
-                throw StandardException.newException(SQLState.INVALID_BACKUP_HOUR);
-            }
-            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            backupManager.scheduleDailyBackup(directory, type, hour);
-            resultSets[0] = ProcedureUtils.generateResult("Success",
-                                           String.format("Schedule %s daily backup to %s on hour %s", type, directory, hour));
-        } catch (Throwable t) {
-            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
-            SpliceLogUtils.error(LOG, "Schedule daily backup error", t);
-        }
-    }
-
-    /**
-     * Entry point for system procedure SYSCS_CANCEL_DAILY_BACKU\
-     * Cancel a scheduled daily backup job
-     * @param jobId ID of a backup job to be canceled
-     * @param resultSets returned results
-     * @throws StandardException
-     * @throws SQLException
-     */
-    public static void SYSCS_CANCEL_DAILY_BACKUP(long jobId, ResultSet[] resultSets) throws StandardException, SQLException {
-
-        try {
-            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
-            backupManager.cancelDailyBackup(jobId);
-            resultSets[0] = ProcedureUtils.generateResult("Success", "Cancel daily backup "+jobId);
-        } catch (Throwable t) {
-            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
-            SpliceLogUtils.error(LOG, "Cancel daily backup error", t);
         }
     }
 
@@ -568,6 +548,8 @@ public class BackupSystemProcedures {
                                            String type,
                                            ResultSet[] resultSets) throws StandardException, SQLException {
         try{
+            LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+            Activation activation = lcc.getLastActivation();
             schemaName = EngineUtils.validateSchema(schemaName);
             type = type.trim().toUpperCase();
             if (directory == null || directory.isEmpty()) {
@@ -583,7 +565,31 @@ public class BackupSystemProcedures {
             else {
                 throw StandardException.newException(SQLState.INVALID_BACKUP_TYPE, type);
             }
-            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+            // Print reboot statement
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 40)),
+                    new GenericColumnDescriptor("warnings", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(2);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+
+            SQLWarning warning = activation.getWarnings();
+            if (warning != null) {
+                while (warning != null) {
+                    template.getColumn(1).setValue(warning.getSQLState());
+                    template.getColumn(2).setValue(warning.getLocalizedMessage());
+                    rows.add(template.getClone());
+                    warning = warning.getNextWarning();
+                }
+                IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+                inprs.openCore();
+                Connection conn = SpliceAdmin.getDefaultConn();
+                resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+            }
+            else {
+                resultSets[0] = ProcedureUtils.generateResult("Success", String.format("%s backup to %s", type, directory));
+            }
 
         } catch (Throwable t) {
             resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());

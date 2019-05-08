@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -167,6 +167,7 @@ public class TypeId{
     public static final String VARBINARY_NAME="VARBINARY";
     public static final String LONGVARBINARY_NAME="LONGVARBINARY";
     public static final String BOOLEAN_NAME="BOOLEAN";
+    public static final String LIST_NAME = "LIST";
     public static final String REF_NAME="REF";
     public static final String NATIONAL_CHAR_NAME="NATIONAL CHAR";
     public static final String NATIONAL_VARCHAR_NAME="NATIONAL CHAR VARYING";
@@ -220,6 +221,7 @@ public class TypeId{
     public static final int LONGVARCHAR_PRECEDENCE=12;
     public static final int VARCHAR_PRECEDENCE=10;
     public static final int CHAR_PRECEDENCE=0;
+    public static final int LIST_PRECEDENCE=2000;
 
     /*
     ** Static runtime fields for typeIds
@@ -234,8 +236,9 @@ public class TypeId{
     public static final TypeId CHAR_ID=create(StoredFormatIds.CHAR_TYPE_ID,StoredFormatIds.CHAR_TYPE_ID_IMPL);
 
     public static final TypeId DOUBLE_ID=create(StoredFormatIds.DOUBLE_TYPE_ID,StoredFormatIds.DOUBLE_TYPE_ID_IMPL);
-
-
+    
+    public static final TypeId LIST_ID = create(StoredFormatIds.LIST_TYPE_ID, StoredFormatIds.LIST_TYPE_ID_IMPL);
+    
         /*
         ** Others are created on demand by the getBuiltInTypeId(int),
         ** if they are built-in (i.e.? Part of JDBC .Types),
@@ -244,7 +247,7 @@ public class TypeId{
 
     private static final TypeId TINYINT_ID=create(StoredFormatIds.TINYINT_TYPE_ID,StoredFormatIds.TINYINT_TYPE_ID_IMPL);
 
-    private static final TypeId BIGINT_ID=create(StoredFormatIds.LONGINT_TYPE_ID,StoredFormatIds.LONGINT_TYPE_ID_IMPL);
+    public static final TypeId BIGINT_ID=create(StoredFormatIds.LONGINT_TYPE_ID,StoredFormatIds.LONGINT_TYPE_ID_IMPL);
     private static final TypeId REAL_ID=create(StoredFormatIds.REAL_TYPE_ID,StoredFormatIds.REAL_TYPE_ID_IMPL);
     private static final TypeId DECIMAL_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(false));
     private static final TypeId NUMERIC_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(true));
@@ -264,7 +267,8 @@ public class TypeId{
     private static final TypeId BLOB_ID=create(StoredFormatIds.BLOB_TYPE_ID,StoredFormatIds.BLOB_TYPE_ID_IMPL);
     private static final TypeId CLOB_ID=create(StoredFormatIds.CLOB_TYPE_ID,StoredFormatIds.CLOB_TYPE_ID_IMPL);
     private static final TypeId XML_ID=create(StoredFormatIds.XML_TYPE_ID,StoredFormatIds.XML_TYPE_ID_IMPL);
-
+    
+    
     private static final TypeId[] ALL_BUILTIN_TYPE_IDS= {
                     BOOLEAN_ID,
                     SMALLINT_ID,
@@ -555,7 +559,10 @@ public class TypeId{
         if(SQLTypeName.equals(ARRAY_NAME)){
             return ARRAY_ID;
         }
-
+    
+        if (SQLTypeName.equals(LIST_NAME)) {
+            return LIST_ID;
+        }
 
         // Types defined below here are SQL types and non-JDBC types that are
         // supported by Derby
@@ -1003,6 +1010,15 @@ public class TypeId{
     }
 
     /**
+     * Does this TypeId represent a CHAR or VARCHAR.
+     *
+     * @return Whether or not this TypeId represents a CHAR or VARCHAR data type.
+     */
+    public boolean isCharOrVarChar(){
+        return (formatId==StoredFormatIds.CHAR_TYPE_ID || formatId==StoredFormatIds.VARCHAR_TYPE_ID);
+    }
+
+    /**
      * Is this a Clob?
      *
      * @return true if this is CLOB
@@ -1265,6 +1281,15 @@ public class TypeId{
     }
 
     /**
+     * Is this a BIGINT type id?
+     *
+     * @return Whether or not this is a type id for a BIGINT.
+     */
+    public boolean isBigIntTypeId(){
+        return getTypeFormatId() == StoredFormatIds.LONGINT_TYPE_ID;
+    }
+
+    /**
      * Is this a type id for a decimal type?
      *
      * @return Whether or not this a type id for a decimal type.
@@ -1361,6 +1386,9 @@ public class TypeId{
 
             case StoredFormatIds.BOOLEAN_TYPE_ID:
                 return new SQLBoolean();
+    
+            case StoredFormatIds.LIST_TYPE_ID:
+                return new ListDataType();
 
             case StoredFormatIds.CHAR_TYPE_ID:
                 return new SQLChar();

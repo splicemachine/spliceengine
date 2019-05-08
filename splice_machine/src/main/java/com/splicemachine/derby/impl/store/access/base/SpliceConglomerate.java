@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.store.access.base;
 
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -23,13 +24,16 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -271,4 +275,19 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     public void setPAX(boolean newValue) {
         pax = newValue;
     }
+    /**
+     * Drop this hbase conglomerate (what's the relationship with dropping container).
+     *
+     * @throws StandardException Standard exception policy.
+     * @see Conglomerate#drop
+     **/
+    public void drop(TransactionManager xact_manager) throws StandardException{
+        SpliceLogUtils.trace(LOG,"drop with account manager %s",xact_manager);
+        try(PartitionAdmin pa=partitionFactory.getAdmin()){
+            pa.deleteTable(Long.toString(containerId));
+        }catch(IOException e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
 }

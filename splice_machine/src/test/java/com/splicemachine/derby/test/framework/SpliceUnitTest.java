@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.junit.Assert;
 import org.junit.runner.Description;
@@ -37,6 +38,7 @@ public class SpliceUnitTest {
 
     private static Pattern overallCostP = Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
     private static Pattern outputRowsP = Pattern.compile("outputRows=[0-9]+\\.?[0-9]*");
+    private static Pattern scannedRowsP = Pattern.compile("scannedRows=[0-9]+\\.?[0-9]*");
 
 	public String getSchemaName() {
 		Class<?> enclosingClass = getClass().getEnclosingClass();
@@ -292,6 +294,44 @@ public class SpliceUnitTest {
         Matcher m1 = outputRowsP.matcher(planMessage);
         Assert.assertTrue("No OutputRows found!", m1.find());
         return Double.parseDouble(m1.group().substring("outputRows=".length()));
+    }
+
+    public static double parseScannedRows(String planMessage) {
+        Matcher m1 = scannedRowsP.matcher(planMessage);
+        Assert.assertTrue("No ScannedRows found!", m1.find());
+        return Double.parseDouble(m1.group().substring("scannedRows=".length()));
+    }
+
+    protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
+    protected void testFail(String sqlText,
+                            List<String> expectedErrors,
+                            SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            String failMsg = format("Query not expected to succeed.\n%s", sqlText);
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = expectedErrors.contains(e.getMessage());
+            if (!found)
+                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
     }
 
     public static class Contains {

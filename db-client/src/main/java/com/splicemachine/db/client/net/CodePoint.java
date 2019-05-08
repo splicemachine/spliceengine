@@ -12,7 +12,7 @@
  *
  * Splice Machine, Inc. has modified this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the License; you may not use this file except in
  * compliance with the License.
  *
@@ -302,6 +302,9 @@ public class CodePoint {
 
     // Maximum Number of Extra Blocks.
     static final int MAXBLKEXT = 0x2141;
+
+    // Number of Input Rows
+    static final int NBRROW = 0x213A;
 
     // Manager Level List codepoint constant.
     static final int MGRLVLLS = 0x1404;

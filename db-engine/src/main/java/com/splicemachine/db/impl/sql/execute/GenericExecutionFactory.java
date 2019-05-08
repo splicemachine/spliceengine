@@ -25,38 +25,34 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.EngineType;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
-import com.splicemachine.db.impl.sql.GenericResultDescription;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
-import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
-import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.execute.RowChanger;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.types.ListDataType;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.GenericResultDescription;
+
 import java.util.Properties;
 import java.util.Vector;
 
@@ -270,13 +266,29 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                                                               String targetTableName,
                                                               Vector<AutoincrementCounter> aiCounters) throws StandardException {
         return new TriggerExecutionContext(statementText,
-                                            changedColIds,
-                                            changedColNames,
-                                            targetTableId,
-                                            targetTableName,
-                                            aiCounters);
+                changedColIds,
+                changedColNames,
+                targetTableId,
+                targetTableName,
+                aiCounters,
+                null);
     }
 
+    public TriggerExecutionContext getTriggerExecutionContext(String statementText,
+                                                              int[] changedColIds,
+                                                              String[] changedColNames,
+                                                              UUID targetTableId,
+                                                              String targetTableName,
+                                                              Vector<AutoincrementCounter> aiCounters,
+                                                              FormatableBitSet heapList) throws StandardException {
+        return new TriggerExecutionContext(statementText,
+                changedColIds,
+                changedColNames,
+                targetTableId,
+                targetTableName,
+                aiCounters,
+                heapList);
+    }
     /*
         Old RowFactory interface
      */
@@ -296,6 +308,11 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
             return (ExecIndexRow) valueRow;
         }
         return new IndexValueRow(valueRow);
+    }
+    
+    @Override
+    public ListDataType getListData(int numberOfValues) {
+        return new ListDataType(numberOfValues);
     }
 
     //

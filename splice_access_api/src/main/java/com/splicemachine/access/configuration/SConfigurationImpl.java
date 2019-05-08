@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -54,7 +54,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String authenticationLdapSearchbase;
     private final  String authenticationLdapSearchfilter;
     private final  String authenticationLdapServer;
-    private final  String authenticationLdapMapGroupAttr;
+    private final  String authenticationMapGroupAttr;
     private final  String authenticationNativeAlgorithm;
     public int authenticationTokenLength;
     public int authenticationTokenMaxLifetime;
@@ -94,6 +94,9 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long backupMaxBandwidthMB;
     private final  boolean backupUseDistcp;
     private final  int backupIOBufferSize;
+    private final  int replicationSnapshotInterval;
+    private final  int replicationSinkPort;
+    private final int replicationProgressUpdateInterval;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -194,6 +197,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int nestedLoopJoinBatchSize;
     private final long controlExecutionRowLimit;
     private final int maxCheckTableErrors;
+    private final int recursiveQueryIterationLimit;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -267,7 +271,7 @@ public final class SConfigurationImpl implements SConfiguration {
         return authenticationLdapServer;
     }
     @Override
-    public String getAuthenticationLdapMapGroupAttr() { return authenticationLdapMapGroupAttr; }
+    public String getAuthenticationMapGroupAttr() { return authenticationMapGroupAttr; }
     @Override
     public String getAuthenticationNativeAlgorithm() {
         return authenticationNativeAlgorithm;
@@ -367,6 +371,18 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getBackupIOBufferSize() {
         return backupIOBufferSize;
+    }
+    @Override
+    public int getReplicationSnapshotInterval() {
+        return replicationSnapshotInterval;
+    }
+    @Override
+    public int getReplicationSinkPort() {
+        return replicationSinkPort;
+    }
+    @Override
+    public int getReplicationProgressUpdateInterval() {
+        return replicationProgressUpdateInterval;
     }
     @Override
     public String getCompressionAlgorithm() {
@@ -724,6 +740,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getNestedLoopJoinBatchSize() {
         return nestedLoopJoinBatchSize;
     }
+    @Override
+    public int getRecursiveQueryIterationLimit() {
+        return recursiveQueryIterationLimit;
+    }
 
     // StatsConfiguration
     @Override
@@ -832,7 +852,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationLdapSearchbase = builder.authenticationLdapSearchbase;
         authenticationLdapSearchfilter = builder.authenticationLdapSearchfilter;
         authenticationLdapServer = builder.authenticationLdapServer;
-        authenticationLdapMapGroupAttr = builder.authenticationLdapMapGroupAttr;
+        authenticationMapGroupAttr = builder.authenticationMapGroupAttr;
         authenticationNativeAlgorithm = builder.authenticationNativeAlgorithm;
         authenticationTokenLength = builder.authenticationTokenLength;
         authenticationTokenRenewInterval = builder.authenticationTokenRenewInterval;
@@ -870,6 +890,9 @@ public final class SConfigurationImpl implements SConfiguration {
         backupMaxBandwidthMB = builder.backupMaxBandwidthMB;
         backupUseDistcp = builder.backupUseDistcp;
         backupIOBufferSize = builder.backupIOBufferSize;
+        replicationSnapshotInterval = builder.replicationSnapshotInterval;
+        replicationSinkPort = builder.replicationSinkPort;
+        replicationProgressUpdateInterval = builder.replicationProgressUpdateInterval;
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;
@@ -893,6 +916,7 @@ public final class SConfigurationImpl implements SConfiguration {
         broadcastRegionMbThreshold = builder.broadcastRegionMbThreshold;
         broadcastRegionRowThreshold = builder.broadcastRegionRowThreshold;
         broadcastDatasetCostThreshold = builder.broadcastDatasetCostThreshold;
+        recursiveQueryIterationLimit = builder.recursiveQueryIterationLimit;
         optimizerPlanMaximumTimeout = builder.optimizerPlanMaximumTimeout;
         optimizerPlanMinimumTimeout = builder.optimizerPlanMinimumTimeout;
         determineSparkRowThreshold = builder.determineSparkRowThreshold;

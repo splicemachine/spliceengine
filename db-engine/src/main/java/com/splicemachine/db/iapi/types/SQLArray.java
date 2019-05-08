@@ -12,7 +12,7 @@
  *
  * Splice Machine, Inc. has modified this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2016 Splice Machine, Inc.,
+ * All Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the License; you may not use this file except in
  * compliance with the License.
  *
@@ -42,6 +42,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.Platform;
+import scala.util.hashing.MurmurHash3;
 
 import javax.ws.rs.NotSupportedException;
 import java.io.*;
@@ -612,4 +613,11 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	public Object getHiveObject() throws StandardException {
 		return isNull()?null:getObject();
 	}
+	public int hashCode() {
+		if (value.length > 0)
+			return MurmurHash3.arrayHashing().hash(value);
+		else
+			return 0;
+	}
+
 }

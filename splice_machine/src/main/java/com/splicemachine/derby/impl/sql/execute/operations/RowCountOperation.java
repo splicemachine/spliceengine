@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -200,7 +200,7 @@ public class RowCountOperation extends SpliceBaseOperation {
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> sourceSet = source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
-        return sourceSet.zipWithIndex().mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
+        return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
     }
 
     @Override

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2017 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -711,6 +711,22 @@ class DRDAStatement
 		return ps;
 	}
 
+
+	protected int[] executeBatch() throws SQLException {
+		int[] results = ps.executeBatch();
+		
+		// DERBY-3085 - We need to make sure we drain the streamed parameter
+		// if not used by the server, for example if an update statement does not
+		// update any rows, the parameter won't be used.  Network Server will
+		// stream only the last parameter with an EXTDTA. This is stored when the
+		// parameter is set and drained now after statement execution if needed.
+		try {
+			drdaParamState_.drainStreamedParameter();
+		} catch (IOException e) {
+			throw Util.javaException(e);
+		}
+		return results;
+	}
 
 	/**
 	 * Executes the prepared statement and populates the resultSetTable.

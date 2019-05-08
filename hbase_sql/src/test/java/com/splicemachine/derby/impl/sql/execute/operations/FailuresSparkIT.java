@@ -1,6 +1,6 @@
 /*
  *
- *  * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ *  * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *  *
  *  * This file is part of Splice Machine.
  *  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -166,6 +166,29 @@ public class FailuresSparkIT {
                 assertTrue(rs.next());
                 Object object = rs.getObject(1);
                 assertTrue(object instanceof TypeDescriptorImpl);
+            }
+        }
+    }
+
+
+    @Test
+    public void testResubmitToSpark() throws Throwable {
+        try(Statement s =methodWatcher.getOrCreateConnection().createStatement()) {
+            s.execute("create table resubmit(i int)");
+            s.executeUpdate("insert into resubmit values 1");
+            for (int i = 0; i < 10; ++i) {
+                s.executeUpdate("insert into resubmit select i + (select count(*) from resubmit) from resubmit");
+            }
+            String sql = "select count(distinct a.i + (b.i*10001)) from resubmit a, resubmit b";
+            try(ResultSet rs = s.executeQuery("explain " + sql)) {
+                assertTrue(rs.next());
+                String plan = rs.getString(1);
+                assertTrue(plan.contains("control"));
+            }
+            try(ResultSet rs = s.executeQuery(sql)) {
+                assertTrue(rs.next());
+                int count = rs.getInt(1);
+                assertEquals(1048576, count);
             }
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -18,6 +18,12 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.utils.Pair;
+import org.apache.spark.api.java.function.FilterFunction;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -68,6 +74,24 @@ public class InnerJoinNullFilterFunction extends SplicePredicateFunction<JoinOpe
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        return true;
+    }
+
+    @Override
+    public Pair<Dataset<Row>, OperationContext> nativeTransformation(Dataset<Row> input, OperationContext context) {
+        Column andCols = null;
+        for (int i : hashKeys) {
+            Column col = input.col("c"+i).isNotNull();
+            if (andCols ==null)
+                andCols = col;
+            else
+                andCols = andCols.and(col);
+        }
+        return Pair.newPair(input.filter(andCols), null);
     }
 
 }

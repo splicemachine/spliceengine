@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -33,7 +33,7 @@ public class TimestampServer {
     /**
      * Fixed number of bytes in the message we expect to receive from the client.
      */
-    static final int FIXED_MSG_RECEIVED_LENGTH = 2; // 2 byte client id
+    static final int FIXED_MSG_RECEIVED_LENGTH = 3; // 2 byte client id + 1 byte refresh boolean
 
     /**
      * Fixed number of bytes in the message we expect to send back to the client.
@@ -43,13 +43,11 @@ public class TimestampServer {
     private int port;
     private ChannelFactory factory;
     private Channel channel;
-    private TimestampBlockManager timestampBlockManager;
-    private int blockSize;
+    private final TimestampServerHandler handler;
 
-    public TimestampServer(int port, TimestampBlockManager timestampBlockManager, int blockSize) {
+    public TimestampServer(int port, TimestampServerHandler handler) {
         this.port = port;
-        this.timestampBlockManager=timestampBlockManager;
-        this.blockSize = blockSize;
+        this.handler = handler;
     }
 
     public void startServer() {
@@ -60,9 +58,6 @@ public class TimestampServer {
         SpliceLogUtils.info(LOG, "Timestamp Server starting (binding to port %s)...", port);
 
         ServerBootstrap bootstrap = new ServerBootstrap(factory);
-
-        // Instantiate handler once and share it
-        final TimestampServerHandler handler = new TimestampServerHandler(timestampBlockManager,blockSize);
 
         // If we end up needing to use one of the memory aware executors,
         // do so with code like this (leave commented out for reference).
@@ -76,10 +71,10 @@ public class TimestampServer {
 
         bootstrap.setPipelineFactory(new TimestampPipelineFactoryLite(handler));
 
-        bootstrap.setOption("tcpNoDelay", false);
+        bootstrap.setOption("tcpNoDelay", true);
         // bootstrap.setOption("child.sendBufferSize", 1048576);
         // bootstrap.setOption("child.receiveBufferSize", 1048576);
-        bootstrap.setOption("child.tcpNoDelay", false);
+        bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.keepAlive", true);
         bootstrap.setOption("child.reuseAddress", true);
         // bootstrap.setOption("child.connectTimeoutMillis", 120000);

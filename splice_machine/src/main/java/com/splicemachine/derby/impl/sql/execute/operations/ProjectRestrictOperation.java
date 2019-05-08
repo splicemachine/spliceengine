@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -47,8 +47,10 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 
+
 public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private static Logger LOG = Logger.getLogger(ProjectRestrictOperation.class);
+		private static int PROJECT_RESTRICT_OPERATION_V2 = 2;
 		protected String restrictionMethodName;
 		protected String projectionMethodName;
 		protected String constantRestrictionMethodName;
@@ -68,6 +70,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		public NoPutResultSet[] subqueryTrackingArray;
 		private ExecRow execRowDefinition;
 		private ExecRow projRow;
+		private String filterPred = null;
+		private String[] expressions = null;
 
 	    protected static final String NAME = ProjectRestrictOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -76,22 +80,42 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				return NAME;
 		}
 
+		public boolean hasExpressions() {
+		    return (expressions != null && expressions.length > 0);
+        }
+
+        public boolean hasFilterPred() {
+		    return (filterPred != null && !filterPred.isEmpty());
+        }
+
+        public String getFilterPred() {
+		    if (hasFilterPred())
+		        return filterPred;
+		    else
+		        return "true";
+        }
+
+		public String[] getExpressions() {
+		    return expressions;
+        }
 		
 		@SuppressWarnings("UnusedDeclaration")
 		public ProjectRestrictOperation() { super(); }
 
 		public ProjectRestrictOperation(SpliceOperation source,
-																		Activation activation,
-																		GeneratedMethod restriction,
-																		GeneratedMethod projection,
-																		int resultSetNumber,
-																		GeneratedMethod cr,
-																		int mapRefItem,
-																		int cloneMapItem,
-																		boolean reuseResult,
-																		boolean doesProjection,
-																		double optimizerEstimatedRowCount,
-																		double optimizerEstimatedCost) throws StandardException {
+                                        Activation activation,
+                                        GeneratedMethod restriction,
+                                        GeneratedMethod projection,
+                                        int resultSetNumber,
+                                        GeneratedMethod cr,
+                                        int mapRefItem,
+                                        int cloneMapItem,
+                                        boolean reuseResult,
+                                        boolean doesProjection,
+                                        double optimizerEstimatedRowCount,
+                                        double optimizerEstimatedCost,
+                                        String filterPred,
+                                        String[] expressions) throws StandardException {
 				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
 				this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
@@ -101,6 +125,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				this.reuseResult = reuseResult;
 				this.doesProjection = doesProjection;
 				this.source = source;
+				this.filterPred = filterPred;
+				this.expressions = expressions;
 				init();
 		}
 
@@ -120,9 +146,23 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				constantRestrictionMethodName = readNullableString(in);
 				mapRefItem = in.readInt();
 				cloneMapItem = in.readInt();
-				reuseResult = in.readBoolean();
+				int version = in.readUnsignedByte();
+				if (version < PROJECT_RESTRICT_OPERATION_V2)
+				    reuseResult = (version == 1);
+				else
+				    reuseResult = in.readBoolean();
 				doesProjection = in.readBoolean();
 				source = (SpliceOperation) in.readObject();
+				if (version >= PROJECT_RESTRICT_OPERATION_V2) {
+				    filterPred = readNullableString(in);
+				    int numexpressions = in.readInt();
+				    if (numexpressions > 0) {
+				        expressions = new String[numexpressions];
+				        for (int i = 0; i < numexpressions; i++) {
+				            expressions[i] = readNullableString(in);
+				        }
+				    }
+				}
 		}
 
 		@Override
@@ -133,9 +173,19 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				writeNullableString(constantRestrictionMethodName, out);
 				out.writeInt(mapRefItem);
 				out.writeInt(cloneMapItem);
+				out.writeByte(PROJECT_RESTRICT_OPERATION_V2);
 				out.writeBoolean(reuseResult);
 				out.writeBoolean(doesProjection);
 				out.writeObject(source);
+				writeNullableString(filterPred, out);
+				if (expressions == null)
+				    out.writeInt(0);
+				else {
+				    out.writeInt(expressions.length);
+				    for (int i = 0; i < expressions.length; i++) {
+				        writeNullableString(expressions[i], out);
+				    }
+				}
 		}
 
 		@Override
@@ -310,9 +360,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         DataSet<ExecRow> sourceSet = source.getDataSet(dsp);
         try {
             operationContext.pushScope();
-			if (restrictionMethodName != null)
-				sourceSet = sourceSet.filter(new ProjectRestrictPredicateFunction<>(operationContext));
-			return sourceSet.map(new ProjectRestrictMapFunction<>(operationContext));
+            if (restrictionMethodName != null)
+                sourceSet = sourceSet.filter(new ProjectRestrictPredicateFunction<>(operationContext));
+            return sourceSet.map(new ProjectRestrictMapFunction<>(operationContext, expressions));
         } finally {
             operationContext.popScope();
         }

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1150,6 +1150,13 @@ public interface LanguageConnectionContext extends Context {
 			throws StandardException;
 
 	/**
+	 * @param a activation of statement
+	 * @return String of the group user list in delimited form
+	 * @throws StandardException
+	 */
+	String getCurrentGroupUserDelimited(Activation a) throws StandardException;
+
+	/**
 	 * Checks whether the given role can be legally set for the current user.
 	 *
 	 * This method will read (potentially) the dictionary, so it needs
@@ -1399,6 +1406,7 @@ public interface LanguageConnectionContext extends Context {
 	void logRollback();
 	void logStartFetching(String statement);
 	void logEndFetching(String statement, long fetchedRows);
+	void logNextBatch(ParameterValueSet pvs);
 	void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
 						   ParameterValueSet pvs);
 	void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);

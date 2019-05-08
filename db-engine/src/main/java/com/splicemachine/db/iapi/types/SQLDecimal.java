@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -57,6 +57,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
+import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
 
 /**
@@ -323,10 +324,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			return localValue.toPlainString();
 	}
 
-	public Object	getObject() {
-		/*
-		** BigDecimal is immutable
-		*/
+	public Object getSparkObject() {
+		return getObject();
+	}
+
+	@Override
+	public Object getObject() {
 		return getBigDecimal();
 	}
 
@@ -395,11 +398,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	 */
 	public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(isNull);
-        if (isNull) {
-        	out.writeByte(precision);
-			out.writeByte(scale);
-        	return;
-		}
+        if (isNull)
+            return;
 
 		int scale;
 		byte[] byteArray;
@@ -449,7 +449,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	}
 
 	/**
-	 * Note the use of rawData: we reuse the array if the\
+	 * Note the use of rawData: we reuse the array if the
 	 * incoming array is the same length or smaller than
 	 * the array length.
 	 *
@@ -458,10 +458,8 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public void readExternal(ObjectInput in) throws IOException {
 
         if (in.readBoolean()) {
-			precision = in.readByte();
-			scale = in.readByte();
-			setCoreValue(null);
-        	return;
+            setCoreValue(null);
+            return;
         }
 
 		// clear the previous value to ensure that the
@@ -541,7 +539,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
     public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
 		try {
-			return new SQLDecimal(getBigDecimal(), precision, scale);
+		    SQLDecimal decimal = new SQLDecimal(getBigDecimal(), precision, scale);
+		    if (decimal.getPrecision() != precision)
+		        decimal.setPrecision(precision);
+		    if (decimal.getScale() != scale)
+		        decimal.setScale(scale);
+		    return decimal;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -1292,7 +1295,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	@Override
 	public StructField getStructField(String columnName) {
 		if (precision == -1 || scale == -1) {
-			return DataTypes.createStructField(columnName,DataTypes.createDecimalType(),true);
+			return DataTypes.createStructField(columnName, DecimalType.SYSTEM_DEFAULT(),true);
 		} else {
 			return DataTypes.createStructField(columnName, DataTypes.createDecimalType(precision, scale), true);
 		}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -21,6 +21,9 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -40,6 +43,10 @@ public class ExportFile {
     private final byte[] taskId;
     private static Logger LOG=Logger.getLogger(ExportFile.class);
 
+    public static enum COMPRESSION {
+        BZ2, GZ, SNAPPY, NONE
+    }
+
     ExportFile(ExportParams exportParams, byte[] taskId) throws StandardException {
         this(exportParams, taskId, ImportUtils.getFileSystem(exportParams.getDirectory()));
     }
@@ -58,7 +65,19 @@ public class ExportFile {
         OutputStream rawOutputStream =fileSystem.newOutputStream(fullyQualifiedExportFilePath,
                 new DistributedFileOpenOption(exportParams.getReplicationCount(),StandardOpenOption.CREATE_NEW));
 
-        return exportParams.isCompression() ? new GZIPOutputStream(rawOutputStream) : rawOutputStream;
+        if (exportParams.getCompression()==COMPRESSION.BZ2) {
+            Configuration conf = new Configuration();
+            CompressionCodecFactory factory = new CompressionCodecFactory(conf);
+            CompressionCodec codec = factory.getCodecByClassName("org.apache.hadoop.io.compress.BZip2Codec");
+            return codec.createOutputStream(rawOutputStream);
+        }
+        else if (exportParams.getCompression()==COMPRESSION.GZ) {
+            return new GZIPOutputStream(rawOutputStream);
+        }
+        else {
+            return rawOutputStream;
+        }
+
     }
 
     public boolean createDirectory() throws StandardException {
@@ -137,6 +156,13 @@ public class ExportFile {
     }
 
     protected String buildFilenameFromTaskId(byte[] taskId) {
-        return "export_" + Bytes.toHex(taskId) + ".csv" + (exportParams.isCompression() ? ".gz" : "");
+        String postfix = "";
+        if (exportParams.getCompression() == COMPRESSION.BZ2) {
+            postfix = ".bz2";
+        }
+        else if (exportParams.getCompression() == COMPRESSION.GZ) {
+            postfix = ".gz";
+        }
+        return "export_" + Bytes.toHex(taskId) + ".csv" + postfix;
     }
 }

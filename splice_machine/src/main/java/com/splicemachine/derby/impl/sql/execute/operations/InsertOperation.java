@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -59,6 +59,10 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 
 /**
@@ -369,8 +373,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 ((NormalizeOperation) source).setRequireNotNull(false);
             }
         }
-        DataSet set=source.getDataSet(dsp).shufflePartitions();
-        OperationContext operationContext=dsp.createOperationContext(this);
+        Pair<DataSet, int[]> pair = getBatchedDataset(dsp);
+        DataSet set = pair.getFirst();
+        int[] expectedUpdateCounts = pair.getSecond();
+        
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
         if(insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
@@ -424,6 +430,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .sampleFraction(sampleFraction)
                     .pkCols(pkCols)
                     .tableVersion(tableVersion)
+                    .updateCounts(expectedUpdateCounts)
                     .destConglomerate(heapConglom)
                     .operationContext(operationContext)
                     .txn(txn)

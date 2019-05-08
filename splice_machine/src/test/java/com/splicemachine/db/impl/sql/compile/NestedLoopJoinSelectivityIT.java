@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -59,9 +59,9 @@ public class NestedLoopJoinSelectivityIT extends BaseJoinSelectivityIT {
         try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
             rowContainsQuery(
                     s,
-                    new int[]{1,5},
+                    new int[]{1,4},
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk where not exists (select * from  ts_5_spk --splice-properties joinStrategy=NESTEDLOOP\n where ts_10_spk.c1 = ts_5_spk.c1)",
-                    "rows=10","BroadcastLeftOuterJoin");
+                    "rows=10","NestedLoopAntiJoin");
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.ServiceLoader;
 
+import com.splicemachine.replication.ReplicationManager;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
@@ -104,6 +105,11 @@ public class ManagerLoader {
         public EncryptionManager getEncryptionManager() throws StandardException {
             checkEncryptionLevels();
             return null;
+        }
+
+        @Override
+        public ReplicationManager getReplicationManager() throws StandardException {
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
         }
 
         @Override

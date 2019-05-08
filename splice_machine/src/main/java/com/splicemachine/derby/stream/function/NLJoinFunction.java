@@ -1,5 +1,5 @@
  /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -35,7 +35,9 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 import org.apache.spark.util.TaskCompletionListener;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
@@ -70,6 +72,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected List<Future<Pair<OperationContext, Iterator<ExecRow>>>> futures;
     protected ArrayList<OperationContext> allContexts;
     protected TaskContext taskContext;
+    private Deque<ExecRow> firstBatch;
 
     protected ExecutorService executorService;
 
@@ -92,6 +95,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         nLeftRows = 0;
         leftSideIterator = from;
         executorService = SIDriver.driver().getExecutorService();
+        firstBatch = new ArrayDeque<>(batchSize);
 
         initOperationContexts();
         loadBatch();
@@ -103,7 +107,8 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         try {
             operationContextList = new ArrayList<>(batchSize);
             allContexts = new ArrayList(batchSize);
-            for (int i = 0; i < batchSize; ++i) {
+            for (int i = 0; i < batchSize && leftSideIterator.hasNext(); ++i) {
+                firstBatch.addLast(leftSideIterator.next().getClone());
                 OperationContext clone = operationContext.getClone();
                 operationContextList.add(clone);
                 allContexts.add(clone);
@@ -139,13 +144,13 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         try {
             futures = new ArrayList<Future<Pair<OperationContext, Iterator<ExecRow>>>>();
             while (nLeftRows < batchSize) {
-                if (!leftSideIterator.hasNext())
+                if (firstBatch.isEmpty())
                     break;
                 nLeftRows++;
-                ExecRow execRow = leftSideIterator.next();
+                ExecRow execRow = firstBatch.removeFirst();
                 OperationContext context = operationContextList.remove(0);
                 GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                        context, execRow.getClone());
+                        context, execRow);
                 futures.add(executorService.submit(getNLJoinIterator));
             }
             if (nLeftRows > 0) {

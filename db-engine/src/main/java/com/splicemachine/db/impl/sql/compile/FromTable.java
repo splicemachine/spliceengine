@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1204,6 +1204,28 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             dependencyMap = set;
         else
             dependencyMap = null;
+    }
+
+    /* tableNumber is 0-based */
+    public void addToDependencyMap(int tableNumber) {
+        if (tableNumber < 0 || tableNumber >= getCompilerContext().getMaximalPossibleTableCount())
+            return;
+
+        if (dependencyMap == null) {
+            dependencyMap = new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
+        }
+        dependencyMap.set(tableNumber);
+    }
+
+    public void addToDependencyMap(JBitSet newSet) {
+        if (newSet == null)
+            return;
+
+        if (dependencyMap == null) {
+            dependencyMap = new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
+        }
+
+        dependencyMap.or(newSet);
     }
 
     private FormatableBitSet buildDefaultRow(ResultColumnList defaultRow) throws StandardException {

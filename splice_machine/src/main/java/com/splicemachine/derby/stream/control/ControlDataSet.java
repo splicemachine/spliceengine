@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -30,6 +30,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperatio
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
 import com.splicemachine.derby.stream.control.output.ParquetWriterService;
+import com.splicemachine.derby.stream.function.CloneFunction;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.MergeWindowFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
@@ -39,6 +40,11 @@ import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.output.delete.DeletePipelineWriter;
 import com.splicemachine.derby.stream.output.delete.DeleteTableWriterBuilder;
@@ -49,6 +55,7 @@ import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -105,6 +112,27 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public Pair<DataSet, Integer> materialize() {
+        List<ExecRow> rows = ((ControlDataSet<ExecRow>)this).map(new CloneFunction<>(null)).collect();
+        return Pair.newPair(new MaterializedControlDataSet(rows), rows.size());
+    }
+
+    @Override
+    public Pair<DataSet, Integer> persistIt() {
+        return materialize();
+    }
+
+    @Override
+    public void unpersistIt() {
+        return;
+    }
+
+    @Override
+    public DataSet getClone() {
+        throw new UnsupportedOperationException("Not Implemented for ControlDataSet");
+    }
+
+    @Override
     public List<V> collect() {
         return IteratorUtils.<V>toList(iterator);
     }
@@ -126,6 +154,16 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> shufflePartitions() {
         return this; //no-op
+    }
+
+    public DataSet<V> orderBy(OperationContext operationContext, int[] keyColumns, boolean[] descColumns, boolean[] nullsOrderedLow) {
+        KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
+        PairDataSet pair=map(new CloneFunction<>(operationContext)).keyBy(f);
+
+        PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
+                OperationContext.Scope.SORT.displayName(), operationContext);
+
+        return sortedByKey.values(OperationContext.Scope.READ_SORTED.displayName(), operationContext);
     }
 
     @Override
@@ -179,6 +217,12 @@ public class ControlDataSet<V> implements DataSet<V> {
         }));
     }
 
+
+    @Override
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function, OperationContext context) {
+        return index(function);
+    }
+    
     @Override
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function, boolean isLast) {
         return index(function);
@@ -224,6 +268,12 @@ public class ControlDataSet<V> implements DataSet<V> {
     public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function, String name) {
         return keyBy(function);
     }
+
+    @Override
+    public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(final SpliceFunction<Op, V, K> function, OperationContext context) {
+        return keyBy(function);
+    }
+
 
     @Override
     public <Op extends SpliceOperation, K> PairDataSet<K, V> keyBy(
@@ -372,7 +422,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public PairDataSet<V, Long> zipWithIndex() {
+    public PairDataSet<V, Long> zipWithIndex(OperationContext operationContext) {
         return new ControlPairDataSet<V, Long>(Iterators.<V,Tuple2<V, Long>>transform(iterator, new Function<V, Tuple2<V, Long>>() {
             long counter = 0;
             @Nullable
@@ -664,7 +714,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                 assert txn!=null:"Txn is null";
                 DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom,operationContext);
                 dpw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext, updateCounts);
             }
         };
     }
@@ -687,7 +737,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                         token, operationContext,
                         isUpsert);
                 //ipw.setRollforward(true); msirek-temp
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext,updateCounts);
             }
         }.operationContext(operationContext);
     }
@@ -705,7 +755,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                         txn,token,execRowDefinition,heapList,operationContext);
 
                 upw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext, updateCounts);
             }
         };
     }

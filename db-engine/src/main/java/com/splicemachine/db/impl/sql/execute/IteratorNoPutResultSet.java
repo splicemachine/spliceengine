@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -112,7 +112,7 @@ public class IteratorNoPutResultSet implements NoPutResultSet {
 
 		@Override public boolean returnsRows() { return true; }
 
-		@Override public int modifiedRowCount() { return 0; }
+		@Override public long[] modifiedRowCount() { return new long[]{0}; }
 
 		@Override
 		public ResultDescription getResultDescription() {

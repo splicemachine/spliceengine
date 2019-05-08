@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -619,7 +619,7 @@ public class RowCountOperationIT {
     public void exportWithLimit() throws Exception {
         final int limit = 10;
         String exportPath = temporaryFolder.getRoot().getAbsolutePath();
-        String exportQuery = String.format("EXPORT('%s', false,null,null,null,null) select * from A {limit %d}", exportPath, limit);
+        String exportQuery = String.format("EXPORT('%s',null,null,null,null,null) select * from A {limit %d}", exportPath, limit);
         ResultSet rs = conn.createStatement().executeQuery(exportQuery);
         assertTrue(rs.next());
         long exportedRowCount = rs.getLong(1);

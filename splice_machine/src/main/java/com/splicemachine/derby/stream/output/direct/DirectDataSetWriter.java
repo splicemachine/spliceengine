@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -47,7 +47,7 @@ public class DirectDataSetWriter<K> implements DataSetWriter{
     public DataSet<ExecRow> write() throws StandardException{
         try{
             pipelineWriter.open();
-            CountingIterator rows=new CountingIterator(dataSet.values().toLocalIterator());
+            CountingIterator rows=new CountingIterator(dataSet.values(pipelineWriter.getOperationContext()).toLocalIterator());
             pipelineWriter.write(rows);
             pipelineWriter.close(); //make sure everything gets written
 

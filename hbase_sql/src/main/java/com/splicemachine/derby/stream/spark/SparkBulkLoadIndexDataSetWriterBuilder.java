@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -35,6 +35,7 @@ public class SparkBulkLoadIndexDataSetWriterBuilder implements BulkLoadIndexData
     private OperationContext operationContext;
     private DDLMessage.TentativeIndex tentativeIndex;
     private String indexName;
+    private String tableVersion;
 
     public SparkBulkLoadIndexDataSetWriterBuilder(DataSet dataSet){
         this.dataSet = dataSet;
@@ -84,8 +85,14 @@ public class SparkBulkLoadIndexDataSetWriterBuilder implements BulkLoadIndexData
     }
 
     @Override
+    public BulkLoadIndexDataSetWriterBuilder tableVersion(String tableVersion) {
+        this.tableVersion = tableVersion;
+        return this;
+    }
+
+    @Override
     public DataSetWriter build() throws StandardException {
         return new BulkLoadIndexDataSetWriter(dataSet, bulkLoadDirectory, sampling,
-                destConglomerate, txn, operationContext, tentativeIndex, indexName);
+                destConglomerate, txn, operationContext, tentativeIndex, indexName, tableVersion);
     }
 }

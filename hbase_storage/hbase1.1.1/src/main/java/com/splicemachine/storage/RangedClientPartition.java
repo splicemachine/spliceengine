@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -14,41 +14,40 @@
 
 package com.splicemachine.storage;
 
-import com.google.protobuf.Service;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.util.ByteComparisons;
-import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.data.HExceptionFactory;
+import com.splicemachine.si.impl.HNotServingRegion;
+import com.splicemachine.si.impl.HRegionTooBusy;
+import com.splicemachine.si.impl.HWrongRegion;
 import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Increment;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.Lock;
 
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
+import org.apache.log4j.Logger;
 /**
  * @author Scott Fines
  *         Date: 12/28/15
  */
 public class RangedClientPartition implements Partition, Comparable<RangedClientPartition>{
+    protected static final Logger LOG = Logger.getLogger(RangedClientPartition.class);
     private final HRegionInfo regionInfo;
     private final PartitionServer owningServer;
     private final Partition delegate;
@@ -102,13 +101,54 @@ public class RangedClientPartition implements Partition, Comparable<RangedClient
 
     @Override
     public void compact(boolean isMajor) throws IOException {
-        delegate.compact(isMajor);
+        Connection connection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
+        HExceptionFactory exceptionFactory = HExceptionFactory.INSTANCE;
+        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes();
+
+        try(Admin admin = connection.getAdmin()){
+            if (isMajor)
+                admin.majorCompactRegion(encodedRegionName);
+            else
+                admin.compactRegion(encodedRegionName);
+            AdminProtos.GetRegionInfoResponse.CompactionState compactionState=null;
+            do{
+                try{
+                    Thread.sleep(500l);
+                }catch(InterruptedException e){
+                    throw new InterruptedIOException();
+                }
+
+                try {
+                    compactionState = admin.getCompactionStateForRegion(encodedRegionName);
+                }catch(Exception e){
+                    // Catch and ignore the typical region errors while checking compaction state.
+                    // Otherwise the client compaction request will fail which we don't want.
+                    IOException ioe = exceptionFactory.processRemoteException(e);
+                    if (ioe instanceof HNotServingRegion ||
+                            ioe instanceof HWrongRegion ||
+                            ioe instanceof HRegionTooBusy) {
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG,
+                                    "Can not fetch compaction state for region %s but we will keep trying: %s.",
+                                    regionInfo.getEncodedName(), ioe);
+                        }
+                    } else {
+                        throw e;
+                    }
+                }
+            }while(compactionState!=AdminProtos.GetRegionInfoResponse.CompactionState.NONE);
+        }
     }
 
     @Override
     public void flush() throws IOException {
-        delegate.flush();
+        Connection connection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
+        byte[] encodedRegionName = regionInfo.getEncodedName().getBytes();
+        try(Admin admin = connection.getAdmin()) {
+            admin.flushRegion(encodedRegionName);
+        }
     }
+
 
     @Override
     public byte[] getStartKey(){

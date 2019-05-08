@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -63,6 +63,18 @@ public final class AvgAggregator extends OrderableAggregator
 		private SumAggregator aggregator;
 		private long count;
 		private int scale;
+
+		public Class getAggregatorClass() { return aggregator.getClass();}
+
+		public boolean usesLongBufferedSumAggregator() {
+		    return aggregator != null && aggregator instanceof LongBufferedSumAggregator;
+		}
+		public void upgradeSumAggregator() throws StandardException {
+		    if (usesLongBufferedSumAggregator()) {
+		        LongBufferedSumAggregator lbsa = (LongBufferedSumAggregator) aggregator;
+		        aggregator = lbsa.upgrade();
+            }
+        }
 
 		@Override
 		public ExecAggregator setup(ClassFactory cf, String aggregateName, DataTypeDescriptor returnDataType) {
@@ -113,14 +125,17 @@ public final class AvgAggregator extends OrderableAggregator
 
 				try {
 
+				    	count++;
 						aggregator.accumulate(addend);
-						count++;
 						return;
 
 				} catch (StandardException se) {
 
-						if (!se.getMessageId().equals(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE))
-								throw se;
+					    // DOUBLE has the largest range, so if it overflows, there is nothing
+					    // with greater range to upgrade to.
+						if (!se.getMessageId().equals(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE) ||
+                            (!(aggregator instanceof LongBufferedSumAggregator)))
+							throw se;
 				}
 
 
@@ -150,38 +165,12 @@ public final class AvgAggregator extends OrderableAggregator
 				 * have to do anything
 				 */
 				if(aggregator instanceof LongBufferedSumAggregator){
-						aggregator = ((LongBufferedSumAggregator)aggregator).upgrade();
-				}else if(aggregator instanceof FloatBufferedSumAggregator){
-						aggregator = ((FloatBufferedSumAggregator)aggregator).upgrade();
-				}else if(aggregator instanceof DoubleBufferedSumAggregator){
-						aggregator = ((DoubleBufferedSumAggregator)aggregator).upgrade();
-				}else{
-						//fall back to db's original version for safety.
-
-						// this code creates data type objects directly, it is anticipating
-						// the time they move into the defined api of the type system. (djd).
-						String typeName = value.getTypeName();
-
-						DataValueDescriptor newValue;
-
-						if (typeName.equals(TypeId.INTEGER_NAME)) {
-								newValue = new com.splicemachine.db.iapi.types.SQLLongint();
-						} else if (typeName.equals(TypeId.TINYINT_NAME) ||
-										typeName.equals(TypeId.SMALLINT_NAME)) {
-								newValue = new com.splicemachine.db.iapi.types.SQLInteger();
-						} else if (typeName.equals(TypeId.REAL_NAME)) {
-								newValue = new com.splicemachine.db.iapi.types.SQLDouble();
-						} else {
-								TypeId decimalTypeId = TypeId.getBuiltInTypeId(java.sql.Types.DECIMAL);
-								newValue = decimalTypeId.getNull();
-						}
-
-						newValue.setValue(value);
-						value = newValue;
-
-						accumulate(addend);
+					aggregator = ((LongBufferedSumAggregator)aggregator).upgrade();
 				}
+				else
+				    throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE);
 
+				aggregator.accumulate(addend);
 		}
 
 		public void merge(ExecAggregator addend)

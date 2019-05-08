@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2018 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -65,7 +65,7 @@ public interface SConfiguration {
 
     String getAuthenticationLdapServer();
 
-    String getAuthenticationLdapMapGroupAttr();
+    String getAuthenticationMapGroupAttr();
 
     String getAuthenticationNativeAlgorithm();
 
@@ -108,6 +108,12 @@ public interface SConfiguration {
     boolean getBackupUseDistcp();
 
     int getBackupIOBufferSize();
+
+    int getReplicationSnapshotInterval();
+
+    int getReplicationSinkPort();
+
+    int getReplicationProgressUpdateInterval();
 
     String getCompressionAlgorithm();
 
@@ -349,4 +355,6 @@ public interface SConfiguration {
     String getOlapLog4jConfig();
 
     int getMaxCheckTableErrors();
+
+    int getRecursiveQueryIterationLimit();
 }

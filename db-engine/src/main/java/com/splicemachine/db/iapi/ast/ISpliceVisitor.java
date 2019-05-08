@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -170,6 +170,7 @@ public interface ISpliceVisitor {
     Visitable visit(SetSchemaNode node) throws StandardException;
     Visitable visit(SetTransactionIsolationNode node) throws StandardException;
     Visitable visit(SimpleStringOperatorNode node) throws StandardException;
+    Visitable visit(SimpleLocaleStringOperatorNode node) throws StandardException;
     Visitable visit(SpecialFunctionNode node) throws StandardException;
     Visitable visit(SQLBooleanConstantNode node) throws StandardException;
     Visitable visit(SQLToJavaValueNode node) throws StandardException;
@@ -214,5 +215,8 @@ public interface ISpliceVisitor {
     Visitable visit(ArrayOperatorNode node) throws StandardException;
     Visitable visit(ArrayConstantNode node) throws StandardException;
     Visitable visit(SetSessionPropertyNode node) throws StandardException;
+    Visitable visit(ListValueNode node) throws StandardException;
+    Visitable visit(GroupingFunctionNode node) throws StandardException;
+    Visitable visit(SelfReferenceNode node) throws StandardException;
 
 }

@@ -25,18 +25,17 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.iapi.types;
 
-import java.sql.Clob;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
-import java.text.RuleBasedCollator;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
+
+import java.sql.Clob;
+import java.text.RuleBasedCollator;
 
 public interface StringDataValue extends ConcatableDataValue
 {
@@ -103,6 +102,12 @@ public interface StringDataValue extends ConcatableDataValue
 			StringDataValue result)
 		throws StandardException;
 
+	public StringDataValue repeat(
+			StringDataValue leftOperand,
+			NumberDataValue repeatedTimes,
+			StringDataValue result)
+		throws StandardException;
+
 	/**
 	 * The SQL like() function with out escape clause.
 	 *
@@ -159,7 +164,29 @@ public interface StringDataValue extends ConcatableDataValue
 	StringDataValue upper(StringDataValue result)
 							throws StandardException;
 
-	/** 
+	/**
+	 * Covert the string to upper case with specified locale.
+	 * @param str The string
+	 * @param locale  The locale
+	 * @param result the result
+	 * @return The string converted to upper case
+	 * @throws StandardException Thrown on error
+	 */
+	StringDataValue upperWithLocale(StringDataValue str, StringDataValue locale, StringDataValue result)
+							throws StandardException;
+
+	/**
+	 * Covert the string to lower case with specified locale.
+	 * @param str The string
+	 * @param locale  The locale
+	 * @param result the result
+	 * @return The string converted to lower case
+	 * @throws StandardException Thrown on error
+	 */
+	StringDataValue lowerWithLocale(StringDataValue str, StringDataValue locale, StringDataValue result)
+			throws StandardException;
+
+	/**
 	 * Convert the string to lower case.
 	 *
 	 * @param result	The result (reusable - allocate if null).

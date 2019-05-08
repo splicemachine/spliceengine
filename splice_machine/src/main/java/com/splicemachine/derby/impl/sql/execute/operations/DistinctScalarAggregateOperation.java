@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -162,7 +162,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
             operationContext.popScope();
 
             operationContext.pushScopeForOp(OperationContext.Scope.READ);
-            DataSet set4 = set3.values();
+            DataSet set4 = set3.values(operationContext);
             operationContext.popScope();
 
             // with more than one distinct aggregates, each row is split into multiple rows
@@ -175,7 +175,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
 
             operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);
             set3 = set2.reduceByKey(new MergeAllAggregatesFunctionForMixedRows(operationContext, null));
-            set4 = set3.values();
+            set4 = set3.values(operationContext);
             operationContext.popScope();
 
             DataSet ds3 = set4.coalesce(1, true, false, operationContext, true, "Coalesce");

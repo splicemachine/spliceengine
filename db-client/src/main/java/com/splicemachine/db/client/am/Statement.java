@@ -12,7 +12,7 @@
  *
  * Splice Machine, Inc. has modified this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the License; you may not use this file except in
  * compliance with the License.
  *
@@ -25,6 +25,7 @@
 package com.splicemachine.db.client.am;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
@@ -60,6 +61,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
 
     // Use -1, if there is no update count returned, ie. when result set is returned. 0 is a valid update count for DDL.
     int updateCount_ = -1;
+    ArrayList<Integer> updateCounts_ = null;
     int returnValueFromProcedure_;
 
     // Enumeration of the flavors of statement execute call used.
@@ -1612,7 +1614,11 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
             agent_.accumulateReadException(new SqlException(agent_.logWriter_, sqlca));
             returnValueFromProcedure_ = sqlcode;
         } else {
-            updateCount_ = sqlca.getUpdateCount();
+            if (updateCounts_ != null) {
+                updateCounts_.add(sqlca.getUpdateCount());
+            } else {
+                updateCount_ = sqlca.getUpdateCount();
+            }
             // sometime for call statement, protocol will return updateCount_, we will always set that to 0
             // sqlMode_ is not set for statements, only for prepared statements
             if (sqlMode_ == isCall__) {

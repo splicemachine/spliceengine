@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -58,6 +58,10 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
 
     public T elementAt(int index){
         return v.get(index);
+    }
+
+    public int indexOf(T itemToSearchFor){
+        return v.indexOf(itemToSearchFor);
     }
 
     public final void addElement(T qt){

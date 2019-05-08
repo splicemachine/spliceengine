@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -55,6 +55,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     protected OperationContext operationContext;
     protected boolean isUpsert;
     protected double sampleFraction;
+    protected int[] updateCounts;
 
     @Override
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
@@ -165,6 +166,12 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     }
 
     @Override
+    public DataSetWriterBuilder updateCounts(int[] updateCounts) {
+        this.updateCounts = updateCounts;
+        return this;
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         try {
             out.writeBoolean(isUpsert);
@@ -186,6 +193,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
             }
             out.writeLong(heapConglom);
             out.writeDouble(sampleFraction);
+            ArrayUtil.writeIntArray(out, updateCounts);
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -211,6 +219,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
             spliceSequences[i] = (SpliceSequence) in.readObject();
         heapConglom = in.readLong();
         sampleFraction = in.readDouble();
+        updateCounts = ArrayUtil.readIntArray(in);
     }
 
     @Override

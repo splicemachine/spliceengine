@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -530,7 +530,7 @@ public class RegionTxnStore implements TxnPartition{
                 }
 
 
-                //return a transaciton that is committed after afterTs
+                //return a transaction that is committed after afterTs
                 TxnMessage.TxnInfo info=txn.getInfo();
                 if(info.getBeginTs()>afterTs||
                         txn.getCommitTs()>afterTs ||

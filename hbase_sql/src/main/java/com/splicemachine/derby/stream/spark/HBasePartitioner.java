@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -33,6 +33,7 @@ import org.apache.spark.Partition;
 import org.apache.spark.rdd.NewHadoopPartition;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -61,7 +62,7 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
 
     @Override
     public void initialize() {
-        List<Partition> partitions = ((SparkDataSet) dataSet).rdd.partitions();
+        List<Partition> partitions = Arrays.asList(((SparkDataSet) dataSet).rdd.rdd().partitions());
         tableSplits = new ArrayList<>(partitions.size());
         for (Partition p : partitions) {
             NewHadoopPartition nhp = (NewHadoopPartition) p;

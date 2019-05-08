@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1666,7 +1666,7 @@ public class SubqueryNode extends ValueNode{
      * contains a single entry which is a FBT or a PRN/FBT, or {@code null}
      * if the subquery does not contain a single FBT
      */
-    private FromBaseTable singleFromBaseTable(FromList fromList){
+    public FromBaseTable singleFromBaseTable(FromList fromList){
         FromBaseTable fbt=null;
 
         if(fromList.size()==1){

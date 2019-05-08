@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -736,6 +736,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             List<ValueNode> operands = windowFunctionNode.getOperands();
             int[] inputVIDs = new int[operands.size()];
             int i = 0;
+            ColumnPullupVisitor columnPuller =
+               new ColumnPullupVisitor(WindowFunctionNode.class, LOG, ((SingleChildResultSetNode) this.childResult).getChildResult(), rCtoCRfactory);
             for (ValueNode exp : operands) {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("addWindowFunctionColumns() operand expression instance of : " + exp.getClass().getSimpleName());
@@ -779,12 +781,12 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                         LOG.debug("addWindowFunctionColumns() operand does not have an RC: " + exp.getColumnName() +
                                       ". Creating one for it in " + wdn.toString());
                     }
+                    exp.accept(columnPuller);
 
                     tmpRC = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-                                                                           "##" + windowFunctionNode.getAggregateName() +
-                                                                               "_Input_" + exp.getColumnName(),
-                                                                           exp,
-                                                                           getContextManager());
+                             "##" + windowFunctionNode.getAggregateName() + "_Input_" +
+                             exp.getColumnName(), exp, getContextManager());
+
                     tmpRC.markGenerated();
                     tmpRC.bindResultColumnToExpression();
                 }

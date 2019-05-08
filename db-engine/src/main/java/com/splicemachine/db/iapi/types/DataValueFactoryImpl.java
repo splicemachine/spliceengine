@@ -25,33 +25,30 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.RegisteredFormatIds;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.SQLState;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
+import java.sql.*;
 import java.text.Collator;
 import java.text.RuleBasedCollator;
-import java.util.Properties;
 import java.util.Locale;
-import com.splicemachine.db.iapi.db.DatabaseContext;
-import com.splicemachine.db.iapi.services.context.ContextService;
+import java.util.Properties;
 
 /**
  * Core implementation of DataValueFactory. Does not implement
@@ -1200,6 +1197,36 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         }
     }
 
+        public static DataValueDescriptor getNullDVD(int typeFormatId) {
+                switch (typeFormatId) {
+                        /* Wrappers */
+                        case StoredFormatIds.BIT_TYPE_ID: return new SQLBit();
+                        case StoredFormatIds.BOOLEAN_TYPE_ID: return new SQLBoolean();
+                        case StoredFormatIds.CHAR_TYPE_ID: return new SQLChar();
+                        case StoredFormatIds.DATE_TYPE_ID: return new SQLDate();
+                        case StoredFormatIds.DOUBLE_TYPE_ID: return new SQLDouble();
+                        case StoredFormatIds.INT_TYPE_ID: return new SQLInteger();
+                        case StoredFormatIds.LONGINT_TYPE_ID: return new SQLLongint();
+                        case StoredFormatIds.REAL_TYPE_ID: return new SQLReal();
+                        case StoredFormatIds.REF_TYPE_ID: return new SQLRef();
+                        case StoredFormatIds.SMALLINT_TYPE_ID: return new SQLSmallint();
+                        case StoredFormatIds.TIME_TYPE_ID: return new SQLTime();
+                        case StoredFormatIds.TIMESTAMP_TYPE_ID: return new SQLTimestamp();
+                        case StoredFormatIds.TINYINT_TYPE_ID: return new SQLTinyint();
+                        case StoredFormatIds.VARCHAR_TYPE_ID: return new SQLVarchar();
+                        case StoredFormatIds.LONGVARCHAR_TYPE_ID: return new SQLLongvarchar();
+                        case StoredFormatIds.VARBIT_TYPE_ID: return new SQLVarbit();
+                        case StoredFormatIds.LONGVARBIT_TYPE_ID: return new SQLLongVarbit();
+                        case StoredFormatIds.USERDEFINED_TYPE_ID_V3: return new UserType();
+                        case StoredFormatIds.BLOB_TYPE_ID: return new SQLBlob();
+                        case StoredFormatIds.CLOB_TYPE_ID: return new SQLClob();
+                        case StoredFormatIds.XML_TYPE_ID: return new XML();
+                        case StoredFormatIds.ARRAY_TYPE_ID: return new SQLArray();
+                        default:return null;
+                }
+        }
+
+
         // RESOLVE: This is here to find the LocaleFinder (i.e. the Database)
         // on first access. This is necessary because the Monitor can't find
         // the Database at boot time, because the Database is not done booting.
@@ -1240,7 +1267,8 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             BLOB(StoredFormatIds.SQL_BLOB_ID),
             BIT(StoredFormatIds.SQL_BIT_ID),
             ROW_LOCATION(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID),
-            ARRAY(StoredFormatIds.SQL_ARRAY_ID);
+            ARRAY(StoredFormatIds.SQL_ARRAY_ID),
+            LIST(StoredFormatIds.LIST_ID);
 
             private final int storedFormatId;
 

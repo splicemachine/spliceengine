@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -88,11 +88,28 @@ public class SpliceWatcher extends TestWatcher {
         return createConnection(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD);
     }
 
+
+    /**
+     * Always creates a new connection, replacing this class's reference to the current connection, if any.
+     */
+    public TestConnection createConnection(boolean useSpark) throws Exception {
+        return createConnection(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD, useSpark);
+    }
+
     /**
      * Always creates a new connection, replacing this class's reference to the current connection, if any.
      */
     public TestConnection createConnection(String userName, String password) throws Exception {
         currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password));
+        connections.add(currentConnection);
+        if (!isNullOrEmpty(defaultSchema)) {
+            setSchema(defaultSchema);
+        }
+        return currentConnection;
+    }
+    
+    public TestConnection createConnection(String userName, String password, boolean useSpark) throws Exception {
+        currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password, useSpark));
         connections.add(currentConnection);
         if (!isNullOrEmpty(defaultSchema)) {
             setSchema(defaultSchema);

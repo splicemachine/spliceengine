@@ -12,7 +12,7 @@
  *
  * Splice Machine, Inc. has modified this file.
  *
- * All Splice Machine modifications are Copyright 2012 - 2018 Splice Machine, Inc.,
+ * All Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the License; you may not use this file except in
  * compliance with the License.
  *
@@ -133,7 +133,52 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 false, // sendRslsetflg
                 0, // resultSetFlag
                 false, // sendQryrowset
-                0);               // qryrowset
+                0,           // qryrowset
+                false,
+                0);
+
+        if (numInputColumns > 0) {
+            if ((extdtaPositions_ != null) && (!extdtaPositions_.isEmpty())) {
+                extdtaPositions_.clear();  // reset extdta column position markers
+            }
+
+            boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
+                    parameterMetaData,
+                    new Object[]{inputs});
+
+            // can we eleminate the chain argument needed for lobs
+            buildEXTDTA(parameterMetaData, inputs, chained);
+        }
+    }
+
+    // Write the message to execute  prepared sql statement.
+    //
+    // preconditions:
+    public void writeExecuteBatch(NetPreparedStatement materialPreparedStatement,
+                             Section section,
+                             ColumnMetaData parameterMetaData,
+                             Object[] inputs,
+                             int numInputColumns,
+                             boolean outputExpected,
+                             boolean chained) throws SqlException  // chained flag for blobs only  //dupqry
+    {
+
+        buildEXCSQLSTT(section,
+                true, // sendOutexp
+                outputExpected, // outexp
+                false, // sendPrcnam
+                null, // prcnam
+                false, // sendQryblksz
+                false, // sendMaxrslcnt,
+                0, // maxrslcnt,
+                false, // sendMaxblkext
+                0, // maxblkext
+                false, // sendRslsetflg
+                0, // resultSetFlag
+                false, // sendQryrowset
+                0,         // qryrowset
+                true,
+                inputs.length);
 
         if (numInputColumns > 0) {
             if ((extdtaPositions_ != null) && (!extdtaPositions_.isEmpty())) {
@@ -186,7 +231,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
             // indicate the extdta should be built
             boolean overrideExists = buildSQLDTAcommandData(numInputColumns,
                     parameterMetaData,
-                    inputs);
+                    new Object[]{inputs});
 
             // can we eleminate the chain argument needed for lobs
             // do we chain after Extdta's on open, verify this
@@ -282,7 +327,9 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 true, // sendRslsetflg
                 calculateResultSetFlags(), // resultSetFlag
                 sendQryrowset, // sendQryrowset
-                fetchSize);      // qryrowset
+                fetchSize,
+                false,
+                0);      // qryrowset
 
         if (numParameters > 0) {
             if ((extdtaPositions_ != null) && (!extdtaPositions_.isEmpty())) {
@@ -294,7 +341,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
             // indicate the extdta should be built
             boolean overrideExists = buildSQLDTAcommandData(numParameters,
                     parameterMetaData,
-                    inputs);
+                    new Object[]{inputs});
 
             buildEXTDTA(parameterMetaData, inputs, false); // no chained autocommit for CALLs
         }
@@ -453,12 +500,17 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                         boolean sendRslsetflg,
                         int resultSetFlag,
                         boolean sendQryrowset,
-                        int qryrowset) throws SqlException {
+                        int qryrowset,
+                        boolean sendNbrrow,
+                        int nbrrow) throws SqlException {
         createCommand();
         markLengthBytes(CodePoint.EXCSQLSTT);
 
         buildPKGNAMCSN(section);
         buildRDBCMTOK();
+        if (sendNbrrow) {
+            buildNBRROW(nbrrow);
+        }
         if (sendOutexp) {
             buildOUTEXP(outexp);
         }
@@ -510,7 +562,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
     // preconditions:
     boolean buildSQLDTAcommandData(int numInputColumns,
                                    ColumnMetaData parameterMetaData,
-                                   Object[] inputRow) throws SqlException {
+                                   Object[] inputRows) throws SqlException {
         createEncryptedCommandData();
 
         int loc = buffer.position();
@@ -522,7 +574,7 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         java.util.Hashtable protocolTypeToOverrideLidMapping = null;
         java.util.ArrayList mddOverrideArray = null;
         protocolTypeToOverrideLidMapping =
-                computeProtocolTypesAndLengths(inputRow, parameterMetaData, protocolTypesAndLengths,
+                computeProtocolTypesAndLengths((Object[]) inputRows[0], parameterMetaData, protocolTypesAndLengths,
                         protocolTypeToOverrideLidMapping);
 
         boolean overrideExists = false;
@@ -533,19 +585,22 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                 protocolTypeToOverrideLidMapping,
                 mddOverrideArray);
 
-        buildFDODTA(numInputColumns,
-                protocolTypesAndLengths,
-                inputRow);
+        for (Object inputRow : inputRows) {
+            buildFDODTA(numInputColumns,
+                    protocolTypesAndLengths,
+                    (Object[]) inputRow);
+        }
 
         updateLengthBytes(); // for sqldta
         if (netAgent_.netConnection_.getSecurityMechanism() ==
                 NetConfiguration.SECMEC_EUSRIDDTA ||
                 netAgent_.netConnection_.getSecurityMechanism() ==
-                NetConfiguration.SECMEC_EUSRPWDDTA) {
+                        NetConfiguration.SECMEC_EUSRPWDDTA) {
             encryptDataStream(loc);
         }
 
         return overrideExists;
+
     }
 
     // Build the FDOCA Data Descriptor Scalar whose value is a FDOCA
@@ -1604,6 +1659,16 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         if (maxNumOfExtraBlocks != 0) {
             writeScalar2Bytes(CodePoint.MAXBLKEXT, maxNumOfExtraBlocks);
         }
+    }
+
+    // Number of Input Rows (NBRROW) specifies the number of rows to input for multi-row input.
+    // For a multi-row input operation, any null row counts towards the total number of rows for a
+    // multi-row input operation as indicated by NBRROW.
+    //
+    // preconditions:
+    //   sqlam must support this parameter on the command, method will not check.
+    void buildNBRROW(int numberOfInputRows) throws SqlException {
+        writeScalar4Bytes(CodePoint.NBRROW, numberOfInputRows);
     }
 
     // preconditions:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -24,42 +24,29 @@ import com.splicemachine.derby.stream.spark.SparkUtils
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import com.splicemachine.derby.vti.SpliceRDDVTI
 import com.splicemachine.tools.EmbedConnectionMaker
+import org.apache.log4j.Logger
+import org.apache.spark.SerializableWritable
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
-import org.apache.spark.SerializableWritable
 import java.util.Properties
 
 import com.splicemachine.access.HConfiguration
-import com.splicemachine.access.hbase.HBaseConnectionFactory
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.security.{Credentials, UserGroupInformation}
-import org.apache.spark.broadcast.Broadcast
 import org.apache.hadoop.security.token.Token
-import org.apache.hadoop.hbase.security.token.TokenUtil
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
 object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
-
-  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
-
-  def broadcastCreds(credentials: Credentials) : Unit = this.synchronized {
-    if (broadcastCredentials != null)
-      return
-    
-    SpliceSpark.logCredentialsInformation(credentials)
-    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
-    SpliceSpark.setCredentials(broadcastCredentials)
-  }
 }
 
 /**
@@ -69,13 +56,13 @@ object Holder extends Serializable {
   * @param options
   */
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
+
   val url = options.get(JDBCOptions.JDBC_URL).get
   
   def this(url: String) {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
 
-  @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   JdbcDialects.registerDialect(new SplicemachineDialect)
 
   private[this] def initConnection() = {
@@ -106,7 +93,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     if (principal != null && keytab != null) {
       Holder.log.info(f"Authenticating as ${principal} with keytab ${keytab}")
-
       val ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab)
       UserGroupInformation.setLoginUser(ugi)
 
@@ -117,25 +103,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
             new Text(f"${token.getKind}_${token.getService}_${System.currentTimeMillis}")
 
           val connection = initConnection()
-
-          // Get HBase token
-          val hbcf = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration)
-          val token = TokenUtil.obtainToken(hbcf.getConnection)
-
-          Holder.log.debug(f"Got HBase token ${token} ")
-
-          // Add it to credentials and broadcast them
-          credentials.addToken(getUniqueAlias(token), token)
-          Holder.broadcastCreds(credentials)
-
-          Holder.log.debug(f"Broadcasted credentials")
-
           connection
         }
       })
     } else {
       Holder.log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
-      
       initConnection()
     }
   }

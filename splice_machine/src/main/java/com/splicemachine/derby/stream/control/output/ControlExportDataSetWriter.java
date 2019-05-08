@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2017 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.control.output;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -31,12 +30,15 @@ import com.splicemachine.derby.stream.output.ExportDataSetWriterBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.commons.collections.iterators.SingletonIterator;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.zip.GZIPOutputStream;
-
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
 /**
  * @author Scott Fines
  *         Date: 1/8/16
@@ -62,11 +64,15 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
         String extension = ".csv";
         long start = System.currentTimeMillis();
         SpliceOperation operation=exportFunction.getOperation();
-        boolean isCompressed = path.endsWith(".gz");
-        if(!isCompressed && operation instanceof ExportOperation){
+        COMPRESSION compressionAlgorithm = null;
+        CompressionCodec codec = null;
+        if(operation instanceof ExportOperation){
             ExportOperation op=(ExportOperation)exportFunction.getOperation();
-            isCompressed=op.getExportParams().isCompression();
-            if(isCompressed){
+            compressionAlgorithm=op.getExportParams().getCompression();
+            if(compressionAlgorithm == COMPRESSION.BZ2){
+                extension+=".bz2";
+            }
+            else if (compressionAlgorithm == COMPRESSION.GZ) {
                 extension+=".gz";
             }
         }
@@ -76,7 +82,13 @@ public class ControlExportDataSetWriter<V> implements DataSetWriter{
             // The 'part-r-00000' naming convention is what spark uses so we are consistent on control side
             try(OutputStream fileOut =dfs.newOutputStream(path /*directory*/,"part-r-00000"+extension/*file*/,StandardOpenOption.CREATE)){
                 OutputStream toWrite=fileOut;
-                if(isCompressed){
+                if(compressionAlgorithm == COMPRESSION.BZ2){
+                    Configuration conf = new Configuration();
+                    CompressionCodecFactory factory = new CompressionCodecFactory(conf);
+                    codec = factory.getCodecByClassName("org.apache.hadoop.io.compress.BZip2Codec");
+                    toWrite=codec.createOutputStream(fileOut);;
+                }
+                else if (compressionAlgorithm == COMPRESSION.GZ){
                     toWrite=new GZIPOutputStream(fileOut);
                 }
                 count=exportFunction.call(toWrite,dataSet.toLocalIterator());
