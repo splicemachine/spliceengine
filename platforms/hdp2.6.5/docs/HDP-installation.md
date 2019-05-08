@@ -48,38 +48,48 @@ Setup local yum repo on ambari server node ( or a node that all the nodes in the
 
 1. Make sure there is a http server on the node that your_node_url is accessable.
 
-`$ sudo service httpd status`
-`httpd (pid  30576) is running..`
-`$ `
+````
+$ sudo service httpd status
+httpd (pid  30576) is running..
+$
+````
 
 2. Make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
 
-`$ sudo yum install createrepo`
-`...`
-`Nothing to do`
-`$ `
+````
+$ sudo yum install createrepo
+...
+Nothing to do
+$
+````
 
 3. Put the splicemachine rpm under `/var/www/html/ambari-repo/` ( create directory if it doesn't exist)
-   `sudo mkdir /var/www/html/ambari-repo`
-   `cd <location of rpm>`
-   `sudo cp splicemachine-hdp2.6.1.2.7.0.1915.p0.313-1.noarch.rpm /var/www/html/ambari-repo/.`
+
+   ````
+   sudo mkdir /var/www/html/ambari-repo
+   cd <location of rpm>
+   sudo cp splicemachine-hdp2.6.1.2.7.0.1915.p0.313-1.noarch.rpm /var/www/html/ambari-repo/.
+   ````
 4. Use `sudo createrepo /var/www/html/ambari-repo/` to create the repo metadata.
 5. Open the url `your_node_url/ambari-repo` to confirm it can be accessed by yum.
-6. On the ambari node terminal, put a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content as seen below, replacing "your_node_url" text with the hostname used in the test on step 5:
+6. On the ambari server node terminal, create a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content as seen below, replacing "your_node_url" text with the hostname used in the test on step 5:
 
-  ````
-  [splicemachine]
-  name=SpliceMachine Repo
-  baseurl=http://your_node_url/ambari-repo
-  enabled=1
-  gpgcheck=0
-  ````
+````
+[splicemachine]
+name=SpliceMachine Repo
+baseurl=http://your_node_url/ambari-repo
+enabled=1
+gpgcheck=0
+````
 
 
 7. Run `sudo yum list | grep splicemachine` to make sure the custom repo is up and running.
-`$ sudo yum list | grep splicemachine`
-`splicemachine.noarch          hdp2.6.1.2.7.0.1915.p0.313-1`
-`                                                   splicemachine`
+
+````
+$ sudo yum list | grep splicemachine
+splicemachine.noarch          hdp2.6.1.2.7.0.1915.p0.313-1
+                                                   splicemachine
+````
 
 8. Install the Splice Machine custom Ambari service rpm using the following command (take version for example) :
 
@@ -407,7 +417,7 @@ From Amabari Dashboard, click on each service and then on its "Config" tab. Sele
 
 3. From Ambari Dashboard using the cluster's "Actions" dropdown, select "Stop All", click "Confirm Stop" and wait for cluster to stop.
 
-Then from the master node terminal do :
+Then from the ambari server node terminal do :
 
 ````
 sudo yum remove -y splicemachine_ambari_service
@@ -416,7 +426,9 @@ sudo rm /etc/yum.repos.d/splicemachine.repo
 ````
 
 If the ambari-repo folder was created at install time under /var/www/html on the master node at install time, then remove it:
-`sudo rm -r /var/www/html/ambari-repo`
+````
+sudo rm -r /var/www/html/ambari-repo
+````
 
 4. Restart cluster - From Ambari Dashboard, using the cluster "Actions" dropdown, select "Start All".
 
