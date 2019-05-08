@@ -47,64 +47,25 @@ operating environment, and are called out in detail in the
 Setup local yum repo on ambari server node ( or a node that all the nodes in the cluster can access) :
 
 1. Make sure there is a http server on the node that your_node_url is accessable.
+
+`$ sudo service httpd status`
+`httpd (pid  30576) is running..`
+`$ `
+
 2. Make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
+
+`$ sudo yum install createrepo`
+`...`
+`Nothing to do`
+`$ `
+
 3. Put the splicemachine rpm under `/var/www/html/ambari-repo/` ( create directory if it doesn't exist)
-4. Use `createrepo /var/www/html/ambari-repo/` to create the repo metadata.
+   `sudo mkdir /var/www/html/ambari-repo`
+   `cd <location of rpm>`
+   `sudo cp splicemachine-hdp2.6.1.2.7.0.1915.p0.313-1.noarch.rpm /var/www/html/ambari-repo/.`
+4. Use `sudo createrepo /var/www/html/ambari-repo/` to create the repo metadata.
 5. Open the url `your_node_url/ambari-repo` to confirm it can be accessed by yum.
-
-Perform the following steps 6 and 7 **on each node** in your cluster:
-
-In order to run it all on each node, it is useful to use the "all_ssh" bash script, create the file in the master node:
-
-````
-#!/bin/bash
-tmpdir=${TMPDIR:-/tmp}/pssh.$$
-if [ -z "$1" ]
-then
-   echo "Usage: $0 <command to run on all nodes>"
-   echo "userhost.lst file should contain all target nodes."
-   exit
-fi
-echo "Output logs -> $tmpdir"
-cmd=$1
-echo "Running command [${cmd}] on all nodes."
-mkdir -p $tmpdir
-count=0
-while IFS= read -r userhost; do
-    ssh -n -o BatchMode=yes ${userhost} "${cmd}" > ${tmpdir}/${userhost} 2>&1 &
-    count=`expr $count + 1`
-done < userhost.lst
-while [ $count -gt 0 ]; do
-    wait $pids
-    count=`expr $count - 1`
-done
-while IFS= read -r userhost; do
-    echo
-    echo "=====> START OUTPUT FROM ${userhost} [${cmd}] <======= "
-    cat ${tmpdir}/${userhost}
-    echo "=====> END OUTPUT FROM ${userhost} "
-    echo
-done < userhost.lst
-#echo "Output for hosts are in $tmpdir ”
-````
-
-it will also require execute permissions, use:
-`chmod 700 all_ssh`
-
-
-The all_ssh script requires that a "userhost.lst" file be created in the same directory from which it is being executed,
-the userhost.lst file contains a list of hostnames as in:
-    ````
-    host1
-    host2
-    host3
-    ````
-
-The all_ssh script will also require execute permissions, use:
-`chmod 700 all_ssh`
-
-
-6. Put a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content is as below
+6. On the ambari node terminal, put a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content as seen below, replacing "your_node_url" text with the hostname used in the test on step 5:
 
   ````
   [splicemachine]
@@ -113,24 +74,22 @@ The all_ssh script will also require execute permissions, use:
   enabled=1
   gpgcheck=0
   ````
-copy to the other nodes with:
-  ````
-  ./all_ssh "scp splice@stl-colo-srv006:/etc/yum.repos.d/splicemachine.repo /tmp/splicemachine.repo"
-  ./all_ssh "sudo chown root:root /tmp/splicemachine.repo"
-  ./all_ssh "sudo mv /tmp/splicemachine.repo /etc/yum.repos.d/"
-  ````
-
-7. Run `yum list | grep splicemachine` to make sure the custom repo is up and running.
 
 
-Install the Splice Machine custom Ambari service rpm using the following command (take version for example) :
+7. Run `sudo yum list | grep splicemachine` to make sure the custom repo is up and running.
+`$ sudo yum list | grep splicemachine`
+`splicemachine.noarch          hdp2.6.1.2.7.0.1915.p0.313-1`
+`                                                   splicemachine`
 
-```
-./all_ssh "sudo yum install -y splicemachine_ambari_service"
-```
+8. Install the Splice Machine custom Ambari service rpm using the following command (take version for example) :
 
-After install the rpm, restart ambari-server using `service ambari-server restart` on the master node.
+````
+$ sudo rpm -ivh splicemachine_ambari_service-hdp2.6.1.2.7.0.1915.p0.313-1.noarch.rpm
+Preparing...                ########################################### [100%]
+   1:splicemachine_ambari_se########################################### [100%]
+````
 
+9. After install of the splicemachine_ambari_service rpm, restart ambari-server using `sudo service ambari-server restart` on the master node.
 
 
 
@@ -138,10 +97,10 @@ After install the rpm, restart ambari-server using `service ambari-server restar
 
 Follow the steps to install splicemachine server.
 
-0. On the Ambari UI - Make a note of the current version of each service running on the cluster by looking at their individual config views.
+0. On the Ambari Dashboard - Make a note of the current version of each service running on the cluster by looking at their individual config views.
 Note: These versions will be used for the backout procedure when uninstalling Splice Machine
 
-1. Click the action button on the left bottom of the ambari page,then click on 'Add Services'
+1. Click the "Action" button on the left bottom of the services list, select "Add Service"
 
 <img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
 
@@ -163,16 +122,16 @@ like to add Apache Ranger Support.
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 **Note**: Ambari will not show all the recommended values in some situations. Make sure these
-important configurations are set properly by clicking "recommend" button next to the configs:
+important configurations are set properly, by selecting the service name and clicking on the "Advanced" tab:
 
 (1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes `com.splicemachine.hbase.SpliceMasterObserver`.
 
-(2) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.regionserver.classes` includes `com.splicemachine.hbase.RegionServerLifecycleObserver`.
+(2) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.regionserver.classes` includes `com.splicemachine.hbase.RegionServerLifecycleObserver`. If the property is not found, you can add the property in "Custom hbase-site".
 
-(3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`. If the property is not found, you can add the property in "Custom hbase-site".
+(3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`.
 
-(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific
-Information" are in the configurations.
+(4) In Hbase's config "Advanced hbase-env" in property "hbase-env template", make sure the comments like "Splice Specific
+Information" are in the configurations and update HDP version values using the proper version (i.e. 2.6.1.0-129 change to 2.6.0.3-8 ).
 
 
 6. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
@@ -181,20 +140,21 @@ Information" are in the configurations.
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 7. Create HDFS folders:
-hadoop fs -mkdir /user/splice
-hadoop fs -mkdir /user/splice/history
-hadoop fs -mkdir /user/splice/spark-warehouse
 
-hadoop fs -chmod 1777 /user/splice
-hadoop fs -chmod 1777 /user/splice/history
-hadoop fs -chmod 755 /user/splice/spark-warehouse
+`hadoop fs -mkdir /user/splice`
+`hadoop fs -mkdir /user/splice/history`
+`hadoop fs -mkdir /user/splice/spark-warehouse`
 
-hadoop fs -chown hbase:hbase /user/splice
-hadoop fs -chown hbase:spark /user/splice/history
-hadoop fs -chown hbase:hbase /user/splice/spark-warehouse
+`hadoop fs -chmod 1777 /user/splice`
+`hadoop fs -chmod 1777 /user/splice/history`
+`hadoop fs -chmod 755 /user/splice/spark-warehouse`
+
+`hadoop fs -chown hbase:hbase /user/splice`
+`hadoop fs -chown hbase:spark /user/splice/history`
+`hadoop fs -chown hbase:hbase /user/splice/spark-warehouse`
 
 
-8. Restart all the services affected to start Splice Machine!
+8. Restart all the services affected to start Splice Machine using 'Restart All Required' option from the Amabari dashboard "Actions" drop down button and then click "Confirm Restart All" in the confirmation prompt.
 Splice Machine is now functional, the rest of this installation procedures are optional.
 
 
@@ -438,24 +398,26 @@ If you are upgrading from versions before 1901, you need to follow these steps:
 
 To remove Splice Machine from the HDP cluster:
 
-1. Remove Splice service
- Click on Splice Machine service, on the top right click on Service Actions dropdown - and select Delete Service -
+1. Remove Splice service -
+From Ambari Dashboard - Click on "Splice Machine" service, and then on the top right, click on "Service Actions" dropdown - and select "Delete Service". Click on the "Delete" button when prompted, type "delete" and click on "Delete" once more. Finally, click "OK" on the confirmation prompt.
 
-2. Rollback configurations
-   within each service in the config tab, select prior versions if they were changed during install and click on "Make Current".
 
-3. From Ambari UI using the cluster Actions dropdown, select "Stop All" and wait for cluster to stop.
-   From the master node terminal do :
-   ````
-   ./all_ssh “sudo yum remove -y splicemachine_ambari_service”
-   sudo yum remove -y splicemachine_ambari_service
+2. Rollback configurations -
+From Amabari Dashboard, click on each service and then on its "Config" tab. Select prior versions that were changed during Splice Machine install and click on "Make Current". On the "Make Current Confirmation" prompt, add Notes if desired and click on "Make Current". Repeat this process for all affected services (HDFS, YARN, HBASE, Zookeeper)
 
-   ./all_ssh “sudo rm /etc/yum.repos.d/splicemachine.repo”
-   sudo rm /etc/yum.repos.d/splicemachine.repo
-   ````
+3. From Ambari Dashboard using the cluster's "Actions" dropdown, select "Stop All", click "Confirm Stop" and wait for cluster to stop.
 
-   If the ambari-repo folder was created at install time under /var/www/html on the master node at install time, then remove it:
-   `sudo rm -r /var/www/html/ambari-repo`
+Then from the master node terminal do :
 
-1. Restart cluster - From Ambari UI using the cluster Actions dropdown, select "Start All".
-   Note that even after start completes, some alerts may still be active until service restarts complete. Just wait for alerts to clear.
+````
+sudo yum remove -y splicemachine_ambari_service
+
+sudo rm /etc/yum.repos.d/splicemachine.repo
+````
+
+If the ambari-repo folder was created at install time under /var/www/html on the master node at install time, then remove it:
+`sudo rm -r /var/www/html/ambari-repo`
+
+4. Restart cluster - From Ambari Dashboard, using the cluster "Actions" dropdown, select "Start All".
+
+Note that even after start completes, some alerts may still be active until service restarts complete. Just wait for alerts to clear.
