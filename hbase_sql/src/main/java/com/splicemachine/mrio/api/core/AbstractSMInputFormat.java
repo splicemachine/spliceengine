@@ -21,11 +21,13 @@ import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.HScan;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -41,7 +43,10 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
+
+import static java.lang.String.format;
 
 /**
  * Created by dgomezferro on 11/30/15.
@@ -90,11 +95,38 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         int retryCounter = 0;
         boolean refresh = false;
         this.splits = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
+
+        boolean eachRegionOneSplit = oneSplitPerRegion(conf);
+        long tableSize = 0;
         while (true) {
             List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
 
-            if (oneSplitPerRegion(conf))
-                return toSMSplits(splits);
+            if (eachRegionOneSplit)
+            {
+                List<InputSplit> regionSplits = toSMSplits(splits);
+                return regionSplits;
+            }
+            boolean getTableSize = this.splits > 0 && table.getName().getNameAsString().startsWith("splice:");
+            if (getTableSize) {
+                String tableName = table.getName().getNameAsString().split(":")[1];
+                HBaseRegionLoads loadWatcher = HBaseRegionLoads.INSTANCE;
+                Collection<PartitionLoad> tableLoad;
+                try {
+                    tableLoad = loadWatcher.tableLoad(tableName, false);
+                    for (PartitionLoad partitionLoad: tableLoad) {
+                        tableSize += (partitionLoad.getStorefileSizeMB() + partitionLoad.getMemStoreSizeMB());
+                    }
+                    // Convert MB to bytes.
+                    tableSize *= 1048576;
+                    if (tableSize < 0)
+                        tableSize = 0;
+                }
+                catch (Exception e) {
+                    // Don't cause the query to abort if we couldn't get the table size.
+                    // Just log a warning.
+                    LOG.warn(format("Failed to compute size for table: %s", table));
+                }
+            }
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "getSplits " + splits);
                 for (Partition split : splits) {
@@ -103,7 +135,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             }
             SubregionSplitter splitter = new HBaseSubregionSplitter();
 
-            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits);
+            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits, tableSize);
             //check if split count changed in-between
             List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
             if (splits.size() != newSplits.size()) {
