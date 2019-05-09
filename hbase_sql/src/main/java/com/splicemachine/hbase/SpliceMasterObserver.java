@@ -22,8 +22,6 @@ import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.MasterLifecycle;
 import com.splicemachine.olap.OlapServer;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
-import com.splicemachine.lifecycle.MasterLifecycle;
-import com.splicemachine.olap.OlapServer;
 import com.splicemachine.olap.OlapServerSubmitter;
 import com.splicemachine.pipeline.InitializationCompleted;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
@@ -166,18 +164,18 @@ public class SpliceMasterObserver extends BaseMasterObserver {
         if (HConfiguration.getConfiguration().getOlapServerExternal()) {
             try {
                 manager.registerNetworkService(new DatabaseLifecycleService() {
-                    List<OlapServerSubmitter> serverSubmitter;
+                    List<OlapServerSubmitter> serverSubmitters;
 
                     @Override
                     public void start() throws Exception {
-                        Collection<String> queues = HConfiguration.getConfiguration().getOlapServerIsolatedRoles().values();
-                        serverSubmitter = new ArrayList<>();
+                        Collection<String> queues = HConfiguration.getConfiguration().getOlapServerYarnQueues().keySet();
+                        serverSubmitters = new ArrayList<>();
                         Set<String> names = new HashSet<>(queues);
                         names.add("default");
 
                         for (String queue : names) {
                             OlapServerSubmitter oss = new OlapServerSubmitter(serverName, queue);
-                            serverSubmitter.add(oss);
+                            serverSubmitters.add(oss);
                             Thread thread = new Thread(oss, "OlapServerSubmitter-"+queue);
                             thread.setDaemon(true);
                             thread.start();
@@ -190,7 +188,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
                     @Override
                     public void shutdown() throws Exception {
-                        for (OlapServerSubmitter oss : serverSubmitter) {
+                        for (OlapServerSubmitter oss : serverSubmitters) {
                             oss.stop();
                         }
                     }

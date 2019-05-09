@@ -44,7 +44,7 @@ public interface SessionProperties {
         USESPARK(0),
         DEFAULTSELECTIVITYFACTOR(1),
         SKIPSTATS(2),
-        YARNQUEUE(3);
+        OLAPQUEUE(3);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
@@ -76,7 +76,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useSpark, defaultSelectivityFactor, skipStats, yarnQueue");
+                    "useSpark, defaultSelectivityFactor, skipStats, olapQueue");
         }
 
         String valString = pair.getSecond();

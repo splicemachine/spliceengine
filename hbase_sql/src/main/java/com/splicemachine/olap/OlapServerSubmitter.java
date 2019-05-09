@@ -273,7 +273,8 @@ public class OlapServerSubmitter implements Runnable {
                     // Finally, set-up ApplicationSubmissionContext for the application
                     ApplicationSubmissionContext appContext =
                             app.getApplicationSubmissionContext();
-                    appContext.setApplicationName("OlapServer"); // application name
+                    String appName = "default".equals(queueName) ? "OlapServer" : "OlapServer-"+queueName;
+                    appContext.setApplicationName(appName); // application name
                     appContext.setAMContainerSpec(amContainer);
                     appContext.setResource(capability);
                     appContext.setQueue(yarnQueue);
@@ -470,6 +471,7 @@ public class OlapServerSubmitter implements Runnable {
             }
         }
         result.append(' ').append("-Dspark.yarn.queue=\\\""+sparkYarnQueue+"\\\"");
+        result.append(' ').append("-Dsplice.spark.app.name=\\\"SpliceMachine-"+queueName+"\\\"");
         // If user does not specify a kerberos keytab or principal, use HBase master's.
         if (UserGroupInformation.isSecurityEnabled()) {
             Configuration configuration = HConfiguration.unwrapDelegate();
@@ -491,7 +493,9 @@ public class OlapServerSubmitter implements Runnable {
             }
         }
         result.append(' ').append(parameters);
-        return result.toString();
+        String command = result.toString();
+        LOG.info("OlapServer command: " + command);
+        return command;
     }
 
     private void setupAppMasterEnv(Map<String, String> appMasterEnv, Configuration conf) {
