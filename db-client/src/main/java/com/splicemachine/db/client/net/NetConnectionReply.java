@@ -652,6 +652,7 @@ public class NetConnectionReply extends Reply
         boolean rdbinttknReceived = false;
         boolean crrtknReceived = false;
         byte[] crrtkn = null;
+        byte[] rdbinttkn = null;
         boolean usridReceived = false;
         String usrid = null;
 
@@ -714,6 +715,14 @@ public class NetConnectionReply extends Reply
                 peekCP = peekCodePoint();
             }
 
+            if (peekCP == CodePoint.RDBINTTKN) {
+                // carries information to abort running command
+                foundInPass = true;
+                rdbinttknReceived = checkAndGetReceivedFlag(rdbinttknReceived);
+                rdbinttkn = parseRDBINTTKN(false);
+                peekCP = peekCodePoint();
+            }
+
             if (peekCP == CodePoint.CRRTKN) {
                 // carries information to correlate with the work being done on bahalf
                 // of an application at the source and at the target server.
@@ -742,7 +751,9 @@ public class NetConnectionReply extends Reply
         netConnection.rdbAccessed(svrcod,
                 prdid,
                 crrtknReceived,
-                crrtkn);
+                crrtkn,
+                rdbinttknReceived,
+                rdbinttkn);
     }
 
 
@@ -2445,6 +2456,17 @@ public class NetConnectionReply extends Reply
     // and target servers for correlating the processing between servers.
     protected byte[] parseCRRTKN(boolean skip) throws DisconnectException {
         parseLengthAndMatchCodePoint(CodePoint.CRRTKN);
+        if (skip) {
+            skipBytes();
+            return null;
+        }
+        return readBytes();
+    }
+
+    // A generated token that the target SQLAM uses to interrupt the execution
+    // of a DDM command for a specific requester.
+    protected byte[] parseRDBINTTKN(boolean skip) throws DisconnectException {
+        parseLengthAndMatchCodePoint(CodePoint.RDBINTTKN);
         if (skip) {
             skipBytes();
             return null;
