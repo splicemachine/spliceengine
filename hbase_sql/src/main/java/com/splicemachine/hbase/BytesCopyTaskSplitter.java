@@ -27,12 +27,13 @@ import java.util.*;
  *         Date: 4/16/14
  */
 public class BytesCopyTaskSplitter {
-    public static List<byte[]> getCutPoints(HRegion region, byte[] start, byte[] end, int requestedSplits) throws IOException {
+    public static List<byte[]> getCutPoints(HRegion region, byte[] start, byte[] end,
+                                            int requestedSplits, long bytesPerSplit) throws IOException {
         Store store = null;
         try {
             store = region.getStore(SIConstants.DEFAULT_FAMILY_BYTES);
             HRegionUtil.lockStore(store);
-            return HRegionUtil.getCutpoints(store, start, end, requestedSplits);
+            return HRegionUtil.getCutpoints(store, start, end, requestedSplits, bytesPerSplit);
         }catch (Throwable t) {
             throw Exceptions.getIOException(t);
         }finally{
