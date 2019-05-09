@@ -36,10 +36,6 @@ public class SpliceAllRolesVTI implements DatasetProvider, VTICosting {
     public SpliceAllRolesVTI () {
     }
 
-    public static DatasetProvider getAllRolesVTI() {
-        return new SpliceAllRolesVTI();
-    }
-
     @Override
     public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
         operationContext = dsp.createOperationContext(op);
@@ -89,12 +85,12 @@ public class SpliceAllRolesVTI implements DatasetProvider, VTICosting {
     @Override
     public double getEstimatedCostPerInstantiation(VTIEnvironment arg0)
             throws SQLException {
-        return 0;
+        return 1;
     }
 
     @Override
     public double getEstimatedRowCount(VTIEnvironment arg0) throws SQLException {
-        return 0;
+        return 5;
     }
 
     @Override

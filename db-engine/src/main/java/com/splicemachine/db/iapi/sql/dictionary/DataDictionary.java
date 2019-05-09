@@ -2163,7 +2163,7 @@ public interface DataDictionary{
 
     TokenDescriptor getToken(byte[] token) throws StandardException;
 
-    boolean getMetadataAccessRestrictionEnabled();
+    boolean isMetadataAccessRestrictionEnabled();
 
     void setMetadataAccessRestrictionEnabled();
 

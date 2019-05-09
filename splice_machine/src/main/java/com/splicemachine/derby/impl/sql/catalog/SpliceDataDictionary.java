@@ -1337,7 +1337,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    public boolean getMetadataAccessRestrictionEnabled() {
+    public boolean isMetadataAccessRestrictionEnabled() {
         return metadataAccessRestrictionEnabled;
     }
 

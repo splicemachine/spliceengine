@@ -9219,7 +9219,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public TablePermsDescriptor getTablePermissions(UUID tableUUID,String authorizationId) throws StandardException{
         TablePermsDescriptor key=new TablePermsDescriptor(this,authorizationId,null,tableUUID);
-        return (TablePermsDescriptor)getPermissions(key, true);
+        return (TablePermsDescriptor)getPermissions(key);
     } // end of getTablePermissions
 
     @Override
@@ -9239,13 +9239,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     @Override
     public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID, String authorizationId) throws StandardException{
         SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,authorizationId,null,schemaPermsUUID);
-        return (SchemaPermsDescriptor)getPermissions(key, true);
+        return (SchemaPermsDescriptor)getPermissions(key);
     }
 
     @Override
     public SchemaPermsDescriptor getSchemaPermissions(UUID schemaPermsUUID) throws StandardException{
         SchemaPermsDescriptor key=new SchemaPermsDescriptor(this,schemaPermsUUID);
         return getUncachedSchemaPermsDescriptor(key);
+    }
+
+    public Object getPermissions(PermissionsDescriptor key) throws StandardException {
+        return getPermissions(key, true);
     }
 
     public Object getPermissions(PermissionsDescriptor key, boolean metadataAccessRestrictionEnabled) throws StandardException{
@@ -9450,7 +9454,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public RoutinePermsDescriptor getRoutinePermissions(UUID routineUUID,String authorizationId) throws StandardException{
         RoutinePermsDescriptor key=new RoutinePermsDescriptor(this,authorizationId,null,routineUUID);
 
-        return (RoutinePermsDescriptor)getPermissions(key, true);
+        return (RoutinePermsDescriptor)getPermissions(key);
     } // end of getRoutinePermissions
 
     @Override
@@ -10207,7 +10211,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                                 String granteeAuthId) throws StandardException{
         PermDescriptor key=new PermDescriptor(this,null,objectType,objectUUID,privilege,null,granteeAuthId,false);
 
-        return (PermDescriptor)getPermissions(key, true);
+        return (PermDescriptor)getPermissions(key);
     }
 
     /**

@@ -246,7 +246,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	"FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
 	"WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
 			"and P.grantee in (select name from sysvw.sysallroles) \n" +
-	"UNION " +
+	"UNION ALL \n " +
 	"SELECT S.* " +
 	"FROM SYS.SYSSCHEMAS as S " +
 	"WHERE S.authorizationId " +
@@ -267,7 +267,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 			"WHERE 'SPLICE' in (select name from (values current_user) usr (name) \n" +
 			"                   union all " +
 			"                   select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI() as b (NAME VARCHAR(128))) \n" +
-			"UNION " +
+			"UNION ALL \n " +
 			REGULAR_USER_SCHEMA +
 			"UNION " +
 			PUBLIC_SCHEMA;

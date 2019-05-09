@@ -97,8 +97,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
     public static final	String	IBM_SYSTEM_STAT_SCHEMA_NAME     = "SYSSTAT";
     public static final	String	IBM_SYSTEM_NULLID_SCHEMA_NAME   = "NULLID";
 
-
-	/**
+    /**
      * This schema is used for jar handling procedures.
      **/
     public static final	String	STD_SQLJ_SCHEMA_NAME      = "SQLJ";
@@ -121,9 +120,9 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
      *
      * See com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext#getDefaultSchemaName
      */
-    public	static	final	String	STD_DEFAULT_SCHEMA_NAME = Property.DEFAULT_USER_NAME;
+    public static final String STD_DEFAULT_SCHEMA_NAME = Property.DEFAULT_USER_NAME;
 
-	public static final String  STD_SYSTEM_VIEW_SCHEMA_NAME         = "SYSVW";
+    public static final String STD_SYSTEM_VIEW_SCHEMA_NAME = "SYSVW";
 
 
     /**

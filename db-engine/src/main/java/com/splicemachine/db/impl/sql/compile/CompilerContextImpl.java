@@ -972,7 +972,7 @@ public class CompilerContextImpl extends ContextImpl
 			return;
 
 		// if schema access restriction is not enabled, no need to add access permission check
-		if (!lcc.getDataDictionary().getMetadataAccessRestrictionEnabled())
+		if (!lcc.getDataDictionary().isMetadataAccessRestrictionEnabled())
 			return;
 
 		StatementSchemaPermission accessPrivileges = new StatementSchemaPermission(uuid, Authorizer.ACCESS_PRIV);

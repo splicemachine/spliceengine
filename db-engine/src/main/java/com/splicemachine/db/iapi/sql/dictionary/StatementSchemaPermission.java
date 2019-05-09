@@ -360,15 +360,6 @@ public class StatementSchemaPermission extends StatementPermission
 		return schemaName;
 	}
 
-	/**
-	 * Routine to check if another instance of access descriptor matches this.
-	 * Used to ensure only one access descriptor for a table of given privilege is created.
-	 * Otherwise, every column reference from a table may create a descriptor for that table.
-	 *
-	 * @param obj	Another instance of StatementPermission
-	 *
-	 * @return	true if match
-	 */
 	public boolean equals( Object obj)
 	{
 		if( obj == null)
@@ -379,7 +370,7 @@ public class StatementSchemaPermission extends StatementPermission
 			return privType == other.privType && (schemaUUID !=null && other.schemaUUID != null && schemaUUID.equals(other.schemaUUID));
 		}
 		return false;
-	} // end of equals
+	}
 
 	/**
 	 * Return hash code for this instance

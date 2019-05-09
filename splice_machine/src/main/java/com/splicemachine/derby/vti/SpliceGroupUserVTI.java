@@ -31,10 +31,6 @@ public class SpliceGroupUserVTI implements DatasetProvider, VTICosting {
     public SpliceGroupUserVTI () {
     }
 
-    public static DatasetProvider getGroupUserVTI() {
-        return new SpliceGroupUserVTI();
-    }
-
     @Override
     public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
         operationContext = dsp.createOperationContext(op);
@@ -60,12 +56,12 @@ public class SpliceGroupUserVTI implements DatasetProvider, VTICosting {
     @Override
     public double getEstimatedCostPerInstantiation(VTIEnvironment arg0)
             throws SQLException {
-        return 0;
+        return 1;
     }
 
     @Override
     public double getEstimatedRowCount(VTIEnvironment arg0) throws SQLException {
-        return 0;
+        return 1;
     }
 
     @Override
