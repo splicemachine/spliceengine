@@ -98,7 +98,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
                     streamingBatches, streamingBatchSize);
 
-            String requestedQueue = (String) activation.getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.YARNQUEUE);
+            String requestedQueue = (String) activation.getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
             List<String> roles = activation.getLanguageConnectionContext().getCurrentRoles(activation);
 
             String queue = chooseQueue(requestedQueue, roles, config.getOlapServerIsolatedRoles());

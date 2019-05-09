@@ -180,7 +180,7 @@ public class OlapConfigurations implements ConfigurationDefault {
 
         Map<String, String> queues = new HashMap();
         for (String queue : builder.olapServerIsolatedRoles.values()) {
-            queues.put(queue, configurationSource.getString(OLAP_SERVER_YARN_DEFAULT_QUEUE + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE));
+            queues.put(queue, configurationSource.getString(OLAP_SERVER_YARN_QUEUES + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE));
         }
         builder.olapServerYarnQueues = queues;
     }
