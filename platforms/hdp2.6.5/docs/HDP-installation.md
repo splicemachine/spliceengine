@@ -134,35 +134,56 @@ like to add Apache Ranger Support.
 **Note**: Ambari will not show all the recommended values in some situations. Make sure these
 important configurations are set properly, by selecting the service name and clicking on the "Advanced" tab:
 
-(1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes `com.splicemachine.hbase.SpliceMasterObserver`.
+(1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes
 
-(2) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.regionserver.classes` includes `com.splicemachine.hbase.RegionServerLifecycleObserver`. If the property is not found, you can add the property in "Custom hbase-site".
+    com.splicemachine.hbase.SpliceMasterObserver
 
-(3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`.
+
+(2) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.regionserver.classes` includes
+
+    com.splicemachine.hbase.RegionServerLifecycleObserver
+
+If the property is not found, you can add the property in "Custom hbase-site".
+
+(3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes:
+
+    org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver
 
 (4) In Hbase's config "Advanced hbase-env" in property "hbase-env template", make sure the comments like "Splice Specific
-Information" are in the configurations and update HDP version values using the proper version (i.e. 2.6.1.0-129 change to 2.6.0.3-8 ).
+Information" are in the configurations and make the following changes
+- Update HDP version values using the proper version (i.e. 2.6.1.0-129 change to 2.6.0.3-8 ).
+- If you're using Kerberos, you need to add this option to your HBase Master Java Configuration Options under value HBASE_MASTER_OPTS, add the following parameters (replacing <> with appropriate values):
+
+   ````
+   -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true -Dsplice.spark.yarn.principal=<replace with principal> -Dsplice.spark.yarn.keytab=<replace with keytab path>
+   ````
+
+- Kerberos installations will also require the specification of an enterprise license key, in "Custom hbase-site" section add:
+
+    ````
+    splicemachine.enterprise.key=<replace with license key>
+    ````
 
 
-6. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
- Machine is installed.
+6. Please click next all the way down to this page ,then click 'deploy'.
 
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
-7. Create HDFS folders:
+7. Create HDFS folders: make sure that the following HDFS folders exist and that their permissions and ownership are set correctly by executing the following Hadoop commands:
 
-`hadoop fs -mkdir /user/splice`
-`hadoop fs -mkdir /user/splice/history`
-`hadoop fs -mkdir /user/splice/spark-warehouse`
+    ````
+    hadoop fs -mkdir /user/splice
+    hadoop fs -mkdir /user/splice/history
+    hadoop fs -mkdir /user/splice/spark-warehouse
 
-`hadoop fs -chmod 1777 /user/splice`
-`hadoop fs -chmod 1777 /user/splice/history`
-`hadoop fs -chmod 755 /user/splice/spark-warehouse`
+    hadoop fs -chmod 1777 /user/splice
+    hadoop fs -chmod 1777 /user/splice/history
+    hadoop fs -chmod 755 /user/splice/spark-warehouse
 
-`hadoop fs -chown hbase:hbase /user/splice`
-`hadoop fs -chown hbase:spark /user/splice/history`
-`hadoop fs -chown hbase:hbase /user/splice/spark-warehouse`
-
+    hadoop fs -chown hbase:hbase /user/splice
+    hadoop fs -chown hbase:spark /user/splice/history
+    hadoop fs -chown hbase:hbase /user/splice/spark-warehouse
+    ````
 
 8. Restart all the services affected to start Splice Machine using 'Restart All Required' option from the Amabari dashboard "Actions" drop down button and then click "Confirm Restart All" in the confirmation prompt.
 Splice Machine is now functional, the rest of this installation procedures are optional.
@@ -200,11 +221,6 @@ that Splice Machine uses to LDAP by following the simple instructions in
 [Configuring Splice Machine
 Authentication](https://doc.splicemachine.com/onprem_install_configureauth.html){: .WithinBook}
 
-If you're using Kerberos, you need to add this option to your HBase Master Java Configuration Options:
-
-   ````
-   -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true
-   ````
 
 ### Enabling Ranger for Authorization
 
