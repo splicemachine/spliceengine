@@ -114,7 +114,22 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public Pair<DataSet, Integer> materialize() {
         List<ExecRow> rows = ((ControlDataSet<ExecRow>)this).map(new CloneFunction<>(null)).collect();
-        return Pair.newPair(new ControlDataSet(rows.iterator()), rows.size());
+        return Pair.newPair(new MaterializedControlDataSet(rows), rows.size());
+    }
+
+    @Override
+    public Pair<DataSet, Integer> persistIt() {
+        return materialize();
+    }
+
+    @Override
+    public void unpersistIt() {
+        return;
+    }
+
+    @Override
+    public DataSet getClone() {
+        throw new UnsupportedOperationException("Not Implemented for ControlDataSet");
     }
 
     @Override

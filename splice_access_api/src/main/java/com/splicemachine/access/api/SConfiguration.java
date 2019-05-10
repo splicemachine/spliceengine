@@ -360,4 +360,6 @@ public interface SConfiguration {
     Map<String, String> getOlapServerYarnQueues();
 
     int getMaxCheckTableErrors();
+
+    int getRecursiveQueryIterationLimit();
 }

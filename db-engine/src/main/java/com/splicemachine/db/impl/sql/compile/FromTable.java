@@ -1206,6 +1206,28 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             dependencyMap = null;
     }
 
+    /* tableNumber is 0-based */
+    public void addToDependencyMap(int tableNumber) {
+        if (tableNumber < 0 || tableNumber >= getCompilerContext().getMaximalPossibleTableCount())
+            return;
+
+        if (dependencyMap == null) {
+            dependencyMap = new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
+        }
+        dependencyMap.set(tableNumber);
+    }
+
+    public void addToDependencyMap(JBitSet newSet) {
+        if (newSet == null)
+            return;
+
+        if (dependencyMap == null) {
+            dependencyMap = new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
+        }
+
+        dependencyMap.or(newSet);
+    }
+
     private FormatableBitSet buildDefaultRow(ResultColumnList defaultRow) throws StandardException {
         FormatableBitSet defaultValueMap = new FormatableBitSet(resultColumns.size());
 

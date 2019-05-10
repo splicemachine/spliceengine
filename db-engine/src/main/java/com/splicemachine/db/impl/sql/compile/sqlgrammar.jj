@@ -1029,10 +1029,30 @@ public class SQLParser
 
     private boolean ansiTrimSpecFollows()
     {
-        return (getToken(2).kind == LEADING || getToken(2).kind == L || getToken(2).kind == TRAILING || getToken(2).kind == T
+        Token tPre = getToken(1);
+        Token t = getToken(2);
+        Token tPost = getToken(3);
+
+        // In TRIM() function
+        if (tPre.kind == LEFT_PAREN)
+        {
+            if (t.kind == LEADING || t.kind == TRAILING || t.kind == BOTH)
+                return true;
+            else if ((t.kind == L || t.kind == T || t.kind == B ) && tPost.kind != RIGHT_PAREN && tPost.kind != PERIOD)
+                return true;
+            else
+                return false;
+        }
+        // In STRIP() function
+        else if (tPre.kind == COMMA)
+        {
+            return (getToken(2).kind == LEADING || getToken(2).kind == L || getToken(2).kind == TRAILING || getToken(2).kind == T
                 || getToken(2).kind == BOTH || getToken(2).kind == B);
+        }
+        else
+            return false;
     }
-    
+
 	/**
 	 * Determine whether the next sequence of tokens can be the beginning
 	 * of a remainingPredicate() rule.
@@ -2889,6 +2909,7 @@ TOKEN [IGNORE_CASE] :
 |   <PHYSICAL: "physical">
 |	<PLI: "pli">
 |	<PRECISION: "precision">
+|   <RECURSIVE: "recursive">
 |	<RELEASE: "release">
 |	<QUARTER: "quarter">
 |   <REPEAT: "repeat">
@@ -7629,7 +7650,6 @@ ansiStrip() throws StandardException  :
             <COMMA> trimSpec = ansiTrimSpec()
             (
                 // <source> COMMA LEADING COMMA <trimChar>
-                LOOKAHEAD(<COMMA>)
                 <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
                 {
                     return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
@@ -12958,8 +12978,12 @@ void withClause(Vector parameterList) throws StandardException :
         ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
         ValueNode[] topNOut = new ValueNode[ 1 ];
         boolean     hasJDBClimitClause = false;
+        boolean isRecursive = false;
     }
     {
+    	[<RECURSIVE> {
+    	   isRecursive = true;
+    	}]
     	tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
     		beginToken = <AS>
     		[<LEFT_PAREN>]
@@ -12980,6 +13004,15 @@ void withClause(Vector parameterList) throws StandardException :
     	        hasJDBClimitClause = true;
                 offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
     	    }
+
+            if (isRecursive) {
+			    if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
+				    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					    	"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
+
+			    ((UnionNode)queryExpression).setIsRecursive(true);
+			}
+
     		parameterList.add(nodeFactory.getNode(
     								C_NodeTypes.CREATE_VIEW_NODE,
     								tableName,
@@ -12993,6 +13026,7 @@ void withClause(Vector parameterList) throws StandardException :
                                     offsetClauses[ OFFSET_CLAUSE ],
                                     offsetClauses[ FETCH_FIRST_CLAUSE ],
                                     Boolean.valueOf( hasJDBClimitClause ),
+                                    Boolean.valueOf(isRecursive),
     								getContextManager()));
     }
 }
@@ -13010,9 +13044,13 @@ viewDefinition(Token beginToken) throws StandardException :
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
     ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
+    boolean     isRecursive = false;
 }
 {
-	<VIEW> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	[<RECURSIVE> {
+        isRecursive = true;
+	}]
+	<VIEW> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		[ <LEFT_PAREN> resultColumns = viewColumnList() <RIGHT_PAREN> ]
 		<AS>
 		    		[<LEFT_PAREN>]
@@ -13035,6 +13073,16 @@ viewDefinition(Token beginToken) throws StandardException :
 	        hasJDBClimitClause = true;
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
 	    }
+
+        if (isRecursive) {
+			if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
+				    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					    	"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
+
+			((UnionNode)queryExpression).setIsRecursive(true);
+		}
+
+
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.CREATE_VIEW_NODE,
 								tableName, 
@@ -13048,6 +13096,7 @@ viewDefinition(Token beginToken) throws StandardException :
                                 offsetClauses[ OFFSET_CLAUSE ],
                                 offsetClauses[ FETCH_FIRST_CLAUSE ],
                                 Boolean.valueOf( hasJDBClimitClause ),
+                                Boolean.valueOf(isRecursive),
 								getContextManager());
 	}
 }
@@ -17016,6 +17065,7 @@ nonReservedKeyword()  :
 	|	tok = <QUARTER>
 	|	tok = <RANK>
 	|	tok = <READS>
+	|   tok = <RECURSIVE>
 	|	tok = <REF>
 // SQL92 says it is reserved, but we want it to be non-reserved.
 	|	tok = <RELEASE>

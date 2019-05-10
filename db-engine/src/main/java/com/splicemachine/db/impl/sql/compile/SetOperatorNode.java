@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -319,6 +320,10 @@ abstract class SetOperatorNode extends TableOperatorNode
 		if (!(this instanceof UnionNode))
 			return false;
 
+		// It is incorrect to push down predicate into the seed and recursion branches of a recursive view
+		if (((UnionNode)this).isRecursive)
+			return false;
+
 		// We only handle certain types of predicates here; if the received
 		// predicate doesn't qualify, then don't push it.
 		Predicate pred = (Predicate)optimizablePredicate;
@@ -332,7 +337,7 @@ abstract class SetOperatorNode extends TableOperatorNode
 
 		JBitSet tableNums = new JBitSet(getReferencedTableMap().size());
 		BaseTableNumbersVisitor btnVis =
-			new BaseTableNumbersVisitor(tableNums);
+			new BaseTableNumbersVisitor(tableNums, true);
 
 		// Check the left child.
 		leftResultSet.accept(btnVis);
@@ -583,6 +588,15 @@ abstract class SetOperatorNode extends TableOperatorNode
 		buildRCL();
 	}
 
+	public void bindResultColumns(FromList fromListParam, boolean bindRightOnly)
+			throws StandardException
+	{
+		super.bindResultColumns(fromListParam, bindRightOnly);
+
+		/* Now we build our RCL */
+		buildRCL();
+	}
+
 	/**
 	 * Bind the result columns for this ResultSetNode to a base table.
 	 * This is useful for INSERT and UPDATE statements, where the
@@ -657,7 +671,13 @@ abstract class SetOperatorNode extends TableOperatorNode
 		/* Create new expressions with the dominant types after verifying
 		 * union compatibility between left and right sides.
 		 */
-		resultColumns.setUnionResultExpression(rightResultSet.getResultColumns(), tableNumber, level, getOperatorName());
+		ColumnDescriptorList cdl = null;
+		if ((this instanceof UnionNode) && ((UnionNode)this).getIsRecursive()) {
+			// recursiveUnion's viewDescriptor could be null during the binding of the view definition
+			if (((UnionNode)this).viewDescriptor != null)
+				cdl = ((UnionNode)this).viewDescriptor.getColumnDescriptorList();
+		}
+		resultColumns.setUnionResultExpression(rightResultSet.getResultColumns(), tableNumber, level, getOperatorName(), cdl);
 	}
 
 	/**

@@ -1387,4 +1387,26 @@ public interface Property {
 		"derby.database.disablePredicateSimplification";
 
 	String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
+
+	/**
+	 * The version of spark the current running splice
+	 * version was compiled against.  Normally, this will
+	 * also be the running version of spark on the cluster.
+	 * This property is not meant to be set by the system administrator.
+	 */
+	String SPLICE_SPARK_COMPILE_VERSION =
+		"splice.spark.compile.version";
+
+	/**
+	 * The current running version of spark on the splice cluster,
+	 * if different from splice.spark.compile.version.
+	 * Example setting: 2.2.0
+	 * Normally, this parameter will not be set, but can be used by
+	 * the system administrator, if the running version of spark
+	 * is not the same as what the running version of splice
+	 * was compiled against.
+	 *
+	 */
+	String SPLICE_SPARK_VERSION =
+		"splice.spark.version";
 }

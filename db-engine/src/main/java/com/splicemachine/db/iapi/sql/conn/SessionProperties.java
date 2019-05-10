@@ -44,7 +44,8 @@ public interface SessionProperties {
         USESPARK(0),
         DEFAULTSELECTIVITYFACTOR(1),
         SKIPSTATS(2),
-        OLAPQUEUE(3);
+        RECURSIVEQUERYITERATIONLIMIT(3),
+        OLAPQUEUE(4);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
@@ -76,7 +77,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useSpark, defaultSelectivityFactor, skipStats, olapQueue");
+                    "useSpark, defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit");
         }
 
         String valString = pair.getSecond();
@@ -102,6 +103,16 @@ public interface SessionProperties {
                 }
                 if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value in the range(0,1] or null");
+                break;
+            case RECURSIVEQUERYITERATIONLIMIT:
+                int recursivequeryIterationLimit;
+                try {
+                    recursivequeryIterationLimit = Integer.parseInt(valString);
+                } catch (Exception parseIntE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
+                }
+                if (recursivequeryIterationLimit <= 0)
+                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
                 break;
             default:
                 break;

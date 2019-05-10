@@ -320,12 +320,13 @@ public class SpliceUnitTest {
         ResultSet rs = null;
         try {
             rs = methodWatcher.executeQuery(sqlText);
-            String failMsg = "Query not expected to succeed.";
+            String failMsg = format("Query not expected to succeed.\n%s", sqlText);
             fail(failMsg);
         }
         catch (Exception e) {
             boolean found = expectedErrors.contains(e.getMessage());
-            assertTrue(format("\n + Unexpected error message: %s + \n", e.getMessage()), found);
+            if (!found)
+                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
         }
         finally {
             if (rs != null)

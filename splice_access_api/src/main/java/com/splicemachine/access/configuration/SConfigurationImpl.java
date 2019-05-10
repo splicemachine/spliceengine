@@ -200,6 +200,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int nestedLoopJoinBatchSize;
     private final long controlExecutionRowLimit;
     private final int maxCheckTableErrors;
+    private final int recursiveQueryIterationLimit;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -742,6 +743,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getNestedLoopJoinBatchSize() {
         return nestedLoopJoinBatchSize;
     }
+    @Override
+    public int getRecursiveQueryIterationLimit() {
+        return recursiveQueryIterationLimit;
+    }
 
     // StatsConfiguration
     @Override
@@ -914,6 +919,7 @@ public final class SConfigurationImpl implements SConfiguration {
         broadcastRegionMbThreshold = builder.broadcastRegionMbThreshold;
         broadcastRegionRowThreshold = builder.broadcastRegionRowThreshold;
         broadcastDatasetCostThreshold = builder.broadcastDatasetCostThreshold;
+        recursiveQueryIterationLimit = builder.recursiveQueryIterationLimit;
         optimizerPlanMaximumTimeout = builder.optimizerPlanMaximumTimeout;
         optimizerPlanMinimumTimeout = builder.optimizerPlanMinimumTimeout;
         determineSparkRowThreshold = builder.determineSparkRowThreshold;
