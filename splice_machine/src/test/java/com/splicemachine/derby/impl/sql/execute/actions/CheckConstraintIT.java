@@ -14,28 +14,27 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.sql.*;
-import java.util.Collection;
-import java.util.Properties;
-
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.SerialTest;
-import com.splicemachine.test_dao.TableDAO;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
+
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Statement;
+import java.util.Collection;
+import java.util.Properties;
+
+import static org.junit.Assert.*;
 
 /**
  * Integration tests specific to CHECK constraints.
@@ -114,10 +113,10 @@ public class CheckConstraintIT extends SpliceUnitTest {
             verifyViolation(s,format("insert into %s values (1004, 101, 90, 85, 'ok', 'good2')",tableName), // col 4 bad
                     MSG_START_DEFAULT,"I_LT_CK1",schemaWatcher.schemaName,tableName);
 
-            verifyViolation(s,format("insert into %s values (1005, 101, 90, 85, 'bad', 'good3')",tableName), // col 5 bad
+            verifyViolation(s,format("insert into %s values (1005, 101, 90, 79, 'bad', 'good3')",tableName), // col 5 bad
                     MSG_START_DEFAULT,"V_NEQ_CK1",schemaWatcher.schemaName,tableName);
 
-            verifyViolation(s,format("insert into %s values (1005, 101, 90, 85, 'ok', 'notsogood')",tableName), // col 6 bad
+            verifyViolation(s,format("insert into %s values (1005, 101, 90, 79, 'ok', 'notsogood')",tableName), // col 6 bad
                     MSG_START_DEFAULT,"V_IN_CK1",schemaWatcher.schemaName,tableName);
         }
     }

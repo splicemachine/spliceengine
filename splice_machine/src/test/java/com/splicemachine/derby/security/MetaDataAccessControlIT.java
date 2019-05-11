@@ -272,4 +272,58 @@ public class MetaDataAccessControlIT {
         assertTrue("Expected to have no less than 32 tables", resultSetSize(rs) >= 32);
         rs.close();
     }
+
+    @Test
+    public void testSYSALLROLESVIEWSparkPath() throws Exception {
+
+        try (TestConnection user1SparkConn = spliceClassWatcher.createConnection(USER1, PASSWORD1, true)) {
+            ResultSet rs = user1SparkConn.query("select * from sysvw.sysallroles --splice-properties useSpark=true");
+            String expected = "NAME              |\n" +
+                    "--------------------------------\n" +
+                    "METADATAACCESSCONTROLIT_ROLE_A |\n" +
+                    "METADATAACCESSCONTROLIT_ROLE_B |\n" +
+                    "METADATAACCESSCONTROLIT_ROLE_C |\n" +
+                    "METADATAACCESSCONTROLIT_ROLE_D |\n" +
+                    "METADATAACCESSCONTROLIT_ROLE_E |\n" +
+                    "METADATAACCESSCONTROLIT_ROLE_F |\n" +
+                    "METADATAACCESSCONTROLIT_ROLE_G |\n" +
+                    "  METADATAACCESSCONTROLIT_TOM  |\n" +
+                    "            PUBLIC             |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+
+        try (TestConnection user2SparkConn = spliceClassWatcher.createConnection(USER2, PASSWORD2, true)) {
+            ResultSet rs = user2SparkConn.query("select * from sysvw.sysallroles");
+            String expected = "NAME              |\n" +
+                    "-------------------------------\n" +
+                    "METADATAACCESSCONTROLIT_JERRY |\n" +
+                    "           PUBLIC             |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+    }
+
+    @Test
+    public void testShowSchemaWithAccessControlSparkPath() throws Exception {
+        try (TestConnection user1SparkConn = spliceClassWatcher.createConnection(USER1, PASSWORD1, true)) {
+            ResultSet rs = user1SparkConn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')");
+            String expected = "TABLE_SCHEM           | TABLE_CATALOG |\n" +
+                    "-------------------------------------------------\n" +
+                    "METADATAACCESSCONTROLITSCHEMA_A |     NULL      |\n" +
+                    "METADATAACCESSCONTROLITSCHEMA_B |     NULL      |\n" +
+                    "             SYSVW              |     NULL      |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+
+        try (TestConnection user2SparkConn = spliceClassWatcher.createConnection(USER2, PASSWORD2, true)) {
+            ResultSet rs = user2SparkConn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')");
+            String expected = "TABLE_SCHEM | TABLE_CATALOG |\n" +
+                    "------------------------------\n" +
+                    "    SYSVW    |     NULL      |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+    }
 }

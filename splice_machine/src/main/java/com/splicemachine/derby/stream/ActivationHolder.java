@@ -62,6 +62,8 @@ public class ActivationHolder implements Externalizable {
     private TxnView txn;
     private boolean initialized = false;
     private static ThreadLocal<SpliceTransactionResourceImpl> impl = new ThreadLocal<>();
+    private String currentUser;
+    private List<String> groupUsers = null;
 
     public ActivationHolder() {
 
@@ -106,6 +108,8 @@ public class ActivationHolder implements Externalizable {
             LOG.warn("Exception getting transaction from " + operation + ", falling back to activation");
             txn = getTransaction(activation);
         }
+        this.currentUser = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        this.groupUsers = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
     }
 
     private TxnView getTransaction(Activation activation) {
@@ -151,6 +155,16 @@ public class ActivationHolder implements Externalizable {
         out.writeObject(operationsList);
         out.writeObject(soi);
         SIDriver.driver().getOperationFactory().writeTxnStack(txn,out);
+        if (currentUser != null) {
+            out.writeBoolean(true);
+            out.writeObject(currentUser);
+        } else
+            out.writeBoolean(false);
+        if (groupUsers != null) {
+            out.writeBoolean(true);
+            out.writeObject(groupUsers);
+        } else
+            out.writeBoolean(false);
     }
 
     private void init(TxnView txn, boolean reinit){
@@ -165,6 +179,8 @@ public class ActivationHolder implements Externalizable {
             txnResource.marshallTransaction(txn);
             impl.set(txnResource);
             activation = soi.getActivation(this, txnResource.getLcc());
+            activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
+            activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
 
             // Push internal connection to the current context manager
             EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
@@ -190,6 +206,14 @@ public class ActivationHolder implements Externalizable {
         }
         soi = (SpliceObserverInstructions) in.readObject();
         txn = SIDriver.driver().getOperationFactory().readTxnStack(in);
+        if (in.readBoolean()) {
+            currentUser = (String)in.readObject();
+        } else
+            currentUser = null;
+        if (in.readBoolean()) {
+            groupUsers = (List<String>)in.readObject();
+        } else
+            groupUsers = null;
     }
 
     public void setActivation(Activation activation) {

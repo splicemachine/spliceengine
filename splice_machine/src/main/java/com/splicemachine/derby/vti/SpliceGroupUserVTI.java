@@ -27,8 +27,21 @@ import java.util.List;
  */
 public class SpliceGroupUserVTI implements DatasetProvider, VTICosting {
     protected OperationContext operationContext;
+    public static final int INCLUDINGSELFANDPUBLIC = 1;
+    public static final int ADMINONLY = 2;
+    public static final int DEFAULT = 0;
+
+    private int returnType;
 
     public SpliceGroupUserVTI () {
+        this.returnType = DEFAULT;
+    }
+
+    public SpliceGroupUserVTI (int returnType) {
+        if (returnType == ADMINONLY || returnType == INCLUDINGSELFANDPUBLIC)
+            this.returnType = returnType;
+        else
+            this.returnType = DEFAULT;
     }
 
     @Override
@@ -40,7 +53,25 @@ public class SpliceGroupUserVTI implements DatasetProvider, VTICosting {
 
         Activation activation = op.getActivation();
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        String currentUser = lcc.getCurrentUserId(activation);
         List<String> groupUsers = lcc.getCurrentGroupUser(activation);
+        if (returnType == ADMINONLY) {
+            if (currentUser.equals("SPLICE") || groupUsers!= null && groupUsers.contains("SPLICE")) {
+                ValueRow valueRow = new ValueRow(1);
+                valueRow.setColumn(1, new SQLVarchar("SPLICE"));
+                items.add(valueRow);
+            }
+            return dsp.createDataSet(items.iterator());
+        }
+
+        if (returnType != DEFAULT) {
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1, new SQLVarchar(currentUser));
+            items.add(valueRow);
+            valueRow = new ValueRow(1);
+            valueRow.setColumn(1, new SQLVarchar("PUBLIC"));
+            items.add(valueRow);
+        }
 
         if (groupUsers != null) {
             for (String user : groupUsers) {

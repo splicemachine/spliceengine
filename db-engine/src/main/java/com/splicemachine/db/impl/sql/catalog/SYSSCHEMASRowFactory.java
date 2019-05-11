@@ -242,32 +242,28 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	}
 
 	private static final String REGULAR_USER_SCHEMA =
-	"SELECT S.* " +
-	"FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
-	"WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
-			"and P.grantee in (select name from sysvw.sysallroles) \n" +
-	"UNION ALL \n " +
-	"SELECT S.* " +
-	"FROM SYS.SYSSCHEMAS as S " +
-	"WHERE S.authorizationId " +
-	"     in (values current_user, 'PUBLIC' " +
-	"         union all " +
-	"         select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI() as b (NAME VARCHAR(128)))";
+			"SELECT S.* " +
+					"FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
+					"WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
+					"and P.grantee in (select name from sysvw.sysallroles) \n" +
+					"UNION ALL " +
+					"SELECT S.* " +
+					"FROM SYS.SYSSCHEMAS as S " +
+					"WHERE S.authorizationId " +
+					"     in (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(1) as b (NAME VARCHAR(128)))";
 
 	private static final String SUPER_USER_SCHEMA =
-	"SELECT S.* " +
-	"FROM SYS.SYSSCHEMAS as S ";
+			"SELECT S.* " +
+					"FROM SYS.SYSSCHEMAS as S ";
 
 	private static final String PUBLIC_SCHEMA =
-	"SELECT S.* " +
-	"FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW') ";
+			"SELECT S.* " +
+					"FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW') ";
 
 	public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
 			SUPER_USER_SCHEMA +
-			"WHERE 'SPLICE' in (select name from (values current_user) usr (name) \n" +
-			"                   union all " +
-			"                   select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI() as b (NAME VARCHAR(128))) \n" +
-			"UNION ALL \n " +
+			"WHERE 'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128))) \n" +
+			"UNION ALL " +
 			REGULAR_USER_SCHEMA +
 			"UNION " +
 			PUBLIC_SCHEMA;
