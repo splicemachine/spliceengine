@@ -57,7 +57,7 @@ public class ConfigurationBuilder {
     public String authenticationLdapSearchbase;
     public String authenticationLdapSearchfilter;
     public String authenticationLdapServer;
-    public String authenticationLdapMapGroupAttr;
+    public String authenticationMapGroupAttr;
     public String authenticationNativeAlgorithm;
     public int authenticationTokenLength;
     public int authenticationTokenMaxLifetime;
