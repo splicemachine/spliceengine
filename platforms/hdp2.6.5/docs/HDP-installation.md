@@ -11,6 +11,7 @@ Hortonworks Ambari-managed cluster. Follow these steps:
 5. [Start Any Additional Services](#start-any-additional-services)
 6. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
 7. [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
+8. [Upgrade from Old Version](#upgrade-from-old-version)
 
 ## Verify Prerequisites
 
@@ -334,3 +335,12 @@ everything is working with your Splice Machine installation.
 See the [Command Line (splice&gt;)  Reference](https://doc.splicemachine.com/cmdlineref_intro.html)
 section of our *Developer's Guide* for information about our commands
 and command syntax.
+
+## Upgrade from Old Version
+
+If you are upgrading from versions before 1901, you need to follow these steps:
+
+1. Delete Splice Ambari service on web UI.
+2. Update RPM packages on each machine.
+3. Restart Ambari server.
+4. Re-install Splice Ambari service from web UI.

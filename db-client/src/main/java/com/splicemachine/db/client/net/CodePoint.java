@@ -303,6 +303,9 @@ public class CodePoint {
     // Maximum Number of Extra Blocks.
     static final int MAXBLKEXT = 0x2141;
 
+    // Number of Input Rows
+    static final int NBRROW = 0x213A;
+
     // Manager Level List codepoint constant.
     static final int MGRLVLLS = 0x1404;
 
@@ -402,6 +405,9 @@ public class CodePoint {
 
     // RDB Allow Updates
     static final int RDBALWUPD = 0x211A;
+
+    // RDB interrupt token.
+    static final int RDBINTTKN = 0x2103;
 
     // Relational Database Name codepoint constant.
     static final int RDBNAM = 0x2110;

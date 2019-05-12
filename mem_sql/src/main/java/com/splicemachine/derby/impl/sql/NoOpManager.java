@@ -26,6 +26,7 @@ import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.encryption.EncryptionManager;
 import com.splicemachine.management.Manager;
+import com.splicemachine.replication.ReplicationManager;
 
 /**
  * Fake manager impl for mem db
@@ -91,6 +92,10 @@ public class NoOpManager implements Manager {
         return new EncryptionManager() {};
     }
 
+    @Override
+    public ReplicationManager getReplicationManager() throws StandardException {
+        return NoOpReplicationManager.getInstance();
+    }
     @Override
     public boolean isEnabled() {
         return enterpriseEnabled;

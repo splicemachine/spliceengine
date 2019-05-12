@@ -57,10 +57,12 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.derby.stream.control.ControlOperationContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ListDataTypeSerializer;
+import com.splicemachine.derby.utils.kryo.SimpleObjectSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
@@ -74,6 +76,7 @@ import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+import org.apache.commons.lang3.mutable.MutableDouble;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -458,6 +461,18 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 }
             }
         }, 44);
+        instance.register(org.apache.commons.lang3.mutable.MutableDouble.class,
+                          new SimpleObjectSerializer<MutableDouble>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, MutableDouble object) throws RuntimeException {
+                output.writeDouble(object.doubleValue());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, MutableDouble object) throws RuntimeException {
+                object.setValue(input.readDouble());
+            }
+        }, 45);
         /*instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {
@@ -738,28 +753,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             }
         },160);
 
-        instance.register(FloatBufferedSumAggregator.class,new Serializer<FloatBufferedSumAggregator>(){
-            @Override
-            public void write(Kryo kryo,Output output,FloatBufferedSumAggregator object){
-                try{
-                    object.writeExternal(new KryoObjectOutput(output,kryo));
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public FloatBufferedSumAggregator read(Kryo kryo,Input input,Class type){
-                FloatBufferedSumAggregator aggregator=new FloatBufferedSumAggregator(64); //todo -sf- make configurable
-                try{
-                    aggregator.readExternal(new KryoObjectInput(input,kryo));
-                }catch(IOException|ClassNotFoundException e){
-                    throw new RuntimeException(e);
-                }
-                return aggregator;
-            }
-        },161);
-
         instance.register(WindowOperation.class,EXTERNALIZABLE_SERIALIZER,179);
         // instance.register(HashNestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,180);
         // instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
@@ -853,6 +846,51 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER,296);
         instance.register(SetOpOperation.class,EXTERNALIZABLE_SERIALIZER,297);
         instance.register(ExportFile.COMPRESSION.class, 298);
-        instance.register(CrossJoinOperation.class, EXTERNALIZABLE_SERIALIZER, 299);
+        instance.register(CrossJoinOperation.class, EXTERNALIZABLE_SERIALIZER, 303);
+        instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER, 299);
+        instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER, 300);
+        instance.register(SelfReferenceOperation.class,new Serializer<SelfReferenceOperation>(){
+            @Override
+            public void write(Kryo kryo,Output output,SelfReferenceOperation object){
+                try{
+                    object.writeExternalWithoutChild(new KryoObjectOutput(output,kryo));
+                }catch(IOException e){
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public SelfReferenceOperation read(Kryo kryo,Input input,Class type){
+                SelfReferenceOperation selfReferenceOperation=new SelfReferenceOperation();
+                try{
+                    selfReferenceOperation.readExternal(new KryoObjectInput(input,kryo));
+                }catch(IOException|ClassNotFoundException e){
+                    throw new RuntimeException(e);
+                }
+                return selfReferenceOperation;
+            }
+        },301);
+        instance.register(RecursiveUnionOperation.class,new Serializer<RecursiveUnionOperation>(){
+            @Override
+            public void write(Kryo kryo,Output output,RecursiveUnionOperation object){
+                try{
+                    object.writeExternal(new KryoObjectOutput(output,kryo));
+                }catch(IOException e){
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public RecursiveUnionOperation read(Kryo kryo,Input input,Class type){
+                RecursiveUnionOperation recursiveUnionOperation=new RecursiveUnionOperation();
+                try{
+                    recursiveUnionOperation.readExternal(new KryoObjectInput(input,kryo));
+                    recursiveUnionOperation.setRecursiveUnionReference(recursiveUnionOperation);
+                }catch(IOException|ClassNotFoundException e){
+                    throw new RuntimeException(e);
+                }
+                return recursiveUnionOperation;
+            }
+        },302);
     }
 }

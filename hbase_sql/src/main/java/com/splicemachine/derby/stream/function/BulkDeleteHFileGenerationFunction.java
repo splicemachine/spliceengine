@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -33,6 +34,7 @@ public class BulkDeleteHFileGenerationFunction extends HFileGenerationFunction {
                                              String compressionAlgorithm,
                                              List<BulkImportPartition> partitionList) {
         super(operationContext, txnId, heapConglom, compressionAlgorithm, partitionList);
+        this.operationType = OperationType.DELETE;
     }
 
     @Override

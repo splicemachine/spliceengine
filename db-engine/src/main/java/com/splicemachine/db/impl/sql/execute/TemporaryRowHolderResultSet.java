@@ -684,8 +684,8 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
     }
 
     @Override
-    public int modifiedRowCount() {
-        return 0;
+    public long[] modifiedRowCount() {
+        return new long[] {0};
     }
 
     /**

@@ -121,7 +121,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         bootstrap.getPipeline().addLast("decoder", new FixedLengthFrameDecoder(FIXED_MSG_RECEIVED_LENGTH));
         bootstrap.getPipeline().addLast("handler", this);
 
-        bootstrap.setOption("tcpNoDelay", false);
+        bootstrap.setOption("tcpNoDelay", true);
         bootstrap.setOption("keepAlive", true);
         bootstrap.setOption("reuseAddress", true);
         // bootstrap.setOption("connectTimeoutMillis", 120000);
@@ -228,7 +228,15 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
 
     }
 
+    public long refresh() throws TimestampIOException {
+        return getNextTimestamp(true);
+    }
+
     public long getNextTimestamp() throws TimestampIOException {
+        return getNextTimestamp(false);
+    }
+
+    public long getNextTimestamp(boolean refresh) throws TimestampIOException {
 
         // Measure duration of full client request for JMX
         long requestStartTime = System.currentTimeMillis();
@@ -249,8 +257,9 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         }
 
         try {
-            ChannelBuffer buffer = ChannelBuffers.buffer(2);
+            ChannelBuffer buffer = ChannelBuffers.buffer(3);
             buffer.writeShort(clientCallId);
+            buffer.writeByte(refresh?1:0);
             SpliceLogUtils.trace(LOG, "Writing request message to server for client: %s", callback);
             if(channel == null) {
                 throw new TimestampIOException("Unable to connect to TimestampServer");

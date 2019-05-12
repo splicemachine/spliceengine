@@ -467,6 +467,34 @@ public class Trigger_Row_IT {
         }
     }
 
+    @Test
+    public void testUpdateColumnTrigger() throws Exception {
+        conn.execute("create table tu(c1 int, c2 varchar(10), c3 bigint)");
+        conn.execute("insert into tu values (1, 'varchar', 123456)");
+        conn.execute("create table tr2(c2 varchar(10))");
+        conn.execute("create table tr3(c3 bigint)");
+        conn.execute("CREATE TRIGGER trigger2\n" +
+                "after update of c1 on tu\n" +
+                "referencing new as N\n" +
+                "for each row\n" +
+                "insert into tr2 values (N.c2)");
+        conn.execute("CREATE TRIGGER trigger3\n" +
+                "after update of c1 on tu\n" +
+                "referencing new as N\n" +
+                "for each row\n" +
+                "insert into tr3 values (N.c3)");
+        conn.execute("update tu set c1=c1+1");
+
+        ResultSet rs = conn.query("select * from tr2");
+        rs.next();
+        Assert.assertEquals("varchar", rs.getString(1));
+
+        rs = conn.query("select * from tr3");
+        rs.next();
+        Assert.assertEquals(123456, rs.getLong(1));
+
+    }
+
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

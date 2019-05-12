@@ -81,7 +81,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private String statusDirectory;
     private String importFileName;
     private static final Joiner CSV_JOINER = Joiner.on(",").skipNulls();
-
+    private final String TEMP_DIR_PREFIX = "_temp";
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
@@ -425,7 +425,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 fs = FileSystem.get(URI.create(location), conf);
                 String fileName = getFile(fs, location);
                 if (fileName != null) {
-                    temp = new Path(location, "temp");
+                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-",""));
                     fs.mkdirs(temp);
                     SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
 
@@ -500,9 +500,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             if (!fs.isDirectory(path) || fileStatuses.length == 0)
                 return null;
             for (FileStatus fileStatus : fileStatuses) {
-                String file = getFile(fs, fileStatus.getPath().toString());
-                if (file != null)
-                    return file;
+                String p = fileStatus.getPath().getName();
+                if (!p.startsWith(TEMP_DIR_PREFIX)) {
+                    String file = getFile(fs, fileStatus.getPath().toString());
+                    if (file != null)
+                        return file;
+                }
             }
         }
         return  null;

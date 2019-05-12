@@ -63,21 +63,23 @@ public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
                     left = leftRS.next().getClone();
                 else
                     left.transfer(leftRS.next());
-                currentRightIterator = rightsForLeft(left);
                 boolean returnedRows = false;
-                while (currentRightIterator.hasNext()) {
-                    currentExecRow = mergeRows(left, currentRightIterator.next());
-                    if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
-                        returnedRows = true;
-                        if (isSemiJoin) {
-                            // we've already get a match from the left row, so we can skip scanning the
-                            // remaining right table rows.
-                            // Break out the loop here so that we can move on to the next left row
-                            left = null;
+                if (!joinColumnHasNull(left, true)) {
+                    currentRightIterator = rightsForLeft(left);
+                    while (currentRightIterator.hasNext()) {
+                        currentExecRow = mergeRows(left, currentRightIterator.next());
+                        if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
+                            returnedRows = true;
+                            if (isSemiJoin) {
+                                // we've already get a match from the left row, so we can skip scanning the
+                                // remaining right table rows.
+                                // Break out the loop here so that we can move on to the next left row
+                                left = null;
+                            }
+                            return true;
                         }
-                        return true;
+                        operationContext.recordFilter();
                     }
-                    operationContext.recordFilter();
                 }
                 if (!returnedRows) {
                     currentExecRow = mergeRows(left, null);

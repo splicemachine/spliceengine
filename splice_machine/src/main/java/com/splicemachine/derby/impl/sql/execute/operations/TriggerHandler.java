@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -61,12 +62,14 @@ public class TriggerHandler {
     private final boolean hasBeforeStatement;
     private final boolean hasAfterRow;
     private final boolean hasAfterStatement;
+    private FormatableBitSet heapList;
 
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
                           Activation activation,
                           TriggerEvent beforeEvent,
-                          TriggerEvent afterEvent) throws StandardException {
+                          TriggerEvent afterEvent,
+                          FormatableBitSet heapList) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
         initConnectionContext(activation.getLanguageConnectionContext());
 
@@ -79,7 +82,7 @@ public class TriggerHandler {
         this.hasAfterRow = triggerInfo.hasAfterRowTrigger();
         this.hasBeforeStatement = triggerInfo.hasBeforeStatementTrigger();
         this.hasAfterStatement = triggerInfo.hasAfterStatementTrigger();
-
+        this.heapList = heapList;
         initTriggerActivator(activation, constantAction);
     }
 
@@ -88,7 +91,7 @@ public class TriggerHandler {
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
-                    null);
+                    null, heapList);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;

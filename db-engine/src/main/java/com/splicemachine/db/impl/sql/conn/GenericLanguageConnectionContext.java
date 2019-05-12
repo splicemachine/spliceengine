@@ -150,6 +150,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private final int instanceNumber;
     private String drdaID;
     private String dbname;
+    private String rdbIntTkn;
 
     private Object lastQueryTree; // for debugging
 
@@ -347,6 +348,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             int instanceNumber,
             String drdaID,
             String dbname,
+            String rdbIntTkn,
             CompilerContext.DataSetProcessorType type,
             boolean skipStats,
             double defaultSelectivityFactor,
@@ -369,6 +371,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
+        this.rdbIntTkn=rdbIntTkn;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
 
@@ -3190,6 +3193,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public String getRdbIntTkn() {
+        return rdbIntTkn;
+    }
+
+    @Override
     public void setDrdaID(String drdaID){
         this.drdaID=drdaID;
     }
@@ -3769,6 +3777,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     "Start executing query. %s, uuid=%s, engine=%s, %s, paramsCount=%d, params=[ %s ], sessionProperties=[ %s ]",
                     getLogHeader(), uuid, engine, formatLogStmt(stmt),
                     pvs.getParameterCount(), pvs.toString(), ps.getSessionPropertyValues()));
+        }
+    }
+
+    @Override
+    public void logNextBatch(ParameterValueSet pvs) {
+        if (stmtLogger.isDebugEnabled()) {
+            stmtLogger.debug(String.format(
+                    "Next batch for query. %s, paramsCount=%d, params=[ %s ]",
+                    getLogHeader(),
+                    pvs.getParameterCount(), pvs.toString()));
         }
     }
 

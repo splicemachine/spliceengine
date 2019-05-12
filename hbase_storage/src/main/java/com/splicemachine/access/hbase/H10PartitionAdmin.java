@@ -422,6 +422,52 @@ public class H10PartitionAdmin implements PartitionAdmin{
         }
     }
 
+    @Override
+    public void enableTableReplication(String tableName) throws IOException {
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
+        boolean tableEnabled = admin.isTableEnabled(tn);
+        try {
+            HTableDescriptor htd = admin.getTableDescriptor(tn);
+            if (tableEnabled) {
+                admin.disableTable(tn);
+            }
+
+            for (HColumnDescriptor hcd : htd.getFamilies()) {
+                hcd.setScope(HConstants.REPLICATION_SCOPE_GLOBAL);
+            }
+            admin.modifyTable(tn, htd);
+            SpliceLogUtils.info(LOG, "enabled replication for table %s", tn);
+        }
+        finally {
+            if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
+                admin.enableTable(tn);
+            }
+        }
+    }
+
+    @Override
+    public void disableTableReplication(String tableName) throws IOException {
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
+        boolean tableEnabled = admin.isTableEnabled(tn);
+        try {
+            HTableDescriptor htd = admin.getTableDescriptor(tn);
+            if (tableEnabled) {
+                admin.disableTable(tn);
+            }
+
+            for (HColumnDescriptor hcd : htd.getFamilies()) {
+                hcd.setScope(HConstants.REPLICATION_SCOPE_LOCAL);
+            }
+            admin.modifyTable(tn, htd);
+            SpliceLogUtils.info(LOG, "disabled replication for table %s", tn);
+        }
+        finally {
+            if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
+                admin.enableTable(tn);
+            }
+        }
+    }
+
     private void grantPrivilegesIfNeeded(String userName, String spliceNamespace) throws Throwable {
         if (hasPrivileges(userName, spliceNamespace)) {
             LOG.info("User " + userName + " already has privileges on namespace " + spliceNamespace);

@@ -37,6 +37,8 @@ public interface DataSetWriterBuilder{
 
     DataSetWriterBuilder skipIndex(boolean skipIndex);
 
+    DataSetWriterBuilder updateCounts(int[] updateCounts);
+
     TxnView getTxn();
 
     byte[] getToken();

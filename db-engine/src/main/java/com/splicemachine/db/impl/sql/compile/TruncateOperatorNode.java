@@ -63,18 +63,7 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
 
     private String methodClassname;
 
-    /**
-     * Initializer for a TruncateOperatorNode.
-     *
-     * @param truncOperand The truncOperand
-     * @param truncValue The truncation value
-     */
-    public void init( Object truncOperand,
-                      Object truncValue) throws StandardException {
-        leftOperand = (ValueNode) truncOperand;
-        rightOperand = (ValueNode) truncValue;
-        operator = "truncate";
-
+    private void checkParameterTypes() throws StandardException {
         // do some validation...
         TypeId leftTypeId = leftOperand.getTypeId();
         if (leftTypeId != null) {
@@ -91,12 +80,27 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
             } else {
                 throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, leftOperand.toString());
             }
-        } else if (! (truncOperand instanceof ColumnReference) && ! (truncOperand instanceof CurrentDatetimeOperatorNode)) {
+        } else if (! (leftOperand instanceof ColumnReference) && ! (leftOperand instanceof CurrentDatetimeOperatorNode)) {
             // A ColumnReference will not have a type until bind time.
             // We put off further ColumnReference validation until then.
             // If we don't get a ColumnReference at this point, we can't handle the operand.
             throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, leftOperand.toString());
         }
+    }
+
+    /**
+     * Initializer for a TruncateOperatorNode.
+     *
+     * @param truncOperand The truncOperand
+     * @param truncValue The truncation value
+     */
+    public void init( Object truncOperand,
+                      Object truncValue) throws StandardException {
+        leftOperand = (ValueNode) truncOperand;
+        rightOperand = (ValueNode) truncValue;
+        operator = "truncate";
+
+        checkParameterTypes();
     }
 
     /**
@@ -143,11 +147,13 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
 			rightOperand.setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(rightOperand.getTypeId().getJDBCTypeId()));
 		}
 
-        DataTypeDescriptor typeDescriptor = leftOperand.getTypeServices();
-        if (typeDescriptor == null) {
-            typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
-        }
-        setType(typeDescriptor);
+		checkParameterTypes();
+
+		DataTypeDescriptor typeDescriptor = leftOperand.getTypeServices();
+		if (typeDescriptor == null) {
+		    typeDescriptor = DataTypeDescriptor.getBuiltInDataTypeDescriptor(operandType);
+		}
+		setType(typeDescriptor);
 		return genSQLJavaSQLTree();
 	} // end of bindExpression
 

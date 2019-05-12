@@ -25,6 +25,7 @@
 package com.splicemachine.db.client.am;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
@@ -60,6 +61,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
 
     // Use -1, if there is no update count returned, ie. when result set is returned. 0 is a valid update count for DDL.
     int updateCount_ = -1;
+    ArrayList<Integer> updateCounts_ = null;
     int returnValueFromProcedure_;
 
     // Enumeration of the flavors of statement execute call used.
@@ -804,8 +806,16 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
                 agent_.logWriter_.traceEntry(this, "cancel");
             }
             checkForClosedStatement(); // Per jdbc spec (see java.sql.Statement.close() javadoc)
-            throw new SqlException(agent_.logWriter_, 
-                new ClientMessageId(SQLState.CANCEL_NOT_SUPPORTED_BY_SERVER));
+            byte[] token = connection_.getInterruptToken();
+            if (token == null) {
+                throw new SqlException(agent_.logWriter_,
+                        new ClientMessageId(SQLState.CANCEL_NOT_SUPPORTED_BY_SERVER));
+            }
+            InterruptionToken it = new InterruptionToken(token);
+            Connection sideConnection = connection_.getSideConnection();
+            try (java.sql.Statement s = sideConnection.createStatement()) {
+                s.execute("call SYSCS_UTIL.SYSCS_KILL_DRDA_OPERATION('" + it.toString() +"')");
+            }
         }
         catch ( SqlException se )
         {
@@ -1612,7 +1622,11 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
             agent_.accumulateReadException(new SqlException(agent_.logWriter_, sqlca));
             returnValueFromProcedure_ = sqlcode;
         } else {
-            updateCount_ = sqlca.getUpdateCount();
+            if (updateCounts_ != null) {
+                updateCounts_.add(sqlca.getUpdateCount());
+            } else {
+                updateCount_ = sqlca.getUpdateCount();
+            }
             // sometime for call statement, protocol will return updateCount_, we will always set that to 0
             // sqlMode_ is not set for statements, only for prepared statements
             if (sqlMode_ == isCall__) {

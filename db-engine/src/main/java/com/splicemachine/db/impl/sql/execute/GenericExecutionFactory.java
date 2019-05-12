@@ -266,13 +266,29 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                                                               String targetTableName,
                                                               Vector<AutoincrementCounter> aiCounters) throws StandardException {
         return new TriggerExecutionContext(statementText,
-                                            changedColIds,
-                                            changedColNames,
-                                            targetTableId,
-                                            targetTableName,
-                                            aiCounters);
+                changedColIds,
+                changedColNames,
+                targetTableId,
+                targetTableName,
+                aiCounters,
+                null);
     }
 
+    public TriggerExecutionContext getTriggerExecutionContext(String statementText,
+                                                              int[] changedColIds,
+                                                              String[] changedColNames,
+                                                              UUID targetTableId,
+                                                              String targetTableName,
+                                                              Vector<AutoincrementCounter> aiCounters,
+                                                              FormatableBitSet heapList) throws StandardException {
+        return new TriggerExecutionContext(statementText,
+                changedColIds,
+                changedColNames,
+                targetTableId,
+                targetTableName,
+                aiCounters,
+                heapList);
+    }
     /*
         Old RowFactory interface
      */

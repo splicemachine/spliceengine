@@ -36,6 +36,7 @@ public class ProjectRestrictMapFunction<Op extends SpliceOperation> extends Spli
     protected boolean initialized;
     protected ProjectRestrictOperation op;
     protected ExecutionFactory executionFactory;
+    private   String [] expressions = null;
 
     public ProjectRestrictMapFunction() {
         super();
@@ -43,6 +44,11 @@ public class ProjectRestrictMapFunction<Op extends SpliceOperation> extends Spli
 
     public ProjectRestrictMapFunction(OperationContext<Op> operationContext) {
         super(operationContext);
+    }
+
+    public ProjectRestrictMapFunction(OperationContext<Op> operationContext, String[] expressions) {
+        super(operationContext);
+        this.expressions = expressions;
     }
 
     @Override
@@ -68,19 +74,37 @@ public class ProjectRestrictMapFunction<Op extends SpliceOperation> extends Spli
     @Override
     public boolean hasNativeSparkImplementation() {
         ProjectRestrictOperation op = (ProjectRestrictOperation) operationContext.getOperation();
-        if (op.projection != null)
-            return false;
+        if (op.projection != null) {
+            if (!op.hasExpressions())
+                return false;
+        }
         return true;
     }
 
     @Override
     public Pair<Dataset<Row>, OperationContext> nativeTransformation(Dataset<Row> input, OperationContext context) {
         ProjectRestrictOperation op = (ProjectRestrictOperation) operationContext.getOperation();
+        Dataset<Row> df = null;
+        // TODO:  Enable the commented try-catch block after regression testing.
+        //        This would be a safeguard against unanticipated exceptions:
+        //             org.apache.spark.sql.catalyst.parser.ParseException
+        //             org.apache.spark.sql.AnalysisException
+        //    ... which may occur if the Splice parser fails to detect a
+        //        SQL expression which SparkSQL does not support.
+        if (op.hasExpressions()) {
+//      try {
+            df = input.selectExpr(op.getExpressions());
+            return Pair.newPair(df, context);
+//        }
+//        catch (Exception e) {
+//        }
+        }
         int[] mapping = op.projectMapping;
         Column[] columns = new Column[mapping.length];
         for (int i = 0; i < mapping.length; ++i) {
-            columns[i] = input.col("c"+(mapping[i] - 1));
+            columns[i] = input.col("c" + (mapping[i] - 1));
         }
-        return Pair.newPair(input.select(columns), context);
+        df = input.select(columns);
+        return Pair.newPair(df, context);
     }
 }

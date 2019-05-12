@@ -434,6 +434,28 @@ public class AggregateNode extends UnaryOperatorNode
 		         operand = castNode.bindExpression( fromList, subqueryList, aggregateVector );
 		     }
 		}
+		else if (isWindowFunction() &&
+                 uad instanceof SumAvgAggregateDefinition &&
+                 operand != null    &&
+                 operand.getTypeId().getTypeFormatId() !=
+                 resultType.getTypeId().getTypeFormatId()) {
+            // For now, the receiver data type picked by
+            // getAggregator() must match the data type of the
+            // operand when processing window functions
+            // to avoid ClassCastExceptions for NativeSparkDataSets.
+            // For non-windowed aggregations, we process the aggregation using
+            // the original data type of the operand for performance.  If it overflows,
+            // a new aggregator that uses the final result type is allocated.
+            // When there is no overflow, a final CAST is applied in
+            // methoc SpliceGeneratorAggregator.finish.
+            operand =
+                (ValueNode)
+                 getNodeFactory().getNode(C_NodeTypes.CAST_NODE,
+                                          operand,
+                                          resultType,
+                                          getContextManager());
+            ((CastNode) operand).bindCastNodeOnly();
+        }
 		
 		checkAggregatorClassName(aggregatorClassName.toString());
 

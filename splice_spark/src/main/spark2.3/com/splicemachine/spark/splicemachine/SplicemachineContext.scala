@@ -29,48 +29,39 @@ import org.apache.spark.sql.execution.datasources.jdbc._
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
-import org.apache.spark.SerializableWritable
 import java.util.Properties
 
 import com.splicemachine.access.HConfiguration
-import com.splicemachine.access.hbase.HBaseConnectionFactory
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
 import org.apache.hadoop.io.Text
-import org.apache.hadoop.security.{Credentials, UserGroupInformation}
-import org.apache.spark.broadcast.Broadcast
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.security.token.Token
-import org.apache.hadoop.hbase.security.token.TokenUtil
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 
-object Holder extends Serializable {
+
+private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
-
-  var broadcastCredentials: Broadcast[SerializableWritable[Credentials]] = null
-
-  def broadcastCreds(credentials: Credentials) : Unit = this.synchronized {
-    if (broadcastCredentials != null)
-      return
-
-    SpliceSpark.logCredentialsInformation(credentials)
-    broadcastCredentials = SpliceSpark.getContext.broadcast(new SerializableWritable(credentials))
-    SpliceSpark.setCredentials(broadcastCredentials)
-  }
 }
-
 /**
   *
   * Context for Splice Machine.
   *
-  * @param options
+  * @param options Supported options are SpliceJDBCOptions.JDBC_URL, SpliceJDBCOptions.JDBC_INTERNAL_QUERIES, SpliceJDBCOptions.JDBC_TEMP_DIRECTORY
   */
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
-  val url = options.get(JDBCOptions.JDBC_URL).get
+  private[this] val url = options.get(JDBCOptions.JDBC_URL).get
   
+  /**
+    *
+    * Context for Splice Machine, specifying only the JDBC url.
+    *
+    * @param url JDBC Url with authentication parameters
+    */
   def this(url: String) {
     this(Map(JDBCOptions.JDBC_URL -> url));
   }
@@ -92,11 +83,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     maker.createNew(dbProperties)
   }
 
+  /**
+    * Get internal JDBC connection
+    */
   def getConnection(): Connection = {
     internalConnection
   }
 
-  @transient val internalConnection : Connection = {
+  @transient private[this]val internalConnection : Connection = {
     Holder.log.debug("Splice Client in SplicemachineContext "+SpliceClient.isClient())
     SpliceClient.connectionString = url
     SpliceClient.setClient(HConfiguration.getConfiguration.getAuthenticationTokenEnabled, SpliceClient.Mode.MASTER)
@@ -113,29 +107,12 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       ugi.doAs(new PrivilegedExceptionAction[Connection] {
         override def run(): Connection = {
           
-          def getUniqueAlias(token: Token[AuthenticationTokenIdentifier]) =
-            new Text(f"${token.getKind}_${token.getService}_${System.currentTimeMillis}")
-
           val connection = initConnection()
-
-          // Get HBase token
-          val hbcf = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration)
-          val token = TokenUtil.obtainToken(hbcf.getConnection)
-
-          Holder.log.debug(f"Got HBase token ${token} ")
-
-          // Add it to credentials and broadcast them
-          credentials.addToken(getUniqueAlias(token), token)
-          Holder.broadcastCreds(credentials)
-
-          Holder.log.debug(f"Broadcasted credentials")
-
           connection
         }
       })
     } else {
       Holder.log.info(f"Authentication disabled, principal=${principal}; keytab=${keytab}")
-      
       initConnection()
     }
   }
@@ -168,7 +145,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dialect
     * @return
     */
-  private def getJdbcType(dt: DataType, dialect: JdbcDialect): JdbcType = {
+  private[this]def getJdbcType(dt: DataType, dialect: JdbcDialect): JdbcType = {
     dialect.getJDBCType(dt).orElse(getCommonJDBCType(dt)).getOrElse(
       throw new IllegalArgumentException(s"Can't get JDBC type for ${dt.simpleString}"))
   }
@@ -179,7 +156,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dt The datatype (e.g. [[org.apache.spark.sql.types.StringType]])
     * @return The default JdbcType for this DataType
     */
-  def getCommonJDBCType(dt: DataType) = {
+  private[this] def getCommonJDBCType(dt: DataType) = {
     dt match {
       case IntegerType => Option(JdbcType("INTEGER", java.sql.Types.INTEGER))
       case LongType => Option(JdbcType("BIGINT", java.sql.Types.BIGINT))
@@ -203,7 +180,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * Determine whether a table exists (uses JDBC).
     *
     * @param schemaTableName
-    * @return
+    * @return true if the table exists, false otherwise
     */
   def tableExists(schemaTableName: String): Boolean = {
     val spliceOptions = Map(
@@ -223,7 +200,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     * @param schemaName
     * @param tableName
-    * @return
+    * @return true if the table exists, false otherwise
     */
   def tableExists(schemaName: String, tableName: String): Boolean = {
     tableExists(schemaName + "." + tableName)
@@ -372,7 +349,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       execute(s"ANALYZE TABLE $tableName ESTIMATE STATISTICS SAMPLE $samplePercent PERCENT")
   }
 
-  lazy val tempDirectory = {
+  lazy private[this]val tempDirectory = {
     val root = options.getOrElse(SpliceJDBCOptions.JDBC_TEMP_DIRECTORY, "/tmp")
     HConfiguration.getConfiguration.authenticationNativeCreateCredentialsDatabase()
     val fs = FileSystem.get(HConfiguration.unwrapDelegate())
@@ -388,28 +365,28 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     path.toString
   }
 
-  def getRandomName(): String = {
+  private[this] def getRandomName(): String = {
     val name = new Array[Byte](32)
     new SecureRandom().nextBytes(name)
     Bytes.toHex(name)+"-"+System.nanoTime()
   }
 
   /**
-    * SQL to Dataframe translation.  (Lazy)
+    * SQL to Dataset translation.  (Lazy)
     *
-    * @param sql
-    * @return
+    * @param sql SQL query
+    * @return Dataset[Row] with the result of the query
     */
   def df(sql: String): Dataset[Row] = {
     SparkUtils.resultSetToDF(internalConnection.createStatement().executeQuery(sql));
   }
 
   /**
-    * SQL to Dataframe translation.  (Lazy)
+    * SQL to Dataset translation.  (Lazy)
     * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
     *
-    * @param sql
-    * @return
+    * @param sql SQL query
+    * @return Dataset[Row] with the result of the query
     */
   def internalDf(sql: String): Dataset[Row] = {
 
@@ -435,6 +412,15 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     }
   }
 
+  /**
+    *
+    * Table with projections in Splice mapped to an RDD.
+    * Runs the query inside Splice Machine and sends the results to the Spark Adapter app
+    *
+    * @param schemaTableName Accessed table
+    * @param columnProjection Selected columns
+    * @return RDD[Row] with the result of the projection
+    */
   def internalRdd(schemaTableName: String,
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
@@ -446,9 +432,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     * Table with projections in Splice mapped to an RDD.
     *
-    * @param schemaTableName
-    * @param columnProjection
-    * @return
+    * @param schemaTableName Accessed table
+    * @param columnProjection Selected columns
+    * @return RDD[Row] with the result of the projection
     */
   def rdd(schemaTableName: String,
           columnProjection: Seq[String] = Nil): RDD[Row] = {
@@ -463,8 +449,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     *
     * insert into from select statement
     *
-    * @param dataFrame
-    * @param schemaTableName
+    * @param dataFrame input data
+    * @param schemaTableName output table
     */
   def insert(dataFrame: DataFrame, schemaTableName: String): Unit = {
     SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
@@ -500,7 +486,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
     *
-    * @param rdd
+    * @param rdd input data
     * @param schema
     * @param schemaTableName
     */
@@ -525,10 +511,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * written to a bad records file.  If badRecordsAllowed is set to -1, all bad records will be written
     * to the status directory.
     *
-    * @param dataFrame
+    * @param dataFrame input data
     * @param schemaTableName
-    * @param statusDirectory
-    * @param badRecordsAllowed
+    * @param statusDirectory status directory where bad records file will be created
+    * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
     */
   def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit = {
     SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
@@ -549,11 +535,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * written to a bad records file.  If badRecordsAllowed is set to -1, all bad records will be written
     * to the status directory.
     *
-    * @param rdd
+    * @param rdd input data
     * @param schema
     * @param schemaTableName
-    * @param statusDirectory
-    * @param badRecordsAllowed
+    * @param statusDirectory status directory where bad records file will be created
+    * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
     *
     */
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit = {
@@ -572,8 +558,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * Upsert data into the table (schema.table) from a DataFrame.  This will insert the data if the record is not found by primary key and if it is it will change
     * the columns that are different between the two records.
     *
-    * @param dataFrame
-    * @param schemaTableName
+    * @param dataFrame input data
+    * @param schemaTableName output table
     */
   def upsert(dataFrame: DataFrame, schemaTableName: String): Unit = {
     SpliceDatasetVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(dataFrame))
@@ -589,7 +575,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * Upsert data into the table (schema.table) from an RDD.  This will insert the data if the record is not found by primary key and if it is it will change
     * the columns that are different between the two records.
     *
-    * @param rdd
+    * @param rdd input data
     * @param schema
     * @param schemaTableName
     */
@@ -606,8 +592,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Delete records in a dataframe based on joining by primary keys from the data frame.  Be careful with column naming and case sensitivity.
     *
-    * @param dataFrame
-    * @param schemaTableName
+    * @param dataFrame rows to delete
+    * @param schemaTableName table to delete from
     */
   def delete(dataFrame: DataFrame, schemaTableName: String): Unit = {
     val jdbcOptions = new JDBCOptions(Map(
@@ -632,9 +618,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Delete records in a dataframe based on joining by primary keys from the data frame.  Be careful with column naming and case sensitivity.
     *
-    * @param rdd
+    * @param rdd rows to delete
     * @param schema
-    * @param schemaTableName
+    * @param schemaTableName table to delete from
     */
   def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
     val jdbcOptions = new JDBCOptions(Map(
@@ -660,8 +646,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * Update data from a dataframe for a specified schemaTableName (schema.table).  The keys are required for the update and any other
     * columns provided will be updated in the rows.
     *
-    * @param dataFrame
-    * @param schemaTableName
+    * @param dataFrame rows for update
+    * @param schemaTableName table to update
     */
   def update(dataFrame: DataFrame, schemaTableName: String): Unit = {
     val jdbcOptions = new JDBCOptions(Map(
@@ -690,7 +676,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * Update data from a RDD for a specified schemaTableName (schema.table) and schema (StructType).  The keys are required for the update and any other
     * columns provided will be updated in the rows.
     *
-    * @param rdd
+    * @param rdd rows for update
     * @param schema
     * @param schemaTableName
     */
@@ -720,9 +706,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Bulk Import HFile from a dataframe into a schemaTableName(schema.table)
     *
-    * @param dataFrame
+    * @param dataFrame input data
     * @param schemaTableName
-    * @param options
+    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
     */
   def bulkImportHFile(dataFrame: DataFrame, schemaTableName: String,
                       options: scala.collection.mutable.Map[String, String]): Unit = {
@@ -748,9 +734,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /**
     * Bulk Import HFile from a RDD into a schemaTableName(schema.table)
     *
-    * @param rdd
+    * @param rdd input data
     * @param schemaTableName
-    * @param options
+    * @param options options to be passed to --splice-properties; bulkImportDirectory is required
     */
   def bulkImportHFile(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String,
                       options: scala.collection.mutable.Map[String, String]): Unit = {
@@ -774,10 +760,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /**
-    * Return the schema via JDBC.
+    * Return a table's schema via JDBC.
     *
-    * @param schemaTableName
-    * @return
+    * @param schemaTableName table
+    * @return table's schema
     */
   def getSchema(schemaTableName: String): StructType = {
     val newSpliceOptions = Map(
@@ -786,9 +772,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     JDBCRDD.resolveTable(new JDBCOptions(newSpliceOptions))
   }
 
-  val dialect = new SplicemachineDialect
-  val dialectNoTime = new SplicemachineDialectNoTime
-  def resolveQuery(connection: Connection, sql: String, noTime: Boolean): StructType = {
+  private[this]val dialect = new SplicemachineDialect
+  private[this]val dialectNoTime = new SplicemachineDialectNoTime
+  private[this]def resolveQuery(connection: Connection, sql: String, noTime: Boolean): StructType = {
     try {
       val rs = connection.prepareStatement(s"select * from ($sql) a where 1=0 ").executeQuery()
 

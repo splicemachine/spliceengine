@@ -217,5 +217,15 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         public void markDropped(long conglomId, long txn) throws IOException {
             // do nothing
         }
+
+        @Override
+        public void enableTableReplication(String tableName) throws IOException {
+
+        }
+
+        @Override
+        public void disableTableReplication(String tableName) throws IOException {
+
+        }
     }
 }

@@ -41,6 +41,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = HBaseBulkLoadIT.class.getSimpleName().toUpperCase();
     private static final String LINEITEM = "LINEITEM";
+    private static final String LINEITEM4 = "LINEITEM4";
     private static final String ORDERS = "ORDERS";
     private static final String CUSTOMERS = "CUSTOMER";
     private static final String PARTSUPP = "PARTSUPP";
@@ -103,11 +104,32 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
             assertEquals(333L, (long) spliceClassWatcher.query("select count(*) from " + PART));
             assertEquals(25L, (long) spliceClassWatcher.query("select count(*) from " + NATION));
             assertEquals(5L, (long) spliceClassWatcher.query("select count(*) from " + REGION));
+            spliceClassWatcher.prepareStatement("CREATE TABLE LINEITEM4 (\n" +
+                    "  L_ORDERKEY      BIGINT NOT NULL,\n" +
+                    "  L_PARTKEY       INTEGER NOT NULL,\n" +
+                    "  L_SUPPKEY       INTEGER NOT NULL,\n" +
+                    "  L_LINENUMBER    INTEGER NOT NULL,\n" +
+                    "  L_QUANTITY      DECIMAL(15, 2),\n" +
+                    "  L_EXTENDEDPRICE DECIMAL(15, 2),\n" +
+                    "  L_DISCOUNT      DECIMAL(15, 2),\n" +
+                    "  L_TAX           DECIMAL(15, 2),\n" +
+                    "  L_RETURNFLAG    CHAR(1),\n" +
+                    "  L_LINESTATUS    CHAR(1),\n" +
+                    "  L_SHIPDATE      DATE,\n" +
+                    "  L_COMMITDATE    DATE,\n" +
+                    "  L_RECEIPTDATE   DATE,\n" +
+                    "  L_SHIPINSTRUCT  CHAR(25),\n" +
+                    "  L_SHIPMODE      CHAR(10),\n" +
+                    "  L_COMMENT       VARCHAR(44),\n" +
+                    "  PRIMARY KEY (L_ORDERKEY, L_LINENUMBER)\n" +
+                    ")").execute();
         }
         catch (Exception e) {
             java.lang.Throwable ex = Throwables.getRootCause(e);
              if (ex.getMessage().contains("bulk load not supported"))
                  notSupported = true;
+            else
+                 throw e;
         }
     }
 
@@ -555,6 +577,34 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         } catch (SQLException e) {
             String sqlcode = e.getSQLState();
             Assert.assertEquals(sqlcode, SQLState.TABLE_NAME_CANNOT_BE_NULL.substring(0,5), sqlcode);
+        }
+
+    }
+
+    @Test
+    public void testDuplicateKeys() throws Exception {
+        if (notSupported)
+            return;
+
+        methodWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,-1, '%s',true,null, '%s', false)", SCHEMA_NAME, LINEITEM4, getResource("lineitem_dup.tbl"), getResource("data"), getResource("data"))).execute();
+        File f = new File(getResource("data"));
+        File[] files = f.listFiles();
+        for (File file:files) {
+            if (file.getName().startsWith("lineitem_dup")) {
+                String select =
+                        "SELECT \"message\" " +
+                                "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                                "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                                "AS errormessage (\"message\" varchar(400)) order by 1";
+                ResultSet rs = methodWatcher.executeQuery(format(select, file.getAbsolutePath()));
+                String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                String expected = "message                                                                                                |\n" +
+                        "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n" +
+                        "     Unique constraint violation, row: { 1, 155190, 7706, 1, 17, 21168.23, 0.04, 0.02, N, O, 1996-03-13, 1996-02-12, 1996-03-22, DELIVER IN PERSON        , TRUCK     , egular courts above the }      |\n" +
+                        "    Unique constraint violation, row: { 1, 63700, 3701, 3, 8, 13309.6, 0.1, 0.02, N, O, 1996-01-29, 1996-03-05, 1996-01-31, TAKE BACK RETURN         , REG AIR   , riously. regular, express dep }     |\n" +
+                        "Unique constraint violation, row: { 1, 67310, 7311, 2, 36, 45983.16, 0.09, 0.06, N, O, 1996-04-12, 1996-02-28, 1996-04-20, TAKE BACK RETURN         , MAIL      , ly final dependencies: slyly bold  } |";
+                Assert.assertEquals(s, expected, s);
+            }
         }
 
     }

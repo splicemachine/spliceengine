@@ -48,6 +48,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -73,6 +74,7 @@ import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
+import com.splicemachine.primitives.Bytes;
 import com.sun.security.auth.callback.TextCallbackHandler;
 import com.sun.security.jgss.GSSUtil;
 import org.ietf.jgss.GSSContext;
@@ -822,7 +824,7 @@ class DRDAConnThread extends Thread {
 								writeNullSQLCARDobject();
 							}
 							// Send any warnings if JCC can handle them
-							checkWarning(null, null, stmt.getResultSet(), 0, false, sendWarningsOnCNTQRY);
+							checkWarning(null, null, stmt.getResultSet(), new int[]{0}, false, sendWarningsOnCNTQRY);
                             writePBSD();
 						}
 					}
@@ -853,7 +855,7 @@ class DRDAConnThread extends Thread {
 
 						// we need to set update count in SQLCARD
 						checkWarning(null, database.getDefaultStatement().getStatement(),
-							null, updateCount, true, true);
+							null, new int[]{updateCount}, true, true);
                         writePBSD();
 					} catch (SQLException e)
 					{
@@ -893,7 +895,7 @@ class DRDAConnThread extends Thread {
 										 (sqldaType ==  CodePoint.TYPSQLDA_LIGHT_OUTPUT),
 										 database.getConnection().getWarnings());
 						else
-							checkWarning(database.getConnection(), null, null, 0, true, true);
+							checkWarning(database.getConnection(), null, null, new int[]{0}, true, true);
 
 					} catch (SQLException e)
 					{
@@ -929,7 +931,7 @@ class DRDAConnThread extends Thread {
                             }
 							stmt.execute();
 							writeOPNQRYRM(false, stmt);
-							checkWarning(null, ps, null, 0, false, true);
+							checkWarning(null, ps, null, new int[]{0}, false, true);
 
                             long sentVersion = stmt.versionCounter;
                             long currentVersion =
@@ -995,7 +997,7 @@ class DRDAConnThread extends Thread {
 							database.getConnection().clearWarnings();
 							database.commit();
 							writeENDUOWRM(COMMIT);
-							checkWarning(database.getConnection(), null, null, 0, true, true);
+							checkWarning(database.getConnection(), null, null, new int[]{0}, true, true);
 						}
 						// we only want to write one of these per transaction
 						// so set to false in preparation for next command
@@ -1024,7 +1026,7 @@ class DRDAConnThread extends Thread {
 						database.getConnection().clearWarnings();
 						database.rollback();
 						writeENDUOWRM(ROLLBACK);
-						checkWarning(database.getConnection(), null, null, 0, true, true);
+						checkWarning(database.getConnection(), null, null, new int[]{0}, true, true);
 						// we only want to write one of these per transaction
 						// so set to false in preparation for next command
 						database.RDBUPDRM_sent = false;
@@ -1506,6 +1508,7 @@ class DRDAConnThread extends Thread {
 		if (session.drdaID == null)
 			session.drdaID = leftBrace + session.connNum + rightBrace;
 		p.put(Attribute.DRDAID_ATTR, session.drdaID);
+		p.put(Attribute.RDBINTTKN_ATTR, session.uuid.toString());
 
         // We pass extra property information for the authentication provider
         // to successfully re-compute the substitute (hashed) password and
@@ -3739,6 +3742,10 @@ class DRDAConnThread extends Thread {
 		writer.writeScalarString(CodePoint.TYPDEFNAM,
 								 CodePoint.TYPDEFNAM_QTDSQLASC);
 		writeTYPDEFOVR();
+		String token = generateToken();
+		if (appRequester.greaterThanOrEqualTo(10, 9, 1)) {
+			writer.writeScalarBytes(CodePoint.RDBINTTKN, Bytes.toBytes(token));
+		}
 		writer.endDdmAndDss ();
 
          // Write the initial piggy-backed data, currently the isolation level
@@ -3757,7 +3764,15 @@ class DRDAConnThread extends Thread {
          }
 		finalizeChain();
 	}
-	
+
+	private String generateToken() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(this.session.uuid.toString());
+		sb.append('#');
+		sb.append(server.getExternalHostname()).append(':').append(server.getPortNumber());
+		return sb.toString();
+	}
+
 	private void writeTYPDEFOVR() throws DRDAProtocolException
 	{
 		//TYPDEFOVR - required - only single byte and mixed byte are specified
@@ -4346,9 +4361,10 @@ class DRDAConnThread extends Thread {
 		database.setCurrentStatement(stmt);
 		
 		boolean hasResultSet;
+		int[] updateCounts = new int[numRows];
 		if (reader.isChainedWithSameID()) 
 		{
-			hasResultSet = parseEXCSQLSTTobjects(stmt);
+			hasResultSet = parseEXCSQLSTTobjects(stmt, updateCounts);
 		} else 
 		{
 			if (isProcedure  && (needPrepareCall))
@@ -4364,6 +4380,7 @@ class DRDAConnThread extends Thread {
 			}
 			stmt.ps.clearWarnings();
 			hasResultSet = stmt.execute();
+			updateCounts[0] = stmt.getPreparedStatement().getUpdateCount();
 		}
 		
 		
@@ -4431,7 +4448,7 @@ class DRDAConnThread extends Thread {
 			//indicate that we are going to return data
 			stmt.setQryrtndta(true);
 			if (! isProcedure)
-				checkWarning(null, ps, null, -1, true, true);
+				checkWarning(null, ps, null, null, true, true);
 			if (rsNum == 0)
 				writeSQLRSLRD(stmt);
 			writeOPNQRYRM(true, stmt);
@@ -4456,7 +4473,7 @@ class DRDAConnThread extends Thread {
 				writeRDBUPDRM();
 			}
 
-			checkWarning(database.getConnection(), stmt.ps, null, updateCount, true, true);
+			checkWarning(database.getConnection(), stmt.ps, null, updateCounts, true, true);
 		}
 
 		} while(hasResultSet && (++rsNum < numResults));
@@ -4494,11 +4511,11 @@ class DRDAConnThread extends Thread {
 	 * the values sent in the ACCRDB are used.
 	 * Objects may follow in one DSS or in several DSS chained together.
 	 * 
-	 * @param stmt	the DRDAStatement to execute
+	 * @param stmt    the DRDAStatement to execute
 	 * @throws DRDAProtocolException
      * @throws SQLException
 	 */
-	private boolean parseEXCSQLSTTobjects(DRDAStatement stmt) throws DRDAProtocolException, SQLException
+	private boolean parseEXCSQLSTTobjects(DRDAStatement stmt, int[] updateCounts) throws DRDAProtocolException, SQLException
 	{
 		int codePoint;
 		boolean gotSQLDTA = false, gotEXTDTA = false;
@@ -4549,7 +4566,13 @@ class DRDAConnThread extends Thread {
 		
 		if (! gotEXTDTA) {
 			stmt.ps.clearWarnings();
-			result = stmt.execute();
+			if (updateCounts.length > 1) {
+				int[] results = stmt.executeBatch();
+				System.arraycopy(results, 0, updateCounts, 0, updateCounts.length);
+			} else {
+				result = stmt.execute();
+				updateCounts[0] = stmt.getPreparedStatement().getUpdateCount();
+			}
 		}
 		
 		return result;
@@ -4677,6 +4700,7 @@ class DRDAConnThread extends Thread {
 		stmt.clearDrdaParams();
 
 		int numVars = 0;
+		int rows = 0;
 		boolean rtnParam = false;
 
 		reader.markCollection();		
@@ -4756,7 +4780,11 @@ class DRDAConnThread extends Thread {
 					break;
 				// optional
 				case CodePoint.FDODTA:
+					rows++;
 					reader.readByte();	// row indicator
+					if (rows > 1) {
+						stmt.getPreparedStatement().addBatch();
+					}
 					for (int i = 0; i < numVars; i++)
 					{
 					
@@ -4790,7 +4818,9 @@ class DRDAConnThread extends Thread {
 				codePoint = reader.getCodePoint();
 		}
 
-
+		if (rows > 1) {
+			stmt.getPreparedStatement().addBatch();
+		}
 	}
 
 	private int getByteOrder()
@@ -9011,7 +9041,7 @@ class DRDAConnThread extends Thread {
 	 * @param conn 		connection to check
 	 * @param stmt 		statement to check
 	 * @param rs 		result set to check
-	 * @param updateCount 	update count to include in SQLCARD
+	 * @param updateCounts 	update counts to include in SQLCARD
 	 * @param alwaysSend 	whether always send SQLCARD regardless of
 	 *						the existance of warnings
 	 * @param sendWarn 	whether to send any warnings or not. 
@@ -9019,7 +9049,7 @@ class DRDAConnThread extends Thread {
 	 * @exception DRDAProtocolException
 	 */
 	private void checkWarning(Connection conn, Statement stmt, ResultSet rs,
-						  int updateCount, boolean alwaysSend, boolean sendWarn)
+						  int[] updateCounts, boolean alwaysSend, boolean sendWarn)
 		throws DRDAProtocolException, SQLException
 	{
 		// instead of writing a chain of sql warning, we send the first one, this is
@@ -9066,8 +9096,15 @@ class DRDAConnThread extends Thread {
 		}
 
 
-		if ((alwaysSend || reportWarning != null) && sendWarn)
-			writeSQLCARDs(reportWarning, updateCount);
+		if ((alwaysSend || reportWarning != null) && sendWarn) {
+			if (updateCounts == null) {
+				writeSQLCARDs(reportWarning, -1);
+			} else {
+				for (int updateCount : updateCounts) {
+					writeSQLCARDs(reportWarning, updateCount);
+				}
+			}
+		}
 	}
 
     boolean hasSession() {

@@ -63,6 +63,7 @@ import scala.Tuple2;
  */
 public class InsertDataSetWriter<K,V> implements DataSetWriter{
     private static final Logger LOG=Logger.getLogger(InsertDataSetWriter.class);
+    private int[] updateCounts;
     private DataSet dataSet;
     private JavaPairRDD<K, V> rdd;
     private OperationContext<? extends SpliceOperation> opContext;
@@ -90,7 +91,8 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                                SpliceSequence[] sequences,
                                long heapConglom,
                                boolean isUpsert,
-                               double sampleFraction) throws StandardException {
+                               double sampleFraction,
+                               int[] updateCounts) throws StandardException {
         this.dataSet = dataSet;
         this.rdd=((SparkPairDataSet) dataSet.index(new EmptySparkPairDataSet<>())).wrapExceptions();
         this.opContext=opContext;
@@ -103,6 +105,7 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
         this.heapConglom=heapConglom;
         this.isUpsert=isUpsert;
         this.sampleFraction = sampleFraction;
+        this.updateCounts = updateCounts;
     }
 
     @Override
@@ -130,6 +133,17 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
                     throw ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.newException(fileName);
                 }
             }
+        } else if (updateCounts != null) {
+            int total = 0;
+            List<ExecRow> rows = new ArrayList<>();
+            for (int count : updateCounts) {
+                total += count;
+                valueRow = new ValueRow(1);
+                valueRow.setColumn(1, new SQLLongint(count));
+                rows.add(valueRow);
+            }
+            assert total == opContext.getRecordsWritten();
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(rows, 1));
         }
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }

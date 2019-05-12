@@ -14,6 +14,14 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.utils.IntArrays;
 import org.apache.hadoop.hbase.util.Bytes;
 import scala.Tuple2;
 
@@ -134,5 +142,42 @@ public class BulkImportUtils implements Serializable{
                 return Bytes.compareTo(k1, k2);
             }
         }
+    }
+
+    public static KeyEncoder getKeyEncoder(ExecRow execRowDefinition, int[] pkCols, String tableVersion, boolean[] sortOrder) throws StandardException {
+        HashPrefix prefix;
+        DataHash dataHash;
+        KeyPostfix postfix = NoOpPostfix.INSTANCE;
+        if(pkCols==null){
+            prefix = new SaltedPrefix(EngineDriver.driver().newUUIDGenerator(100));
+            dataHash = NoOpDataHash.INSTANCE;
+        }else{
+            int[] keyColumns = new int[pkCols.length];
+            for(int i=0;i<keyColumns.length;i++){
+                keyColumns[i] = pkCols[i] -1;
+            }
+            prefix = NoOpPrefix.INSTANCE;
+            DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(execRowDefinition);
+            dataHash = BareKeyHash.encoder(keyColumns, sortOrder, SpliceKryoRegistry.getInstance(),serializers);
+        }
+        return new KeyEncoder(prefix,dataHash,postfix);
+    }
+
+    public static DataHash getRowHash(ExecRow execRowDefinition, int[] pkCols, String tableVersion) throws StandardException {
+        //get all columns that are being set
+        int[] columns = getEncodingColumns(execRowDefinition.nColumns(),pkCols);
+        DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(execRowDefinition);
+        return new EntryDataHash(columns,null,serializers);
+    }
+
+    public static int[] getEncodingColumns(int n, int[] pkCols) {
+        int[] columns = IntArrays.count(n);
+        // Skip primary key columns to save space
+        if (pkCols != null) {
+            for(int pkCol:pkCols) {
+                columns[pkCol-1] = -1;
+            }
+        }
+        return columns;
     }
 }

@@ -22,6 +22,7 @@ import com.splicemachine.db.authentication.UserAuthenticator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.jdbc.authentication.AuthenticationServiceBase;
 import com.splicemachine.encryption.EncryptionManager;
+import com.splicemachine.replication.ReplicationManager;
 
 /**
  * Manager
@@ -38,6 +39,7 @@ public interface Manager {
 
     EncryptionManager getEncryptionManager() throws StandardException;
 
-    boolean isEnabled();
+    ReplicationManager getReplicationManager() throws StandardException;
 
+    boolean isEnabled();
 }

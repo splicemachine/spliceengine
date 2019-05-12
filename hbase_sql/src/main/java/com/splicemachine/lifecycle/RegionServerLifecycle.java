@@ -23,6 +23,7 @@ import com.splicemachine.pipeline.InitializationCompleted;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.TableName;
@@ -145,6 +146,8 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                 RemoteException re = (RemoteException) e.getCause();
                 if (PleaseHoldException.class.getName().equals(re.getClassName()))
                     return true;
+            } else if (e.getCause() instanceof MasterNotRunningException) {
+                return true;
             }
             return (e.getCause() instanceof IOException && e.getCause().getCause() instanceof CallTimeoutException) ||
                    (e.getCause() instanceof RemoteWithExtrasException && e.getMessage().equals(

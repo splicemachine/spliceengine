@@ -69,4 +69,14 @@ public interface Row
 	 */
 	void	setColumn (int position, DataValueDescriptor value);
 
+    /**
+     * Set a DataValueDescriptor in a Row by ordinal position (1-based),
+     * preserving the data type of the target column.
+     * For example, if we are setting (SQLDouble)null = (SQLInteger)1,
+     * The column will end up holding (SQLDouble)1.0, preserving
+     * the data type of the DVD that is being overwritten.
+     *
+     * @param position  The ordinal position of the column.
+	 */
+     void   setColumnValue (int position, DataValueDescriptor value) throws StandardException;
 }

@@ -109,6 +109,9 @@ public class ConfigurationBuilder {
     public long backupMaxBandwidthMB;
     public boolean backupUseDistcp;
     public int backupIOBufferSize;
+    public int replicationSnapshotInterval;
+    public int replicationSinkPort;
+    public int replicationProgressUpdateInterval;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
@@ -141,6 +144,7 @@ public class ConfigurationBuilder {
     public long broadcastRegionMbThreshold;
     public long broadcastRegionRowThreshold;
     public long broadcastDatasetCostThreshold;
+    public int recursiveQueryIterationLimit;
     public long optimizerPlanMaximumTimeout;
     public long optimizerPlanMinimumTimeout;
     public long determineSparkRowThreshold;

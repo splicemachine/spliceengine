@@ -100,6 +100,11 @@ public class DataTypeDescriptor implements Formatable{
     public static final DataTypeDescriptor SMALLINT_NOT_NULL=SMALLINT.getNullabilityType(false);
 
     public static final DataTypeDescriptor DOUBLE=new DataTypeDescriptor(TypeId.DOUBLE_ID,true);
+
+    public static final DataTypeDescriptor LONGINT=new DataTypeDescriptor(TypeId.BIGINT_ID,true);
+
+    public static final DataTypeDescriptor LONGINT_NOT_NULL=LONGINT.getNullabilityType(false);
+
     /*
 	** Static creators
 	*/
@@ -214,6 +219,8 @@ public class DataTypeDescriptor implements Formatable{
                 return isNullable?INTEGER:INTEGER_NOT_NULL;
             case Types.SMALLINT:
                 return isNullable?SMALLINT:SMALLINT_NOT_NULL;
+            case Types.BIGINT:
+                return isNullable?LONGINT:LONGINT_NOT_NULL;
             default:
                 break;
         }
@@ -1593,6 +1600,10 @@ public class DataTypeDescriptor implements Formatable{
 
     public String toString(){
         return typeDescriptor.toString();
+    }
+
+    public String toSparkString() {
+        return typeDescriptor.getSQLstring();
     }
 
     // Formatable methods

@@ -87,7 +87,7 @@ public class ArrayOperatorNode extends ValueNode {
 									SubqueryList subqueryList,
 									List<AggregateNode> aggregateVector) throws StandardException {
 		//bind the operand
-		operand.bindExpression(fromList, subqueryList, aggregateVector);
+		operand = operand.bindExpression(fromList, subqueryList, aggregateVector);
 		DataTypeDescriptor arrayDTD = operand.getTypeServices();
 		TypeDescriptorImpl typeDescriptor = (TypeDescriptorImpl) ((TypeDescriptorImpl) arrayDTD.getCatalogType()).getChildren()[0];
 		setType(new DataTypeDescriptor(

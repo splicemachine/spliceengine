@@ -62,7 +62,8 @@ public class SparkUpdateTableWriterBuilder<K,V> extends UpdateTableWriterBuilder
                     pkColumns,
                     tableVersion,
                     execRowDefinition,
-                    heapList);
+                    heapList,
+                    updateCounts);
         }catch(Exception e){
             throw new RuntimeException(e);
         }

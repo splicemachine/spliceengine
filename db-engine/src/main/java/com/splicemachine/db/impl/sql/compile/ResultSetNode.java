@@ -91,6 +91,12 @@ public abstract class ResultSetNode extends QueryTreeNode{
     Satisfiability sat = Satisfiability.UNKNOWN;
 
     /**
+     * used for recursive query only, when it is true, it indicates that this node is part of the recursive body and
+     * that it contains a SelfReferenceNode in its subtree
+     */
+    boolean containsSelfReference;
+
+    /**
      * Count the number of distinct aggregates in the list.
      * By 'distinct' we mean aggregates of the form:
      * <UL><I>SELECT MAX(DISTINCT x) FROM T<\I><\UL>
@@ -1729,10 +1735,6 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return false;
     }
 
-    public String printExplainInformation() throws StandardException {
-        return printExplainInformation(getResultSetNumber());
-    }
-    
     public String printExplainInformationForActivation() throws StandardException {
         String outString = WordUtils.wrap(printExplainInformation(", ", getResultSetNumber()), 40, null, false);
         
@@ -1742,5 +1744,12 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return outString;
     }
 
+    public void setContainsSelfReference(boolean value) {
+        containsSelfReference = value;
+    }
+
+    public boolean getContainsSelfReference() {
+        return containsSelfReference;
+    }
 
 }

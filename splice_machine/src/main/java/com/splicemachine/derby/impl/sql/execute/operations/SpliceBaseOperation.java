@@ -81,7 +81,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     protected List<SpliceOperation> leftOperationStack;
     protected String jobName;
     protected RemoteQueryClient remoteQueryClient;
-    protected long modifiedRowCount = 0;
+    protected long[] modifiedRowCount = new long [] {0};
     protected long badRecords = 0;
     protected boolean returnedRows = false;
     private volatile UUID uuid = null;
@@ -146,19 +146,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
-    public int modifiedRowCount() {
+    public long[] modifiedRowCount() {
         /*
         The fields modifiedRowCount and badRecords are updated in DMLWriteOperation.openCore()
          */
+        long modifiedRowCount = this.modifiedRowCount[0];
         getActivation().getLanguageConnectionContext().setRecordsImported(modifiedRowCount);
         getActivation().getLanguageConnectionContext().setFailedRecords(badRecords);
         if (modifiedRowCount > Integer.MAX_VALUE || modifiedRowCount < Integer.MIN_VALUE) {
             // DB-5369: int overflow when modified rowcount is larger than max int
             // Add modified row count as a long value in warning
             activation.addWarning(StandardException.newWarning(SQLState.LANG_MODIFIED_ROW_COUNT_TOO_LARGE, modifiedRowCount));
-            return -1;
+            return new long[]{ -1 };
         }
-        return (int) modifiedRowCount;
+        return this.modifiedRowCount;
     }
 
     @Override
@@ -275,7 +276,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             LOG.trace(String.format("open operation %s",this));
         try {
             DataSetProcessor dsp = EngineDriver.driver().processorFactory().chooseProcessor(activation, this);
-            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(),new Date(), dsp.getType());
+            String intTkn = activation.getLanguageConnectionContext().getRdbIntTkn();
+            uuid = EngineDriver.driver().getOperationManager().registerOperation(this, Thread.currentThread(),new Date(), dsp.getType(), intTkn);
             logExecutionStart(dsp);
             openCore();
         } catch (Exception e) {
@@ -403,6 +405,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         isOpen = true;
         isKilled = false;
         isTimedout = false;
+        modifiedRowCount = new long[] {0};
         for (SpliceOperation op : getSubOperations()) {
             op.reset();
         }
@@ -511,18 +514,26 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
 
     private void logExecutionEnd() {
         activation.getLanguageConnectionContext().logEndExecuting(uuid.toString(),
-                (long) modifiedRowCount(), badRecords, System.nanoTime() - startTime);
+                modifiedRowCount[0], badRecords, System.nanoTime() - startTime);
     }
 
     protected void computeModifiedRows() throws StandardException {
-        modifiedRowCount = 0;
+        List<Long> counts = new ArrayList<>();
         badRecords = 0;
         while (execRowIterator.hasNext()) {
             ExecRow row  = execRowIterator.next();
-            modifiedRowCount += row.getColumn(1).getLong();
+            counts.add(row.getColumn(1).getLong());
             if (row.nColumns() > 1) {
                 badRecords += row.getColumn(2).getLong();
                 getActivation().getLanguageConnectionContext().setBadFile(row.getColumn(3).getString());
+            }
+        }
+        if (counts.size() == 0) {
+            modifiedRowCount = new long[]{0};
+        } else {
+            modifiedRowCount = new long[counts.size()];
+            for(int i = 0; i < counts.size(); ++i) {
+                modifiedRowCount[i] = counts.get(i);
             }
         }
     }
@@ -993,5 +1004,12 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public ScanInformation<ExecRow> getScanInformation() {
         throw new RuntimeException("getScanInformation not implemented");
+    }
+
+    @Override
+    public void setRecursiveUnionReference(NoPutResultSet recursiveUnionReference) {
+        for(SpliceOperation op : getSubOperations()){
+            op.setRecursiveUnionReference(recursiveUnionReference);
+        }
     }
 }
