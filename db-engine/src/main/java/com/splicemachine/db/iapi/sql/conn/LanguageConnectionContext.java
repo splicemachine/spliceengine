@@ -1086,6 +1086,14 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	String getDrdaID();
 
+
+	/**
+	 * Get the DRDA interruption token of this LCC
+	 *
+	 * @return DRDA interruption token this LCC.
+	 */
+	String getRdbIntTkn();
+
 	/**
 	 * Set the DRDA ID of this LCC.
 	 *

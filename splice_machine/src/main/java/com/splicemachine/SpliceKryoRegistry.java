@@ -376,17 +376,12 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(SQLTimestamp.class,new DataValueDescriptorSerializer<SQLTimestamp>(){
             @Override
             protected void writeValue(Kryo kryo,Output output,SQLTimestamp object) throws StandardException{
-                output.writeInt(object.getEncodedDate());
-                output.writeInt(object.getEncodedTime());
-                output.writeInt(object.getNanos());
+                output.writeLong(object.getTimestamp(null).getTime());
             }
 
             @Override
             protected void readValue(Kryo kryo,Input input,SQLTimestamp dvd) throws StandardException{
-                int encodedDate = input.readInt();
-                int encodedTime = input.readInt();
-                int nanos       = input.readInt();
-                dvd.setValue(encodedDate, encodedTime, nanos);
+                dvd.setValue(new Timestamp(input.readLong()));
             }
         },38);
         instance.register(SQLSmallint.class,new DataValueDescriptorSerializer<SQLSmallint>(){

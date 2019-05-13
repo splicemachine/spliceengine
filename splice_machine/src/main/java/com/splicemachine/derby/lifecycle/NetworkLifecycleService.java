@@ -47,7 +47,8 @@ public class NetworkLifecycleService implements DatabaseLifecycleService{
         try {
             String bindAddress = config.getNetworkBindAddress();
             int bindPort = config.getNetworkBindPort();
-            server = new NetworkServerControl(InetAddress.getByName(bindAddress),bindPort);
+            String externalHostname = NetworkUtils.getHostname(config);
+            server = new NetworkServerControl(InetAddress.getByName(bindAddress),bindPort,externalHostname);
             server.setLogConnections(true);
             server.start(new DerbyOutputLoggerWriter());
 

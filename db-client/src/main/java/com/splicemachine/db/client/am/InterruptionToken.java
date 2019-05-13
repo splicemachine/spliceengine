@@ -10,20 +10,35 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
- */
-
-package com.splicemachine.mrio.api.core;
-
-import com.splicemachine.storage.Partition;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.mapreduce.InputSplit;
-import java.util.List;
-
-/**
- * Created by dgomezferro on 3/13/15.
  *
- * Used to compute a list of splits for a given table smaller than regions
  */
-public interface SubregionSplitter {
-    List<InputSplit> getSubSplits(Table table, List<Partition> splits, byte[] startRow, byte[] stopRow, int requestedSplits, long tableSize);
+
+package com.splicemachine.db.client.am;
+
+import java.nio.charset.Charset;
+
+public class InterruptionToken {
+    private String token;
+    private String uuid;
+    private String address;
+
+    public InterruptionToken(byte[] token) {
+        this.token = new String(token, Charset.forName("UTF-8"));
+        String[] parts = this.token.split("#");
+        uuid = parts[0];
+        address = parts[1];
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    @Override
+    public String toString() {
+        return token;
+    }
 }
