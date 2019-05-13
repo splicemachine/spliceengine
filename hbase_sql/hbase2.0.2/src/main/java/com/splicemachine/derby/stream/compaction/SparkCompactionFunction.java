@@ -28,13 +28,18 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -47,11 +52,14 @@ public class SparkCompactionFunction extends  BaseSparkCompactionFunction {
 
     private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
 
+    RegionInfo regionInfo;
+
     public SparkCompactionFunction(){}
 
-    public SparkCompactionFunction(long smallestReadPoint, byte[] namespace, byte[] tableName, HRegionInfo hri,
+    public SparkCompactionFunction(long smallestReadPoint, byte[] namespace, byte[] tableName, RegionInfo regionInfo,
                                    byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
-        super(smallestReadPoint, namespace, tableName, hri, storeColumn, isMajor, favoredNodes);
+        super(smallestReadPoint, namespace, tableName, storeColumn, isMajor, favoredNodes);
+        this.regionInfo = regionInfo;
     }
 
     @SuppressWarnings("unchecked")
@@ -68,7 +76,7 @@ public class SparkCompactionFunction extends  BaseSparkCompactionFunction {
         Path rootDir = FSUtils.getRootDir(conf);
 
         HTableDescriptor htd = table.getTableDescriptor();
-        HRegion region = HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyHTableDescriptor(htd), null, null, null);
+        HRegion region = HRegion.openHRegion(conf, fs, rootDir, regionInfo, new ReadOnlyHTableDescriptor(htd), null, null, null);
         HStore store = region.getStore(storeColumn);
 
         assert it.hasNext();
@@ -112,4 +120,23 @@ public class SparkCompactionFunction extends  BaseSparkCompactionFunction {
                 new SingletonIterator(paths.get(0).toString());
     }
 
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        byte[] bytes = RegionInfo.toByteArray(regionInfo);
+        out.writeInt(bytes.length);
+        out.write(bytes);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        byte[] bytes = new byte[in.readInt()];
+        in.readFully(bytes);
+        try {
+            regionInfo = RegionInfo.parseFrom(bytes);
+        } catch (DeserializationException e) {
+            throw new IOException(e);
+        }
+    }
 }

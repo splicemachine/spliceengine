@@ -56,7 +56,7 @@ public abstract class BaseSparkCompactionFunction extends SpliceFlatMapFunction<
     protected byte[] namespace;
     protected byte[] tableName;
     protected byte[] storeColumn;
-    protected HRegionInfo hri;
+    //protected HRegionInfo hri;
     protected boolean isMajor;
     protected SparkCompactionContext context;
     protected InetSocketAddress[] favoredNodes;
@@ -66,11 +66,11 @@ public abstract class BaseSparkCompactionFunction extends SpliceFlatMapFunction<
     }
 
     public BaseSparkCompactionFunction(long smallestReadPoint, byte[] namespace,
-                                       byte[] tableName, HRegionInfo hri, byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
+                                       byte[] tableName, byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
-        this.hri = hri;
+        //this.hri = hri;
         this.storeColumn = storeColumn;
         this.isMajor = isMajor;
         this.favoredNodes = favoredNodes;
@@ -78,15 +78,15 @@ public abstract class BaseSparkCompactionFunction extends SpliceFlatMapFunction<
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        byte[] hriBytes = hri.toByteArray();
+        //byte[] hriBytes = hri.toByteArray();
         super.writeExternal(out);
         out.writeLong(smallestReadPoint);
         out.writeInt(namespace.length);
         out.write(namespace);
         out.writeInt(tableName.length);
         out.write(tableName);
-        out.writeInt(hriBytes.length);
-        out.write(hriBytes);
+        //out.writeInt(hriBytes.length);
+        //out.write(hriBytes);
         out.writeInt(storeColumn.length);
         out.write(storeColumn);
         out.writeBoolean(isMajor);
@@ -107,13 +107,13 @@ public abstract class BaseSparkCompactionFunction extends SpliceFlatMapFunction<
         in.readFully(namespace);
         tableName = new byte[in.readInt()];
         in.readFully(tableName);
-        byte[] hriBytes = new byte[in.readInt()];
-        in.readFully(hriBytes);
-        try {
-            hri = HRegionInfo.parseFrom(hriBytes);
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
+//        byte[] hriBytes = new byte[in.readInt()];
+//        in.readFully(hriBytes);
+//        try {
+//            hri = HRegionInfo.parseFrom(hriBytes);
+//        } catch (Exception e) {
+//            throw new IOException(e);
+//        }
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
         isMajor = in.readBoolean();

@@ -144,7 +144,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 //                        ? ScanType.COMPACT_RETAIN_DELETES
 //                        : ScanType.COMPACT_DROP_DELETES;
         // trigger MemstoreAwareObserver
-        postCreateCoprocScanner(request, scanType, null,user);
+        // TODO - JY
+        //postCreateCoprocScanner(request, scanType, null,user);
         if (hostName == null)
             hostName = RSRpcServices.getHostname(conf,false);
 
@@ -208,7 +209,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 smallestReadPoint,
                 store.getTableName().getNamespace(),
                 store.getTableName().getQualifier(),
-                (HRegionInfo) store.getRegionInfo(),
+                store.getRegionInfo(),
                 store.getColumnFamilyDescriptor().getName(),
                 isMajor,
                 favoredNodes);
@@ -857,6 +858,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     private List<StoreFileScanner> createFileScanners(Collection<HStoreFile> filesToCompact, long smallestReadPoint, boolean useDropBehind) throws IOException {
+        for (HStoreFile file:filesToCompact) {
+            file.initReader(); // a hack to init metadata map, so that HStoreFile.getBulkLoadTimestamp does not fail.
+        }
         return StoreFileScanner.getScannersForCompaction(filesToCompact, useDropBehind, smallestReadPoint);
     }
 
