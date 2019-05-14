@@ -22,7 +22,7 @@ import java.util.Date
 import com.splicemachine.derby.vti.SpliceDatasetVTI
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
+import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions,JdbcOptionsInWrite, JdbcUtils}
 import org.apache.spark.sql.jdbc.JdbcDialects
 
 import scala.collection.immutable.IndexedSeq
