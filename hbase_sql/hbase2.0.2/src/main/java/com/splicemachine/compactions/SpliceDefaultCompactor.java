@@ -81,6 +81,8 @@ import java.util.concurrent.TimeoutException;
 
 import static org.apache.hadoop.hbase.regionserver.HStoreFile.EARLIEST_PUT_TS;
 import static org.apache.hadoop.hbase.regionserver.HStoreFile.TIMERANGE_KEY;
+import static org.apache.hadoop.hbase.regionserver.ScanType.COMPACT_DROP_DELETES;
+import static org.apache.hadoop.hbase.regionserver.ScanType.COMPACT_RETAIN_DELETES;
 
 /**
  *
@@ -95,7 +97,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private String tableDisplayName;
     private String indexDisplayName;
     private static String hostName;
-
 
     private static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
     private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
@@ -130,7 +131,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
         assert request instanceof SpliceCompactionRequest;
 
-
         smallestReadPoint = store.getSmallestReadPoint();
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
         this.progress = new CompactionProgress(fd.maxKeyCount);
@@ -139,13 +139,13 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             files.add(sf.getPath().toString());
         }
 
-        ScanType scanType =ScanType.COMPACT_DROP_DELETES;
-//                request.isRetainDeleteMarkers()
-//                        ? ScanType.COMPACT_RETAIN_DELETES
-//                        : ScanType.COMPACT_DROP_DELETES;
+        ScanType scanType = request.isAllFiles() ? COMPACT_DROP_DELETES : COMPACT_RETAIN_DELETES;
         // trigger MemstoreAwareObserver
-        // TODO - JY
-        //postCreateCoprocScanner(request, scanType, null,user);
+        List<StoreFileScanner> scanners = createFileScanners(((CompactionRequestImpl)request).getFiles(), smallestReadPoint, true);
+        InternalScanner scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
+        postCreateCoprocScanner(request, scanType, scanner,user);
+        scanner.close();
+
         if (hostName == null)
             hostName = RSRpcServices.getHostname(conf,false);
 
@@ -316,12 +316,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             InternalScanner scanner = null;
             try {
                 /* Include deletes, unless we are doing a compaction of all files */
-                // FIXME: 4/12/19 
-//                ScanType scanType = request.isRetainDeleteMarkers() ? ScanType.COMPACT_RETAIN_DELETES
-//                        : ScanType.COMPACT_DROP_DELETES;
-                ScanType scanType = ScanType.COMPACT_DROP_DELETES;
-                // FIXME: 4/12/19 
-                //scanner = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners, null);
+                ScanType scanType = request.isAllFiles() ? COMPACT_DROP_DELETES : COMPACT_RETAIN_DELETES;
+                ScanInfo scanInfo = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners, null);
                 if (scanner == null) {
                     scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
                 }
@@ -863,6 +859,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         }
         return StoreFileScanner.getScannersForCompaction(filesToCompact, useDropBehind, smallestReadPoint);
     }
+
 
     protected ScanInfo preCreateCoprocScanner(final CompactionRequest request,
                                                      final ScanType scanType,
