@@ -42,8 +42,8 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("PERSON",CLASS_NAME,"(pid int NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), i int)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("RP_BC_14_1",CLASS_NAME,"(pid int NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), i int)");
     public static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("T",CLASS_NAME,"(i int)");
-    public static final SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("A",CLASS_NAME,"(i int,j int)");
-    public static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("B",CLASS_NAME,"(i int,j int)");
+    public static final SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("A",CLASS_NAME,"(i int,j int,k int)");
+    public static final SpliceTableWatcher spliceTableWatcher5 = new SpliceTableWatcher("B",CLASS_NAME,"(i int,j int,k int)");
     public static final SpliceTableWatcher spliceTableRegion = new SpliceTableWatcher("REGION2",CLASS_NAME,
     	"(R_REGIONKEY INTEGER NOT NULL PRIMARY KEY, R_NAME VARCHAR(25))");
     public static final SpliceTableWatcher spliceTableNation = new SpliceTableWatcher("NATION2",CLASS_NAME,
@@ -97,8 +97,8 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
 
-                        spliceClassWatcher.executeUpdate(format("insert into %s values (1,1), (2,2)", spliceTableWatcher4));
-                        spliceClassWatcher.executeUpdate(format("insert into %s values (1,1), (2,2)", spliceTableWatcher5));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (1,1,1), (2,2,2), (3,3,3)", spliceTableWatcher4));
+                        spliceClassWatcher.executeUpdate(format("insert into %s values (1,1,1), (2,2,2), (3,3,3)", spliceTableWatcher5));
 
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
                                 spliceTableWatcher3));
@@ -447,7 +447,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         rowContainsQuery(4,
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)",
-                "preds=[(A.I[4:3] = B.I[4:1])]", methodWatcher);
+                "preds=[(A.I[4:4] = B.I[4:1])]", methodWatcher);
 
         rowContainsQuery(5,
                 "explain select * from a, b where (a.i = b.i and a.j=1) or (a.i = b.i and a.j=2)",
@@ -459,7 +459,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
         rowContainsQuery(4,
                 "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
-                "preds=[(A.J[4:4] = B.J[4:2]),(A.I[4:3] = B.I[4:1])]", methodWatcher);
+                "preds=[(A.J[4:5] = B.J[4:2]),(A.I[4:4] = B.I[4:1])]", methodWatcher);
 
         rowContainsQuery(5,
                 "explain select * from a, b where (a.i = b.i and a.j=1 and a.j=b.j) or (a.i = b.i and a.j=2 and a.j=b.j)",
