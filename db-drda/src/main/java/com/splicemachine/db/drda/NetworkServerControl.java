@@ -273,8 +273,37 @@ public class NetworkServerControl{
 	 */
 	public NetworkServerControl(InetAddress address,int portNumber) throws Exception
 	{
-		serverImpl = new NetworkServerControlImpl(address, portNumber);
+		this(address, portNumber, "");
 	}
+
+	/**
+	 *
+	 * Creates a NetworkServerControl object that is configured to control
+	 * a Network Server on a  specified port and InetAddress.
+	 *<P>
+	 * <B> Examples: </B>
+	 * </P>
+	 * <P>
+	 * To configure for port 1621 and listen on the loopback address:
+	 *<PRE>
+	 *  NetworkServerControl  util = new
+	 * NetworkServerControl(InetAddress.getByName("localhost"), 1621);
+	 * </PRE>
+	 * </P>
+	 *
+	 * @param address     The IP address of the Network Server host.
+	 *                     address cannot be null.
+
+	 * @param portNumber  port number server is to used. If <= 0,
+	 *                    default port number is used
+	 *
+	 * @throws             Exception on error
+	 */
+	public NetworkServerControl(InetAddress address,int portNumber, String externalHostname) throws Exception
+	{
+		serverImpl = new NetworkServerControlImpl(address, portNumber, externalHostname);
+	}
+
 
 
 	/**

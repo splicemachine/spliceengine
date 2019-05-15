@@ -122,6 +122,7 @@ public class SpliceDatabase extends BasicDatabase{
 
     @Override
     public LanguageConnectionContext setupConnection(ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+                                                     String rdbIntTkn,
                                                      CompilerContext.DataSetProcessorType dspt,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
@@ -130,7 +131,7 @@ public class SpliceDatabase extends BasicDatabase{
             throws StandardException{
 
         final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
+                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
 
         // If you add a visitor, be careful of ordering.
 
@@ -159,6 +160,7 @@ public class SpliceDatabase extends BasicDatabase{
      * This method should only be used by start() methods in coprocessors.  Do not use for sinks or observers.
      */
     public LanguageConnectionContext generateLanguageConnectionContext(TxnView txn,ContextManager cm,String user, List<String> groupuserlist, String drdaID,String dbname,
+                                                                       String rdbIntTkn,
                                                                        CompilerContext.DataSetProcessorType type,
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
@@ -167,7 +169,7 @@ public class SpliceDatabase extends BasicDatabase{
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
-                groupuserlist,drdaID,dbname,type,skipStats, defaultSelectivityFactor, ipAddress,
+                groupuserlist,drdaID,dbname, rdbIntTkn,type,skipStats, defaultSelectivityFactor, ipAddress,
                 null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
@@ -222,6 +224,7 @@ public class SpliceDatabase extends BasicDatabase{
                 configureNative(configuration,true);
         }
         configureImpersonation(configuration);
+        configureUserMapping(configuration);
     }
 
     private void configureImpersonation(SConfiguration configuration) {
@@ -229,6 +232,10 @@ public class SpliceDatabase extends BasicDatabase{
         System.setProperty("derby.authentication.impersonation.users",configuration.getAuthenticationImpersonationUsers());
     }
 
+    private void configureUserMapping(SConfiguration config) {
+        String authenticationMapGroupAttr = config.getAuthenticationMapGroupAttr();
+        System.setProperty("derby.authentication.ldap.mapGroupAttr",authenticationMapGroupAttr);
+    }
     private void configureKerberosAuth(SConfiguration config){
         System.setProperty("derby.connection.requireAuthentication","true");
         System.setProperty("derby.database.sqlAuthorization","true");
@@ -244,20 +251,18 @@ public class SpliceDatabase extends BasicDatabase{
         String authenticationLDAPSearchBase = config.getAuthenticationLdapSearchbase();
         String authenticationLDAPSearchFilter = config.getAuthenticationLdapSearchfilter();
         String authenticationLDAPServer = config.getAuthenticationLdapServer();
-        String authenticationLDAPMapGroupAttr = config.getAuthenticationLdapMapGroupAttr();
+
         SpliceLogUtils.info(LOG,"using LDAP to authorize Splice Machine with "+
-                        "{ldap={searchAuthDN=%s,searchBase=%s, searchFilter=%s, mapGroupAttr=%s}}",
+                        "{ldap={searchAuthDN=%s,searchBase=%s, searchFilter=%s}}",
                 authenticationLDAPSearchAuthDN,
                 authenticationLDAPSearchBase,
-                authenticationLDAPSearchFilter,
-                authenticationLDAPMapGroupAttr);
+                authenticationLDAPSearchFilter);
         System.setProperty("derby.authentication.provider", Property.AUTHENTICATION_PROVIDER_LDAP);
         System.setProperty("derby.authentication.ldap.searchAuthDN",authenticationLDAPSearchAuthDN);
         System.setProperty("derby.authentication.ldap.searchAuthPW",authenticationLDAPSearchAuthPW);
         System.setProperty("derby.authentication.ldap.searchBase",authenticationLDAPSearchBase);
         System.setProperty("derby.authentication.ldap.searchFilter",authenticationLDAPSearchFilter);
         System.setProperty("derby.authentication.server",authenticationLDAPServer);
-        System.setProperty("derby.authentication.ldap.mapGroupAttr",authenticationLDAPMapGroupAttr);
 
     }
 

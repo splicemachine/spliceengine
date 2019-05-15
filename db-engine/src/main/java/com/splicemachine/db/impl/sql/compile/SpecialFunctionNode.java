@@ -63,6 +63,7 @@ import java.util.List;
 	 <LI> CURRENT_USER
 	 <LI> CURRENT_ROLE
 	 <LI> SESSION_USER
+	 <LI> GROUP_USER
 	 <LI> SYSTEM_USER
 	 <LI> CURRENT SCHEMA
 	 <LI> CURRENT ISOLATION
@@ -151,6 +152,13 @@ public class SpecialFunctionNode extends ValueNode
             dtd = DataDictionary.TYPE_SYSTEM_IDENTIFIER;
             break;
 
+		case C_NodeTypes.GROUP_USER_NODE:
+			methodName = "getCurrentGroupUserDelimited";
+			methodType = "java.lang.String";
+			sqlName = "GROUP_USER";
+			dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+					Types.VARCHAR, true, 32672);
+			break;
 		case C_NodeTypes.CURRENT_SCHEMA_NODE:
 			sqlName = "CURRENT SCHEMA";
 			methodName = "getCurrentSchemaName";
@@ -168,9 +176,8 @@ public class SpecialFunctionNode extends ValueNode
 			methodName = "getCurrentRoleIdDelimited";
 			methodType = "java.lang.String";
 			dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-				// size: 2+(2*128) start and end text quote plus max # of
-				// escapes
-				Types.VARCHAR, true, 2+(2*128));
+				// use maxlen to accommodate names for multiple active roles
+				Types.VARCHAR, true, 32672);
 			//SQL spec Section 6.4 Syntax Rule 4 says that the collation type
 			//of these functions will be the collation of character set
 			//SQL_IDENTIFIER. In Derby's case, that will mean, the collation of
@@ -254,8 +261,9 @@ public class SpecialFunctionNode extends ValueNode
 		int argCount = 0;
 
 		if (methodName.equals("getCurrentRoleIdDelimited") ||
-                methodName.equals("getCurrentSchemaName") ||
-                methodName.equals("getCurrentUserId")) {
+            methodName.equals("getCurrentGroupUserDelimited") ||
+            methodName.equals("getCurrentSchemaName") ||
+            methodName.equals("getCurrentUserId")) {
 
 			acb.pushThisAsActivation(mb);
 			argCount++;

@@ -53,7 +53,9 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -339,6 +341,13 @@ public final class NativeAuthenticationServiceImpl
             String proxyUser = info.getProperty(Attribute.PROXY_USER_ATTR);
             if (proxyUser != null) {
                 authenticatedUser = impersonate(authenticatedUser, proxyUser);
+            }
+
+            // check group mapping
+            if (authenticatedUser != null) {
+                List<String> groupList = new ArrayList<>();
+                groupList.add(authenticatedUser);
+                return mapUserGroups(groupList);
             }
             return authenticatedUser;
         }

@@ -41,6 +41,9 @@ import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class JdbcApiIT {
 
     private static final String CLASS_NAME = JdbcApiIT.class.getSimpleName().toUpperCase();
@@ -137,5 +140,41 @@ public class JdbcApiIT {
                      SQLState.LANG_SCHEMA_DOES_NOT_EXIST);
          }
     }
+
+
+    @Test
+    public void testCancelSpark() throws Exception {
+        testCancel(true);
+    }
+
+    @Test
+    public void testCancelControl() throws Exception {
+        testCancel(false);
+    }
+
+
+    public void testCancel(boolean spark) throws Exception {
+        String sql = "select count(*) from a --splice-properties useSpark=" +spark+" \n" +
+                "natural join a a1 natural join a a2 natural join a a3";
+        try(Statement s = conn.createStatement()){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(2000);
+                        s.cancel();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            ResultSet rs = s.executeQuery(sql);
+        } catch (SQLException se) {
+            assertEquals("SE008", se.getSQLState());
+        }
+    }
+
 
 }
