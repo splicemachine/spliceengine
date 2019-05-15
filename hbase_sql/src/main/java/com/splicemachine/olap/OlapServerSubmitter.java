@@ -74,6 +74,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import static com.splicemachine.si.constants.SIConstants.OLAP_DEFAULT_QUEUE_NAME;
+import static com.splicemachine.si.constants.SIConstants.YARN_DEFAULT_QUEUE_NAME;
 import static org.apache.zookeeper.KeeperException.Code.NODEEXISTS;
 import static org.apache.zookeeper.KeeperException.Code.NONODE;
 
@@ -130,7 +132,7 @@ public class OlapServerSubmitter implements Runnable {
 
             String sparkYarnQueue = yarnQueues.get(queueName);
             if (sparkYarnQueue == null)
-                sparkYarnQueue = "default";
+                sparkYarnQueue = YARN_DEFAULT_QUEUE_NAME;
 
             if (stagingDir != null) {
                 this.appStagingBaseDir = new Path(stagingDir);
@@ -139,7 +141,7 @@ public class OlapServerSubmitter implements Runnable {
             }
             String yarnQueue = System.getProperty("splice.olapServer.yarn.queue");
             if (yarnQueue == null) {
-                yarnQueue = System.getProperty("splice.spark.yarn.queue", "default");
+                yarnQueue = System.getProperty("splice.spark.yarn.queue", YARN_DEFAULT_QUEUE_NAME);
             }
 
             for (int i = 0; i<maxAttempts; ++i) {
@@ -273,7 +275,7 @@ public class OlapServerSubmitter implements Runnable {
                     // Finally, set-up ApplicationSubmissionContext for the application
                     ApplicationSubmissionContext appContext =
                             app.getApplicationSubmissionContext();
-                    String appName = "default".equals(queueName) ? "OlapServer" : "OlapServer-"+queueName;
+                    String appName = OLAP_DEFAULT_QUEUE_NAME.equals(queueName) ? "OlapServer" : "OlapServer-"+queueName;
                     appContext.setApplicationName(appName); // application name
                     appContext.setAMContainerSpec(amContainer);
                     appContext.setResource(capability);

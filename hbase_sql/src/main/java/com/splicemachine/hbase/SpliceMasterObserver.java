@@ -24,6 +24,7 @@ import com.splicemachine.olap.OlapServer;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.olap.OlapServerSubmitter;
 import com.splicemachine.pipeline.InitializationCompleted;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -171,7 +172,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
                         Collection<String> queues = HConfiguration.getConfiguration().getOlapServerYarnQueues().keySet();
                         serverSubmitters = new ArrayList<>();
                         Set<String> names = new HashSet<>(queues);
-                        names.add("default");
+                        names.add(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
 
                         for (String queue : names) {
                             OlapServerSubmitter oss = new OlapServerSubmitter(serverName, queue);
