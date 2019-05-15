@@ -86,6 +86,7 @@
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
         <spark.version>2.1.0</spark.version>
+        <scala.version>2.11.6</scala.version>
         <netty-all.version>4.0.29.Final</netty-all.version>
     </properties>
     <scm>
@@ -551,7 +552,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>2.4.2</version>
+                    <version>3.2.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1486,6 +1487,41 @@
                 <netty-all.version>4.1.17.Final</netty-all.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
                 <parquet.version>orc-spark-2.3</parquet.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>platform_it</module>
+                <module>splice_spark</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>dbaas</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>dbaas</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.14.0</cdh.parcel.version>
+                <envClassifier>cdh5.14.0</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.14.0</hadoop.version>
+                <hbase.version>1.2.0-cdh5.14.0</hbase.version>
+                <hive.version>1.1.0-cdh5.14.0</hive.version>
+                <guava.version>15.0</guava.version>
+                <spark.version>2.2.2</spark.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <scala.version>2.11.8</scala.version>
+                <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
+                <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
+                <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+                <parquet.version>parquet-spark2</parquet.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
