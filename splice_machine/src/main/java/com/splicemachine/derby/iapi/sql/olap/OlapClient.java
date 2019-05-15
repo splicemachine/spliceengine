@@ -43,7 +43,7 @@ public interface OlapClient {
 
     /**
      *
-     * Submits a job for asynchronous execution to the defaul queue.
+     * Submits a job for asynchronous execution to the default queue.
      *
      * @param jobRequest the job to run. Cannot be null
      * @param <R> the Type of OlapResult expected back from the server, which will be wrapped in a Future

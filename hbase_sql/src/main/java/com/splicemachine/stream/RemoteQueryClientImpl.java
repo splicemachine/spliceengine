@@ -28,6 +28,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
+import com.splicemachine.si.constants.SIConstants;
 import io.netty.channel.ChannelHandler;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ListenableFuture;
@@ -138,14 +139,14 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                     return requestedQueue;
                 }
             }
-            return "default";
-        }
-        for (String role: roles) {
-            if (olapServerIsolatedRoles.get(role) != null) {
-                return olapServerIsolatedRoles.get(role);
+        } else {
+            for (String role : roles) {
+                if (olapServerIsolatedRoles.get(role) != null) {
+                    return olapServerIsolatedRoles.get(role);
+                }
             }
         }
-        return "default";
+        return SIConstants.OLAP_DEFAULT_QUEUE_NAME;
     }
 
     private void updateLimitOffset() throws StandardException {

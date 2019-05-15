@@ -50,6 +50,7 @@ import com.splicemachine.olap.OlapServerProvider;
 import com.splicemachine.olap.TimedOlapClient;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.log4j.Logger;
@@ -179,8 +180,8 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
             executorMap.put(queue, onl);
         }
         // Add default queue
-        JobExecutor onl = new AsyncOlapNIOLayer(osp, "default", retries);
-        executorMap.put("default", onl);
+        JobExecutor onl = new AsyncOlapNIOLayer(osp, SIConstants.OLAP_DEFAULT_QUEUE_NAME, retries);
+        executorMap.put(SIConstants.OLAP_DEFAULT_QUEUE_NAME, onl);
         return new TimedOlapClient(executorMap,timeoutMillis);
     }
 

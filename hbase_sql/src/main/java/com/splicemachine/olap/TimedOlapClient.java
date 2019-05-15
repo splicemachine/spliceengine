@@ -18,6 +18,7 @@ import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.constants.SIConstants;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ListenableFuture;
 
@@ -52,7 +53,7 @@ public class TimedOlapClient implements OlapClient{
         jobRequest.markSubmitted();
         //submit the jobRequest to the server
         try{
-            Future<OlapResult> submit=networkLayerMap.get("default").submit(jobRequest);
+            Future<OlapResult> submit=networkLayerMap.get(SIConstants.OLAP_DEFAULT_QUEUE_NAME).submit(jobRequest);
             //noinspection unchecked
             return (R)submit.get(timeoutMillis,TimeUnit.MILLISECONDS);
         }catch(InterruptedException e){
@@ -66,7 +67,7 @@ public class TimedOlapClient implements OlapClient{
 
     @Override
     public <R extends OlapResult> ListenableFuture<R> submit(@Nonnull DistributedJob jobRequest) throws IOException {
-        return submit(jobRequest, "default");
+        return submit(jobRequest, SIConstants.OLAP_DEFAULT_QUEUE_NAME);
     }
 
     @Override
