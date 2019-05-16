@@ -195,12 +195,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
 
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
+
         scr.preStorefilesRename();
 
         List<Path> paths = new ArrayList<>();
         for (String spath : sPaths) {
             paths.add(new Path(spath));
         }
+
+        scr.afterExecute();
         return paths;
     }
 

@@ -76,11 +76,6 @@ public class MemstoreAwareObserver extends BaseMemstoreAwareObserver implements 
     }
 
     @Override
-    public void preStoreScannerOpen(ObserverContext<RegionCoprocessorEnvironment> ctx, Store store, ScanOptions options) throws IOException {
-
-    }
-
-    @Override
     public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> c, Scan scan, RegionScanner s) throws IOException {
         if (scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY) != null &&
                 Bytes.equals(scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY), SIConstants.TRUE_BYTES)) {
@@ -90,12 +85,12 @@ public class MemstoreAwareObserver extends BaseMemstoreAwareObserver implements 
             }
             HRegion region = (HRegion) c.getEnvironment().getRegion();
             HStore store = region.getStore(SIConstants.DEFAULT_FAMILY_BYTES);
-            return preStoreScannerOpenAction2(c, store, scan, null, s);
+            return postScannerOpenAction(c, store, scan, null, s);
         }
         return s;
     }
 
-    protected RegionScanner preStoreScannerOpenAction2(ObserverContext<RegionCoprocessorEnvironment> c,Store store,Scan scan,NavigableSet<byte[]> targetCols, RegionScanner s) throws IOException{
+    protected RegionScanner postScannerOpenAction(ObserverContext<RegionCoprocessorEnvironment> c,Store store,Scan scan,NavigableSet<byte[]> targetCols, RegionScanner s) throws IOException{
         try {
             if (scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY) != null &&
                     Bytes.equals(scan.getAttribute(MRConstants.SPLICE_SCAN_MEMSTORE_ONLY),SIConstants.TRUE_BYTES)) {
