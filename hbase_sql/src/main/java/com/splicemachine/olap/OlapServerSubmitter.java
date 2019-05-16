@@ -147,7 +147,7 @@ public class OlapServerSubmitter implements Runnable {
             for (int i = 0; i<maxAttempts; ++i) {
                 try {
                     // Clear ZooKeeper path
-                    clearZookeeper(ZkUtils.getRecoverableZooKeeper(), serverName);
+                    clearZookeeper(ZkUtils.getRecoverableZooKeeper(), serverName, queueName);
 
                     // Create application via yarnClient
                     YarnClientApplication app = yarnClient.createApplication();
@@ -349,7 +349,7 @@ public class OlapServerSubmitter implements Runnable {
         return keytab;
     }
 
-    private void clearZookeeper(RecoverableZooKeeper rzk, ServerName serverName) throws InterruptedException, KeeperException {
+    private void clearZookeeper(RecoverableZooKeeper rzk, ServerName serverName, String queueName) throws InterruptedException, KeeperException {
         String root = HConfiguration.getConfiguration().getSpliceRootPath();
 
         try {
@@ -365,7 +365,7 @@ public class OlapServerSubmitter implements Runnable {
                 else throw e;
             }
 
-            String masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName;
+            String masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName + ":" + queueName;
             try {
                 rzk.delete(masterPath, -1);
             } catch (KeeperException e) {
