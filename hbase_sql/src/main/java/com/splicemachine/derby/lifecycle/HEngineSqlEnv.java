@@ -143,6 +143,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
                         try {
                             bytes = ZkUtils.getData(HConfiguration.getConfiguration().getSpliceRootPath() +
                                     HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName + ":" + queue);
+                            break;
                         } catch (IOException e) {
                             catched = e;
                             if (e.getCause() instanceof KeeperException.NoNodeException) {
