@@ -554,6 +554,12 @@ public final class TransactionResourceImpl
 		return (driver.isActive() && ((database == null) || database.isActive()));
 	}
 
+	// Indicate whether the client whose transaction this is
+	// supports reading of decimals with 38 digits of precision.
+	public void setClientSupportsDecimal38(boolean newVal) {
+		if (lcc != null)
+			lcc.setClientSupportsDecimal38(newVal);
+    	}
 }
 
 

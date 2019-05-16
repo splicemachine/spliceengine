@@ -2975,4 +2975,11 @@ public abstract class EmbedConnection implements EngineConnection
         }
 	}
 
+	// Indicate whether the client whose connection this is
+	// supports reading of decimals with 38 digits of precision.
+	public void setClientSupportsDecimal38(boolean newVal) {
+    	    TransactionResourceImpl tr = getTR();
+	    if (tr != null)
+	        tr.setClientSupportsDecimal38(newVal);
+    	}
 }

@@ -56,6 +56,7 @@ import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.jdbc.*;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
@@ -67,9 +68,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.types.SQLRowId;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
-import com.splicemachine.db.iapi.jdbc.AuthenticationService;
-import com.splicemachine.db.iapi.jdbc.EngineLOB;
-import com.splicemachine.db.iapi.jdbc.EngineResultSet;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
@@ -3757,6 +3756,15 @@ class DRDAConnThread extends Thread {
                  appRequester.greaterThanOrEqualTo(10, 7, 0)) {
              try {
                  writePBSD();
+                 // Flag in the lcc whether DECIMAL with precision of 38
+		 // is supported by the current client.
+                 if (appRequester.greaterThanOrEqualTo(10, 9, 2)) {
+			 EngineConnection conn = database.getConnection();
+			 if (conn != null && conn instanceof EmbedConnection) {
+				 EmbedConnection ec = (EmbedConnection) conn;
+				 ec.setClientSupportsDecimal38(true);
+			 }
+		 }
              } catch (SQLException se) {
                  server.consoleExceptionPrint(se);
                  errorInChain(se);

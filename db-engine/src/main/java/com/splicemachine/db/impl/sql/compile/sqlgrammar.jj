@@ -670,10 +670,18 @@ public class SQLParser
 			// else we want to continue on below
 		}
 
-		return (NumericConstantNode) nodeFactory.getNode(
-									C_NodeTypes.DECIMAL_CONSTANT_NODE,
-									num,
-									cm);
+        NumericConstantNode ncn =
+        (NumericConstantNode) nodeFactory.getNode(
+                            C_NodeTypes.DECIMAL_CONSTANT_NODE,
+                            num,
+                            cm);
+        if (ncn != null) {
+            int precision = ncn.getTypeServices().getPrecision();
+            if (precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE)
+				throw StandardException.newException(SQLState.DECIMAL_TOO_MANY_DIGITS);
+        }
+		return ncn;
+
 	}
 	/**
 	 * Determine whether the current token represents one of

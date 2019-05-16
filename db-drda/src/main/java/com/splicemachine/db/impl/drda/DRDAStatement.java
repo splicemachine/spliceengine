@@ -1312,7 +1312,7 @@ class DRDAStatement
 
 
 	/**
-	 *  get parameter precision or DB2 max (31)
+	 *  get parameter precision or DB2 max (38)
 	 *
 	 *  @param index parameter index starting with 1
 	 *
@@ -1333,7 +1333,7 @@ class DRDAStatement
 	}
 	
 	/**
-	 *  get parameter scale or DB2 max (31)
+	 *  get parameter scale or DB2 max (38)
 	 *
 	 *  @param index parameter index starting with 1
 	 *

@@ -743,7 +743,7 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "---------------\n" +
             "10000000000.7 |\n" +
             "10000000000.9 |",
-            "The resulting value is outside the range for the data type DECIMAL/NUMERIC(31,21).",
+            "The resulting value is outside the range for the data type DECIMAL/NUMERIC(38,28).",
             "The resulting value is outside the range for the data type DOUBLE.",
             "1      |\n" +
             "-------------\n" +
@@ -846,7 +846,7 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "---------------\n" +
             "10000000000.7 |\n" +
             "10000000000.9 |",
-            "The resulting value is outside the range for the data type DECIMAL/NUMERIC(31,21).",
+            "The resulting value is outside the range for the data type DECIMAL/NUMERIC(38,28).",
             "The resulting value is outside the range for the data type DOUBLE.",
             "A      |\n" +
             "-------------\n" +

@@ -188,6 +188,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private int queryNestingDepth;
 
+    /**
+     * True if the connected client application can read decimal data
+     * up to 38 digits of precision.
+     */
+    private boolean clientSupportsDecimal38 = false;
+
     protected DataValueFactory dataFactory;
     protected LanguageFactory langFactory;
     protected TypeCompilerFactory tcf;
@@ -3853,5 +3859,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public boolean getIgnoreCommentOptEnabled() {
         return ignoreCommentOptEnabled;
+    }
+
+    public boolean clientSupportsDecimal38() { return clientSupportsDecimal38; }
+
+    public void setClientSupportsDecimal38(boolean newVal) {
+        clientSupportsDecimal38 = newVal;
     }
 }
