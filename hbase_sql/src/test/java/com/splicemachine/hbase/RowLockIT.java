@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -36,6 +37,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+@Ignore
 @Category({SerialTest.class})
 public class RowLockIT {
     private static final String SCHEMA = RowLockIT.class.getSimpleName().toUpperCase();
@@ -75,7 +77,7 @@ public class RowLockIT {
     @Rule
     public final SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
     @Rule
-    public Timeout globalTimeout = Timeout.seconds(60);
+    public Timeout globalTimeout = Timeout.seconds(90);
 
     @Test
     public void testRowLockDoesntDeadlock() throws Exception {

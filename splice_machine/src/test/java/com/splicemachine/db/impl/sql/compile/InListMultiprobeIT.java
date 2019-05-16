@@ -41,6 +41,7 @@ import static org.junit.Assert.assertEquals;
  */
 @RunWith(Parameterized.class)
 @Category(SerialTest.class)
+@Ignore
 public class InListMultiprobeIT  extends SpliceUnitTest {
     
     private Boolean useSpark;
