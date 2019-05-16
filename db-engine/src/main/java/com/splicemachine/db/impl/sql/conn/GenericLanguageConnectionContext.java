@@ -351,7 +351,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             boolean skipStats,
             double defaultSelectivityFactor,
             String ipAddress,
-            String defaultSchema
+            String defaultSchema,
+            Properties connectionProperties
             ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
@@ -398,6 +399,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, new Boolean(skipStats).toString());
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
+        if (connectionProperties != null) {
+            String olapQueue = connectionProperties.getProperty("olapQueue");
+            if (olapQueue != null) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE, olapQueue);
+            }
+        }
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);

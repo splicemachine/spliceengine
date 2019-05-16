@@ -63,6 +63,7 @@ public class SessionPropertiesImpl implements SessionProperties {
                 break;
             case OLAPQUEUE:
                 properties[OLAPQUEUE.getId()] = valString;
+                break;
             case RECURSIVEQUERYITERATIONLIMIT:
                 int recursiveQueryIterationLimit = Integer.parseInt(valString);
                 properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;

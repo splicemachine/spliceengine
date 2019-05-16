@@ -154,7 +154,8 @@ public class GenericLanguageConnectionFactory
 		boolean skipStats,
 		double defaultSelectvityFactor,
 		String ipAddresss,
-        String defaultSchema) throws StandardException {
+		String defaultSchema,
+		Properties sessionProperties) throws StandardException {
 		
 		return new GenericLanguageConnectionContext(cm,
 													tc,
@@ -170,7 +171,8 @@ public class GenericLanguageConnectionFactory
 				                                    skipStats,
 				                                    defaultSelectvityFactor,
 													ipAddresss,
-                                                    defaultSchema
+                                                    defaultSchema,
+                                                    sessionProperties
 				);
 	}
 
