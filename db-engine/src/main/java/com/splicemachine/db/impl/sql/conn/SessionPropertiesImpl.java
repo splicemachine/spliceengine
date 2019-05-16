@@ -66,6 +66,7 @@ public class SessionPropertiesImpl implements SessionProperties {
                 break;
             case OLAPQUEUE:
                 properties[OLAPQUEUE.getId()] = valString;
+                break;
             default:
                 break;
         }

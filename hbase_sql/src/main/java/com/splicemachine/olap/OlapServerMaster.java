@@ -17,7 +17,6 @@ package com.splicemachine.olap;
 
 import com.google.common.net.HostAndPort;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.util.NetworkUtils;
@@ -47,16 +46,11 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
-import java.security.PrivilegedAction;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.apache.zookeeper.KeeperException.Code.NODEEXISTS;
-import static org.apache.zookeeper.KeeperException.Code.NONODE;
 
 
 /**
@@ -67,17 +61,17 @@ public class OlapServerMaster implements Watcher {
     private final ServerName serverName;
     private final AtomicBoolean end = new AtomicBoolean(false);
     private final int port;
-    private final String roleName;
+    private final String queueName;
     private RecoverableZooKeeper rzk;
     private String masterPath;
 
     UserGroupInformation ugi;
     UserGroupInformation yarnUgi;
 
-    public OlapServerMaster(ServerName serverName, int port, String roleName) {
+    public OlapServerMaster(ServerName serverName, int port, String queueName) {
         this.serverName = serverName;
         this.port = port;
-        this.roleName = roleName;
+        this.queueName = queueName;
     }
 
     public static void main(String[] args) throws Exception {
@@ -195,7 +189,7 @@ public class OlapServerMaster implements Watcher {
 
         try {
             HostAndPort hostAndPort = HostAndPort.fromParts(hostname, port);
-            masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName + ":" + roleName;
+            masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName + ":" + queueName;
             rzk.create(masterPath, Bytes.toBytes(hostAndPort.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             rzk.getData(masterPath, this, null);
         } catch (Exception e) {
