@@ -977,7 +977,8 @@ public class DDLUtils {
                         revokeSchemaPrivilege.getUpdatePerm(),
                         revokeSchemaPrivilege.getReferencesPerm(),
                         revokeSchemaPrivilege.getTriggerPerm(),
-                        revokeSchemaPrivilege.getModifyPerm());
+                        revokeSchemaPrivilege.getModifyPerm(),
+                        revokeSchemaPrivilege.getAccessPerm());
         schemaPermsDesc.setUUID(objectId);
         if (!isGrant) {
             dm.invalidateFor(schemaPermsDesc, DependencyManager.REVOKE_PRIVILEGE, lcc);

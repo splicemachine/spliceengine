@@ -44,6 +44,8 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSCOLUMNS row.
@@ -440,4 +442,61 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("USEEXTRAPOLATION", Types.TINYINT, true)
         };
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+            new ColumnDescriptor[]{
+                new ColumnDescriptor("REFERENCEID",1,1,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLUMNNAME"               ,2,2,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLUMNNUMBER"               ,3,3,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER, false),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("STORAGENUMBER"               ,4,4,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER, false),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLUMNDATATYPE"               ,5,5,
+                        new DataTypeDescriptor(TypeId.getUserDefinedTypeId("com.splicemachine.db.catalog.TypeDescriptor", false), false),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLUMNDEFAULT"               ,6,6,
+                        new DataTypeDescriptor(TypeId.getUserDefinedTypeId("java.io.Serializable", true), false),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLUMNDEFAULTID"               ,7,7,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("AUTOINCREMENTVALUE"               ,8,8,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("AUTOINCREMENTSTART"               ,9,9,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("AUTOINCREMENTINC"               ,10,10,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLLECTSTATS"               ,11,11,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, true),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("PARTITIONPOSITION"               ,12,12,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER, true),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("USEEXTRAPOLATION"               ,13,13,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TINYINT, true),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("TABLENAME"               ,14,14,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                  null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("SCHEMANAME"               ,15,15,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                        null,null,view,viewId,0,0,0)
+        });
+        return cdsl;
+    }
+    public static String SYSCOLUMNS_VIEW_SQL = "create view SYSCOLUMNSVIEW as \n" +
+            "SELECT C.*, " +
+            "T.TABLENAME, " +
+            "T.SCHEMANAME " +
+            "FROM SYS.SYSCOLUMNS C, SYSVW.SYSTABLESVIEW T WHERE T.TABLEID = C.REFERENCEID";
 }

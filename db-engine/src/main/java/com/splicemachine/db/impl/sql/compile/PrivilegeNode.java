@@ -186,7 +186,9 @@ public class PrivilegeNode extends QueryTreeNode
 
             if (sd.isSystemSchema())
             {
-                throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, schemaName);
+                // for system schemas, we will allow access and select privilege only
+                if (!specificPrivileges.accessActionAllowed() && !specificPrivileges.selectActionAllowed())
+                    throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, schemaName);
             }
 
             // Don't allow authorization on SESSION schema tables. Causes confusion if
@@ -200,7 +202,7 @@ public class PrivilegeNode extends QueryTreeNode
             break;
         case TABLE_PRIVILEGES:
 
-            if (specificPrivileges.modifyActionAllowed()) {
+            if (specificPrivileges.modifyActionAllowed() || specificPrivileges.accessActionAllowed()) {
                 throw StandardException.newException(SQLState.AUTH_NOT_VALID_TABLE_PRIVILEGE);
             }
             sd = getSchemaDescriptor( objectName.getSchemaName(), true);
@@ -210,10 +212,11 @@ public class PrivilegeNode extends QueryTreeNode
             // returns null, in which case we'll fetch the schema descriptor for
             // the current compilation schema (see getSchemaDescriptor).
             objectName.setSchemaName( sd.getSchemaName() );
-            // can't grant/revoke privileges on system tables
+            // can't grant/revoke privileges on system tables other than select
             if (sd.isSystemSchema())
             {
-                throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
+                if (!specificPrivileges.selectActionAllowed())
+                    throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
             }
             
             TableDescriptor td = getTableDescriptor( objectName.getTableName(), sd);

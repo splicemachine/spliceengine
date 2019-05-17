@@ -40,6 +40,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.SQLException;
 
+import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 import com.splicemachine.dbTesting.junit.JDBC;
@@ -697,7 +698,7 @@ public class AutoGenJDBC30Test extends BaseJDBCTestCase {
         ResultSetMetaData rsmd = rs.getMetaData();
         assertEquals("ResultSet column count", 1, rsmd.getColumnCount());
         assertEquals("Column type", "DECIMAL", rsmd.getColumnTypeName(1));
-        assertEquals("Column precision", 31, rsmd.getPrecision(1));
+        assertEquals("Column precision", Limits.DB2_MAX_DECIMAL_PRECISION_SCALE, rsmd.getPrecision(1));
         assertEquals("Column scale", 0, rsmd.getScale(1));
         int keyval = getKeyValue (rs);
         assertEquals("Key value", 1, keyval);

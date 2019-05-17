@@ -17,13 +17,12 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.8.0.1916-SNAPSHOT</version>
+        <version>2.8.0.1917-SNAPSHOT</version>
     </parent>
     <artifactId>scala_util</artifactId>
     <name>Splicemachine Scala Utils</name>
     <properties>
         <!--Skip server startup-->
-        <scala.version>2.11.6</scala.version>
         <!--Ant task to run shell scripts-->
         <shell.command>/bin/bash</shell.command>
         <ee_out/>
@@ -146,4 +145,12 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+                <id>dbaas</id>
+                <properties>
+                    <scala.version>2.11.8</scala.version>
+                </properties>
+        </profile>
+    </profiles>
 </project>

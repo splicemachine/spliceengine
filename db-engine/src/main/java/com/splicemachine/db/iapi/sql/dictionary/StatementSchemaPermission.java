@@ -92,27 +92,43 @@ public class StatementSchemaPermission extends StatementPermission
 		DataDictionary dd =	lcc.getDataDictionary();
 		TransactionController tc = lcc.getTransactionExecute();
         String currentUserId = lcc.getCurrentUserId(activation);
+		List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 
 		SchemaDescriptor sd;
 		switch ( privType )
 		{
+			case Authorizer.ACCESS_PRIV:
+				/* for access priv, all the permissions set schemaUUID instead of schemaName */
+				sd = dd.getSchemaDescriptor(schemaUUID, tc);
+				if (sd == null)
+					return;
+
+				// if current user is owner, it can access the schema
+				if (currentUserId.equals(sd.getAuthorizationId()) ||
+						currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
+					return;
+
+				if (!hasPermissionOnSchema(lcc, dd, activation, forGrant))
+					throw StandardException.newException(
+							SQLState.LANG_SCHEMA_DOES_NOT_EXIST,
+							sd.getSchemaName());
+				break;
 			case Authorizer.MODIFY_SCHEMA_PRIV:
 				sd = dd.getSchemaDescriptor(schemaName, tc, false);
 				if (sd == null)
 					return;
 
 				// if current user is owner, it can modify the schema
-                if (currentUserId.equals(sd.getAuthorizationId()))
+                if (currentUserId.equals(sd.getAuthorizationId()) ||
+						currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
                     return;
 
 				schemaUUID = sd.getUUID();
 				if (!hasPermissionOnSchema(lcc, dd, activation, forGrant))
-                {
-                    throw StandardException.newException(
-                            SQLState.AUTH_NO_ACCESS_NOT_OWNER,
-                            currentUserId,
-                            schemaName);
-                }
+					throw StandardException.newException(
+							SQLState.AUTH_NO_ACCESS_NOT_OWNER,
+							currentUserId,
+							schemaName);
 
                 break;
 			case Authorizer.DROP_SCHEMA_PRIV:
@@ -174,7 +190,10 @@ public class StatementSchemaPermission extends StatementPermission
 			}
 		}
 
-        if (authorization == NONE) {
+        if (authorization == NONE ||
+			// for access check, if a role grants the access privilege,
+			// we would like treat it as the user has the access privilege
+			authorization == UNAUTHORIZED && privType == Authorizer.ACCESS_PRIV) {
             // Since no permission exists for the current user or PUBLIC,
             // check if a permission exists for the current role (if set).
 			List<String> currentRoles = lcc.getCurrentRoles(activation);
@@ -282,6 +301,8 @@ public class StatementSchemaPermission extends StatementPermission
 			case Authorizer.MODIFY_SCHEMA_PRIV:
 				priv = perms.getModifyPriv();
 				break;
+			case Authorizer.ACCESS_PRIV:
+				priv = perms.getAccessPriv();
 		}
 
 		return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ?  AUTHORIZED : UNAUTHORIZED;
@@ -309,6 +330,8 @@ public class StatementSchemaPermission extends StatementPermission
 			return "MODIFY_SCHEMA";
 		case Authorizer.DROP_SCHEMA_PRIV:
 			return "DROP_SCHEMA";
+		case Authorizer.ACCESS_PRIV:
+			return "ACCESS_SCHEMA";
         default:
             return "?";
         }
@@ -324,8 +347,8 @@ public class StatementSchemaPermission extends StatementPermission
 
 
 	public String toString() {
-		return "StatementSchemaPermission: " + schemaName + " owner:" +
-			aid + " " + getPrivName();
+		return "StatementSchemaPermission: " + schemaName + " UUID: " + schemaUUID + " owner:" +
+			aid + " privName:" + getPrivName();
 	}
 
 	@Override
@@ -337,4 +360,26 @@ public class StatementSchemaPermission extends StatementPermission
 		return schemaName;
 	}
 
+	public boolean equals( Object obj)
+	{
+		if( obj == null)
+			return false;
+		if( getClass().equals( obj.getClass()))
+		{
+			StatementSchemaPermission other = (StatementSchemaPermission) obj;
+			return privType == other.privType && (schemaUUID !=null && other.schemaUUID != null && schemaUUID.equals(other.schemaUUID));
+		}
+		return false;
+	}
+
+	/**
+	 * Return hash code for this instance
+	 *
+	 * @return	Hashcode
+	 *
+	 */
+	public int hashCode()
+	{
+		return privType + (schemaUUID!=null?schemaUUID.hashCode():0);
+	}
 }

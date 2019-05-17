@@ -51,6 +51,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
     private String referencesPriv;
     private String triggerPriv;
     private String modifyPriv;
+    private String accessPriv;
 
     public SchemaPermsDescriptor( DataDictionary dd,
                                  String grantee,
@@ -62,7 +63,8 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
                                  String updatePriv,
                                  String referencesPriv,
                                  String triggerPriv,
-                                 String modifyPriv) throws StandardException {
+                                 String modifyPriv,
+                                 String accessPriv) throws StandardException {
         super(dd, grantee, grantor);
         this.schemaUUID = schemaUUID;
         this.selectPriv = selectPriv;
@@ -72,6 +74,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
         this.referencesPriv = referencesPriv;
         this.triggerPriv = triggerPriv;
         this.modifyPriv = modifyPriv;
+        this.accessPriv = accessPriv;
         //schemaUUID can be null only if the constructor with tablePermsUUID
         //has been invoked.
         if (schemaUUID != null)
@@ -92,13 +95,13 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
                                  UUID schemaUUID) throws StandardException
     {
         this( dd, grantee, grantor, schemaUUID,
-                (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, (String) null);
+                (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, (String) null);
     }
 
     public SchemaPermsDescriptor(DataDictionary dd,
                                  UUID schemaPermpUUID) throws StandardException {
         this( dd, null, null, null,
-                (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, null);
+                (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, (String) null, (String) null);
         oid = schemaPermpUUID;
     }
 
@@ -117,6 +120,7 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
     public String getReferencesPriv() { return referencesPriv;}
     public String getTriggerPriv() { return triggerPriv;}
     public String getModifyPriv() { return modifyPriv;}
+    public String getAccessPriv() { return accessPriv;}
 
     public String toString()
     {
@@ -130,7 +134,8 @@ public class SchemaPermsDescriptor  extends PermissionsDescriptor {
                 ",updatePriv=" + getUpdatePriv() +
                 ",referencesPriv=" + getReferencesPriv() +
                 ",triggerPriv=" + getTriggerPriv() +
-                ",modifyPriv=" + getModifyPriv();
+                ",modifyPriv=" + getModifyPriv() +
+                ",accessPriv=" + getAccessPriv();
     }
 
     /**

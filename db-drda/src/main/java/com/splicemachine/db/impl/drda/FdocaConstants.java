@@ -130,8 +130,8 @@ class FdocaConstants
 	protected static int LONGVARBINARY_MAX_LEN = Limits.DB2_LONGVARCHAR_MAXWIDTH;
 	protected static int LONGVARCHAR_LEN_NUMBYTES = 2;
 
-	// JCC  only supports a max precision of 31 like DB2
-	protected static int NUMERIC_MAX_PRECISION=31;
+	// JCC  only supports a max precision of 38 like Splice
+	protected static int NUMERIC_MAX_PRECISION=Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
 	protected static int NUMERIC_DEFAULT_PRECISION=NUMERIC_MAX_PRECISION;
 	protected static int NUMERIC_DEFAULT_SCALE=15;
 

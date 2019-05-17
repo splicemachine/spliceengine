@@ -362,4 +362,6 @@ public interface SConfiguration {
     int getMaxCheckTableErrors();
 
     int getRecursiveQueryIterationLimit();
+
+    boolean getMetadataRestrictionEnabled();
 }

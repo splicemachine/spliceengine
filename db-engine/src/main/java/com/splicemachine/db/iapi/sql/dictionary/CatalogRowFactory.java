@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-import java.util.Properties;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -40,6 +38,8 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+
+import java.util.List;
 
 /**
  * Superclass of all row factories.
@@ -310,5 +310,9 @@ public abstract	class CatalogRowFactory
 	public int[] getIndexColumnPositions(int indexNumber)
 	{
 		return indexColumnPositions[indexNumber];
-	}	
+	}
+
+	public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+		return null;
+	}
 }

@@ -45,6 +45,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import static com.splicemachine.db.iapi.types.NumberDataValue.MAX_DECIMAL_PRECISION_SCALE;
+
 /**
  Aggregator for AVG(). Extends the SumAggregator and
  implements a count. Result is then sum()/count().
@@ -93,10 +95,13 @@ public final class AvgAggregator extends OrderableAggregator
 								scale = TypeId.DECIMAL_SCALE;
 								break;
 						default:
-								scale = returnDataType.getScale();
-								if(scale < NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE)
-										scale = NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE;
-
+							// Honor the scale of the return data type picked by the
+							// parser.  In the past, this was overridden, which may
+							// cause overflows.  For averaging DEC(38,0), 38 digits
+							// of precision is enough.  We don't want to tell the user
+							// we can't calculate the average because we require 42
+							// digits of precision in this case.
+							scale = returnDataType.getScale();
 				}
 				return this;
 		}

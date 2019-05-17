@@ -121,6 +121,7 @@ public interface LanguageConnectionFactory {
 								List<String> groupuserlist,
 								String drdaID,
 								String dbname,
+								String rdbIntTkn,
                                 CompilerContext.DataSetProcessorType type,
 								boolean skipStats,
 								double defaultSelectivityFactor,

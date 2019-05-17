@@ -88,6 +88,7 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 	 * @exception StandardException thrown if unable to create the connection.
 	 */
 	public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
+													 String rdbIntTkn,
 													 CompilerContext.DataSetProcessorType dataSetProcessorType,
 													 boolean skipStats,
 													 double defaultSelectivityFactor,

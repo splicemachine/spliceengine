@@ -142,6 +142,13 @@ public class DefaultRoleIT {
         adminConn.execute( format("insert into %s.%s values ( 3,3,3)", SCHEMA3, TABLE3 ) );
         adminConn.execute( format("insert into %s.%s values ( 4,4,4)", SCHEMA4, TABLE4 ) );
         adminConn.execute( format("insert into %s.%s values ( 5,5,5)", SCHEMA5, TABLE5 ) );
+
+        adminConn.execute(format("grant access on schema %s to public", SCHEMA1));
+        adminConn.execute(format("grant access on schema %s to public", SCHEMA2));
+        adminConn.execute(format("grant access on schema %s to public", SCHEMA3));
+        adminConn.execute(format("grant access on schema %s to public", SCHEMA4));
+        adminConn.execute(format("grant access on schema %s to public", SCHEMA5));
+
         adminConn.execute(format(grantPrivilegeTemplate, SCHEMA1, ROLE1));
         adminConn.execute(format(grantPrivilegeTemplate, SCHEMA2, ROLE2));
         adminConn.execute(format(grantPrivilegeTemplate, SCHEMA3, ROLE3));

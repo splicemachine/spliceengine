@@ -30,6 +30,7 @@
  */
 
 package com.splicemachine.db.impl.drda;
+import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import java.io.IOException;
 import java.io.InputStream;
@@ -115,6 +116,7 @@ class DDMReader
       { 0x3b9aca00 }, // 10^9
       { 0x0de0b6b3, 0xa7640000 }, // 10^18
       { 0x033b2e3c, 0x9fd0803c, 0xe8000000 }, // 10^27
+      { 0x00c097ce, 0x7bc90715, 0xb34b9f10, 0x00000000 }, // 10^36
     };
 
 	private DRDAConnThread agent;
@@ -941,7 +943,7 @@ class DDMReader
 		pos += length;
         return new java.math.BigDecimal (new java.math.BigInteger(signum, magnitude), scale);
       }
-      else if (precision <= 31) {
+      else if (precision <= 36) {
         // get the value of last 9 digits (5 bytes).
         int lo   = packedNybblesToInt(buffer, pos, (length-5)*2, 9);
         // get the value of another 9 digits (5 bytes).
@@ -976,10 +978,51 @@ class DDMReader
 		pos += length;
         return new java.math.BigDecimal (new java.math.BigInteger(signum, magnitude), scale);
       }
+      else if (precision <= Limits.DB2_MAX_DECIMAL_PRECISION_SCALE) {
+        // get the value of last 9 digits (5 bytes).
+        int lo   = packedNybblesToInt(buffer, pos, (length-5)*2, 9);
+        // get the value of another 9 digits (5 bytes).
+        int meLo = packedNybblesToInt(buffer, pos, (length-10)*2+1, 9);
+        // get the value of another 9 digits (5 bytes).
+        int meHi = packedNybblesToInt(buffer, pos, (length-14)*2, 9);
+        // get the value of another 9 digits (5 bytes).
+        int meHi2 = packedNybblesToInt(buffer, pos, (length-19)*2+1, 9);
+        // get the value of the rest digits.
+        int hi   = packedNybblesToInt(buffer, pos, 0, (length-19)*2+1);
+
+        // compute the int array of magnitude.
+        int[] value = computeMagnitude(new int[] {hi, meHi2, meHi, meLo, lo});
+
+        // convert value to a byte array of magnitude.
+        byte[] magnitude = new byte[20];
+        magnitude[0]  = (byte)(value[0] >>> 24);
+        magnitude[1]  = (byte)(value[0] >>> 16);
+        magnitude[2]  = (byte)(value[0] >>> 8);
+        magnitude[3]  = (byte)(value[0]);
+        magnitude[4]  = (byte)(value[1] >>> 24);
+        magnitude[5]  = (byte)(value[1] >>> 16);
+        magnitude[6]  = (byte)(value[1] >>> 8);
+        magnitude[7]  = (byte)(value[1]);
+        magnitude[8]  = (byte)(value[2] >>> 24);
+        magnitude[9]  = (byte)(value[2] >>> 16);
+        magnitude[10] = (byte)(value[2] >>> 8);
+        magnitude[11] = (byte)(value[2]);
+        magnitude[12] = (byte)(value[3] >>> 24);
+        magnitude[13] = (byte)(value[3] >>> 16);
+        magnitude[14] = (byte)(value[3] >>> 8);
+        magnitude[15] = (byte)(value[3]);
+        magnitude[16] = (byte)(value[4] >>> 24);
+        magnitude[17] = (byte)(value[4] >>> 16);
+        magnitude[18] = (byte)(value[4] >>> 8);
+        magnitude[19] = (byte)(value[4]);
+
+	pos += length;
+        return new java.math.BigDecimal (new java.math.BigInteger(signum, magnitude), scale);
+      }
       else {
 		pos += length;
-        // throw an exception here if nibbles is greater than 31
-        throw new java.lang.IllegalArgumentException("Decimal may only be up to 31 digits!");
+        // throw an exception here if nibbles is greater than 38
+        throw new java.lang.IllegalArgumentException("Decimal may only be up to 38 digits!");
       }
     }
 

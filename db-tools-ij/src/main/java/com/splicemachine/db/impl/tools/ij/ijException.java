@@ -63,6 +63,7 @@ public class ijException extends RuntimeException {
 	private final static String NoSuchConnection = "IJ_NoConnExisWi";
 	private final static String NoSuchProtocol = "IJ_NoProtExisWi";
 	private final static String NoSuchTable = "IJ_NoSuchTable";
+	private final static String NoSuchSchema = "IJ_NoSuchSchema";
 	private final static String NoSuchProcedure = "IJ_NoSuchProcedure";
 	private final static String NotJDBC20 = "IJ_IsOnlySuppIn";
 	private final static String NoUsingResults = "IJ_UsinClauHadN";
@@ -136,6 +137,9 @@ public class ijException extends RuntimeException {
 	}
 	static ijException noSuchTable(String c) {
 		return new ijException(LocalizedResource.getMessage(NoSuchTable, c));
+	}
+	static ijException noSuchSchema(String c) {
+		return new ijException(LocalizedResource.getMessage(NoSuchSchema, c));
 	}
 	static ijException noSuchProcedure(String c) {
 		return new ijException(LocalizedResource.getMessage(NoSuchProcedure, c));

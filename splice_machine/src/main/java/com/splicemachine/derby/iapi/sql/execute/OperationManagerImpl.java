@@ -18,7 +18,6 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.Pair;
@@ -37,15 +36,21 @@ import java.util.Date;
 public class OperationManagerImpl implements OperationManager {
     private static final Logger LOG = Logger.getLogger(OperationManagerImpl.class);
     private ConcurrentMap<UUID, RunningOperation> operations = new ConcurrentHashMap();
+    private ConcurrentMap<String, RunningOperation> drdaOperations = new ConcurrentHashMap();
 
-    public UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine) {
+    public UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine, String rdbIntTkn) {
         UUID uuid = UUID.randomUUID();
-        operations.put(uuid, new RunningOperation(operation, executingThread, submittedTime, engine));
+        RunningOperation ro = new RunningOperation(operation, executingThread, submittedTime, engine, uuid, rdbIntTkn);
+        operations.put(uuid, ro);
+        if (rdbIntTkn != null)
+            drdaOperations.put(rdbIntTkn, ro);
         return uuid;
     }
 
     public void unregisterOperation(UUID uuid) {
-        operations.remove(uuid);
+        RunningOperation ro = operations.remove(uuid);
+        if (ro != null && ro.getRdbIntTkn() != null)
+            drdaOperations.remove(ro.getRdbIntTkn());
     }
 
     public List<Pair<UUID, RunningOperation>> runningOperations(String userId) {
@@ -57,6 +62,40 @@ public class OperationManagerImpl implements OperationManager {
                 result.add(new Pair<>(entry.getKey(), entry.getValue()));
         }
         return result;
+    }
+
+    public boolean killDRDAOperation(String uuid, String userId) throws StandardException {
+        RunningOperation op = drdaOperations.get(uuid);
+        if (op == null)
+            return false;
+        Activation activation = op.getOperation().getActivation();
+        String databaseOwner = activation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
+        String runningUserId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        List<String> groupuserlist = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
+
+        if (!userId.equals(databaseOwner) && !userId.equals(runningUserId)) {
+            if (groupuserlist != null) {
+                if (!groupuserlist.contains(databaseOwner) && !groupuserlist.contains(runningUserId))
+                    throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid);
+            } else
+                throw StandardException.newException(SQLState.AUTH_NO_PERMISSION_FOR_KILLING_OPERATION, userId, uuid);
+        }
+
+        drdaOperations.remove(uuid);
+        operations.remove(op.getUuid());
+        
+        op.getOperation().kill();
+        op.getThread().interrupt();
+        ResultSet rs=activation.getResultSet();
+        if (rs!=null && !rs.isClosed()) {
+            try {
+                rs.close();
+            } catch (Exception e) {
+                LOG.warn("Exception while closing ResultSet, probably due to forcefully killing the operation", e);
+            }
+        }
+
+        return true;
     }
 
     public boolean killOperation(UUID uuid, String userId) throws StandardException {

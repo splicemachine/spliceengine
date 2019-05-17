@@ -150,6 +150,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private final int instanceNumber;
     private String drdaID;
     private String dbname;
+    private String rdbIntTkn;
 
     private Object lastQueryTree; // for debugging
 
@@ -186,6 +187,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * nested user transaction.
      */
     private int queryNestingDepth;
+
+    /**
+     * True if the connected client application can read decimal data
+     * up to 38 digits of precision.
+     */
+    private boolean clientSupportsDecimal38 = false;
 
     protected DataValueFactory dataFactory;
     protected LanguageFactory langFactory;
@@ -347,6 +354,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             int instanceNumber,
             String drdaID,
             String dbname,
+            String rdbIntTkn,
             CompilerContext.DataSetProcessorType type,
             boolean skipStats,
             double defaultSelectivityFactor,
@@ -370,6 +378,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
         this.dbname=dbname;
+        this.rdbIntTkn=rdbIntTkn;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
 
@@ -3197,6 +3206,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public String getRdbIntTkn() {
+        return rdbIntTkn;
+    }
+
+    @Override
     public void setDrdaID(String drdaID){
         this.drdaID=drdaID;
     }
@@ -3257,6 +3271,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getCurrentUserId(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentUser();
+    }
+
+    @Override
+    public void setCurrentUser(Activation a, String userName) {
+        getCurrentSQLSessionContext(a).setUser(userName);
+    }
+
+    @Override
+    public void setCurrentGroupUser(Activation a, List<String> groupUsers) {
+        getCurrentSQLSessionContext(a).setCurrentGroupUser(groupUsers);
     }
 
     @Override
@@ -3852,5 +3876,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public boolean getIgnoreCommentOptEnabled() {
         return ignoreCommentOptEnabled;
+    }
+
+    public boolean clientSupportsDecimal38() { return clientSupportsDecimal38; }
+
+    public void setClientSupportsDecimal38(boolean newVal) {
+        clientSupportsDecimal38 = newVal;
     }
 }

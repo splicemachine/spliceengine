@@ -186,7 +186,8 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
         SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
         SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
         SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,
-        SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME
+        SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,
+        SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME
     };
 
 	/**
@@ -197,6 +198,8 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 												"SYSCS_COMPRESS_TABLE",
 												"SYSCS_MODIFY_PASSWORD",
 												"SYSCS_SAVE_SOURCECODE",
+												"SYSCS_KILL_DRDA_OPERATION",
+												"SYSCS_KILL_DRDA_OPERATION_LOCAL",
 												};
 	
 	/**

@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -90,6 +91,9 @@ public class DropSchemaNode extends DDLStatementNode
             StatementContext stx = lcc.getStatementContext();
             
             String currentUser = stx.getSQLSessionContext().getCurrentUser();
+			SchemaDescriptor sd=lcc.getDataDictionary().getSchemaDescriptor(schemaName,
+					getLanguageConnectionContext().getTransactionCompile(),true);
+			getCompilerContext().addRequiredAccessSchemaPriv(sd.getUUID());
             getCompilerContext().addRequiredSchemaPriv(schemaName, 
                 currentUser,
                 Authorizer.DROP_SCHEMA_PRIV);

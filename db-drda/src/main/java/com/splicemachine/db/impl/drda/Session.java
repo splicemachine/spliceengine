@@ -39,6 +39,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import java.sql.SQLException;
+import java.util.UUID;
 
 /**
 	Session stores information about the current session
@@ -72,6 +73,7 @@ class Session
 	protected int state;				// the current state of the session
 	protected int sessionType;			// type of session - DRDA or NetworkServerControl command
 	protected String drdaID;			// DRDA ID of the session
+	protected UUID uuid;			// UUID of the session, used for RDBINTTKN
 	protected DssTrace dssTrace;		// trace object associated with the session
 	protected AppRequester appRequester;	// Application requester for this session
 	protected Database database;		// current database
@@ -118,6 +120,7 @@ class Session
 		if (traceOn)
 			dssTrace = new DssTrace(); 
 		dbtable = new Hashtable();
+		this.uuid = UUID.randomUUID();
 		initialize(traceDirectory);
 	}
 

@@ -30,6 +30,7 @@
  */
 package com.splicemachine.dbTesting.functionTests.tests.jdbcapi;
 
+import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.dbTesting.functionTests.tests.upgradeTests.Version;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 import com.splicemachine.dbTesting.junit.DatabasePropertyTestSetup;
@@ -2214,7 +2215,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
                                 
             case Types.DECIMAL:
             case Types.NUMERIC:
-                precision = 31;
+                precision = Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
                 break;
             case Types.DOUBLE:
             case Types.FLOAT:
@@ -2384,7 +2385,7 @@ public class DatabaseMetaDataTest extends BaseJDBCTestCase {
             {
         case Types.DECIMAL:
         case Types.NUMERIC:
-            maxScale = 31; // Max Scale for Decimal & Numeric is 31: Derby-2262
+            maxScale = Limits.DB2_MAX_DECIMAL_PRECISION_SCALE; // Max Scale for Decimal & Numeric is 38
             break;
             case Types.TIMESTAMP:
                 maxScale = 9;

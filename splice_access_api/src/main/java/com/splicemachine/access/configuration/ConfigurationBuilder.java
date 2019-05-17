@@ -76,6 +76,7 @@ public class ConfigurationBuilder {
     public String authorizationScheme;
     public String rangerServiceName;
     public int sentryPollingInterval;
+    public boolean metadataRestrictionEnabled;
 
     // StatsConfiguration
     public double fallbackNullFraction;

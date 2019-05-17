@@ -48,6 +48,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
@@ -55,6 +56,7 @@ import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.jdbc.*;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
@@ -66,13 +68,12 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.types.SQLRowId;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
-import com.splicemachine.db.iapi.jdbc.AuthenticationService;
-import com.splicemachine.db.iapi.jdbc.EngineLOB;
-import com.splicemachine.db.iapi.jdbc.EngineResultSet;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
+import com.splicemachine.primitives.Bytes;
 import com.sun.security.auth.callback.TextCallbackHandler;
 import com.sun.security.jgss.GSSUtil;
 import org.ietf.jgss.GSSContext;
@@ -1506,6 +1507,7 @@ class DRDAConnThread extends Thread {
 		if (session.drdaID == null)
 			session.drdaID = leftBrace + session.connNum + rightBrace;
 		p.put(Attribute.DRDAID_ATTR, session.drdaID);
+		p.put(Attribute.RDBINTTKN_ATTR, session.uuid.toString());
 
         // We pass extra property information for the authentication provider
         // to successfully re-compute the substitute (hashed) password and
@@ -3739,6 +3741,10 @@ class DRDAConnThread extends Thread {
 		writer.writeScalarString(CodePoint.TYPDEFNAM,
 								 CodePoint.TYPDEFNAM_QTDSQLASC);
 		writeTYPDEFOVR();
+		String token = generateToken();
+		if (appRequester.greaterThanOrEqualTo(10, 9, 1)) {
+			writer.writeScalarBytes(CodePoint.RDBINTTKN, Bytes.toBytes(token));
+		}
 		writer.endDdmAndDss ();
 
          // Write the initial piggy-backed data, currently the isolation level
@@ -3750,6 +3756,15 @@ class DRDAConnThread extends Thread {
                  appRequester.greaterThanOrEqualTo(10, 7, 0)) {
              try {
                  writePBSD();
+                 // Flag in the lcc whether DECIMAL with precision of 38
+		 // is supported by the current client.
+                 if (appRequester.greaterThanOrEqualTo(10, 9, 2)) {
+			 EngineConnection conn = database.getConnection();
+			 if (conn != null && conn instanceof EmbedConnection) {
+				 EmbedConnection ec = (EmbedConnection) conn;
+				 ec.setClientSupportsDecimal38(true);
+			 }
+		 }
              } catch (SQLException se) {
                  server.consoleExceptionPrint(se);
                  errorInChain(se);
@@ -3757,7 +3772,15 @@ class DRDAConnThread extends Thread {
          }
 		finalizeChain();
 	}
-	
+
+	private String generateToken() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(this.session.uuid.toString());
+		sb.append('#');
+		sb.append(server.getExternalHostname()).append(':').append(server.getPortNumber());
+		return sb.toString();
+	}
+
 	private void writeTYPDEFOVR() throws DRDAProtocolException
 	{
 		//TYPDEFOVR - required - only single byte and mixed byte are specified
