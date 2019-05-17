@@ -92,8 +92,8 @@ public class PkRowHash extends EntryDataHash{
 
     // A version of buildEntryEncoder that combines bits representing
     // non-null columns in the PK row we're going to update with bits
-    // representing non-null columns in finalHeapList, which holds the
-    // new column values to write in the replacement row.
+    // representing columns (both null and non-null) in finalHeapList,
+    // which holds the new column values to write in the replacement row.
     protected EntryEncoder buildEntryEncoder(BitSet fieldsToUpdate,
                                              BitSet scalarFields,
                                              BitSet floatFields,
