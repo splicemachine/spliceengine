@@ -82,4 +82,6 @@ public interface BitIndex extends Indexed {
     BitSet getDoubleFields();
 
     BitSet getFloatFields();
+
+    BitSet getFields();
 }

@@ -42,7 +42,7 @@ import com.carrotsearch.hppc.BitSet;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-class DenseCompressedBitIndex implements BitIndex {
+public class DenseCompressedBitIndex implements BitIndex {
     private final BitSet bitSet;
     private final BitSet scalarFields;
     private final BitSet floatFields;
@@ -354,6 +354,9 @@ class DenseCompressedBitIndex implements BitIndex {
     public BitSet getFloatFields() {
         return floatFields;
     }
+
+    @Override
+    public BitSet getFields() { return bitSet; }
 
     public static BitIndex wrap(byte[] data, int offset, int length) {
 
