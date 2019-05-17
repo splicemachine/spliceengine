@@ -45,7 +45,7 @@ import java.util.Arrays;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-class SparseBitIndex implements BitIndex {
+public class SparseBitIndex implements BitIndex {
     private final BitSet bitSet;
     private final BitSet scalarFields;
     private final BitSet floatFields;
@@ -261,6 +261,9 @@ class SparseBitIndex implements BitIndex {
     public BitSet getFloatFields() {
         return floatFields;
     }
+
+    @Override
+    public BitSet getFields() { return bitSet; }
 
     public static SparseBitIndex create(BitSet setCols,BitSet scalarFields,BitSet floatFields,BitSet doubleFields) {
         return new SparseBitIndex(setCols, scalarFields, floatFields, doubleFields);

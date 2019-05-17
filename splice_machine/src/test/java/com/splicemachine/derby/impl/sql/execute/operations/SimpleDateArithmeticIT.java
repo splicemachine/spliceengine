@@ -63,8 +63,13 @@ public class SimpleDateArithmeticIT {
         row("2012-05-23", new SimpleDateFormat("yyyy-MM-dd").parse("1988-12-26"), Timestamp.valueOf("2000-06-07 17:12:30"), Timestamp.valueOf("2012-12-13 00:00:00"))))
         .create();
 
+        // Insert nulls into old_date_test to test DB-8290, which fixes a bug where
+        // MERGE_DATA_FROM_FILE will not overwrite null columns in a PK table.
         new TableCreator(spliceClassWatcher.getOrCreateConnection())
-        .withCreate(String.format("create table %s (d date, primary key(d))", QUALIFIED_TABLE_NAME2))
+        .withCreate(String.format("create table %s (int_pk int, d date, primary key(int_pk))", QUALIFIED_TABLE_NAME2))
+        .withInsert(String.format("insert into %s values(?,?)", QUALIFIED_TABLE_NAME2))
+        .withRows(rows(row(1, null), row(2, null), row(3, null),
+                       row(4, null), row(5, null), row(6, null)))
         .create();
         spliceClassWatcher.commit();
 
