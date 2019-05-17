@@ -30,7 +30,9 @@ import org.spark_project.guava.collect.Lists;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -103,6 +105,41 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
                 .withRows(rows(row(8, 1000, "GGG"), row(10, 1000, "III")))
                 .create();
 
+        new TableCreator(connection)
+                .withCreate("CREATE TABLE DIM_PROFILE (\n" +
+                "            DIM_PROFILE_KEY1 VARCHAR(100),\n" +
+                "            DIM_PROFILE_KEY2 int,\n" +
+                "            EMAIL_ADDRESS VARCHAR(100),\n" +
+                "            extra_int int,\n" +
+                "            primary key(DIM_PROFILE_KEY1, DIM_PROFILE_KEY2))")
+                .withInsert("INSERT INTO DIM_PROFILE VALUES(?,?,?,?)")
+                .withRows(rows(row("1", 1, "username@email.com", 11), row("2", 2, null, 22),
+                               row("3", 3, null, null), row("4", 4, "prot@kpax.pnt", null)))
+                .create();
+
+        new TableCreator(connection)
+                .withCreate("CREATE TABLE DIM_PROFILE2 (\n" +
+                "            DIM_PROFILE_KEY1 VARCHAR(100),\n" +
+                "            DIM_PROFILE_KEY2 int,\n" +
+                "            EMAIL_ADDRESS VARCHAR(100),\n" +
+                "            extra_int int,\n" +
+                "            primary key(DIM_PROFILE_KEY1, DIM_PROFILE_KEY2))")
+                .withInsert("INSERT INTO DIM_PROFILE2 VALUES(?,?,?,?)")
+                .withRows(rows(row("1", 1, null, null), row("2", 2, "mork@ork.pnt", null),
+                               row("3", 3, "betelgeuse@eastcorinth.vt.us", 33), row("4", 4, null, 44)))
+                .create();
+
+        new TableCreator(connection)
+                .withCreate("CREATE TABLE DIM_PROFILE_NN (\n" +
+                "            DIM_PROFILE_KEY1 VARCHAR(100),\n" +
+                "            DIM_PROFILE_KEY2 int,\n" +
+                "            EMAIL_ADDRESS VARCHAR(100) NOT NULL,\n" +
+                "            extra_int int NOT NULL,\n" +
+                "            primary key(DIM_PROFILE_KEY1, DIM_PROFILE_KEY2))")
+                .withInsert("INSERT INTO DIM_PROFILE_NN VALUES(?,?,?,?)")
+                .withRows(rows(row("1", 1, "username@email.com", 11), row("2", 2, "mj@nike.com", 22),
+                               row("3", 3, "blightyear@pixar.com", 33), row("4", 4, "prot@kpax.pnt", 44)))
+                .create();
     }
 
     private Connection conn;
@@ -205,5 +242,203 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
             rs.close();
         }
+    }
+
+    @Test
+    public void testUpdateWithNulls() throws Exception {
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE\n" +
+        " set (EMAIL_ADDRESS, DIM_PROFILE_KEY1) =\n" +
+        "(SELECT EMAIL_ADDRESS, DIM_PROFILE_KEY1 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString));
+
+        String sql = "select * from DIM_PROFILE";
+
+        String expected = "DIM_PROFILE_KEY1 |DIM_PROFILE_KEY2 |        EMAIL_ADDRESS        | EXTRA_INT |\n" +
+        "------------------------------------------------------------------------------\n" +
+        "        1        |        1        |            NULL             |    11     |\n" +
+        "        2        |        2        |        mork@ork.pnt         |    22     |\n" +
+        "        3        |        3        |betelgeuse@eastcorinth.vt.us |   NULL    |\n" +
+        "        4        |        4        |            NULL             |   NULL    |";
+        ResultSet rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        spliceClassWatcher.rollback();
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE\n" +
+        " set (EMAIL_ADDRESS, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EMAIL_ADDRESS, DIM_PROFILE_KEY2 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString));
+
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        spliceClassWatcher.rollback();
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE\n" +
+        " set (EXTRA_INT, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, DIM_PROFILE_KEY2 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString));
+
+        expected = "DIM_PROFILE_KEY1 |DIM_PROFILE_KEY2 |   EMAIL_ADDRESS   | EXTRA_INT |\n" +
+        "--------------------------------------------------------------------\n" +
+        "        1        |        1        |username@email.com |   NULL    |\n" +
+        "        2        |        2        |       NULL        |   NULL    |\n" +
+        "        3        |        3        |       NULL        |    33     |\n" +
+        "        4        |        4        |   prot@kpax.pnt   |    44     |";
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        spliceClassWatcher.rollback();
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY2 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString));
+
+        expected = "DIM_PROFILE_KEY1 |DIM_PROFILE_KEY2 |        EMAIL_ADDRESS        | EXTRA_INT |\n" +
+        "------------------------------------------------------------------------------\n" +
+        "        1        |        1        |            NULL             |   NULL    |\n" +
+        "        2        |        2        |        mork@ork.pnt         |   NULL    |\n" +
+        "        3        |        3        |betelgeuse@eastcorinth.vt.us |    33     |\n" +
+        "        4        |        4        |            NULL             |    44     |";
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        spliceClassWatcher.rollback();
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, 123 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString));
+
+        expected = "DIM_PROFILE_KEY1 |DIM_PROFILE_KEY2 |        EMAIL_ADDRESS        | EXTRA_INT |\n" +
+        "------------------------------------------------------------------------------\n" +
+        "        1        |       123       |            NULL             |   NULL    |\n" +
+        "        2        |       123       |        mork@ork.pnt         |   NULL    |\n" +
+        "        3        |       123       |betelgeuse@eastcorinth.vt.us |    33     |\n" +
+        "        4        |       123       |            NULL             |    44     |";
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        spliceClassWatcher.rollback();
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY1) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, 123 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString));
+
+        expected = "DIM_PROFILE_KEY1 |DIM_PROFILE_KEY2 |        EMAIL_ADDRESS        | EXTRA_INT |\n" +
+        "------------------------------------------------------------------------------\n" +
+        "       123       |        1        |            NULL             |   NULL    |\n" +
+        "       123       |        2        |        mork@ork.pnt         |   NULL    |\n" +
+        "       123       |        3        |betelgeuse@eastcorinth.vt.us |    33     |\n" +
+        "       123       |        4        |            NULL             |    44     |";
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        spliceClassWatcher.rollback();
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY1, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE.DIM_PROFILE_KEY1-1, DIM_PROFILE.DIM_PROFILE_KEY2+1 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString));
+
+        expected = "DIM_PROFILE_KEY1 |DIM_PROFILE_KEY2 |        EMAIL_ADDRESS        | EXTRA_INT |\n" +
+        "------------------------------------------------------------------------------\n" +
+        "        0        |        2        |            NULL             |   NULL    |\n" +
+        "        1        |        3        |        mork@ork.pnt         |   NULL    |\n" +
+        "        2        |        4        |betelgeuse@eastcorinth.vt.us |    33     |\n" +
+        "        3        |        5        |            NULL             |    44     |";
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        spliceClassWatcher.rollback();
+        spliceClassWatcher.executeUpdate(format("UPDATE DIM_PROFILE\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY1, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE2.DIM_PROFILE_KEY1-1, DIM_PROFILE2.DIM_PROFILE_KEY2+1 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString));
+
+        expected = "DIM_PROFILE_KEY1 |DIM_PROFILE_KEY2 |        EMAIL_ADDRESS        | EXTRA_INT |\n" +
+        "------------------------------------------------------------------------------\n" +
+        "        0        |        2        |            NULL             |   NULL    |\n" +
+        "        1        |        3        |        mork@ork.pnt         |   NULL    |\n" +
+        "        2        |        4        |betelgeuse@eastcorinth.vt.us |    33     |\n" +
+        "        3        |        5        |            NULL             |    44     |";
+        rs = spliceClassWatcher.executeQuery(sql);
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testIllegalUpdateWithNulls() throws Exception {
+        String sqlText = format("UPDATE DIM_PROFILE_NN\n" +
+        " set (EMAIL_ADDRESS, DIM_PROFILE_KEY1) =\n" +
+        "(SELECT EMAIL_ADDRESS, DIM_PROFILE_KEY1 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE_NN.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE_NN.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString);
+
+        List<String> expectedErrors =
+          Arrays.asList("Column 'EMAIL_ADDRESS' cannot accept a NULL value.",
+                        "Column 'EXTRA_INT' cannot accept a NULL value.");
+        testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
+
+        sqlText = format("UPDATE DIM_PROFILE_NN\n" +
+        " set (EMAIL_ADDRESS, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EMAIL_ADDRESS, DIM_PROFILE_KEY2 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE_NN.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE_NN.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString);
+        testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
+
+        sqlText = format("UPDATE DIM_PROFILE_NN\n" +
+        " set (EXTRA_INT, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, DIM_PROFILE_KEY2 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE_NN.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE_NN.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString);
+        testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
+
+        sqlText = format("UPDATE DIM_PROFILE_NN\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY2 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE_NN.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE_NN.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString);
+        testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
+
+        sqlText = format("UPDATE DIM_PROFILE_NN\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, 123 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE_NN.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE_NN.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString);
+        testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
+
+        sqlText = format("UPDATE DIM_PROFILE_NN\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY1) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, 123 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE_NN.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE_NN.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString);
+        testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
+
+        sqlText = format("UPDATE DIM_PROFILE_NN\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY1, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_NN.DIM_PROFILE_KEY1-1, DIM_PROFILE_NN.DIM_PROFILE_KEY2+1 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE_NN.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE_NN.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString);
+        testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
+
+        sqlText = format("UPDATE DIM_PROFILE_NN\n" +
+        " set (EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE_KEY1, DIM_PROFILE_KEY2) =\n" +
+        "(SELECT EXTRA_INT, EMAIL_ADDRESS, DIM_PROFILE2.DIM_PROFILE_KEY1-1, DIM_PROFILE2.DIM_PROFILE_KEY2+1 from DIM_PROFILE2 --splice-properties joinStrategy=%s,useSpark=%s\n" +
+        "WHERE DIM_PROFILE_NN.DIM_PROFILE_KEY1 = DIM_PROFILE2.DIM_PROFILE_KEY1\n" +
+        " and DIM_PROFILE_NN.DIM_PROFILE_KEY2 = DIM_PROFILE2.DIM_PROFILE_KEY2)", this.joinStrategy, this.useSparkString);
+        testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
+
     }
 }
