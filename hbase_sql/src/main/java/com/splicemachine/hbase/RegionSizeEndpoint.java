@@ -71,13 +71,17 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
             ByteString beginKey = request.getBeginKey();
             ByteString endKey = request.getEndKey();
             int requestedSplits = 0;
+            long bytesPerSplit = 0;
             if (request.hasRequestedSplits()) {
                 requestedSplits = request.getRequestedSplits();
             }
-            List<byte[]> splits = computeSplits(region, beginKey.toByteArray(), endKey.toByteArray(), requestedSplits);
+            if (request.hasBytesPerSplit()) {
+                bytesPerSplit = request.getBytesPerSplit();
+            }
+            List<byte[]> splits = computeSplits(region, beginKey.toByteArray(), endKey.toByteArray(), requestedSplits, bytesPerSplit);
 
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"computeSplits with beginKey=%s, endKey=%s, numberOfSplits=%s",beginKey,endKey,splits.size());
+                SpliceLogUtils.debug(LOG,"computeSplits with beginKey=%s, endKey=%s, numberOfSplits=%s, bytesPerSplit=%ld",beginKey,endKey,splits.size(), bytesPerSplit);
             for (byte[] split : splits)
                 writeResponse.addCutPoint(com.google.protobuf.ByteString.copyFrom(split));
         } catch (java.io.IOException e) {
@@ -102,8 +106,8 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey, int requestedSplits) throws IOException {
-        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey, requestedSplits);
+    private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey, int requestedSplits, long bytesPerSplit) throws IOException {
+        return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey, requestedSplits, bytesPerSplit);
     }
 
     /**
