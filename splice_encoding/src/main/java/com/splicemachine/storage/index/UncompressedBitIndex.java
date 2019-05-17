@@ -30,7 +30,7 @@ import com.carrotsearch.hppc.BitSet;
  * @author Scott Fines
  * Created on: 7/5/13
  */
-class UncompressedBitIndex implements BitIndex {
+public class UncompressedBitIndex implements BitIndex {
     private final BitSet bitSet;
     private final BitSet scalarFields;
     private final BitSet floatFields;
@@ -207,6 +207,9 @@ class UncompressedBitIndex implements BitIndex {
     public BitSet getFloatFields() {
         return floatFields;
     }
+
+    @Override
+    public BitSet getFields() { return bitSet; }
 
     @Override
     public BitSet and(BitSet bitSet) {

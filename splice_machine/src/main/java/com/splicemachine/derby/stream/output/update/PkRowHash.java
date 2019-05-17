@@ -14,17 +14,25 @@
 
 package com.splicemachine.derby.stream.output.update;
 
+import com.carrotsearch.hppc.BitSet;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.storage.index.DenseCompressedBitIndex;
+import com.splicemachine.storage.index.SparseBitIndex;
+import com.splicemachine.storage.index.UncompressedBitIndex;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
@@ -54,8 +62,6 @@ public class PkRowHash extends EntryDataHash{
 
     @Override
     public byte[] encode() throws StandardException, IOException{
-        if(entryEncoder==null)
-            entryEncoder=buildEntryEncoder();
 
         RowLocation location=(RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject(); //the location to update is always at the end
         //convert Result into put under the new row key
@@ -66,22 +72,79 @@ public class PkRowHash extends EntryDataHash{
 
         supplier.setResult(resultDecoder);
 
-        entryEncoder.reset(resultDecoder.getCurrentIndex());
-        pack(entryEncoder.getEntryEncoder(),currentRow);
+        // Merge the BitIndex of the old row with the
+        // BitIndex of the new row via a new buildEntryEncoder method.
+        BitIndex bitIndexForFetchedRow = resultDecoder.getCurrentIndex();
+        BitSet fieldsToUpdate = (BitSet)bitIndexForFetchedRow.getFields().clone();
+        BitSet scalarFields   = (BitSet)bitIndexForFetchedRow.getScalarFields().clone();
+        BitSet floatFields    = (BitSet)bitIndexForFetchedRow.getFloatFields().clone();
+        BitSet doubleFields   = (BitSet)bitIndexForFetchedRow.getDoubleFields().clone();
+
+        if(entryEncoder==null)
+            entryEncoder=buildEntryEncoder(fieldsToUpdate, scalarFields, floatFields, doubleFields);
+        else {
+            addBitSetsForFinalHeapList(fieldsToUpdate, scalarFields, floatFields, doubleFields);
+            entryEncoder.reset(fieldsToUpdate, scalarFields, floatFields, doubleFields);
+        }
+        pack(entryEncoder.getEntryEncoder(), currentRow, fieldsToUpdate);
         return entryEncoder.encode();
+    }
+
+    // A version of buildEntryEncoder that combines bits representing
+    // non-null columns in the PK row we're going to update with bits
+    // representing columns (both null and non-null) in finalHeapList,
+    // which holds the new column values to write in the replacement row.
+    protected EntryEncoder buildEntryEncoder(BitSet fieldsToUpdate,
+                                             BitSet scalarFields,
+                                             BitSet floatFields,
+                                             BitSet doubleFields) {
+        addBitSetsForFinalHeapList(fieldsToUpdate, scalarFields, floatFields, doubleFields);
+
+        return EntryEncoder.create(SpliceKryoRegistry.getInstance(),currentRow.nColumns(),
+                fieldsToUpdate,scalarFields,floatFields,doubleFields);
+    }
+
+    // For each column in finalHeapList, add bits to the proper passed-in BitSets
+    // Depending on the column data type.
+    protected void addBitSetsForFinalHeapList(BitSet fieldsToUpdate,
+                                              BitSet scalarFields,
+                                              BitSet floatFields,
+                                              BitSet doubleFields) {
+        for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
+            DescriptorSerializer serializer = serializers[colPositionMap[i]];
+            fieldsToUpdate.set(i - 1);
+            DataValueDescriptor dvd = currentRow.getRowArray()[colPositionMap[i]];
+            if(serializer.isScalarType()){
+                scalarFields.set(i-1);
+            }else if(DerbyBytesUtil.isFloatType(dvd)){
+                floatFields.set(i-1);
+            }else if(DerbyBytesUtil.isDoubleType(dvd)){
+                doubleFields.set(i-1);
+            }
+        }
     }
 
     @Override
     protected void pack(MultiFieldEncoder updateEncoder,
                         ExecRow currentRow) throws StandardException, IOException{
         BitIndex index=resultDecoder.getCurrentIndex();
+        pack(updateEncoder, currentRow, index.getFields());
+    }
+
+    protected void pack(MultiFieldEncoder updateEncoder,
+                        ExecRow currentRow,
+                        BitSet fieldsToUpdate) throws StandardException, IOException{
         MultiFieldDecoder getFieldDecoder=resultDecoder.getEntryDecoder();
-        for(int pos=index.nextSetBit(0);pos>=0;pos=index.nextSetBit(pos+1)){
+        BitSet oldPresentFields=resultDecoder.getCurrentIndex().getFields();
+
+        for(int pos=fieldsToUpdate.nextSetBit(0);pos>=0;pos=fieldsToUpdate.nextSetBit(pos+1)){
             if(finalHeapList.isSet(pos+1)){
                 DataValueDescriptor dvd=currentRow.getRowArray()[colPositionMap[pos+1]];
                 DescriptorSerializer serializer=serializers[colPositionMap[pos+1]];
                 serializer.encode(updateEncoder,dvd,false);
-                resultDecoder.seekForward(getFieldDecoder,pos);
+                // Only skip over the next field if it is present.
+                if (oldPresentFields.get(pos))
+                    resultDecoder.seekForward(getFieldDecoder,pos);
             }else{
                 //use the index to get the correct offsets
                 int offset=getFieldDecoder.offset();
