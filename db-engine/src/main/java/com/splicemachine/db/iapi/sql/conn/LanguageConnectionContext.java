@@ -452,6 +452,9 @@ public interface LanguageConnectionContext extends Context {
      */
 	String getCurrentUserId(Activation a);
 
+	void setCurrentUser(Activation a, String userName);
+
+	void setCurrentGroupUser(Activation a, List<String> groupUsers);
 	/**
 	 * Get the current group user
 	 * @param a activation

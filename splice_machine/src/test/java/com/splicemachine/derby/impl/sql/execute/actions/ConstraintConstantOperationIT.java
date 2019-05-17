@@ -353,7 +353,7 @@ public class ConstraintConstantOperationIT {
         user1Conn.execute(format("create table %1$s.child (a2 int, b2 int, c2 int, constraint it_fkCons foreign key (a2) references %1$s.%2$s(empId))", SCHEMA, EMP_PRIV_TABLE_NAME));
 
         // step 3: check sys.sysdepends, there should only be one entry corresponding to the FK dependency on PK
-        long c = user1Conn.count("select * from sys.sysdepends as D, sys.sysconstraints as C where D.dependentId = C.constraintid and C.constraintname='IT_FKCONS'");
+        long c = conn.count("select * from sys.sysdepends as D, sys.sysconstraints as C where D.dependentId = C.constraintid and C.constraintname='IT_FKCONS'");
         Assert.assertTrue("rowcount incorrect", (c == 1));
 
         // step 4: revoke role from user, and check the existence of FK
@@ -377,7 +377,7 @@ public class ConstraintConstantOperationIT {
         user1Conn.execute(format("create table %1$s.child (a2 int, b2 int, c2 int, constraint it_fkCons foreign key (a2) references %1$s.%2$s(empId))", SCHEMA, EMP_PRIV_TABLE_NAME));
 
         // step 3: check sys.sysdepends, there should only be one entry corresponding to the FK dependency on PK
-        c = user1Conn.count("select * from sys.sysdepends as D, sys.sysconstraints as C where D.dependentId = C.constraintid and C.constraintname='IT_FKCONS'");
+        c = conn.count("select * from sys.sysdepends as D, sys.sysconstraints as C where D.dependentId = C.constraintid and C.constraintname='IT_FKCONS'");
         Assert.assertTrue("rowcount incorrect", (c == 1));
 
         // step 4: revoke privilege from user, and check the existence of FK
@@ -431,7 +431,7 @@ public class ConstraintConstantOperationIT {
         user2Conn.execute(format("create table %s.tt(a1 int, b1 varchar(30), c1 int, constraint IT_check_cons1 CHECK(splice.word_limiter(b1, 5) > 'ABC'))", USER2));
 
         // step 4: check sys.sysdepends, check constraint should depend on only one role
-        Statement s = user2Conn.createStatement();
+        Statement s = conn.createStatement();
         ResultSet rs = s.executeQuery("select R.roleid from sys.sysdepends as D, sys.sysconstraints as C, sys.sysroles as R " +
                 "where D.dependentId = C.constraintid and C.constraintname='IT_CHECK_CONS1'" +
                 "and D.providerId=R.UUID");

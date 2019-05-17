@@ -637,6 +637,12 @@ class ij {
 		ResultSet rs = null;
 		try {
 			DatabaseMetaData dbmd = theConnection.getMetaData();
+
+			rs = dbmd.getSchemas(null,schema);
+            if (!rs.next())
+                throw ijException.noSuchSchema(schema);
+            rs.close();
+
 			rs = dbmd.getTables(null,schema,table,null);
 			if(!rs.next())
 				throw ijException.noSuchTable(table);

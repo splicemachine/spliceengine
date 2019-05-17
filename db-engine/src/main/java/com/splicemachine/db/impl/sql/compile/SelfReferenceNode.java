@@ -332,6 +332,14 @@ public class SelfReferenceNode extends FromTable {
                 getOrigTableName());
     }
 
+    @Override
+    void adjustForSortElimination(){
+    }
+
+    @Override
+    void adjustForSortElimination(RequiredRowOrdering rowOrdering) throws StandardException{
+    }
+
     public LocalField getResultSetRef() {
         return selfReferenceResultSetRef;
     }

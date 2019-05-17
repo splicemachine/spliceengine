@@ -245,7 +245,7 @@ public class StatisticsAdminIT{
             cs.execute();
 
         }
-        try(PreparedStatement ps = conn.prepareStatement("select null_count,null_fraction from sys.syscolumnstatistics where schemaname = ? and tablename = ?")){
+        try(PreparedStatement ps = conn.prepareStatement("select null_count,null_fraction from sysvw.syscolumnstatistics where schemaname = ? and tablename = ?")){
             ps.setString(1,SCHEMA);
             ps.setString(2,UPDATE);
 
@@ -421,7 +421,7 @@ public class StatisticsAdminIT{
             cs.execute();
         }
 
-        ResultSet rs = methodWatcher3.executeQuery("select null_fraction from sys.SYSCOLUMNSTATISTICS where TABLENAME like '"+WITH_NULLS_NUMERIC+"' and SCHEMANAME like '" + spliceSchemaWatcher3.schemaName+ "' and columnname='MYFLOAT'");
+        ResultSet rs = methodWatcher3.executeQuery("select null_fraction from sysvw.SYSCOLUMNSTATISTICS where TABLENAME like '"+WITH_NULLS_NUMERIC+"' and SCHEMANAME like '" + spliceSchemaWatcher3.schemaName+ "' and columnname='MYFLOAT'");
         Assert.assertTrue("statistics missing",rs.next());
         Assert.assertEquals("statistics missing",0.25f,rs.getFloat(1),0.000001f);
     }
@@ -590,7 +590,7 @@ public class StatisticsAdminIT{
                 spliceSchemaWatcher4));
         //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
         ResultSet resultSet = conn4.createStatement().
-                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T1'", spliceSchemaWatcher4));
+                executeQuery(format("select * from sysvw.systablestatistics where schemaName='%s' and tablename='T1'", spliceSchemaWatcher4));
         long rowCount = 0;
         while (resultSet.next()) {
             //stats type should be 0 (which represents regular non-merged stats)
@@ -611,7 +611,7 @@ public class StatisticsAdminIT{
                 spliceSchemaWatcher4));
         //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
         resultSet = conn4.createStatement().
-                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
+                executeQuery(format("select * from sysvw.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
         rowCount = 0;
         boolean firstRow = true;
         int statsType = 0;
@@ -689,7 +689,7 @@ public class StatisticsAdminIT{
                 spliceSchemaWatcher4));
         //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
         ResultSet resultSet = conn4.createStatement().
-                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T1'", spliceSchemaWatcher4));
+                executeQuery(format("select * from sysvw.systablestatistics where schemaName='%s' and tablename='T1'", spliceSchemaWatcher4));
         long rowCount = 0;
         while (resultSet.next()) {
             //stats type should be 2 (which represents regular merged stats)
@@ -710,7 +710,7 @@ public class StatisticsAdminIT{
                 spliceSchemaWatcher4));
         //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
         resultSet = conn4.createStatement().
-                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
+                executeQuery(format("select * from sysvw.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
         rowCount = 0;
         boolean firstRow = true;
         int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
@@ -787,7 +787,7 @@ public class StatisticsAdminIT{
                 spliceSchemaWatcher4));
         //check the statsType and sample fraction in sys.systablestats by querying the system view systablestatistics
         ResultSet resultSet = conn4.createStatement().
-                executeQuery(format("select * from sys.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
+                executeQuery(format("select * from sysvw.systablestatistics where schemaName='%s' and tablename='T2'", spliceSchemaWatcher4));
         long rowCount = 0;
         boolean firstRow = true;
         int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
@@ -897,7 +897,7 @@ public class StatisticsAdminIT{
            stats to be collected on just 4 columns, a3, b3, c3, e3, where (b3,c3) are primary keys,
            (a3, e3) are index columns
          */
-        rs = methodWatcher4.executeQuery(String.format("select distinct columnname from sys.syscolumnstatistics where schemaname='%s' and tablename='T3' order by 1", SCHEMA4));
+        rs = methodWatcher4.executeQuery(String.format("select distinct columnname from sysvw.syscolumnstatistics where schemaname='%s' and tablename='T3' order by 1", SCHEMA4));
         expected = "COLUMNNAME |\n" +
                 "------------\n" +
                 "    A3     |\n" +
@@ -925,7 +925,7 @@ public class StatisticsAdminIT{
 
         /* 9. Verify stats collected, we should expect stats to be collected on all 6 columns
          */
-        rs = methodWatcher4.executeQuery(String.format("select distinct columnname from sys.syscolumnstatistics where schemaname='%s' and tablename='T3' order by 1", SCHEMA4));
+        rs = methodWatcher4.executeQuery(String.format("select distinct columnname from sysvw.syscolumnstatistics where schemaname='%s' and tablename='T3' order by 1", SCHEMA4));
         expected = "COLUMNNAME |\n" +
                 "------------\n" +
                 "    A3     |\n" +
@@ -995,7 +995,7 @@ public class StatisticsAdminIT{
 
         /* check column statistics on A4  */
         ResultSet rs = methodWatcher4.executeQuery(String.format("select cardinality, min_value, max_value from " +
-                        "sys.syscolumnstatistics where schemaname='%s' and tablename='T4' and columnname='A4'", SCHEMA4));
+                        "sysvw.syscolumnstatistics where schemaname='%s' and tablename='T4' and columnname='A4'", SCHEMA4));
         Assert.assertTrue("Unable to find column statistics for table!", rs.next());
         // theta sketch rejects empty string, so cardinality is 9 instead of 10
         Assert.assertEquals("Incorrect cardinality!", 9, rs.getLong(1));
@@ -1006,7 +1006,7 @@ public class StatisticsAdminIT{
 
         /* check column statistics on B4  */
         rs = methodWatcher4.executeQuery(String.format("select cardinality, min_value, max_value from " +
-                "sys.syscolumnstatistics where schemaname='%s' and tablename='T4' and columnname='B4'", SCHEMA4));
+                "sysvw.syscolumnstatistics where schemaname='%s' and tablename='T4' and columnname='B4'", SCHEMA4));
         Assert.assertTrue("Unable to find column statistics for table!", rs.next());
         Assert.assertEquals("Incorrect cardinality!", 5, rs.getLong(1));
         Assert.assertEquals("Incorrect min value", "", rs.getString(2));
@@ -1126,8 +1126,8 @@ public class StatisticsAdminIT{
     private void verifyStatsCounts(Connection conn,String schema,String table,int tableStatsCount,int colStatsCount) throws Exception{
         try (
             PreparedStatement check = (table == null) ?
-            conn.prepareStatement("select count(*) from sys.systablestatistics where schemaname = ?"):
-            conn.prepareStatement("select count(*) from sys.systablestatistics where schemaname = ? and tablename = ?")) {
+            conn.prepareStatement("select count(*) from sysvw.systablestatistics where schemaname = ?"):
+            conn.prepareStatement("select count(*) from sysvw.systablestatistics where schemaname = ? and tablename = ?")) {
 
             check.setString(1, schema);
             if (table != null) check.setString(2, table);
@@ -1139,8 +1139,8 @@ public class StatisticsAdminIT{
 
         try (
             PreparedStatement check2=(table==null)?
-            conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ?"):
-            conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ? and tablename = ?")) {
+            conn.prepareStatement("select count(*) from sysvw.syscolumnstatistics where schemaname = ?"):
+            conn.prepareStatement("select count(*) from sysvw.syscolumnstatistics where schemaname = ? and tablename = ?")) {
 
             check2.setString(1, schema);
             if (table != null) check2.setString(2, table);

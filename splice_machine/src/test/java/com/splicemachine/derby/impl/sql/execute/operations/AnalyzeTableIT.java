@@ -37,6 +37,7 @@ public class AnalyzeTableIT {
 
     @BeforeClass
     public static void setup() throws Exception {
+        classWatcher.execute("grant access on schema " + SCHEMA + " to public");
         classWatcher.executeUpdate("create table T1 (I INT)");
         classWatcher.executeUpdate("create table T2 (I INT)");
 

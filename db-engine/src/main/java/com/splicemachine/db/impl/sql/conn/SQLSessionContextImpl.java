@@ -106,4 +106,8 @@ public class SQLSessionContextImpl implements SQLSessionContext {
     }
 
     public List<String> getCurrentGroupUser() { return groupuserlist; }
+
+    public void setCurrentGroupUser(List<String> groupUsers) {
+        groupuserlist = groupUsers;
+    }
 }

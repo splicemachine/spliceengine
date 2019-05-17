@@ -22,14 +22,9 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.concurrent.Callable;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.assertFailed;
 import static java.lang.String.format;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class AuthorizationIT {
 
@@ -90,6 +85,7 @@ public class AuthorizationIT {
                 "as select CITY from STAFF");
 
         Connection conn = spliceClassWatcher.createConnection();
+        conn.createStatement().execute(format("grant access on schema %s to public", SCHEMA));
         conn.createStatement().executeUpdate("CALL SYSCS_UTIL.SYSCS_ENABLE_ENTERPRISE('false')");
     }
 

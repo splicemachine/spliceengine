@@ -16,6 +16,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -24,10 +25,12 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
 import com.splicemachine.pipeline.ErrorState;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
@@ -160,10 +163,22 @@ public class EngineUtils{
         }
     }
 
+    public static void checkSchemaVisibility(String schemaName) throws SQLException, StandardException {
+        EmbedConnection conn = (EmbedConnection) SpliceAdmin.getDefaultConn();
+        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)conn.getMetaData();
+        try (ResultSet rs = dmd.getSchemas(null,schemaName)) {
+            if (!rs.next()) {
+                throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+            }
+        }
+    }
+
     public static TableDescriptor verifyTableExists(Connection conn, String schema, String table) throws
             SQLException, StandardException {
         LanguageConnectionContext lcc = ((EmbedConnection) conn).getLanguageConnection();
         DataDictionary dd = lcc.getDataDictionary();
+        // check schema visiblity to the current user
+        checkSchemaVisibility(schema);
         SchemaDescriptor schemaDescriptor = getSchemaDescriptor(schema, lcc, dd);
         TableDescriptor tableDescriptor = dd.getTableDescriptor(table, schemaDescriptor, lcc.getTransactionExecute());
         if (tableDescriptor == null)

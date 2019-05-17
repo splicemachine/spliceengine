@@ -3267,6 +3267,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void setCurrentUser(Activation a, String userName) {
+        getCurrentSQLSessionContext(a).setUser(userName);
+    }
+
+    @Override
+    public void setCurrentGroupUser(Activation a, List<String> groupUsers) {
+        getCurrentSQLSessionContext(a).setCurrentGroupUser(groupUsers);
+    }
+
+    @Override
     public List<String> getCurrentGroupUser(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentGroupUser();
     }
