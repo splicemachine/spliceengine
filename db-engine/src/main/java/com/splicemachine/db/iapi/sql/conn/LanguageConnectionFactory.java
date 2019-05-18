@@ -57,7 +57,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 
 import java.util.List;
-import java.util.Properties;
 
 
 /**
@@ -126,8 +125,7 @@ public interface LanguageConnectionFactory {
 								boolean skipStats,
 								double defaultSelectivityFactor,
 								String ipAddress,
-                                String defaultSchema,
-                                Properties sessionProperties)
+                                String defaultSchema)
 
 		throws StandardException;
 

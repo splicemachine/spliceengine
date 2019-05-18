@@ -18,22 +18,24 @@ import com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
-import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.pipeline.Exceptions;
 import io.netty.channel.ChannelHandler;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ListenableFuture;
 import org.spark_project.guava.util.concurrent.MoreExecutors;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -98,13 +100,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
                     streamingBatches, streamingBatchSize);
-
-            String requestedQueue = (String) activation.getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
-            List<String> roles = activation.getLanguageConnectionContext().getCurrentRoles(activation);
-
-            String queue = chooseQueue(requestedQueue, roles, config.getOlapServerIsolatedRoles());
-            
-            olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest, queue);
+            olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest);
             olapFuture.addListener(new Runnable() {
                 @Override
                 public void run() {
@@ -125,28 +121,6 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         } catch (IOException e) {
             throw StandardException.newException(SQLState.OLAP_SERVER_CONNECTION, e);
         }
-    }
-
-    /**
-     * If requestedQueue is null, return the assigned queue for any of the active roles. If none match return the default queue
-     * If requestedQueue is not null, make sure the requestedQueue is assigned to any of this users's roles and return it if there's a match. If it's not return the default queue
-     */
-    private String chooseQueue(String requestedQueue, List<String> roles, Map<String, String> olapServerIsolatedRoles) {
-        if (requestedQueue != null) {
-            // make sure the requested queue is available for the user roles
-            for (String role: roles) {
-                if (requestedQueue.equals(olapServerIsolatedRoles.get(role))) {
-                    return requestedQueue;
-                }
-            }
-        } else {
-            for (String role : roles) {
-                if (olapServerIsolatedRoles.get(role) != null) {
-                    return olapServerIsolatedRoles.get(role);
-                }
-            }
-        }
-        return SIConstants.OLAP_DEFAULT_QUEUE_NAME;
     }
 
     private void updateLimitOffset() throws StandardException {

@@ -30,8 +30,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
@@ -460,14 +458,12 @@ public class OlapClientTest {
         Clock clock=new SystemClock();
         olapServer = new OlapServer(0,clock); // any port
         olapServer.startServer(HConfiguration.getConfiguration());
-        JobExecutor nl = new AsyncOlapNIOLayer(queue -> {
+        JobExecutor nl = new AsyncOlapNIOLayer(() -> {
             synchronized (LOCK) {
                 return HostAndPort.fromParts(olapServer.getBoundHost(), olapServer.getBoundPort());
             }
-        }, "default", 10);
-        Map<String, JobExecutor> jobExecutorMap = new HashMap();
-        jobExecutorMap.put("default", nl);
-        olapClient = new TimedOlapClient(jobExecutorMap,30000);
+        }, 10);
+        olapClient = new TimedOlapClient(nl,30000);
     }
 
     private static void failAndCreateServer() throws IOException {

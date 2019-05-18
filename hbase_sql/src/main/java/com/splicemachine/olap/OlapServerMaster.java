@@ -17,6 +17,7 @@ package com.splicemachine.olap;
 
 import com.google.common.net.HostAndPort;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.util.NetworkUtils;
@@ -46,11 +47,16 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static org.apache.zookeeper.KeeperException.Code.NODEEXISTS;
+import static org.apache.zookeeper.KeeperException.Code.NONODE;
 
 
 /**
@@ -61,25 +67,22 @@ public class OlapServerMaster implements Watcher {
     private final ServerName serverName;
     private final AtomicBoolean end = new AtomicBoolean(false);
     private final int port;
-    private final String queueName;
     private RecoverableZooKeeper rzk;
     private String masterPath;
 
     UserGroupInformation ugi;
     UserGroupInformation yarnUgi;
 
-    public OlapServerMaster(ServerName serverName, int port, String queueName) {
+    public OlapServerMaster(ServerName serverName, int port) {
         this.serverName = serverName;
         this.port = port;
-        this.queueName = queueName;
     }
 
     public static void main(String[] args) throws Exception {
         try {
             final ServerName serverName = ServerName.parseServerName(args[0]);
             final int port = Integer.parseInt(args[1]);
-            final String roleName = args[2];
-            new OlapServerMaster(serverName, port, roleName).run();
+            new OlapServerMaster(serverName, port).run();
         } catch (Throwable t) {
             LOG.error("Failed due to unexpected exception, exiting forcefully", t);
         } finally {
@@ -189,7 +192,7 @@ public class OlapServerMaster implements Watcher {
 
         try {
             HostAndPort hostAndPort = HostAndPort.fromParts(hostname, port);
-            masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName + ":" + queueName;
+            masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName;
             rzk.create(masterPath, Bytes.toBytes(hostAndPort.toString()), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             rzk.getData(masterPath, this, null);
         } catch (Exception e) {
