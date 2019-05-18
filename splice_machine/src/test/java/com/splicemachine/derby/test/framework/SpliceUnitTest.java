@@ -326,6 +326,26 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void testUpdateFail(String sqlText,
+                                  List<String> expectedErrors,
+                                  SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            methodWatcher.executeUpdate(sqlText);
+            String failMsg = format("Update not expected to succeed.\n%s", sqlText);
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = expectedErrors.contains(e.getMessage());
+            if (!found)
+                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
     protected void testFail(String sqlText,
                             List<String> expectedErrors,
                             SpliceWatcher methodWatcher) throws Exception {
@@ -343,22 +363,6 @@ public class SpliceUnitTest {
         finally {
             if (rs != null)
                 rs.close();
-        }
-    }
-
-    protected void testUpdateFail(String sqlText,
-                                  List<String> expectedErrors,
-                                  SpliceWatcher methodWatcher) throws Exception {
-
-        try {
-            methodWatcher.executeUpdate(sqlText);
-            String failMsg = format("Update not expected to succeed.\n%s", sqlText);
-            fail(failMsg);
-        }
-        catch (Exception e) {
-            boolean found = expectedErrors.contains(e.getMessage());
-            if (!found)
-                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
         }
     }
 
