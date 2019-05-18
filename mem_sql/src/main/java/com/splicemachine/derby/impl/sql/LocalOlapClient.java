@@ -66,6 +66,11 @@ public class LocalOlapClient implements OlapClient{
         }
     }
 
+    @Override
+    public <R extends OlapResult> ListenableFuture<R> submit(@Nonnull DistributedJob jobRequest, String queue) throws IOException {
+        return submit(jobRequest);
+    }
+
     @Override public void shutdown(){ }
 
     /* ****************************************************************************************************************/
