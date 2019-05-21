@@ -18,13 +18,11 @@ import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.constants.SIConstants;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.util.concurrent.ListenableFuture;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -40,12 +38,11 @@ public class TimedOlapClient implements OlapClient{
     protected static final Logger LOG = Logger.getLogger(TimedOlapClient.class);
 
     private final int timeoutMillis;
-    /** Map queue name to network layer */
-    private final Map<String, JobExecutor> networkLayerMap;
+    private final JobExecutor networkLayer;
 
-    public TimedOlapClient(Map<String, JobExecutor> networkLayerMap,int timeoutMillis){
+    public TimedOlapClient(JobExecutor networkLayer,int timeoutMillis){
         this.timeoutMillis=timeoutMillis;
-        this.networkLayerMap = networkLayerMap;
+        this.networkLayer = networkLayer;
     }
 
     @Override
@@ -53,7 +50,7 @@ public class TimedOlapClient implements OlapClient{
         jobRequest.markSubmitted();
         //submit the jobRequest to the server
         try{
-            Future<OlapResult> submit=networkLayerMap.get(SIConstants.OLAP_DEFAULT_QUEUE_NAME).submit(jobRequest);
+            Future<OlapResult> submit=networkLayer.submit(jobRequest);
             //noinspection unchecked
             return (R)submit.get(timeoutMillis,TimeUnit.MILLISECONDS);
         }catch(InterruptedException e){
@@ -67,19 +64,13 @@ public class TimedOlapClient implements OlapClient{
 
     @Override
     public <R extends OlapResult> ListenableFuture<R> submit(@Nonnull DistributedJob jobRequest) throws IOException {
-        return submit(jobRequest, SIConstants.OLAP_DEFAULT_QUEUE_NAME);
-    }
-
-    @Override
-    public <R extends OlapResult> ListenableFuture<R> submit(@Nonnull DistributedJob jobRequest, String queue) throws IOException {
         jobRequest.markSubmitted();
-        return (ListenableFuture<R>) networkLayerMap.get(queue).submit(jobRequest);
+        return (ListenableFuture<R>) networkLayer.submit(jobRequest);
     }
 
     @Override
     public void shutdown(){
-        for (JobExecutor networkLayer : networkLayerMap.values())
-            networkLayer.shutdown();
+        networkLayer.shutdown();
     }
 
 }

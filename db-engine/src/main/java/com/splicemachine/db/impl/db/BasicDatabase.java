@@ -275,8 +275,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 													 boolean skipStats,
 													 double defaultSelectivityFactor,
 													 String ipAddress,
-													 String defaultSchema,
-													 Properties sessionProperties)
+                                                     String defaultSchema)
 		throws StandardException {
 
 		TransactionController tc = getConnectionTransaction(cm);
@@ -287,7 +286,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		// push a database shutdown context
 		// we also need to push a language connection context.
 		LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuserlist, drdaID, dbname,
-                rdbIntTkn, type,skipStats,defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+				rdbIntTkn, type,skipStats,defaultSelectivityFactor, ipAddress, defaultSchema);
 
 		// push the context that defines our class factory
 		pushClassFactoryContext(cm, lcf.getClassFactory());

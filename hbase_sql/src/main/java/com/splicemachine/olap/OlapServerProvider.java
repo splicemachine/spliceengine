@@ -23,5 +23,5 @@ import java.io.IOException;
  * Created by dgomezferro on 26/07/2017.
  */
 public interface OlapServerProvider {
-    HostAndPort olapServerHost(String queue) throws IOException;
+    HostAndPort olapServerHost() throws IOException;
 }

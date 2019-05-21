@@ -74,8 +74,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-import static com.splicemachine.si.constants.SIConstants.OLAP_DEFAULT_QUEUE_NAME;
-import static com.splicemachine.si.constants.SIConstants.YARN_DEFAULT_QUEUE_NAME;
 import static org.apache.zookeeper.KeeperException.Code.NODEEXISTS;
 import static org.apache.zookeeper.KeeperException.Code.NONODE;
 
@@ -97,7 +95,6 @@ public class OlapServerSubmitter implements Runnable {
 
     private static final Logger LOG = Logger.getLogger(OlapServerSubmitter.class);
     private final ServerName serverName;
-    private final String queueName;
     private volatile boolean stop = false;
     private CountDownLatch stopLatch = new CountDownLatch(1);
     private Path appStagingBaseDir;
@@ -105,9 +102,8 @@ public class OlapServerSubmitter implements Runnable {
 
     private Configuration conf;
 
-    public OlapServerSubmitter(ServerName serverName, String queueName) {
+    public OlapServerSubmitter(ServerName serverName) {
         this.serverName = serverName;
-        this.queueName = queueName;
     }
 
     public void run() {
@@ -128,12 +124,6 @@ public class OlapServerSubmitter implements Runnable {
             int cpuCores = sconf.getOlapVirtualCores();
             int olapPort = sconf.getOlapServerBindPort();
             String stagingDir = sconf.getOlapServerStagingDirectory();
-            Map<String, String> yarnQueues = sconf.getOlapServerYarnQueues();
-
-            String sparkYarnQueue = yarnQueues.get(queueName);
-            if (sparkYarnQueue == null)
-                sparkYarnQueue = YARN_DEFAULT_QUEUE_NAME;
-
             if (stagingDir != null) {
                 this.appStagingBaseDir = new Path(stagingDir);
             } else {
@@ -141,13 +131,13 @@ public class OlapServerSubmitter implements Runnable {
             }
             String yarnQueue = System.getProperty("splice.olapServer.yarn.queue");
             if (yarnQueue == null) {
-                yarnQueue = System.getProperty("splice.spark.yarn.queue", YARN_DEFAULT_QUEUE_NAME);
+                yarnQueue = System.getProperty("splice.spark.yarn.queue", "default");
             }
 
             for (int i = 0; i<maxAttempts; ++i) {
                 try {
                     // Clear ZooKeeper path
-                    clearZookeeper(ZkUtils.getRecoverableZooKeeper(), serverName, queueName);
+                    clearZookeeper(ZkUtils.getRecoverableZooKeeper(), serverName);
 
                     // Create application via yarnClient
                     YarnClientApplication app = yarnClient.createApplication();
@@ -228,10 +218,9 @@ public class OlapServerSubmitter implements Runnable {
                                     "$JAVA_HOME/bin/java",
                                     " -Xmx" + memory + "M " + outOfMemoryErrorArgument() + " " +
                                             OlapServerMaster.class.getCanonicalName() +
-                                            " " + serverName.toString() + " " + olapPort + " " + queueName +
+                                            " " + serverName.toString() + " " + olapPort +
                                             " 1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout" +
-                                            " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr",
-                                    sparkYarnQueue
+                                            " 2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr"
                             ))
                     );
 
@@ -275,8 +264,7 @@ public class OlapServerSubmitter implements Runnable {
                     // Finally, set-up ApplicationSubmissionContext for the application
                     ApplicationSubmissionContext appContext =
                             app.getApplicationSubmissionContext();
-                    String appName = OLAP_DEFAULT_QUEUE_NAME.equals(queueName) ? "OlapServer" : "OlapServer-"+queueName;
-                    appContext.setApplicationName(appName); // application name
+                    appContext.setApplicationName("OlapServer"); // application name
                     appContext.setAMContainerSpec(amContainer);
                     appContext.setResource(capability);
                     appContext.setQueue(yarnQueue);
@@ -349,7 +337,7 @@ public class OlapServerSubmitter implements Runnable {
         return keytab;
     }
 
-    private void clearZookeeper(RecoverableZooKeeper rzk, ServerName serverName, String queueName) throws InterruptedException, KeeperException {
+    private void clearZookeeper(RecoverableZooKeeper rzk, ServerName serverName) throws InterruptedException, KeeperException {
         String root = HConfiguration.getConfiguration().getSpliceRootPath();
 
         try {
@@ -365,7 +353,7 @@ public class OlapServerSubmitter implements Runnable {
                 else throw e;
             }
 
-            String masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName + ":" + queueName;
+            String masterPath = root + HBaseConfiguration.OLAP_SERVER_PATH + "/" + serverName;
             try {
                 rzk.delete(masterPath, -1);
             } catch (KeeperException e) {
@@ -453,13 +441,11 @@ public class OlapServerSubmitter implements Runnable {
     }
 
 
-    private String prepareCommands(String exec, String parameters, String sparkYarnQueue) throws IOException {
+    private String prepareCommands(String exec, String parameters) throws IOException {
         StringBuilder result = new StringBuilder();
         result.append(exec);
         for (Object sysPropertyKey : System.getProperties().keySet()) {
             String spsPropertyName = (String) sysPropertyKey;
-            if (spsPropertyName.contains("spark.yarn.queue"))
-                continue; // we'll set the appropriate yarn queue later
             if (spsPropertyName.startsWith("splice.spark") || spsPropertyName.startsWith("spark")) {
                 if (spsPropertyName.equals(KEYTAB_KEY)) {
                     LOG.info(KEYTAB_KEY + " is set, substituting it for " + amKeytabFileName);
@@ -472,8 +458,6 @@ public class OlapServerSubmitter implements Runnable {
                 }
             }
         }
-        result.append(' ').append("-Dspark.yarn.queue=\\\""+sparkYarnQueue+"\\\"");
-        result.append(' ').append("-Dsplice.spark.app.name=\\\"SpliceMachine-"+queueName+"\\\"");
         // If user does not specify a kerberos keytab or principal, use HBase master's.
         if (UserGroupInformation.isSecurityEnabled()) {
             Configuration configuration = HConfiguration.unwrapDelegate();
@@ -495,9 +479,7 @@ public class OlapServerSubmitter implements Runnable {
             }
         }
         result.append(' ').append(parameters);
-        String command = result.toString();
-        LOG.info("OlapServer command: " + command);
-        return command;
+        return result.toString();
     }
 
     private void setupAppMasterEnv(Map<String, String> appMasterEnv, Configuration conf) {

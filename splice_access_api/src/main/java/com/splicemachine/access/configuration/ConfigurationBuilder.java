@@ -16,9 +16,6 @@ package com.splicemachine.access.configuration;
 
 import com.splicemachine.access.api.SConfiguration;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * A builder containing all Splice subsystem properties that can be used to instantiate an {@link SConfiguration}.
  * <p/>
@@ -197,8 +194,6 @@ public class ConfigurationBuilder {
     public long controlExecutionRowLimit;
     public int olapShufflePartitions;
     public String olapLog4jConfig;
-    public Map<String,String> olapServerIsolatedRoles;
-    public Map<String,String> olapServerYarnQueues;
 
 
     /**
