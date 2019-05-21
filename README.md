@@ -3,7 +3,7 @@
   <img src="https://www.splicemachine.com/wp-content/themes/SpliceMachine/nhimages/splice-logo.png" width="250"/>
 </p>
 
-# Splice Machine SQL Engine
+# Splice Machine SQL Engine 
 
 Before proceeding with these instructions, please follow the instructions found in the GETTING-STARTED.md file.
 
