@@ -63,4 +63,7 @@ public abstract class EngineSqlEnvironment implements SqlEnvironment{
     public SConfiguration getConfiguration(){
         return config;
     }
+
+    @Override
+    public boolean isMemPlatform() { return false; }
 }

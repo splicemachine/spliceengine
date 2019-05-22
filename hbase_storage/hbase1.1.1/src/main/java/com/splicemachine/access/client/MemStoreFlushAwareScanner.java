@@ -15,6 +15,7 @@
 package com.splicemachine.access.client;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,6 +23,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -57,6 +59,9 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
     protected boolean flushAlreadyReturned = false;
     protected int counter = 0;
     private final byte[] stopRow;
+    protected boolean endRowWasReturned = false;
+    protected boolean hasMultiRowRangeFilter;
+    protected byte[]  lastRowkey;
 
     public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
                                      final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
@@ -67,6 +72,32 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         this.initialValue = initialValue;
         this.region = region;
         this.stopRow = Bytes.equals(scan.getStopRow(), HConstants.EMPTY_END_ROW) ? null : scan.getStopRow();
+        if (this.scan.hasFilter() && this.scan.getFilter() instanceof MultiRowRangeFilter) {
+            hasMultiRowRangeFilter = true;
+        }
+        else
+            hasMultiRowRangeFilter = false;
+    }
+
+    private byte[] getFakeRowkey() {
+        byte[] counterBytes = Bytes.toBytes(counter);
+        if (!hasMultiRowRangeFilter || lastRowkey == null)
+            return counterBytes;
+        else
+            // Use a non-filtered rowkey higher than all others.
+            return com.google.common.primitives.Bytes.concat(lastRowkey, counterBytes);
+    }
+
+    private void updateLatestRow(Cell lastCell) {
+        byte [] currentRow = lastCell.getRowArray();
+        int offset         = lastCell.getRowOffset();
+        short length       = lastCell.getRowLength();
+
+        if (lastRowkey == null || lastRowkey.length < length)
+            lastRowkey = new byte [length];
+
+        System.arraycopy(currentRow, offset, lastRowkey, 0, length);
+        Arrays.fill(lastRowkey, (int)length, lastRowkey.length, (byte)0);
     }
 
     protected boolean isStopRow(Cell peek) {
@@ -82,7 +113,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
     public KeyValue peek() {
         if (didWeFlush()) {
             if (flushAlreadyReturned) {
-                return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
+                byte[] rowKey = getFakeRowkey();
+                return new KeyValue(rowKey,ClientRegionConstants.FLUSH,ClientRegionConstants.FLUSH, 0l,ClientRegionConstants.FLUSH);
             }
             else {
                 if (LOG.isTraceEnabled())
@@ -98,7 +130,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         Cell peek = super.peek();
         if (peek == null || isStopRow(peek)) {
             endRowNeedsToBeReturned = true;
-            return new KeyValue(Bytes.toBytes(counter),ClientRegionConstants.HOLD,ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP,ClientRegionConstants.HOLD);
+            byte[] rowKey = getFakeRowkey();
+            return new KeyValue(rowKey,ClientRegionConstants.HOLD,ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP,ClientRegionConstants.HOLD);
         }
         return (KeyValue)peek;
     }
@@ -133,7 +166,9 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         }
         if (endRowNeedsToBeReturned) {
             try {
-                outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
+                byte[] rowKey = getFakeRowkey();
+                outResult.add(new KeyValue(rowKey, ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
+                endRowWasReturned = true;
                 return HBasePlatformUtils.scannerEndReached(scannerContext);
             } finally {
                 counter++;
@@ -142,7 +177,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         if (didWeFlush()) {
             if (flushAlreadyReturned) {
                 try {
-                    outResult.add(new KeyValue(Bytes.toBytes(counter),
+                    byte[] rowKey = getFakeRowkey();
+                    outResult.add(new KeyValue(rowKey,
                             ClientRegionConstants.FLUSH, ClientRegionConstants.FLUSH, Long.MAX_VALUE, ClientRegionConstants.FLUSH));
                     return HBasePlatformUtils.scannerEndReached(scannerContext);
                 } finally {
@@ -162,7 +198,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         // We don't have more rows but can't return null here
         endRowNeedsToBeReturned = true;
         if (outResult.isEmpty()) {
-            outResult.add(new KeyValue(Bytes.toBytes(counter), ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
+            byte[] rowKey = getFakeRowkey();
+            outResult.add(new KeyValue(rowKey, ClientRegionConstants.HOLD, ClientRegionConstants.HOLD, HConstants.LATEST_TIMESTAMP, ClientRegionConstants.HOLD));
         }
         return HBasePlatformUtils.scannerEndReached(scannerContext);
     }
@@ -190,9 +227,12 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
         return internalNext(outResult,NoLimitScannerContext.getInstance());
     }
 
-
     boolean directInternalNext(List<Cell> result, ScannerContext scannerContext) throws IOException {
-        return super.next(result,scannerContext);
+        boolean cellFound = super.next(result,scannerContext);
+        if (cellFound && result.size() > 0) {
+            updateLatestRow(result.get(result.size()-1));
+        }
+        return cellFound;
     }
 
     @Override

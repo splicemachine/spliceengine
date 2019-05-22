@@ -45,6 +45,8 @@ import java.util.BitSet;
 import java.util.Hashtable;
 import java.util.List;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+
 /**
  * A Predicate represents a top level predicate.
  */
@@ -155,7 +157,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public void markQualifier(){
+    public void markQualifier() throws StandardException{
+        // In list probe predicates should never be marked as
+        // qualifiers because a qualifier can only filter
+        // a single value, and each probe does not have its
+        // own separate thread or Dataset any more.
+        if (isInListProbePredicate())
+            throw StandardException.newException(LANG_INTERNAL_ERROR, "Attempt to mark an in-list probe predicate as a qualifier.");
         isQualifier=true;
     }
 

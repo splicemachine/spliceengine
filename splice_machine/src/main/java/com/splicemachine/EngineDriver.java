@@ -59,6 +59,8 @@ public class EngineDriver{
     private final SqlEnvironment environment;
     private final ServiceDiscovery serviceDiscovery;
 
+    public static boolean isMemPlatform() { return (INSTANCE.environment.isMemPlatform()); }
+
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
     }

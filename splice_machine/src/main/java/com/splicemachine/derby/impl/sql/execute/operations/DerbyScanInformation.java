@@ -36,10 +36,13 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.storage.DataScan;
+import com.splicemachine.utils.Pair;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -334,6 +337,56 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 rowIdKey);
     }
 
+    public List<Pair<byte[],byte[]>> getStartStopKeys(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, DataValueDescriptor[] probeValues) throws StandardException {
+        boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
+        ExecRow startPosition;
+        ExecRow stopPosition;
+        ExecRow overriddenStartPos;
+
+        if (sameStartStop) {
+            startSearchOperator = ScanController.NA;
+        }
+
+        if (startKeyOverride != null) {
+            startSearchOperator = ScanController.GE;
+        }
+
+        DataValueDescriptor[] startKeyValues;
+        DataValueDescriptor[] stopKeyValues;
+        DataValueDescriptor[] stopPrefixValues;
+
+        getConglomerate();
+
+        Pair<byte[],byte[]> startStopKey;
+        List<Pair<byte[],byte[]>> startStopKeys = new ArrayList<>(probeValues.length);
+        for (DataValueDescriptor probeValue : probeValues) {
+            setProbeValue(probeValue);
+            startPosition = getStartPosition();
+            stopPosition = sameStartStop ? startPosition : getStopPosition();
+            overriddenStartPos = startKeyOverride != null ? startKeyOverride : startPosition;
+
+            startKeyValues = overriddenStartPos == null ? null : overriddenStartPos.getClone().getRowArray();
+            stopKeyValues = stopPosition == null ? null : stopPosition.getClone().getRowArray();
+            stopPrefixValues = null;
+
+            startStopKey = Scans.setupScanKey(
+                    startKeyValues,
+                    startSearchOperator,
+                    stopKeyValues,
+                    stopPrefixValues,
+                    stopSearchOperator,
+                    conglomerate.getAscDescInfo(),
+                    conglomerate.getFormat_ids(),
+                    keyDecodingMap,
+                    FormatableBitSetUtils.toCompactedIntArray(getAccessedColumns()),
+                    activation.getDataValueFactory(),
+                    tableVersion,
+                    rowIdKey);
+            startStopKeys.add(startStopKey);
+        }
+        return startStopKeys;
+    }
+
     @Override
     public Qualifier[][] getScanQualifiers() throws StandardException {
         return populateQualifiers();
@@ -403,5 +456,10 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     @Override
     public boolean getSameStartStopPosition() {
         return sameStartStopPosition;
+    }
+
+
+    public void setProbeValue(DataValueDescriptor dvd) {
+
     }
 }

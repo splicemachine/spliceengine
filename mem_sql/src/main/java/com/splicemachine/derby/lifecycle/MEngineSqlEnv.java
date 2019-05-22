@@ -131,4 +131,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     public ServiceDiscovery serviceDiscovery() {
         return serviceDiscovery;
     }
+
+    @Override
+    public boolean isMemPlatform() { return true; }
 }

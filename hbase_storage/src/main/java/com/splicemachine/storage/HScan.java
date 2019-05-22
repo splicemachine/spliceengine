@@ -14,10 +14,15 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
+
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +31,7 @@ import java.util.Map;
  */
 public class HScan implements DataScan{
     private Scan scan;
+
 
     public HScan(){
         this.scan = new Scan();
@@ -40,6 +46,28 @@ public class HScan implements DataScan{
         return scan.isReversed();
     }
 
+    @Override
+    public void setStartStopKeys(List<Pair<byte[],byte[]>> startStopKeys) throws IOException {
+        if (startStopKeys == null || startStopKeys.size() < 1) {
+            scan.setFilter(null);
+            return;
+        }
+        List<MultiRowRangeFilter.RowRange> ranges = new ArrayList<>(startStopKeys.size());
+        byte[] startKey;
+        byte[] stopKey;
+        for (Pair<byte[],byte[]> startStopKey:startStopKeys) {
+            startKey=startStopKey.getFirst();
+            stopKey=startStopKey.getSecond();
+            MultiRowRangeFilter.RowRange rr =
+            new MultiRowRangeFilter.RowRange(startKey, true,
+                                             stopKey, false);
+            ranges.add(rr);
+        }
+        if (ranges.size() > 0) {
+            Filter filter = new MultiRowRangeFilter(ranges);
+            scan.setFilter(filter);
+        }
+    }
     @Override
     public DataScan startKey(byte[] startKey){
         scan.setStartRow(startKey);

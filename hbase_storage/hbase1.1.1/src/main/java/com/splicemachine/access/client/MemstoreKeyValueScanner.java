@@ -15,9 +15,7 @@
 package com.splicemachine.access.client;
 
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -65,7 +63,17 @@ public class MemstoreKeyValueScanner implements KeyValueScanner, InternalScanner
             peakKeyValue=(KeyValue)current();
             rows++;
             return true;
-        }else{
+        }
+        else if (cells != null && cells.length > 0 && cells[cells.length-1] != null &&
+                 CellUtil.matchingFamily(cells[cells.length-1],ClientRegionConstants.HOLD) &&
+                 cells[cells.length-1].getTimestamp() == HConstants.LATEST_TIMESTAMP) {
+            // The current cell is an end of scan marker.
+            // This is a legal end of read, so failure for
+            // a next cell to be present does not mean we
+            // should throw a DoNotRetryIOException.
+            return false;
+        }
+        else{
             // This shouldn't happen, throw exception and re-init the scanner
             throw new DoNotRetryIOException("Memstore scanner shouldn't end prematurely");
         }
