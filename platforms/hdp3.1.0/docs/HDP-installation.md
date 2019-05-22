@@ -9,7 +9,7 @@ Hortonworks Ambari-managed cluster. Follow these steps:
 3. [Stop Hadoop Services](#stop-hadoop-services)
 4. [Configure Hadoop Services](#configure-hadoop-services)
 5. [Start Any Additional Services](#start-any-additional-services)
-6. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
+6. [Verifiy Configuration](#verify-configuration-modifications)
 7. [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
 
 ## Verify Prerequisites
@@ -53,7 +53,7 @@ operating environment, and are called out in detail in the
 
 Follow the steps to install splicemachine server.
 
-1. Click the action button on the left bottom of the ambari page,then click on 'Add Services'
+1. Click the action button on the top left of the ambari page,then click on 'Add Services'
 
 <img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
 
@@ -66,6 +66,8 @@ Follow the steps to install splicemachine server.
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
 4. Please review all the configuration changes made by Ambari and click OK to continue.
+
+## Verify Configuration Modifications
 
 ### HDFS Configuartion
 
