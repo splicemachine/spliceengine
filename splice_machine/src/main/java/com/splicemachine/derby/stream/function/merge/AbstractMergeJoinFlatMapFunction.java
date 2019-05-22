@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.function.merge;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
@@ -32,98 +33,281 @@ import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.Iterators;
 import splice.com.google.common.collect.PeekingIterator;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.Pair;
+import splice.com.google.common.base.Preconditions;
 
 import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+
+import static com.splicemachine.EngineDriver.isMemPlatform;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  * Created by jleach on 6/9/15.
  */
-public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunction<JoinOperation,Iterator<ExecRow>,ExecRow> {
+public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunction<JoinOperation,Iterator<ExecRow>, ExecRow> {
     boolean initialized;
     protected JoinOperation joinOperation;
+    protected SpliceOperation leftSide;
+    protected SpliceOperation rightSide;
+    private PeekingIterator<ExecRow> leftPeekingIterator;
+    private Iterator<ExecRow> mergeJoinIterator;
+    private static final boolean IS_MEM_PLATFORM = isMemPlatform();
+    private final SIDriver driver = SIDriver.driver();
+    private boolean useOldMergeJoin = false;
 
     public AbstractMergeJoinFlatMapFunction() {
         super();
     }
 
-    public AbstractMergeJoinFlatMapFunction(OperationContext<JoinOperation> operationContext) {
+    public AbstractMergeJoinFlatMapFunction(OperationContext<JoinOperation> operationContext, boolean useOldMergeJoin) {
         super(operationContext);
+        this.useOldMergeJoin = useOldMergeJoin || isMemPlatform();
     }
 
-    @Override
-    public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
-        PeekingIterator<ExecRow> leftPeekingIterator = Iterators.peekingIterator(locatedRows);
-        if (!initialized) {
-            joinOperation = getOperation();
-            initialized = true;
-            if (!leftPeekingIterator.hasNext())
-                return Collections.EMPTY_LIST.iterator();
-            initRightScan(leftPeekingIterator);
-        }
-        final SpliceOperation rightSide = joinOperation.getRightOperation();
-        rightSide.reset();
-        DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
-        final Iterator<ExecRow> rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
-            @Override
-            public ExecRow apply(@Nullable ExecRow locatedRow) {
-                operationContext.recordJoinedRight();
-                return locatedRow;
-            }
-        });
-        ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(null); // reset to null to avoid any side effects
-        ((BaseActivation)joinOperation.getActivation()).setScanKeys(null);
-        ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(null);
-        AbstractMergeJoinIterator iterator = createMergeJoinIterator(leftPeekingIterator,
-                Iterators.peekingIterator(rightIterator),
-                joinOperation.getLeftHashKeys(), joinOperation.getRightHashKeys(),
-                joinOperation, operationContext);
-        iterator.registerCloseable(new Closeable() {
-            @Override
-            public void close() throws IOException {
-                try {
-                    rightSide.close();
-                } catch (StandardException e) {
-                    throw new RuntimeException(e);
+    protected class BufferedMergeJoinIterator implements PeekingIterator<ExecRow> {
+        protected static final int BUFFERSIZE=400;
+        private static final int INITIALCAPACITY=50;
+        private ArrayList<ExecRow> bufferedRowList = new ArrayList<>(INITIALCAPACITY);
+        private PeekingIterator<ExecRow> sourceIterator;
+        private boolean hasPeeked;
+        private boolean firstTime = true;
+
+        // A pointer to the next row to return when next() is called.
+        private int bufferPosition;
+
+        private void fillBuffer() throws StandardException {
+            bufferPosition = 0;
+
+            if (firstTime) {
+                bufferedRowList.clear();
+                for (int i = 0; i < BUFFERSIZE && sourceIterator.hasNext(); i++) {
+                    bufferedRowList.add((ExecRow) sourceIterator.next().getClone());
                 }
             }
-        });
-        return iterator;
-    }
-
-    private int[] getColumnOrdering(SpliceOperation op) throws StandardException {
-        SpliceOperation operation = op;
-        while (operation != null && !(operation instanceof ScanOperation)) {
-            operation = operation.getLeftOperation();
+            else {
+                // Re-use the buffer rows on subsequent filling of the buffer
+                // to reduce memory usage and GC pressure.
+                int i;
+                for (i = 0; i < BUFFERSIZE && sourceIterator.hasNext(); i++) {
+                    bufferedRowList.get(i).transfer(sourceIterator.next());
+                }
+                if (i < bufferedRowList.size())
+                    for (int j = bufferedRowList.size()-1; j >= i; j--)
+                        bufferedRowList.remove(j);
+            }
+            firstTime = false;
+            if (!bufferedRowList.isEmpty())
+                startNewRightSideScan(this);
         }
-        assert operation != null;
 
-        return ((ScanOperation)operation).getColumnOrdering();
-    }
+        public List<ExecRow> getBufferList() {
+            return bufferedRowList;
+        }
 
-    private boolean isKeyColumn(int[] columnOrdering, int col) {
-        for (int keyCol:columnOrdering) {
-            if (col == keyCol)
+        protected BufferedMergeJoinIterator(Iterator<ExecRow> sourceIterator) throws StandardException {
+            this.sourceIterator = Iterators.peekingIterator(sourceIterator);;
+            joinOperation = getOperation();
+            initialized = true;
+            fillBuffer();
+            if (bufferedRowList.isEmpty()) {
+                mergeJoinIterator = Collections.emptyIterator();
+            }
+        }
+
+        public ExecRow peek() {
+            hasPeeked = true;
+            if (bufferHasNextRow())
+                return bufferedRowList.get(bufferPosition);
+            else
+                return sourceIterator.peek();
+        }
+
+        public void remove() {
+            Preconditions.checkState(!this.hasPeeked, "Can't remove after you've peeked at next");
+            if (bufferHasNextRow())
+                bufferedRowList.remove(bufferPosition);
+            else
+                sourceIterator.remove();
+        }
+
+        private boolean bufferHasNextRow() {
+            return bufferPosition < bufferedRowList.size();
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (bufferHasNextRow())
                 return true;
+            else
+                return sourceIterator.hasNext();
         }
 
-        return false;
+        @Override
+        public ExecRow next() {
+            hasPeeked = false;
+            if (bufferHasNextRow())
+                return bufferedRowList.get(bufferPosition++);
+
+            try {
+                fillBuffer();
+            }
+            catch (StandardException e) {
+                throw new RuntimeException(e);
+            }
+            ExecRow retval = null;
+            if (bufferHasNextRow())
+                retval = bufferedRowList.get(bufferPosition++);
+
+            return retval;
+        }
+
+        // Takes a cache full of left rows and makes a list of the
+        // corresponding right key rows.
+        // If a right key row were to have a null value in any column,
+        // it is not added to the list.
+        protected ArrayList<Pair<ExecRow, ExecRow>>  getKeyRows() throws StandardException {
+            SpliceOperation rightOp = joinOperation.getRightOperation();
+            ExecRow startKey = rightOp.getStartPosition();
+            if (startKey != null && startKey.length() == 0)
+                throw StandardException.newException(LANG_INTERNAL_ERROR, "Unexpected 0 length start key in merge join.");
+            ExecRow stopKey = null;
+
+            boolean useStopKey = false;
+            final boolean sameStartStopPosition = rightOp.getSameStartStopPosition();
+            if (!sameStartStopPosition) {
+                stopKey = rightOp.getStopPosition();
+                if (stopKey != null) {
+                    useStopKey = true;
+                    if (stopKey.length() == 0)
+                        throw StandardException.newException(LANG_INTERNAL_ERROR, "Unexpected 0 length stop key in merge join.");
+                }
+                else if (startKey != null)
+                    useStopKey = true;  // Flag that we need to read till end of table.
+            }
+
+            int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
+            int[] rightHashKeys = joinOperation.getRightHashKeys();
+            int[] colToBaseTableMap = ((MergeJoinOperation)joinOperation).getRightHashKeyToBaseTableMap();
+
+            int[] rightToLeftKeyMap = new int[columnOrdering.length];
+
+            int numKeyColumns = 0;
+            int numFixedKeyColumns = 0;
+            if (startKey != null)
+                numKeyColumns = numFixedKeyColumns = startKey.nColumns();
+
+            boolean needsAllJoinKeys = false;
+            for (int i = numFixedKeyColumns; i < columnOrdering.length; i++) {
+                int keyColumnBaseTablePosition = columnOrdering[i];
+                int j = 0;
+                boolean foundKeyColumn = false;
+                for (; j < rightHashKeys.length; j++) {
+                    // both columnOrdering and colToBaseTableMap are 0-based
+                    if (colToBaseTableMap[j] == keyColumnBaseTablePosition) {
+                        rightToLeftKeyMap[i] = j;
+                        foundKeyColumn = true;
+                        needsAllJoinKeys = true;
+                    }
+                }
+                if (!foundKeyColumn)
+                    break;
+                numKeyColumns++;
+            }
+            if (numKeyColumns == 0)
+                throw StandardException.newException(LANG_INTERNAL_ERROR, "Attempted merge join execution without a join key.");
+
+            // Try to replace range conditions with equality if possible.
+            if (numFixedKeyColumns > 0 && !sameStartStopPosition)
+            for (int i = numFixedKeyColumns-1; i >= 0; i--) {
+                int keyColumnBaseTablePosition = columnOrdering[i];
+                int j = 0;
+                boolean foundKeyColumn = false;
+                for (; j < rightHashKeys.length; j++) {
+                    // both columnOrdering and colToBaseTableMap are 0-based
+                    if (colToBaseTableMap[j] == keyColumnBaseTablePosition) {
+                        rightToLeftKeyMap[i] = j;
+                        foundKeyColumn = true;
+                        needsAllJoinKeys = true;
+                        numFixedKeyColumns--;
+                    }
+                }
+                if (!foundKeyColumn)
+                    break;
+            }
+            if (numFixedKeyColumns == 0)
+                useStopKey = false;
+
+            ArrayList<Pair<ExecRow, ExecRow>> rightKeyRows = new ArrayList<>();
+            ExecRow newStartKey = new ValueRow(numKeyColumns);
+
+            Pair<ExecRow, ExecRow> newKeyPair = null;
+
+            List<ExecRow> bufferList = getBufferList();
+            int lastItem = bufferList.size()-1;
+            ExecRow row, previousRow = null;
+            int firstItem = 0;
+            boolean useFixedStartKey = false;
+            if (numFixedKeyColumns != 0 && !sameStartStopPosition && !needsAllJoinKeys) {
+                firstItem = lastItem;
+                useFixedStartKey = true;
+            }
+            if (firstItem < 0)
+                firstItem = 0;
+
+            for (int rowIndex = firstItem; rowIndex <= lastItem; rowIndex++) {
+                row = joinOperation.getKeyRow(bufferList.get(rowIndex));
+
+                boolean addRow = true;
+                for (int i = 0; i < numFixedKeyColumns; i++) {
+                    newStartKey.setColumn(i + 1, startKey.getColumn(i + 1));
+                }
+                for (int i = numFixedKeyColumns; i < numKeyColumns; i++) {
+                    int j = rightToLeftKeyMap[i];
+                    if (isNullDataValue(row.getColumn(j + 1))) {
+                        if (!useFixedStartKey) {
+                            addRow = false;
+                            break;
+                        }
+                    }
+                    else
+                        newStartKey.setColumn(i + 1, row.getColumn(j + 1));
+                }
+
+                // Don't add the same key twice.
+                if (addRow && row.equals(previousRow))
+                    addRow = false;
+
+                if (addRow) {
+                    previousRow = row;
+                    newKeyPair = new Pair<>();
+                    newKeyPair.setFirst(newStartKey);
+                    if (useStopKey)
+                        newKeyPair.setSecond(stopKey);
+                    else
+                        newKeyPair.setSecond(newStartKey);
+                    rightKeyRows.add(newKeyPair);
+
+                    newStartKey = new ValueRow(numKeyColumns);
+                }
+            }
+            // Returning a null list lets us avoid more
+            // isEmpty() checks later on.
+            if (rightKeyRows.isEmpty())
+                return null;
+            else
+                return rightKeyRows;
+        }
     }
 
-    private static boolean isNullDataValue(DataValueDescriptor dvd) {
-        return dvd == null || dvd.isNull();
-    }
-    private static boolean isAscendingKey(int[] rightHashKeySortOrders, int keyPos) {
-        boolean retval = rightHashKeySortOrders == null ||
-                         rightHashKeySortOrders.length <= keyPos ||
-                         rightHashKeySortOrders[keyPos] == 1;
-        return retval;
-    }
-    protected void initRightScan(PeekingIterator<ExecRow> leftPeekingIterator) throws StandardException{
-        ExecRow firstHashRow = joinOperation.getKeyRow(leftPeekingIterator.peek());
+    protected boolean initRightScanWithStartStopKeys(PeekingIterator<ExecRow> leftRows) throws StandardException{
+
+        ExecRow firstHashRow = joinOperation.getKeyRow(leftRows.peek());
         ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
         int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
         int nCols = startPosition != null ? startPosition.nColumns():0;
@@ -232,10 +416,137 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             if (scanInfo != null && scanInfo.getSameStartStopPosition())
                 ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(startPosition);
         }
+        return true;
     }
 
+    private void startNewRightSideScan(PeekingIterator<ExecRow> leftRows) throws StandardException {
+        Iterator<ExecRow> rightIterator;
+
+        ArrayList<Pair<ExecRow, ExecRow>> keyRows = null;
+
+        boolean skipRightSideRead = false;
+
+        // The mem platform doesn't support the HBase MultiRangeRowFilter.
+        if (!IS_MEM_PLATFORM && leftRows instanceof BufferedMergeJoinIterator) {
+            BufferedMergeJoinIterator mjIter = (BufferedMergeJoinIterator)leftRows;
+            keyRows = mjIter.getKeyRows();
+            ((BaseActivation) joinOperation.getActivation()).setKeyRows(keyRows);
+            skipRightSideRead = (keyRows == null);
+        }
+        else
+            skipRightSideRead = !initRightScanWithStartStopKeys(leftRows);
+
+        // If there are no join keys to look up in the right table,
+        // don't even read the right table.
+        if (skipRightSideRead)
+            rightIterator = Collections.emptyIterator();
+        else {
+            rightSide = joinOperation.getRightOperation();
+            rightSide.reset();
+            DataSetProcessor dsp = useOldMergeJoin ?
+                EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide) :
+                EngineDriver.driver().processorFactory().chooseProcessor(getOperation().getActivation(), rightSide);
+            rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
+                @Override
+                public ExecRow apply(@Nullable ExecRow locatedRow) {
+                    operationContext.recordJoinedRight();
+                    return locatedRow;
+                }
+            });
+        }
+        ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(null); // reset to null to avoid any side effects
+        ((BaseActivation)joinOperation.getActivation()).setScanKeys(null);
+        ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(null);
+        ((BaseActivation)joinOperation.getActivation()).setKeyRows(null);
+        if (mergeJoinIterator == null) {
+            leftSide = joinOperation.getLeftOperation();
+            mergeJoinIterator =
+                createMergeJoinIterator(leftRows,
+                                        Iterators.peekingIterator(rightIterator),
+                                        joinOperation.getLeftHashKeys(),
+                                        joinOperation.getRightHashKeys(),
+                                        joinOperation, operationContext);
+            ((AbstractMergeJoinIterator) mergeJoinIterator).registerCloseable(new Closeable() {
+                @Override
+                public void close() throws IOException {
+                    try {
+                        if (leftSide != null && !leftSide.isClosed())
+                            leftSide.close();
+                        if (rightSide != null && !rightSide.isClosed())
+                            rightSide.close();
+                        initialized = false;
+                        leftSide = null;
+                        rightSide = null;
+                    } catch (StandardException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+        }
+        else
+            ((AbstractMergeJoinIterator)mergeJoinIterator).reInitRightRS(Iterators.peekingIterator(rightIterator));
+    }
+
+    @Override
+    public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
+        if (leftPeekingIterator == null) {
+            if (!useOldMergeJoin)
+                leftPeekingIterator = new BufferedMergeJoinIterator(locatedRows);
+            else {
+                leftPeekingIterator = Iterators.peekingIterator(locatedRows);
+                joinOperation = getOperation();
+                initialized = true;
+                if (!leftPeekingIterator.hasNext())
+                    return Collections.EMPTY_LIST.iterator();
+                startNewRightSideScan(leftPeekingIterator);
+            }
+        }
+
+        return mergeJoinIterator;
+    }
+
+    private int[] getColumnOrdering(SpliceOperation op) throws StandardException {
+        SpliceOperation operation = op;
+        while (operation != null && !(operation instanceof ScanOperation)) {
+            operation = operation.getLeftOperation();
+        }
+        assert operation != null;
+
+        return ((ScanOperation)operation).getColumnOrdering();
+    }
+
+    private boolean isKeyColumn(int[] columnOrdering, int col) {
+        for (int keyCol:columnOrdering) {
+            if (col == keyCol)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static boolean isNullDataValue(DataValueDescriptor dvd) {
+        return dvd == null || dvd.isNull();
+    }
+    private static boolean isAscendingKey(int[] rightHashKeySortOrders, int keyPos) {
+        boolean retval = rightHashKeySortOrders == null ||
+                         rightHashKeySortOrders.length <= keyPos ||
+                         rightHashKeySortOrders[keyPos] == 1;
+        return retval;
+    }
 
     protected abstract AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<ExecRow> leftPeekingIterator,
                                                                          PeekingIterator<ExecRow> rightPeekingIterator,
                                                                          int[] leftHashKeys, int[] rightHashKeys, JoinOperation joinOperation, OperationContext<JoinOperation> operationContext);
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeBoolean(useOldMergeJoin);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        useOldMergeJoin = in.readBoolean();
+    }
 }

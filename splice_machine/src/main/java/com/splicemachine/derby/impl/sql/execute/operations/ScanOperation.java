@@ -309,7 +309,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
         return scanInformation.getScan(getCurrentTransaction(),
                 ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),
-                ((BaseActivation)activation).getScanStopOverride());
+                ((BaseActivation)activation).getScanStopOverride(),
+                ((BaseActivation)activation).getKeyRows());
     }
 
     @Override
@@ -367,6 +368,16 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     @Override
     public ExecIndexRow getStartPosition() throws StandardException{
         return scanInformation.getStartPosition();
+    }
+
+    @Override
+    public ExecIndexRow getStopPosition() throws StandardException{
+        return scanInformation.getStopPosition();
+    }
+
+    @Override
+    public boolean getSameStartStopPosition() {
+        return scanInformation.getSameStartStopPosition();
     }
 
     public String getTableVersion(){

@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
+import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @SuppressFBWarnings(value = {"IS2_INCONSISTENT_SYNC", "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD"}, justification = "FIXME: DB-10223")
@@ -467,6 +468,8 @@ public class GenericStatement implements Statement{
                 // If the property value failed to convert to an int, don't throw an error,
                 // just use the default setting.
             }
+            if (maxMulticolumnProbeValues > MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE)
+                maxMulticolumnProbeValues = MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
             cc.setMaxMulticolumnProbeValues(maxMulticolumnProbeValues);
     
             String multicolumnInlistProbeOnSparkEnabledString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED);
@@ -536,6 +539,26 @@ public class GenericStatement implements Statement{
                 // just use the default setting.
             }
             cc.setAllowOverflowSensitiveNativeSparkExpressions(allowOverflowSensitiveNativeSparkExpressions);
+
+            String newMergeJoinString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NEW_MERGE_JOIN);
+            CompilerContext.NewMergeJoinExecutionType newMergeJoin =
+                   CompilerContext.DEFAULT_SPLICE_NEW_MERGE_JOIN;
+            try {
+                if (newMergeJoinString != null) {
+                    newMergeJoinString = newMergeJoinString.toLowerCase();
+                    if (newMergeJoinString.equals("on"))
+                        newMergeJoin = CompilerContext.NewMergeJoinExecutionType.ON;
+                    else if (newMergeJoinString.equals("off"))
+                        newMergeJoin = CompilerContext.NewMergeJoinExecutionType.OFF;
+                    else if (newMergeJoinString.equals("forced"))
+                        newMergeJoin = CompilerContext.NewMergeJoinExecutionType.FORCED;
+                }
+            } catch (Exception e) {
+                // If the property value failed to get decoded to a valid value, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setNewMergeJoin(newMergeJoin);
 
             String currentTimestampPrecisionString =
                     PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);

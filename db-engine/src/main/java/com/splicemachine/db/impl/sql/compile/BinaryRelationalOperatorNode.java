@@ -1612,12 +1612,13 @@ public class BinaryRelationalOperatorNode
             maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
         }
 
+        final int innerColumnPos = innerColumn.getSource().getColumnPosition();
         if (innerTableCostController != null) {
             long rc = (long)innerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
-            maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
+            minInnerColumn = innerTableCostController.minValue(innerColumnPos);
+            maxInnerColumn = innerTableCostController.maxValue(innerColumnPos);
         }
 
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
@@ -1627,6 +1628,18 @@ public class BinaryRelationalOperatorNode
                 endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
             selectivity *= innerTableCostController.getSelectivity(innerColumn.getSource().getColumnPosition(),
                     startKey, true, endKey, true, false);
+        }
+        else if (this.operatorType == EQUALS_RELOP) {
+            // Use a more realistic selectivity that takes the
+            // inner table RPV into account instead of defaulting
+            // to a selectivity of 1.
+            double innerCardinality =
+                        innerTableCostController.cardinality(innerColumnPos);
+            double outerRowCount = outerTableCostController.getEstimatedRowCount();
+
+            double tempSelectivity = outerRowCount / innerCardinality;
+            if (tempSelectivity < 1.0)
+                selectivity = tempSelectivity;
         }
 
         return selectivity;

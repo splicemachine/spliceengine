@@ -276,6 +276,14 @@ public class CompilerContextImpl extends ContextImpl
         return allowOverflowSensitiveNativeSparkExpressions;
     }
 
+    public NewMergeJoinExecutionType getNewMergeJoin() {
+        return newMergeJoin;
+    }
+
+    public void setNewMergeJoin(NewMergeJoinExecutionType newValue) {
+        newMergeJoin = newValue;
+    }
+
     public void setCurrentTimestampPrecision(int newValue) {
         currentTimestampPrecision = newValue;
     }
@@ -550,7 +558,7 @@ public class CompilerContextImpl extends ContextImpl
      * @exception StandardException        Thrown on error
      */
     @Override
-    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount) throws StandardException {
+    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount, int requestedSplits) throws StandardException {
           long conglomerateNumber = cd.getConglomerateNumber();
         /*
         ** Try to find the given conglomerate number in the array of
@@ -564,7 +572,7 @@ public class CompilerContextImpl extends ContextImpl
         /*
         ** Not found, so get a StoreCostController from the store.
         */
-        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount);
+        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount, requestedSplits);
 
         /* Put it in the array */
         storeCostControllers.put(pairedKey, retval);
@@ -1159,6 +1167,7 @@ public class CompilerContextImpl extends ContextImpl
     private int                 nextOJLevel = 1;
     private boolean             outerJoinFlatteningDisabled;
     private boolean             ssqFlatteningForUpdateDisabled;
+    private NewMergeJoinExecutionType newMergeJoin = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.
