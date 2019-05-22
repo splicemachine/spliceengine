@@ -15,6 +15,8 @@
 package com.splicemachine.derby.lifecycle;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -22,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import splice.com.google.common.net.HostAndPort;
@@ -47,6 +51,7 @@ import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.management.Manager;
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.olap.AsyncOlapNIOLayer;
 import com.splicemachine.olap.JobExecutor;
 import com.splicemachine.olap.OlapServerNotReadyException;
@@ -61,12 +66,17 @@ import com.splicemachine.uuid.Snowflake;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
+import static java.lang.System.getProperty;
+
 /**
  * @author Scott Fines
  *         Date: 1/27/16
  */
 public class HEngineSqlEnv extends EngineSqlEnvironment{
     private static final Logger LOG = Logger.getLogger(HEngineSqlEnv.class);
+
+    // Calculate this once on startup to save some overhead.
+    private static final int MAX_EXECUTOR_CORES = calculateMaxExecutorCores();
 
     private PropertyManager propertyManager;
     private PartitionLoadWatcher loadWatcher;
@@ -169,4 +179,177 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     }
 
 
+    /**
+     * Parse a Spark or Hadoop size parameter value, that may use k, m, g or t
+     * to represent kilobytes, megabytes, gigabytes or terabytes, respectively,
+     * and return back the corresponding number of bytes.
+     * @param sizeString the parameter value string to parse
+     * @param defaultValue the default value of the parameter if an invalid
+     *                     <code>sizeString</code> was passed.
+     * @return The value in bytes of <code>sizeString</code>, or <code>defaultValue</code>
+     *         if a <code>sizeString</code> was passed that could not be parsed.
+     */
+    private static long parseSizeString(String sizeString, long defaultValue) {
+        long retVal = defaultValue;
+        Pattern sizePattern = Pattern.compile("([\\d.]+)([kmgt])", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = sizePattern.matcher(sizeString);
+        Map<String, Integer> suffixes = new HashMap<>();
+        suffixes.put("k", 1);
+        suffixes.put("m", 2);
+        suffixes.put("g", 3);
+        suffixes.put("t", 4);
+        if (matcher.find()) {
+            BigInteger value;
+            String digits = matcher.group(1);
+            try {
+              value = new BigInteger(digits);
+            }
+            catch (NumberFormatException e) {
+              return defaultValue;
+            }
+            int power = suffixes.get(matcher.group(2).toLowerCase());
+            BigInteger multiplicand = BigInteger.valueOf(1024).pow(power);
+            value = value.multiply(multiplicand);
+            if (value.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0)
+              return Long.MAX_VALUE;
+            if (value.compareTo(BigInteger.valueOf(1)) < 0)
+              return defaultValue;
+
+            retVal = value.longValue();
+        }
+        else {
+            try {
+                retVal = Long.valueOf(sizeString);
+            }
+            catch (NumberFormatException e) {
+                return defaultValue;
+            }
+            if (retVal < 1)
+                retVal = defaultValue;
+        }
+        return retVal;
+    }
+
+    @Override
+    public int getMaxExecutorCores() {
+        return MAX_EXECUTOR_CORES;
+    }
+
+    /**
+     * Estimate the maximum number of Spark executor cores that could be simultaneously
+     * be running given the current YARN and splice.spark settings.
+     *
+     * @return The maximum number of Spark executor cores.
+     */
+    private static int calculateMaxExecutorCores() {
+        String memorySize = HConfiguration.unwrapDelegate().get("yarn.nodemanager.resource.memory-mb");
+        String sparkDynamicAllocationString = getProperty("splice.spark.dynamicAllocation.enabled");
+        String executorInstancesString = getProperty("splice.spark.executor.instances");
+        String executorCoresString = getProperty("splice.spark.executor.cores");
+        String sparkExecutorMemory = getProperty("splice.spark.executor.memory");
+
+        int executorCores = 1;
+        if (executorCoresString != null) {
+            try {
+                executorCores = Integer.valueOf(executorCoresString);
+                if (executorCores < 1)
+                    executorCores = 1;
+            } catch (NumberFormatException e) {
+            }
+        }
+
+        // Initialize to defaults, then check for custom settings.
+        long memSize = 8192*1024*1024, containerSize;
+        if (memorySize != null) {
+            try {
+                memSize = Long.valueOf(memorySize) * 1024 * 1024;
+            }
+            catch (NumberFormatException e) {
+            }
+        }
+
+        boolean dynamicAllocation = sparkDynamicAllocationString != null &&
+                                    Boolean.valueOf(sparkDynamicAllocationString).booleanValue();
+        int numSparkExecutorCores = executorCores;
+
+        int numSparkExecutors = 0;
+        if (!dynamicAllocation) {
+            try {
+                numSparkExecutors = 1;
+                numSparkExecutors = Integer.valueOf(executorInstancesString);
+                if (numSparkExecutors < 1)
+                    numSparkExecutors = 1;
+                numSparkExecutorCores = numSparkExecutors * executorCores;
+
+            } catch (NumberFormatException e) {
+            }
+        }
+        else {
+            String sparkDynamicAllocationMaxExecutors = getProperty("splice.spark.dynamicAllocation.maxExecutors");
+            numSparkExecutors = 0;
+            if (sparkDynamicAllocationMaxExecutors != null) {
+                try {
+                    numSparkExecutors = Integer.valueOf(executorInstancesString);
+                }
+                catch(NumberFormatException e){
+                }
+            }
+        }
+
+        long executorMemory = 1024 * 1024 * 1024; // 1g
+        if (sparkExecutorMemory != null)
+            executorMemory = parseSizeString(sparkExecutorMemory, executorMemory);
+        if (numSparkExecutors != 0)
+            executorMemory /= numSparkExecutors;
+
+        containerSize = executorMemory;
+
+        int maxExecutorsSupportedByYARN =
+            (memSize / containerSize) > Integer.MAX_VALUE ?
+                                        Integer.MAX_VALUE : (int)(memSize / containerSize);
+
+        if (maxExecutorsSupportedByYARN < 1)
+            maxExecutorsSupportedByYARN = 1;
+
+        int maxExecutorCoresSupportedByYARN = maxExecutorsSupportedByYARN * executorCores;
+
+        if (dynamicAllocation)
+            if (numSparkExecutors < 1)
+                numSparkExecutorCores = maxExecutorCoresSupportedByYARN;
+            else
+                numSparkExecutorCores = numSparkExecutors * executorCores;
+
+        if (numSparkExecutorCores > maxExecutorCoresSupportedByYARN)
+            numSparkExecutorCores = maxExecutorCoresSupportedByYARN;
+
+
+        return numSparkExecutorCores;
+    }
+
+    /**
+     * Estimate the number of input splits used to read a table
+     * <code>tableSize</code> bytes in size, assuming a splits
+     * hint is not used.
+     *
+     * @return The number of input splits Splice would use to
+     * read a table of <code>tableSize</code> bytes via Spark.
+     */
+    @Override
+    public int getNumSplits(long tableSize) {
+        int numSplits, minSplits = 0;
+        if (tableSize < 0)
+            tableSize = 0;
+
+        long bytesPerSplit = HConfiguration.getConfiguration().getSplitBlockSize();
+        minSplits = HConfiguration.getConfiguration().getSplitsPerRegionMin();
+        if ((tableSize / bytesPerSplit) > Integer.MAX_VALUE)
+            numSplits = Integer.MAX_VALUE;
+        else
+            numSplits = (int)(tableSize / bytesPerSplit);
+
+        if (numSplits < minSplits)
+            numSplits = minSplits;
+
+        return numSplits;
+    }
 }

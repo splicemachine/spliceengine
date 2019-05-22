@@ -1352,15 +1352,15 @@ public interface Property {
     /**
      * The maximum number of IN list items the optimizer is allowed to generate by combining
      * IN lists involving index or primary key columns into a single multicolumn IN list.
+     * Default value is 5000.  The maximum value for this parameter is 10000.
      */
     String MAX_MULTICOLUMN_PROBE_VALUES =
             "derby.database.maxMulticolumnProbeValues";
 
     /**
      * If true, allow conversion of single-column IN lists into a multicolumn IN list
-     * for use as a probe predicate when executing on Spark.  By default, this
-     * optimization is only used on control because the greater number of union
-     * operations on Spark leads to worse performance.
+     * for use as a probe predicate when executing on Spark.
+     * By default, this is true.
      *
      */
     String MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED =

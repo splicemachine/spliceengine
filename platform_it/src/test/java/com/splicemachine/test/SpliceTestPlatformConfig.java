@@ -290,7 +290,7 @@ class SpliceTestPlatformConfig {
         config.setLong("hbase.hregion.memstore.flush.size", 128 * MiB); // was 512 MiB
         config.setLong("hbase.hregion.memstore.block.multiplier", 4);
         config.setFloat("hbase.regionserver.global.memstore.size", 0.25f); // set mem store to 25% of heap
-        config.setLong("hbase.hstore.blockingStoreFiles", 20);
+        config.setLong("hbase.hstore.blockingStoreFiles", 200);
 //        config.set("hbase.regionserver.region.split.policy", "org.apache.hadoop.hbase.regionserver.ConstantSizeRegionSplitPolicy"); // change default split policy.  this makes more sense for a standalone/single regionserver
 
         // Support SI

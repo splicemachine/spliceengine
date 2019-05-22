@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
@@ -138,7 +139,7 @@ public class SelectivityUtil {
                 if (!isTheRightJoinPredicate(p, predicateType))
                     continue;
 
-                selectivity = Math.min(selectivity, p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType));
+                selectivity *= p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType);
             }
         }
 
@@ -229,7 +230,10 @@ public class SelectivityUtil {
     }
 
 
-
+    // Warning: This method's calculations depend on the inner and outer row count estimates
+    // being what they were when the inner and outer table's heap sizes were originally
+    // calculated.  Please call this method before calling setRowCount on either
+    // innerCostEstimate or outerCostEstimate.
     public static double getTotalHeapSize(CostEstimate innerCostEstimate,
                                           CostEstimate outerCostEstimate,
                                           double totalOutputRows){
@@ -249,34 +253,44 @@ public class SelectivityUtil {
 
     public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
                                                         CostEstimate outerCostEstimate,
-                                                        double totalOutputRows){
+                                                        Optimizer    optimizer) {
 
-        // Join costing is done on a per-partition basis, so remote costs
+        return getTotalPerPartitionRemoteCost(innerCostEstimate,
+                                              outerCostEstimate,
+                                              optimizer, 1.0);
+    }
+    public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
+                                                        CostEstimate outerCostEstimate,
+                                                        Optimizer    optimizer,
+                                                        double innerTableScaleFactor){
+
+        // Join costing is done on a per parallel task basis, so remote costs
         // for a JoinOperation are calculated this way too, to make the units consistent.
         // The operation is initiated from the outer table, so it determines the
         // number of partitions.
-        int numpartitions = outerCostEstimate.partitionCount();
-        if (numpartitions <= 0)
-            numpartitions = 1;
-        return getTotalRemoteCost(outerCostEstimate.remoteCost(),
-                                  innerCostEstimate.remoteCost(),
-                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows)/numpartitions;
+        int numParallelTasks = outerCostEstimate.getParallelism();
+        if (numParallelTasks <= 0)
+            numParallelTasks = 1;
+        double totalRemoteCost =
+            getTotalRemoteCost(outerCostEstimate.remoteCost(),
+                               innerCostEstimate.remoteCost() * innerTableScaleFactor)/numParallelTasks;
+        return totalRemoteCost;
+
     }
 
     private static double getTotalRemoteCost(double outerRemoteCost,
-                                             double innerRemoteCost,
-                                             double outerRowCount,
-                                             double innerRowCount,
-                                             double totalOutputRows){
-        return totalOutputRows*(
-                (innerRemoteCost/(innerRowCount<1.0d?1.0d:innerRowCount)) +
-                        (outerRemoteCost/(outerRowCount<1.0d?1.0d:outerRowCount)));
+                                             double innerRemoteCost){
+        // Remote cost is not a joining cost, so remove totalOutputRows
+        // from the formula.
+        return innerRemoteCost + outerRemoteCost;
     }
 
     public static double getTotalRows(Double joinSelectivity, double outerRowCount, double innerRowCount) {
-        return joinSelectivity*
+        double totalRows =  joinSelectivity*
                 (outerRowCount<1.0d?1.0d:outerRowCount)*
                 (innerRowCount<1.0d?1.0d:innerRowCount);
+
+        return totalRows;
     }
 
 }
