@@ -11,16 +11,15 @@ Hortonworks Ambari-managed cluster. Follow these steps:
 5. [Start Any Additional Services](#start-any-additional-services)
 6. Make any needed [Optional Configuration Modifications](#optional-configuration-modifications)
 7. [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
-8. [Upgrade from Old Version](#upgrade-from-old-version)
 
 ## Verify Prerequisites
 
 Before starting your Splice Machine installation, please make sure that
 your cluster contains the prerequisite software components:
 
-* A cluster running HDP
+* A cluster running HDP 3.1
 * Ambari installed and configured for HDP
-* HBase installed
+* HBase 2.0 installed
 * HDFS installed
 * YARN installed
 * ZooKeeper installed
@@ -32,36 +31,23 @@ your cluster contains the prerequisite software components:
 operating environment, and are called out in detail in the
 [Requirements](https://doc.splicemachine.com/onprem_info_requirements.html) topic of our *Getting Started Guide*.
 
-## Download and Install Splice Machine
+## Install the RPMs
 
-Setup local yum repo on ambari server node ( or a node that all the nodes in the cluster can access) :
+* Download the ambari_service rpms onto your ambari_server node
 
-1. Make sure there is a http server on the node that your_node_url is accessable.
-2. Make sure createrepo is installed on the node ( use 'yum install createrepo' to confirm)
-3. Put the splicemachine rpm under `/var/www/html/ambari-repo/` ( or the path you choose)
-4. Use `createrepo /var/www/html/ambari-repo/` to create the repo metadata.
-5. Open the url `your_node_url/ambari-repo` to confirm it can be accessed by yum.
-6. Put a file named `splicemachine.repo` under ``/etc/yums.repo.d/` with the content is as below
+`scp splicemachine_ambari_service-hdp3.1.0.2.7.0.1913-SNAPSHOT.p0.300_1.noarch.rpm username@to_host:/remote/directory/`
 
-  ````
-  [splicemachine]
-  name=SpliceMachine Repo
-  baseurl=http://your_node_url/ambari-repo
-  enabled=1
-  gpgcheck=0
-  ````
-7. Run `yum list | grep splicemachine` to make sure the custom repo is up and running.
+* Install the ambari_service rpm
 
-Perform the following steps **on each node** in your cluster:
+`sudo rpm -ivh splicemachine_ambari_service-hdp3.1.0.2.7.0.1913-SNAPSHOT.p0.300_1.noarch.rpm`
 
-Install the Splice Machine custom Ambari service rpm using the following command (take version 2.5.0.1811 for example) :
+* Go into each node and download the splicemachine rpm into each node
 
-```
-sudo yum install splicemachine_ambari_service
-```
+`sudo rpm -ivh splicemachine-hdp3.1.0.2.7.0.1913-SNAPSHOT.p0.300_1.noarch.rpm`
 
-After install the rpm, restart ambari-server using `service ambari-server restart`.
+* After installing the rpms, restart ambari-server
 
+`service ambari-server restart`.
 
 ## Install splicemachine using Ambari service
 
@@ -79,26 +65,252 @@ Follow the steps to install splicemachine server.
 
 <img src="docs/choose_hosts.jpeg" alt="Choose hosts" width="400" height="200">
 
-4. On the page of custom services, no properties need to customized by hand unless you would 
-like to add Apache Ranger Support.
+4. Please review all the configuration changes made by Ambari and click OK to continue.
 
-<img src="docs/custom_services.jpeg" alt="Custom Services" width="400" height="200">
+### HDFS Configuartion
 
-5. Please review all the configuration changes made by Ambari and click OK to continue.
+(1) Make sure these settings are set
 
+| NameNode Property                     | Value     |
+|-------------------------------------- |---------  |
+| NameNode Java heap size               | 4096 MB   |
+| NameNode new generation size          | 512 MB    |
+| NameNode maximum new generation size  | 512 MB    |
+
+(2)
+
+| DataNode Property                 | Value     |
+|---------------------------------  |---------  |
+| DataNode maximum Java heap size   | 2048 MB   |
+
+(3)
+
+| Advanced ssl-client Property  | Value   |
+|------------------------------ |-------  |
+| ssl.client.keystore.location  | admin   |
+
+(4)
+
+| Custom core-site Property     | Value   |
+|------------------------------ |-------  |
+| ipc.server.listen.queue.size  | 3300    |
+
+(5)
+
+| Custom hdfs-site Property   | Value   |
+|---------------------------- |-------  |
+| dfs.datanode.handler.count  | 20      |
+
+### YARN Configuration
+
+(1)
+
+| Memory Property                                     | Value     |
+|---------------------------------------------------- |---------- |
+| Memory allocated for all YARN containers on a node  | 30720 MB  |
+| Maximum Container Size (Memory)                     | 30720 MB  |
+
+### MapReduce2 Configuration
+
+(1)
+
+| MapReduce Property  | Value     |
+|-------------------- |---------- |
+| Map Memory          | 8192 MB   |
+| Reduce Memory       | 16384 MB  |
+| AppMaster Memory    | 8192 MB   |
+
+### Zookeeper Configuration
+
+(1)
+
+| Custom zoo.cfg Property   | Value   |
+|-------------------------  |-------- |
+| maxClientCnxns            | 0       |
+| maxSessionTimeout         | 120000  |
+
+### Hbase Configuration
 <img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 **Note**: Ambari will not show all the recommended values in some situations. Make sure these 
 important configurations are set properly by clicking "recommend" button next to the configs:
 
-(1) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.master.classes` includes `com.splicemachine.hbase.SpliceMasterObserver`.
+(1) 
 
-(2) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.regionserver.classes` includes `com.splicemachine.hbase.RegionServerLifecycleObserver`.
+| Server Property                               | Value     |
+|---------------------------------------------  |---------- |
+| HBase Master Maximum Memory                   | 5120 MB   |
+| HBase RegionServer Maximum Memory             | 24576 MB  |
+| % of RegionServer Allocated to Read Buffers   | 0.25      |
+| Number of Handlers per RegionServer           | 200       |
 
-(3) In HBase's config "Advanced hbase-site", make sure `hbase.coprocessor.region.classes` includes `org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver`. If the property is not found, you can add the property in "Custom hbase-site".
+(2)
 
-(4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific 
-Information" are in the configurations.
+| Timeouts Property                             | Value                 |
+|---------------------------------------------  |---------------------  |
+| Zookeeper Session Timeout                     | 120000 milliseconds   |
+| HBase RPC Timeout                             | 120000 milliseconds   |
+
+(3)
+
+| General Property                                | Value       |
+|------------------------------------------------ |-----------  |
+| Maximum Store Files before Minor Compaction     | 5           |
+| Number of Fetched Rows when Scanning from Disk  | 1000 rows   |
+
+(4)
+Note:
+* hbase.bucketcache.ioengine should be empty
+* hbase.zookeeper.quorum make sure the correct hosts are set in the value
+
+| Advanced hbase-site Property            | Value                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+|---------------------------------------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------  |
+| hbase.bucketcache.ioengine              |                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| hbase.coprocessor.master.classes        | hbase.coprocessor.master.classes                                                                                                                                                                                                                                                                                                                                                                                                            |
+| hbase.coprocessor.region.classes        | org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint, com.splicemachine.hbase.MemstoreAwareObserver, com.splicemachine.derby.hbase.SpliceIndexObserver, com.splicemachine.derby.hbase.SpliceIndexEndpoint, com.splicemachine.hbase.RegionSizeEndpoint, com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint, com.splicemachine.si.data.hbase.coprocessor.SIObserver, com.splicemachine.hbase.BackupEndpointObserver   |
+| hbase.coprocessor.regionserver.classes  | com.splicemachine.hbase.RegionServerLifecycleObserver                                                                                                                                                                                                                                                                                                                                                                                       |
+| hbase.zookeeper.quorum                  | srv01,srv02,srv03                                                                                                                                                                                                                                                                                         
+(5)                                                                                                                                  |
+
+| Custom hbase-site Property                            | Value                                                                                                     |
+|-----------------------------------------------------  |---------------------------------------------------------------------------------------------------------- |
+| hbase.balancer.period                                 | 60000                                                                                                     |
+| hbase.client.ipc.pool.size                            | 10                                                                                                        |
+| hbase.client.max.perregion.tasks                      | 100                                                                                                       |
+| hbase.hstore.compaction.min.size                      | 136314880                                                                                                 |
+| hbase.hstore.defaultengine.compactionpolicy.class     | com.splicemachine.compactions.SpliceDefaultCompactionPolicy                                               |
+| hbase.hstore.defaultengine.compactor.class            | com.splicemachine.compactions.SpliceDefaultCompactor                                                      |
+| hbase.htable.threads.max                              | 96                                                                                                        |
+| hbase.ipc.warn.response.size                          | -1                                                                                                        |
+| hbase.ipc.warn.response.time                          | -1                                                                                                        |
+| hbase.master.balancer.stochastic.regionCountCost      | 1500                                                                                                      |
+| hbase.master.hfilecleaner.plugins                     | com.splicemachine.hbase.SpliceHFileCleaner,org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner  |
+| hbase.mvcc.impl                                       | org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl                                     |
+| hbase.regions.slop                                    | 0                                                                                                         |
+| hbase.regionserver.global.memstore.size.lower.limit   | 0.9                                                                                                       |
+| hbase.regionserver.lease.period                       | 1200000                                                                                                   |
+| hbase.regionserver.maxlogs                            | 48                                                                                                        |
+| hbase.regionserver.metahandler.count                  | 200                                                                                                       |
+| hbase.regionserver.thread.compaction.large            | 4                                                                                                         |
+| hbase.regionserver.wal.enablecompression              | true                                                                                                      |
+| hbase.splitlog.manager.timeout                        | 3000                                                                                                      |
+| hbase.status.multicast.port                           | 16100                                                                                                     |
+| hbase.wal.disruptor.batch                             | true                                                                                                      |
+| hbase.wal.provider                                    | multiwal                                                                                                  |
+| hbase.wal.regiongrouping.numgroups                    | 16                                                                                                        |
+| hbase.zookeeper.property.tickTime                     | 6000                                                                                                      |
+| hfile.block.bloom.cacheonwrite                        | true                                                                                                      |
+| io.storefile.bloom.error.rate                         | 0.0005                                                                                                    |
+| splice.authentication                                 | NATIVE                                                                                                    |
+| splice.authentication.native.algorithm                | SHA-512                                                                                                   |
+| splice.client.numConnections                          | 1                                                                                                         |
+| splice.client.write.maxDependentWrites                | 60000                                                                                                     |
+| splice.client.write.maxIndependentWrites              | 60000                                                                                                     |
+| splice.compression                                    | snappy                                                                                                    |
+| splice.marshal.kryoPoolSize                           | 1100                                                                                                      |
+| splice.olap_server.clientWaitTime                     | 900000                                                                                                    |
+| splice.ring.bufferSize                                | 131072                                                                                                    |
+| splice.splitBlockSize                                 | 67108864                                                                                                  |
+| splice.timestamp_server.clientWaitTime                | 120000                                                                                                    |
+| splice.txn.activeTxns.cacheSize                       | 10240                                                                                                     |
+| splice.txn.completedTxns.concurrency                  | 128                                                                                                       |
+| splice.txn.concurrencyLevel                           | 4096                                                                                                      |
+
+(6) In Hbase's config "hbase-env template" under advanced hbase-env, make sure the comments like "Splice Specific 
+Information" are in the configurations. i.e.
+
+```
+# Set environment variables here.
+
+# The java implementation to use. Java 1.6 required.
+export JAVA_HOME={{java64_home}}
+
+# HBase Configuration directory
+export HBASE_CONF_DIR=${HBASE_CONF_DIR:-{{hbase_conf_dir}}}
+
+# Extra Java CLASSPATH elements. Optional.
+export HBASE_CLASSPATH=${HBASE_CLASSPATH}
+
+
+# The maximum amount of heap to use, in MB. Default is 1000.
+# export HBASE_HEAPSIZE=1000
+
+# Extra Java runtime options.
+# Below are what we set by default. May only work with SUN JVM.
+# For more on why as well as other possible settings,
+# see http://wiki.apache.org/hadoop/PerformanceTuning
+export SERVER_GC_OPTS="-verbose:gc -XX:-PrintGCCause -XX:+PrintAdaptiveSizePolicy -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:{{log_dir}}/gc.log-`date +'%Y%m%d%H%M'`"
+# Uncomment below to enable java garbage collection logging.
+# export HBASE_OPTS="$HBASE_OPTS -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCDateStamps -Xloggc:$HBASE_HOME/logs/gc-hbase.log"
+
+# Uncomment and adjust to enable JMX exporting
+# See jmxremote.password and jmxremote.access in $JRE_HOME/lib/management to configure remote password access.
+# More details at: http://java.sun.com/javase/6/docs/technotes/guides/management/agent.html
+#
+# export HBASE_JMX_BASE="-Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"
+# If you want to configure BucketCache, specify '-XX: MaxDirectMemorySize=' with proper direct memory size
+# export HBASE_THRIFT_OPTS="$HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10103"
+# export HBASE_ZOOKEEPER_OPTS="$HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10104"
+
+# File naming hosts on which HRegionServers will run. $HBASE_HOME/conf/regionservers by default.
+export HBASE_REGIONSERVERS=${HBASE_CONF_DIR}/regionservers
+
+# Extra ssh options. Empty by default.
+# export HBASE_SSH_OPTS="-o ConnectTimeout=1 -o SendEnv=HBASE_CONF_DIR"
+
+# Where log files are stored. $HBASE_HOME/logs by default.
+export HBASE_LOG_DIR={{log_dir}}
+
+# A string representing this instance of hbase. $USER by default.
+# export HBASE_IDENT_STRING=$USER
+
+# The scheduling priority for daemon processes. See 'man nice'.
+# export HBASE_NICENESS=10
+
+# The directory where pid files are stored. /tmp by default.
+export HBASE_PID_DIR={{pid_dir}}
+
+# Seconds to sleep between slave commands. Unset by default. This
+# can be useful in large clusters, where, e.g., slave rsyncs can
+# otherwise arrive faster than the master can service them.
+# export HBASE_SLAVE_SLEEP=0.1
+
+# Tell HBase whether it should manage it's own instance of Zookeeper or not.
+export HBASE_MANAGES_ZK=false
+
+{% if java_version < 8 %}
+JDK_DEPENDED_OPTS="-XX:PermSize=128m -XX:MaxPermSize=128m -XX:ReservedCodeCacheSize=256m"
+{% endif %}
+
+# Set common JVM configuration
+export HBASE_OPTS="$HBASE_OPTS -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:-ResizePLAB -XX:ErrorFile={{log_dir}}/hs_err_pid%p.log -Djava.io.tmpdir={{java_io_tmpdir}}"
+export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Xmx{{master_heapsize}} -XX:ParallelGCThreads={{parallel_gc_threads}} $JDK_DEPENDED_OPTS "
+export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Xms{{regionserver_heapsize}} -Xmx{{regionserver_heapsize}} -XX:ParallelGCThreads={{parallel_gc_threads}} $JDK_DEPENDED_OPTS"
+export PHOENIX_QUERYSERVER_OPTS="$PHOENIX_QUERYSERVER_OPTS -XX:ParallelGCThreads={{parallel_gc_threads}} $JDK_DEPENDED_OPTS"
+
+# Add Kerberos authentication-related configuration
+{% if security_enabled %}
+export HBASE_OPTS="$HBASE_OPTS -Djava.security.auth.login.config={{client_jaas_config_file}} {{zk_security_opts}}"
+export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS -Djava.security.auth.login.config={{master_jaas_config_file}} -Djavax.security.auth.useSubjectCredsOnly=false"
+export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS -Djava.security.auth.login.config={{regionserver_jaas_config_file}} -Djavax.security.auth.useSubjectCredsOnly=false"
+export PHOENIX_QUERYSERVER_OPTS="$PHOENIX_QUERYSERVER_OPTS -Djava.security.auth.login.config={{queryserver_jaas_config_file}}"
+{% endif %}
+
+# HBase off-heap MaxDirectMemorySize
+export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS {% if hbase_max_direct_memory_size %} -XX:MaxDirectMemorySize={{hbase_max_direct_memory_size}}m {% endif %}"
+export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS {% if hbase_max_direct_memory_size %} -XX:MaxDirectMemorySize={{hbase_max_direct_memory_size}}m {% endif %}"
+
+#Add Splice Jars to HBASE_PREFIX_CLASSPATH
+ if [ ! "$1" = "shell" ]; then
+ export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/3.1.0.0-78/phoenix/lib/phoenix-core-5.0.0.3.1.0.0-78.jar
+ fi
+#Add Splice Specific Information to HBase Master
+ export HBASE_MASTER_OPTS="${HBASE_MASTER_OPTS} -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn -Dsplice.spark.submit.deployMode=client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true -Dsplice.spark.reducer.maxReqSizeShuffleToMem=134217728 -Dsplice.spark.yarn.am.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.yarn.am.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.driver.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.driver.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=2 -Dsplice.spark.executor.memory=2g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.executor.userClassPathFirst=true -Dsplice.spark.driver.userClassPathFirst=true -Dsplice.spark.executor.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*:/usr/hdp/3.1.0.0-78/hadoop-mapreduce/* -Dsplice.spark.yarn.jars=/usr/hdp/3.1.0.0-78/spark2/jars/*"
+#Add Splice Specific Information to Region Server
+ export HBASE_REGIONSERVER_OPTS="${HBASE_REGIONSERVER_OPTS} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10102" 
+ ```
+
+Check the location of your hdp version if not 3.1.0.0-78, update the locations the template.
 
 
 6. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
@@ -107,7 +319,6 @@ Information" are in the configurations.
 <img src="docs/review.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 7. Restart all the services affected to start Splice Machine!
-
 
 
 ## Start any Additional Services
@@ -119,162 +330,12 @@ Machine.
 If you had any additional services running, such as Ambari Metrics, you
 need to restart each of those services.
 
-## Optional Configuration Modifications
+If you are upgrading from versions before 1901, you need to follow these steps:
 
-There are a few configuration modifications you might want to make:
-
-* [Modify the Authentication Mechanism](#modify-the-authentication-mechanism) if you want to
-  authenticate users with something other than the default *native
-  authentication* mechanism.
-* [Modify the Log Location](#modify-the-log-location) if you want your Splice Machine
-  log entries stored somewhere other than in the logs for your region
-  servers.
-
-### Modify the Authentication Mechanism
-
-Splice Machine installs with Native authentication configured; native
-authentication uses the `sys.sysusers` table in the `splice` schema for
-configuring user names and passwords.
-
-You can disable authentication or change the authentication mechanism
-that Splice Machine uses to LDAP by following the simple instructions in
-[Configuring Splice Machine
-Authentication](https://doc.splicemachine.com/onprem_install_configureauth.html){: .WithinBook}
-
-If you're using Kerberos, you need to add this option to your HBase Master Java Configuration Options:
-
-   ````
-   -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true
-   ````
-   
-### Enabling Ranger for Authorization
-
-Splice Machine installs with Native authorization configured; native
-authorization uses the Splice Machine dictionary tables to determine permissions on database objects.
-
-
-#### Config Splice Machine Ambari Service
-
-
-In the tab:  Advanced ranger-splicemachine-audit
-
-1. Check audit to HDFS
-2. Check audit to SOLR
-3. For the config: xasecure.audit.destination.solr.urls change localhost to the hostname / node 
-for SOLR
-4. Set xasecure.audit.is.enabled to true
-
-In the tab:  Advanced ranger-splicemachine-security
-
-1. Update ranger.plugin.splicemachine.policy.rest.url
-2. Change localhost to the host / node for Ranger Server
-
-
-#### Add Ranger Service for Splice Machine
-
-Before changing the authorization scheme, the Splice Machine ranger service needs to be installed.  As part of the Splice Machine Ambari Service, 
-the admin plugin for Splice Machine is added to the Ranger web application.
-
-The service can be installed by executing the following from a command line on the machine where the Ambari Service resides.
-
-Then post this file to Ranger API. Run the command bellow on master. `admin:admin` here is 
-Ranger's username and password.
-
-```
-curl -sS -u admin:admin -H "Content-Type: application/json" -X POST http://localhost:6080/service/plugins/definitions -d @/var/lib/ambari-server/resources/stacks/HDP/2.6/services/SPLICEMACHINE/configuration/ranger-servicedef-splicemachine.json
-```
-1. Go to Ranger admin web page.
-2. You should see SpliceMachine Plugin
-3. Click on the plus sign (+) next to SpliceMachine
-4. Need to add a Service: the service name is the same name as you configured in
-`ranger.plugin.splicemachine.service.name`, which is `splicemachine` by default.
-
-Note: if you see some error like this when click "test connection":
-
-```
-Unable to retrieve any files using given parameters, You can still save the repository and start
-creating policies, but you would not be able to use autocomplete for resource names.
-Check ranger_admin.log for more info.
-
-org.apache.ranger.plugin.client.HadoopException: Unable to login to Hadoop environment [splicemachine]. 
-Unable to login to Hadoop environment [splicemachine]. 
-Unable to decrypt password due to error. 
-Input length must be multiple of 8 when decrypting with padded cipher. 
-```
-
-It is because of a [Ranger bug](https://issues.apache.org/jira/browse/RANGER-1640).
-You can ignore the error and test if autocomplete is working later.
-
-#### Config Ranger Policies
-
-Once you save the service then click on the service name you just created.
-You should see several policies for the splice user.
-The following policy is required so SYSIBM routines can support database connectivity.
-
-| Required Policy Name | Logic | Users |
-|--------------|------|------|
-| SYSIBM| `Schema=SYSIBM,routine=*,permissions=execute` | `All users/groups that will use the database`
-
-Note: when you create database user with
-
-```sql
-call syscs_util.syscs_create_user('ranger_test', 'admin');
-```
-
-Actually the username is parsed as uppercase. So you need to config the username as `RANGER_TEST`
- in Ranger. If you want to create a database user with lower case, quote the username with double
-  quote in a single quote:
-  
-```sql
-call syscs_util.syscs_create_user('"ranger_test"', 'admin');
-```
-
-##### Config HBase
-
-Once this is done, you can change the authorization scheme to RANGER by adding this option to your HBase Region Server Java Configuration Options:
-
-   ````
-   -Dsplice.authorization.scheme=RANGER
-   ````
-
-It is set to **NATIVE** by default.
-
-### Modify the Log Location
-
-#### Query Statement log
-
-Splice Machine logs all SQL statements by default, storing the log
-entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
-Machine stores logs by adding the following snippet to your *RegionServer Logging
-Advanced Configuration Snippet (Safety Valve)* section of your HBase
-Configuration:
-
-   ````
-   log4j.appender.spliceDerby=org.apache.log4j.FileAppender
-   log4j.appender.spliceDerby.File=${hbase.log.dir}/splice-derby.log
-   log4j.appender.spliceDerby.layout=org.apache.log4j.EnhancedPatternLayout
-   log4j.appender.spliceDerby.layout.ConversionPattern=%d{EEE MMM d HH:mm:ss,SSS} Thread[%t] %m%n
-
-   log4j.appender.spliceStatement=org.apache.log4j.FileAppender
-   log4j.appender.spliceStatement.File=${hbase.log.dir}/splice-statement.log
-   log4j.appender.spliceStatement.layout=org.apache.log4j.EnhancedPatternLayout
-   log4j.appender.spliceStatement.layout.ConversionPattern=%d{EEE MMM d HH:mm:ss,SSS} Thread[%t] %m%n
-
-   log4j.logger.splice-derby=INFO, spliceDerby
-   log4j.additivity.splice-derby=false
-
-   # Uncomment to log statements to a different file:
-   #log4j.logger.splice-derby.statement=INFO, spliceStatement
-   # Uncomment to not replicate statements to the spliceDerby file:
-   #log4j.additivity.splice-derby.statement=false
-   ````
-   
-#### OLAP Server Log
-   
-Splice Machine uses log4j to config OLAP server's log.  If you want to change the default log behavior of OLAP server,
-config `splice.olap.log4j.configuration` in `hbase-site.xml`. It specifies the log4j.properties file you want to use.
-This file needs to be available on HBase master server.
+1. Delete Splice Ambari service on web UI.
+2. Update RPM packages on each machine.
+3. Restart Ambari server.
+4. Re-install Splice Ambari service from web UI
 
 
 ## Verify your Splice Machine Installation
@@ -335,12 +396,3 @@ everything is working with your Splice Machine installation.
 See the [Command Line (splice&gt;)  Reference](https://doc.splicemachine.com/cmdlineref_intro.html)
 section of our *Developer's Guide* for information about our commands
 and command syntax.
-
-## Upgrade from Old Version
-
-If you are upgrading from versions before 1901, you need to follow these steps:
-
-1. Delete Splice Ambari service on web UI.
-2. Update RPM packages on each machine.
-3. Restart Ambari server.
-4. Re-install Splice Ambari service from web UI.
