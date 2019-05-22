@@ -55,7 +55,7 @@ Follow the steps to install splicemachine server.
 
 1. Click the action button on the top left of the ambari page,then click on 'Add Services'
 
-<img src="docs/add_services.jpg" alt="Add Service" width="400" height="200">
+<img src="docs/add_services.jpeg" alt="Add Service" width="400" height="200">
 
 2. Choose splice machine from the 'add service wizard'
 
