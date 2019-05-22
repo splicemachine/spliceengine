@@ -132,7 +132,6 @@ Follow the steps to install splicemachine server.
 | maxSessionTimeout         | 120000  |
 
 ### Hbase Configuration
-<img src="docs/dependent_config.jpeg" alt="dependent_config.jpeg" width="400" height="200">
 
 **Note**: Ambari will not show all the recommended values in some situations. Make sure these 
 important configurations are set properly by clicking "recommend" button next to the configs:
