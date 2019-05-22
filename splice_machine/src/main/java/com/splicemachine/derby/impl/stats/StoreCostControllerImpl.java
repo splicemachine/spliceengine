@@ -37,6 +37,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.Lists;
@@ -47,6 +48,8 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
+import static com.splicemachine.EngineDriver.*;
 
 /**
  *
@@ -84,10 +87,16 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean isSampleStats;
     private double sampleFraction;
     private boolean isMergedStats;
+    private int requestedSplits;
+
+    // The number of parallel Spark tasks that would run concurrently
+    // to access this table.
+    private int parallelism = 1;
 
 
-    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount) throws StandardException {
+    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount, int requestedSplits) throws StandardException {
         SConfiguration config = EngineDriver.driver().getConfiguration();
+        this.requestedSplits = requestedSplits;
         openLatency = config.getFallbackOpencloseLatency();
         closeLatency = config.getFallbackOpencloseLatency();
         fallbackNullFraction = config.getFallbackNullFraction();
@@ -182,6 +191,18 @@ public class StoreCostControllerImpl implements StoreCostController {
             tableStatistics = new TableStatisticsImpl(tableId, partitionStats,fallbackNullFraction,extraQualifierMultiplier);
             useRealTableStatistics = true;
         }
+
+        long tableSize = tableStatistics.rowCount() * tableStatistics.avgRowWidth();
+        if (isMemPlatform())
+            parallelism = 1;
+        else {
+            if (requestedSplits > 0)
+                parallelism = requestedSplits;
+            else
+                parallelism = EngineDriver.getNumSplits(tableSize);
+            if (parallelism > getMaxExecutorCores())
+                parallelism = getMaxExecutorCores();
+        }
     }
 
     @Override
@@ -210,8 +231,8 @@ public class StoreCostControllerImpl implements StoreCostController {
         cost.setLocalCost(fallbackLocalLatency);
         cost.setEstimatedHeapSize((long) columnSizeFactor*tableStatistics.avgRowWidth());
         cost.setNumPartitions(1);
-        cost.setRemoteCostPerPartition(cost.remoteCost());
-        cost.setLocalCostPerPartition(cost.localCost());
+        cost.setRemoteCostPerParallelTask(cost.remoteCost());
+        cost.setLocalCostPerParallelTask(cost.localCost());
         cost.setEstimatedRowCount(1l);
         cost.setOpenCost(openLatency);
         cost.setCloseCost(closeLatency);
@@ -339,6 +360,10 @@ public class StoreCostControllerImpl implements StoreCostController {
         return missingPartitions+tableStatistics.numPartitions();
     }
 
+    @Override
+    public int getParallelism() {
+        return parallelism;
+    }
 
     @Override
     public double baseRowCount() {

@@ -32,6 +32,7 @@ public abstract class EngineSqlEnvironment implements SqlEnvironment{
     private Snowflake snowflake;
     private Connection connection;
     private DatabaseVersion version;
+    public static final int DEFAULT_MAX_EXECUTORS = 16;
 
     public EngineSqlEnvironment(){
     }
@@ -63,4 +64,7 @@ public abstract class EngineSqlEnvironment implements SqlEnvironment{
     public SConfiguration getConfiguration(){
         return config;
     }
+
+    @Override
+    public boolean isMemPlatform() { return false; }
 }

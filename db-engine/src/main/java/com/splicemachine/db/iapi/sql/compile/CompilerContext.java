@@ -157,8 +157,9 @@ public interface CompilerContext extends Context
     int AGGREGATE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
     int CONDITIONAL_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
     int GROUP_BY_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
-    int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 10000;
-    boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
+    int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 5000;
+    int MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE = 15000;
+    boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = true;
     boolean DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
     boolean DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
     SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
@@ -483,12 +484,12 @@ public interface CompilerContext extends Context
      * @param conglomerateDescriptor    The conglomerate for which to get a StoreCostController.
      * @param skipStats do not fetch the stats from dictionary if true
      * @param defaultRowCount it only take effect when skipStats is true, and forces the fake stats' rowcount to be the specified value
-     *
+     * @param requestedSplits The requested number of input splits, if run on Spark.
      * @return    The appropriate StoreCostController.
      *
      * @exception StandardException        Thrown on error
      */
-    StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats, long defaultRowCount) throws StandardException;
+    StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats, long defaultRowCount, int requestedSplits) throws StandardException;
 
     /**
      * Get a SortCostController.

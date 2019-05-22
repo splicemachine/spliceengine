@@ -192,13 +192,13 @@ public class DistinctNode extends SingleChildResultSetNode
         sortCost = tableCardinality * remoteCostPerRow;
         outputHeapSize = tableCardinality * outputHeapSizePerRow;
 
-        double totalLocalCost = baseCost.localCost()/baseCost.partitionCount();
+        double totalLocalCost = baseCost.localCost()/baseCost.getParallelism();
         double totalRemoteCost = sortCost + remoteCostPerRow * rc;
         costEstimate.setLocalCost(totalLocalCost);
         costEstimate.setRemoteCost(totalRemoteCost);
         costEstimate.setNumPartitions(1);
-        costEstimate.setLocalCostPerPartition(totalLocalCost);
-        costEstimate.setRemoteCostPerPartition(totalRemoteCost);
+        costEstimate.setLocalCostPerParallelTask(totalLocalCost);
+        costEstimate.setRemoteCostPerParallelTask(totalRemoteCost);
         costEstimate.setRowCount(tableCardinality);
         costEstimate.setEstimatedHeapSize((long)outputHeapSize);
 

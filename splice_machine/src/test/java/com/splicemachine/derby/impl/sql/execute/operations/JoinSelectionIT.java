@@ -240,7 +240,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID" +
             				  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-            BROADCAST_JOIN, methodWatcher);
+            NESTED_LOOP_JOIN, methodWatcher);
     }
 
     @Test
@@ -324,7 +324,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-           BROADCAST_JOIN, methodWatcher);
+           NESTED_LOOP_JOIN, methodWatcher);
     }
     
     @Test
@@ -336,7 +336,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
-            BROADCAST_JOIN, methodWatcher);
+            NESTED_LOOP_JOIN, methodWatcher);
     }
 
     @Test

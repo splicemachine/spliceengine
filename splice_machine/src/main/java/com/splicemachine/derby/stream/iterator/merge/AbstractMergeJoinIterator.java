@@ -33,7 +33,7 @@ import java.util.NoSuchElementException;
 public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
     private static final Logger LOG = Logger.getLogger(MergeOuterJoinIterator.class);
     final PeekingIterator<ExecRow> leftRS;
-    final PeekingIterator<ExecRow> rightRS;
+    PeekingIterator<ExecRow> rightRS;
     final int[] joinKeys;
     protected final OperationContext<?> operationContext;
     protected ExecRow left;
@@ -50,6 +50,11 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     protected boolean forSSQ = false;
     protected boolean isSemiJoin = false;
     protected int[] hashKeySortOrders;
+
+    public void reInitRightRS(PeekingIterator<ExecRow> rightRS) {
+        this.rightRS = rightRS;
+        this.rightsForLeftsIterator = new RightsForLeftsIterator(rightRS);
+    }
 
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
@@ -69,8 +74,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         this.mergedRow = mergeJoinOperation.getExecutionFactory().getValueRow(
                 mergeJoinOperation.getRightNumCols() + mergeJoinOperation.getLeftNumCols());
         this.leftRS = leftRS;
-        this.rightRS = rightRS;
-        this.rightsForLeftsIterator = new RightsForLeftsIterator(rightRS);
+        reInitRightRS(rightRS);
         assert(leftKeys.length == rightKeys.length);
         joinKeys = new int[leftKeys.length * 2];
         for (int i = 0, s = leftKeys.length; i < s; i++){
@@ -159,6 +163,8 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     }
 
     private void close() {
+        if (closed)
+            return;
         closed = true;
         IOException e = null;
         for (Closeable c : closeables) {

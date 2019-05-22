@@ -550,7 +550,7 @@ public class CompilerContextImpl extends ContextImpl
      * @exception StandardException        Thrown on error
      */
     @Override
-    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount) throws StandardException {
+    public StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor cd, boolean skipStats, long defaultRowCount, int requestedSplits) throws StandardException {
           long conglomerateNumber = cd.getConglomerateNumber();
         /*
         ** Try to find the given conglomerate number in the array of
@@ -564,7 +564,7 @@ public class CompilerContextImpl extends ContextImpl
         /*
         ** Not found, so get a StoreCostController from the store.
         */
-        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount);
+        StoreCostController retval = lcc.getTransactionCompile().openStoreCost(td,cd,skipStats, defaultRowCount, requestedSplits);
 
         /* Put it in the array */
         storeCostControllers.put(pairedKey, retval);

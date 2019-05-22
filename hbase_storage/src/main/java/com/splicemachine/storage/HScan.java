@@ -14,10 +14,18 @@
 
 package com.splicemachine.storage;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
+import org.apache.hadoop.mapreduce.InputSplit;
+
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +36,7 @@ public class HScan implements DataScan {
     // Sane default to prevent big scans causing memory pressure on the RegionServer
     private final static int DEFAULT_CACHING = 1000;
     private Scan scan;
+
 
     public HScan(){
         this.scan = new Scan();
@@ -41,6 +50,57 @@ public class HScan implements DataScan {
     @Override
     public boolean isDescendingScan(){
         return scan.isReversed();
+    }
+
+    /**
+     * Take a list of [startKey, stopKey) rowkey pairs, where the stopKey is excluded,
+     * convert it to the corresponding {@link MultiRowRangeFilter} and attach
+     * it to the {@link Scan} held in this {@link HScan} as a {@link Filter}.
+     *
+     * @param rowkeyPairs the list of [startKey, stopKey) pairs to convert.
+     *
+     * @return if this {@link HScan} currently has no filter, build a new
+     * {@link MultiRowRangeFilter} out of {@code rowkeyPairs} and attach it
+     * as a filter.  If this {@link HScan} already has a {@link MultiRowRangeFilter},
+     * replace it with a new MultiRowRangeFilter built from {@code rowkeyPairs}.
+     * If {@code rowkeyPairs} has no elements, do not build a filter.
+     *
+     * @throws IOException
+     *
+     * @notes A possible future enhancement is, instead of replacing an old
+     * MultiRowRangeFilter with a new one, build the intersection of the
+     * old filter and the new one.
+     *
+     * @see     Scan
+     */
+    @Override
+    public void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs) throws IOException {
+        if (rowkeyPairs == null || rowkeyPairs.size() < 1) {
+            return;
+        }
+        Filter currentFilter = scan.getFilter();
+        if (currentFilter != null && !(currentFilter instanceof MultiRowRangeFilter))
+            return;
+
+        List<MultiRowRangeFilter.RowRange> ranges = new ArrayList<>(rowkeyPairs.size());
+        byte[] startKey;
+        byte[] stopKey;
+        for (Pair<byte[],byte[]> startStopKey: rowkeyPairs) {
+            startKey=startStopKey.getFirst();
+            stopKey=startStopKey.getSecond();
+            MultiRowRangeFilter.RowRange rr =
+            new MultiRowRangeFilter.RowRange(startKey, true,
+                                             stopKey, false);
+            ranges.add(rr);
+        }
+
+        if (ranges.size() > 0) {
+            MultiRowRangeFilter filter = new MultiRowRangeFilter(ranges);
+            scan.setFilter(filter);
+            List<MultiRowRangeFilter.RowRange> sortedRanges = filter.getRowRanges();
+            scan.setStartRow(sortedRanges.get(0).getStartRow());
+            scan.setStopRow(sortedRanges.get(sortedRanges.size()-1).getStopRow());
+        }
     }
 
     @Override

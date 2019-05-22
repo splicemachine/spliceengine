@@ -144,7 +144,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				this.leftResultSetNumber = leftResultSet.resultSetNumber();
 				this.rightResultSet = rightResultSet;
 				this.sparkExpressionTreeAsString = sparkExpressionTreeAsString;
-		}
+			}
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {

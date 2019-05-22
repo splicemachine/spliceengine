@@ -66,6 +66,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
+import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
@@ -478,6 +479,8 @@ public class GenericStatement implements Statement{
                 // If the property value failed to convert to an int, don't throw an error,
                 // just use the default setting.
             }
+            if (maxMulticolumnProbeValues > MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE)
+                maxMulticolumnProbeValues = MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
             cc.setMaxMulticolumnProbeValues(maxMulticolumnProbeValues);
     
             String multicolumnInlistProbeOnSparkEnabledString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED);

@@ -957,6 +957,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
+    public ExecIndexRow getStopPosition() throws StandardException{
+        throw new RuntimeException("getStopPosition not implemented");
+    }
+
+    @Override
+    public boolean getSameStartStopPosition() {
+        throw new RuntimeException("getSameStartStopPosition not implemented");
+    }
+
+    @Override
     public OperationContext getOperationContext(){
         return operationContext;
     }
