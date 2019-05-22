@@ -14,10 +14,17 @@
 
 package com.splicemachine.storage;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
+
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,6 +35,7 @@ public class HScan implements DataScan {
     // Sane default to prevent big scans causing memory pressure on the RegionServer
     private final static int DEFAULT_CACHING = 1000;
     private Scan scan;
+
 
     public HScan(){
         this.scan = new Scan();
@@ -43,6 +51,41 @@ public class HScan implements DataScan {
         return scan.isReversed();
     }
 
+    @Override
+    public void setStartStopKeys(List<Pair<byte[],byte[]>> startStopKeys) throws IOException {
+        if (startStopKeys == null || startStopKeys.size() < 1) {
+            return;
+        }
+        Filter currentFilter = scan.getFilter();
+        if (currentFilter != null && !(currentFilter instanceof MultiRowRangeFilter))
+            return;
+
+        List<MultiRowRangeFilter.RowRange> oldRanges = null;
+        if (currentFilter != null)
+            oldRanges = ((MultiRowRangeFilter) currentFilter).getRowRanges();
+
+        List<MultiRowRangeFilter.RowRange> ranges = new ArrayList<>(startStopKeys.size());
+        byte[] startKey;
+        byte[] stopKey;
+        for (Pair<byte[],byte[]> startStopKey:startStopKeys) {
+            startKey=startStopKey.getFirst();
+            stopKey=startStopKey.getSecond();
+            MultiRowRangeFilter.RowRange rr =
+            new MultiRowRangeFilter.RowRange(startKey, true,
+                                             stopKey, false);
+            ranges.add(rr);
+        }
+        if (ranges.size() > 0) {
+            if (oldRanges != null)
+                ranges = Lists.newArrayList(Iterables.concat(oldRanges, ranges));
+
+            MultiRowRangeFilter filter = new MultiRowRangeFilter(ranges);
+            scan.setFilter(filter);
+            List<MultiRowRangeFilter.RowRange> sortedRanges = filter.getRowRanges();
+            scan.setStartRow(sortedRanges.get(0).getStartRow());
+            scan.setStopRow(sortedRanges.get(sortedRanges.size()-1).getStopRow());
+        }
+    }
     @Override
     public DataScan startKey(byte[] startKey){
         scan.setStartRow(startKey);

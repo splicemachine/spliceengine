@@ -67,10 +67,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * BaseActivation
@@ -207,6 +204,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     protected ExecRow scanStartOverride;
     protected ExecRow scanStopOverride;
     protected int[] scanKeys;
+
+    protected List<Pair<ExecRow, ExecRow>> keyRows;
 
     private long numRowsSeen = 0L;
     //
@@ -1695,6 +1694,14 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     public ExecRow getScanStartOverride() {
         return scanStartOverride;
+    }
+
+    public void setKeyRows(List<Pair<ExecRow, ExecRow>> keyRows) {
+        this.keyRows = keyRows;
+    }
+
+    public List<Pair<ExecRow, ExecRow>> getKeyRows() {
+        return keyRows;
     }
 
     public void setScanStopOverride(ExecRow scanStopOverride) {

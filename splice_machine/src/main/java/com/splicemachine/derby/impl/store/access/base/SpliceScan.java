@@ -143,7 +143,8 @@ public class SpliceScan implements ScanManager, LazyScan{
                     currentRow,
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
-                    trans.getDataValueFactory(),"1.0",false);
+                    trans.getDataValueFactory(),"1.0",false,
+                    (SpliceConglomerate) spliceConglomerate.getConglomerate());
             scan.setSmall(true); // Removes extra rpc calls for dictionary scans (smallish)
         }catch(Exception e){
             LOG.error("Exception creating start key");

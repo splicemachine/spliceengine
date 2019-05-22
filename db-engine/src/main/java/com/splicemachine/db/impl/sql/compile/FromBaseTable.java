@@ -811,6 +811,7 @@ public class FromBaseTable extends FromTable {
         /* Get the uniqueness factory for later use (see below) */
         /* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
+        baseTableRestrictionList.countScanFlags();
 
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         /* RESOLVE: Need to figure out how to cache the StoreCostController */

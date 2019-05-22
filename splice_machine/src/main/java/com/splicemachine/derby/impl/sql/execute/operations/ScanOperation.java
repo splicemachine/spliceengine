@@ -334,7 +334,8 @@ public abstract class ScanOperation extends SpliceBaseOperation{
 
         return scanInformation.getScan(getCurrentTransaction(),
                 ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),
-                ((BaseActivation)activation).getScanStopOverride());
+                ((BaseActivation)activation).getScanStopOverride(),
+                ((BaseActivation)activation).getKeyRows());
     }
 
     @Override

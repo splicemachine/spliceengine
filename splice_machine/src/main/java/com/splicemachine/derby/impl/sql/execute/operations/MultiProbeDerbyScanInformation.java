@@ -30,12 +30,17 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SerializationUtils;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
+import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
+
+import static com.splicemachine.EngineDriver.isMemPlatform;
+import static com.splicemachine.db.shared.common.reference.SQLState.DATA_UNEXPECTED_EXCEPTION;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  *
@@ -51,6 +56,8 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     private String getProbeValsFuncName;
     private DataTypeDescriptor[] inlistDataTypes;
     private int inlistTypeArrayItem;
+    private boolean isMemPlatform;
+    Qualifier[][] qualifiers;
 
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public MultiProbeDerbyScanInformation(String resultRowAllocatorMethodName,
@@ -63,12 +70,12 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                                           int startSearchOperator,
                                           int stopSearchOperator,
                                           String getProbeValsFuncName,
-										  int sortRequired,
-										  int inlistPosition,
-										  int inlistTypeArrayItem,
-										  String tableVersion,
-										  String defaultRowMethodName,
-										  int defaultValueMapItem) {
+                                          int sortRequired,
+                                          int inlistPosition,
+                                          int inlistTypeArrayItem,
+                                          String tableVersion,
+                                          String defaultRowMethodName,
+                                          int defaultValueMapItem) {
         super(resultRowAllocatorMethodName, startKeyGetterMethodName, stopKeyGetterMethodName,
                 scanQualifiersField, conglomId, colRefItem, -1, sameStartStopPosition, startSearchOperator, stopSearchOperator, false,tableVersion,
 				defaultRowMethodName, defaultValueMapItem);
@@ -76,6 +83,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         this.sortRequired = sortRequired;
         this.inlistPosition = inlistPosition;
         this.inlistTypeArrayItem = inlistTypeArrayItem;
+        this.isMemPlatform = isMemPlatform();
     }
 
     @Deprecated
@@ -128,18 +136,78 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                 colsToReturn.set(i);
             }
         }
-        List<DataScan> scans = new ArrayList<DataScan>(probeValues.length);
-        for (int i = 0; i < probeValues.length; i++) {
-            probeValue = probeValues[i];
-            DataScan scan = getScan(txn, null, keyDecodingMap, null);
-            scans.add(scan);
-        }
+        List<DataScan> scans = new ArrayList<DataScan>();
+        DataScan scan;
+
+        // Mem platform does not support the HBase MultiRangeRowFilter,
+        // so we still need one scan per probe value on mem.
+        if (isMemPlatform) {
+			for (int i = 0; i < probeValues.length; i++) {
+				probeValue = probeValues[i];
+				scan = getScan(txn, null, keyDecodingMap, null, null);
+				scans.add(scan);
+			}
+		}
+		else{
+			probeValue = null;
+			List<Pair<byte[],byte[]>> startStopKeys =
+				getStartStopKeys(txn, null, keyDecodingMap, probeValues);
+
+
+			String javaCmd = System.getProperty("sun.java.command");
+			boolean isOlapServer = javaCmd != null && javaCmd.startsWith("com.splicemachine.olap.OlapServerMaster");
+
+			// On spark, threadCount is really the number of DataSets we'll produce, that
+			// would need to be union'ed together.
+			final int threadCount = isOlapServer ? 1 : 10;
+			int probesPerThread = startStopKeys.size() >= threadCount ? startStopKeys.size() / threadCount : 1;
+			int endIndex;
+			for (int i=0; i < startStopKeys.size(); i+=probesPerThread) {
+				probeValue = null;
+				endIndex = (i+probesPerThread) <= startStopKeys.size() ? i+probesPerThread : startStopKeys.size();
+				List<Pair<byte[],byte[]>> keys = startStopKeys.subList(i, endIndex);
+				scan = getScan(txn, null, keyDecodingMap, null, null);
+				try {
+				scan.setStartStopKeys(keys);
+				} catch (IOException e) {
+				throw StandardException.newException(DATA_UNEXPECTED_EXCEPTION, e);
+				}
+				if (keys == null)
+					throw StandardException.newException(LANG_INTERNAL_ERROR,
+										"Multiprobe scan with no probe values.");
+				scans.add(scan);
+			}
+		}
         return scans;
     }
 
-	@Override
+    @Override
     protected Qualifier[][] populateQualifiers() throws StandardException {
-		Qualifier[][] qualifiers = super.populateQualifiers();
+	if (isMemPlatform) {
+	    synchronized (this) {
+	        if (qualifiers == null) {
+	            return populateQualifiersMain();
+	        }
+	        else {
+	            return qualifiers;
+	        }
+	    }
+	}
+	else {
+	        if (qualifiers == null) {
+	            return populateQualifiersMain();
+	        }
+	        else {
+	            return qualifiers;
+	        }
+	}
+    }
+
+
+    protected Qualifier[][] populateQualifiersMain() throws StandardException {
+		qualifiers = super.populateQualifiers();
+		// With the MultiRowRangeFilter implementation of MultiProbeScan,
+		// qualifiers are no longer built for probe values.
 		if(qualifiers!=null){
 			// populate the orderableCache if invariant for qualifiers, to avoid
 			// setting them by multiple-threads
@@ -169,6 +237,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				}
                 out.writeObject(probeValue);
 				out.writeInt(inlistTypeArrayItem);
+				out.writeBoolean(isMemPlatform);
 		}
 
 		@Override
@@ -185,7 +254,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 				}
                 probeValue = (DataValueDescriptor)in.readObject();
 				inlistTypeArrayItem = in.readInt();
-
+				isMemPlatform = in.readBoolean();
 		}
 
 	public DataValueDescriptor[] getProbeValues() throws StandardException {
@@ -290,4 +359,9 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 		}
 		return this.probeValues;
 	}
+
+	@Override
+   	public void setProbeValue(DataValueDescriptor dvd) {
+        probeValue = dvd;
+    }
 }

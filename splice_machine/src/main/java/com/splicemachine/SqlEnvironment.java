@@ -62,4 +62,6 @@ public interface SqlEnvironment{
     OperationManager getOperationManager();
 
     ServiceDiscovery serviceDiscovery();
+
+    boolean isMemPlatform();
 }

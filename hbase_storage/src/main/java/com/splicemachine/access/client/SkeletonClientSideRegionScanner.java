@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
@@ -285,7 +286,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     private KeyValueScanner getMemStoreScanner() throws IOException {
         Scan memScan = new Scan(scan);
-        memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
+        if (!(scan.getFilter() instanceof MultiRowRangeFilter))   
+            memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.TRUE_BYTES);
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY, hri.getStartKey());
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY, hri.getEndKey());

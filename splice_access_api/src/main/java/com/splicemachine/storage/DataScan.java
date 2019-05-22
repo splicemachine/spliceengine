@@ -14,6 +14,11 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.utils.Pair;
+
+import java.io.IOException;
+import java.util.List;
+
 /**
  * @author Scott Fines
  *         Date: 12/15/15
@@ -54,4 +59,6 @@ public interface DataScan extends Attributable{
     void returnAllVersions();
 
     void setSmall(boolean small);
+
+    void setStartStopKeys(List<Pair<byte[],byte[]>> startKeys) throws IOException;
 }

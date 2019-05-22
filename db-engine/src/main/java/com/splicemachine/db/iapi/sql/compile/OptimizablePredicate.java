@@ -88,7 +88,7 @@ public interface OptimizablePredicate
 	 * Tell the predicate that it is to be used as a qualifier in an index
 	 * scan.
 	 */
-	void markQualifier();
+	void markQualifier() throws StandardException;
 
 	/** Is this predicate a qualifier? */
 	boolean isQualifier();
