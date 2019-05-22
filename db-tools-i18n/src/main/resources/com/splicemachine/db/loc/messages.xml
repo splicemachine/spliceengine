@@ -6886,7 +6886,11 @@ MessageId.java.
                 <name>42Z58.U</name>
                 <text>Execution stopped after generating by StopAfterGenerating debug flag.</text>
             </msg>
-
+            <msg>
+                <name>42Z59.U</name>
+                <text>Internal error: {0}</text>
+                <arg>errorString</arg>
+            </msg>
             <msg>
                 <name>42Z80.U</name>
                 <text>serializable</text>

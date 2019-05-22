@@ -808,6 +808,7 @@ public class FromBaseTable extends FromTable {
         /* Get the uniqueness factory for later use (see below) */
         /* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
+        baseTableRestrictionList.countScanFlags();
 
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
@@ -3277,11 +3278,11 @@ public class FromBaseTable extends FromTable {
         if (skipStats) {
             if (!getCompilerContext().skipStats(this.getTableNumber()))
                 getCompilerContext().getSkipStatsTableList().add(this.getTableNumber());
-            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount);
+            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount, splits);
         }
         else {
             return getCompilerContext().getStoreCostController(td, cd,
-                    getCompilerContext().skipStats(this.getTableNumber()), 0);
+                    getCompilerContext().skipStats(this.getTableNumber()), 0, splits);
         }
     }
 
@@ -3564,7 +3565,7 @@ public class FromBaseTable extends FromTable {
         if (accessPath != null &&
                 (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
                  accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-            return DataSetProcessorType.COST_SUGGESTED_SPARK;
+                return DataSetProcessorType.COST_SUGGESTED_SPARK;
         }
         return dataSetProcessorType;
     }

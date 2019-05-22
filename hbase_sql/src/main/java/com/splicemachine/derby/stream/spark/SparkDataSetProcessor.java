@@ -190,6 +190,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
+        OperationContext<Op> oldOperationContext =  spliceOperation.getOperationContext();
+        // Support native spark joins with MERGE_DATA_FROM_FILE.
+        // Bad records will not be counted unless the original
+        // OperationContext is used.
+        if (oldOperationContext instanceof SparkLeanOperationContext)
+            return oldOperationContext;
+
         setupBroadcastedActivation(spliceOperation.getActivation(), spliceOperation);
         OperationContext<Op> operationContext =
                 accumulators

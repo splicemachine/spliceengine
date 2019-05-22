@@ -239,7 +239,10 @@ public class KillOperationIT {
         thread.start();
 
         // wait for the query to be submitted
-        Thread.sleep(1000);
+        if (useSpark)
+            Thread.sleep(1000);
+        else
+            Thread.sleep(100);
 
         String opsCall= "call SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()";
 

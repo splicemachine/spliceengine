@@ -62,4 +62,10 @@ public interface SqlEnvironment{
     OperationManager getOperationManager();
 
     ServiceDiscovery serviceDiscovery();
+
+    boolean isMemPlatform();
+
+    int getMaxExecutorCores();
+
+    int getNumSplits(long tableSize);
 }

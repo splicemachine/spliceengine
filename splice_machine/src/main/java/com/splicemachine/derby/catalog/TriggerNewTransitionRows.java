@@ -52,6 +52,8 @@ import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.function.TriggerRowsMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -218,6 +220,8 @@ public class TriggerNewTransitionRows
                     Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
                     TxnView txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
 
+                    SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomID);
+
                     DataScan s = Scans.setupScan(
                     null,    // startKeyValues
                     ScanController.NA,   // startSearchOperator
@@ -229,13 +233,14 @@ public class TriggerNewTransitionRows
                     null,   // getAccessedColumns(),
                     null,            // txn : non-transactional
                     false,  // sameStartStop,
-                    null,       // conglomerate.getFormat_ids(),
+                    templateRow,
                     null,  // keyDecodingMap,
                     null,   
                     activation.getDataValueFactory(),
                     tableVersion,
-                    false   // rowIdKey
-                    );
+                    false,   // rowIdKey
+                    conglomerate,
+                    null);
 
                     s.cacheRows(SCAN_CACHE_SIZE).batchCells(-1);
                     deSiify(s);
