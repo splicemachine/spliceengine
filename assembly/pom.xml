@@ -649,10 +649,10 @@
                                             </sources>
                                         </mapping>
                                         <mapping>
-                                            <directory>/var/lib/ambari-server/resources/stacks/HDP/2.6/services/SPLICEMACHINE</directory>
+                                            <directory>/var/lib/ambari-server/resources/stacks/HDP/3.1/services/SPLICEMACHINE</directory>
                                             <sources>
                                                 <source>
-                                                    <location>${project.build.directory}/classes/stacks/HDP/2.6/services/SPLICEMACHINE</location>
+                                                    <location>${project.build.directory}/classes/stacks/HDP/3.1/services/SPLICEMACHINE</location>
                                                 </source>
                                             </sources>
                                         </mapping>

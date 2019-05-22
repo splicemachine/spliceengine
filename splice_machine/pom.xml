@@ -82,11 +82,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.yammer.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-        </dependency>
-
-        <dependency>
             <!-- org.spark_project.guava -->
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-network-common_${scala.binary.version}</artifactId>

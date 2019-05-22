@@ -204,7 +204,6 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         if (!result.isEmpty()) {
             Cell first = result.get(0);
             String rowkey = Bytes.toHex(first.getRowArray(), first.getRowOffset(), first.getRowLength());
-            SpliceLogUtils.error(LOG, "rowkey = %s", rowkey);
         }
         // Drain HoldTimestamps
         if (matchingFamily(result,ClientRegionConstants.HOLD)) {

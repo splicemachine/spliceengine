@@ -50,6 +50,7 @@ import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.storage.PartitionServerLoad;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils.BlockingRpcCallback;
 
 /**
  * @author P Trolard
