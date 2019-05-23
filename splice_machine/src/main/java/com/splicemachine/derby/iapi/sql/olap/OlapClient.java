@@ -43,7 +43,7 @@ public interface OlapClient {
 
     /**
      *
-     * Submits a job for asynchronous execution.
+     * Submits a job for asynchronous execution to the default queue.
      *
      * @param jobRequest the job to run. Cannot be null
      * @param <R> the Type of OlapResult expected back from the server, which will be wrapped in a Future
@@ -51,6 +51,19 @@ public interface OlapClient {
      * @throws IOException if something goes wrong communicating with the OlapServer
      */
     <R extends OlapResult> ListenableFuture<R> submit(@Nonnull DistributedJob jobRequest) throws IOException;
+
+
+    /**
+     *
+     * Submits a job for asynchronous execution to the specified queue.
+     *
+     * @param jobRequest the job to run. Cannot be null
+     * @param queue name of the queue. Cannot be null
+     * @param <R> the Type of OlapResult expected back from the server, which will be wrapped in a Future
+     * @return a cancellable Future that, when completed, contains the result of this job.
+     * @throws IOException if something goes wrong communicating with the OlapServer
+     */
+    <R extends OlapResult> ListenableFuture<R> submit(@Nonnull DistributedJob jobRequest, String queue) throws IOException;
 
     void shutdown();
 }
