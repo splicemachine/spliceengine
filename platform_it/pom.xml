@@ -153,6 +153,10 @@
                     <groupId>org.apache.curator</groupId>
                     <artifactId>curator-framework</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.parquet</groupId>
+                    <artifactId>parquet-hadoop-bundle</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <!-- Kafka dependencies -->
