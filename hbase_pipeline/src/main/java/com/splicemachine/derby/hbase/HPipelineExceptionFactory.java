@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.hbase;
 
+import org.apache.hadoop.hbase.client.NoServerForRegionException;
 import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.net.ConnectTimeoutException;
 import org.spark_project.guava.base.Throwables;
@@ -115,6 +116,7 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
         t=Throwables.getRootCause(t);
         t=processPipelineException(t);
         if(t instanceof NotServingPartitionException
+                || t instanceof NoServerForRegionException
                 || t instanceof WrongPartitionException
                 || t instanceof PipelineTooBusy
                 || t instanceof RegionBusyException

@@ -84,7 +84,7 @@ public class ReopenableResultScanner implements ResultScanner{
 
     @Override
     public ScanMetrics getScanMetrics() {
-        return null;
+        return delegate.getScanMetrics();
     }
 
     @Override

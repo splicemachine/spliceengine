@@ -292,9 +292,27 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     private List<HRegionLocation> getAllRegionLocations(boolean refresh) throws IOException {
         if (refresh)
            ((ClusterConnection) connection).clearRegionCache(tableName);
-        try(RegionLocator regionLocator=connection.getRegionLocator(tableName)){
-            return regionLocator.getAllRegionLocations();
-        }
+        RegionLocator regionLocator = null;
+        boolean retry = false;
+        do {
+            retry = false;
+            regionLocator = connection.getRegionLocator(tableName);
+            for (HRegionLocation location: regionLocator.getAllRegionLocations()) {
+                ServerName serverName = location.getServerName();
+                if (serverName == null) {
+                    retry = true;
+                    try {
+                        Thread.sleep(100);
+                    }
+                    catch (InterruptedException e) {
+                        throw new IOException(e);
+                    }
+                    break;
+                }
+            }
+
+        }while (retry);
+        return regionLocator.getAllRegionLocations();
     }
 
     @Override

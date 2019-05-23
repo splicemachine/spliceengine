@@ -75,7 +75,7 @@ public class MeasuredResultScanner implements ResultScanner{
     }
 
     public ScanMetrics getScanMetrics() {
-        return null;
+        return resultScanner.getScanMetrics();
     }
 
     @Override
