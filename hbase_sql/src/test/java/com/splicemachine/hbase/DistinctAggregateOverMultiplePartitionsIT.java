@@ -76,28 +76,21 @@ public class DistinctAggregateOverMultiplePartitionsIT extends SpliceUnitTest {
         new TableCreator(conn)
                 .withCreate("create table t2 (a2 int, b2 int, c2 int, d2 int, e2 varchar(10), constraint con1 primary key (a2))")
                 .withInsert("insert into t2 values(?,?,?,?,?)")
-                .withRows(rows(
-                        row(1, 1, 1, 1, "aaa"),
-                        row(2, 1, 1, 1, "bbb"),
-                        row(3, 1, 1, 2, "ccc"),
-                        row(4, 1, 1, 2, "ddd"),
-                        row(5, 1, 1, 3, "eee"),
-                        row(6, 2, 2, 3, "fff"),
-                        row(7, 2, 2, 4, "ggg"),
-                        row(8, 2, 2, 4, "hhh"),
-                        row(9, 2, 2, 5, "iii"),
-                        row(10, 2, 2, 5, "jjj")))
                 .create();
 
+        /* split the table into multiple partitions */
+        spliceClassWatcher.executeUpdate(format("CALL SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS('%s', '%s', null, '%s')",
+                CLASS_NAME, "T2", "\\xC2\\x00,\\xC4\\x00,\\xC6\\x00,\\xC8\\x00"));
+        spliceClassWatcher.execute("insert into t2 values (1,1,1,1,'aaa'),(2,1,1,1,'bbb'),(3,1,1,2,'ccc')," +
+                "(4,1,1,2,'ddd'),(5,1,1,3,'eee'),(6,2,2,3,'fff'),(7,2,2,4,'ggg'), (8,2,2,4,'hhh')," +
+                "(9,2,2,5,'iii'),(10,2,2,5,'jjj')");
         int factor = 10;
         for (int i = 1; i <= 12; i++) {
             spliceClassWatcher.executeUpdate(format("insert into t2 select a2+%d, b2,c2, d2, e2 from t2", factor));
             factor = factor * 2;
         }
 
-        /* split the table into multiple partitions */
-        spliceClassWatcher.executeUpdate(format("CALL SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS('%s', '%s', null, '%s')",
-                CLASS_NAME, "T2", "\\xC2\\x00,\\xC4\\x00,\\xC6\\x00,\\xC8\\x00"));
+
 
         spliceClassWatcher.executeQuery(format("analyze schema %s", CLASS_NAME));
 

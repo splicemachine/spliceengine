@@ -42,7 +42,7 @@ public class MonitoredLifecycleService extends EngineLifecycleService{
 //        metricsReporter = new JmxReporter(metricsRegistry);
 //        metricsReporter.start();
 
-//        DatabasePropertyManagementImpl.registerJMX(mbs);
+        DatabasePropertyManagementImpl.registerJMX(mbs);
     }
 
 

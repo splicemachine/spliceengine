@@ -266,8 +266,12 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
                     clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
                 i++;
-                if (i==ITERATIONS/2)
+                if (i==ITERATIONS/2) {
+                    spliceClassWatcher.executeUpdate(
+                            String.format("call syscs_util.syscs_perform_major_compaction_on_table('%s', '%s')",
+                                    SCHEMA, "E"));
                     driver.getTableFactory().getAdmin().splitTable(tableName);
+                }
                 newCells.clear();
             }
             srs.close();
