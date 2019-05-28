@@ -2036,6 +2036,25 @@ public class SQLParser
     }
 
     /**
+     * Get a left() node from
+     *      - the string
+     *      - the length to take
+     *      - the padding character
+     * @exception StandardException  Thrown on error
+     */
+    ValueNode getLeftOperatorNode(ValueNode stringValue, ValueNode length, ValueNode padding) throws StandardException
+    {
+        return (ValueNode) nodeFactory.getNode(
+                C_NodeTypes.LEFT_OPERATOR_NODE,
+                stringValue,
+                length,
+                padding,
+                ReuseFactory.getInteger(TernaryOperatorNode.LEFT),
+                null,
+                getContextManager());
+    }
+
+    /**
      * Gets a replace node based on the specified arguments.
      * @param stringValue the input string
      * @param the from sub string
@@ -7421,7 +7440,7 @@ ValueNode
 characterValueFunction() throws StandardException :
 {
 	ValueNode 	value = null;
-	ValueNode 	str1;
+	ValueNode 	str1 = null;
 	ValueNode 	str2;
 	ValueNode 	locale = null;
 	Token		upperTok = null;
@@ -7434,6 +7453,11 @@ characterValueFunction() throws StandardException :
 	{
         return getSubstringNode( value, startPosition, length, Boolean.FALSE );
 	}
+|
+    <LEFT> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> length = additiveExpression(null,0) [ <COMMA> str1 = additiveExpression(null,0) ] <RIGHT_PAREN>
+    {
+        return getLeftOperatorNode(value, length, str1);
+    }
 |
 	<REPLACE> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> str1 = additiveExpression(null,0) <COMMA> str2 = additiveExpression(null,0) <RIGHT_PAREN>
 	{
@@ -7844,6 +7868,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == VALUE ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
+                getToken(1).kind == LEFT ||
                 getToken(1).kind == REPEAT ||
                 getToken(1).kind == REPLACE ||
                 getToken(1).kind == UPPER ||

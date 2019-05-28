@@ -167,7 +167,7 @@ public interface C_NodeTypes
 	int SESSION_USER_NODE = 125; // // special function SESSION_USER
 	int SYSTEM_USER_NODE = 126; // // special function SYSTEM_USER
 	int TRIM_OPERATOR_NODE = 127;
-	// 128 is available
+	int LEFT_OPERATOR_NODE = 128;
 	int SELECT_NODE = 129;
 	int CREATE_VIEW_NODE = 130;
 	int CONSTRAINT_DEFINITION_NODE = 131;
