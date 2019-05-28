@@ -129,6 +129,19 @@ public interface StringDataValue extends ConcatableDataValue
 						  DataValueDescriptor escape)
 							throws StandardException;
 
+	/**
+	 * left() function with padding
+	 * @param length
+	 * @param padding
+	 * @param result
+	 * @return
+	 * @throws StandardException
+	 */
+	StringDataValue left(
+			NumberDataValue length,
+			StringDataValue padding,
+			StringDataValue result)
+		throws StandardException;
 
 	/**
 	 * The SQL Ansi trim function.

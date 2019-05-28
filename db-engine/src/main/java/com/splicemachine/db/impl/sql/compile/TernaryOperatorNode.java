@@ -84,15 +84,19 @@ public class TernaryOperatorNode extends OperatorNode
 	public static final int TIMESTAMPADD = 4;
 	public static final int TIMESTAMPDIFF = 5;
 	public static final int REPLACE = 6;
-	static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace"};
-	static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace"};
-	static final String[] TernaryResultType = {ClassName.StringDataValue, 
+	public static final int LEFT = 7;
+	static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "left"};
+	static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "left"};
+	static final String[] TernaryResultType = {
+			ClassName.StringDataValue,
 			ClassName.NumberDataValue,
 			ClassName.ConcatableDataValue,
 			ClassName.BooleanDataValue,
             ClassName.DateTimeDataValue, 
 			ClassName.NumberDataValue,
-			ClassName.ConcatableDataValue};
+			ClassName.ConcatableDataValue,
+			ClassName.StringDataValue
+	};
 	static final String[][] TernaryArgType = {
 	{ClassName.StringDataValue, ClassName.StringDataValue, "java.lang.Integer"},
 	{ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue},
@@ -100,7 +104,8 @@ public class TernaryOperatorNode extends OperatorNode
 	{ClassName.DataValueDescriptor, ClassName.DataValueDescriptor, ClassName.DataValueDescriptor},
     {ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.NumberDataValue}, // time.timestampadd( interval, count)
     {ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.DateTimeDataValue},// time2.timestampDiff( interval, time1)
-	{ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue} // replace
+		{ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue}, // replace{}
+		{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.StringDataValue}
 	};
 
 	/**
@@ -222,6 +227,8 @@ public class TernaryOperatorNode extends OperatorNode
 			locateBind();
 		else if (operatorType == SUBSTRING)
 			substrBind();
+		else if (operatorType == LEFT)
+			leftBind();
 		else if (operatorType == TIMESTAMPADD)
             timestampAddBind();
 		else if (operatorType == TIMESTAMPDIFF)
@@ -348,6 +355,20 @@ public class TernaryOperatorNode extends OperatorNode
 			mb.getField(field); // third arg
 			mb.push(receiver.getTypeServices().getMaximumWidth());
 			nargs = 4;
+			receiverType = receiverInterfaceType;
+		}
+		else if (operatorType == LEFT)
+		{
+			leftOperand.generateExpression(acb, mb);
+			mb.upCast(leftInterfaceType);
+			if (rightOperand != null) {
+				rightOperand.generateExpression(acb, mb);
+				mb.upCast(rightInterfaceType);
+			} else {
+				mb.pushNull(rightInterfaceType);
+			}
+			mb.getField(field);
+			nargs = 3;
 			receiverType = receiverInterfaceType;
 		}
 		else if (operatorType == TIMESTAMPADD || operatorType == TIMESTAMPDIFF)
@@ -881,6 +902,80 @@ public class TernaryOperatorNode extends OperatorNode
 		//to SUBSTR. The 1st argument to SUBSTR is represented by the variable
 		//receiver in this class.
         setCollationInfo(receiver.getTypeServices());
+		return this;
+	}
+
+	public ValueNode leftBind() throws StandardException
+	{
+		TypeId	receiverType;
+		TypeId	resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
+
+		if (receiver.requiresTypeFromContext())
+		{
+			receiver.setType(getVarcharDescriptor());
+			receiver.setCollationUsingCompilationSchema();
+		}
+		if (leftOperand.requiresTypeFromContext())
+		{
+			leftOperand.setType(new DataTypeDescriptor(TypeId.INTEGER_ID, false));
+		}
+		if ((rightOperand != null) && rightOperand.requiresTypeFromContext())
+		{
+			rightOperand.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
+		}
+
+		bindToBuiltIn();
+
+		if (!leftOperand.getTypeId().isIntegerNumericTypeId())
+			throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "LEFT", "FUNCTION");
+
+		receiverType = receiver.getTypeId();
+		switch (receiverType.getJDBCTypeId())
+		{
+			case Types.CHAR:
+			case Types.VARCHAR:
+			case Types.LONGVARCHAR:
+			case Types.CLOB:
+				break;
+			default:
+			{
+				throwBadType("LEFT", receiverType.getSQLTypeName());
+			}
+		}
+
+		if (rightOperand != null)
+		{
+			switch (rightOperand.getTypeId().getJDBCTypeId())
+			{
+				case Types.CHAR:
+				case Types.VARCHAR:
+				case Types.LONGVARCHAR:
+				case Types.CLOB:
+					break;
+				default:
+				{
+					StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "LEFT", "FUNCTION");
+				}
+			}
+		}
+		if (receiverType.getTypeFormatId() == StoredFormatIds.CLOB_TYPE_ID) {
+			resultType = receiverType;
+		}
+
+		int resultLen = receiver.getTypeServices().getMaximumWidth();
+
+		if (leftOperand != null && leftOperand instanceof ConstantNode)
+		{
+			if (((ConstantNode)leftOperand).getValue().getInt() > resultLen)
+				resultLen = ((ConstantNode)leftOperand).getValue().getInt();
+		}
+
+		setType(new DataTypeDescriptor(
+				resultType,
+				true,
+				resultLen
+		));
+		setCollationInfo(receiver.getTypeServices());
 		return this;
 	}
 
