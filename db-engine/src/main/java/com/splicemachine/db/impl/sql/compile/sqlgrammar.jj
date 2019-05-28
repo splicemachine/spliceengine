@@ -1029,10 +1029,30 @@ public class SQLParser
 
     private boolean ansiTrimSpecFollows()
     {
-        return (getToken(2).kind == LEADING || getToken(2).kind == L || getToken(2).kind == TRAILING || getToken(2).kind == T
+        Token tPre = getToken(1);
+        Token t = getToken(2);
+        Token tPost = getToken(3);
+
+        // In TRIM() function
+        if (tPre.kind == LEFT_PAREN)
+        {
+            if (t.kind == LEADING || t.kind == TRAILING || t.kind == BOTH)
+                return true;
+            else if ((t.kind == L || t.kind == T || t.kind == B ) && tPost.kind != RIGHT_PAREN && tPost.kind != PERIOD)
+                return true;
+            else
+                return false;
+        }
+        // In STRIP() function
+        else if (tPre.kind == COMMA)
+        {
+            return (getToken(2).kind == LEADING || getToken(2).kind == L || getToken(2).kind == TRAILING || getToken(2).kind == T
                 || getToken(2).kind == BOTH || getToken(2).kind == B);
+        }
+        else
+            return false;
     }
-    
+
 	/**
 	 * Determine whether the next sequence of tokens can be the beginning
 	 * of a remainingPredicate() rule.
@@ -2848,6 +2868,7 @@ TOKEN [IGNORE_CASE] :
 |   <EXTRACT: "extract">
 |	<FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
 |	<IDENTITY_VAL_LOCAL: "identity_val_local">
 |	<IGNORE: "ignore">
@@ -7588,7 +7609,6 @@ ansiStrip() throws StandardException  :
             <COMMA> trimSpec = ansiTrimSpec()
             (
                 // <source> COMMA LEADING COMMA <trimChar>
-                LOOKAHEAD(<COMMA>)
                 <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
                 {
                     return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
@@ -8718,6 +8738,13 @@ userNode() throws StandardException :
 						C_NodeTypes.SESSION_USER_NODE,
 						getContextManager());
 	}
+|
+    <GROUP_USER>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                        C_NodeTypes.GROUP_USER_NODE,
+        						getContextManager());
+    }
 }
 
 

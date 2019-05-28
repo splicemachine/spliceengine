@@ -54,7 +54,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String authenticationLdapSearchbase;
     private final  String authenticationLdapSearchfilter;
     private final  String authenticationLdapServer;
-    private final  String authenticationLdapMapGroupAttr;
+    private final  String authenticationMapGroupAttr;
     private final  String authenticationNativeAlgorithm;
     public int authenticationTokenLength;
     public int authenticationTokenMaxLifetime;
@@ -267,7 +267,7 @@ public final class SConfigurationImpl implements SConfiguration {
         return authenticationLdapServer;
     }
     @Override
-    public String getAuthenticationLdapMapGroupAttr() { return authenticationLdapMapGroupAttr; }
+    public String getAuthenticationMapGroupAttr() { return authenticationMapGroupAttr; }
     @Override
     public String getAuthenticationNativeAlgorithm() {
         return authenticationNativeAlgorithm;
@@ -832,7 +832,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authenticationLdapSearchbase = builder.authenticationLdapSearchbase;
         authenticationLdapSearchfilter = builder.authenticationLdapSearchfilter;
         authenticationLdapServer = builder.authenticationLdapServer;
-        authenticationLdapMapGroupAttr = builder.authenticationLdapMapGroupAttr;
+        authenticationMapGroupAttr = builder.authenticationMapGroupAttr;
         authenticationNativeAlgorithm = builder.authenticationNativeAlgorithm;
         authenticationTokenLength = builder.authenticationTokenLength;
         authenticationTokenRenewInterval = builder.authenticationTokenRenewInterval;

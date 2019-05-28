@@ -65,7 +65,7 @@ public interface SConfiguration {
 
     String getAuthenticationLdapServer();
 
-    String getAuthenticationLdapMapGroupAttr();
+    String getAuthenticationMapGroupAttr();
 
     String getAuthenticationNativeAlgorithm();
 
