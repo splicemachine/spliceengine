@@ -30,6 +30,9 @@ import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -90,7 +93,7 @@ public class TernaryOperationIT {
                         ps.setString(3,"hello world");
                         ps.execute();
 
-                        
+
                         // Each of the following inserted rows represent individual test units,
                         // including expected result (column 'e'), for less test code
                         // testReplaceFunction method.
@@ -184,14 +187,14 @@ public class TernaryOperationIT {
 
         Assert.assertEquals("Incorrect row count returned!",3,count);
     }
-    
+
     @Test
     public void testReplaceFunction() throws Exception {
         int count = 0;
 	    String sCell1 = null;
 	    String sCell2 = null;
 	    ResultSet rs;
-	    
+
 	    rs = methodWatcher.executeQuery("select replace(b, c, d), e from " + tableWatcherB);
 	    count = 0;
 	    while (rs.next()) {
@@ -284,8 +287,27 @@ public class TernaryOperationIT {
             sCell2 = rs.getString(2);
         }
         Assert.assertEquals("Wrong substr result", sCell1, sCell2 );
+    }
 
+    @Test
+    public void testLeft() throws Exception {
+        ResultSet rs;
 
+        String sql =
+            "select left(name, cut, 'short') from (" +
+            "values ('hello world', 5), ('hey dude', 20)" +
+            ") tb(name, cut);";
+
+        List<String> expected = new ArrayList<String>(2);
+        expected.add("hello");
+        expected.add("hey dudeshortshortsh");
+
+        rs = methodWatcher.executeQuery(sql);
+        int i = 0;
+        while (rs.next()) {
+            Assert.assertEquals(expected.get(i), rs.getInt(1));
+            i += 1;
+        }
     }
 
     @Test

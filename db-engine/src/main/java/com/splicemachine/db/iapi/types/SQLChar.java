@@ -2631,7 +2631,7 @@ public class SQLChar
             StringBuilder sb = new StringBuilder(lengthInt);
             sb.append(getString());
 
-            String padString = (padding != null) ? padding.getString() : " ";
+            String padString = (padding != null && padding.getString().length() > 0) ? padding.getString() : " ";
             int padLength = lengthInt - getLength();
 
             int d = padLength / padString.length();
