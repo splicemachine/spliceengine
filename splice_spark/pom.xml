@@ -23,7 +23,7 @@
     <name>Splicemachine Spark Bindings</name>
     <properties>
         <!--Skip server startup-->
-        <scala.version>2.11.6</scala.version>
+        <scala.version>2.11.12</scala.version>
         <server.skip.start>skipServerStart</server.skip.start>
         <!--Ant task to run shell scripts-->
 	<skipTests>${maven.skip.tests}</skipTests>

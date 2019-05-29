@@ -33,7 +33,7 @@ package com.splicemachine.db.iapi.types;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.GenericRow;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -50,7 +50,7 @@ public class SQLRefTest extends SQLDataValueDescriptorTest {
         @Test
         public void serdeValueData() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLRef value = new SQLRef(new SQLRowId("1".getBytes()));
                 SQLRef valueA = new SQLRef();
                 writer.reset();
@@ -70,7 +70,7 @@ public class SQLRefTest extends SQLDataValueDescriptorTest {
         @Test
         public void serdeHBaseRowLocation() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLRef value = new SQLRef(new HBaseRowLocation("1".getBytes()));
                 SQLRef valueA = new SQLRef();
                 writer.reset();
@@ -90,7 +90,7 @@ public class SQLRefTest extends SQLDataValueDescriptorTest {
         @Test
         public void serdeNullValueData() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLRef value = new SQLRef();
                 SQLRef valueA = new SQLRef();
                 value.write(writer, 0);
@@ -102,7 +102,7 @@ public class SQLRefTest extends SQLDataValueDescriptorTest {
         @Test
         public void testArray() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLArray value = new SQLArray();
                 value.setType(new SQLRef(new SQLRowId()));
                 value.setValue(new DataValueDescriptor[] {new SQLRef(new SQLRowId("1".getBytes())),new SQLRef(new SQLRowId("435".getBytes())),
