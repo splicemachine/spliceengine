@@ -298,14 +298,14 @@ public class TernaryOperationIT {
             "values ('hello world', 5), ('hey dude', 20)" +
             ") tb(name, cut);";
 
-        List<String> expected = new ArrayList<String>(2);
+        List<String> expected = new ArrayList<>(2);
         expected.add("hello");
         expected.add("hey dudeshortshortsh");
 
         rs = methodWatcher.executeQuery(sql);
         int i = 0;
         while (rs.next()) {
-            Assert.assertEquals(expected.get(i), rs.getInt(1));
+            Assert.assertEquals(expected.get(i), rs.getString(1));
             i += 1;
         }
     }
