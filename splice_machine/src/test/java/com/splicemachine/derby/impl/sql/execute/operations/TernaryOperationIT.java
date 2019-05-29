@@ -303,11 +303,11 @@ public class TernaryOperationIT {
         expected.add("hey dudeshortshortsh");
 
         rs = methodWatcher.executeQuery(sql);
-        int i = 0;
-        while (rs.next()) {
-            Assert.assertEquals(expected.get(i), rs.getString(1));
-            i += 1;
+        for (String s: expected) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(s, rs.getString(1));
         }
+        Assert.assertFalse(rs.next());
     }
 
     @Test
