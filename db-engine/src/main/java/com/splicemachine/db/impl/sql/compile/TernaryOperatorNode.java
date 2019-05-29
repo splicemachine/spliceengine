@@ -954,7 +954,7 @@ public class TernaryOperatorNode extends OperatorNode
 					break;
 				default:
 				{
-					StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "LEFT", "FUNCTION");
+					throwBadType("LEFT", rightOperand.getTypeId().getSQLTypeName());
 				}
 			}
 		}
@@ -964,7 +964,7 @@ public class TernaryOperatorNode extends OperatorNode
 
 		int resultLen = receiver.getTypeServices().getMaximumWidth();
 
-		if (leftOperand != null && leftOperand instanceof ConstantNode)
+		if (leftOperand instanceof ConstantNode)
 		{
 			if (((ConstantNode)leftOperand).getValue().getInt() > resultLen)
 				resultLen = ((ConstantNode)leftOperand).getValue().getInt();
