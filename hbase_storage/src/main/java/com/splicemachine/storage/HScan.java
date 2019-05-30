@@ -64,8 +64,11 @@ public class HScan implements DataScan{
             ranges.add(rr);
         }
         if (ranges.size() > 0) {
-            Filter filter = new MultiRowRangeFilter(ranges);
+            MultiRowRangeFilter filter = new MultiRowRangeFilter(ranges);
             scan.setFilter(filter);
+            List<MultiRowRangeFilter.RowRange> sortedRanges = filter.getRowRanges();
+            scan.setStartRow(sortedRanges.get(0).getStartRow());
+            scan.setStopRow(sortedRanges.get(ranges.size()-1).getStopRow());
         }
     }
     @Override

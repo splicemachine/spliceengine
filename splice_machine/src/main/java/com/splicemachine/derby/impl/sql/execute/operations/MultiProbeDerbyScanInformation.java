@@ -146,18 +146,33 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 	else{
 	    probeValue = null;
-	    scan = getScan(txn, null, keyDecodingMap, null);
 	    List<Pair<byte[],byte[]>> startStopKeys =
 	        getStartStopKeys(txn, null, keyDecodingMap, probeValues);
-	    try {
-	        scan.setStartStopKeys(startStopKeys);
-	    } catch (IOException e) {
-	        throw StandardException.newException(DATA_UNEXPECTED_EXCEPTION, e);
+
+
+	    String javaCmd = System.getProperty("sun.java.command");
+	    boolean isOlapServer = javaCmd != null && javaCmd.startsWith("com.splicemachine.olap.OlapServerMaster");
+
+	    // On spark, threadCount is really the number of DataSets we'll produce, that
+	    // would need to be union'ed together.
+	    final int threadCount = isOlapServer ? 1 : 10;
+	    int probesPerThread = startStopKeys.size() >= threadCount ? startStopKeys.size() / threadCount : 1;
+	    int endIndex;
+	    for (int i=0; i < startStopKeys.size(); i+=probesPerThread) {
+	    	probeValue = null;
+	    	endIndex = (i+probesPerThread) <= startStopKeys.size() ? i+probesPerThread : startStopKeys.size();
+	    	List<Pair<byte[],byte[]>> keys = startStopKeys.subList(i, endIndex);
+	        scan = getScan(txn, null, keyDecodingMap, null);
+	        try {
+		    scan.setStartStopKeys(keys);
+	        } catch (IOException e) {
+		    throw StandardException.newException(DATA_UNEXPECTED_EXCEPTION, e);
+	        }
+	        if (keys == null)
+	    	    throw StandardException.newException(LANG_INTERNAL_ERROR,
+		                            "Multiprobe scan with no probe values.");
+	        scans.add(scan);
 	    }
-	    if (startStopKeys == null)
-	    	throw StandardException.newException(LANG_INTERNAL_ERROR,
-		                        "Multiprobe scan with no probe values.");
-	    scans.add(scan);
 	}
         return scans;
     }
