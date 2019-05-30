@@ -25,6 +25,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -60,6 +61,22 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
                         row(1,1,1),
                         row(2,2,2),
                         row(3,3,3)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table multi(a1 int, b1 int, c1 int, primary key (a1))")
+                .withInsert("insert into multi values(?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,2,2),
+                        row(3,3,3),
+                        row(4,3,3),
+                        row(5,3,3),
+                        row(6,3,3),
+                        row(7,3,3),
+                        row(8,3,3),
+                        row(9,3,3),
+                        row(10,3,3)))
                 .create();
 
         new TableCreator(conn)
@@ -491,5 +508,33 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sql);
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testManyNLJoins() throws Exception {
+        String sql = "select count(*) \n" +
+                "        FROM --splice-properties joinOrder=fixed\n" +
+                "                   multi a --splice-properties joinStrategy=nestedloop\n" +
+                "        inner join multi b --splice-properties joinStrategy=nestedloop\n on a.a1 = b.a1 " +
+                "        inner join multi c --splice-properties joinStrategy=nestedloop\n on b.a1 = c.a1 " +
+                "        inner join multi d --splice-properties joinStrategy=nestedloop\n on c.a1 = d.a1 " +
+                "        inner join multi e --splice-properties joinStrategy=nestedloop\n on d.a1 = e.a1 " +
+                "        inner join multi f --splice-properties joinStrategy=nestedloop\n on e.a1 = f.a1 " +
+                "        inner join multi g --splice-properties joinStrategy=nestedloop\n on f.a1 = g.a1 " +
+                "        inner join multi h --splice-properties joinStrategy=nestedloop\n on g.a1 = h.a1 " +
+                "        inner join multi i --splice-properties joinStrategy=nestedloop\n on h.a1 = i.a1 " +
+                "        inner join multi j --splice-properties joinStrategy=nestedloop\n on i.a1 = j.a1 " +
+                "        inner join multi k --splice-properties joinStrategy=nestedloop\n on j.a1 = k.a1 " +
+                "        inner join multi l --splice-properties joinStrategy=nestedloop\n on k.a1 = l.a1 " +
+                "        inner join multi m --splice-properties joinStrategy=nestedloop\n on l.a1 = m.a1 " +
+                "        inner join multi n --splice-properties joinStrategy=nestedloop\n on m.a1 = n.a1 " +
+                "        inner join multi o --splice-properties joinStrategy=nestedloop\n on n.a1 = o.a1 ";
+
+        try (PreparedStatement ps = methodWatcher.prepareStatement(sql)) {
+            for (int i = 0; i < 300; ++i) {
+                ResultSet rs = ps.executeQuery();
+                rs.close();
+            }
+        }
     }
 }
