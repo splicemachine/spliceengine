@@ -348,17 +348,26 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         this.badRecordsRecorder = new BadRecordsRecorder(statusDirectory, importFileName, badRecordThreshold);
     }
 
+    volatile byte[] serialized = null;
     @Override
     public OperationContext getClone() throws IOException, ClassNotFoundException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Kryo kryo = SpliceKryoRegistry.getInstance().get();
 
         try {
-            Output output = new Output(baos);
-            kryo.writeClassAndObject(output, this);
-            output.flush();
-            byte[] kryoOutput = baos.toByteArray();
-            InputStream inputStream = new ByteArrayInputStream(kryoOutput);
+            byte[] bytes = serialized;
+            if (bytes == null) {
+                synchronized (this) {
+                    bytes = serialized;
+                    if (bytes == null) {
+                        Output output = new Output(baos);
+                        kryo.writeClassAndObject(output, this);
+                        output.flush();
+                        serialized = bytes = baos.toByteArray();
+                    }
+                }
+            }
+            InputStream inputStream = new ByteArrayInputStream(bytes);
             Input input = new Input(inputStream);
             return (OperationContext) kryo.readClassAndObject(input);
         } finally {

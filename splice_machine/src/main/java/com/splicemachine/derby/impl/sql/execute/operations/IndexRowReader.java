@@ -68,8 +68,6 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
     private List<Pair<ExecRow, DataResult>> currentResults;
     private List<Future<List<Pair<ExecRow, DataResult>>>> resultFutures;
-    private boolean populated=false;
-    private EntryDecoder entryDecoder;
     protected Iterator<ExecRow> sourceIterator;
 
     private ExecRow heapRowToReturn;
@@ -109,8 +107,6 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     public void close() throws IOException{
         rowDecoder.close();
         keyDecoder.close();
-        if(entryDecoder!=null)
-            entryDecoder.close();
     }
 
     @Override
@@ -142,8 +138,6 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             ExecRow nextScannedRow=next.getFirst();
             DataResult nextFetchedData=next.getSecond();
             byte[] rowKey = nextFetchedData.key();
-            if(entryDecoder==null)
-                entryDecoder=new EntryDecoder();
             for(DataCell kv : nextFetchedData){
                 keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow);
                 rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
