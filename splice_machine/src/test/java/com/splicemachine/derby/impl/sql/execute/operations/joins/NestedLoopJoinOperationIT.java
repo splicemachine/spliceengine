@@ -29,6 +29,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -66,17 +68,7 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
         new TableCreator(conn)
                 .withCreate("create table multi(a1 int, b1 int, c1 int, primary key (a1))")
                 .withInsert("insert into multi values(?,?,?)")
-                .withRows(rows(
-                        row(1,1,1),
-                        row(2,2,2),
-                        row(3,3,3),
-                        row(4,3,3),
-                        row(5,3,3),
-                        row(6,3,3),
-                        row(7,3,3),
-                        row(8,3,3),
-                        row(9,3,3),
-                        row(10,3,3)))
+                .withRows(rows(IntStream.range(0, 100).mapToObj(i -> row(i, 3,3)).toArray(Iterable[]::new)))
                 .create();
 
         new TableCreator(conn)
