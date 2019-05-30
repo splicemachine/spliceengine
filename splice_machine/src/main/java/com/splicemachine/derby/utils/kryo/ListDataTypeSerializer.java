@@ -42,13 +42,9 @@ public abstract class ListDataTypeSerializer<T extends DataValueDescriptor> exte
     @Override
     public T read(Kryo kryo, Input input, Class<T> type) {
         try {
-            T dvd = type.newInstance();
+            T dvd = kryo.newInstance(type);
             readValue(kryo, input, dvd);
             return dvd;
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         } catch (StandardException e) {
             throw new RuntimeException(e);
         }

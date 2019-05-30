@@ -25,6 +25,7 @@ import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 /**
  * Created by jyuan on 10/10/16.
@@ -33,13 +34,14 @@ public class GetNLJoinAntiIterator extends GetNLJoinIterator {
 
     public GetNLJoinAntiIterator() {}
 
-    public GetNLJoinAntiIterator(OperationContext operationContext, ExecRow locatedRow) {
+    public GetNLJoinAntiIterator(Supplier<OperationContext> operationContext, ExecRow locatedRow) {
         super(operationContext, locatedRow);
     }
 
     @Override
     public Pair<OperationContext, Iterator<ExecRow>> call() throws Exception {
-        JoinOperation op = (JoinOperation) this.operationContext.getOperation();
+        OperationContext ctx = operationContext.get();
+        JoinOperation op = (JoinOperation) ctx.getOperation();
         op.getLeftOperation().setCurrentRow(this.locatedRow);
         SpliceOperation rightOperation=op.getRightOperation();
 
@@ -51,7 +53,7 @@ public class GetNLJoinAntiIterator extends GetNLJoinIterator {
         if (!hasNext ) {
             // For anti join, if there is no match on the right side, return an empty row
             ExecRow lr = op.getEmptyRow();
-            StreamLogUtils.logOperationRecordWithMessage(lr,operationContext,"outer - right side no rows");
+            StreamLogUtils.logOperationRecordWithMessage(lr,ctx,"outer - right side no rows");
             op.setCurrentRow(lr);
             rightSideNLJIterator = new SingletonIterator(lr);
         }
@@ -59,6 +61,6 @@ public class GetNLJoinAntiIterator extends GetNLJoinIterator {
             rightSideNLJIterator = Collections.<ExecRow>emptyList().iterator();
         }
 
-        return new Pair<>(operationContext, rightSideNLJIterator);
+        return new Pair<>(ctx, rightSideNLJIterator);
     }
 }
