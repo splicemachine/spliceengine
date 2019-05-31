@@ -294,13 +294,14 @@ public class TernaryOperationIT {
         ResultSet rs;
 
         String sql =
-            "select left(name, cut, 'short') from (" +
-            "values ('hello world', 5), ('hey dude', 20)" +
-            ") tb(name, cut)";
+            "select left(name, cut, ps) from (" +
+            "values ('hello world', 5, 'short'), ('hey dude', 20, 'short'), ('abcde', 7, '')" +
+            ") tb(name, cut, ps)";
 
         List<String> expected = new ArrayList<>(2);
         expected.add("hello");
         expected.add("hey dudeshortshortsh");
+        expected.add("abcde  ");
 
         rs = methodWatcher.executeQuery(sql);
         for (String s: expected) {
