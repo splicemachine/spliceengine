@@ -328,6 +328,7 @@ public class UnionNode extends SetOperatorNode{
      */
     @Override
     public void pushExpressions(PredicateList predicateList) throws StandardException{
+
         // If left or right side is a UnionNode, further push the predicate list
         // Note, it is OK not to push these predicates since they are also evaluated
         // in the ProjectRestrictNode. There are other types of operations possible
