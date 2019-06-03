@@ -320,8 +320,8 @@ public class SelectNode extends ResultSetNode{
     public FromList getFromList(){ return fromList; }
 
     /**
-     * Remap the column reference node to underlying column reference in the select, if possible.
-     * The select node here corresponds to a union branch
+     * Find the corresponding column reference (as used in the select node) for the given column reference.
+     * The select node here corresponds to a branch underneath a UnionNode
      * @param    cr        ColumnReference to find a match from the SELECT node
      * @return ColumnReference    ColumnReference pointing to the source of cr, if found
      */
