@@ -2654,10 +2654,7 @@ public class SQLChar
         return stringResult;
     }
 
-    public StringDataValue left(
-            NumberDataValue length,
-            StringDataValue padding,
-            StringDataValue result) throws StandardException
+    public StringDataValue left(NumberDataValue length, StringDataValue result) throws StandardException
     {
         int lengthInt;
         StringDataValue stringResult;
@@ -2668,35 +2665,16 @@ public class SQLChar
         }
         stringResult = (StringDataValue) result;
 
-        if (this.isNull() || (length.getInt() < 0))
+        if (this.isNull() || length.isNull() || length.getInt() < 0)
         {
             stringResult.setToNull();
             return stringResult;
         }
 
         lengthInt = length.getInt();
-        if (lengthInt <= getLength())
+        if (lengthInt > getLength()) lengthInt = getLength();
         {
             stringResult.setValue(getString().substring(0, lengthInt));
-        }
-        else // padding
-        {
-            StringBuilder sb = new StringBuilder(lengthInt);
-            sb.append(getString());
-
-            String padString =
-                    (padding != null && padding.getString() != null && padding.getString().length() > 0)
-                    ? padding.getString()
-                    : " ";
-            int padLength = lengthInt - getLength();
-
-            int d = padLength / padString.length();
-            int r = padLength % padString.length();
-
-            for (int i = 0; i < d; i++) sb.append(padString);
-            sb.append(padString.substring(0, r));
-
-            stringResult.setValue(sb.toString());
         }
 
         return stringResult;

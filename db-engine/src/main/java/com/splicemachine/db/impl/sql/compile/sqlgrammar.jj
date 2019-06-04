@@ -2042,13 +2042,13 @@ public class SQLParser
      *      - the padding character
      * @exception StandardException  Thrown on error
      */
-    ValueNode getLeftOperatorNode(ValueNode stringValue, ValueNode length, ValueNode padding) throws StandardException
+    ValueNode getLeftOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
     {
         return (ValueNode) nodeFactory.getNode(
                 C_NodeTypes.LEFT_OPERATOR_NODE,
                 stringValue,
                 length,
-                padding,
+                null,
                 ReuseFactory.getInteger(TernaryOperatorNode.LEFT),
                 null,
                 getContextManager());
@@ -7454,9 +7454,9 @@ characterValueFunction() throws StandardException :
         return getSubstringNode( value, startPosition, length, Boolean.FALSE );
 	}
 |
-    <LEFT> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> length = additiveExpression(null,0) [ <COMMA> str1 = additiveExpression(null,0) ] <RIGHT_PAREN>
+    <LEFT> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> length = additiveExpression(null,0) <RIGHT_PAREN>
     {
-        return getLeftOperatorNode(value, length, str1);
+        return getLeftOperatorNode(value, length);
     }
 |
 	<REPLACE> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> str1 = additiveExpression(null,0) <COMMA> str2 = additiveExpression(null,0) <RIGHT_PAREN>

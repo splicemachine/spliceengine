@@ -106,7 +106,7 @@ public class TernaryOperatorNode extends OperatorNode
 		{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.NumberDataValue}, // time.timestampadd( interval, count)
 		{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.DateTimeDataValue},// time2.timestampDiff( interval, time1)
 		{ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue}, // replace{}
-		{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.StringDataValue}
+		{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue} // left
 	};
 
 	/**
@@ -362,14 +362,8 @@ public class TernaryOperatorNode extends OperatorNode
 		{
 			leftOperand.generateExpression(acb, mb);
 			mb.upCast(leftInterfaceType);
-			if (rightOperand != null) {
-				rightOperand.generateExpression(acb, mb);
-				mb.upCast(rightInterfaceType);
-			} else {
-				mb.pushNull(rightInterfaceType);
-			}
 			mb.getField(field);
-			nargs = 3;
+			nargs = 2;
 			receiverType = receiverInterfaceType;
 		}
 		else if (operatorType == TIMESTAMPADD || operatorType == TIMESTAMPDIFF)
@@ -920,15 +914,11 @@ public class TernaryOperatorNode extends OperatorNode
 		{
 			leftOperand.setType(new DataTypeDescriptor(TypeId.INTEGER_ID, false));
 		}
-		if ((rightOperand != null) && rightOperand.requiresTypeFromContext())
-		{
-			rightOperand.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARCHAR), true));
-		}
 
 		bindToBuiltIn();
 
 		if (!leftOperand.getTypeId().isIntegerNumericTypeId())
-			throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "LEFT", "FUNCTION");
+			throwBadType("LEFT", leftOperand.getTypeId().getSQLTypeName());
 
 		receiverType = receiver.getTypeId();
 		switch (receiverType.getJDBCTypeId())
@@ -944,21 +934,6 @@ public class TernaryOperatorNode extends OperatorNode
 			}
 		}
 
-		if (rightOperand != null)
-		{
-			switch (rightOperand.getTypeId().getJDBCTypeId())
-			{
-				case Types.CHAR:
-				case Types.VARCHAR:
-				case Types.LONGVARCHAR:
-				case Types.CLOB:
-					break;
-				default:
-				{
-					throwBadType("LEFT", rightOperand.getTypeId().getSQLTypeName());
-				}
-			}
-		}
 		if (receiverType.getTypeFormatId() == StoredFormatIds.CLOB_TYPE_ID) {
 			resultType = receiverType;
 		}
