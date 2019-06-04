@@ -31,6 +31,9 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.SQLDataException;
+import java.sql.SQLSyntaxErrorException;
+
 /**
  * Tests associated with the String functions as defined in
  * {@link SpliceStringFunctions}.
@@ -56,18 +59,23 @@ public class SpliceStringFunctionsIT {
     private static final SpliceTableWatcher tableWatcherD = new SpliceTableWatcher(
     	"D", schemaWatcher.schemaName, "(a varchar(30), b varchar(30), c varchar(30))");
 
+    // Table for CHR testing.
+    private static final SpliceTableWatcher tableWatcherE = new SpliceTableWatcher(
+            "E", schemaWatcher.schemaName, "(a int, b char(1))");
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
             .around(tableWatcherB)
             .around(tableWatcherC)
             .around(tableWatcherD)
+            .around(tableWatcherE)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try{
                         PreparedStatement ps;
-                        
+
                         // Each of the following inserted rows represents an individual test,
                         // including expected result (column 'd'), for less test code in the
                         // testInstr methods.
@@ -166,6 +174,32 @@ public class SpliceStringFunctionsIT {
                         ps.setString(3, null);
                         ps.execute();
 
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherE + " (a, b) values (?, ?)");
+                        ps.setInt(1, 0);
+                        ps.setString(2, "\u0000");
+                        ps.execute();
+
+                        ps.setInt(1, 255);
+                        ps.setString(2, "ÿ");
+                        ps.execute();
+
+                        ps.setInt(1, 256);
+                        ps.setString(2, "\u0000");
+                        ps.execute();
+
+                        ps.setInt(1, 65);
+                        ps.setString(2, "A");
+                        ps.execute();
+
+                        ps.setInt(1, 97);
+                        ps.setString(2, "a");
+                        ps.execute();
+
+                        ps.setInt(1, 321);
+                        ps.setString(2, "A");
+                        ps.execute();
+
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     } finally {
@@ -241,5 +275,49 @@ public class SpliceStringFunctionsIT {
         ResultSet rs = methodWatcher.executeQuery("select count(*) from d where REGEXP_LIKE(a, 'aa*')");
         rs.next();
         Assert.assertEquals(3, rs.getInt(1));
+    }
+
+    @Test
+    public void testCHR() throws Exception {
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
+
+        rs = methodWatcher.executeQuery("SELECT chr(a), b from " + tableWatcherE);
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell2, sCell1);
+        }
+        rs.close();
+
+        String sqlText = "values chr(67.0)";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "C", rs.getString(1) );
+
+        sqlText = "values chr(null)";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", null, rs.getString(1) );
+    }
+
+    @Test
+    public void testCHRNegative() throws Exception {
+        try {
+            String sqlText = "values chr(1,2)";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals("42Y03" , e.getSQLState());
+        }
+
+        try {
+            String sqlText = "values chr('A')";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLDataException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
     }
 }
