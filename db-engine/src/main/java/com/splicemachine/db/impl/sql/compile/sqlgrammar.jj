@@ -272,7 +272,7 @@ public class SQLParser
 
 	/*
 	** Remember the last token we got that was an identifier
-	*/	
+	*/
 	private Token	lastIdentifierToken;
 	private Token	nextToLastIdentifierToken;
 
@@ -289,7 +289,7 @@ public class SQLParser
 
 	//this vector keeps a list of explicitly nullable columns, so that if they
 	//get used in the table level primary key constraint, it will result in an
-	//exception.	
+	//exception.
         Vector explicitlyNullableColumnsList = new Vector();
 
 
@@ -315,8 +315,8 @@ public class SQLParser
 	}
 
 	private final CompilerContext getCompilerContext()
-	{		
-		return compilerContext;			
+	{
+		return compilerContext;
 	}
 
 	private DataTypeDescriptor getDataTypeServices(int type, int precision, int scale,
@@ -332,7 +332,7 @@ public class SQLParser
 				);
 	}
 
-	private DataTypeDescriptor getJavaClassDataTypeDescriptor(TableName typeName) 
+	private DataTypeDescriptor getJavaClassDataTypeDescriptor(TableName typeName)
         throws StandardException
 	{
 		return new DataTypeDescriptor
@@ -356,7 +356,7 @@ public class SQLParser
 		<P>
 		Typically used for CREATE statements at the parser level. Called usually just
 		before the node is created, or can be called in just a partial syntax fragment
-		
+
 		@param version Data Dictionary major version (DataDictionary.DD_ constant)
 		@param feature SQL Feature name, for error text.
 	*/
@@ -412,17 +412,17 @@ public class SQLParser
 	 */
 	private void checkTypeLimits(int type, int length)
 		throws StandardException
-	{	
+	{
 	boolean valid = true;
 
-		
+
 	switch (type) {
 		case Types.BINARY:
 		case Types.CHAR:
 			if (length  > Limits.DB2_CHAR_MAXWIDTH)
 				valid = false;
 			break;
-			
+
 		case Types.VARBINARY:
 		case Types.VARCHAR:
 			if (length  > Limits.DB2_VARCHAR_MAXWIDTH)
@@ -432,16 +432,16 @@ public class SQLParser
 		default:
 			break;
 	}
-	if (!valid)  // If these limits are too big 
+	if (!valid)  // If these limits are too big
 		{
-			DataTypeDescriptor charDTD = 
+			DataTypeDescriptor charDTD =
 				DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, length);
-	
+
 			throw StandardException.newException(SQLState.LANG_DB2_LENGTH_PRECISION_SCALE_VIOLATION, charDTD.getSQLstring());
-		}	
+		}
 	}
-	
-	
+
+
 
 	// Get the current ContextManager
 	private final ContextManager getContextManager()
@@ -455,7 +455,7 @@ public class SQLParser
 		if (image.length() > MAX_UTF8_LENGTH)
 			{
 	   	throw StandardException.newException(SQLState.LANG_INVALID_LITERAL_LENGTH);
-			}	
+			}
 		}
 
 	/*
@@ -510,7 +510,7 @@ public class SQLParser
 			return (ValueNode) nodeFactory.getNode(
 									C_NodeTypes.BINARY_TIMES_OPERATOR_NODE,
 									leftOperand,
-									rightOperand, 
+									rightOperand,
 									getContextManager());
 
 		  case BinaryOperatorNode.DIVIDE:
@@ -528,7 +528,7 @@ public class SQLParser
 
 		  default:
 			if (SanityManager.DEBUG)
-			SanityManager.THROWASSERT("Unexpected multiplicative operator " + 
+			SanityManager.THROWASSERT("Unexpected multiplicative operator " +
 										multiplicativeOperator);
 			return null;
 		}
@@ -538,7 +538,7 @@ public class SQLParser
 	 * Set up and like the parameters to the descriptors.
 	 * Set all the ParameterNodes to point to the array of
 	 * parameter descriptors.
-	 * 
+	 *
 	 *	@exception	StandardException
 	 */
 	 private void setUpAndLinkParameters()
@@ -547,7 +547,7 @@ public class SQLParser
 		CompilerContext cc = getCompilerContext();
 		cc.setParameterList(parameterList);
 		/* Link the untyped parameters to the array of parameter descriptors */
-		
+
 		DataTypeDescriptor[] descriptors = cc.getParameterTypes();
 
 		ParameterNode				newNode;
@@ -730,7 +730,7 @@ public class SQLParser
 	}
 
 	/**
-	 * Determine whether the next sequence of tokens represents 
+	 * Determine whether the next sequence of tokens represents
 	 * a datatype (could be a common datatype or a schema qualified UDT name).
 	 *
 	 * @return	TRUE iff the next set of tokens names a datatype
@@ -958,7 +958,7 @@ public class SQLParser
         } else {
             alteredWhereClause = innerWhere;
         }
-        
+
         // Alter the passed in setClause to give it non-null expressions
         // and to point to subqjuery table.
         ResultColumnList innerRCL = innerSelect.getResultColumns();
@@ -1000,9 +1000,9 @@ public class SQLParser
                 tableName, /* target table for update */
                 resultSet, /* SelectNode just created */
                 getContextManager());
-           
+
         ((UpdateNode)retval).setUpdateWithSubquery(true);
-        
+
         setUpAndLinkParameters();
 
         return retval;
@@ -1133,7 +1133,7 @@ public class SQLParser
 
 		return getToken(2).kind == FN;
 	}
-	
+
 
     /**
        List of JDBC escape functions that map directly onto
@@ -1143,16 +1143,16 @@ public class SQLParser
         {"ACOS", "ASIN", "ATAN", "ATAN2", "COS", "SIN", "TAN", "PI",
          "DEGREES", "RADIANS", "EXP", "LOG", "LOG10", "CEILING", "FLOOR",
          "SIGN", "RAND", "ROUND", "COT" };
-       
+
     /**
        Convert a JDBC escaped function name to a function
        name in the SYSFUN schema. Returns null if no such
        function exists.
-    */  
+    */
 	private String getEscapedSYSFUN(String name)
 	{
 	    name = StringUtil.SQLToUpperCase(name);
-	    
+
 	    for (int i = 0; i < ESCAPED_SYSFUN_FUNCTIONS.length; i++)
 	    {
 	        if (ESCAPED_SYSFUN_FUNCTIONS[i].equals(name))
@@ -1181,11 +1181,11 @@ public class SQLParser
 		// these - most built-in functions have a LEFT_PAREN following
 		// the function name.
 
-		// if we run out of token, it's probably a syntax error,  
+		// if we run out of token, it's probably a syntax error,
 		// in fact
 		tokKind = getToken(1).kind;
-		if ( tokKind == EOF ) { return false; }                
-		
+		if ( tokKind == EOF ) { return false; }
+
 		// disambiguate from named parameter reference
 		if ( getToken(1).image.charAt(0) == '?' ) { return false; }
 
@@ -1346,7 +1346,7 @@ public class SQLParser
 	private boolean windowOrAggregateFunctionFollows()
 	{
 	    if ( distinctUDAFollows() ) { return false; }
-	    
+
 		boolean retval = false;
 
 		switch (getToken(1).kind) {
@@ -1387,8 +1387,8 @@ public class SQLParser
 	{
 		boolean retval = false;
 		int tokKind = getToken(1).kind;
-		
-		if (getToken(0).kind == CALL) 
+
+		if (getToken(0).kind == CALL)
 			retval = true;
 
 		switch (tokKind)
@@ -1402,10 +1402,10 @@ public class SQLParser
 			break;
 
 		  case CURRENT:
-			if (isDATETIME(getToken(2).kind)) 
+			if (isDATETIME(getToken(2).kind))
 		  		retval = true;
 			break;
-	
+
 		  case CAST:
 		  case LEFT_PAREN:
 		  	retval = false;
@@ -1598,9 +1598,9 @@ public class SQLParser
 	}
 
 	/**
-	 * Determine whether the next token is the beginning of a propertyList(). 
+	 * Determine whether the next token is the beginning of a propertyList().
 	 * A properties list is the comment "--db-properties" followed by a
-	 * dot-separated list, followed by an =, followed by a value all on that 
+	 * dot-separated list, followed by an =, followed by a value all on that
 	 * comment line. This means that the comment should start with the word
 	 * "db-properties".
 	 *
@@ -1608,7 +1608,7 @@ public class SQLParser
 	 */
 	private boolean splicePropertiesListFollows()
 	{
-		return 
+		return
 			getToken(1).kind == SPLICEDASHPROPERTIES;
 	}
 
@@ -2022,7 +2022,7 @@ public class SQLParser
      *      - a boolean values for specifying the kind of substring function
      * @exception StandardException  Thrown on error
      */
-    ValueNode getSubstringNode( ValueNode stringValue, ValueNode startPosition, 
+    ValueNode getSubstringNode( ValueNode stringValue, ValueNode startPosition,
                          ValueNode length, Boolean boolVal ) throws StandardException
     {
         return (ValueNode) nodeFactory.getNode(
@@ -2035,6 +2035,18 @@ public class SQLParser
 						    getContextManager());
     }
 
+    ValueNode getRightOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
+    {
+        return (ValueNode) nodeFactory.getNode(
+                C_NodeTypes.RIGHT_OPERATOR_NODE,
+                stringValue,
+                length,
+                null,
+                ReuseFactory.getInteger(TernaryOperatorNode.RIGHT),
+                null,
+                getContextManager());
+    }
+
     /**
      * Gets a replace node based on the specified arguments.
      * @param stringValue the input string
@@ -2044,7 +2056,7 @@ public class SQLParser
      */
     ValueNode getReplaceNode(
         ValueNode stringValue,
-        ValueNode fromString, 
+        ValueNode fromString,
         ValueNode toString) throws StandardException
     {
         return (ValueNode) nodeFactory.getNode(
@@ -2080,11 +2092,11 @@ public class SQLParser
                                                 ReuseFactory.getInteger( intervalType),
                                                 getContextManager());
     }
-    
+
     /**
         Check to see if the required claues have been added
         to a procedure or function defintion.
-        
+
         @param required int array of require clauses
         @param  clauses the array of declared clauses.
     */
@@ -2351,7 +2363,7 @@ TOKEN_MGR_DECLS :
 		t.beginOffset = input_stream.getBeginOffset();
 		t.endOffset = input_stream.getEndOffset();
 	}
-	
+
 	int commentNestingDepth = 0;
 }
 
@@ -2407,15 +2419,15 @@ SKIP :
 
 /*
 	Check if the comment characters -- are followed by DERBY-PROPERTIES
-	token. 
+	token.
 
-	If yes, then this comment is providing user-supplied optimizer 
+	If yes, then this comment is providing user-supplied optimizer
 	overrides. There should be keyname=value [,keyname=value] pairs
 	after -- DERBY-PROPERTIES otherwise throw an exception. These
-	optimier overrides should be used in correct context only, 
+	optimier overrides should be used in correct context only,
 	otherwise, the parser will throw an exception.
 
-	If this comment does not start with DERBY-PROPERTOIES, then it is 
+	If this comment does not start with DERBY-PROPERTOIES, then it is
 	just a regular comment. Skip the comment and move on to the next line.
  */
 <IN_COMMENT> MORE [IGNORE_CASE]:
@@ -2563,24 +2575,24 @@ SKIP :
 }
 
 <LOOKFOR_SPLICEDASHPROPERTIES> TOKEN [IGNORE_CASE] :
-{	
-	<SPLICEDASHPROPERTIES : "SPLICEDASHPROPERTIES"> 
+{
+	<SPLICEDASHPROPERTIES : "SPLICEDASHPROPERTIES">
 }
 
-//once we find comment starting with -- DERBY-PROPERTIES, we want to switch 
-//from SKIP mode to the TOKEN mode in the parser so the rest of the characters 
-//on the comment line can be treated as part of one big token so we can get 
+//once we find comment starting with -- DERBY-PROPERTIES, we want to switch
+//from SKIP mode to the TOKEN mode in the parser so the rest of the characters
+//on the comment line can be treated as part of one big token so we can get
 //keyname=value pairs from that token. The reason for treating them as one big
 //token is that the existing code in parser allows newline characters between
 //individual token but with optimizer overrides, all the properties have to
-//be specified on the -- DERBY-PROPERTIES comment line. 
+//be specified on the -- DERBY-PROPERTIES comment line.
 <LOOKFOR_SPLICEDASHPROPERTIES> TOKEN [IGNORE_CASE]:
 {
 "S" { matchedToken.kind = SPLICEDASHPROPERTIES; } : PROPERTIES_LIST
 }
 
 //We found -- DERBY-PROPERTIE? where ? is a character other than S
-//and hence we should the rest of the characters on this line as 
+//and hence we should the rest of the characters on this line as
 //a regular comment
 <LOOKFOR_SPLICEDASHPROPERTIES> SKIP :
 {
@@ -3075,7 +3087,7 @@ TOKEN [IGNORE_CASE] :
 |	<MODE: "mode">
 |	<NEW: "new">
 |   <NEW_TABLE: "new_table">
-|	<NVARCHAR: "nvarchar"> 
+|	<NVARCHAR: "nvarchar">
 |	<OJ: "oj">
 |	<OFF: "off">
 |	<OLD: "old">
@@ -3468,32 +3480,32 @@ Statement( String statementSQLText, Object[] paramDefaults) throws StandardExcep
 	}
 }
 
-StatementNode 
-proceduralStatement(Token[] tokenHolder) throws StandardException : 
+StatementNode
+proceduralStatement(Token[] tokenHolder) throws StandardException :
 {
 	StatementNode statementNode;
 	tokenHolder[0] = getToken(1);
-}   
-{ 	
+}
+{
 (
 	statementNode = insertStatement()
-|	
+|
 	statementNode = preparableUpdateStatement()
 |
 	statementNode = preparableDeleteStatement()
 |
-	statementNode =  preparableSelectStatement(true)	
+	statementNode =  preparableSelectStatement(true)
 |
-	statementNode =  callStatement()	
+	statementNode =  callStatement()
 )
 	{
 		return statementNode;
-	}		
+	}
 }
 
 /*
  * <A NAME="StatementPart">StatementPart</A>
- * 
+ *
  * @param tokenHolder returns the token that starts
  * the statement.  If null, ignored.
  */
@@ -3502,7 +3514,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 {
 	StatementNode	statementNode;
 	//before starting new statements, initialize this variables. Otherwise, the left
-	//over values from previously failed sql will affect the next sql. 
+	//over values from previously failed sql will affect the next sql.
         explicitNotNull = false;
         explicitNull = false;
 	explicitlyNullableColumnsList = new Vector();
@@ -3510,7 +3522,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 	/*
 	** Grab the token preceding this production
 	*/
-	if (tokenHolder != null) 
+	if (tokenHolder != null)
 	{
 		tokenHolder[0] = getToken(1);
 	}
@@ -3832,7 +3844,7 @@ spsSetStatement() throws StandardException :
 		return statementNode;
 	}
 }
-		
+
 /*
  * <A NAME="preparableSQLDataStatement">preparableSQLDataStatement</A>
  *
@@ -3985,39 +3997,39 @@ deleteBody() throws StandardException :
 	Token	   whereToken = null;
 }
 {
-	LOOKAHEAD( { fromNewInvocationFollows() } ) 
+	LOOKAHEAD( { fromNewInvocationFollows() } )
 	<FROM> javaToSQLNode = newInvocation()
 	[ whereToken = <WHERE> whereClause = whereClause(whereToken) ]
 	{
 		fromTable =  (FromTable) nodeFactory.getNode(
 									C_NodeTypes.FROM_VTI,
-									javaToSQLNode.getJavaValueNode(), 
+									javaToSQLNode.getJavaValueNode(),
 									(String) null,
-									null, 
+									null,
 									(Properties) null,
-									getContextManager()); 
+									getContextManager());
 
 		return getDeleteNode(fromTable, tableName, whereClause, null);
 	}
 |
-	<FROM> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
-		[ 
+	<FROM> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+		[
 			LOOKAHEAD
 			( { (getToken(1).kind != EOF) && (getToken(1).kind != WHERE) && !splicePropertiesListFollows() } )
-			[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) 
+			[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
 		]
 		[tableProperties = propertyList(false) <CHECK_PROPERTIES>]
-		[ 
+		[
 			whereToken = <WHERE>
 		    (
 				//need LOOKAHEAD here to decide between CURRENT in class name
 				//and CURRENT in CURRENT OF
-				LOOKAHEAD ( 
+				LOOKAHEAD (
 	             	{
 		         	 (getToken(1).kind == CURRENT) &&
-					 (getToken(2).kind == OF) 
+					 (getToken(2).kind == OF)
 				  	}
-				)	
+				)
 				fromTable = currentOfClause( correlationName ) |
 				whereClause = whereClause(whereToken)
 			)
@@ -4078,7 +4090,7 @@ currentOfClause( String correlationName ) throws StandardException :
 }
 {
 	<CURRENT> <OF> cursorName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-	{ 
+	{
 		return (FromTable) nodeFactory.getNode(
 								C_NodeTypes.CURRENT_OF_NODE,
 								correlationName,
@@ -4195,14 +4207,14 @@ targetTable() throws StandardException :
 	{
 		return (QueryTreeNode) nodeFactory.getNode(
 								C_NodeTypes.FROM_VTI,
-								javaToSQLNode.getJavaValueNode(), 
+								javaToSQLNode.getJavaValueNode(),
 								correlationName,
-								null, 
+								null,
 								(Properties) null,
-								getContextManager()); 
+								getContextManager());
 	}
 |
-	tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
 		return tableName;
 	}
@@ -4218,7 +4230,7 @@ preparableUpdateStatement() throws StandardException :
 }
 {
 	// NOTE: It only makes sense to have a property list if there is a
-	// table name, so I moved it into the [] for qualifiedName(). 
+	// table name, so I moved it into the [] for qualifiedName().
 
 	<UPDATE> qtn = updateBody()
 	{
@@ -4260,18 +4272,18 @@ updateBody() throws StandardException :
     Token      leftParenToken = null;
 }
 {
-	LOOKAHEAD( { newInvocationFollows(1) } ) 
+	LOOKAHEAD( { newInvocationFollows(1) } )
 	javaToSQLNode = newInvocation()
 		<SET> columnList = setClauseList()
 	[ whereToken = <WHERE> whereClause = whereClause(whereToken) ]
 	{
 		fromTable =  (FromTable) nodeFactory.getNode(
 									C_NodeTypes.FROM_VTI,
-									javaToSQLNode.getJavaValueNode(), 
+									javaToSQLNode.getJavaValueNode(),
 									(String) null,
-									null, 
+									null,
 									(Properties) null,
-									getContextManager()); 
+									getContextManager());
 
 		return getUpdateNode(fromTable, tableName, columnList, whereClause);
 	}
@@ -4279,11 +4291,11 @@ updateBody() throws StandardException :
 		tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		[
 			LOOKAHEAD( { (getToken(1).kind != SET) && !splicePropertiesListFollows() } )
-			[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) 
+			[ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
 		]
 		[
 			targetProperties = propertyList(false) <CHECK_PROPERTIES>
-		] 
+		]
 
         /* Check if this is multi column update with single subquery source */
 
@@ -4301,7 +4313,7 @@ updateBody() throws StandardException :
             }
         }
 
-		[ 
+		[
 			whereToken = <WHERE>
 		    (
 				whereClause = whereClause(whereToken) |
@@ -4316,7 +4328,7 @@ updateBody() throws StandardException :
 		 * the FromList is a CurrentOfNode holding the cursor name.
 		 * (NOTE - we mark the table as the one that we are updating.)
 		 * The select list is the columns in the SET clause.  At bind time,
-	 	 * we will prepend the CurrentRowLocation() in keeping with the design 
+	 	 * we will prepend the CurrentRowLocation() in keeping with the design
 		 * decision that the parser's output should look like the language.
 		 */
 		if (fromTable == null)
@@ -4473,7 +4485,7 @@ ValueNode primaryExpression() throws StandardException :
 	}
 }
 
-/* 
+/*
  * <A NAME="savepointStatement">savepointStatement</A>
 
 	savepointStatementClauses contains the UNIQUE, ON ROLLBACK RETAIN LOCKS, ON ROLLBACK RETAIN CURSORS clauses.
@@ -4534,7 +4546,7 @@ void savepointStatementClause(Object[] savepointStatementClauses) throws Standar
 				String which = SAVEPOINT_CLAUSE_NAMES[clausePosition];
 				throw StandardException.newException(SQLState.LANG_DB2_MULTIPLE_ELEMENTS, which);
 			}
-				
+
 			savepointStatementClauses[clausePosition] = Boolean.TRUE;
 		}
 	}
@@ -4559,7 +4571,7 @@ LocksOrCursors() :
 	}
 }
 
-/* 
+/*
  * <A NAME="declareTemporaryTableDeclaration">declareTemporaryTableDeclaration</A>
 
     This is the generic DERBY syntax for temp tables
@@ -4577,7 +4589,7 @@ declareTemporaryTableDeclaration() throws StandardException :
 	TableElementList tableElementList;
 	Object[] declareTableClauses = new Object[3];
 }
-{ 
+{
 	<DECLARE> <GLOBAL> <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		tableElementList = tableElementList()
 		( declareTableClause(declareTableClauses) ) *
@@ -4637,7 +4649,7 @@ void declareTableClause(Object[] declareTableClauses) throws StandardException :
 				String which = TEMPORARY_TABLE_CLAUSE_NAMES[clausePosition];
 				throw StandardException.newException(SQLState.LANG_DB2_MULTIPLE_ELEMENTS, which);
 			}
-				
+
 			declareTableClauses[clausePosition] = clauseValue;
 		}
 	}
@@ -4723,7 +4735,7 @@ columnDefinition(TableElementList tableElementList) throws StandardException :
 	*/
 
 	/* identifier() used to be columnName() */
-	columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) 
+	columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
 	[ ( typeDescriptor[0] = dataTypeDDL() ) ]
 	[ defaultNode = defaultAndConstraints(typeDescriptor, tableElementList, columnName, autoIncrementInfo) ]
 	{
@@ -4996,7 +5008,7 @@ nationalCharacterStringType() throws StandardException :
 }
 {
 (
-	<NATIONAL> charOrCharacter() 
+	<NATIONAL> charOrCharacter()
 	(
 		// Length is optional for NATIONAL CHARACTER , not for NATIONAL CHARACTER VARYING
 		varyingToken = <VARYING> length = charLength() |
@@ -5005,11 +5017,11 @@ nationalCharacterStringType() throws StandardException :
 	{
 
 		// If the user says NATIONAL CHARACTER VARYING, it's really NATIONALVARCHAR
-		type = (varyingToken == null ? TypeId.NATIONAL_CHAR_NAME : 
+		type = (varyingToken == null ? TypeId.NATIONAL_CHAR_NAME :
 				TypeId.NATIONAL_VARCHAR_NAME);
 	}
 |
-	<NCHAR> 
+	<NCHAR>
 	(
 		// Length is optional for NCHAR, not for NCHAR VARYING
 		varyingToken = <VARYING> length = charLength() |
@@ -5017,12 +5029,12 @@ nationalCharacterStringType() throws StandardException :
 	)
 	{
 		// If the user says NCHAR VARYING, it's really NATIONALVARCHAR
-		type = (varyingToken == null ? TypeId.NATIONAL_CHAR_NAME : 
+		type = (varyingToken == null ? TypeId.NATIONAL_CHAR_NAME :
 				TypeId.NATIONAL_VARCHAR_NAME);
 
 	}
 |
-	<NVARCHAR> 
+	<NVARCHAR>
 	(
 		length = charLength()
 	)
@@ -5035,7 +5047,7 @@ nationalCharacterStringType() throws StandardException :
 		// need to re-enable according to SQL standard
 		throw StandardException.newException(SQLState.NOT_IMPLEMENTED, type);
 		// return DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, length);
-	} 
+	}
 }
 
 /*
@@ -5129,7 +5141,7 @@ exactNumericType() throws StandardException :
 	DataTypeDescriptor dtd =  null;
 }
 {
-	( <NUMERIC> 
+	( <NUMERIC>
 	{
 		type = Types.NUMERIC;
 		typeStr = "NUMERIC";
@@ -5140,18 +5152,18 @@ exactNumericType() throws StandardException :
 		if ((precision <= 0) ||
 			(precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
 		{
-			throw StandardException.newException(SQLState.LANG_INVALID_PRECISION, 
+			throw StandardException.newException(SQLState.LANG_INVALID_PRECISION,
 				typeStr, String.valueOf(precision));
-		} 
-		else if ((scale < 0) || 
+		}
+		else if ((scale < 0) ||
 				 (scale > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
 		{
-			throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_SCALE, 
+			throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_SCALE,
 				typeStr, String.valueOf(scale));
 		}
 		else if (scale > precision)
 		{
-			throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_PRECISION_SCALE, 
+			throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_PRECISION_SCALE,
 				String.valueOf(scale),
 				String.valueOf(precision));
 		}
@@ -5248,7 +5260,7 @@ approximateNumericType() throws StandardException :
 		 */
 		return getDataTypeServices(type, prec, scale, width);
 	}
-| 
+|
 	<REAL>
 	{
 		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL);
@@ -5321,7 +5333,7 @@ longSubType() throws StandardException :
 		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(lvcType);
 	}
 |
-	<NVARCHAR> 
+	<NVARCHAR>
 	{
 		// need to re-enable according to SQL standard
 		throw StandardException.newException(SQLState.NOT_IMPLEMENTED, TypeId.NATIONAL_LONGVARCHAR_NAME);
@@ -5458,7 +5470,7 @@ lengthAndModifier() throws StandardException :
 	Token	tokmod = null;
 }
 {
-	<LEFT_PAREN> 
+	<LEFT_PAREN>
 	// we have essentially 3 different ways of specifying the length of a LOB
 	( tok = <LENGTH_MODIFIER>					// LOB(33K)
 	| tok = <EXACT_NUMERIC> [ tokmod = <IDENTIFIER> ] )		// LOB(33) or LOB(33 K)
@@ -5471,7 +5483,7 @@ lengthAndModifier() throws StandardException :
 			String number = s.substring(0, s.length()-1); // in case of ending w. letter
 			long mul;
 			switch (modifier) {
-			case 'G': 
+			case 'G':
 			case 'g':
 				mul =1073741824L;	//1 Giga
 				break;
@@ -5489,19 +5501,19 @@ lengthAndModifier() throws StandardException :
 				break;
 			}
 			long	specifiedLength = Long.parseLong(number) * mul;
-			
+
 			// match DB2 limits of 1 to 2147483647
-			if ((specifiedLength > 0L) && 
+			if ((specifiedLength > 0L) &&
                 (specifiedLength <= Limits.DB2_LOB_MAXWIDTH))
             {
 				return (int)specifiedLength;
             }
 
-			// DB2 allows 2G or 2048M or 2097152k that calculate out to 
+			// DB2 allows 2G or 2048M or 2097152k that calculate out to
             // 2147483648, but sets the length to be one less.
 			if (mul != 1 && specifiedLength == 2147483648L)
 				return Limits.DB2_LOB_MAXWIDTH;
-				
+
 		}
 		catch (NumberFormatException nfe)
 		{
@@ -5551,7 +5563,7 @@ exactNumber() throws StandardException :
 {
 	[ sign = sign() ] longToken = <EXACT_NUMERIC>
 	{
-		try 
+		try
 		{
 			/*
 			 * Note that it's important to re-concatenate
@@ -5600,7 +5612,7 @@ precision() throws StandardException :
 /*
  * <A NAME="uint_value">uint_value</A>
  */
-int 
+int
 uint_value() throws StandardException :
 {
 	Token uintToken;
@@ -5645,12 +5657,12 @@ datetimeType() throws StandardException :
 	int prec = -1; // know the value back is positive and in range
 }
 {
-	<DATE> 
+	<DATE>
 	{
 		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DATE);
 	}
 |
-	<TIME> 
+	<TIME>
 	{
 
 		/*
@@ -5669,7 +5681,7 @@ datetimeType() throws StandardException :
 		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIME);
 	}
 |
-	<TIMESTAMP> 
+	<TIMESTAMP>
 	{
 
 		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.TIMESTAMP);
@@ -5688,7 +5700,7 @@ qualifiedNameList(Vector list, int id_length_limit) throws StandardException :
 	qualifiedNameElement(list, id_length_limit) ( <COMMA> qualifiedNameElement(list, id_length_limit) ) *
 }
 
-void 
+void
 qualifiedNameElement(Vector list, int id_length_limit) throws StandardException :
 {
 	TableName qualifiedName = null;
@@ -5793,7 +5805,7 @@ unionOrExcept(ResultSetNode term) throws StandardException :
 								null)
 	{
         if ( (tok != null) && (tok.kind == DISTINCT) ) { forbidNextValueFor(); }
-        
+
 		return expression;
 	}
 |
@@ -5803,7 +5815,7 @@ unionOrExcept(ResultSetNode term) throws StandardException :
 								null)
 	{
         if ( (tok != null) && (tok.kind == DISTINCT) ) { forbidNextValueFor(); }
-        
+
 		return expression;
 	}
 }
@@ -5924,7 +5936,7 @@ intersect(ResultSetNode term) throws StandardException :
 				nonJoinQueryTerm(term, (tok != null) ? INTERSECT_ALL_OP : INTERSECT_OP, null)
 	{
         if ( (tok != null) && (tok.kind == DISTINCT) ) { forbidNextValueFor(); }
-        
+
 		return expression;
 	}
 }
@@ -6020,7 +6032,7 @@ setQuantifier() :
 	<DISTINCT>
 	{
         forbidNextValueFor();
-        
+
 		return true;
 	}
 |
@@ -6134,7 +6146,7 @@ derivedColumn(ResultColumnList resultColumns) throws StandardException :
 {
 	columnExpression = orExpression( null )
 			[ columnName = asClause() ]
-	{ 
+	{
 		/*
 		** If there is no AS clause, and the expression is a simple
 		** column, use the name of the column as the result column
@@ -6185,7 +6197,7 @@ valueExpression() throws StandardException :
 		return leftOperand;
 	}
 }
-	
+
 /*
  * <A NAME="orExpression">orExpression</A>
  */
@@ -6225,7 +6237,7 @@ andExpression(ValueNode farLeftOperand) throws StandardException :
 {
 	//LOOKAHEAD required to tell that NOT is not part of a class name
 	[ LOOKAHEAD({getToken(1).kind == NOT && !(getToken(2).kind == PERIOD ||
-			getToken(2).kind == DOUBLE_COLON)}) tok = <NOT> ] test = isSearchCondition() 
+			getToken(2).kind == DOUBLE_COLON)}) tok = <NOT> ] test = isSearchCondition()
 	{
 		/* Put the NOT on top of test */
 		if (tok != null)
@@ -6272,7 +6284,7 @@ isSearchCondition() throws StandardException :
 											C_NodeTypes.IS_NULL_NODE,
 											booleanPrimary,
 											getContextManager());
-		
+
 				/* Put the NOT on top of the tree */
 				if (notToken != null)
 				{
@@ -6374,7 +6386,7 @@ remainingPredicate(ValueNode value) throws StandardException :
 /*
  * <A NAME="remainingNonNegatablePredicate">remainingNonNegatablePredicate</A>
  */
-ValueNode 
+ValueNode
 remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 {
 	int			operator;
@@ -6388,9 +6400,9 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 {
 	operator = compOp()
 	(
-		// Lookahead required here to tell ALL, ANY or SOME from a 
+		// Lookahead required here to tell ALL, ANY or SOME from a
 		// class which starts with these words (e.g., ALL::)
-		LOOKAHEAD({(getToken(1).kind == ALL || getToken(1).kind == ANY || 
+		LOOKAHEAD({(getToken(1).kind == ALL || getToken(1).kind == ANY ||
 			getToken(1).kind == SOME) && getToken(2).kind == LEFT_PAREN})
 		(
 			operator = quantifier(operator)
@@ -6411,7 +6423,7 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 /*
  * <A NAME="remainingNegatablePredicate">remainingNegatablePredicate</A>
  */
-ValueNode 
+ValueNode
 remainingNegatablePredicate(ValueNode leftOperand) throws StandardException :
 {
 	ValueNode	tree = null;
@@ -6439,7 +6451,7 @@ remainingNegatablePredicate(ValueNode leftOperand) throws StandardException :
 								likePattern,
 								escapeValue,
 								getContextManager());
-		
+
 		return tree;
 	}
 |
@@ -6456,7 +6468,7 @@ remainingNegatablePredicate(ValueNode leftOperand) throws StandardException :
 								leftOperand,
 								betweenList,
 								getContextManager());
-		
+
 		return tree;
 	}
 }
@@ -6515,8 +6527,8 @@ additiveExpression(ValueNode farLeftOperand, int compOp) throws StandardExceptio
 	int			nodeType;
 }
 {
-	leftOperand = multiplicativeExpression(null, 0)  			
-			(operator = additiveOperator() 			 
+	leftOperand = multiplicativeExpression(null, 0)
+			(operator = additiveOperator()
 				leftOperand = multiplicativeExpression(leftOperand, operator) )*
 	{
 		if (farLeftOperand == null)
@@ -6571,7 +6583,7 @@ additiveOperator() throws StandardException :
 {
 	Token tok;
 }
-{	tok = <PLUS_SIGN> 
+{	tok = <PLUS_SIGN>
 	{
 		return BinaryOperatorNode.PLUS;
 	}
@@ -6592,8 +6604,8 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
 	int			multOp;
 }
 {
-	leftOperand = unaryExpression(null, 0) 
-				(multOp = multiplicativeOperator() 
+	leftOperand = unaryExpression(null, 0)
+				(multOp = multiplicativeOperator()
 				 leftOperand = unaryExpression(leftOperand, multOp) )*
 	{
 		if (farLeftOperand == null)
@@ -6632,7 +6644,7 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
 int
 multiplicativeOperator() throws StandardException :
 { }
-{	<ASTERISK> 
+{	<ASTERISK>
 	{
 		return BinaryOperatorNode.TIMES;
 	}
@@ -6741,7 +6753,7 @@ primaryExpressionXX() throws StandardException :
 }
 {
 	value = primary()
-	  ( value = nonStaticMethodCallOrFieldAccess(value)) *	
+	  ( value = nonStaticMethodCallOrFieldAccess(value)) *
 	{
 		return value;
 	}
@@ -6915,7 +6927,7 @@ primary() throws StandardException :
 	ValueNode	value;
 }
 {
-	
+
 	//Look ahead required here to tell a java class from a identifier
 	LOOKAHEAD( { javaClassFollows() } )
 	value = staticClassReference()
@@ -6956,12 +6968,12 @@ staticClassReferenceType(String javaClassName) throws StandardException :
 {
 	//Look ahead required here to tell method from field reference
 	LOOKAHEAD({(getToken(2).kind == LEFT_PAREN)})
-	value = staticMethodInvocation(javaClassName) 
+	value = staticMethodInvocation(javaClassName)
 	{
 		return value;
 	}
 |
-	value = staticClassFieldReference(javaClassName) 
+	value = staticClassFieldReference(javaClassName)
 	{
 		return value;
 	}
@@ -6976,7 +6988,7 @@ staticClassFieldReference(String javaClassName) throws StandardException :
 	String		fieldName = null;
 }
 {
-	fieldName = caseSensitiveIdentifierPlusReservedWords() 
+	fieldName = caseSensitiveIdentifierPlusReservedWords()
 	{
 		return	(ValueNode) nodeFactory.getNode(
 					C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
@@ -6997,7 +7009,7 @@ int
 nonSecondDatetimeField() :
 {}
 {
-	<YEAR> 
+	<YEAR>
 	{
 		return DateTimeDataValue.YEAR_FIELD;
 	}
@@ -7007,7 +7019,7 @@ nonSecondDatetimeField() :
 		return DateTimeDataValue.QUARTER_FIELD;
 	}
 |
-	<MONTH> 
+	<MONTH>
 	{
 		return DateTimeDataValue.MONTH_FIELD;
 	}
@@ -7042,7 +7054,7 @@ nonSecondDatetimeField() :
 		return DateTimeDataValue.DAY_FIELD;
 	}
 |
-	<HOUR> 
+	<HOUR>
 	{
 		return DateTimeDataValue.HOUR_FIELD;
 	}
@@ -7103,7 +7115,7 @@ escapedValueFunction() throws StandardException :
     /* CONCAT( string1, string2 )
      * CONCAT is not a reserved word.
      */
-    <CONCAT> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA> 
+    <CONCAT> <LEFT_PAREN> str1 = additiveExpression(null,0) <COMMA>
             str2 = additiveExpression(null,0) <RIGHT_PAREN>
     {
         return (ValueNode) nodeFactory.getNode(
@@ -7126,15 +7138,15 @@ escapedValueFunction() throws StandardException :
     {
         return value;
     }
- 
-|   
+
+|
     LOOKAHEAD({ getEscapedSYSFUN(getToken(1).image) != null })
     value = escapedSYSFUNFunction()
     {
         return value;
     }
 
-    
+
 }
 
 /*
@@ -7150,7 +7162,7 @@ escapedSYSFUNFunction() throws StandardException :
     tok = <IDENTIFIER> methodCallParameterList(parameterList)
     {
 	    String sysFunName = getEscapedSYSFUN(tok.image);
-	    
+
 	    TableName functionName = (TableName) nodeFactory.getNode(
 								C_NodeTypes.TABLE_NAME,
 								SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,
@@ -7158,7 +7170,7 @@ escapedSYSFUNFunction() throws StandardException :
 								new Integer(0),
 								new Integer(0),
 								getContextManager());
-	   
+
 		MethodCallNode methodNode = (MethodCallNode) nodeFactory.getNode(
 								C_NodeTypes.STATIC_METHOD_CALL_NODE,
 								functionName,
@@ -7217,7 +7229,7 @@ timestampArithmeticFuncion() throws StandardException :
                                                 null,
                                                 getContextManager());
     }
-}       
+}
 
 /*
  * <A NAME="jdbcIntervalType">jdbcIntervalType</A>
@@ -7333,7 +7345,7 @@ coalesceFunction(String coalesceOrValue) throws StandardException :
 {
     <LEFT_PAREN>
         coalesceExpression(expressionList)
-		( <COMMA> coalesceExpression(expressionList) )* 
+		( <COMMA> coalesceExpression(expressionList) )*
     <RIGHT_PAREN>
     {
         return (ValueNode)nodeFactory.getNode(
@@ -7386,7 +7398,7 @@ modFunction() throws StandardException :
 	ValueNode int2;
 }
 {
-    <LEFT_PAREN> int1 = additiveExpression(null,0) <COMMA> 
+    <LEFT_PAREN> int1 = additiveExpression(null,0) <COMMA>
             int2 = additiveExpression(null,0) <RIGHT_PAREN>
     {
         return (ValueNode)nodeFactory.getNode(
@@ -7405,7 +7417,7 @@ datetimeField() :
 	int field;
 }
 {
-	field = nonSecondDatetimeField() 
+	field = nonSecondDatetimeField()
 	{
 		return field;
 	}
@@ -7434,6 +7446,11 @@ characterValueFunction() throws StandardException :
 	{
         return getSubstringNode( value, startPosition, length, Boolean.FALSE );
 	}
+|
+    <RIGHT> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> length = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return getRightOperatorNode(value, length);
+    }
 |
 	<REPLACE> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> str1 = additiveExpression(null,0) <COMMA> str2 = additiveExpression(null,0) <RIGHT_PAREN>
 	{
@@ -7519,8 +7536,8 @@ characterValueFunction() throws StandardException :
                             str1,
                             str2,
                             (value == null) ? getNodeFactory().getNode(
-                                        C_NodeTypes.INT_CONSTANT_NODE, 
-                                        ReuseFactory.getInteger(1), 
+                                        C_NodeTypes.INT_CONSTANT_NODE,
+                                        ReuseFactory.getInteger(1),
                                         getContextManager() )
 											: value,
                             ReuseFactory.getInteger(TernaryOperatorNode.LOCATE),
@@ -7703,9 +7720,9 @@ valueExpressionPrimary() throws StandardException :
 	int			tokKind;
 }
 {
-	/* This LOOKAHEAD is required to distinguish 
-	 * a escapedValueFunction() from other escaped 
-	 * clauses. The former always has an FN as its 
+	/* This LOOKAHEAD is required to distinguish
+	 * a escapedValueFunction() from other escaped
+	 * clauses. The former always has an FN as its
 	 * second token.
 	 */
 	LOOKAHEAD( { escapedValueFunctionFollows() } )
@@ -7714,7 +7731,7 @@ valueExpressionPrimary() throws StandardException :
 		return value;
 	}
 |
-	LOOKAHEAD({getToken(2).kind == SCHEMA || getToken(2).kind == SQLID}) 
+	LOOKAHEAD({getToken(2).kind == SCHEMA || getToken(2).kind == SQLID})
 	<CURRENT> (<SCHEMA> | <SQLID>)
 	{
 		return (ValueNode) nodeFactory.getNode(
@@ -7730,7 +7747,7 @@ valueExpressionPrimary() throws StandardException :
                     getContextManager());
     }
 |
-	LOOKAHEAD({getToken(2).kind == ISOLATION}) 
+	LOOKAHEAD({getToken(2).kind == ISOLATION})
 	<CURRENT> <ISOLATION>
 	{
 		return (ValueNode) nodeFactory.getNode(
@@ -7827,7 +7844,7 @@ miscBuiltins() throws StandardException :
 }
 {
     /*
-     * If you add rule to miscBuiltinsCore(), you must add the appropriate 
+     * If you add rule to miscBuiltinsCore(), you must add the appropriate
      *     LOOKAHEAD rule here.
      * SQRT and LOCATE are non-reserved keywords, so we need to disambiguate
      *     the grammar: "SQRT(" and "LOCATE(" introduce the SQRT and LOCATE
@@ -7844,6 +7861,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == VALUE ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
+                getToken(1).kind == RIGHT ||
                 getToken(1).kind == REPEAT ||
                 getToken(1).kind == REPLACE ||
                 getToken(1).kind == UPPER ||
@@ -7946,7 +7964,7 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
 								getContextManager());
 	}
 |
-	value = numericValueFunction() 
+	value = numericValueFunction()
 	{
 		return value;
 	}
@@ -8022,7 +8040,7 @@ ValueNode
 	int length = -1;
 }
 {
-	//Note: When you add a new data type function, in addition to adding it 
+	//Note: When you add a new data type function, in addition to adding it
 	// here, you need to add it to miscBuiltins()
 	value = dateTimeScalarFunction()
 	{
@@ -8057,7 +8075,7 @@ ValueNode
 		return value;
 	}
 }
-	 
+
 /*
  * <A NAME="xmlFunction">xmlFunction</A>
  *
@@ -8409,7 +8427,7 @@ void xqVariable(ValueNode [] xmlVal) throws StandardException :
 			throw StandardException.newException(
 				SQLState.LANG_UNSUPPORTED_XML_FEATURE, "PASSING ... AS");
 		}
-	] 
+	]
 	(
 		[ passingMech = xmlPassingMechanism() ]
 		{
@@ -8840,7 +8858,7 @@ newInvocation() throws StandardException :
 }
 {
 	<NEW> javaClassName = javaClassName() methodCallParameterList(parameterList)
-	{			
+	{
 		if (!javaClassName.startsWith("com.splicemachine.dbag.") && !javaClassName.startsWith("com.splicemachine.dbtalog.") && !javaClassName.startsWith("com.ibm.db2j."))
 		{
 			checkInternalFeature(javaClassName);
@@ -8848,7 +8866,7 @@ newInvocation() throws StandardException :
 		newNode = (QueryTreeNode) nodeFactory.getNode(
 									   C_NodeTypes.NEW_INVOCATION_NODE,
 									   javaClassName,
-									   parameterList, 
+									   parameterList,
 									   lastTokenDelimitedIdentifier,
 									   getContextManager());
 
@@ -8916,7 +8934,7 @@ vtiTableConstruct() throws StandardException :
             C_NodeTypes.NEW_INVOCATION_NODE,
             vtiTableName,  // TableName
             null,          // TableDescriptor
-            parameterList, 
+            parameterList,
             lastTokenDelimitedIdentifier,
             getContextManager());
 
@@ -9067,7 +9085,7 @@ distinctUDA() throws StandardException :
 		return (ValueNode) nodeFactory.getNode(
 								C_NodeTypes.AGGREGATE_NODE,
 								value,
-								aggName, 
+								aggName,
 								Boolean.TRUE,
 								"",
 								getContextManager());
@@ -9084,7 +9102,7 @@ javaClass() throws StandardException :
 	String javaClassName;
 }
 {
-	javaClassName = javaClassName() 
+	javaClassName = javaClassName()
 	{
 		return javaClassName;
 	}
@@ -9334,7 +9352,7 @@ orderByClause(ResultSetNode rs) throws StandardException :
 	<ORDER> <BY> orderCols = sortSpecificationList(rs)
 	{
         forbidNextValueFor();
-        
+
 		return orderCols;
 	}
 }
@@ -9354,11 +9372,11 @@ atIsolationLevel() throws StandardException :
 
 OrderByList
 sortSpecificationList(ResultSetNode rs) throws StandardException :
-{ 
+{
 	OrderByList orderCols = (OrderByList) nodeFactory.getNode(
 											C_NodeTypes.ORDER_BY_LIST,
 											rs,
-											getContextManager()); 
+											getContextManager());
 }
 {
 	sortSpecification(orderCols) ( <COMMA> sortSpecification(orderCols) ) *
@@ -9374,14 +9392,14 @@ sortSpecification(OrderByList orderCols) throws StandardException :
 	orderCol = sortKey() /* [ collateClause() ] */ [ orderingSpecification(orderCol) ] [ nullOrdering(orderCol) ]
 	{
 		orderCols.addOrderByColumn(orderCol);
-	} 
+	}
 }
 
 OrderByColumn
 sortKey() throws StandardException :
 {
 	ValueNode columnExpression;
-} 
+}
 {
 	columnExpression = additiveExpression(null,0)
 	{
@@ -9398,7 +9416,7 @@ void
 orderingSpecification(OrderByColumn orderCol) :
 {}
 {
-	<ASC> 
+	<ASC>
 |
 	<DESC>
 	{
@@ -9488,7 +9506,7 @@ jdbcLimitOffset( ValueNode[] clauses ) throws StandardException :
         <RIGHT_BRACE>
     {
         // LIMIT of 0 means omit the FETCH/FIRST CLAUSE
-        if ( 
+        if (
              (rowCount instanceof NumericConstantNode) &&
              ((NumericConstantNode) rowCount).getValue().getInt() == 0
            )
@@ -9728,12 +9746,12 @@ updateSource(String columnName) throws StandardException :
 	ValueNode	valueNode;
 }
 {
-	valueNode = orExpression(null) 
+	valueNode = orExpression(null)
 	{
 		return valueNode;
 	}
 |
-	valueNode = nullSpecification() 
+	valueNode = nullSpecification()
 	{
 		return valueNode;
 	}
@@ -9767,7 +9785,7 @@ nullSpecification() throws StandardException :
  * <A NAME="insertColumnsAndSource">insertColumnsAndSource</A>
  */
 StatementNode
-insertColumnsAndSource(QueryTreeNode targetTable) 
+insertColumnsAndSource(QueryTreeNode targetTable)
 	throws StandardException :
 {
 	Properties			targetProperties = null;
@@ -9940,7 +9958,7 @@ rowValueConstructor(ResultSetNode leftRSN) throws StandardException :
 				throw StandardException.newException(SQLState.LANG_ROW_VALUE_CONSTRUCTOR_UNMATCHED_COLUMNS);
 			}
 
-			newRSN = (ResultSetNode) nodeFactory.getNode(	
+			newRSN = (ResultSetNode) nodeFactory.getNode(
 									C_NodeTypes.UNION_NODE,
 									leftRSN,
 									newRSN,
@@ -9950,7 +9968,7 @@ rowValueConstructor(ResultSetNode leftRSN) throws StandardException :
 									getContextManager());
 		}
 		return newRSN;
-		
+
 	}
 |
 	rowValueConstructorElement(resultColumns)
@@ -10087,7 +10105,7 @@ subquery(int subqueryType, ValueNode leftOperand) throws StandardException :
 	    }
 		subqueryNode = (SubqueryNode) nodeFactory.getNode(
 										C_NodeTypes.SUBQUERY_NODE,
-										queryExpression, 
+										queryExpression,
 										ReuseFactory.getInteger(subqueryType),
 										leftOperand,
 										orderCols,
@@ -10173,7 +10191,7 @@ quantifier(int opType) throws StandardException :
 	int retval = 0;
 }
 {
-	<ALL> 
+	<ALL>
 	{
 		switch (opType)
 		{
@@ -10297,7 +10315,7 @@ tableExpression(ResultColumnList selectList) throws StandardException :
 	[ havingClause = havingClause() ]
 	[ windows = windowClause() ]
 	{
- 
+
 		// fix for HAVING without GROUP BY, makes sure we get one
 		// aggregate operator by adding a count(*), this fixes beetle 5853, 5890
 		if (havingClause != null && groupByList == null) {
@@ -10311,7 +10329,7 @@ tableExpression(ResultColumnList selectList) throws StandardException :
 			AggregateNode n = (AggregateNode) vn;
 			n.replaceAggregatesWithColumnReferences(selectList, 0);
 		}
-		
+
 		selectNode = (SelectNode) nodeFactory.getNode(
 							C_NodeTypes.SELECT_NODE,
 							selectList,
@@ -10432,16 +10450,16 @@ optionalTableClauses() throws StandardException :
 	String				correlationName = null;
 }
 {
-	otc = optionalTableProperties() 
+	otc = optionalTableProperties()
 	{
 		otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
 		otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
 		return otc;
 	}
 |
-	[ [ <AS> ] 
+	[ [ <AS> ]
 		correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-		[ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ] 
+		[ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
 	    [tableProperties = propertyList(true) <CHECK_PROPERTIES>] ]
 	{
 		otc = new Object[OPTIONAL_TABLE_CLAUSES_SIZE];
@@ -10459,7 +10477,7 @@ optionalTableProperties() throws StandardException :
 	Properties			tableProperties = null;
 }
 {
-	tableProperties = propertyList(true) <CHECK_PROPERTIES> 
+	tableProperties = propertyList(true) <CHECK_PROPERTIES>
 	{
 		otc = new Object[OPTIONAL_TABLE_CLAUSES_SIZE];
 		otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
@@ -10517,19 +10535,19 @@ FromTable tableFactor() throws StandardException :
 	{
 		fromTable = (FromTable) nodeFactory.getNode(
 								C_NodeTypes.FROM_VTI,
-								javaToSQLNode.getJavaValueNode(), 
+								javaToSQLNode.getJavaValueNode(),
 								correlationName,
-								derivedRCL, 
-								((optionalTableClauses != null) ? 
+								derivedRCL,
+								((optionalTableClauses != null) ?
 									(Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
 									(Properties) null),
 								typeDescriptor,
-								getContextManager()); 
+								getContextManager());
 		return fromTable;
 	}
 |
 	/* identifier() used to be correlationName() */
-	tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		optionalTableClauses = optionalTableClauses()
 	{
 		fromTable = (FromTable) nodeFactory.getNode(
@@ -10581,7 +10599,7 @@ FromTable tableFactor() throws StandardException :
 											((optionalTableClauses != null) ?
 												(Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
 												(Properties) null),
-											getContextManager()); 
+											getContextManager());
 
 		return fromTable;
 	}
@@ -10740,7 +10758,7 @@ joinedTableExpression(ResultSetNode leftRSN, boolean nestedInParens) throws Stan
 		return joinNode;
 	}
 |
-	joinNode = qualifiedJoin(leftRSN, nestedInParens) 
+	joinNode = qualifiedJoin(leftRSN, nestedInParens)
 	{
 		return joinNode;
 	}
@@ -10783,7 +10801,7 @@ qualifiedJoin(ResultSetNode leftRSN, boolean nestedInParens) throws StandardExce
 }
 {
 		[ joinType = joinType() ] <JOIN>
-		rightRSN = tableReferenceTypes(nestedInParens) 
+		rightRSN = tableReferenceTypes(nestedInParens)
 		onOrUsingClause = joinSpecification(leftRSN, rightRSN)
 	{
 		/* If NATURAL or CROSS is specified, then no joinSpecification()
@@ -10798,7 +10816,7 @@ qualifiedJoin(ResultSetNode leftRSN, boolean nestedInParens) throws StandardExce
 
 		if (onClause == null && usingClause == null)
 		{
-			throw StandardException.newException(SQLState.LANG_MISSING_JOIN_SPECIFICATION, 
+			throw StandardException.newException(SQLState.LANG_MISSING_JOIN_SPECIFICATION,
 							JoinNode.joinTypeToString(joinType));
 		}
 
@@ -10832,7 +10850,7 @@ joinType() throws StandardException :
 	int joinType;
 }
 {
-	<INNER> 
+	<INNER>
 	{
 		return JoinNode.INNERJOIN;
 	}
@@ -10847,19 +10865,19 @@ int
 outerJoinType() throws StandardException :
 {}
 {
-	<LEFT> 
+	<LEFT>
 	{
 		return JoinNode.LEFTOUTERJOIN;
 	}
 |
-	<RIGHT> 
+	<RIGHT>
 	{
 		return JoinNode.RIGHTOUTERJOIN;
 	}
 }
 
 Object[]
-joinSpecification(ResultSetNode leftRSN, ResultSetNode rightRSN) 
+joinSpecification(ResultSetNode leftRSN, ResultSetNode rightRSN)
 		throws StandardException :
 {
 	Object[]			onOrUsingClause = new Object[ON_OR_USING_CLAUSE_SIZE];
@@ -10867,7 +10885,7 @@ joinSpecification(ResultSetNode leftRSN, ResultSetNode rightRSN)
 	ValueNode			joinClause = null;
 }
 {
-	joinClause = joinCondition() 
+	joinClause = joinCondition()
 	{
 		onOrUsingClause[ON_CLAUSE] = joinClause;
 		onOrUsingClause[USING_CLAUSE] = usingClause;
@@ -10932,7 +10950,7 @@ tableValueConstructorList() throws StandardException :
 	ResultSetNode	resultSetNode;
 }
 {
-	resultSetNode = rowValueConstructor(null) 
+	resultSetNode = rowValueConstructor(null)
 		( <COMMA> resultSetNode = rowValueConstructor(resultSetNode) ) *
 	{
 		if (resultSetNode instanceof UnionNode)
@@ -10957,7 +10975,7 @@ datetimeValueFunction() throws StandardException :
 	int prec = -1; // can't be negative, if used
 }
 {
-	LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATE)}) <CURRENT> <DATE> 
+	LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATE)}) <CURRENT> <DATE>
 	{
 		return (ValueNode) nodeFactory.getNode(
 								C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
@@ -10974,7 +10992,7 @@ datetimeValueFunction() throws StandardException :
 								getContextManager());
 	}
 |
-	LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIME)}) <CURRENT> <TIME> 
+	LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIME)}) <CURRENT> <TIME>
 	{
 		return (ValueNode) nodeFactory.getNode(
 							C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
@@ -10982,7 +11000,7 @@ datetimeValueFunction() throws StandardException :
 								CurrentDatetimeOperatorNode.CURRENT_TIME),
 							getContextManager());
 	}
-	| <CURRENT_TIME> 
+	| <CURRENT_TIME>
 	{
 		return (ValueNode) nodeFactory.getNode(
 							C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
@@ -10991,7 +11009,7 @@ datetimeValueFunction() throws StandardException :
 							getContextManager());
 	}
 |
-	LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMESTAMP)}) <CURRENT> <TIMESTAMP> 
+	LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == TIMESTAMP)}) <CURRENT> <TIMESTAMP>
 	{
 		return (ValueNode) nodeFactory.getNode(
 							C_NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
@@ -11335,7 +11353,7 @@ aggregateExpression(String aggName, Class aggClass) throws StandardException :
 		return (ValueNode) nodeFactory.getNode(
 								C_NodeTypes.AGGREGATE_NODE,
 								value,
-								aggClass, 
+								aggClass,
 								distinct ? Boolean.TRUE : Boolean.FALSE,
 								aggName,
 								getContextManager());
@@ -11421,7 +11439,7 @@ castSpecification() throws StandardException :
 
 		return treeTop;
 	}
-		
+
 }
 
 /**
@@ -11442,7 +11460,7 @@ nextValueExpression() throws StandardException :
 									sequenceName,
 									getContextManager());
 
-		return nextValue;}	
+		return nextValue;}
 }
 
 /*
@@ -11658,8 +11676,8 @@ groupingColumnReference(GroupByList groupingCols, boolean fromPartitionBy) throw
         {
             ((StaticMethodCallNode) functionNodes.elementAt( i )).setAppearsInGroupBy();
         }
-		
-		if (columnExpression.isParameterNode()) 
+
+		if (columnExpression.isParameterNode())
 	    	{
 			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "?");
 	    	}
@@ -11751,7 +11769,7 @@ schemaDefinition() throws StandardException :
 
 			if (schemaName.startsWith("SYS"))
 				throw StandardException.newException(SQLState.INVALID_SCHEMA_SYS, schemaName);
- 
+
 			return (StatementNode) nodeFactory.getNode(
 					C_NodeTypes.CREATE_SCHEMA_NODE,
 					schemaName,
@@ -11763,7 +11781,7 @@ schemaDefinition() throws StandardException :
 					);
 		}
 	|
-		<AUTHORIZATION> authName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) 
+		<AUTHORIZATION> authName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
 		{
 			checkVersion( DataDictionary.DD_VERSION_DERBY_10_2, "AUTHORIZATION");
 			if (authName.startsWith("SYS"))
@@ -12045,7 +12063,7 @@ tableDefinition() throws StandardException :
 	<TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 			// Lookahead needed to choose between
 			// tableElementList and tableColumnList
-	(		LOOKAHEAD({getToken(1).kind == LEFT_PAREN && 
+	(		LOOKAHEAD({getToken(1).kind == LEFT_PAREN &&
 	                   getToken(3).kind != COMMA &&
 	                   getToken(3).kind != RIGHT_PAREN})
 			tableElementList = tableElementList()
@@ -12254,11 +12272,11 @@ tableColumnList() throws StandardException :
  * overrides. Derby looks for propertyName=value [,propertyName=value]* after
  * --db-properties and returns these properties in a Properties object as a return
  * value of this method.
- * The param propertiesUseAllowed true indicates that users are allowed to 
- * specify optimizer overrides in the given context. 
- * False means optimizer overrides in the given context are allowed internally 
+ * The param propertiesUseAllowed true indicates that users are allowed to
+ * specify optimizer overrides in the given context.
+ * False means optimizer overrides in the given context are allowed internally
  * only eg impl/load/import.java specifies property insertMode=replace/bulkInsert
- * in the insert statement. This same property will not be acceptable from an 
+ * in the insert statement. This same property will not be acceptable from an
  * insert statement from a user sql.
  */
 Properties
@@ -12302,7 +12320,7 @@ propertyList(boolean propertiesUseAllowed) throws StandardException :
 		}
 	}
 	//if this property override is supported in internal mode only, then do that verification here.
-	if (!propertiesUseAllowed) 
+	if (!propertiesUseAllowed)
 		checkInternalFeature("DERBY-PROPERTIES");
 	return properties;
 	}
@@ -12397,7 +12415,7 @@ indexDefinition() throws StandardException :
 
 	{
 		/* User allowed to specify schema name on table and index.
-		 * If no schema name specified for index, then it "inherits" 
+		 * If no schema name specified for index, then it "inherits"
 		 * its schema name from the table.
 		 * If index has a schema name and table does not, then
 		 * table "inherits" its schema name from the index.
@@ -12418,7 +12436,7 @@ indexDefinition() throws StandardException :
 			if (! (indexName.getSchemaName().equals(
 						tableName.getSchemaName())))
 			{
-				throw StandardException.newException(SQLState.LANG_INDEX_AND_TABLE_IN_DIFFERENT_SCHEMAS, 
+				throw StandardException.newException(SQLState.LANG_INDEX_AND_TABLE_IN_DIFFERENT_SCHEMAS,
 							indexName,
 							tableName);
 			}
@@ -12487,7 +12505,7 @@ isExternal() throws StandardException :
 	2 - Integer - dynamic result set count
 	3 - String language (always java) - ignore
 	4 - String external name (also passed directly to create alias node - ignore
-	5 - Short parameter style (always java) - ignore 
+	5 - Short parameter style (always java) - ignore
 	6 - Short - SQL allowed.
 	7 - Boolean - CALLED ON NULL INPUT (always TRUE for procedures)
 	8 - TypeDescriptor - return type (always NULL for procedures)
@@ -12561,7 +12579,7 @@ void routineElement(boolean isProcedure, boolean isTableFunction, Object[] routi
 		<NOT> <DETERMINISTIC>
         {
             clauseValue = Boolean.FALSE;
-            clausePosition = CreateAliasNode.DETERMINISTIC; 
+            clausePosition = CreateAliasNode.DETERMINISTIC;
             checkVersion(DataDictionary.DD_VERSION_DERBY_10_5, "DETERMINISTIC");
         }
 	|
@@ -12608,7 +12626,7 @@ void routineElement(boolean isProcedure, boolean isTableFunction, Object[] routi
 				String which = ROUTINE_CLAUSE_NAMES[clausePosition];
 				throw StandardException.newException(SQLState.LANG_DB2_MULTIPLE_ELEMENTS, which);
 			}
-				
+
 			routineElements[clausePosition] = clauseValue;
 		}
 	}
@@ -12625,10 +12643,10 @@ Boolean calledOnNullInput(boolean isProcedure) throws StandardException :
 		   if (isProcedure)
 		     throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
 		             "RETURNS NULL ON NULL INPUT");
-		   
+
 		   calledOnNull = Boolean.FALSE;
 		}
-		
+
 	) <ON> <NULL> <INPUT>
 	{
 		return calledOnNull;
@@ -12701,7 +12719,7 @@ procedureParameterDefinition(Vector[] list) throws StandardException :
 }
 {
 	inout = inoutParameter()
-	
+
 	// Lookahead needed because token could satisfy identifier and dataTypeDDL
 	[   LOOKAHEAD( { dataTypeCheck(2) })
 	    parameterName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
@@ -12738,7 +12756,7 @@ inoutParameter() :
 	2 - Integer - dynamic result set count - always 0
 	3 - String language (always java) - required to be set
 	4 - String external name (also passed directly to create alias node - ignore
-	5 - Short parameter style (always java) - required to be set 
+	5 - Short parameter style (always java) - required to be set
 	6 - Short - SQL allowed.
 	7 - Boolean - CALLED ON NULL INPUT
 	8 - TypeDescriptor - return type
@@ -12759,12 +12777,12 @@ functionDefinition() throws StandardException :
 {
 		<FUNCTION> functionName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		functionElements[0] = functionParameterList()
-		<RETURNS> returnType = functionReturnDataType() 
+		<RETURNS> returnType = functionReturnDataType()
 		( routineElement(false, returnType.isRowMultiSet(), functionElements, isPyRoutine, hasExternalName) ) +
 		{
 		    functionElements[CreateAliasNode.RETURN_TYPE] = returnType;
 		    checkRequiredRoutineClause(JAVA_ROUTINE_CLAUSES, functionElements);
-		    
+
 			return getCreateAliasNode(
 							functionName,
 							(String) functionElements[CreateAliasNode.EXTERNAL_NAME],
@@ -12806,7 +12824,7 @@ functionParameterDefinition(Vector[] list) throws StandardException :
 	[   LOOKAHEAD( { dataTypeCheck(2) })
 	    parameterName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
 	]
-	typeDescriptor = dataTypeDDL() 
+	typeDescriptor = dataTypeDDL()
 	{
 		list[0].addElement(parameterName);
 		list[1].addElement(typeDescriptor.getCatalogType());
@@ -13095,8 +13113,8 @@ viewDefinition(Token beginToken) throws StandardException :
 
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.CREATE_VIEW_NODE,
-								tableName, 
-								resultColumns, 
+								tableName,
+								resultColumns,
 								queryExpression,
 								ReuseFactory.getInteger(checkOptionType),
 								StringUtil.slice(statementSQLText,
@@ -13151,7 +13169,7 @@ triggerDefinition() throws StandardException :
 	    isBefore = beforeOrAfter()
 		triggerEvent = triggerEvent(triggerColumns)		// { INSERT | DELETE | UPDATE [ colList	] }
 		<ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-		[ refClause = triggerReferencingClause() ]		// REFERENCING OLD/NEW AS 	
+		[ refClause = triggerReferencingClause() ]		// REFERENCING OLD/NEW AS
 		[ <FOR> <EACH> isRow = rowOrStatement() ]
 		[ <MODE> <DB2SQL> ]
 		//we are not top level statement
@@ -13179,11 +13197,11 @@ triggerDefinition() throws StandardException :
 
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.CREATE_TRIGGER_NODE,
-								triggerName, 
+								triggerName,
 								tableName,
 								triggerEvent,
 								triggerColumns,
-								isBefore,	
+								isBefore,
 								isRow,
 								Boolean.TRUE, 				// enabled
 								refClause,			// referencing clause
@@ -13243,7 +13261,7 @@ TriggerEventDML
 triggerEvent(ResultColumnList rcl) throws StandardException :
 {}
 {
-	<INSERT> 
+	<INSERT>
 	{
 		return TriggerEventDML.INSERT;
 	}
@@ -13262,7 +13280,7 @@ rowOrStatement() :
 {
 }
 {
-	token = <ROW> 
+	token = <ROW>
 	{
 		return Boolean.TRUE;
 	}
@@ -13307,7 +13325,7 @@ triggerReferencingExpression(Vector vector) throws StandardException :
 		vector.addElement(new TriggerReferencingStruct(isRow, isNew, identifier));
 	}
 }
- 
+
 
 /*
  * <A NAME="defaultClause">defaultClause</A>
@@ -13420,7 +13438,7 @@ generatedByDefault(long[] autoIncrementInfo) throws StandardException :
 }
 {
 	 <BY> <_DEFAULT> asIdentity( autoIncrementInfo )
-     { 
+     {
 		checkVersion(DataDictionary.DD_VERSION_DERBY_10_1,
 			     "GENERATED BY DEFAULT");
 
@@ -13482,7 +13500,7 @@ generationClause() throws StandardException :
 /*
  * <A NAME="autoIncrementBeginEnd">autoIncrementBeginEnd</A>
  */
-void 
+void
 autoIncrementBeginEnd(long[] autoIncrementInfo) throws StandardException :
 {
 	long		autoIncrementInitial = 1;
@@ -13563,7 +13581,7 @@ DB2DefaultOption(String columnName) throws StandardException :
 	// <cast-function> grammar.  See beetle 5281 for plans
 	// support 'blob' function in future.
 
-	LOOKAHEAD({getToken(2).kind == SCHEMA || getToken(2).kind == SQLID}) 
+	LOOKAHEAD({getToken(2).kind == SCHEMA || getToken(2).kind == SQLID})
 	<CURRENT> (<SCHEMA> | <SQLID>)
 	{
 		return (ValueNode) nodeFactory.getNode(
@@ -13597,11 +13615,11 @@ DB2DefaultOption(String columnName) throws StandardException :
 	}
 |
 	LOOKAHEAD( {getToken(2).kind == LEFT_PAREN ||
-		       (getToken(4).kind == LEFT_PAREN && 
-		        getToken(2).kind != COMMA)} ) 
-		// Check against comma: see Derby-331 
+		       (getToken(4).kind == LEFT_PAREN &&
+		        getToken(2).kind != COMMA)} )
+		// Check against comma: see Derby-331
 		// Before adding this, the following was erroneously
-		// flagged as invalid: 
+		// flagged as invalid:
 		//	   create table foo(.., b int default 0, unique (a))
 	value = miscBuiltins()
 	{
@@ -13749,7 +13767,7 @@ numericLiteral(String sign) throws StandardException :
 		String doubleString;
 		int ePosn, dotPosn; // Position of letter e and '.' in value
 		Double		doubleValue;
-		
+
 		doubleImage = new StringBuilder(sign);
 		doubleImage.append(tok.image);
 		doubleString = doubleImage.toString();
@@ -13994,7 +14012,7 @@ constraintNameDefinition() throws StandardException :
 ConstraintDefinitionNode
 checkConstraintDefinition(TableName constraintName, String columnName)
 							throws StandardException :
-{  
+{
 	Token		beginToken;
 	Token		endToken;
 	ValueNode	value;
@@ -14002,7 +14020,7 @@ checkConstraintDefinition(TableName constraintName, String columnName)
 }
 {
 	/* valueExpression() was searchCondition() */
-	<CHECK>  beginToken = 
+	<CHECK>  beginToken =
 		<LEFT_PAREN> value = valueExpression() endToken = <RIGHT_PAREN>
 	{
 		if (columnName != null)
@@ -14170,7 +14188,7 @@ execStatement() throws StandardException :
 	TableName	stmtName;
 }
 {
-	<EXECUTE> <STATEMENT> stmtName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	<EXECUTE> <STATEMENT> stmtName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.EXEC_SPS_NODE,
@@ -14208,7 +14226,7 @@ transactionMode() throws StandardException :
 	int isolationLevel;
 }
 {
-	isolationLevel = isolationLevelDB2OrReset() 
+	isolationLevel = isolationLevelDB2OrReset()
 	{
 		return (TransactionStatementNode) nodeFactory.getNode(
 								C_NodeTypes.SET_TRANSACTION_ISOLATION_NODE,
@@ -14298,7 +14316,7 @@ levelOfIsolation() :
 	{
 		return levelOfIsolationRead();
 	}
-| 
+|
     <REPEATABLE> <READ>
     {
 		return ExecutionContext.REPEATABLE_READ_ISOLATION_LEVEL;
@@ -14315,12 +14333,12 @@ levelOfIsolationRead() :
 {
 }
 {
-	<UNCOMMITTED> 
+	<UNCOMMITTED>
 	{
 		return ExecutionContext.READ_UNCOMMITTED_ISOLATION_LEVEL;
 	}
 |
-	<COMMITTED> 
+	<COMMITTED>
 	{
 		return ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL;
 	}
@@ -14445,7 +14463,7 @@ setSchemaStatement() throws StandardException :
 	}
 }
 
-void 
+void
 setSchemaHeader() throws StandardException :
 {}
 {
@@ -14595,7 +14613,7 @@ valueSpecification() throws StandardException :
 		ContextManager cm = getContextManager();
 		ValueNodeList thenElseList = (ValueNodeList) nodeFactory.getNode(C_NodeTypes.VALUE_NODE_LIST, cm);
 
-		//Use untyped null for then clause at this point. At the bind time, we will cast it to the datatype of L 
+		//Use untyped null for then clause at this point. At the bind time, we will cast it to the datatype of L
 		thenElseList.addElement((ValueNode) nodeFactory.getNode(
 									C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
 									cm));
@@ -14609,7 +14627,7 @@ valueSpecification() throws StandardException :
 														rightExpression,
 														cm),
 											thenElseList,
-											Boolean.TRUE,//this node is for nullif 
+											Boolean.TRUE,//this node is for nullif
 											cm);
 	}
 |
@@ -14686,7 +14704,7 @@ caseExpression() throws StandardException :
 										C_NodeTypes.CAST_NODE,
 										(ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
 																		getContextManager()),
-										DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),	
+										DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
 										getContextManager());
 		((CastNode) value).setForExternallyGeneratedCASTnode();
 		return value;
@@ -14714,7 +14732,7 @@ whenThenExpression() throws StandardException :
 	ValueNode	   elseExpr;
 }
 {
-	<WHEN> expr = orExpression(null) 
+	<WHEN> expr = orExpression(null)
 		   (<OR> expr = orExpression(expr) )*
 	<THEN> thenExpr = thenElseExpression()
 	elseExpr = caseExpression()
@@ -14740,7 +14758,7 @@ thenElseExpression() throws StandardException :
 {
 	ValueNode	   expr;
 }
-{	
+{
 	LOOKAHEAD ( {getToken(1).kind == NULL} )
 	<NULL>
 	{
@@ -14748,7 +14766,7 @@ thenElseExpression() throws StandardException :
 										C_NodeTypes.CAST_NODE,
 										(ValueNode) nodeFactory.getNode(C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
 																		getContextManager()),
-										DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),	
+										DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
 										getContextManager());
 		((CastNode) value).setForExternallyGeneratedCASTnode();
 		return value;
@@ -14771,8 +14789,8 @@ tableConstraintDefinition() throws StandardException :
 	explicitNull = false;
 }
 {
-	[ constraintName = constraintNameDefinition() ] 
-		tcdn = tableConstraint(constraintName) 
+	[ constraintName = constraintNameDefinition() ]
+		tcdn = tableConstraint(constraintName)
 		[ properties = propertyList(false) <CHECK_PROPERTIES>]
 	{
 		if (properties != null)
@@ -14789,12 +14807,12 @@ tableConstraint(TableName constraintName) throws StandardException :
 	ConstraintDefinitionNode tcdn;
 }
 {
-	tcdn = uniqueConstraintDefinition(constraintName) 
+	tcdn = uniqueConstraintDefinition(constraintName)
 	{
 		return tcdn;
 	}
 |
-	tcdn = referentialConstraintDefinition(constraintName) 
+	tcdn = referentialConstraintDefinition(constraintName)
 	{
 		return tcdn;
 	}
@@ -14813,13 +14831,13 @@ uniqueConstraintDefinition(TableName constraintName) throws StandardException :
 }
 {
 	//for table level constraint, parameter will be null
-	constraintType = uniqueSpecification(null) 
+	constraintType = uniqueSpecification(null)
 		<LEFT_PAREN> uniqueColumnList = uniqueColumnList() <RIGHT_PAREN>
 	{
 		//go through the unique columns list and if any of the columns in the
 		//list is explicitly defined null, throw an exception for this. Columns
 		//for which no nullability is defined are by default nullable. But in
-		//case of create table, there nullability changes automatically to 
+		//case of create table, there nullability changes automatically to
 		//non-nullable if primary key is defined on it. But if user explicitly
 		//defines the nullability, then defining a primary key on it in create
 		//table will result in an exception.
@@ -14830,7 +14848,7 @@ uniqueConstraintDefinition(TableName constraintName) throws StandardException :
 				String primaryKeyColumnName = ((ResultColumn) uniqueColumnList.elementAt(index)).getName();
 				if (explicitlyNullableColumnsList.contains(primaryKeyColumnName))
 				{
-					String errorState = 
+					String errorState =
 						(checkVersion (DataDictionary.DD_VERSION_DERBY_10_4, null))
 							? SQLState.LANG_ADD_PRIMARY_KEY_ON_NULL_COLS
 							: SQLState.LANG_DB2_ADD_UNIQUE_OR_PRIMARY_KEY_ON_NULL_COLS;
@@ -14858,7 +14876,7 @@ uniqueSpecification(String columnName) throws StandardException :
 {
 }
 {
-	<UNIQUE> 
+	<UNIQUE>
 	{
 		return DataDictionary.UNIQUE_CONSTRAINT;
 	}
@@ -14868,9 +14886,9 @@ uniqueSpecification(String columnName) throws StandardException :
 		//explicitNull can be true only if it's column level constraint and
 		//that column has null constraint defined on it. In that case, defining
 		//a column-level constraint of primary key on it will result in an error.
-		if (explicitNull) 
+		if (explicitNull)
 		{
-			String errorState = 
+			String errorState =
 				(checkVersion (DataDictionary.DD_VERSION_DERBY_10_4, null))
 					? SQLState.LANG_ADD_PRIMARY_KEY_ON_NULL_COLS
 					: SQLState.LANG_DB2_ADD_UNIQUE_OR_PRIMARY_KEY_ON_NULL_COLS;
@@ -14905,7 +14923,7 @@ referentialConstraintDefinition(TableName constraintName) throws StandardExcepti
 										C_NodeTypes.RESULT_COLUMN_LIST,
 										getContextManager());
 	TableName referencedTable;
-	int[] refActions = {StatementType.RA_NOACTION, 
+	int[] refActions = {StatementType.RA_NOACTION,
 			    StatementType.RA_NOACTION}; //default values
 }
 {
@@ -14986,7 +15004,7 @@ int
 updateReferentialAction() :
 {}
 {
-	
+
 	  <RESTRICT> {return StatementType.RA_RESTRICT;}
 	| <NO> <ACTION> {return StatementType.RA_NOACTION;}
 
@@ -14996,11 +15014,11 @@ int
 deleteReferentialAction() :
 {}
 {
-	<CASCADE> {return StatementType.RA_CASCADE;}   
-	| <RESTRICT> {return StatementType.RA_RESTRICT;} 
+	<CASCADE> {return StatementType.RA_CASCADE;}
+	| <RESTRICT> {return StatementType.RA_RESTRICT;}
 	| <NO> <ACTION> {return StatementType.RA_NOACTION;}
-	| <SET> 
-	   (  <NULL> {return StatementType.RA_SETNULL;}    
+	| <SET>
+	   (  <NULL> {return StatementType.RA_SETNULL;}
               |<_DEFAULT>  {return StatementType.RA_SETDEFAULT;}
 	   )
 }
@@ -15062,8 +15080,8 @@ columnConstraint(TableName constraintName,
 		explicitNotNull = true;
 		//if both null and not null constraints are defined for a column,
 		//throw an exception
-		if (explicitNull) 
-                   throw StandardException.newException(SQLState.LANG_ADDING_COLUMN_WITH_NULL_AND_NOT_NULL_CONSTRAINT, columnName); 
+		if (explicitNull)
+                   throw StandardException.newException(SQLState.LANG_ADDING_COLUMN_WITH_NULL_AND_NOT_NULL_CONSTRAINT, columnName);
 
 		// columns with generation clauses can omit the datatype
 		if ( dataTypeDescriptor[0] == null ) { throw StandardException.newException(SQLState.LANG_NOT_NULL_NEEDS_DATATYPE); }
@@ -15073,7 +15091,7 @@ columnConstraint(TableName constraintName,
 	}
 |
 	//pass the columnname as the second parameter. It will be used to throw an
-	//exception if null constraint is defined for this column-level primary 
+	//exception if null constraint is defined for this column-level primary
 	//key constraint
 	constraintType = uniqueSpecification(columnName)
 		[ properties = propertyList(false) <CHECK_PROPERTIES>]
@@ -15100,9 +15118,9 @@ columnConstraint(TableName constraintName,
 						getContextManager()
 						);
 	}
-|	
+|
 	referencedTable = referencesSpecification(refRcl, refActions)
-		[ properties = propertyList(false)<CHECK_PROPERTIES>] 
+		[ properties = propertyList(false)<CHECK_PROPERTIES>]
 	{
 		ResultColumnList fkRcl = (ResultColumnList) nodeFactory.getNode(
 											C_NodeTypes.RESULT_COLUMN_LIST,
@@ -15272,7 +15290,7 @@ alterTableBody(TableName tableName) throws StandardException :
 							getContextManager());
 	}
 |
-	<DROP> 
+	<DROP>
         (
 		sn = dropColumnDefinition(tableName, tableElementList, changeType, behavior)
 		|
@@ -15301,7 +15319,7 @@ alterTableBody(TableName tableName) throws StandardException :
  *  will drop all the statistics for the given table name
  *
  * By the time we get here, we've parsed
- *    ALTER TABLE tablename ALL 
+ *    ALTER TABLE tablename ALL
  * and here we parse DROP STATISTICS clause
  */
 StatementNode
@@ -15335,7 +15353,7 @@ dropStatistics(TableName tableName) throws StandardException :
  *  will update all the statistics for the given table name
  *
  * By the time we get here, we've parsed
- *    ALTER TABLE tablename ALL 
+ *    ALTER TABLE tablename ALL
  * and here we parse UPDATE STATISTICS clause
  */
 StatementNode
@@ -15487,7 +15505,7 @@ alterTableAction(TableElementList tableElementList, int[] changeType, int[] beha
 		return lockGranularity;
 	}
 |
-	<ALTER> [ <COLUMN> ] columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) 
+	<ALTER> [ <COLUMN> ] columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
 		tableElement = columnAlterClause(columnName)
 	{
 		changeType[0] = DDLStatementNode.MODIFY_TYPE;
@@ -15541,8 +15559,8 @@ dropColumnReferentialAction(int []behavior) :
 	int refBehavior = StatementType.DROP_CASCADE;
 }
 {
-	[ <CASCADE> {refBehavior = StatementType.DROP_CASCADE;}   
-	  | <RESTRICT> {refBehavior = StatementType.DROP_RESTRICT;} 
+	[ <CASCADE> {refBehavior = StatementType.DROP_CASCADE;}
+	  | <RESTRICT> {refBehavior = StatementType.DROP_RESTRICT;}
     ]
 	{
 		behavior[0] = refBehavior;
@@ -15862,14 +15880,14 @@ dropAliasStatement() throws StandardException :
 	Object aliasName;
 }
 {
-  	<PROCEDURE> aliasName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+  	<PROCEDURE> aliasName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
 		return dropAliasNode(aliasName, AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR);
-	}  
-|  	<FUNCTION> aliasName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	}
+|  	<FUNCTION> aliasName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
 		return dropAliasNode(aliasName, AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR);
-	}  
+	}
 |	<SYNONYM> aliasName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
 		checkVersion(DataDictionary.DD_VERSION_DERBY_10_1, "DROP SYNONYM");
@@ -15920,7 +15938,7 @@ dropTriggerStatement() throws StandardException :
 	TableName triggerName;
 }
 {
-	<TRIGGER> triggerName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	<TRIGGER> triggerName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.DROP_TRIGGER_NODE,
@@ -15936,7 +15954,7 @@ truncateTableStatement() throws StandardException :
 	TableName tableName;
 }
 {
-	<TRUNCATE> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) 
+	<TRUNCATE> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 	{
 		return (StatementNode) nodeFactory.getNode(
 							C_NodeTypes.ALTER_TABLE_NODE,
@@ -16615,7 +16633,7 @@ internalIdentifier( int id_length_limit, boolean checkLength) throws StandardExc
 		if (checkLength) {//if checkLength false, then calling method would do the length limit checks
 			//limit the identifier to the id length limit passed to this method
 			IdUtil.checkIdentifierLengthLimit(str, id_length_limit);
-		} 
+		}
 		return str;
 	}
 |
@@ -16676,7 +16694,7 @@ reservedKeyword() :
 
 		NOTE: The same ones are commented out here as above in the token
 		rule, for the same reason.
-		
+
 		Derby-139 - LOCAL removed as reserved word as most other
 		databases do not enforce it. LOCAL not used at all in grammar so token removed.
 	 */
@@ -16806,7 +16824,7 @@ reservedKeyword() :
 |	tok = <NATIONAL>
 |	tok = <NATURAL>
 |	tok = <NCHAR>
-|	tok = <NVARCHAR> 
+|	tok = <NVARCHAR>
 |	tok = <NEXT>
 |	tok = <NO>
 |	tok = <NOLOGGING>
@@ -16941,7 +16959,7 @@ nonReservedKeyword()  :
 		rule, for the same reason.
 	 */
 	(
-        tok = <ABS>  
+        tok = <ABS>
 	|	tok = <ABSVAL>
 	|	tok = <ACCESS>
 	|	tok = <ACTION>
