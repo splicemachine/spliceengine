@@ -85,9 +85,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.useIncrementalCompilation>false</maven.compiler.useIncrementalCompilation>
         <scala.binary.version>2.11</scala.binary.version>
-        <spark.version>2.1.0</spark.version>
-        <scala.version>2.11.6</scala.version>
-        <netty-all.version>4.0.29.Final</netty-all.version>
+        <spark.version>2.4.3</spark.version>
+        <scala.version>2.11.12</scala.version>
+        <netty-all.version>4.1.17.Final</netty-all.version>
     </properties>
     <scm>
         <connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
@@ -876,8 +876,8 @@
                 <hbase.version>2.0.2.3.1.0.0-78</hbase.version>
                 <hive.version>1.2.1000.2.6.4.109-2</hive.version>
                 <zookeeper.version>3.4.6.3.1.0.0-78</zookeeper.version>
-                <spark.version>2.3.2.3.1.0.0-78</spark.version>
-                <spark.major.version>spark2.3</spark.major.version>
+                <spark.version>2.4.3</spark.version>
+                <spark.major.version>spark2.4</spark.major.version>
                 <kafka.version>2.0.0.3.1.0.0-78</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
                 <parquet.version>orc-spark-2.3</parquet.version>
@@ -912,7 +912,7 @@
                 <spark.major.version>spark2.4</spark.major.version>
                 <kafka.version>2.0.0.3.1.0.0-78</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
-                <parquet.version>orc-spark-2.3</parquet.version>
+                <parquet.version>orc-spark-2.4</parquet.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
             </properties>
             <modules>

@@ -36,12 +36,10 @@ import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.unsafe.Platform;
 import scala.util.hashing.MurmurHash3;
 
 import javax.ws.rs.NotSupportedException;
@@ -417,9 +415,8 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		if (isNull()) {
 			unsafeRowWriter.setNullAt(ordinal);
 		} else {
-			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter(unsafeRowWriter,value.length);
-			UnsafeRowWriter bh = new UnsafeRowWriter(value.length, 64);
-			unsafeArrayWriter.initialize(value.length); // 4 bytes for int?
+			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter(unsafeRowWriter,8);
+			unsafeArrayWriter.initialize(value.length);
 			for (int i = 0; i< value.length; i++) {
 				if (value[i] == null || value[i].isNull()) {
 					unsafeArrayWriter.setNull(i);
@@ -427,10 +424,6 @@ public class SQLArray extends DataType implements ArrayDataValue {
 					value[i].writeArray(unsafeArrayWriter, i);
 				}
 			}
-			long currentOffset = unsafeRowWriter.cursor();
-			unsafeRowWriter.setOffsetAndSizeFromPreviousCursor(ordinal, bh.cursor()-16);
-			unsafeRowWriter.grow(bh.cursor()-16);
-			Platform.copyMemory(bh.getBuffer(),16,unsafeRowWriter.getBuffer(),currentOffset,bh.cursor()-16);
 		}
 	}
 
