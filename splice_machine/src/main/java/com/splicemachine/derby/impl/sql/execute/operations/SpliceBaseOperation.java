@@ -953,7 +953,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         getActivation().getLanguageConnectionContext().getStatementContext().cancel();
         if (remoteQueryClient != null) {
             try {
-                remoteQueryClient.close();
+                remoteQueryClient.interrupt();
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
@@ -965,7 +965,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.isTimedout = true;
         if (remoteQueryClient != null) {
             try {
-                remoteQueryClient.close();
+                remoteQueryClient.interrupt();
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
