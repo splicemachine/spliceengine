@@ -2028,6 +2028,25 @@ public class SQLParser
     }
 
     /**
+     * Gets a left() node from
+     *      - the string
+     *      - the length to take
+     *      - the padding character
+     * @exception StandardException  Thrown on error
+     */
+    ValueNode getLeftOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
+    {
+        return (ValueNode) nodeFactory.getNode(
+                C_NodeTypes.LEFT_OPERATOR_NODE,
+                stringValue,
+                length,
+                null,
+                ReuseFactory.getInteger(TernaryOperatorNode.LEFT),
+                null,
+                getContextManager());
+    }
+
+    /**
      * Gets a replace node based on the specified arguments.
      * @param stringValue the input string
      * @param the from sub string
@@ -7420,6 +7439,11 @@ characterValueFunction() throws StandardException :
 	{
         return getSubstringNode( value, startPosition, length, Boolean.FALSE );
 	}
+|
+    <LEFT> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> length = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return getLeftOperatorNode(value, length);
+    }
 |
 	<REPLACE> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> str1 = additiveExpression(null,0) <COMMA> str2 = additiveExpression(null,0) <RIGHT_PAREN>
 	{

@@ -130,16 +130,14 @@ public interface StringDataValue extends ConcatableDataValue
 							throws StandardException;
 
 	/**
-	 * left() function with padding
-	 * @param length
-	 * @param padding
-	 * @param result
-	 * @return
+	 * left() function.
+	 * @param length Number of characters to take.
+	 * @param result The result of this method.
+	 * @return A StringDataValue containing the result of the left().
 	 * @throws StandardException
 	 */
 	StringDataValue left(
 			NumberDataValue length,
-			StringDataValue padding,
 			StringDataValue result)
 		throws StandardException;
 

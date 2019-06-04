@@ -293,17 +293,23 @@ public class TernaryOperationIT {
     public void testLeft() throws Exception {
         ResultSet rs;
 
-        String sql =
-            "select left(name, cut, ps) from (" +
-            "values ('hello world', 5, 'short'), ('hey dude', 20, 'short'), ('abcde', 7, '')" +
-            ") tb(name, cut, ps)";
+        methodWatcher.execute("create table ta(name VARCHAR(128), cut INT)");
+        methodWatcher.execute(
+            "insert into ta(name, cut) " +
+                "values ('hello world', 5), ('hey dude', 20), (null, 10), ('cute string', null)"
+        );
+
+        String sql = "select left(name, cut) from ta";
+        rs = methodWatcher.executeQuery(sql);
+
+        methodWatcher.execute("drop table ta");
 
         List<String> expected = new ArrayList<>(2);
         expected.add("hello");
-        expected.add("hey dudeshortshortsh");
-        expected.add("abcde  ");
+        expected.add("hey dude");
+        expected.add(null);
+        expected.add(null);
 
-        rs = methodWatcher.executeQuery(sql);
         for (String s: expected) {
             Assert.assertTrue(rs.next());
             Assert.assertEquals(s, rs.getString(1));
