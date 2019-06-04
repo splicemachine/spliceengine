@@ -195,6 +195,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
 
         private volatile OlapResult finalResult;
         private volatile boolean cancelled=false;
+        private volatile boolean ignoreCancel=false;
         private volatile boolean failed=false;
         private volatile boolean submitted=false;
         private volatile int notFound;
@@ -214,6 +215,8 @@ public class AsyncOlapNIOLayer implements JobExecutor{
         public boolean cancel(boolean mayInterruptIfRunning){
             if(isDone()) return false;
             else if(cancelled) return true;
+            if (!mayInterruptIfRunning)
+                ignoreCancel=true;
             doCancel();
 
             /*
@@ -506,7 +509,10 @@ public class AsyncOlapNIOLayer implements JobExecutor{
                             " status not available responses");
                     future.fail(new IOException("Status not available, assuming aborted due to client timeout"));
                 }
-            }else if(or.isSuccess()){
+            }else if(or.isSuccess()) {
+                future.success(or);
+            }else if(or instanceof CancelledResult && future.ignoreCancel) {
+                // ignore, we cancelled (rather than interrupted) mark as success
                 future.success(or);
             }else{
                 // It should have a throwable
