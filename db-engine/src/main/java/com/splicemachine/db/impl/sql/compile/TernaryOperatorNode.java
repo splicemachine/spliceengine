@@ -85,28 +85,32 @@ public class TernaryOperatorNode extends OperatorNode
 	public static final int TIMESTAMPADD = 4;
 	public static final int TIMESTAMPDIFF = 5;
 	public static final int REPLACE = 6;
-	public static final int LEFT = 7;
-	static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "left"};
-	static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "left"};
+	public static final int RIGHT = 7;
+	public static final int LEFT = 8;
+	static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "right", "left"};
+	static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "right", "left"};
+
 	static final String[] TernaryResultType = {
 			ClassName.StringDataValue,
 			ClassName.NumberDataValue,
 			ClassName.ConcatableDataValue,
 			ClassName.BooleanDataValue,
-            ClassName.DateTimeDataValue,
+			ClassName.DateTimeDataValue,
 			ClassName.NumberDataValue,
 			ClassName.ConcatableDataValue,
+			ClassName.StringDataValue,
 			ClassName.StringDataValue
 	};
 	static final String[][] TernaryArgType = {
-		{ClassName.StringDataValue, ClassName.StringDataValue, "java.lang.Integer"},
-		{ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue},
-		{ClassName.ConcatableDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue},
-		{ClassName.DataValueDescriptor, ClassName.DataValueDescriptor, ClassName.DataValueDescriptor},
-		{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.NumberDataValue}, // time.timestampadd( interval, count)
-		{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.DateTimeDataValue},// time2.timestampDiff( interval, time1)
-		{ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue}, // replace{}
-		{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue} // left
+			{ClassName.StringDataValue, ClassName.StringDataValue, "java.lang.Integer"},
+			{ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue},
+			{ClassName.ConcatableDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue},
+			{ClassName.DataValueDescriptor, ClassName.DataValueDescriptor, ClassName.DataValueDescriptor},
+			{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.NumberDataValue}, // time.timestampadd( interval, count)
+			{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.DateTimeDataValue},// time2.timestampDiff( interval, time1)
+			{ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue}, // replace{}
+			{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue} // right
+			{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue} // left
 	};
 
 	/**
@@ -228,6 +232,8 @@ public class TernaryOperatorNode extends OperatorNode
 			locateBind();
 		else if (operatorType == SUBSTRING)
 			substrBind();
+		else if (operatorType == RIGHT)
+			rightBind();
 		else if (operatorType == LEFT)
 			leftBind();
 		else if (operatorType == TIMESTAMPADD)
@@ -359,6 +365,14 @@ public class TernaryOperatorNode extends OperatorNode
 			receiverType = receiverInterfaceType;
 		}
 		else if (operatorType == LEFT)
+		{
+			leftOperand.generateExpression(acb, mb);
+			mb.upCast(leftInterfaceType);
+			mb.getField(field);
+			nargs = 2;
+			receiverType = receiverInterfaceType;
+		}
+		else if (operatorType == RIGHT)
 		{
 			leftOperand.generateExpression(acb, mb);
 			mb.upCast(leftInterfaceType);
@@ -897,6 +911,62 @@ public class TernaryOperatorNode extends OperatorNode
 		//to SUBSTR. The 1st argument to SUBSTR is represented by the variable
 		//receiver in this class.
         setCollationInfo(receiver.getTypeServices());
+		return this;
+	}
+
+	public ValueNode rightBind() throws StandardException
+	{
+		TypeId	receiverType;
+		TypeId	resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
+
+		if (receiver.requiresTypeFromContext())
+		{
+			receiver.setType(getVarcharDescriptor());
+			receiver.setCollationUsingCompilationSchema();
+		}
+		if (leftOperand.requiresTypeFromContext())
+		{
+			leftOperand.setType(new DataTypeDescriptor(TypeId.INTEGER_ID, false));
+		}
+
+		bindToBuiltIn();
+
+		if (!leftOperand.getTypeId().isIntegerNumericTypeId())
+			throwBadType("RIGHT", leftOperand.getTypeId().getSQLTypeName());
+
+		receiverType = receiver.getTypeId();
+		switch (receiverType.getJDBCTypeId())
+		{
+			case Types.CHAR:
+			case Types.VARCHAR:
+			case Types.LONGVARCHAR:
+			case Types.CLOB:
+				break;
+			default:
+			{
+				throwBadType("RIGHT", receiverType.getSQLTypeName());
+			}
+		}
+
+		if (receiverType.getTypeFormatId() == StoredFormatIds.CLOB_TYPE_ID)
+		{
+			resultType = receiverType;
+		}
+
+		int resultLen = receiver.getTypeServices().getMaximumWidth();
+
+		if (leftOperand instanceof ConstantNode)
+		{
+			if (((ConstantNode)leftOperand).getValue().getInt() > resultLen)
+				resultLen = ((ConstantNode)leftOperand).getValue().getInt();
+		}
+
+		setType(new DataTypeDescriptor(
+				resultType,
+				true,
+				resultLen
+		));
+		setCollationInfo(receiver.getTypeServices());
 		return this;
 	}
 

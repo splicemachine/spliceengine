@@ -2035,6 +2035,18 @@ public class SQLParser
 						    getContextManager());
     }
 
+    ValueNode getRightOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
+    {
+        return (ValueNode) nodeFactory.getNode(
+                C_NodeTypes.RIGHT_OPERATOR_NODE,
+                stringValue,
+                length,
+                null,
+                ReuseFactory.getInteger(TernaryOperatorNode.RIGHT),
+                null,
+                getContextManager());
+    }
+
     /**
      * Gets a left() node from
      *      - the string
@@ -7454,6 +7466,11 @@ characterValueFunction() throws StandardException :
         return getSubstringNode( value, startPosition, length, Boolean.FALSE );
 	}
 |
+    <RIGHT> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> length = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return getRightOperatorNode(value, length);
+    }
+|
     <LEFT> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> length = additiveExpression(null,0) <RIGHT_PAREN>
     {
         return getLeftOperatorNode(value, length);
@@ -7868,6 +7885,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == VALUE ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
+                getToken(1).kind == RIGHT ||
                 getToken(1).kind == LEFT ||
                 getToken(1).kind == REPEAT ||
                 getToken(1).kind == REPLACE ||

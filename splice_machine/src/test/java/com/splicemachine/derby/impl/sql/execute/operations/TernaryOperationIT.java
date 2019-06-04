@@ -290,6 +290,34 @@ public class TernaryOperationIT {
     }
 
     @Test
+    public void testRight() throws Exception {
+        ResultSet rs;
+
+        methodWatcher.execute("create table ta(name VARCHAR(128), cut INT)");
+        methodWatcher.execute(
+                "insert into ta(name, cut) " +
+                "values ('hello world', 5), ('hey dude', 20), (null, 10), ('cute string', null)"
+        );
+
+        String sql = "select right(name, cut) from ta";
+        rs = methodWatcher.executeQuery(sql);
+
+        methodWatcher.execute("drop table ta");
+
+        List<String> expected = new ArrayList<>(2);
+        expected.add("world");
+        expected.add("hey dude");
+        expected.add(null);
+        expected.add(null);
+
+        for (String s: expected) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(s, rs.getString(1));
+        }
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
     public void testLeft() throws Exception {
         ResultSet rs;
 
