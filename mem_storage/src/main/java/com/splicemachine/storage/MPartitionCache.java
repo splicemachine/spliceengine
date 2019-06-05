@@ -21,6 +21,7 @@ import com.splicemachine.primitives.Bytes;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Created by jleach on 2/19/16.
@@ -66,7 +67,7 @@ public class MPartitionCache implements PartitionInfoCache<String> {
     }
 
     @Override
-    public List<Partition> getAdapterIfPresent(String s) throws IOException {
+    public List<Partition> getAdapterPartitions(String s, Callable<List<Partition>> loader) throws IOException {
         throw new UnsupportedOperationException("Adapter operations not supported in mem platform");
     }
 

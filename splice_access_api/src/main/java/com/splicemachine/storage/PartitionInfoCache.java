@@ -17,6 +17,8 @@ package com.splicemachine.storage;
 import com.splicemachine.access.api.SConfiguration;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * API reference for caching partition information.
@@ -33,6 +35,7 @@ public interface PartitionInfoCache<TableInfo>{
 
     void invalidateAdapter(TableInfo tableInfo) throws IOException;
     void invalidateAdapter(byte[] tableName) throws IOException;
-    List<Partition> getAdapterIfPresent(TableInfo tableInfo) throws IOException;
+    List<Partition> getAdapterPartitions(TableInfo tableName, Callable<List<Partition>> loader) throws IOException, ExecutionException;
+
     void putAdapter(TableInfo tableInfo, List<Partition> partitions) throws IOException;
 }

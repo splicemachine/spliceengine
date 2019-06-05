@@ -297,20 +297,14 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         try {
             List<Partition> partitions;
             if (!refresh) {
-                partitions = partitionInfoCache.getAdapterIfPresent(tableName);
-                if (partitions == null) {
-                    partitions = formatPartitions(getAllRegionLocations(false));
-                    assert partitions!=null:"partitions are null";
-                    partitionInfoCache.putAdapter(tableName, partitions);
-                }
-                return partitions;
+                return partitionInfoCache.getAdapterPartitions(tableName, () -> formatPartitions(getAllRegionLocations(false)));
             }
             partitions = formatPartitions(getAllRegionLocations(true));
             partitionInfoCache.invalidateAdapter(tableName);
             assert partitions!=null:"partitions are null";
             partitionInfoCache.putAdapter(tableName,partitions);
             return partitions;
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

@@ -23,6 +23,8 @@ import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import org.apache.hadoop.hbase.TableName;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -78,8 +80,8 @@ public class Hbase10PartitionCache implements PartitionInfoCache<TableName>{
     }
 
     @Override
-    public List<Partition> getAdapterIfPresent(TableName tableName) throws IOException {
-        return partitionAdapterCache.getIfPresent(tableName);
+    public List<Partition> getAdapterPartitions(TableName tableName, Callable<List<Partition>> loader) throws IOException, ExecutionException {
+        return partitionAdapterCache.get(tableName, loader);
     }
 
     @Override
