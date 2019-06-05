@@ -37,8 +37,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -54,25 +52,23 @@ public class SQLBooleanTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLBoolean value = new SQLBoolean(true);
                 SQLBoolean valueA = new SQLBoolean();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",true,row.getBoolean(0));
-                valueA.read(row,0);
+                Assert.assertEquals("SerdeIncorrect",true,writer.getRow().getBoolean(0));
+                valueA.read(writer.getRow(),0);
                 Assert.assertEquals("SerdeIncorrect",true,valueA.getBoolean());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLBoolean value = new SQLBoolean();
                 SQLBoolean valueA = new SQLBoolean();
                 value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
+                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
+                value.read(writer.getRow(), 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
 
@@ -120,7 +116,6 @@ public class SQLBooleanTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLArray value = new SQLArray();
                 value.setType(new SQLBoolean());
@@ -130,7 +125,7 @@ public class SQLBooleanTest extends SQLDataValueDescriptorTest {
                 valueA.setType(new SQLBoolean());
                 writer.reset();
                 value.write(writer,0);
-                valueA.read(row,0);
+                valueA.read(writer.getRow(),0);
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
         }
 
