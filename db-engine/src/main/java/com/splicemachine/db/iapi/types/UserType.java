@@ -682,6 +682,11 @@ public class UserType extends DataType
 		}
 	}
 
+	@Override
+	public int getUnsafeArrayElementSize() {
+	    	return 8;
+	}
+
 	/**
 	 *
 	 * Read from a Project Tungsten Format.  Reads the object as a byte[]

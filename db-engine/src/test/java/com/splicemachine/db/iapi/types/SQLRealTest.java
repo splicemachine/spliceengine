@@ -35,8 +35,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -80,25 +78,23 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
     
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLReal value = new SQLReal(100.0f);
                 SQLReal valueA = new SQLReal();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",100.0f,row.getFloat(0),0.0f);
-                valueA.read(row,0);
+                Assert.assertEquals("SerdeIncorrect",100.0f,writer.getRow().getFloat(0),0.0f);
+                valueA.read(writer.getRow(),0);
                 Assert.assertEquals("SerdeIncorrect",100f,valueA.getFloat(),0.0d);
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLReal value = new SQLReal();
                 SQLReal valueA = new SQLReal();
                 value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
+                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
+                value.read(writer.getRow(), 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
 
@@ -134,7 +130,6 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLArray value = new SQLArray();
                 value.setType(new SQLReal());
@@ -143,7 +138,7 @@ public class SQLRealTest extends SQLDataValueDescriptorTest {
                 valueA.setType(new SQLReal());
                 writer.reset();
                 value.write(writer,0);
-                valueA.read(row,0);
+                valueA.read(writer.getRow(),0);
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
         }
 

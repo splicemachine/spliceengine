@@ -35,12 +35,9 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.Decimal;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -74,29 +71,27 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLDecimal value = new SQLDecimal(new BigDecimal(100.0d));
                 SQLDecimal valueA = new SQLDecimal(null, value.precision, value.getScale());
                 writer.reset();
                 value.write(writer, 0);
-                Decimal sparkDecimal = row.getDecimal(0, value.getDecimalValuePrecision(), value.getDecimalValueScale());
+                Decimal sparkDecimal = writer.getRow().getDecimal(0, value.getDecimalValuePrecision(), value.getDecimalValueScale());
                 scala.math.BigDecimal foo = sparkDecimal.toBigDecimal();
                 BigDecimal decimal = sparkDecimal.toBigDecimal().bigDecimal();
                 Assert.assertEquals("SerdeIncorrect", new BigDecimal("100"), sparkDecimal.toBigDecimal().bigDecimal());
-                valueA.read(row, 0);
+                valueA.read(writer.getRow(), 0);
                 Assert.assertEquals("SerdeIncorrect", new BigDecimal("100"), valueA.getBigDecimal());
         }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLDecimal value = new SQLDecimal();
                 SQLDecimal valueA = new SQLDecimal();
                 value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
+                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
+                value.read(writer.getRow(), 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
         }
 
@@ -132,7 +127,6 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
                 UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLArray value = new SQLArray();
                 SQLDecimal decimal = new SQLDecimal();
@@ -144,7 +138,7 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 valueA.setType(decimal);
                 writer.reset();
                 value.write(writer, 0);
-                valueA.read(row, 0);
+                valueA.read(writer.getRow(), 0);
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value, valueA.value));
 
         }

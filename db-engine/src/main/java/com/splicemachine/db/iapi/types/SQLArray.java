@@ -27,6 +27,7 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -415,7 +416,14 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		if (isNull()) {
 			unsafeRowWriter.setNullAt(ordinal);
 		} else {
-			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter(unsafeRowWriter,8);
+			int oldCursor = unsafeRowWriter.cursor();
+			int elementSize = 8;
+			for (int i = 0; i < value.length; i++)
+				if (value[i] != null) {
+					elementSize = value[i].getUnsafeArrayElementSize();
+					break;
+				}
+			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter(unsafeRowWriter, elementSize);
 			unsafeArrayWriter.initialize(value.length);
 			for (int i = 0; i< value.length; i++) {
 				if (value[i] == null || value[i].isNull()) {
@@ -424,6 +432,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 					value[i].writeArray(unsafeArrayWriter, i);
 				}
 			}
+			unsafeRowWriter.setOffsetAndSizeFromPreviousCursor(ordinal, oldCursor);
 		}
 	}
 
@@ -460,6 +469,12 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	@Override
 	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
 		throw new NotSupportedException("Nested Arrays Not Supported Currently");
+	}
+
+	@Override
+	public int getUnsafeArrayElementSize() throws StandardException {
+		throw(StandardException.newException(
+		    SQLState.HEAP_UNIMPLEMENTED_FEATURE));
 	}
 
 	@Override

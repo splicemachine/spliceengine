@@ -1619,15 +1619,15 @@ public final class SQLTimestamp extends DataType
 	        if (isNull())
 		            unsafeRowWriter.setNullAt(ordinal);
 	        else {
-				//BufferHolder holder = unsafeRowWriter.holder();
-				UnsafeRowWriter holder = new UnsafeRowWriter(unsafeRowWriter.cursor());
-				holder.grow(12);
-				Platform.putInt(holder.getBuffer(), holder.cursor(), encodedDate);
-		        Platform.putInt(holder.getBuffer(), holder.cursor() + 4, encodedTime);
-		        Platform.putInt(holder.getBuffer(), holder.cursor() + 8, nanos);
-		        unsafeRowWriter.write(ordinal, 12);
-				holder.increaseCursor(12);
-			}
+			// Row size should be a multiple of 8.
+			unsafeRowWriter.grow(16);
+			Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor(), encodedDate);
+		        Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor() + 4, encodedTime);
+		        Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor() + 8, nanos);
+		        int previousCursor = unsafeRowWriter.cursor();
+			unsafeRowWriter.increaseCursor(16);
+			unsafeRowWriter.setOffsetAndSizeFromPreviousCursor(ordinal, previousCursor);
+		}
 	    }
 
 	/**
@@ -1670,6 +1670,11 @@ public final class SQLTimestamp extends DataType
 			nanos = Platform.getInt(data, 24);
 			isNull = false;
 		}
+	}
+
+	@Override
+	public int getUnsafeArrayElementSize() {
+	    	return 8;
 	}
 
 	/**
