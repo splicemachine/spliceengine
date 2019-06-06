@@ -99,7 +99,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
             }
 
             @Override
-            public void waitForCompletion(int time, TimeUnit unit) throws InterruptedException, TimeoutException, ExecutionException {
+            public void interrupt() {
                 // no-op
             }
 

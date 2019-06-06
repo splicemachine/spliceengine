@@ -201,16 +201,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if(LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s",this));
             if (remoteQueryClient != null) {
-                if (!isKilled && !isTimedout) {
-                    // wait for completion, it should be quick
-                    try {
-                        remoteQueryClient.waitForCompletion(1, TimeUnit.MINUTES);
-                    } catch (InterruptedException | TimeoutException | ExecutionException e) {
-                        // ignore, continue closing
-                        LOG.warn("Exception while waiting for remote query client to wrap up", e);
-                    }
+                if (isKilled || isTimedout) {
+                    // interrupt it
+                    remoteQueryClient.interrupt();
+                } else {
+                    // close gracefully
+                    remoteQueryClient.close();
                 }
-                remoteQueryClient.close();
             }
             synchronized (this) {
                 isOpen=false;
@@ -961,7 +958,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         getActivation().getLanguageConnectionContext().getStatementContext().cancel();
         if (remoteQueryClient != null) {
             try {
-                remoteQueryClient.close();
+                remoteQueryClient.interrupt();
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
@@ -973,7 +970,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.isTimedout = true;
         if (remoteQueryClient != null) {
             try {
-                remoteQueryClient.close();
+                remoteQueryClient.interrupt();
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
