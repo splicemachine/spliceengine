@@ -310,40 +310,22 @@ public class SelectNode extends ResultSetNode{
     public FromList getFromList(){ return fromList; }
 
     /**
-     * Find colName in the result columns and return underlying columnReference.
-     * Note that this function returns null if there are more than one FromTable
-     * for this SelectNode and the columnReference needs to be directly under
-     * the resultColumn. So having an expression under the resultSet would cause
-     * returning null.
-     *
-     * @param    colName        Name of the column
-     * @return ColumnReference    ColumnReference to the column, if found
+     * Find the corresponding column reference (as used in the select node) for the given column reference.
+     * The select node here corresponds to a branch underneath a UnionNode
+     * @param    cr        ColumnReference to find a match from the SELECT node
+     * @return ColumnReference    ColumnReference pointing to the source of cr, if found
      */
-    public ColumnReference findColumnReferenceInResult(String colName) throws StandardException{
-        if(fromList.size()!=1)
+    public ColumnReference findColumnReferenceInUnionSelect(ColumnReference cr) throws StandardException{
+        ResultColumn rc = cr.getSource();
+        if (rc == null)
             return null;
 
-        // This logic is similar to SubQueryNode.singleFromBaseTable(). Refactor
-        FromTable ft=(FromTable)fromList.elementAt(0);
-        if(!((ft instanceof ProjectRestrictNode)
-                && ((ProjectRestrictNode)ft).getChildResult() instanceof FromBaseTable)
-                && !(ft instanceof FromBaseTable))
+        //get the corresponding result column in the current SelectNode
+        ResultColumn rcInSelect = resultColumns.elementAt(rc.getVirtualColumnId()-1);
+        ValueNode mappedCR = rcInSelect.getExpression();
+        if (!(mappedCR instanceof ColumnReference))
             return null;
-
-        // Loop through the result columns looking for a match
-        int rclSize=resultColumns.size();
-        for(int index=0;index<rclSize;index++){
-            ResultColumn rc=resultColumns.elementAt(index);
-            if(!(rc.getExpression() instanceof ColumnReference))
-                return null;
-
-            ColumnReference crNode=(ColumnReference)rc.getExpression();
-
-            if(crNode.columnName.equals(colName))
-                return (ColumnReference)crNode.getClone();
-        }
-
-        return null;
+         return (ColumnReference)mappedCR.getClone();
     }
 
     /**
