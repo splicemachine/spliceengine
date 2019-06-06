@@ -41,7 +41,10 @@ public class SnowflakeTest {
         Set<Long> uuidSet = new TreeSet<Long>();
         Snowflake snowflake = new Snowflake((short)(1<<7));
         for(int i=0;i<100000;i++){
+            long time = System.currentTimeMillis();
             long uuid = snowflake.nextUUID();
+            boolean dup = uuidSet.contains(uuid);
+            if (dup) System.out.println("     already present!i= "+i+", value="+Long.toBinaryString(uuid)+", time="+Long.toBinaryString(time));
             Assert.assertFalse("duplicate uuid found!",uuidSet.contains(uuid));
             uuidSet.add(uuid);
         }

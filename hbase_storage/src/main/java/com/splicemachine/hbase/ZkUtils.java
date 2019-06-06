@@ -16,6 +16,7 @@ package com.splicemachine.hbase;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
@@ -40,6 +41,7 @@ import com.splicemachine.access.HConfiguration;
 public class ZkUtils{
     private static final Logger LOG=Logger.getLogger(ZkUtils.class);
     private static final SpliceZooKeeperManager zkManager=new SpliceZooKeeperManager();
+    private static final Random RANDOM = new Random();
 
     /**
      * Gets a direct interface to a ZooKeeper instance.
@@ -135,19 +137,20 @@ public class ZkUtils{
 
     /**
      *
-     * Attempts to grab a squence numbered 1 - 1024 as an ephemeral node in zookeeper.  This is used to keep
+     * Attempts to grab a squence numbered 1 - 4095 as an ephemeral node in zookeeper.  This is used to keep
      * the unqiue key number of bytes to a minimum.
      *
      * @return
      * @throws Exception
      */
     public static short assignSnowFlakeSequence() throws Exception {
-        for (short i =1; i<= 1024;i++) {
+        int start = (short) RANDOM.nextInt(4095);
+        for (short i = 0; i < 4095*10;i++) {  // try to find a znnode in 10 passes
+            int n = ((start + i) % 4095) + 1;
             try {
                 // Notice the ephemeral node, will be gone once the process exits...
-                // TODO -JL Can be more sophisticated when we get closer, multiple pass as well.
-                ZkUtils.create(HConfiguration.getConfiguration().getSpliceRootPath()+HBaseConfiguration.SNOWFLAKE_PATH+ "/" + i, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-                return i;
+                ZkUtils.create(HConfiguration.getConfiguration().getSpliceRootPath()+HBaseConfiguration.SNOWFLAKE_PATH+ "/" + n, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                return (short) n;
             }catch(KeeperException e){
                 if(e.code()!=KeeperException.Code.NODEEXISTS)
                     throw new Exception("Error assigning snowflake sequence, catastrophic",e);
