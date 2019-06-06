@@ -7817,6 +7817,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == VALUE ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
+                getToken(1).kind == LEFT ||
                 getToken(1).kind == REPLACE ||
                 getToken(1).kind == UPPER ||
                 getToken(1).kind == LOWER ||
