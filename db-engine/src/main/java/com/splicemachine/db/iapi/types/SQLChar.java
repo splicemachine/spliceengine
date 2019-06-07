@@ -1231,7 +1231,7 @@ public class SQLChar
         // Set these to null to allow GC of the array if required.
         rawData = null;
         resetForMaterialization();
-        
+
         int count = 0;
         int strlen = 0;
 
@@ -2601,6 +2601,39 @@ public class SQLChar
         return stringResult;
     }
 
+    /**
+     * right() function.
+     * @param length Number of characters to take.
+     * @param result The result of this method.
+     * @return A StringDataValue containing the result of the right().
+     * @throws StandardException.
+     */
+    public StringDataValue right(
+            NumberDataValue length,
+            StringDataValue result)
+        throws StandardException {
+        int lengthInt;
+        StringDataValue stringResult;
+
+        if (result == null)
+        {
+            result = getNewVarchar();
+        }
+        stringResult = (StringDataValue) result;
+
+        if (this.isNull() || length.isNull() || length.getInt() < 0)
+        {
+            stringResult.setToNull();
+            return stringResult;
+        }
+
+        lengthInt = length.getInt();
+        if (lengthInt > getLength()) lengthInt = getLength();
+        stringResult.setValue(getString().substring(getLength() - lengthInt));
+
+        return stringResult;
+    }
+
     public StringDataValue left(NumberDataValue length, StringDataValue result) throws StandardException
     {
         int lengthInt;
@@ -2814,7 +2847,7 @@ public class SQLChar
         }
     }
 
-    /** @see StringDataValue#lower 
+    /** @see StringDataValue#lower
      *
      * @exception StandardException     Thrown on error
      */
