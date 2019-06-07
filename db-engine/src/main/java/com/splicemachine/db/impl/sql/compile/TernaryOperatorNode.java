@@ -109,7 +109,7 @@ public class TernaryOperatorNode extends OperatorNode
 			{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.NumberDataValue}, // time.timestampadd( interval, count)
 			{ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.DateTimeDataValue},// time2.timestampDiff( interval, time1)
 			{ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue}, // replace{}
-			{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue} // right
+			{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue}, // right
 			{ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue} // left
 	};
 
