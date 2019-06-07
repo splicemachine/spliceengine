@@ -436,6 +436,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
           case C_NodeTypes.LOCATE_FUNCTION_NODE:
 		  case C_NodeTypes.SUBSTRING_OPERATOR_NODE:
 		  case C_NodeTypes.TRIM_OPERATOR_NODE:
+		  case C_NodeTypes.LEFT_OPERATOR_NODE:
 		  case C_NodeTypes.TIMESTAMP_ADD_FN_NODE:
 		  case C_NodeTypes.TIMESTAMP_DIFF_FN_NODE:
 		  case C_NodeTypes.REPLACE_OPERATOR_NODE:

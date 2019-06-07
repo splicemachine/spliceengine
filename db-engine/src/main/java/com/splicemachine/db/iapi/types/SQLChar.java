@@ -2601,6 +2601,32 @@ public class SQLChar
         return stringResult;
     }
 
+    public StringDataValue left(NumberDataValue length, StringDataValue result) throws StandardException
+    {
+        int lengthInt;
+        StringDataValue stringResult;
+
+        if (result == null)
+        {
+            result = getNewVarchar();
+        }
+        stringResult = (StringDataValue) result;
+
+        if (this.isNull() || length.isNull() || length.getInt() < 0)
+        {
+            stringResult.setToNull();
+            return stringResult;
+        }
+
+        lengthInt = length.getInt();
+        if (lengthInt > getLength()) lengthInt = getLength();
+        {
+            stringResult.setValue(getString().substring(0, lengthInt));
+        }
+
+        return stringResult;
+    }
+
     public ConcatableDataValue replace(
 		StringDataValue fromStr,
 		StringDataValue toStr,
