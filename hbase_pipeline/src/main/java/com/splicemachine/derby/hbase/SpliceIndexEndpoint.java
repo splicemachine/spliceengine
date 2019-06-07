@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.hbase;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -51,6 +52,10 @@ import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -66,6 +71,7 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
     private PipelineWriter pipelineWriter;
     private PipelineCompressor compressor;
     private boolean tokenEnabled;
+    private ExecutorService bulkWriteExecutor;
 
     private volatile PipelineLoadService<TableName> service;
     private long conglomId = -1;
@@ -78,6 +84,10 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         final ServerControl serverControl=new RegionServerControl((HRegion) rce.getRegion(),rce.getRegionServerServices());
 
         tokenEnabled = SIDriver.driver().getConfiguration().getAuthenticationTokenEnabled();
+        if (tokenEnabled) {
+            bulkWriteExecutor = Executors.newFixedThreadPool(200,
+                    new ThreadFactoryBuilder().setDaemon(true).setNameFormat("BulkWriteExecutor-%d").build());
+        }
         String tableName=rce.getRegion().getTableDesc().getTableName().getQualifierAsString();
         TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),(RegionCoprocessorEnvironment)env);
         if(table.equals(TableType.USER_TABLE) || table.equals(TableType.DERBY_SYS_TABLE)){ // DERBY SYS TABLE is temporary (stats)
@@ -182,11 +192,17 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         return true;
     }
 
-//    @Override
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
         if (useToken(bulkWrites)) {
-            try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()){
-                return pipelineWriter.bulkWrite(bulkWrites, conglomId);
+            try {
+                return bulkWriteExecutor.submit( () -> {
+                            try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
+                                return pipelineWriter.bulkWrite(bulkWrites, conglomId);
+                            }
+                        }
+                ).get();
+            } catch (Exception e) {
+                throw new IOException(e);
             }
         }
 
