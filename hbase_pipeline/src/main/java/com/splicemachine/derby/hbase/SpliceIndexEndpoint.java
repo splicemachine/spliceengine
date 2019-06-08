@@ -194,15 +194,8 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
 
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
         if (useToken(bulkWrites)) {
-            try {
-                return bulkWriteExecutor.submit( () -> {
-                            try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
-                                return pipelineWriter.bulkWrite(bulkWrites, conglomId);
-                            }
-                        }
-                ).get();
-            } catch (Exception e) {
-                throw new IOException(e);
+            try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
+                return pipelineWriter.bulkWrite(bulkWrites, conglomId);
             }
         }
 

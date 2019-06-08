@@ -15,11 +15,20 @@
 
 package org.apache.hadoop.hbase.ipc;
 
+import com.splicemachine.access.HConfiguration;
+import org.apache.hadoop.hbase.security.User;
+import org.apache.hadoop.hbase.security.UserProvider;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+
 public class RpcUtils {
+    private static final Logger LOG = Logger.getLogger(RpcUtils.class);
 
     public static ThreadLocal<Boolean> accessAllowed = new ThreadLocal<>();
 
-    public static RootEnv getRootEnv() {
+    public static RootEnv getRootEnv() throws IOException {
         return new RootEnv();
     }
 
@@ -28,18 +37,50 @@ public class RpcUtils {
         return allowed != null && allowed;
     }
 
+    static Field userField;
+    static UserProvider userProvider;
+
+    static {
+        try {
+            userField = RpcServer.Call.class.getDeclaredField("user");
+            userField.setAccessible(true);
+            userProvider = UserProvider.instantiate(HConfiguration.unwrapDelegate());
+        } catch (Exception e) {
+            LOG.warn("Couldn't initialize userField/Provider");
+        }
+    }
+
     public static class RootEnv implements AutoCloseable {
         Boolean stored;
+        User oldUser;
 
-        RootEnv() {
+        RootEnv() throws IOException {
             stored = accessAllowed.get();
             accessAllowed.set(true);
+
+            if (userField != null && userProvider != null) {
+                RpcServer.Call call = RpcServer.CurCall.get();
+                User newUser = userProvider.getCurrent();
+                oldUser = call.getRequestUser();
+                try {
+                    userField.set(call, newUser);
+                } catch (IllegalAccessException e) {
+                    LOG.warn("Couldn't update user field");
+                }
+            }
         }
 
         @Override
         public void close() {
             accessAllowed.set(stored);
+            RpcServer.Call call = RpcServer.CurCall.get();
+            if (userField != null && userProvider != null) {
+                try {
+                    userField.set(call, oldUser);
+                } catch (IllegalAccessException e) {
+                    LOG.warn("Couldn't update user field");
+                }
+            }
         }
     }
 }
-
