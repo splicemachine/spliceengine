@@ -166,7 +166,8 @@ public class OperatorToString {
     // We don't support REAL (float), because the way spark
     // evaluates expressions involving float causes accuracy errors
     // that don't occur when splice does the evaluation.
-    private static boolean sparkSupportedType(int typeFormatId) {
+    private static boolean sparkSupportedType(int typeFormatId, ValueNode operand) {
+
         return (typeFormatId == BOOLEAN_TYPE_ID  ||
                 typeFormatId == DATE_TYPE_ID     ||
                 typeFormatId == CHAR_TYPE_ID     ||
@@ -198,6 +199,8 @@ public class OperatorToString {
     }
     private static void checkOverflowHidingCases(BinaryArithmeticOperatorNode bao,
                                                  MutableInt relationalOpDepth) throws StandardException {
+        if (bao.getCompilerContext().getAllowOverflowSensitiveNativeSparkExpressions())
+            return;
         if (relationalOpDepth.intValue() <= 0)
             return;
         ValueNode leftOperand = bao.getLeftOperand();
@@ -364,8 +367,10 @@ public class OperatorToString {
                     // The way spark converts real to double causes
                     // inaccurate results, so avoid native spark data sets
                     // for these cases.
-                    if (leftOperand.getTypeId().getTypeFormatId() == REAL_TYPE_ID ||
-                        rightOperand.getTypeId().getTypeFormatId() == REAL_TYPE_ID)
+                    if ((leftOperand.getTypeId().getTypeFormatId() == REAL_TYPE_ID ||
+                        rightOperand.getTypeId().getTypeFormatId() == REAL_TYPE_ID) &&
+                        !operand.getCompilerContext().
+                         getAllowOverflowSensitiveNativeSparkExpressions())
                         throwNotImplementedError();
 
                     // Spark may hide overflow errors by generating +Infinity, -Infinity
@@ -403,8 +408,11 @@ public class OperatorToString {
                     // Division by zero results in a null value on
                     // spark, but splice expects this to error out,
                     // so we can't use native spark sql for "/".
-                    if (bao.getOperatorString() == "mod" ||
-                        bao.getOperatorString() == "/")
+                    if (bao.getOperatorString() == "mod")
+                        throwNotImplementedError();
+                    else if (bao.getOperatorString() == "/" &&
+                             !bao.getCompilerContext().
+                              getAllowOverflowSensitiveNativeSparkExpressions())
                         throwNotImplementedError();
                     else if (bao.getOperatorString() == "+") {
                         if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)
@@ -442,7 +450,8 @@ public class OperatorToString {
                 // (see SPARK-23179), so until an option is provided to catch
                 // the overflow, we have to avoid spark-native evaluation of operations
                 // which could hide the overflow.
-                throwNotImplementedError();
+                if (!operand.getCompilerContext().getAllowOverflowSensitiveNativeSparkExpressions())
+                    throwNotImplementedError();
                 expressionString = format("CAST(%s as %s) ",
                                            expressionString,
                                            operand.getTypeServices().toSparkString());
@@ -555,7 +564,7 @@ public class OperatorToString {
                 format("[%s:%s]", source.getResultSetNumber(), source.getVirtualColumnId()));
             }
             else {
-                if (!sparkSupportedType(cr.getTypeId().getTypeFormatId()))
+                if (!sparkSupportedType(cr.getTypeId().getTypeFormatId(), operand))
                     throwNotImplementedError();
 
                 return format("c%d ", source.getVirtualColumnId()-1);
@@ -570,7 +579,7 @@ public class OperatorToString {
                 format("[%s:%s]", source.getResultSetNumber(), source.getVirtualColumnId()));
             }
             else {
-                if (!sparkSupportedType(operand.getTypeId().getTypeFormatId()))
+                if (!sparkSupportedType(operand.getTypeId().getTypeFormatId(), operand))
                     throwNotImplementedError();
 
                 return format("c%d ", source.getVirtualColumnId()-1);
@@ -585,8 +594,12 @@ public class OperatorToString {
             try {
                 DataValueDescriptor dvd = cn.getValue();
                 String str = null;
-                if (dvd == null)
-                    str = "null";
+                if (dvd == null) {
+                    if (cn instanceof NumericConstantNode)
+                        str = format("CAST(null as %s) ", cn.getTypeServices().toSparkString());
+                    else
+                        str = "null ";
+                }
                 else if (vars.sparkExpression) {
                     if (dvd instanceof SQLChar ||
                         dvd instanceof SQLVarchar ||
@@ -628,14 +641,21 @@ public class OperatorToString {
                 CastNode cn = (CastNode)operand;
                 ValueNode castOperand = cn.getCastOperand();
                 int typeFormatId = operand.getTypeId().getTypeFormatId();
-                if (!sparkSupportedType(typeFormatId))
+                if (!sparkSupportedType(typeFormatId, operand))
                     throwNotImplementedError();
 
                 sb.append(format("CAST(%s ", opToString2(castOperand, vars)));
                 if (typeFormatId == LONGVARCHAR_TYPE_ID)
                     sb.append("AS varchar(32670)) ");
-                else if (isNumericTypeFormatID(typeFormatId)) {
-                    // Disallow manual cast to a numeric type.
+                else if (isNumericTypeFormatID(typeFormatId) &&
+                         typeFormatId != DOUBLE_TYPE_ID      &&
+                         !operand.getCompilerContext().
+                          getAllowOverflowSensitiveNativeSparkExpressions() &&
+                          (! (castOperand instanceof ColumnReference) ||
+                             operand.getTypeId().typePrecedence() <
+                             castOperand.getTypeId().typePrecedence() )) {
+                    // Disallow manual cast to a numeric type
+                    // for possible problematic cases.
                     // Decimal overflow on spark returns null
                     // instead of throwing an error.
                     // CASTing to other numerics can truncate

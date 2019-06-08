@@ -67,7 +67,8 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
         SHUFFLE("Shuffle/Sort Data"),
         LOCATE("Locate Rows"),
         COLLECT_STATS("Collect Statistics (Table %s)"),
-        EXPAND("Emit Multiple Rows For Distinct");
+        EXPAND("Emit Multiple Rows For Distinct"),
+        AGGREGATE("Aggregate Function");
 
         private final String stringValue;
 

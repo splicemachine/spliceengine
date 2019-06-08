@@ -471,6 +471,8 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
+	 	@param encodedNativeSparkMode Is native spark processing on, off, or should we
+	                                      use the system setting (from SConfiguration)?
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -485,7 +487,8 @@ public interface ResultSetFactory {
 		boolean singleInputRow,
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
-		String explainPlan) 
+		String explainPlan,
+		int encodedNativeSparkMode)
 			throws StandardException;
 
 	/**
@@ -508,6 +511,8 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
+	 	@param encodedNativeSparkMode Is native spark processing on, off, or should we
+	                                      use the system setting (from SConfiguration)?
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -522,7 +527,8 @@ public interface ResultSetFactory {
 		boolean singleInputRow,
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
-		String explainPlan) 
+		String explainPlan,
+		int encodedNativeSparkMode)
 			throws StandardException;
 
 	/**
@@ -542,9 +548,11 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 		@param isRollup true if this is a GROUP BY ROLLUP()
-	    @param groupingIdColPosition column position of the groupingId column which is only used for rollup
-	    @param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
+		@param groupingIdColPosition column position of the groupingId column which is only used for rollup
+		@param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
 	                               which is only used for rollup
+	 	@param encodedNativeSparkMode Is native spark processing on, off, or should we
+	                                      use the system setting (from SConfiguration)?
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -561,7 +569,8 @@ public interface ResultSetFactory {
 		boolean isRollup,
 		int groupingIdColPosition,
 		int groupingIdArrayItem,
-		String explainPlan) 
+		String explainPlan,
+		int encodedNativeSparkMode)
 			throws StandardException;
 
 	/**
@@ -584,9 +593,11 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 		@param isRollup true if this is a GROUP BY ROLLUP()
-	    @param groupingIdColPosition column position of the groupingId column which is only used for rollup
-	    @param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
+		@param groupingIdColPosition column position of the groupingId column which is only used for rollup
+		@param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
 	                                which is only used for rollup
+	 	@param encodedNativeSparkMode Is native spark processing on, off, or should we
+	                                      use the system setting (from SConfiguration)?
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -600,10 +611,11 @@ public interface ResultSetFactory {
 		int resultSetNumber, 
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
-        boolean isRollup,
+		boolean isRollup,
 		int groupingIdColPosition,
 		int groupingIdArrayItem,
-        String explainPlan) 
+		String explainPlan,
+		int encodedNativeSparkMode)
 			throws StandardException;
 
 	/**
