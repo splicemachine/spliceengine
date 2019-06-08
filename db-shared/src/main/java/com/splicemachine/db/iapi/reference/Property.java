@@ -1409,4 +1409,43 @@ public interface Property {
 	 */
 	String SPLICE_SPARK_VERSION =
 		"splice.spark.version";
+
+	/**
+	 * Specify whether aggregation uses unsafe row native spark execution.
+	 *
+	 * Modes: on, off, forced
+	 *
+	 * on:  If the child operation produces a native spark data source,
+	 *      then use native spark aggregation.
+	 * off: Never use native spark aggregation.
+	 * forced: If the aggregation may legally use native spark aggregation,
+	 *         then use it, even if the underlying child operation uses a
+	 *         non-native SparkDataSet.  The source DataSet is converted
+	 *         to a NativeSparkDataSet.  This mode can be used for testing
+	 *         purposes.
+	 *
+	 * There is a system property of the same name.
+	 * Defaults to the system setting, whose default value is on.
+	 */
+	String SPLICE_NATIVE_SPARK_AGGREGATION_MODE =
+		"splice.execution.nativeSparkAggregationMode";
+
+	/**
+	 * If true, expressions involving Decimals and other
+	 * data types which evaluate to null upon overflow during
+	 * native spark execution will be allowed, and not cause
+	 * reversion to the legacy splice operations path.
+	 *
+	 * As Splice implicitly casts many expressions involving
+	 * integers and BIGINT to decimal to avoid arithmetic overflows,
+	 * it is very restrictive to disallow native Spark evaluation.
+	 * Therefore, the default value is true, as only infrequent
+	 * corner cases will cause a problem.
+	 * This value can be set to false for users with problematic
+	 * data or query expressions.
+	 *
+	 * Defaults to true.
+	 */
+	String SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS =
+		"splice.execution.allowOverflowSensitiveNativeSparkExpressions";
 }

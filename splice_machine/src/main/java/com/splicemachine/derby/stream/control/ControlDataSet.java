@@ -27,6 +27,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.control.output.ControlExportDataSetWriter;
 import com.splicemachine.derby.stream.control.output.ParquetWriterService;
@@ -760,5 +761,11 @@ public class ControlDataSet<V> implements DataSet<V> {
         };
     }
 
+    @Override
+    public DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) {
+         return this;
+    }
 
+    @Override
+    public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) { return null; }
 }

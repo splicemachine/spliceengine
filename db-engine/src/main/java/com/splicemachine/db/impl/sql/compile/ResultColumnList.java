@@ -3899,7 +3899,6 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     ((rc.getExpression() instanceof ConstantNode) &&
                             ((ConstantNode) rc.getExpression()).isNull()))
             {
-                isExpressableInSparkSQL = false;
                 userExprFun.getField(field);
                 userExprFun.push(index + 1);
                 userExprFun.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.Row, "getColumn",

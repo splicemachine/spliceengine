@@ -15,6 +15,7 @@
 package com.splicemachine.access.api;
 
 import com.splicemachine.access.configuration.ConfigurationSource;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 
 import java.util.List;
 import java.util.Map;
@@ -364,4 +365,8 @@ public interface SConfiguration {
     int getRecursiveQueryIterationLimit();
 
     boolean getMetadataRestrictionEnabled();
+
+    void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
+
+    CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
 }

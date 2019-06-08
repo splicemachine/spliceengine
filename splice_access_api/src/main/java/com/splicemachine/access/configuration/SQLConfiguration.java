@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -237,6 +238,24 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String METADATA_RESTRICTION_ENABLED = "splice.metadataRestrictionEnabled";
     public static final boolean DEFAULT_METADATA_RESTRICTION_ENABLED = true;
 
+    /**
+     * Specify whether aggregation uses unsafe row native spark execution.
+     *
+     * Modes: on, off, forced
+     *
+     * on:  If the child operation produces a native spark data source,
+     *      then use native spark aggregation.
+     * off: Never use native spark aggregation.
+     * forced: If the aggregation may legally use native spark aggregation,
+     *         then use it, even if the underlying child operation uses a
+     *         non-native SparkDataSet.
+     *
+     * Defaults to on
+     */
+    public static final String NATIVE_SPARK_AGGREGATION_MODE = "splice.execution.nativeSparkAggregationMode";
+    private static final String DEFAULT_NATIVE_SPARK_AGGREGATION_MODE="on";
+
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
@@ -284,5 +303,18 @@ public class SQLConfiguration implements ConfigurationDefault {
 
         builder.networkBindAddress = configurationSource.getString(NETWORK_BIND_ADDRESS, DEFAULT_NETWORK_BIND_ADDRESS);
         builder.maxCheckTableErrors = configurationSource.getInt(MAX_CHECK_TABLE_ERRORS, DEFAULT_MAX_CHECK_TABLE_ERRORS);
+
+        String nativeSparkAggregationModeString =
+            configurationSource.getString(NATIVE_SPARK_AGGREGATION_MODE,
+                                          DEFAULT_NATIVE_SPARK_AGGREGATION_MODE);
+        nativeSparkAggregationModeString = nativeSparkAggregationModeString.toLowerCase();
+        if (nativeSparkAggregationModeString.equals("on"))
+            builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
+        else if (nativeSparkAggregationModeString.equals("off"))
+            builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
+        else if (nativeSparkAggregationModeString.equals("forced"))
+            builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
+        else
+            builder.nativeSparkAggregationMode = CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
     }
 }

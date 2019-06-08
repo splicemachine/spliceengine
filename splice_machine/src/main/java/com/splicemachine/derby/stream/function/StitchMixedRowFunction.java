@@ -90,14 +90,15 @@ public class StitchMixedRowFunction<Op extends SpliceOperation> extends SpliceFu
             return valueRow;
         }
 
+        int outputRowSize = aggregateOperation.getExecRowDefinition().size();
 
-        if (srcRow1.size() == numOfGroupKeys + aggregates.length*3) {
+        if (srcRow1.size() == outputRowSize) {
             valueRow = srcRow1;
             if (srcRow1.size() == srcRow2.size())
                 mergeRow(valueRow, srcRow2);
             else
                 copyRow(valueRow, srcRow2);
-        } else if (srcRow2.size() == numOfGroupKeys + aggregates.length*3) {
+        } else if (srcRow2.size() == outputRowSize) {
             valueRow = srcRow2;
             copyRow(valueRow, srcRow1);
         } else {

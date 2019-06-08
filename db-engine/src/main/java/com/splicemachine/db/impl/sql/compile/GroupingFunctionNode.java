@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import java.sql.Types;
@@ -53,6 +54,7 @@ import java.util.List;
 public final class GroupingFunctionNode extends UnaryOperatorNode {
     private int groupByColumnPosition = -1;
     private ValueNode groupingIdRef = null;
+    private ValueNode groupingIdRefForSpark = null;
 
     public void init(Object	operand)
     {
@@ -77,9 +79,18 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
                 ValueNode columnExpression = groupByColumn.getColumnExpression();
                 if (columnExpression instanceof ColumnReference) {
                     ResultColumn rc = ((ColumnReference) columnExpression).getSource();
-                    if (rc != null && rc == ((ColumnReference)operand).getSource()) {
-                        this.groupByColumnPosition = i;
-                        break;
+                    if (rc != null) {
+                        if (operand instanceof ColumnReference &&
+                            rc == ((ColumnReference)operand).getSource()) {
+                            this.groupByColumnPosition = i;
+                            break;
+                        }
+                        if (operand instanceof VirtualColumnNode &&
+                            ((VirtualColumnNode)operand).getSourceColumn().getExpression() instanceof ColumnReference &&
+                            rc == ((ColumnReference) ((VirtualColumnNode)operand).getSourceColumn().getExpression()).getSource()) {
+                            this.groupByColumnPosition = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -91,6 +102,15 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
             return;
 
         groupingIdRef = vc;
+
+        return;
+    }
+
+    public void setGroupingIdRefForSpark(ValueNode vn) {
+        if (groupingIdRefForSpark != null)
+            return;
+
+        groupingIdRefForSpark = vn;
 
         return;
     }
@@ -108,6 +128,9 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
         return ClassName.ConcatableDataValue;
     }
 
+    public int getGroupByColumnPosition() {
+        return groupByColumnPosition;
+    }
     @Override
     public void generateExpression(ExpressionClassBuilder acb,
                                    MethodBuilder mb)
@@ -120,9 +143,16 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
         mb.pushThis();
         groupingIdRef.generateExpression(acb, mb);
         mb.upCast( ClassName.DataValueDescriptor);
+        if (groupingIdRefForSpark != null) {
+            groupingIdRefForSpark.generateExpression(acb, mb);
+            mb.upCast(ClassName.DataValueDescriptor);
+        }
+        else
+            mb.pushNull(DataValueDescriptor.class.getName());
+
         mb.push(groupByColumnPosition);
 
-        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, methodName, resultTypeName, 2);
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, methodName, resultTypeName, 3);
         return;
 
     }

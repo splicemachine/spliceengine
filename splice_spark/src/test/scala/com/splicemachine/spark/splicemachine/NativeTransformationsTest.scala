@@ -104,7 +104,7 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
     assert("SortMergeJoin".r.findAllMatchIn(plan).length == 2)
   }
 
-  ignore("aggregate on join over join") {
+  test("aggregate on join over join") {
     val df = splicemachineContext.df(
       """select sum(s1.colsequence) from sys.systables s1
         |inner join sys.systables s2 --splice-properties joinStrategy=sortmerge

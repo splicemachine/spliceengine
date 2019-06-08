@@ -84,6 +84,13 @@ public interface CompilerContext extends Context
         FORCED_SPARK // Hinted to use Spark
     }
 
+    enum NativeSparkModeType {
+        SYSTEM, // Use the system-level setting.
+        ON,     // Process the operation using UnSafeRows if the source operation produces them.
+        OFF,    // Process the operation using Derby rows.
+        FORCED  // Convert the source operation's rows into UnSafeRows,
+	        // then process the current operation using UnSafeRows, if possible.
+    }
 
 	/**
 	 * this is the ID we expect compiler contexts
@@ -162,6 +169,8 @@ public interface CompilerContext extends Context
 	boolean     DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
 	boolean     DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
 	SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
+	NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
+	boolean     DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -683,4 +692,12 @@ public interface CompilerContext extends Context
 	public SparkVersion getSparkVersion();
 
 	public boolean isSparkVersionInitialized();
+
+	public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
+
+	public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
+
+	public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
+
+	public boolean getAllowOverflowSensitiveNativeSparkExpressions();
 }

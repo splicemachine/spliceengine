@@ -515,6 +515,39 @@ public class GenericStatement implements Statement{
             }
             cc.setDisablePredicateSimplification(disablePredicateSimplification);
 
+            String nativeSparkAggregationModeString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NATIVE_SPARK_AGGREGATION_MODE);
+            CompilerContext.NativeSparkModeType nativeSparkAggregationMode =
+                   CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+            try {
+                if (nativeSparkAggregationModeString != null) {
+                    nativeSparkAggregationModeString = nativeSparkAggregationModeString.toLowerCase();
+                    if (nativeSparkAggregationModeString.equals("on"))
+                        nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
+                    else if (nativeSparkAggregationModeString.equals("off"))
+                        nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
+                    else if (nativeSparkAggregationModeString.equals("forced"))
+                        nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
+                }
+            } catch (Exception e) {
+                // If the property value failed to get decoded to a valid value, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setNativeSparkAggregationMode(nativeSparkAggregationMode);
+
+            String allowOverflowSensitiveNativeSparkExpressionsString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS);
+            boolean allowOverflowSensitiveNativeSparkExpressions = CompilerContext.DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
+            try {
+                if (allowOverflowSensitiveNativeSparkExpressionsString != null)
+                    allowOverflowSensitiveNativeSparkExpressions =
+                        Boolean.valueOf(allowOverflowSensitiveNativeSparkExpressionsString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setAllowOverflowSensitiveNativeSparkExpressions(allowOverflowSensitiveNativeSparkExpressions);
+
             if (! cc.isSparkVersionInitialized()) {
                 // If splice.spark.version is manually set, use it...
                 String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);

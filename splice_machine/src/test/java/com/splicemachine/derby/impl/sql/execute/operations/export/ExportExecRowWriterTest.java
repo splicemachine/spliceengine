@@ -51,9 +51,9 @@ public class ExportExecRowWriterTest {
 
         // then
         assertEquals("" +
-                "AAA,BBB,CCC,DDD,EEE,111.12,222.1234567\n" +
-                "AAA,BBB,,DDD,EEE,111.12,222.1234567\n" +
-                "AAA,BBB,CCC,DDD,EEE,111.12,222.1234567\n" +
+                "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568\n" +
+                "AAA,BBB,,DDD,EEE,111.12,222.1234568\n" +
+                "AAA,BBB,CCC,DDD,EEE,111.12,222.1234568\n" +
                 "", writer.toString());
     }
 
