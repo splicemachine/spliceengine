@@ -436,8 +436,8 @@ public class SITransactor implements Transactor{
         if(rollforward != null)
             rollforward.add(kvPair.rowKeySlice());
 
-        if (skipWAL)
-            newPut.skipWAL();
+//        if (skipWAL)
+        newPut.skipWAL();
         return newPut;
     }
 

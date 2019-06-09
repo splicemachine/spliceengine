@@ -94,7 +94,7 @@ public class HPut implements HMutation,DataPut{
 
     @Override
     public void skipWAL() {
-        put.setDurability(Durability.SKIP_WAL);
+        put.setDurability(Durability.ASYNC_WAL);
     }
 
     @Override
