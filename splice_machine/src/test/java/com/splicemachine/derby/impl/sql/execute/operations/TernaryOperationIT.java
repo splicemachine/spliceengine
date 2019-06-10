@@ -403,7 +403,7 @@ public class TernaryOperationIT {
         rs.next();
         Assert.assertEquals("Wrong strip result","   space case",rs.getString(1));
 
-        sql  = "values strip('aabbccaa','a')";
+        sql  = "values strip('aabbccaa',,'a')";
         rs = methodWatcher.executeQuery(sql);
         rs.next();
         Assert.assertEquals("Wrong strip result","bbcc",rs.getString(1));
@@ -422,6 +422,21 @@ public class TernaryOperationIT {
         rs = methodWatcher.executeQuery(sql);
         rs.next();
         Assert.assertEquals("Wrong strip result","aabbcc",rs.getString(1));
+
+        sql  = "values strip('12.7000',,'0')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","12.7",rs.getString(1));
+
+        sql  = "values strip('0012.700',,'0')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","12.7",rs.getString(1));
+
+        sql  = "values strip(' bb  ',)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bb",rs.getString(1));
 
     }
 
@@ -466,15 +481,15 @@ public class TernaryOperationIT {
             methodWatcher.executeQuery(sql);
             Assert.fail("Query is expected to fail with syntax error!");
         } catch (SQLSyntaxErrorException e) {
-            Assert.assertEquals(SQLState.LANG_INVALID_CAST, e.getSQLState());
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
         }
 
         try {
             String sql = "values strip('abc','bc')";
             methodWatcher.executeQuery(sql);
             Assert.fail("Query is expected to fail with syntax error!");
-        } catch (SQLDataException e) {
-            Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_INVALID_TRIM_CHARACTER.startsWith(e.getSQLState()));
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_SYNTAX_ERROR.startsWith(e.getSQLState()));
         }
     }
 }
