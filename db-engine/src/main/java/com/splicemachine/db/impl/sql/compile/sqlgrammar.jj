@@ -7666,18 +7666,25 @@ ansiStrip() throws StandardException  :
     |
         LOOKAHEAD ({!ansiTrimSpecFollows()})
         (
-            // <source> COMMA <trimChar>
-            <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
-            {
-                return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
-            }
+            <COMMA>
+            (
+                // <source> COMMA COMMA <trimChar>
+                <COMMA> trimChar = additiveExpression(null,0) <RIGHT_PAREN>
+                {
+                    return getTrimOperatorNode(trimSpec, trimChar, trimSource, null);
+                }
+            |
+                <RIGHT_PAREN>
+                {
+                    return getTrimOperatorNode(trimSpec, null, trimSource, null);
+                }
+            )
         |
             // <source>
             <RIGHT_PAREN>
             {
                 return getTrimOperatorNode(trimSpec, null, trimSource, null);
             }
-
         )
     )
 }
