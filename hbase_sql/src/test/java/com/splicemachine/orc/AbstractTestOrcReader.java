@@ -88,28 +88,24 @@ public abstract class AbstractTestOrcReader
         tester.testRoundTrip(javaBooleanObjectInspector, limit(cycle(ImmutableList.of(true, false, false)), 30_000), DataTypes.BooleanType);
     }
 
-    @Test
     public void testLongSequence()
             throws Exception
     {
         testRoundTripNumeric(intsBetween(0, 31_234));
     }
 
-    @Test
     public void testLongSequenceWithHoles()
             throws Exception
     {
         testRoundTripNumeric(skipEvery(5, intsBetween(0, 31_234)));
     }
 
-    @Test
     public void testLongDirect()
             throws Exception
     {
         testRoundTripNumeric(limit(cycle(ImmutableList.of(1, 3, 5, 7, 11, 13, 17)), 30_000));
     }
 
-    @Test
     public void testLongDirect2()
             throws Exception
     {
@@ -121,21 +117,18 @@ public abstract class AbstractTestOrcReader
         testRoundTripNumeric(values);
     }
 
-    @Test
     public void testLongShortRepeat()
             throws Exception
     {
         testRoundTripNumeric(limit(repeatEach(4, cycle(ImmutableList.of(1, 3, 5, 7, 11, 13, 17))), 30_000));
     }
 
-    @Test
     public void testLongPatchedBase()
             throws Exception
     {
         testRoundTripNumeric(limit(cycle(concat(intsBetween(0, 18), ImmutableList.of(30_000, 20_000))), 30_000));
     }
 
-    @Test
     public void testLongStrideDictionary()
             throws Exception
     {

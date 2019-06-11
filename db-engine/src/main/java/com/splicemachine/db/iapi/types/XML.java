@@ -1148,6 +1148,11 @@ public class XML
         xmlStringValue = new SQLChar(unsafeArrayData.getUTF8String(ordinal).toString());
     }
 
+    @Override
+        public int getUnsafeArrayElementSize() {
+            return 8;
+    }
+    
     /**
      *
      * Read XML from Project Tungsten Format (UnsafeRow)

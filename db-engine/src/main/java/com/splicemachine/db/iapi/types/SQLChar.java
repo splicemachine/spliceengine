@@ -3417,6 +3417,11 @@ public class SQLChar
     	return Format.CHAR;
     }
 
+    @Override
+        public int getUnsafeArrayElementSize() {
+                return 8;
+    }
+    
     /**
      *
      * Write into the Project Tungsten Format (UnsafeRow).
