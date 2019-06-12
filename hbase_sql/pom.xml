@@ -280,10 +280,14 @@
     </build>
 
     <profiles>
-         <profiles>
         <profile>
             <id>dbaas</id>           
             <dependencies>
+                <dependency>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                    <version>1.9</version>
+                </dependency>
                 <dependency>
                     <groupId>org.apache.spark</groupId>
                     <artifactId>spark-mesos_${scala.binary.version}</artifactId>
@@ -333,6 +337,26 @@
                         <artifactId>scalatest_${scala.binary.version}</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.7.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>1.7.6-cdh5.14.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.fusesource.leveldbjni</groupId>
+                <artifactId>leveldbjni-all</artifactId>
+                <version>1.8</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang.modules</groupId>
+                <artifactId>scala-parser-combinators_2.11</artifactId>
+                <version>1.0.1</version>
             </dependency>
             </dependencies>
             <build>

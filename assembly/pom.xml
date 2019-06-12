@@ -1336,9 +1336,94 @@
             <id>dbaas</id>
             <dependencies>
                 <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_aws</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>io.airlift</groupId>
+                    <artifactId>configuration</artifactId>
+                    <version>0.144</version>
+                </dependency>
+                <dependency>
                     <groupId>com.google.guava</groupId>
                     <artifactId>guava</artifactId>
                     <version>${guava.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.sun.jersey</groupId>
+                    <artifactId>jersey-core</artifactId>
+                    <version>1.9</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-mesos_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-network-yarn_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-yarn_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.apache.hadoop</groupId>
+                            <artifactId>hadoop-yarn-api</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.hadoop</groupId>
+                            <artifactId>hadoop-yarn-server-web-proxy</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.hadoop</groupId>
+                            <artifactId>hadoop-client</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-network-common_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.scalatest</groupId>
+                            <artifactId>scalatest_${scala.binary.version}</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                    <version>1.7.5</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro</artifactId>
+                    <version>1.7.6-cdh5.14.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.fusesource.leveldbjni</groupId>
+                    <artifactId>leveldbjni-all</artifactId>
+                    <version>1.8</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.scala-lang.modules</groupId>
+                    <artifactId>scala-parser-combinators_2.11</artifactId>
+                    <version>1.0.1</version>
                 </dependency>
             </dependencies>
 
@@ -1356,9 +1441,6 @@
                                     <goal>copy-dependencies</goal>
                                 </goals>
                                 <configuration>
-                                    <excludeArtifactIds>
-                                        spark-avro_2.11
-                                    </excludeArtifactIds>
                                     <includeArtifactIds>
                                         commonArtifacts,
                                         guava,
@@ -1374,7 +1456,8 @@
                                         javax.ws.rs-api,
                                         jython-standalone,
                                         splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}
-                                    </includeArtifactIds>
+                                        spark-avro_2.11
+                                    </includeArtifactIds>c
                                 </configuration>
                             </execution>
                         </executions>
@@ -1560,9 +1643,9 @@
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib">
                                             <fileset dir="target/" includes="*splice-yarn-webproxy*"/>
                                         </copy>
-                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${project.version}-splice-uber.jar"
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-uber.jar"
                                               tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-uber.jar" />
-                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${project.version}-splice-yarn-webproxy.jar"
+                                        <move file="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-${envClassifier}-${project.version}-splice-yarn-webproxy.jar"
                                               tofile="${project.build.directory}/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/lib/splice_machine-assembly-yarn-webproxy.jar" />
                                         <tar compression="gzip" destfile="target/installer/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}.tar.gz">
                                             <tarfileset username="root" group="root" filemode="755" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin" prefix="SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin"/>
