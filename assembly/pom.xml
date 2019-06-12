@@ -1366,6 +1366,11 @@
                     <version>${spark.version}</version>
                 </dependency>
                 <dependency>
+                    <groupId>${project.groupId}</groupId>
+                    <artifactId>platform_it</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
                     <groupId>org.apache.spark</groupId>
                     <artifactId>spark-yarn_${scala.binary.version}</artifactId>
                     <version>${spark.version}</version>
@@ -1455,7 +1460,7 @@
                                         javax.servlet-api,
                                         javax.ws.rs-api,
                                         jython-standalone,
-                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}
+                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
                                         spark-avro_2.11
                                     </includeArtifactIds>c
                                 </configuration>

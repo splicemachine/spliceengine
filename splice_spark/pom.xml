@@ -37,7 +37,6 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <!-- make sure wrong scala version is not pulled in -->
@@ -55,13 +54,11 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -190,7 +187,6 @@
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
@@ -393,6 +389,14 @@
         </profile>
         <profile>
             <id>dbaas</id>
+            <dependencies>
+        <dependency>
+            <!-- Get all projects and required dependencies transitively -->
+            <groupId>${project.groupId}</groupId>
+            <artifactId>platform_it</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
             <build>
                 <plugins>
                     <plugin>
