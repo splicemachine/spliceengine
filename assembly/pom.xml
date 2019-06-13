@@ -1336,99 +1336,9 @@
             <id>dbaas</id>
             <dependencies>
                 <dependency>
-                    <groupId>com.splicemachine</groupId>
-                    <artifactId>splice_aws</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>io.airlift</groupId>
-                    <artifactId>configuration</artifactId>
-                    <version>0.144</version>
-                </dependency>
-                <dependency>
                     <groupId>com.google.guava</groupId>
                     <artifactId>guava</artifactId>
                     <version>${guava.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-core</artifactId>
-                    <version>1.9</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-mesos_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-network-yarn_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>${project.groupId}</groupId>
-                    <artifactId>platform_it</artifactId>
-                    <version>${project.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-yarn_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>org.apache.hadoop</groupId>
-                            <artifactId>hadoop-yarn-api</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.hadoop</groupId>
-                            <artifactId>hadoop-yarn-server-web-proxy</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.hadoop</groupId>
-                            <artifactId>hadoop-client</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-streaming_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>org.scalatest</groupId>
-                            <artifactId>scalatest_${scala.binary.version}</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-                <dependency>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                    <version>1.7.5</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.avro</groupId>
-                    <artifactId>avro</artifactId>
-                    <version>1.7.6-cdh5.14.0</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.fusesource.leveldbjni</groupId>
-                    <artifactId>leveldbjni-all</artifactId>
-                    <version>1.8</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.scala-lang.modules</groupId>
-                    <artifactId>scala-parser-combinators_2.11</artifactId>
-                    <version>1.0.1</version>
                 </dependency>
             </dependencies>
 
@@ -1460,8 +1370,7 @@
                                         javax.servlet-api,
                                         javax.ws.rs-api,
                                         jython-standalone,
-                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version},
-                                        spark-avro_2.11
+                                        splicemachine-${envClassifier}-${spark.version}_${scala.binary.version}
                                     </includeArtifactIds>c
                                 </configuration>
                             </execution>
