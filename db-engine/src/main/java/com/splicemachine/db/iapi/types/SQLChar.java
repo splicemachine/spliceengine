@@ -2504,7 +2504,7 @@ public class SQLChar
             startVal = start.getInt();
         }
 
-        if( isNull() || searchFrom.isNull() )
+        if( searchFrom.isNull() )
         {
             result.setToNull();
             return result;
@@ -2809,12 +2809,6 @@ public class SQLChar
         if (result == null)
         {
             result = (StringDataValue) getNewNull();
-        }
-
-        if (this.isNull())
-        {
-            result.setToNull();
-            return result;
         }
 
         if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)

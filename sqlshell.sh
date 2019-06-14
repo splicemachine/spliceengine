@@ -20,7 +20,7 @@ else
     -Djavax.net.ssl.keyStore=${CLIENT_SSL_KEYSTORE} \
     -Djavax.net.ssl.keyStorePassword=${CLIENT_SSL_KEYSTOREPASSWD} \
     -Djavax.net.ssl.trustStore=${CLIENT_SSL_TRUSTSTORE} \
-    -Djavax.netDjavax.net.ssl.trustStore.ssl.trustStorePassword=${CLIENT_SSL_TRUSTSTOREPASSWD} \
+    -Djavax.net.ssl.trustStore.ssl.trustStorePassword=${CLIENT_SSL_TRUSTSTOREPASSWD} \
     ; cd ${DIR}
 fi
 

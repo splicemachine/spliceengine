@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -41,11 +42,15 @@ import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOpera
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
@@ -53,7 +58,10 @@ import org.spark_project.guava.base.Strings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
@@ -72,7 +80,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
     protected TableDescriptor td;
     private boolean isScan=true;
     protected DMLWriteInfo writeInfo;
-    private TriggerHandler triggerHandler;
+    protected TriggerHandler triggerHandler;
     private SpliceMethod<ExecRow> generationClauses;
     private String generationClausesFunMethodName;
     private SpliceMethod<ExecRow> checkGM;
@@ -152,7 +160,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
                     writeInfo,
                     getActivation(),
                     getBeforeEvent(getClass()),
-                    getAfterEvent(getClass())
+                    getAfterEvent(getClass()),
+                    null
             );
         }
     }
@@ -337,4 +346,45 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
          */
         computeModifiedRows();
     }
+
+    protected Pair<DataSet,int[]> getBatchedDataset(DataSetProcessor dsp) throws StandardException {
+        DataSet set;
+        OperationContext operationContext=dsp.createOperationContext(this);
+        int[] expectedUpdatecounts = null;
+        if (activation.isBatched()) {
+            /*
+             If we are executing batched operations we gather all modified rows into a single dataset by collecting
+             one dataset for each original batched statement and then unioning them all together
+              */
+            List<DataSet> sets = new LinkedList<>();
+            List<Integer> counts = new ArrayList<>();
+            do {
+                Pair<DataSet, Integer> pair = source.getDataSet(dsp).shufflePartitions().materialize();
+                sets.add(pair.getFirst());
+                counts.add(pair.getSecond());
+            } while (activation.nextBatchElement()); // Iterate over each batched statement
+
+            /*
+            When we update each row (or insert/delete them) we do them all at once, so we can't map how many rows were affected
+            per original statement. That's why we need expectedUpdatecounts, which keeps track of how many rows were affected per statement
+             */
+            expectedUpdatecounts = new int[sets.size()];
+            Iterator<Integer> it = counts.iterator();
+            for(int i = 0; i < expectedUpdatecounts.length; ++i) {
+                expectedUpdatecounts[i] = it.next();
+            }
+
+            while(sets.size() > 1) {
+                DataSet left = sets.remove(0);
+                DataSet right = sets.remove(0);
+                sets.add(left.union(right, operationContext));
+            }
+
+            set = sets.get(0);
+        } else {
+            set=source.getDataSet(dsp).shufflePartitions();
+        }
+        return Pair.newPair(set, expectedUpdatecounts);
+    }
+
 }

@@ -1,0 +1,101 @@
+#!/bin/bash
+
+#
+# chkconfig: 35 99 01
+# description:  Enables Splice Machine services
+#
+# LSB compliant service control script
+#
+### BEGIN INIT INFO
+# Provides:       splice-machine
+# Required-Start: $mapr-warden
+# Required-Stop:  
+# Should-Start:
+# Should-Stop:
+# Default-Start:  3 5
+# Default-Stop:   0 1 2 6
+# Short-Description: Start Splice Machine services
+### END INIT INFO
+
+scriptname=$(basename "${0}")
+
+whoami | grep -q ^root$ || {
+	echo "${scriptname}: please run this script as root" 1>&2
+	exit 1
+}
+
+# bail out early if we do not have an HBase install
+maprtop="/opt/mapr"
+maprhbase="${maprtop}/hbase"
+test -e ${maprhbase} || {
+	echo "${scriptname}: ${maprhbase} not found; exiting" 1>&2
+	exit 1
+}
+hbase_ver=1.1.8-splice
+hbase_home="${maprhbase}/hbase${hbase_ver}"
+hbase_conf="${hbase_home}/conf"
+hbase_bin="${hbase_home}/bin"
+hbase_daemon="${hbase_bin}/hbase-daemon.sh"
+test -e ${hbase_conf} || {
+	echo "${scriptname}: ${hbase_conf} not found; exiting" 1>&2
+	exit 1
+}
+test -e ${hbase_daemon} || {
+	echo "${scriptname}: ${hbase_daemon} not found; exiting" 1>&2
+	exit 1
+}
+
+mapruser="mapr"
+splice_hbase_id="splice"
+splice_hbase_role=""
+initd="/etc/init.d"
+
+usage() {
+	cat <<- EOF
+	${scriptname}: (start|stop|restart|status)
+	  start : start up ${splice_hbase_id} ${splice_hbase_role}
+	  stop : stop ${splice_hbase_id} ${splice_hbase_role}
+	  restart : restart ${splice_hbase_id} ${splice_hbase_role}
+	  status : check status of ${splice_hbase_id} ${splice_hbase_role}
+	EOF
+	exit 1
+}
+
+if ! $(echo "${scriptname}" | egrep -q "${splice_hbase_id}-(master|regionserver)") ; then
+	cat <<- EOF
+	${scriptname}: this script should be symlinked to one of the following locations based on roles:
+	  ${initd}/${splice_hbase_id}-master - Splice Machine HBase Master
+	  ${initd}/${splice_hbase_id}-regionserver - Splice Machine HBase RegionServer
+	EOF
+	exit 1
+else
+	if [[ "${scriptname}" =~ "${splice_hbase_id}-master" ]] ; then
+		splice_hbase_role="master"
+	elif [[ "${scriptname}" =~ "${splice_hbase_id}-regionserver" ]] ; then
+		splice_hbase_role="regionserver"
+	fi
+fi
+if [ -z "${splice_hbase_role}" ] ; then
+	echo "${scriptname}: could not figure out role type; exiting"
+	exit 1
+fi
+
+case "${1}" in
+	start)
+		su - ${mapruser} -c "HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} start ${splice_hbase_role}"
+		;;
+	stop)
+		su - ${mapruser} -c "HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} stop ${splice_hbase_role}"
+		;;
+	restart)
+		su - ${mapruser} -c "HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} restart ${splice_hbase_role}"
+		;;
+	status)
+		su - ${mapruser} -c "HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} status ${splice_hbase_role}"
+		;;
+	*)
+		usage
+		exit 1
+		;;
+esac
+exit $?

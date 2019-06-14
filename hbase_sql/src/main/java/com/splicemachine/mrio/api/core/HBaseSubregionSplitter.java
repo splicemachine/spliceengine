@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HBaseSubregionSplitter implements SubregionSplitter{
     private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
-    public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits) {
+    public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits, long tableSize) {
         int splitsPerPartition;
         if (splits.size() > 3) {
             // First and last partitions could be very small, don't take them into account
@@ -57,8 +57,14 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
             SpliceMessage.SpliceSplitServiceRequest.Builder builder = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
                     .setBeginKey(ZeroCopyLiteralByteString.wrap(scanStartRow))
                     .setEndKey(ZeroCopyLiteralByteString.wrap(scanStopRow));
+            long bytesPerSplit = 0;
             if (splitsPerPartition > 0) {
                 builder.setRequestedSplits(splitsPerPartition);
+                if (tableSize > 0) {
+                    bytesPerSplit = (tableSize + (tableSize % requestedSplits)) / requestedSplits;
+                    builder.setBytesPerSplit(bytesPerSplit);
+                }
+
             }
             SpliceMessage.SpliceSplitServiceRequest message = builder.build();
 

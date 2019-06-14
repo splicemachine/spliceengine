@@ -46,6 +46,19 @@ public interface MaterialPreparedStatement extends MaterialStatement {
                        boolean chainedWritesFollowingSetLob) throws SqlException;
 
 
+    void writeExecuteBatch_(Section section,
+                       ColumnMetaData parameterMetaData,
+                       Object[] inputs,
+                       int numInputColumns,
+                       boolean outputExpected,
+                       // This is a hint to the material layer that more write commands will follow.
+                       // It is ignored by the driver in all cases except when blob data is written,
+                       // in which case this boolean is used to optimize the implementation.
+                       // Otherwise we wouldn't be able to chain after blob data is sent.
+                       // Current servers have a restriction that blobs can only be chained with blobs
+                       // Can the blob code
+                       boolean chainedWritesFollowingSetLob) throws SqlException;
+
     void readExecute_() throws SqlException;
 
     void writeOpenQuery_(Section section,

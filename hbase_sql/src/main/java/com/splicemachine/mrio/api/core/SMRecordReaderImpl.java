@@ -38,6 +38,7 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -69,7 +70,14 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 
 	public SMRecordReaderImpl(Configuration config) {
 		this.config = config;
-	}	
+	}
+	public long getRegionSize() {
+		long size = 0;
+		for (Store store:hregion.getStores()) {
+			size += store.getSize();
+		}
+		return size;
+	}
 	
 	@Override
 	public void initialize(InputSplit split, TaskAttemptContext context)

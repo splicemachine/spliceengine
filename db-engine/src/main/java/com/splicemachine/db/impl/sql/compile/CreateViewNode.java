@@ -72,6 +72,7 @@ public class CreateViewNode extends DDLStatementNode
     private ValueNode   offset;
     private ValueNode   fetchFirst;
     private boolean hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
+	private boolean isRecursive;
 
 	/**
 	 * Initializer for a CreateViewNode
@@ -99,7 +100,8 @@ public class CreateViewNode extends DDLStatementNode
                    Object orderCols,
                    Object offset,
                    Object fetchFirst,
-                   Object hasJDBClimitClause)
+                   Object hasJDBClimitClause,
+                   Object isRecursive)
 		throws StandardException
 	{
 		initAndCheck(newObjectName);
@@ -111,6 +113,7 @@ public class CreateViewNode extends DDLStatementNode
         this.offset = (ValueNode)offset;
         this.fetchFirst = (ValueNode)fetchFirst;
         this.hasJDBClimitClause = hasJDBClimitClause != null && (Boolean) hasJDBClimitClause;
+        this.isRecursive = isRecursive != null && (Boolean) isRecursive;
 
 		implicitCreateSchema = true;
 	}
@@ -192,13 +195,20 @@ public class CreateViewNode extends DDLStatementNode
 		String						duplicateColName;
 
 		// bind the query expression
-
-		providerInfos = bindViewDefinition
-			( dataDictionary, cc, getLanguageConnectionContext(),
-			  getNodeFactory(), 
-			  queryExpression,
-			  getContextManager()
-			);
+		if (isRecursive) {
+			providerInfos = bindRecursiveViewDefinition
+					( dataDictionary, cc,
+							getNodeFactory(),
+							getContextManager()
+					);
+		} else {
+			providerInfos = bindViewDefinition
+					(dataDictionary, cc,
+							getNodeFactory(),
+							queryExpression,
+							getContextManager()
+					);
+		}
 
 		qeRCL = queryExpression.getResultColumns();
 
@@ -253,7 +263,6 @@ public class CreateViewNode extends DDLStatementNode
 
 	private ProviderInfo[] bindViewDefinition( DataDictionary 	dataDictionary,
 											 CompilerContext	compilerContext,
-											 LanguageConnectionContext lcc,
 											 NodeFactory		nodeFactory,
 											 ResultSetNode		queryExpr,
 											 ContextManager		cm)
@@ -274,6 +283,7 @@ public class CreateViewNode extends DDLStatementNode
 			/* Bind the tables in the queryExpression */
 			queryExpr = queryExpr.bindNonVTITables(dataDictionary, fromList);
 			queryExpr = queryExpr.bindVTITables(fromList);
+
 
 			/* Bind the expressions under the resultSet */
 			queryExpr.bindExpressions(fromList);
@@ -318,6 +328,123 @@ public class CreateViewNode extends DDLStatementNode
 			SanityManager.ASSERT(fromList.size() == 0,
 				"fromList.size() is expected to be 0, not " + fromList.size() +
 				" on return from RS.bindExpressions()");
+		}
+
+		return providerInfos;
+	}
+
+	public void replaceSelfReferenceForRecursiveView(TableDescriptor td) throws StandardException {
+		// set recursive view descriptor which contains the column type info.
+		((UnionNode)queryExpression).setViewDescreiptor(td);
+		ResultSetNode leftResultSetNode = ((UnionNode) queryExpression).getLeftResultSet();
+		ResultSetNode rightResultSetNode = ((UnionNode) queryExpression).getRightResultSet();
+		RecursiveViewReferenceVisitor recursiveViewReferenceVisitor =
+				new RecursiveViewReferenceVisitor(getObjectName(), leftResultSetNode, queryExpression, td);
+
+		leftResultSetNode.accept(recursiveViewReferenceVisitor);
+		int numReferences = recursiveViewReferenceVisitor.getNumReferences();
+		if (numReferences > 0) {
+			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					"No recursive reference is allowed in the seed statement of a WITH RECURSIVE");
+		}
+
+		rightResultSetNode.accept(recursiveViewReferenceVisitor);
+		numReferences = recursiveViewReferenceVisitor.getNumReferences();
+
+		/* check for valid syntax: currently only one recursive reference is allowed */
+		if (numReferences <= 0) {
+			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					"No recursive reference found in WITH RECURSIVE");
+		} else if (numReferences > 1) {
+			throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+					"More than one recursive reference in WITH RECURSIVE is not supported!");
+		}
+
+		return;
+	}
+
+	private ProviderInfo[] bindRecursiveViewDefinition(DataDictionary 	dataDictionary,
+													   CompilerContext	compilerContext,
+											           NodeFactory		nodeFactory,
+											           ContextManager	cm)
+			throws StandardException
+	{
+		FromList	fromList = (FromList) nodeFactory.getNode(
+				C_NodeTypes.FROM_LIST,
+				nodeFactory.doJoinOrderOptimization(),
+				cm);
+
+		ProviderList 	prevAPL = compilerContext.getCurrentAuxiliaryProviderList();
+		ProviderList 	apl = new ProviderList();
+
+		try {
+			compilerContext.setCurrentAuxiliaryProviderList(apl);
+			compilerContext.pushCurrentPrivType(Authorizer.SELECT_PRIV);
+
+			/* step 1: recursive with must be a UNION-AlL where the left branch is the
+			   seed, and the right branch is the recursion part with a self-reference
+			 */
+			if (!(queryExpression instanceof UnionNode) ||  !((UnionNode)queryExpression).all)
+				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR,
+						"WITH RECURSIVE requires UNION-ALL operation at the top level of the definition");
+
+			/* step 2: replace the self-reference in the right branch with a SelfReferenceNode */
+			replaceSelfReferenceForRecursiveView(null);
+
+			/* step 3: bind the left of the union-all */
+			((UnionNode) queryExpression).getLeftResultSet().bindNonVTITables(dataDictionary, fromList);
+			((UnionNode) queryExpression).getLeftResultSet().bindVTITables(fromList);
+
+			/* Bind the expressions under the resultSet */
+			((UnionNode) queryExpression).getLeftResultSet().bindExpressions(fromList);
+
+			// bind the query expression
+			((UnionNode) queryExpression).getLeftResultSet().bindResultColumns(fromList);
+
+			/* step 4: bind the right only, and the union node */
+			((SetOperatorNode)queryExpression).bindNonVTITables(dataDictionary, fromList, true);
+			((SetOperatorNode)queryExpression).bindVTITables(fromList, true);
+			((SetOperatorNode)queryExpression).bindExpressions(fromList, true);
+			((SetOperatorNode)queryExpression).bindResultColumns(fromList, true);
+
+			/* step 5: more syntax check, no nested recursive view allowed */
+			RecursiveViewSyntaxCheckVisitor syntaxCheckVisitor = new RecursiveViewSyntaxCheckVisitor();
+			queryExpression.accept(syntaxCheckVisitor);
+
+			//cannot define views on temporary tables
+			//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
+			if (queryExpression.referencesSessionSchema())
+				throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
+			// check that no provider is a temp table (whether or not it's in SESSION schema)
+			for (Provider provider : apl.values()) {
+				if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
+					throw StandardException.newException(SQLState.LANG_TEMP_TABLES_CANNOT_BE_IN_VIEWS,
+							provider.getObjectName());
+				}
+			}
+
+			// rejects any untyped nulls in the RCL
+			// e.g.:  CREATE VIEW v1 AS VALUES NULL
+			queryExpression.bindUntypedNullsToResultColumns(null);
+		}
+		finally
+		{
+			compilerContext.popCurrentPrivType();
+			compilerContext.setCurrentAuxiliaryProviderList(prevAPL);
+		}
+
+		DependencyManager 		dm = dataDictionary.getDependencyManager();
+		ProviderInfo[]			providerInfos = dm.getPersistentProviderInfos(apl);
+		// need to clear the column info in case the same table descriptor
+		// is reused, eg., in multiple target only view definition
+		dm.clearColumnInfoInProviders(apl);
+
+		/* Verify that all underlying ResultSets reclaimed their FromList */
+		if (SanityManager.DEBUG)
+		{
+			SanityManager.ASSERT(fromList.size() == 0,
+					"fromList.size() is expected to be 0, not " + fromList.size() +
+							" on return from RS.bindExpressions()");
 		}
 
 		return providerInfos;
@@ -493,10 +620,18 @@ public class CreateViewNode extends DDLStatementNode
 		ColumnDescriptorList cdl = td.getColumnDescriptorList();
 		Collections.addAll(cdl, cdlArray);
 
-		ViewDescriptor vd = ddg.newViewDescriptor(toid, getRelativeName(), "create view " + getRelativeName() + " " + qeText, checkOption, sd.getUUID());
+		String createViewString;
+		if (isRecursive)
+			createViewString = "create recursive view ";
+		else
+			createViewString = "create view ";
+
+		ViewDescriptor vd = ddg.newViewDescriptor(toid, getRelativeName(), createViewString + getRelativeName() + " " + qeText, checkOption, sd.getUUID());
 		td.setViewDescriptor(vd);
 		return td;
 	}
 
-
+	public boolean isRecursive() {
+    	return isRecursive;
+	}
 }

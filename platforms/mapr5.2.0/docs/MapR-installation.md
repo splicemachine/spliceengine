@@ -46,33 +46,6 @@ your cluster contains the prerequisite software components:
   * MEP version 2.0 bundles Spark 2.0, and will not cause conflicts with
     Splice Machine.
 
-The specific versions of these components that you need depend on your
-operating environment, and are called out in detail in the
-[Requirements](https://doc.splicemachine.com/onprem_info_requirements.html) topic of our *Getting Started Guide*.
-
-### Removing Spark Packages from Your Cluster
-
-To remove Spark packages from your cluster and update your
-configuration, follow these steps
-
-1. If you're running a Debian/Ubuntu-based Linux distribution:
-
-   ````
-   dpkg -l | awk '/ii.*mapr-spark/{print $2}' | xargs sudo apt-get purge
-   ````
-
-   If you're running on a RHEL/CentOS-based Linux distribution:
-
-   ````
-   rpm -qa \*mapr-spark\* | xargs sudo yum -y erase
-   ````
-
-2. Reconfigure node services in your cluster:
-
-   ````
-   sudo /opt/mapr/server/configure.sh -R
-   ````
-
 ## Download and Install Splice Machine
 
 Perform the following steps **on each node**
@@ -80,221 +53,88 @@ in your cluster:
 
 1. Download the installer for your version.
 
-   Which Splice Machine installer (gzip) package you need depends upon which Splice Machine version you're installing and which version of MapR you are using. Here are the URLs for Splice Machine Releases 2.7 and 2.5:
+2. Get the four rpms into a directory on all nodes in the cluster that you'll be running splicemachine:
 
-   <table>
-    <col />
-    <col />
-    <col />
-    <thead>
-        <tr>
-            <th>Splice Machine Version</th>
-            <th>MapR Version</th>
-            <th>Installer Package Link</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-           <td><strong>2.7</strong></td>
-           <td><strong>2.5.0</strong></td>
-           <td><a href="https://s3.amazonaws.com/splice-releases/2.6.1.1745/cluster/installer/mapr5.2.0/SPLICEMACHINE-2.6.1.1745.mapr5.2.0.p0.121.tar.gz">https://s3.amazonaws.com/splice-releases/2.6.1.1745/cluster/installer/mapr5.2.0/SPLICEMACHINE-2.6.1.1745.mapr5.2.0.p0.121.tar.gz</a></td>
-        </tr>
-        <tr>
-           <td><strong>2.5</strong></td>
-           <td><strong>2.5.0</strong></td>
-           <td><a href="https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/installer/mapr5.2.0/SPLICEMACHINE-2.5.0.1802.mapr5.2.0.p0.540.tar.gz">https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/installer/mapr5.2.0/SPLICEMACHINE-2.5.0.1802.mapr5.2.0.p0.540.tar.gz</a></td>
-        </tr>
-    </tbody>
-   </table>
+ ````
+splicemachine-mapr5.2.0-hbase-bin-2.8.0.1904.p0.1_1.noarch.rpm
+splicemachine-mapr5.2.0-hbase-conf-2.8.0.1904.p0.1_1.noarch.rpm
+splicemachine-mapr5.2.0-region-2.8.0.1904.p0.1_1.noarch.rpm
+splicemachine-mapr5.2.0-master-2.8.0.1904.p0.1_1.noarch.rpm
+ ````
+You can replace secure with hbase-secure-conf if you want it unsecure
 
-   **NOTE:** To be sure that you have the latest URL, please check [the Splice
-   Machine Community site](https://community.splicemachine.com/) or contact your Splice
-   Machine representative.
+3. On the splice master node:
+ ````
+sudo rpm -ivhp splicemachine-mapr5.2.0-hbase-bin-2.8.0.1904.p0.1_1.noarch.rpm splicemachine-mapr5.2.0-hbase-conf-2.8.0.1904.p0.1_1.noarch.rpm
+splicemachine-mapr5.2.0-master-2.8.0.1904.p0.1_1.noarch.rpm
+ ````
 
-2. Create the `splice` installation directory:
+4. On all of the remaining nodes, to run a regionserver:
+ ````
+ sudo rpm -ivhp splicemachine-mapr5.2.0-hbase-bin-2.8.0.1904.p0.1_1.noarch.rpm splicemachine-mapr5.2.0-hbase-conf-2.8.0.1904.p0.1_1.noarch.rpm
+ splicemachine-mapr5.2.0-region-2.8.0.1904.p0.1_1.noarch.rpm
+ ````
 
+5. Make one config file edit: update zookeeper quorum, on all machines:
    ````
-   mkdir -p /opt/splice
+   sudo vi /opt/mapr/hbase/hbase1.1.8-splice/conf/hbase-site.xml
    ````
+replace `###ZK_QUORUM_LIST###` with your quorum, e.g. a single hostname
+  `ip-10-11-128-26.ec2.internal`
+or a comma separated list
+  `ip-10-11-128-26.ec2.internal,ip-10-11-128-27.ec2.internal`
 
-3. Download the Splice Machine package into the `splice` directory on
-   the node. For example:
 
+6. Update Yarn configs to include spark:
+
+ on all machines running yarn:
    ````
-   cd /opt/splicecurl -O '////SPLICEMACHINE-...'
+   sudo vi /opt/mapr/hadoop/hadoop-2.7.0/etc/hadoop/yarn-site.xml
    ````
 
-4. Extract the Splice Machine package:
+   add in the following lines before the final closing 
+    ````
+   </configuration> tag
 
-   ````
-   tar -xf SPLICEMACHINE-...
-   ````
+    <!-- yarn resource settings are installation specific -->
+     <property><name>yarn.scheduler.minimum-allocation-mb</name><value>1024</value></property>
+     <property><name>yarn.scheduler.increment-allocation-mb</name><value>512</value></property>
+     <property><name>yarn.scheduler.maximum-allocation-mb</name><value>30720</value></property>
+     <property><name>yarn.nodemanager.resource.memory-mb</name><value>30720</value></property>
 
-5. Create a symbolic link. For example:
+     <property><name>yarn.scheduler.minimum-allocation-vcores</name><value>1</value></property>
+     <property><name>yarn.scheduler.increment-allocation-vcores</name><value>1</value></property>
+     <property><name>yarn.scheduler.maximum-allocation-vcores</name><value>19</value></property>
+     <property><name>yarn.nodemanager.resource.cpu-vcores</name><value>19</value></property>
+     <property><name>yarn.nodemanager.aux-services</name><value>mapreduce_shuffle,mapr_direct_shuffle,spark_shuffle</value></property>
+     <property><name>yarn.nodemanager.aux-services.mapreduce_shuffle.class</name><value>org.apache.hadoop.mapred.ShuffleHandler</value></property>
+     <property><name>yarn.nodemanager.aux-services.spark_shuffle.class</name><value>org.apache.spark.network.yarn.YarnShuffleService</value></property>
+    ````
 
-   ````
-   ln -sf SPLICEMACHINE-... default
-   ````
+7. copy the spark yarn-shuffle jar into the yarn library so it gets onto the classpath:
+  
+ ````
+sudo cp /opt/mapr/spark/spark-2.3.2/yarn/spark-2.3.2-mapr-1901-yarn-shuffle.jar /opt/mapr/hadoop/hadoop-2.7.0/share/hadoop/yarn/lib/
+ ````
 
-6. Run our script as *root* user **on each
-   node** in your cluster to add symbolic links to the set up the
-   Splice Machine jar and to script symbolic links:
+8. Make some folders that splice needs in the maprfs:
 
-   Issue this command on each node in your cluster:
+ ````
+sudo -iu mapr hadoop fs -mkdir -p maprfs:///splice-hbase
+sudo -iu mapr hadoop fs -mkdir -p maprfs:///user/splice/history
+sudo -iu mapr hadoop fs -chown -R mapr:mapr maprfs:///user/splice/history
+sudo -iu mapr hadoop fs -chmod 777 maprfs:///user/splice/history
+ ````
 
-   ````
-   sudo bash /opt/splice/default/scripts/install-splice-symlinks.sh
-   ````
+9. Restart all mapr components (only nodemanager/resourcemanager is strictly needed, but this is the easiest way):
+`sudo service mapr-warden restart`
 
-## Configure Cluster Services
+10. Finally, to start splice, on the appropriate machine(s):
+ ````
+sudo service splice-masterserver start
+sudo service splice-regionserver start
 
-The scripts used in this section all assume that password-less <code>ssh </code>and password-less <code>sudo </code>are enabled across all cluster nodes.
-These scripts are designed to be run on the CLDB node in a cluster with
-only one CLDB node. If your cluster has multiple CLDB nodes, do not run
-these script; you need to change configuration settings manually **on each node** in the cluster. To do so, refer to
-the `*.patch` files in the `/opt/splice/default/conf` directory.
-
-If you're running on a cluster with a single CLDB node, follow these
-steps:
-
-1. Tighten the ephemeral port range so HBase doesn't bump into it:
-
-   ````
-   cd /opt/splice/default/scripts
-   ./install-sysctl-conf.sh
-   ````
-
-2. Update `hbase-site.xml`:
-
-   ````
-   cd /opt/splice/default/scripts
-   ./install-hbase-site-xml.sh
-   ````
-
-3. Update `hbase-env.sh`:
-
-   ````
-   cd /opt/splice/default/scripts
-   ./install-hbase-env-sh.sh
-   ````
-
-4. Update `yarn-site.xml`:
-
-   ````
-   cd /opt/splice/default/scripts
-   ./install-yarn-site-xml.sh
-   ````
-
-5. Update `warden.conf`:
-
-   ````
-   cd /opt/splice/default/scripts
-   ./install-warden-conf.sh
-   ````
-
-6. Update `zoo.cfg`:
-
-   ````
-   cd /opt/splice/default/scripts
-   ./install-zookeeper-conf.sh
-   ````
-
-## Stop Cluster Services
-
-You need to stop all cluster services to continue with installing Splice
-Machine. Run the following commands as `root` user **on each node** in your cluster
-
-   ````
-   sudo service mapr-warden stopsudo service mapr-zookeeper stop
-   ````
-
-## Restart Cluster Services
-
-Once you've completed the configuration steps described above, start
-services on your cluster; run the following commands **on each node** in your cluster:
-
-   ````
-   sudo service mapr-zookeeper startsudo service mapr-warden start
-   ````
-
-
-## Create the Splice Machine Event Log Directory
-
-Create the Splice Machine event log directory by executing the following
-commands on a single cluster node while MapR is up and running:
-
-   ````
-   sudo -su mapr hadoop fs -mkdir -p /user/splice/historysudo -su mapr hadoop fs -chown -R mapr:mapr /user/splicesudo -su mapr hadoop fs -chmod 1777 /user/splice/history
-   ````
-
-## Optional Configuration Modifications
-
-There are a few configuration modifications you might want to make:
-
-* [Modify the Authentication Mechanism](#modify-the-authentication-mechanism) if you want to
-  authenticate users with something other than the default *native
-  authentication* mechanism.
-* [Modify the Log Location](#modify-the-log-location) if you want your Splice Machine
-  log entries stored somewhere other than in the logs for your region
-  servers.
-* [Adjust the Replication Factor](#adjust-the-replication-factor) if you have a small cluster
-  and need to improve resource usage or performance.
-
-### Modify the Authentication Mechanism
-
-Splice Machine installs with Native authentication configured; native
-authentication uses the `sys.sysusers` table in the `splice` schema for
-configuring user names and passwords.
-
-You can disable authentication or change the authentication mechanism
-that Splice Machine uses to LDAP by following the simple instructions in
-[Command Line (splice&gt;) Reference](https://doc.splicemachine.com/cmdlineref_intro.html)
-
-### Modify the Log Location
-
-#### Query Statement log
-
-Splice Machine logs all SQL statements by default, storing the log
-entries in your region server's logs, as described in our [Using
-Logging](developers_tuning_logging) topic. You can modify where Splice
-Machine stores logs as follows:
-
-1. Append the following configuration information to the `/opt/mapr/hbase/hbase-1.1.1/conf/log4jd/properties` file _on each node_ in your cluster:
-
-   ````
-   log4j.appender.spliceDerby=org.apache.log4j.FileAppender
-   log4j.appender.spliceDerby.File=${hbase.log.dir}/splice-derby.log
-   log4j.appender.spliceDerby.layout=org.apache.log4j.EnhancedPatternLayout
-   log4j.appender.spliceDerby.layout.ConversionPattern=%d{EEE MMM d HH:mm:ss,SSS} Thread[%t] %m%n
-
-   log4j.appender.spliceStatement=org.apache.log4j.FileAppender
-   log4j.appender.spliceStatement.File=${hbase.log.dir}/splice-statement.log
-   log4j.appender.spliceStatement.layout=org.apache.log4j.EnhancedPatternLayout
-   log4j.appender.spliceStatement.layout.ConversionPattern=%d{EEE MMM d HH:mm:ss,SSS} Thread[%t] %m%n
-
-   log4j.logger.splice-derby=INFO, spliceDerby
-   log4j.additivity.splice-derby=false
-
-   # Uncomment to log statements to a different file:
-   #log4j.logger.splice-derby.statement=INFO, spliceStatement
-   # Uncomment to not replicate statements to the spliceDerby file:
-   #log4j.additivity.splice-derby.statement=false
-   ````
-
-2. Use either of these methods to take the log changes live:
-
-   * Restart the MapR service on each node in your cluster:
-
-     ````
-     service mapr-warden restart
-     ````
-
-    * OR, restart the HBase service _on each node_ in your cluster by issuing these commands from your Master node:
-
-      ````
-      sudo -su mapr maprcli node services -hbmaster restart -nodes **&lt;master node&gt;** <br />
-      sudo -su mapr maprcli node services -hbregionserver restart -nodes  **&lt;regional node 1&gt; &lt;regional node 2&gt; ... &lt;regional node n&gt;**
-      ````
+ ````
       
 #### OLAP Server Log
 

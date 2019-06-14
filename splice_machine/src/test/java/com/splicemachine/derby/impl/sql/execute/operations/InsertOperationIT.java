@@ -520,6 +520,7 @@ public class InsertOperationIT {
         ResultSet rs = ps.executeQuery();
         rs.next();
         Assert.assertEquals("results returned correct",10,rs.getInt(1));
+        conn.rollback();
     }
 
     @Test

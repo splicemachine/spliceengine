@@ -119,8 +119,16 @@ public class RSUtils {
             UnionNode.class,
             IntersectOrExceptNode.class);
 
+    public static final Set<?> binaryRSNsExcludeUnion = ImmutableSet.of(
+            JoinNode.class,
+            HalfOuterJoinNode.class,
+            IntersectOrExceptNode.class);
+
     public static final org.spark_project.guava.base.Predicate<Object> isBinaryRSN =
             Predicates.compose(Predicates.in(binaryRSNs), classOf);
+
+    public static final org.spark_project.guava.base.Predicate<Object> isBinaryRSNExcludeUnion =
+            Predicates.compose(Predicates.in(binaryRSNsExcludeUnion), classOf);
 
     // leafRSNs might need VTI eventually
     public static final Set<?> leafRSNs = ImmutableSet.of(
@@ -198,6 +206,13 @@ public class RSUtils {
                 .collect(rsn);
     }
 
+    public static List<ResultSetNode> nodesUntilBinaryNodeExcludeUnion(ResultSetNode rsn) throws StandardException {
+        return CollectingVisitorBuilder.forClass(ResultSetNode.class)
+                .onAxis(isRSN)
+                .until(isBinaryRSNExcludeUnion)
+                .collect(rsn);
+    }
+
     /**
      * Returns the leaves for a query plan subtree
      */
@@ -245,6 +260,7 @@ public class RSUtils {
     public static PredicateList getPreds(ProjectRestrictNode pr) throws StandardException {
         return pr.restrictionList != null ? pr.restrictionList : new PredicateList();
     }
+
 
     public static PredicateList getPreds(IndexToBaseRowNode in) throws StandardException {
         return in.restrictionList != null ? in.restrictionList : new PredicateList();

@@ -15,6 +15,8 @@
 package com.splicemachine.tools.version;
 
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.system.SparkVersion;
+import com.splicemachine.system.SimpleSparkVersion;
 
 import javax.management.*;
 import java.util.HashMap;
@@ -65,6 +67,10 @@ public class ManifestReader {
      */
     public DatabaseVersion createVersion() {
         return new SimpleDatabaseVersion(getManifestProps());
+    }
+
+    public SparkVersion createSparkVersion() {
+        return new SimpleSparkVersion(getManifestProps());
     }
 
     private Map<String, String> getManifestProps() {

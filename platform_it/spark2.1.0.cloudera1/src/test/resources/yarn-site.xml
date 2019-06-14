@@ -120,7 +120,7 @@
     <value>false</value>
   </property>
   <property>
-    <name>yarn.nodemanager.dist-health-checker.max-disk-utilization-per-disk-percentage</name>
+    <name>yarn.nodemanager.disk-health-checker.max-disk-utilization-per-disk-percentage</name>
     <value>100</value>
   </property>
 </configuration>

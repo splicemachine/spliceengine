@@ -537,7 +537,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
     public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
 		try {
-			return new SQLDecimal(getBigDecimal(), precision, scale);
+		    SQLDecimal decimal = new SQLDecimal(getBigDecimal(), precision, scale);
+		    if (decimal.getPrecision() != precision)
+		        decimal.setPrecision(precision);
+		    if (decimal.getScale() != scale)
+		        decimal.setScale(scale);
+		    return decimal;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

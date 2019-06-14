@@ -94,6 +94,9 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long backupMaxBandwidthMB;
     private final  boolean backupUseDistcp;
     private final  int backupIOBufferSize;
+    private final  int replicationSnapshotInterval;
+    private final  int replicationSinkPort;
+    private final int replicationProgressUpdateInterval;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -194,6 +197,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int nestedLoopJoinBatchSize;
     private final long controlExecutionRowLimit;
     private final int maxCheckTableErrors;
+    private final int recursiveQueryIterationLimit;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -367,6 +371,18 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getBackupIOBufferSize() {
         return backupIOBufferSize;
+    }
+    @Override
+    public int getReplicationSnapshotInterval() {
+        return replicationSnapshotInterval;
+    }
+    @Override
+    public int getReplicationSinkPort() {
+        return replicationSinkPort;
+    }
+    @Override
+    public int getReplicationProgressUpdateInterval() {
+        return replicationProgressUpdateInterval;
     }
     @Override
     public String getCompressionAlgorithm() {
@@ -724,6 +740,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getNestedLoopJoinBatchSize() {
         return nestedLoopJoinBatchSize;
     }
+    @Override
+    public int getRecursiveQueryIterationLimit() {
+        return recursiveQueryIterationLimit;
+    }
 
     // StatsConfiguration
     @Override
@@ -870,6 +890,9 @@ public final class SConfigurationImpl implements SConfiguration {
         backupMaxBandwidthMB = builder.backupMaxBandwidthMB;
         backupUseDistcp = builder.backupUseDistcp;
         backupIOBufferSize = builder.backupIOBufferSize;
+        replicationSnapshotInterval = builder.replicationSnapshotInterval;
+        replicationSinkPort = builder.replicationSinkPort;
+        replicationProgressUpdateInterval = builder.replicationProgressUpdateInterval;
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;
@@ -893,6 +916,7 @@ public final class SConfigurationImpl implements SConfiguration {
         broadcastRegionMbThreshold = builder.broadcastRegionMbThreshold;
         broadcastRegionRowThreshold = builder.broadcastRegionRowThreshold;
         broadcastDatasetCostThreshold = builder.broadcastDatasetCostThreshold;
+        recursiveQueryIterationLimit = builder.recursiveQueryIterationLimit;
         optimizerPlanMaximumTimeout = builder.optimizerPlanMaximumTimeout;
         optimizerPlanMinimumTimeout = builder.optimizerPlanMinimumTimeout;
         determineSparkRowThreshold = builder.determineSparkRowThreshold;

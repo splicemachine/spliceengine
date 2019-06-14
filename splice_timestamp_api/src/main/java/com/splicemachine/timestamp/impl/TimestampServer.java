@@ -33,7 +33,7 @@ public class TimestampServer {
     /**
      * Fixed number of bytes in the message we expect to receive from the client.
      */
-    static final int FIXED_MSG_RECEIVED_LENGTH = 2; // 2 byte client id
+    static final int FIXED_MSG_RECEIVED_LENGTH = 3; // 2 byte client id + 1 byte refresh boolean
 
     /**
      * Fixed number of bytes in the message we expect to send back to the client.
@@ -71,10 +71,10 @@ public class TimestampServer {
 
         bootstrap.setPipelineFactory(new TimestampPipelineFactoryLite(handler));
 
-        bootstrap.setOption("tcpNoDelay", false);
+        bootstrap.setOption("tcpNoDelay", true);
         // bootstrap.setOption("child.sendBufferSize", 1048576);
         // bootstrap.setOption("child.receiveBufferSize", 1048576);
-        bootstrap.setOption("child.tcpNoDelay", false);
+        bootstrap.setOption("child.tcpNoDelay", true);
         bootstrap.setOption("child.keepAlive", true);
         bootstrap.setOption("child.reuseAddress", true);
         // bootstrap.setOption("child.connectTimeoutMillis", 120000);

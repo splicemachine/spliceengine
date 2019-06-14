@@ -43,6 +43,8 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Objects;
 
+import static com.splicemachine.db.iapi.types.SQLDecimal.getBigDecimal;
+
 /**
  * @author Scott Fines
  *         Date: 5/16/14
@@ -71,7 +73,7 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 
 		@Override
 		protected void accumulate(DataValueDescriptor addend) throws StandardException {
-				buffer[position] = (BigDecimal)addend.getObject();
+				buffer[position] = getBigDecimal(addend);
 				incrementPosition();
 		}
 
@@ -164,11 +166,12 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
 		}
 
 		private void incrementPosition() throws StandardException {
-				isNull=false;
-				position = (position+1) & length;
-				if(position==0){
+				int newposition = (position+1) & length;
+				if(newposition==0){
 						sum(buffer.length);
 				}
+				isNull=false;
+				position = newposition;
 		}
 
 		public void addDirect(BigDecimal bigDecimal) throws StandardException {

@@ -683,7 +683,7 @@ public class SpliceRegionAdmin {
         return dataHash;
     }
 
-    private static TableDescriptor getTableDescriptor(String schemaName, String tableName) throws Exception {
+    public static TableDescriptor getTableDescriptor(String schemaName, String tableName) throws Exception {
         EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
         Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
         LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();

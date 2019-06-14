@@ -281,7 +281,7 @@ class DRDAProtocolException extends Exception
 		}
 		else if (cpArg == CodePoint.PRDID) {
 			this.svrcod = exceptionInfo.svrcod;
-			msg = "Execution failed because of invalid client connection attempt, please use Slice Machine Driver.";
+			msg = "Execution failed because of invalid client connection attempt, please use Splice Machine Driver.";
 		}
 		else
 		{

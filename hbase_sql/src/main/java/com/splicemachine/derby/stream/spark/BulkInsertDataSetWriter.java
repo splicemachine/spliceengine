@@ -242,7 +242,7 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                 // Write to HFile
                 HFileGenerationFunction hfileGenerationFunction =
                         new BulkInsertHFileGenerationFunction(operationContext, txn.getTxnId(),
-                                heapConglom, compressionAlgorithm, bulkImportPartitions);
+                                heapConglom, compressionAlgorithm, bulkImportPartitions, pkCols, tableVersion, tentativeIndexList);
 
                 DataSet rowAndIndexes = dataSet.flatMap(rowAndIndexGenerator);
                 assert rowAndIndexes instanceof SparkDataSet;

@@ -34,7 +34,10 @@ package com.splicemachine.db.impl.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLDecimal;
+import com.splicemachine.db.iapi.types.TypeId;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -146,6 +149,44 @@ public class ValueRow implements ExecRow, Externalizable {
 		}
 	}
 
+	public void normalizeDecimal(DataValueDescriptor dvd,
+                                 int desiredScale,
+                                 int desiredPrecision) throws StandardException {
+	    SQLDecimal decimal = (SQLDecimal) dvd;
+	    decimal.setPrecision(desiredPrecision);
+	    decimal.setScale(desiredScale);
+	}
+
+    // Same as setColumn, but preserves the data type of the dvd we're replacing.
+    public void setColumnValue(int position, DataValueDescriptor col) throws StandardException {
+        hash = 0;
+        DataValueDescriptor dvd = column[position-1];
+        int precision = 0, scale = 0;
+
+        try {
+            if (column[position-1] == null)
+                column[position-1] = col;
+            else {
+                if (column[position - 1] instanceof SQLDecimal) {
+                    SQLDecimal decimal = (SQLDecimal)column[position - 1];
+                    precision = decimal.getPrecision();
+                    scale = decimal.getScale();
+                }
+                column[position - 1].setValue(col);
+                if (precision != 0)
+                    normalizeDecimal(column[position - 1], scale, precision);
+            }
+        } catch (Exception e) {
+            realloc(position);
+            if (column[position-1] == null)
+                column[position-1] = col;
+            else {
+                column[position - 1].setValue(col);
+                if (precision != 0)
+                    normalizeDecimal(column[position - 1], scale, precision);
+            }
+        }
+    }
 
 	/*
 	** ExecRow interface
