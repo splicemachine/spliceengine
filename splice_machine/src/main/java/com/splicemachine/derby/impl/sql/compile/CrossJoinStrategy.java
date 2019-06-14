@@ -53,7 +53,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
      */
 	@Override
     public String halfOuterJoinResultSetMethodName() {
-        return "getBroadcastLeftOuterJoinResultSet";
+	    throw new UnsupportedOperationException("Cross join doesn't support half outer join");
     }
 
 
@@ -226,7 +226,6 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
-        innerCost.setNumPartitions(outerCost.partitionCount());
         double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);

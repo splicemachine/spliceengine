@@ -140,41 +140,18 @@ public class CrossJoinOperation extends JoinOperation{
             }
         } else {
             LOG.warn("Cross join supposed to be run with Spark only, using BroadcastJoin now");
-            if (isOuterJoin) { // Outer Join with and without restriction
-                result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                        .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
-                        .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
-            } else {
-                if (this.leftHashKeys.length != 0)
-                    leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
-                if (this.notExistsRightSide) { // antijoin
-                    if (restriction != null) { // with restriction
-                        result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                                .flatMap(new AntiJoinRestrictionFlatMapFunction(operationContext));
-                    } else { // No Restriction
-                        result = leftDataSet.mapPartitions(new SubtractByKeyBroadcastJoinFunction(operationContext))
-                                .map(new AntiJoinFunction(operationContext));
-                    }
-                } else { // Inner Join
-
-                    if (isOneRowRightSide()) {
-                        result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                                .flatMap(new InnerJoinRestrictionFlatMapFunction(operationContext));
-                    } else {
-                        result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
-                                .map(new InnerJoinFunction<SpliceOperation>(operationContext));
-
-                        if (restriction != null) { // with restriction
-                            result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
-                        }
-                    }
-                }
+            if (isOuterJoin || this.notExistsRightSide || isOneRowRightSide()) {
+                throw new UnsupportedOperationException("Cross join shouldn't be run on outer join or anti join");
+            }
+            if (this.leftHashKeys.length != 0)
+                leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
+            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
+                    .map(new InnerJoinFunction<SpliceOperation>(operationContext));
+            if (restriction != null) { // with restriction
+                result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
             }
         }
         result = result.map(new CountProducedFunction(operationContext), true);
-
-//        operationContext.popScope();
-
         return result;
     }
 
