@@ -44,16 +44,25 @@ public class CrossJoinIT extends SpliceUnitTest {
 
 
     private Boolean useSpark;
+    private String idx;
+    private static final String NO_IDX = "NO_IDX";
+    private static final String NOT_COVER_IDX = "NOT_COVER_IDX";
+    private static final String COVER_IDX = "COVER_IDX";
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{true});
-        params.add(new Object[]{false});
+        params.add(new Object[]{true, NO_IDX});
+        params.add(new Object[]{false, NO_IDX});
+        params.add(new Object[]{true, NOT_COVER_IDX});
+        params.add(new Object[]{false, NOT_COVER_IDX});
+        params.add(new Object[]{true, COVER_IDX});
+        params.add(new Object[]{false, COVER_IDX});
         return params;
     }
 
-    public CrossJoinIT(Boolean useSpark) {
+    public CrossJoinIT(Boolean useSpark, String idx) {
         this.useSpark = useSpark;
+        this.idx = idx;
     }
 
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CrossJoinIT.class.getSimpleName().toUpperCase());
@@ -449,6 +458,14 @@ public class CrossJoinIT extends SpliceUnitTest {
 
     @Test
     public void testInequalityCrossJoin() throws Exception {
+        try {
+            if (idx.equals(NOT_COVER_IDX)) {
+                classWatcher.execute("create index tab1_a_idx on tab1(a)");
+            } else if (idx.equals(COVER_IDX)) {
+                classWatcher.execute("create index tab1_all_idx on tab1(a, b)");
+            }
+        } catch (SQLException ignored) {
+        }
         String sqlText = format("select count(*) from --splice-properties joinOrder=fixed\n" +
         "tab1 tt1 --splice-properties useSpark=%s\n" +
         "inner join tab1 tt2 --splice-properties useSpark=%s,joinStrategy=CROSS\n" +
@@ -510,6 +527,14 @@ public class CrossJoinIT extends SpliceUnitTest {
 
     @Test
     public void testCharBooleanColumnsCrossJoin() throws Exception {
+        try {
+            if (idx.equals(NOT_COVER_IDX)) {
+                classWatcher.execute("create index s2_b2_idx on s2(b2)");
+            } else if (idx.equals(COVER_IDX)) {
+                classWatcher.execute("create index s2_all_idx on s2(a2, b2, c2, d2, e2)");
+            }
+        } catch (SQLException ignored) {
+        }
         String sqlText =
                 format("select count(s1.a1) from  --splice-properties joinOrder=fixed\n" + s1 +
                 " inner join " + s2 + " --SPLICE-PROPERTIES joinStrategy=CROSS,useSpark=%s \n" +
