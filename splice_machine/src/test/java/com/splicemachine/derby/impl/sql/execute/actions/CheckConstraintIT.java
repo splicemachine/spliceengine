@@ -117,7 +117,7 @@ public class CheckConstraintIT extends SpliceUnitTest {
             verifyViolation(s,format("insert into %s values (1005, 101, 90, 79, 'bad', 'good3')",tableName), // col 5 bad
                     MSG_START_DEFAULT,"V_NEQ_CK1",schemaWatcher.schemaName,tableName);
 
-            verifyViolation(s,format("insert into %s values (1005, 101, 90, 85, 'ok', 'notsogood')",tableName), // col 6 bad
+            verifyViolation(s,format("insert into %s values (1005, 101, 90, 79, 'ok', 'notsogood')",tableName), // col 6 bad
                     MSG_START_DEFAULT,"V_IN_CK1",schemaWatcher.schemaName,tableName);
         }
     }
