@@ -1733,7 +1733,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(!state)
                 continue;
 
-            if(copyPredicate){
+            if(copyPredicate){ // this path is for push predicate into union branches
                 // Copy this predicate and push this instead
                 AndNode andNode=predicate.getAndNode();
                 ValueNode leftOperand;
@@ -1761,12 +1761,18 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     if(!(inNode.getRightOperandList().isConstantExpression()))
                         continue;
 
+                    if (!(inNode.getLeftOperand() instanceof ColumnReference))
+                        continue;
+
                     crNode=(ColumnReference)inNode.getLeftOperand();
                 }else
                     continue;
 
                 // Remap this crNode to underlying column reference in the select, if possible.
-                ColumnReference newCRNode=select.findColumnReferenceInResult(crNode.columnName);
+                // At this point, the column references in the predicate points to the result column
+                // of the union node, we need it to point to the result column of the SELECT node
+                // corresponding to the branch underneath the union node
+                ColumnReference newCRNode=select.findColumnReferenceInUnionSelect(crNode);
                 if(newCRNode==null)
                     continue;
 

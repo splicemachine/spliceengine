@@ -94,6 +94,9 @@ public interface Authorizer
 	int CREATE_ROLE_PRIV = 19;
 	int DROP_ROLE_PRIV = 20;
 
+	/* ACCESS schema privilege to control the visibility of a schemas to users */
+	int ACCESS_PRIV = 21;
+
 	/**
 	 * The system authorization ID is defined by the SQL2003 spec as the grantor
 	 * of privileges to object owners.

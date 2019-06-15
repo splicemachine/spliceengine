@@ -141,6 +141,7 @@ public final class TransactionResourceImpl
 	// set these up after constructor, called by EmbedConnection
 	protected Database database;
 	protected LanguageConnectionContext lcc;
+	private Properties sessionProperties;
 
 	// Set this when LDAP has groupname
 	protected List<String> groupuserlist;
@@ -155,6 +156,7 @@ public final class TransactionResourceImpl
 							Properties info) throws SQLException 
 	{
 		this.driver = driver;
+		this.sessionProperties = info;
 		csf = driver.getContextServiceFactory();
 		dbname = InternalDriver.getDatabaseName(url, info);
 		this.url = url;
@@ -240,7 +242,7 @@ public final class TransactionResourceImpl
 	{
 		// setting up local connection
 		lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, useSpark,
-                skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
+                skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
 	}
 
 	/**
@@ -554,6 +556,12 @@ public final class TransactionResourceImpl
 		return (driver.isActive() && ((database == null) || database.isActive()));
 	}
 
+	// Indicate whether the client whose transaction this is
+	// supports reading of decimals with 38 digits of precision.
+	public void setClientSupportsDecimal38(boolean newVal) {
+		if (lcc != null)
+			lcc.setClientSupportsDecimal38(newVal);
+    	}
 }
 
 

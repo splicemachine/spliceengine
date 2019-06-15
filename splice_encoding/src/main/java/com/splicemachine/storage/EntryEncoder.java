@@ -50,6 +50,25 @@ public class EntryEncoder {
         this.kryoPool = kryoPool;
     }
 
+    public BitIndex getBitIndex() { return bitIndex; }
+
+    @Override
+    public int hashCode() {
+        final int prime = 37;
+
+        int result = encoder.getNumFields();
+        result = result * prime + bitIndex.getFields().hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof EntryEncoder)) return false;
+
+        return bitIndex.equals(((EntryEncoder)o).getBitIndex());
+    }
+
     public MultiFieldEncoder getEntryEncoder(){
         if(encoder==null)
             encoder = MultiFieldEncoder.create(bitIndex.cardinality());

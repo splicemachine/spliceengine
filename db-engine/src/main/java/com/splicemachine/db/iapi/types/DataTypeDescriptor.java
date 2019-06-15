@@ -36,6 +36,7 @@ import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
 import com.splicemachine.db.catalog.types.RowMultiSetImpl;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.Formatable;
@@ -690,7 +691,8 @@ public class DataTypeDescriptor implements Formatable{
             assert higherTypeId!=null;
             if(higherTypeId.isDecimalTypeId() && (!lowerTypeId.isStringTypeId())){
                 precision=higherTypeId.getPrecision(this,otherDTS);
-                if(precision>31) precision=31; //db2 silently does this and so do we
+                if(precision> Limits.DB2_MAX_DECIMAL_PRECISION_SCALE)
+                    precision=Limits.DB2_MAX_DECIMAL_PRECISION_SCALE; //db2 silently does this and so do we
                 scale=higherTypeId.getScale(this,otherDTS);
 
 				/* maximumWidth needs to count possible leading '-' and
@@ -1670,7 +1672,7 @@ public class DataTypeDescriptor implements Formatable{
      * him/herself.
      * <p/>
      * DECIMAL: A user can specify a VALUES clause with a constant that
-     * has a precision of greater than 31.  Derby can apparently handle
+     * has a precision of greater than 38.  Derby can apparently handle
      * such a value internally, but the user is not supposed to be able
      * create such a column him/herself.
      *

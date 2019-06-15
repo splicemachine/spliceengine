@@ -44,7 +44,7 @@ import java.util.Properties;
 public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl, ModuleSupportable {
 	private Boolean joinOrderOptimization = Boolean.TRUE;
 	private final ClassInfo[]	nodeCi =new ClassInfo[C_NodeTypes.FINAL_VALUE+1];
-	
+
     /**
      * Module supports the standard database engine and
      * a storeless SQL engine. Probably a single NodeFactory
@@ -145,7 +145,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 		  // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
 		  // THEM TO tools/jar/DBMSnode.properties
 			// xxxRESOLVE: why not make this a giant array and simply index into
-			// it? manish Thu Feb 22 14:49:41 PST 2001  
+			// it? manish Thu Feb 22 14:49:41 PST 2001
 		  case C_NodeTypes.CURRENT_ROW_LOCATION_NODE:
 		  	return C_NodeNames.CURRENT_ROW_LOCATION_NODE_NAME;
 
@@ -216,7 +216,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
 		  case C_NodeTypes.BOOLEAN_CONSTANT_NODE:
 		  	return C_NodeNames.BOOLEAN_CONSTANT_NODE_NAME;
-			
+
 		  case C_NodeTypes.LIST_VALUE_NODE:
 		    return C_NodeNames.LIST_VALUE_NODE_NAME;
 
@@ -438,7 +438,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
           case C_NodeTypes.LOCATE_FUNCTION_NODE:
 		  case C_NodeTypes.SUBSTRING_OPERATOR_NODE:
+		  case C_NodeTypes.RIGHT_OPERATOR_NODE:
 		  case C_NodeTypes.TRIM_OPERATOR_NODE:
+		  case C_NodeTypes.LEFT_OPERATOR_NODE:
 		  case C_NodeTypes.TIMESTAMP_ADD_FN_NODE:
 		  case C_NodeTypes.TIMESTAMP_DIFF_FN_NODE:
 		  case C_NodeTypes.REPLACE_OPERATOR_NODE:

@@ -16,6 +16,7 @@ package com.splicemachine.access.api;
 
 import com.splicemachine.access.configuration.ConfigurationSource;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -354,7 +355,13 @@ public interface SConfiguration {
 
     String getOlapLog4jConfig();
 
+    Map<String, String> getOlapServerIsolatedRoles();
+    
+    Map<String, String> getOlapServerYarnQueues();
+
     int getMaxCheckTableErrors();
 
     int getRecursiveQueryIterationLimit();
+
+    boolean getMetadataRestrictionEnabled();
 }

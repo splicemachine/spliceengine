@@ -39,8 +39,11 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Scott Fines
@@ -203,13 +206,15 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         };
     }
 
-    public static ColumnDescriptor[] getViewColumns(TableDescriptor view,UUID viewId) throws StandardException {
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
         DataTypeDescriptor varcharType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR);
         DataTypeDescriptor longType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT);
         DataTypeDescriptor intType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER);
         DataTypeDescriptor doubleType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE);
 
-        return new ColumnDescriptor[]{
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+               new ColumnDescriptor[]{
                 new ColumnDescriptor("SCHEMANAME"               ,1,1,varcharType,null,null,view,viewId,0,0,0),
                 new ColumnDescriptor("TABLENAME"                ,2,2,varcharType,null,null,view,viewId,0,0,1),
                 new ColumnDescriptor("CONGLOMERATENAME"         ,3,3,varcharType,null,null,view,viewId,0,0,2),
@@ -221,7 +226,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 new ColumnDescriptor("ROW_WIDTH"                ,9,9,longType,null,null,view,viewId,0,0,8),
                 new ColumnDescriptor("STATS_TYPE"               ,10,10,intType,null,null,view,viewId,0,0,9),
                 new ColumnDescriptor("SAMPLE_FRACTION"          ,11,11,doubleType,null,null,view,viewId,0,0,10)
-        };
+        });
+
+        return cdsl;
     }
 
     public static final String STATS_VIEW_SQL = "create view systablestatistics as select " +
@@ -238,7 +245,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             ",min(ts.sampleFraction) as SAMPLE_FRACTION" + //10
             " from " +
             "sys.systables t" +
-            ",sys.sysschemas s" +
+            ",sysvw.sysschemasview s" +
             ",sys.sysconglomerates c" +
             ",sys.systablestats ts" +
             " where " +

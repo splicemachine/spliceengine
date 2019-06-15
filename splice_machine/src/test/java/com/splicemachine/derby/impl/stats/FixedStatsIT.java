@@ -148,7 +148,7 @@ public class FixedStatsIT{
     }
 
     private void assertExpectedCount(Statement s,int expectedCount) throws SQLException{
-        try(ResultSet resultSet=s.executeQuery("select * from sys.systablestatistics "+
+        try(ResultSet resultSet=s.executeQuery("select * from sysvw.systablestatistics "+
                 "where schemaname = '"+schema.schemaName+"' and tablename = '"+charDelete.tableName+"'")){
             Assert.assertTrue("No row returned after stats collection!",resultSet.next());
             long rowCount=resultSet.getLong("TOTAL_ROW_COUNT");
@@ -246,7 +246,7 @@ public class FixedStatsIT{
     public void testCardinalityIsCorrectForPrimaryKeyColumns() throws Exception{
         conn.collectStats(schema.schemaName,load.tableName); //collect stats
 
-        String sql = "select cardinality from sys.syscolumnstatistics where schemaName = ? and tableName = ? and columnName = ?";
+        String sql = "select cardinality from sysvw.syscolumnstatistics where schemaName = ? and tableName = ? and columnName = ?";
         try(PreparedStatement ps = conn.prepareStatement(sql)){
             ps.setString(1,schema.schemaName.toUpperCase());
             ps.setString(2,load.tableName.toUpperCase());

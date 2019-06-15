@@ -164,24 +164,34 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
         // DB-5672: Disable repeated predicate elimination because it does not work in general. Much
         // more work needs to be done to make sure the predicates are equivalent before and after transformation.
         //
-        if(node instanceof ValueNode){
+        if (node instanceof ValueNode) {
 
             foundWhereClause = true;
 
             ValueNode newNode = (ValueNode) node;
 
             int n = 0;
-            // is the predicate a DNF?
-            if (isDNF(newNode))
+
+            if (newNode instanceof AndNode) {
+                ValueNode newLeftNode = (ValueNode) defaultVisit(((AndNode) node).getLeftOperand());
+                ValueNode newRightNode = (ValueNode) defaultVisit(((AndNode) node).getRightOperand());
+                if (!newLeftNode.equals(((AndNode) node).getLeftOperand()) || !newRightNode.equals(((AndNode) node).getRightOperand()))
+                    newNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
+                            C_NodeTypes.AND_NODE,
+                            newLeftNode,
+                            newRightNode,
+                            ((ValueNode) node).getContextManager());
+                updatedNode = newNode;
+            } else if (isDNF(newNode))
                 n = numClauses(newNode);
 
-            if (n<=1)
-                 return updatedNode;
+            if (n <= 1)
+                return updatedNode;
 
             // calculate the number of clauses in the predicate
             Map<ValueNode, Integer> m = nodesWithMultipleOccurrences(newNode, n);
 
-            for(Map.Entry<ValueNode,Integer> me : m.entrySet()) {
+            for (Map.Entry<ValueNode, Integer> me : m.entrySet()) {
                 if (foundInPath(me.getKey(), newNode)) {
                     AndOrReplacementVisitor aor = new AndOrReplacementVisitor(me.getKey());
                     newNode.accept(new SpliceDerbyVisitorAdapter(aor));
@@ -191,7 +201,6 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
                             newNode,
                             ((ValueNode) node).getContextManager());
                 }
-
             }
             updatedNode = newNode;
         }

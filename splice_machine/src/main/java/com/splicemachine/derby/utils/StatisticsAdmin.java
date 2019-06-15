@@ -75,7 +75,7 @@ import static com.splicemachine.derby.utils.EngineUtils.verifyTableExists;
  */
 public class StatisticsAdmin extends BaseAdminProcedures {
     private static final Logger LOG = Logger.getLogger(StatisticsAdmin.class);
-    public static final String TABLEID_FROM_SCHEMA = "select tableid from sys.systables t where t.schemaid = ?";
+    public static final String TABLEID_FROM_SCHEMA = "select tableid from sysvw.systablesView t where t.schemaid = ?";
 
     @SuppressWarnings("UnusedDeclaration")
     public static void DISABLE_COLUMN_STATISTICS(String schema,

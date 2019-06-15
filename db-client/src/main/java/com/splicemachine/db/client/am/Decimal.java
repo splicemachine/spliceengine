@@ -25,6 +25,8 @@
 package com.splicemachine.db.client.am;
 
 import java.math.BigDecimal;
+
+import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.i18n.MessageUtil;
 
@@ -46,6 +48,7 @@ public class Decimal {
         {0x3b9aca00}, // 10^9
         {0x0de0b6b3, 0xa7640000}, // 10^18
         {0x033b2e3c, 0x9fd0803c, 0xe8000000}, // 10^27
+        {0x00c097ce, 0x7bc90715, 0xb34b9f10, 0x00000000}, // 10^36
     };
 
     //--------------------------constructors--------------------------------------
@@ -219,7 +222,7 @@ public class Decimal {
             magnitude[11] = (byte) (value[2]);
 
             return new java.math.BigDecimal(new java.math.BigInteger(signum, magnitude), scale);
-        } else if (precision <= 31) {
+        } else if (precision <= 36) {
             // get the value of last 9 digits (5 bytes).
             int lo = packedNybblesToInt(buffer, offset, (length - 5) * 2, 9);
             // get the value of another 9 digits (5 bytes).
@@ -252,8 +255,48 @@ public class Decimal {
             magnitude[15] = (byte) (value[3]);
 
             return new java.math.BigDecimal(new java.math.BigInteger(signum, magnitude), scale);
+        }
+        else if (precision <= Limits.DB2_MAX_DECIMAL_PRECISION_SCALE) {
+            // get the value of last 9 digits (5 bytes).
+            int lo = packedNybblesToInt(buffer, offset, (length - 5) * 2, 9);
+            // get the value of another 9 digits (5 bytes).
+            int meLo = packedNybblesToInt(buffer, offset, (length - 10) * 2 + 1, 9);
+            // get the value of another 9 digits (5 bytes).
+            int meHi = packedNybblesToInt(buffer, offset, (length - 14) * 2, 9);
+             // get the value of another 9 digits (5 bytes).
+            int meHi2 = packedNybblesToInt(buffer, offset, (length - 19) * 2 + 1, 9);
+            // get the value of the rest digits.
+            int hi = packedNybblesToInt(buffer, offset, 0, (length - 19) * 2 + 1);
+
+            // compute the int array of magnitude.
+            int[] value = computeMagnitude(new int[]{hi, meHi2, meHi, meLo, lo});
+
+            // convert value to a byte array of magnitude.
+            byte[] magnitude = new byte[20];
+            magnitude[0] = (byte) (value[0] >>> 24);
+            magnitude[1] = (byte) (value[0] >>> 16);
+            magnitude[2] = (byte) (value[0] >>> 8);
+            magnitude[3] = (byte) (value[0]);
+            magnitude[4] = (byte) (value[1] >>> 24);
+            magnitude[5] = (byte) (value[1] >>> 16);
+            magnitude[6] = (byte) (value[1] >>> 8);
+            magnitude[7] = (byte) (value[1]);
+            magnitude[8] = (byte) (value[2] >>> 24);
+            magnitude[9] = (byte) (value[2] >>> 16);
+            magnitude[10] = (byte) (value[2] >>> 8);
+            magnitude[11] = (byte) (value[2]);
+            magnitude[12] = (byte) (value[3] >>> 24);
+            magnitude[13] = (byte) (value[3] >>> 16);
+            magnitude[14] = (byte) (value[3] >>> 8);
+            magnitude[15] = (byte) (value[3]);
+            magnitude[16] = (byte) (value[4] >>> 24);
+            magnitude[17] = (byte) (value[4] >>> 16);
+            magnitude[18] = (byte) (value[4] >>> 8);
+            magnitude[19] = (byte) (value[4]);
+
+            return new java.math.BigDecimal(new java.math.BigInteger(signum, magnitude), scale);
         } else {
-            // throw an exception here if nibbles is greater than 31
+            // throw an exception here if nibbles is greater than 38
             throw new java.lang.IllegalArgumentException(
                 msgutil.getTextMessage(SQLState.DECIMAL_TOO_MANY_DIGITS));
         }
@@ -300,7 +343,7 @@ public class Decimal {
             return signum * (lo / Math.pow(10, scale) +
                     me * Math.pow(10, 9 - scale) +
                     hi * Math.pow(10, 18 - scale));
-        } else if (precision <= 31) {
+        } else if (precision <= 36) {
             // get the value of last 9 digits (5 bytes).
             int lo = packedNybblesToInt(buffer, offset, (length - 5) * 2, 9);
             // get the value of another 9 digits (5 bytes).
@@ -314,8 +357,52 @@ public class Decimal {
                     meLo * Math.pow(10, 9 - scale) +
                     meHi * Math.pow(10, 18 - scale) +
                     hi * Math.pow(10, 27 - scale));
+        }
+        else if (precision <= Limits.DB2_MAX_DECIMAL_PRECISION_SCALE) {
+            // get the value of last 9 digits (5 bytes).
+            int lo = packedNybblesToInt(buffer, offset, (length - 5) * 2, 9);
+            // get the value of another 9 digits (5 bytes).
+            int meLo = packedNybblesToInt(buffer, offset, (length - 10) * 2 + 1, 9);
+            // get the value of another 9 digits (5 bytes).
+            int meHi = packedNybblesToInt(buffer, offset, (length - 14) * 2, 9);
+             // get the value of another 9 digits (5 bytes).
+            int meHi2 = packedNybblesToInt(buffer, offset, (length - 19) * 2 + 1, 9);
+            // get the value of the rest digits.
+            int hi = packedNybblesToInt(buffer, offset, 0, (length - 19) * 2 + 1);
+
+            // compute the int array of magnitude.
+            int[] value = computeMagnitude(new int[]{hi, meHi2, meHi, meLo, lo});
+
+            // convert value to a byte array of magnitude.
+            byte[] magnitude = new byte[20];
+            magnitude[0] = (byte) (value[0] >>> 24);
+            magnitude[1] = (byte) (value[0] >>> 16);
+            magnitude[2] = (byte) (value[0] >>> 8);
+            magnitude[3] = (byte) (value[0]);
+            magnitude[4] = (byte) (value[1] >>> 24);
+            magnitude[5] = (byte) (value[1] >>> 16);
+            magnitude[6] = (byte) (value[1] >>> 8);
+            magnitude[7] = (byte) (value[1]);
+            magnitude[8] = (byte) (value[2] >>> 24);
+            magnitude[9] = (byte) (value[2] >>> 16);
+            magnitude[10] = (byte) (value[2] >>> 8);
+            magnitude[11] = (byte) (value[2]);
+            magnitude[12] = (byte) (value[3] >>> 24);
+            magnitude[13] = (byte) (value[3] >>> 16);
+            magnitude[14] = (byte) (value[3] >>> 8);
+            magnitude[15] = (byte) (value[3]);
+            magnitude[16] = (byte) (value[4] >>> 24);
+            magnitude[17] = (byte) (value[4] >>> 16);
+            magnitude[18] = (byte) (value[4] >>> 8);
+            magnitude[19] = (byte) (value[4]);
+
+            return signum * (lo / Math.pow(10, scale) +
+                    meLo * Math.pow(10, 9 - scale) +
+                    meHi * Math.pow(10, 18 - scale) +
+                    meHi2 * Math.pow(10, 27 - scale) +
+                    hi * Math.pow(10, 36 - scale));
         } else {
-            // throw an exception here if nibbles is greater than 31
+            // throw an exception here if nibbles is greater than 38
             throw new java.lang.IllegalArgumentException(
                 msgutil.getTextMessage(SQLState.DECIMAL_TOO_MANY_DIGITS));
         }
@@ -331,8 +418,8 @@ public class Decimal {
                                int offset,
                                int precision,
                                int scale) throws java.io.UnsupportedEncodingException {
-        if (precision > 31) {
-            // throw an exception here if nibbles is greater than 31
+        if (precision > Limits.DB2_MAX_DECIMAL_PRECISION_SCALE) {
+            // throw an exception here if nibbles is greater than 38
             throw new java.lang.IllegalArgumentException(
                 msgutil.getTextMessage(SQLState.DECIMAL_TOO_MANY_DIGITS));
         }
@@ -375,8 +462,8 @@ public class Decimal {
                                                      int declaredPrecision,
                                                      int declaredScale)
             throws SqlException {
-        // packed decimal may only be up to 31 digits.
-        if (declaredPrecision > 31) {
+        // packed decimal may only be up to 38 digits.
+        if (declaredPrecision > Limits.DB2_MAX_DECIMAL_PRECISION_SCALE) {
             throw new SqlException(null,
                 new ClientMessageId(SQLState.DECIMAL_TOO_MANY_DIGITS));
         }
@@ -387,7 +474,7 @@ public class Decimal {
         // get precision of the BigDecimal.
         int bigPrecision = unscaledStr.length();
 
-        if (bigPrecision > 31) {
+        if (bigPrecision > Limits.DB2_MAX_DECIMAL_PRECISION_SCALE) {
             throw new SqlException(null,
                 new ClientMessageId(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE),
                 "packed decimal", new SqlCode(-405));

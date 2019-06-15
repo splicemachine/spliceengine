@@ -14,6 +14,7 @@
 
 package com.splicemachine.testutil;
 
+import com.splicemachine.db.iapi.reference.Limits;
 import org.spark_project.guava.collect.Lists;
 import org.apache.commons.lang.RandomStringUtils;
 
@@ -37,7 +38,7 @@ public class RandomDerbyDecimalBuilder {
 
     private static final Random RANDOM = new Random();
     private static int PRECISION_MIN = 1;
-    private static int PRECISION_MAX = 31;
+    private static int PRECISION_MAX = Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
 
     private static boolean DEFAULT_INCLUDE_NEGATIVES = true;
 
@@ -53,7 +54,7 @@ public class RandomDerbyDecimalBuilder {
 
         for (int i = 0; i < howMany; i++) {
 
-            int derbyPrecision = 1 + RANDOM.nextInt(31);
+            int derbyPrecision = 1 + RANDOM.nextInt(PRECISION_MAX);
             int derbyScale = RANDOM.nextInt(derbyPrecision + 1);
             boolean negative = includeNegatives ? RANDOM.nextBoolean() : false;
 

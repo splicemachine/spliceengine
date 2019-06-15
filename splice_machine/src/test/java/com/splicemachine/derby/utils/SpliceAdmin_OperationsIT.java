@@ -15,24 +15,12 @@
 
 package com.splicemachine.derby.utils;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceTestDataSource;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -44,14 +32,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 @Category(SerialTest.class)
 public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
@@ -62,6 +45,11 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static final String USER_NAME = CLASS_NAME+"_USER";
     private SpliceTestDataSource dataSource;
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        spliceClassWatcher.execute("GRANT ACCESS ON SCHEMA " + CLASS_NAME + " TO PUBLIC");
+    }
 
     @Before
     public void startup() {

@@ -167,7 +167,7 @@ public interface C_NodeTypes
 	int SESSION_USER_NODE = 125; // // special function SESSION_USER
 	int SYSTEM_USER_NODE = 126; // // special function SYSTEM_USER
 	int TRIM_OPERATOR_NODE = 127;
-	// 128 is available
+	int LEFT_OPERATOR_NODE = 128;
 	int SELECT_NODE = 129;
 	int CREATE_VIEW_NODE = 130;
 	int CONSTRAINT_DEFINITION_NODE = 131;
@@ -192,7 +192,7 @@ int CREATE_INDEX_NODE = 146;
 	int CREATE_ALIAS_NODE = 150;
 	int PROJECT_RESTRICT_NODE = 151;
 	// UNUSED static final int BOOLEAN_TRUE_NODE = 152;
-	// UNUSED static final int BOOLEAN_FALSE_NODE = 153;
+	int RIGHT_OPERATOR_NODE = 153;
 	int SUBSTRING_OPERATOR_NODE = 154;
 	// UNUSED static final int BOOLEAN_NODE = 155;
 	int DROP_ALIAS_NODE = 156;

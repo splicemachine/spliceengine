@@ -537,7 +537,7 @@ public class SelectivityIT extends SpliceUnitTest {
     public void testSelectColumnStatistics() throws Exception {
         String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
         Connection connection = DriverManager.getConnection(url, new Properties());
-        PreparedStatement ps = connection.prepareStatement("select * from sys.syscolumnstatistics");
+        PreparedStatement ps = connection.prepareStatement("select * from sysvw.syscolumnstatistics");
         ResultSet rs = ps.executeQuery();
         int count = 0;
         while(rs.next()){

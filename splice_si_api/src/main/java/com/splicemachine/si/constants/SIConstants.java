@@ -105,4 +105,7 @@ public class SIConstants {
     public static final String INDEX_DISPLAY_NAME_ATTR = "indexDisplayName";
     public static final String TRANSACTION_ID_ATTR = "createTransactionId";
     public static final String DROPPED_TRANSACTION_ID_ATTR = "droppedTransactionId";
+
+    public static final String OLAP_DEFAULT_QUEUE_NAME = "default";
+    public static final String YARN_DEFAULT_QUEUE_NAME = "default";
 }

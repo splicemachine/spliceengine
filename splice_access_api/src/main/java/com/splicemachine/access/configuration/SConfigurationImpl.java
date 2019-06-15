@@ -18,6 +18,7 @@ import com.splicemachine.access.api.SConfiguration;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -153,6 +154,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int olapServerMemoryOverhead;
     private final int olapServerVirtualCores;
     private final String olapLog4jConfig;
+    private final Map<String, String> olapServerIsolatedRoles;
+    private final Map<String, String> olapServerYarnQueues;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -198,6 +201,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final long controlExecutionRowLimit;
     private final int maxCheckTableErrors;
     private final int recursiveQueryIterationLimit;
+    private boolean metadataRestrictionEnabled;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -744,6 +748,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getRecursiveQueryIterationLimit() {
         return recursiveQueryIterationLimit;
     }
+    @Override
+    public boolean getMetadataRestrictionEnabled() {
+        return metadataRestrictionEnabled;
+    }
 
     // StatsConfiguration
     @Override
@@ -962,6 +970,8 @@ public final class SConfigurationImpl implements SConfiguration {
         olapCompactionResolutionBufferSize = builder.olapCompactionResolutionBufferSize;
         olapCompactionBlocking = builder.olapCompactionBlocking;
         olapLog4jConfig = builder.olapLog4jConfig;
+        olapServerIsolatedRoles = builder.olapServerIsolatedRoles;
+        olapServerYarnQueues = builder.olapServerYarnQueues;
         resolutionOnFlushes = builder.resolutionOnFlushes;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
@@ -977,6 +987,7 @@ public final class SConfigurationImpl implements SConfiguration {
         rollForwardSecondWait = builder.rollForwardSecondWait;
         rollForwardFirstThreads = builder.rollForwardFirstThreads;
         rollForwardSecondThreads = builder.rollForwardSecondThreads;
+        metadataRestrictionEnabled = builder.metadataRestrictionEnabled;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
@@ -1048,6 +1059,16 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public String getOlapLog4jConfig() {
         return olapLog4jConfig;
+    }
+
+    @Override
+    public Map<String, String> getOlapServerIsolatedRoles() {
+        return olapServerIsolatedRoles;
+    }
+
+    @Override
+    public Map<String, String> getOlapServerYarnQueues() {
+        return olapServerYarnQueues;
     }
 
     @Override

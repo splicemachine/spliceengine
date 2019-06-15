@@ -65,6 +65,9 @@ public class PermissionIT {
         adminConn = spliceClassWatcherAdmin.createConnection();
         adminConn.execute( format("insert into %s.%s values (1,1,1,1)", SCHEMA1, TABLE ) );
 
+        //make SCHEMA1 visible to public
+        adminConn.execute( format("grant access on schema %s to public", SCHEMA1) );
+
         // grant role role1 to user1
         adminConn.execute(format("grant %s to %s", ROLE1, USER1));
 

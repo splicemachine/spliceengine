@@ -61,6 +61,9 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean skipStatsVal = Boolean.valueOf(valString);
                 properties[SKIPSTATS.getId()] = skipStatsVal;
                 break;
+            case OLAPQUEUE:
+                properties[OLAPQUEUE.getId()] = valString;
+                break;
             case RECURSIVEQUERYITERATIONLIMIT:
                 int recursiveQueryIterationLimit = Integer.parseInt(valString);
                 properties[RECURSIVEQUERYITERATIONLIMIT.getId()] = recursiveQueryIterationLimit;

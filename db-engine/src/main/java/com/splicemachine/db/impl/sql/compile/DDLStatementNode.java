@@ -273,9 +273,11 @@ abstract class DDLStatementNode extends StatementNode
 				cc.addRequiredSchemaPriv(schemaName, null, Authorizer.CREATE_SCHEMA_PRIV);
 		}
 
-		if (ownerCheck && isPrivilegeCollectionRequired())
+		if (ownerCheck && isPrivilegeCollectionRequired()) {
+			cc.addRequiredAccessSchemaPriv(sd.getUUID());
 			cc.addRequiredSchemaPriv(sd.getSchemaName(), null,
-						Authorizer.MODIFY_SCHEMA_PRIV);
+					Authorizer.MODIFY_SCHEMA_PRIV);
+		}
 
 		/*
 		** Catch the system schema here if the caller wants us to.

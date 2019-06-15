@@ -188,6 +188,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private int queryNestingDepth;
 
+    /**
+     * True if the connected client application can read decimal data
+     * up to 38 digits of precision.
+     */
+    private boolean clientSupportsDecimal38 = false;
+
     protected DataValueFactory dataFactory;
     protected LanguageFactory langFactory;
     protected TypeCompilerFactory tcf;
@@ -353,7 +359,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             boolean skipStats,
             double defaultSelectivityFactor,
             String ipAddress,
-            String defaultSchema
+            String defaultSchema,
+            Properties connectionProperties
             ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
@@ -401,6 +408,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, new Boolean(skipStats).toString());
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
+        if (connectionProperties != null) {
+            String olapQueue = connectionProperties.getProperty("olapQueue");
+            if (olapQueue != null) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE, olapQueue);
+            }
+        }
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
@@ -3261,6 +3274,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void setCurrentUser(Activation a, String userName) {
+        getCurrentSQLSessionContext(a).setUser(userName);
+    }
+
+    @Override
+    public void setCurrentGroupUser(Activation a, List<String> groupUsers) {
+        getCurrentSQLSessionContext(a).setCurrentGroupUser(groupUsers);
+    }
+
+    @Override
     public List<String> getCurrentGroupUser(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentGroupUser();
     }
@@ -3853,5 +3876,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public boolean getIgnoreCommentOptEnabled() {
         return ignoreCommentOptEnabled;
+    }
+
+    public boolean clientSupportsDecimal38() { return clientSupportsDecimal38; }
+
+    public void setClientSupportsDecimal38(boolean newVal) {
+        clientSupportsDecimal38 = newVal;
     }
 }

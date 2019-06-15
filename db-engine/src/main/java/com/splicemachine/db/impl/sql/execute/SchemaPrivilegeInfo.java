@@ -85,6 +85,7 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
 						getPermString( REFERENCES_ACTION, false),
 						getPermString( TRIGGER_ACTION, false),
 						getPermString( MODIFY_ACTION, false),
+						getPermString( ACCESS_ACTION, false),
 						currentUser);
 
 
@@ -120,7 +121,7 @@ public class SchemaPrivilegeInfo extends BasicPrivilegeInfo
                                     schemaPermsDesc.getSelectPriv(), schemaPermsDesc.getDeletePriv(),
                                     schemaPermsDesc.getInsertPriv(), schemaPermsDesc.getUpdatePriv(),
                                     schemaPermsDesc.getReferencesPriv(), schemaPermsDesc.getTriggerPriv(),
-									schemaPermsDesc.getModifyPriv());
+									schemaPermsDesc.getModifyPriv(), schemaPermsDesc.getAccessPriv());
                     schemaPermsDescriptor.setUUID(schemaPermsDesc.getUUID());
                     result.add(schemaPermsDescriptor);
                 }

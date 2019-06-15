@@ -97,7 +97,7 @@ public interface SQLSessionContext {
     /**
      * Get the Group user of this SQL connection context
      */
-    public List<String> getCurrentGroupUser();
+    List<String> getCurrentGroupUser();
 
     /**
      * Set the schema of this SQL connection context
@@ -117,4 +117,6 @@ public interface SQLSessionContext {
     void setRoles(List<String> roles);
 
     void removeRole(String roleName);
+
+    void setCurrentGroupUser(List<String> groupUsers);
 }

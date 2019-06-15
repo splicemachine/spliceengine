@@ -2,6 +2,7 @@ package org.apache.spark.sql.execution.datasources.jdbc
 
 import java.sql.Types
 
+import com.splicemachine.db.iapi.reference.Limits
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types._
 
@@ -32,9 +33,9 @@ class SplicemachineDialect extends JdbcDialect {
     case ShortType => Option(JdbcType("SMALLINT", java.sql.Types.SMALLINT))
     case BooleanType => Option(JdbcType("BOOLEAN", java.sql.Types.BOOLEAN))
 
-    // 31 is the maximum precision and 5 is the default scale for a Derby DECIMAL
-    case t: DecimalType if t.precision > 31 =>
-      Option(JdbcType("DECIMAL(31,5)", java.sql.Types.DECIMAL))
+    // 38 is the maximum precision and 5 is the default scale for a Derby DECIMAL
+    case t: DecimalType if t.precision > Limits.DB2_MAX_DECIMAL_PRECISION_SCALE =>
+      Option(JdbcType("DECIMAL(%d,5)".format(Limits.DB2_MAX_DECIMAL_PRECISION_SCALE), java.sql.Types.DECIMAL))
     case _ => None
   }
 }
