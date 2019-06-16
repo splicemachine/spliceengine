@@ -230,6 +230,8 @@ public interface NumberDataValue extends DataValueDescriptor
 	 * @throws StandardException
 	 */
 	BigDecimal getBigDecimal() throws StandardException;
+
+	StringDataValue digits(NumberDataValue source, int len, StringDataValue result) throws StandardException;
 }
 
 
