@@ -68,6 +68,9 @@ public class SpliceStringFunctionsIT {
     private static final SpliceTableWatcher tableWatcherE = new SpliceTableWatcher(
             "E", schemaWatcher.schemaName, "(a int, b char(1))");
 
+    // Table for DIGITS testing.
+    private static final SpliceTableWatcher tableWatcherF = new SpliceTableWatcher(
+            "F", schemaWatcher.schemaName, "(a int, b char(4))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
@@ -221,6 +224,17 @@ public class SpliceStringFunctionsIT {
                         ps.setInt(1, 321);
                         ps.setString(2, "A");
                         ps.execute();
+
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherF+ " (a, b) values (?, ?)");
+                        ps.setInt(1, 1111567890);
+                        ps.setString(2, "1111");
+                        ps.execute();
+
+                        ps.setInt(1, 1234567890);
+                        ps.setString(2, "1234");
+                        ps.execute();
+
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -412,4 +426,71 @@ public class SpliceStringFunctionsIT {
             Assert.assertEquals("22018", e.getSQLState());
         }
     }
+
+    @Test
+    public void testDIGITS() throws Exception {
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
+
+        rs = methodWatcher.executeQuery("SELECT substr(digit(a),1,4), b from " + tableWatcherE);
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell2, sCell1);
+        }
+        rs.close();
+
+        String sqlText = "values digits(cast(67 as smallint))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "00067", rs.getString(1) );
+
+        sqlText = "values length (digits(cast(67 as smallint)))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "5", rs.getString(1) );
+
+        sqlText = "values digits(cast(67 as int))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "0000000067", rs.getString(1) );
+
+        sqlText = "values digits(cast(67 as bigint)";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "0000000000000000067", rs.getString(1) );
+
+        sqlText = "values digits(cast(-6.28 as decimal(6,2))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "000628", rs.getString(1) );
+
+        sqlText = "values digits(null)";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", null, rs.getString(1) );
+
+        rs.close();
+    }
+
+    @Test
+    public void testDIGITSNegative() throws Exception {
+        try {
+            String sqlText = "values digits(1,2)";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals("42Y03" , e.getSQLState());
+        }
+
+        try {
+            String sqlText = "values digits('A')";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLDataException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+    }
+
 }

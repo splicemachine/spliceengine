@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -92,18 +93,21 @@ public class UnaryOperatorNode extends OperatorNode
 
 	public final static int XMLPARSE_OP = 0;
 	public final static int XMLSERIALIZE_OP = 1;
+	public final static int DIGITS_OP = 2;
 
 	// NOTE: in the following 4 arrays, order
 	// IS important.
 
 	static final String[] UnaryOperators = {
 		"xmlparse",
-		"xmlserialize"
+		"xmlserialize",
+		"digits"
 	};
 
 	static final String[] UnaryMethodNames = {
 		"XMLParse",
-		"XMLSerialize"
+		"XMLSerialize",
+		"digits"
 	};
 
 	static final String[] UnaryResultTypes = {
@@ -314,6 +318,8 @@ public class UnaryOperatorNode extends OperatorNode
             bindXMLParse();
         else if (operatorType == XMLSERIALIZE_OP)
             bindXMLSerialize();
+        else if (operatorType == DIGITS_OP)
+        	bindDigits();
         return this;
 	}
 
@@ -441,6 +447,43 @@ public class UnaryOperatorNode extends OperatorNode
         setCollationUsingCompilationSchema();
     }
 
+	private void bindDigits()
+			throws StandardException{
+		TypeId operandType;
+		int jdbcType;
+
+		/*
+		 ** Check the type of the operand
+		 */
+		operandType=operand.getTypeId();
+
+		/*
+		 * If the operand is not a build-in type, generate a bound conversion
+		 * tree to build-in types.
+		 */
+		if(operandType.userType()){
+			operand=operand.genSQLJavaSQLTree();
+		}
+
+		jdbcType=operandType.getJDBCTypeId();
+
+		/* DIGITS only allowed on numeric types and CHAR/VARCHAR */
+		if(!operandType.isNumericTypeId() && !operandType.isCharOrVarChar())
+			throw StandardException.newException(
+					SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+					getOperatorString(),operandType.getSQLTypeName());
+
+
+		/* For DIGITS, if operand is a CHAR/VARCHAR, convert it to DECIMAL(31,6) */
+		if(operatorType==DIGITS_OP && (jdbcType==Types.CHAR || jdbcType == Types.VARCHAR)){
+			operand=(ValueNode)getNodeFactory().getNode(
+					C_NodeTypes.CAST_NODE,
+					operand,
+					new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.DECIMAL),31,6,true,TypeId.DECIMAL_MAXWIDTH),
+					getContextManager());
+			((CastNode)operand).bindCastNodeOnly();
+		}
+	}
 	/**
 	 * Preprocess an expression tree.  We do a number of transformations
 	 * here (including subqueries, IN lists, LIKE and BETWEEN) plus
@@ -588,6 +631,12 @@ public class UnaryOperatorNode extends OperatorNode
         // don't allow binding to an XML parameter.
 	        throw StandardException.newException(
  	           SQLState.LANG_ATTEMPT_TO_BIND_XML);
+		}
+		else if (operatorType == DIGITS_OP)
+		{
+			operand.setType(
+					new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.CHAR),true));
+			return;
 		}
 		else if (operand.getTypeServices() == null)
 		{

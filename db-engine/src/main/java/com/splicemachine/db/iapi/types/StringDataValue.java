@@ -238,6 +238,15 @@ public interface StringDataValue extends ConcatableDataValue
 						   NumberDataValue result)
                                     throws StandardException;
 
+	/**
+	 * The SQL DIGITS operator. String value of this NumberDataValue.
+	 *
+	 * @param source    The source of number to convert
+	 * @param result    The result of the previous call to this method,
+	 * @exception StandardException     Thrown on error (a negative number), if result is non-null then its value will be unchanged.
+	 */
+	StringDataValue digits(NumberDataValue source, StringDataValue result)
+			throws StandardException;
 
 	/**
 	 * Get a char array.  Typically, this is a simple

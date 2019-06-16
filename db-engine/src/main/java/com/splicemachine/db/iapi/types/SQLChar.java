@@ -2900,6 +2900,14 @@ public class SQLChar
         }
     }
 
+    public StringDataValue digits(NumberDataValue source, StringDataValue result)
+            throws StandardException {
+
+        result.setValue(source.getString());
+        return result;
+
+    }
+
     /** @see StringDataValue#lower
      *
      * @exception StandardException     Thrown on error
