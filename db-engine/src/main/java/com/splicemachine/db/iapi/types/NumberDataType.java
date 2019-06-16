@@ -579,5 +579,62 @@ public abstract class NumberDataType extends DataType
 
 	@Override
 	public abstract BigDecimal getBigDecimal() throws StandardException;
+
+	/**
+	 * The SQL DIGITS operator. String value of this NumberDataValue.
+	 *
+	 * @param source    The source of number to convert
+	 * @param len       The length of the output string, length is determined in the binding phase depending on the input type
+	 *                  tinyint, smallint: 5
+	 *                  int: 10
+	 *                  bigint: 19
+	 *                  decimal(p, s): p
+	 *                  char/varchar(converted to decimal(31,6)): 31
+	 *                  Double/real: maximal width of the type
+	 *                  default: 19
+	 * @param result    The result of the previous call to this method,
+	 * @exception StandardException
+	 * @return          The String value of the source. If source is null, the result is null, if the source is less than the specified length, left pad the string with 0s.
+	 */
+	public StringDataValue digits(NumberDataValue source, int len, StringDataValue result) throws StandardException {
+		if (result == null) {
+			result = (StringDataValue) new SQLChar().getNewNull();
+		}
+
+		if (source == null || source.isNull()) {
+			result.setToNull();
+			return result;
+		}
+
+		String sourceString;
+		// use format to avoid outputing string with exponential component for SQLReal and SQLDouble
+		if (source instanceof SQLReal) {
+			sourceString = String.format("%f", absolute(source).getFloat());
+		} else if (source instanceof SQLDouble) {
+			sourceString = String.format("%f", absolute(source).getDouble());
+		} else {
+		    sourceString = absolute(source).getString();
+		}
+		// check if there is a decimal point
+		int decimalPoint = sourceString.indexOf('.');
+		int sourceLen = sourceString.length();
+		if (decimalPoint != -1)
+			sourceLen --;
+
+		StringBuilder sb = new StringBuilder();
+		while (sb.length() < len - sourceLen) {
+			sb.append('0');
+		}
+		if (decimalPoint != -1) {
+			sb.append(sourceString.substring(0, decimalPoint));
+			sb.append(sourceString.substring(decimalPoint+1, sourceLen+1));
+		} else
+			sb.append(sourceString);
+
+		result.setValue(sb.toString());
+		return result;
+	}
+
+
 }
 

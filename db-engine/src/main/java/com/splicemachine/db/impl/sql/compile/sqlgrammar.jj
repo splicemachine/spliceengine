@@ -2904,6 +2904,7 @@ TOKEN [IGNORE_CASE] :
 |	<DAYOFYEAR: "dayofyear">
 |	<DEFINER: "definer">
 |	<DETERMINISTIC: "deterministic">
+|	<DIGITS: "digits">
 |   <DYNAMIC: "dynamic">
 |   <EXCLUDE: "exclude">
 |   <EXTRACT: "extract">
@@ -7926,6 +7927,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == EXTRACT ||
                 getToken(1).kind == LENGTH ||
                 getToken(1).kind == LOCATE ||
+                getToken(1).kind == DIGITS ||
                 getToken(1).kind == XMLPARSE ||
                 getToken(1).kind == XMLSERIALIZE ||
                 getToken(1).kind == XMLEXISTS ||
@@ -8044,6 +8046,16 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                     value,
                                     getContextManager());
     }
+|
+	<DIGITS> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+	{
+		return (ValueNode) nodeFactory.getNode(
+							C_NodeTypes.DIGITS_OPERATOR_NODE,
+                                                        value,
+                                                        ReuseFactory.getInteger(UnaryOperatorNode.DIGITS_OP),
+                                                        null,
+                                                        getContextManager());
+	}
 |
 	value = xmlFunction()
 	{
@@ -17028,6 +17040,7 @@ nonReservedKeyword()  :
 	|	tok = <DB2SQL>
 	|	tok = <DENSERANK>
 	|	tok = <DERBY>
+	|	tok = <DIGITS>
 	|	tok = <SPLICE_JDBC_RESULT_SET>
 	|	tok = <DOCUMENT>
 	|	tok = <EACH>
