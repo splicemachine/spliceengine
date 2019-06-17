@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.DataSetWriter;
@@ -79,6 +80,7 @@ public class SparkBulkInsertTableWriterBuilder<K, V>
         out.writeBoolean(skipSampling);
         out.writeUTF(indexName);
         out.writeDouble(sampleFraction);
+        ArrayUtil.writeByteArray(out, token);
     }
 
     @Override
@@ -90,12 +92,13 @@ public class SparkBulkInsertTableWriterBuilder<K, V>
         skipSampling = in.readBoolean();
         indexName = in.readUTF();
         sampleFraction = in.readDouble();
+        token = ArrayUtil.readByteArray(in);
     }
 
     @Override
     public DataSetWriter build() {
         return new BulkInsertDataSetWriter(dataSet, tableVersion, pkCols, autoIncrementRowLocationArray, heapConglom,
                 execRowDefinition, spliceSequences, operationContext, txn, bulkImportDirectory, samplingOnly, outputKeysOnly,
-                skipSampling, indexName, sampleFraction);
+                skipSampling, indexName, sampleFraction, token);
     }
 }
