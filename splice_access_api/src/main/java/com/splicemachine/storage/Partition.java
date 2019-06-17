@@ -173,4 +173,10 @@ public interface Partition extends AutoCloseable{
     BitSet getBloomInMemoryCheck(boolean hasConstraintChecker, Pair<KVPair, Lock>[] dataAndLocks) throws IOException;
 
     PartitionDescriptor getDescriptor() throws IOException;
+
+    default boolean grantCreatePrivilege() throws IOException{return false;}
+
+    default boolean revokeCreatePrivilege() throws IOException {
+        return false;
+    };
 }

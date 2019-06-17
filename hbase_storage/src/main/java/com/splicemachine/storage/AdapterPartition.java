@@ -18,8 +18,10 @@ package com.splicemachine.storage;
 import com.google.protobuf.Service;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.util.PartitionInRangePredicate;
 import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -40,6 +42,7 @@ import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.security.AccessDeniedException;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.ImmutableList;
@@ -416,4 +419,67 @@ public class AdapterPartition extends SkeletonHBaseClientPartition{
         }
     }
 
+    @Override
+    public boolean grantCreatePrivilege() throws IOException{
+        if (!useProxy) {
+           return delegate.grantCreatePrivilege();
+        }
+
+        try {
+            String userName = UserGroupInformation.getCurrentUser().getShortUserName();
+            try (java.sql.Connection jdbcConnection = connectionPool.getConnection();
+                 PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
+                statement.setString(1, tableName.toString());
+                statement.setString(2, "grantCreatePrivilege");
+                statement.setBlob(3, new ArrayInputStream(Bytes.toBytes(userName)));
+                ResultSet rs = statement.executeQuery();
+                rs.next();
+                Blob blob = rs.getBlob(1);
+                byte[] bytes = blob.getBytes(1, (int) blob.length());
+
+                String result = new String(bytes).toUpperCase();
+                if (result.equals("TRUE")) {
+                    SpliceLogUtils.info(LOG, "granted create privilege on table %s to user %s", tableName, userName);
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public boolean revokeCreatePrivilege() throws IOException {
+        if (!useProxy) {
+            return delegate.revokeCreatePrivilege();
+        }
+
+        try {
+            String userName = UserGroupInformation.getCurrentUser().getShortUserName();
+            try (java.sql.Connection jdbcConnection = connectionPool.getConnection();
+                 PreparedStatement statement = jdbcConnection.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?, ?, ?)")) {
+                statement.setString(1, tableName.toString());
+                statement.setString(2, "revokeCreatePrivilege");
+                statement.setBlob(3, new ArrayInputStream(Bytes.toBytes(userName)));
+                ResultSet rs = statement.executeQuery();
+                rs.next();
+                Blob blob = rs.getBlob(1);
+                byte[] bytes = blob.getBytes(1, (int) blob.length());
+
+                String result = new String(bytes).toUpperCase();
+                if (result.equals("TRUE")) {
+                    SpliceLogUtils.info(LOG, "revoked create privileges on table %s from user %s", tableName, userName);
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+        } catch (SQLException e) {
+            throw new IOException(e);
+        }
+    }
 }
