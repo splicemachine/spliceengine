@@ -1169,6 +1169,7 @@
                                                     <include>tomcat:jasper-runtime</include>
                                                     <include>tomcat:tomcat-parent</include>
                                                     <include>org.apache.commons:commons-lang</include>
+                                                    <include>org.apache.commons:commons-lang3</include>
                                                     <include>org.apache.kafka:*</include>
                                                     <include>javax.servlet:javax.servlet-api:3.1.0</include>
                                                     <include>org.python:jython-standalone</include>
