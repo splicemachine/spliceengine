@@ -524,6 +524,8 @@ public class H10PartitionAdmin implements PartitionAdmin{
                 SpliceLogUtils.info(LOG, "retry merging region %s and %s", regionName1, regionName2);
                 retriableMergeRegions(regionName1, regionName2, maxRetries, retry+1);
             }
+            else
+                throw e;
         }
     }
 }
