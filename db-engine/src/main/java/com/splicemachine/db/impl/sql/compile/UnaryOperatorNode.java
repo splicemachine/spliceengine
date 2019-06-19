@@ -504,9 +504,6 @@ public class UnaryOperatorNode extends OperatorNode
 			case Types.FLOAT:
 				resultLength = operand.getTypeServices().getPrecision();
 				break;
-
-			//    resultLength = operandType.getMaximumPrecision();
-			//    break;
 			default:
 				resultLength = 19;
 		}
