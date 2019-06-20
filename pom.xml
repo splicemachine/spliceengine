@@ -372,7 +372,7 @@
                 <version>1.0.0</version>
                 <classifier>hadoop2</classifier>
             </dependency>
-            <!--dependency>
+            <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
                 <version>2.6.5</version>
@@ -386,7 +386,7 @@
                 <groupId>org.codehaus.jackson</groupId>
                 <artifactId>jackson-mapper-asl</artifactId>
                 <version>1.8.8</version>
-            </dependency-->
+            </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>
                 <artifactId>hamcrest-core</artifactId>
@@ -835,7 +835,7 @@
             <properties>
                 <envClassifier>mem</envClassifier>
                 <hbase.version>2.0.2</hbase.version>
-                <spark.version>2.4.3----</spark.version>
+                <spark.version>2.4.3</spark.version>
             </properties>
             <modules>
                 <module>mem_storage</module>
@@ -864,6 +864,8 @@
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
                 <parquet.version>orc-spark-2.3</parquet.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
+                <scala.binary.version>2.11</scala.binary.version>
+                <scala.version>2.11.6</scala.version>
             </properties>
             <modules>
                 <module>hbase_storage</module>
