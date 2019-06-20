@@ -80,7 +80,6 @@ public class SparkBulkInsertTableWriterBuilder<K, V>
         out.writeBoolean(skipSampling);
         out.writeUTF(indexName);
         out.writeDouble(sampleFraction);
-        ArrayUtil.writeByteArray(out, token);
     }
 
     @Override
@@ -92,7 +91,6 @@ public class SparkBulkInsertTableWriterBuilder<K, V>
         skipSampling = in.readBoolean();
         indexName = in.readUTF();
         sampleFraction = in.readDouble();
-        token = ArrayUtil.readByteArray(in);
     }
 
     @Override
