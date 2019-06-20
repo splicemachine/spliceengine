@@ -410,6 +410,18 @@ public class H10PartitionAdmin implements PartitionAdmin{
                     grantPrivilegesIfNeeded(userName, spliceNamespace);
 
                     return Collections.emptyList();
+
+                case "grantCreatePrivilege": {
+                    userName = Bytes.toString(bytes);
+                    boolean granted = grantCreatePrivilege(tableName, userName);
+                    return Arrays.asList(new Boolean(granted).toString().getBytes());
+                }
+
+                case "revokeCreatePrivilege": {
+                    userName = Bytes.toString(bytes);
+                    boolean granted = revokeCreatePrivilege(tableName, userName);
+                    return Arrays.asList(new Boolean(granted).toString().getBytes());
+                }
                 default:
                     throw new UnsupportedOperationException(operation);
 
@@ -460,12 +472,54 @@ public class H10PartitionAdmin implements PartitionAdmin{
             }
             admin.modifyTable(tn, htd);
             SpliceLogUtils.info(LOG, "disabled replication for table %s", tn);
-        }
-        finally {
+        } finally {
             if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
                 admin.enableTable(tn);
             }
         }
+    }
+
+    private boolean grantCreatePrivilege(String tableName, String userName) throws Throwable{
+
+        if (hasCreatePrivilege(tableName, userName)){
+            SpliceLogUtils.info(LOG, "User %s already has create privilege for table %s. Ignore grant request.",
+                    userName, tableName);
+            return false;
+        }
+
+        SpliceLogUtils.info(LOG, "granting create privilege to user %s on table %s", userName, tableName);
+        for (String user : Arrays.asList(userName, userName.toUpperCase(), userName.toLowerCase())) {
+            AccessControlClient.grant(admin.getConnection(), TableName.valueOf(tableName), user,null, null,
+                    Permission.Action.CREATE);
+        }
+        return true;
+    }
+
+    private boolean hasCreatePrivilege(String tableName, String userName) throws Throwable{
+        List<UserPermission> permissions = AccessControlClient.getUserPermissions(admin.getConnection(), tableName);
+        for (String user : Arrays.asList(userName, userName.toUpperCase(), userName.toLowerCase())) {
+            UserPermission up = getPermission(permissions, user);
+            if (up == null || !up.implies(TableName.valueOf(tableName), null, null, Permission.Action.CREATE))
+                return false;
+        }
+        return true;
+    }
+
+
+    private boolean revokeCreatePrivilege(String tableName, String userName) throws Throwable{
+
+        if (!hasCreatePrivilege(tableName, userName)){
+            SpliceLogUtils.info(LOG, "User %s does not have create privilege for table %s. Ignore revoke request.",
+                    userName, tableName);
+            return false;
+        }
+
+        SpliceLogUtils.info(LOG, "revoking create privilege on table %s from user %s", tableName, userName);
+        for (String user : Arrays.asList(userName, userName.toUpperCase(), userName.toLowerCase())) {
+            AccessControlClient.revoke(admin.getConnection(), TableName.valueOf(tableName), user,null, null,
+                    Permission.Action.CREATE);
+        }
+        return true;
     }
 
     private void grantPrivilegesIfNeeded(String userName, String spliceNamespace) throws Throwable {
