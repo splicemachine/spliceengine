@@ -42,7 +42,6 @@ import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import scala.Tuple2;
 
 import java.io.IOException;
 import java.util.*;
@@ -56,17 +55,19 @@ public class BulkDataSetWriter  {
     protected OperationContext operationContext;
     protected long heapConglom;
     protected TxnView txn;
+    protected byte[] token;
 
     protected static final Logger LOG=Logger.getLogger(BulkDataSetWriter.class);
 
 
     public BulkDataSetWriter() {}
 
-    public BulkDataSetWriter(DataSet dataset, OperationContext operationContext, long heapConglom, TxnView txn) {
+    public BulkDataSetWriter(DataSet dataset, OperationContext operationContext, long heapConglom, TxnView txn, byte[] token) {
         this.dataSet = dataset;
         this.operationContext = operationContext;
         this.heapConglom = heapConglom;
         this.txn = txn;
+        this.token = token;
     }
 
     /**
@@ -185,7 +186,7 @@ public class BulkDataSetWriter  {
         int numTasks = Math.max(bulkImportPartitions.size()/regionsPerTask, 1);
         SpliceSpark.pushScope(prefix + " Load HFiles");
         SpliceSpark.getContext().parallelize(bulkImportPartitions, numTasks)
-                .foreachPartition(new BulkImportFunction(bulkImportDirectory));
+                .foreachPartition(new BulkImportFunction(bulkImportDirectory, token));
         SpliceSpark.popScope();
     }
 

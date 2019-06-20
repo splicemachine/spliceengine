@@ -18,12 +18,14 @@ package com.splicemachine.derby.stream.function;
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -48,12 +50,14 @@ import java.util.Map;
 public class BulkImportFunction implements VoidFunction<Iterator<BulkImportPartition>>, Externalizable {
     private static final Logger LOG = Logger.getLogger(BulkImportFunction.class);
     private Map<Long, List<BulkImportPartition>> partitionMap;
+    private byte[] token;
 
     // serialization
     public BulkImportFunction() {}
 
-    public BulkImportFunction(String bulkImportDirectory) {
+    public BulkImportFunction(String bulkImportDirectory, byte[] token) {
         this.bulkImportDirectory = bulkImportDirectory;
+        this.token = token;
     }
 
     String bulkImportDirectory;
@@ -92,19 +96,37 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
                     fs.delete(sourceDir.getParent(), true);
                 }
             }
+            writeToken(fs, path);
             loader.doBulkLoad(path.getParent(), (HTable) ((SkeletonHBaseClientPartition)partition).unwrapDelegate());
             fs.delete(path.getParent(), true);
         }
     }
 
+    private void writeToken(FileSystem fs, Path path) throws IOException{
+        if (token != null && token.length > 0) {
+            FSDataOutputStream out = null;
+            try {
+                out = fs.create(new Path(path, "_token"));
+                out.writeInt(token.length);
+                out.write(token);
+                out.close();
+            }finally {
+                if (out != null) {
+                    out.close();
+                }
+            }
+        }
+    }
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(bulkImportDirectory);
+        ArrayUtil.writeByteArray(out, token);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         bulkImportDirectory = (String) in.readObject();
+        token = ArrayUtil.readByteArray(in);
         SpliceSpark.setupSpliceStaticComponents();
     }
 
