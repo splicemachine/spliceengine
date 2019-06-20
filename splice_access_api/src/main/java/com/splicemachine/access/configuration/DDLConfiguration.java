@@ -51,7 +51,7 @@ public class DDLConfiguration implements ConfigurationDefault {
     public static final String DDL_DRAINING_MAXIMUM_WAIT = "splice.ddl.drainingWait.maximum";
     private static final long DEFAULT_DDL_DRAINING_MAXIMUM_WAIT = 100000;
 
-    public static final String MERGE_REGION_WAIT_TIMEOUT = "merge.region.wait.timeout";
+    public static final String MERGE_REGION_WAIT_TIMEOUT = "splice.merge.region.wait.timeout";
     private static final long DEFAULT_MERGE_REGION_WAIT_TIMEOUT = 120000;
 
     @Override
