@@ -1169,8 +1169,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      *         column names consecutively (e.g. c0,c1,c2,c3...) will not be done.
      *         Instead the target column ids defined in aggregates will be used,
      *         (e.g.  c3, c6, c9 ...).  The null placeholder columns are stripped
-     *         out of the result Dataset.
-     *         Returning null means a NativeSparkDataSet could not be generated for
+     *         out of the input Dataset (in case there is some performance advantage),
+     *         but retained in the final aggregated Dataset.
+     *         A return value of null means a NativeSparkDataSet could not be generated for
      *         the aggregations described in the aggregates array and traditional
      *         Splice low-level functions should be used.
      */
@@ -1178,7 +1179,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) {
         context.pushScopeForOp(OperationContext.Scope.AGGREGATE);
         try {
-            final boolean stddev_samp_Disabled = true;
             RelationalGroupedDataset rgd = null;
             String groupingColumn1;
             final boolean noGroupingColumns =
@@ -1276,17 +1276,18 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                         inputColumns.add(sourceColName);
                         break;
                     case "SpliceStddevSamp":
-                        // Disabling this path for now.
-                        // stddev_samp may return NaN unexpectedly,
-                        // which on Splice causes the query to error out.
-                        // See SPARK-13860.
-                        if (stddev_samp_Disabled)
-                            return null;
                         column = stddev_samp(sourceColName);
                         column = column.cast(targetDataType);
                         // Distinct not currently supported.  See SPLICE-1820.
                         if (aggregates[i].isDistinct())
                             return null;
+
+                        Column countColumn =
+                         org.apache.spark.sql.functions.count(sourceColumn);
+                        // stddev_samp may return NaN when the count is 1, so
+                        // return null directly when the count is 1 or less.
+                        // See SPARK-13860.
+                        column = when(countColumn.gt(lit(1)), column);
                         inputColumns.add(sourceColName);
                         break;
                     default:
