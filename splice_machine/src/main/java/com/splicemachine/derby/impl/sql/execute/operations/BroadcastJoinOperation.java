@@ -294,10 +294,7 @@ public class BroadcastJoinOperation extends JoinOperation{
             }
         }
 
-        // Counting rows in this manner disables native spark execution,
-        // so only do it for non-native spark.
-        if (!usesNativeSparkDataSet)
-            result = result.map(new CountProducedFunction(operationContext), /*isLast=*/true);
+        result = result.map(new CountProducedFunction(operationContext), /*isLast=*/true);
 
 //        operationContext.popScope();
 
