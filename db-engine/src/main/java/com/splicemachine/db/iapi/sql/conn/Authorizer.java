@@ -33,6 +33,8 @@ package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
+
 /**
   The Authorizer verifies a connected user has the authorization 
   to perform a requested database operation using the current
@@ -122,8 +124,10 @@ public interface Authorizer
 	  @exception StandardException Thrown if the operation is not allowed
 	 */
 	void authorize(int operation) throws StandardException;
-    
-	/**
+
+    boolean canSeeSchema(Activation activation, StatementPermission statementPermission);
+
+    /**
 	  Verify the connected user is authorized to perform the requested
 	  operation.
 

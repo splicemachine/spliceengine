@@ -271,4 +271,13 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	public static final String SYSSCHEMASVIEW_VIEW_SQL1 = "create view sysschemasView as \n" +
 			SUPER_USER_SCHEMA;
 
+
+	public static final String RANGER_USER_SCHEMA =
+            "select S.* from SYS.SYSSCHEMAS as S where S.SCHEMANAME not in " +
+            "(select name from new com.splicemachine.derby.vti.SchemaFilterVTI() as b (NAME VARCHAR(128))) ";
+
+
+	public static final String SYSSCHEMASVIEW_VIEW_RANGER = "create view sysschemasView as \n" +
+            RANGER_USER_SCHEMA;
+
 }

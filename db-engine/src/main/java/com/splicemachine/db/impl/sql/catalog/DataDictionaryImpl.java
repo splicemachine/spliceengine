@@ -669,6 +669,33 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     }
 
+    public List<SchemaDescriptor> getAllSchemas(TransactionController tc) throws StandardException{
+        List<SchemaDescriptor> lists =new ArrayList<>();
+        TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
+        SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
+        ScanController sc=tc.openScan(
+                ti.getHeapConglomerate(),
+                false,   // don't hold open across commit
+                0,       // for update
+                TransactionController.MODE_RECORD,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                null,      // all fields as objects
+                null, // start position -
+                0,                            // startSearchOperation - none
+                null,                //
+                null, // stop position -through last row
+                0);                           // stopSearchOperation - none
+        ExecRow outRow=rf.makeEmptyRow();
+        SchemaDescriptor schemaDescr;
+        while(sc.fetchNext(outRow.getRowArray())){
+            schemaDescr=(SchemaDescriptor)rf.buildDescriptor(outRow,null,this);
+            lists.add(schemaDescr);
+        }
+        sc.close();
+        return lists;
+    }
+
+
     // returns null if database is at rev level 10.5 or earlier
     @Override
     public PasswordHasher makePasswordHasher(Dictionary props) throws StandardException{

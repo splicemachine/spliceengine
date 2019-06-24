@@ -94,6 +94,11 @@ public class GenericAuthorizer implements Authorizer {
 		authorize( (Activation) null, operation);
 	}
 
+	@Override
+	public boolean canSeeSchema(Activation activation, StatementPermission statementPermission) {
+		return true;
+	}
+
 	/**
 	  @see Authorizer#authorize
 	  @exception StandardException Thrown if the operation is not allowed

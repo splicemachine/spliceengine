@@ -367,5 +367,5 @@ public interface SConfiguration {
 
     int getRecursiveQueryIterationLimit();
 
-    boolean getMetadataRestrictionEnabled();
+    String getMetadataRestrictionEnabled();
 }
