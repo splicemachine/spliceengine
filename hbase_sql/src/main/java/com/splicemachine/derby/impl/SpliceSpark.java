@@ -310,7 +310,7 @@ public class SpliceSpark {
 
         /*
 
-           Spark Native DataSet
+           Spark SQL
 
          */
         conf.set("spark.sql.retainGroupColumns", "true");
