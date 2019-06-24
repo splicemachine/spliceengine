@@ -4,24 +4,24 @@
 This topic describes installing and configuring Splice Machine on a
 Hortonworks Ambari-managed cluster. Follow these steps:
 
-- [Installing and Configuring Splice Machine for Hortonworks HDP](#installing-and-configuring-splice-machine-for-hortonworks-hdp)
-  - [Verify Prerequisites](#verify-prerequisites)
-  - [Download and Install Splice Machine](#download-and-install-splice-machine)
-  - [Install splicemachine using Ambari service](#install-splicemachine-using-ambari-service)
-  - [Start any Additional Services](#start-any-additional-services)
-  - [Optional Configuration Modifications](#optional-configuration-modifications)
-    - [Modify the Authentication Mechanism](#modify-the-authentication-mechanism)
-    - [Enabling Ranger for Authorization](#enabling-ranger-for-authorization)
-      - [Config Splice Machine Ambari Service](#config-splice-machine-ambari-service)
-      - [Add Ranger Service for Splice Machine](#add-ranger-service-for-splice-machine)
-      - [Config Ranger Policies](#config-ranger-policies)
-        - [Config HBase](#config-hbase)
-    - [Modify the Log Location](#modify-the-log-location)
-      - [Query Statement log](#query-statement-log)
-      - [OLAP Server Log](#olap-server-log)
-  - [Verify your Splice Machine Installation](#verify-your-splice-machine-installation)
-  - [Upgrade from Old Version](#upgrade-from-old-version)
-- [Backdown procedure](#backdown-procedure)
+- [Installing and Configuring Splice Machine for Hortonworks HDP](#Installing-and-Configuring-Splice-Machine-for-Hortonworks-HDP)
+  - [Verify Prerequisites](#Verify-Prerequisites)
+  - [Download and Install Splice Machine](#Download-and-Install-Splice-Machine)
+  - [Install splicemachine using Ambari service](#Install-splicemachine-using-Ambari-service)
+  - [Start any Additional Services](#Start-any-Additional-Services)
+  - [Optional Configuration Modifications](#Optional-Configuration-Modifications)
+    - [Modify the Authentication Mechanism](#Modify-the-Authentication-Mechanism)
+    - [Enabling Ranger for Authorization](#Enabling-Ranger-for-Authorization)
+      - [Config Splice Machine Ambari Service](#Config-Splice-Machine-Ambari-Service)
+      - [Add Ranger Service for Splice Machine](#Add-Ranger-Service-for-Splice-Machine)
+      - [Config Ranger Policies](#Config-Ranger-Policies)
+        - [Config HBase](#Config-HBase)
+    - [Modify the Log Location](#Modify-the-Log-Location)
+      - [Query Statement log](#Query-Statement-log)
+      - [OLAP Server Log](#OLAP-Server-Log)
+  - [Verify your Splice Machine Installation](#Verify-your-Splice-Machine-Installation)
+  - [Upgrade from Old Version](#Upgrade-from-Old-Version)
+- [Backdown procedure](#Backdown-procedure)
 
 ## Verify Prerequisites
 
@@ -155,7 +155,7 @@ Information" are in the configurations and make the following changes
 - If you're using Kerberos, you need to add this option to your HBase Master Java Configuration Options under value HBASE_MASTER_OPTS, add the following parameters (replacing <> with appropriate values):
 
    ````
-   -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true -Dsplice.spark.yarn.principal=<replace with principal> -Dsplice.spark.yarn.keytab=<replace with keytab path>
+   -Dsplice.spark.hadoop.fs.hdfs.impl.disable.cache=true -Dsplice.spark.yarn.principal=<replace with principal> -Dsplice.spark.yarn.keytab=<replace with keytab path> -Dsplice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/lib
    ````
 
 - Kerberos installations will also require the specification of an enterprise license key, in "Custom hbase-site" section add:
