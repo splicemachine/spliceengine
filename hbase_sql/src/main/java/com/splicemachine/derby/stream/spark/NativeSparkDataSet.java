@@ -1134,8 +1134,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      *         column names consecutively (e.g. c0,c1,c2,c3...) will not be done.
      *         Instead the target column ids defined in aggregates will be used,
      *         (e.g.  c3, c6, c9 ...).  The null placeholder columns are stripped
-     *         out of the input Dataset (in case there is some performance advantage),
-     *         but retained in the final aggregated Dataset.
+     *         out of the input Dataset (in case there is some performance advantage).
+     *         Columns present in the ExecRow definition, but absent from the select
+     *         list, are added as null values to the result dataset.
      *         A return value of null means a NativeSparkDataSet could not be generated for
      *         the aggregations described in the aggregates array and traditional
      *         Splice low-level functions should be used.
@@ -1247,12 +1248,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                         if (aggregates[i].isDistinct())
                             return null;
 
-                        Column countColumn =
-                         org.apache.spark.sql.functions.count(sourceColumn);
                         // stddev_samp may return NaN when the count is 1, so
                         // return null directly when the count is 1 or less.
                         // See SPARK-13860.
-                        column = when(countColumn.gt(lit(1)), column);
+                        column = when(column.isNaN(),null).otherwise(column);
                         inputColumns.add(sourceColName);
                         break;
                     default:
