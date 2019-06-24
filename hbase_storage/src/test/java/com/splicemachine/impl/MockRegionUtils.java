@@ -23,7 +23,6 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -151,12 +150,12 @@ public class MockRegionUtils{
         };
         doAnswer(deleteAnswer).when(fakeRegion).delete(any(Delete.class));
 
-        when(fakeRegion.getScanner(any(Scan.class))).thenAnswer(new Answer<RegionScanner>(){
+        when(fakeRegion.getScanner(any(Scan.class))).thenAnswer(new Answer<HRegion.RegionScannerImpl>(){
 
             @Override
-            public RegionScanner answer(InvocationOnMock invocationOnMock) throws Throwable{
+            public HRegion.RegionScannerImpl answer(InvocationOnMock invocationOnMock) throws Throwable{
                 Scan scan=(Scan)invocationOnMock.getArguments()[0];
-                return new IteratorRegionScanner(rowMap.values().iterator(),scan);
+                return new IteratorRegionScanner(fakeRegion, rowMap.values().iterator(),scan);
             }
         });
 

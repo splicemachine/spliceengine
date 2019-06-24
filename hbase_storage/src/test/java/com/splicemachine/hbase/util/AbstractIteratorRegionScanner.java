@@ -14,6 +14,7 @@
 
 package com.splicemachine.hbase.util;
 
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.PeekingIterator;
 import org.apache.hadoop.hbase.Cell;
@@ -28,12 +29,13 @@ import java.util.*;
 
 import static org.mockito.Mockito.mock;
 
-public abstract class AbstractIteratorRegionScanner implements RegionScanner{
-    private final PeekingIterator<Set<Cell>> kvs;
-    private final Scan scan;
-    private final Filter filter;
+public abstract class AbstractIteratorRegionScanner extends HRegion.RegionScannerImpl{
+    private PeekingIterator<Set<Cell>> kvs;
+    private Scan scan;
+    private Filter filter;
 
-    public AbstractIteratorRegionScanner(Iterator<Set<Cell>> kvs,Scan scan) {
+    public AbstractIteratorRegionScanner(HRegion r, Iterator<Set<Cell>> kvs,Scan scan) {
+        r.super();
         this.kvs = Iterators.peekingIterator(kvs);
         this.scan = scan;
         this.filter = scan.getFilter();
@@ -137,7 +139,7 @@ public abstract class AbstractIteratorRegionScanner implements RegionScanner{
 
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         //no-op
     }
 
