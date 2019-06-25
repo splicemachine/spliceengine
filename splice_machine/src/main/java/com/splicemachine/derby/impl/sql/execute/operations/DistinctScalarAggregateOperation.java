@@ -122,7 +122,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext = dsp.createOperationContext(this);
+        dsp.incrementOpDepth();
         DataSet<ExecRow> dataSet = source.getDataSet(dsp);
+        DataSet<ExecRow> sourceDataSet = dataSet;
+        dsp.decrementOpDepth();
         DataSet<ExecRow> dataSetWithNativeSparkAggregation = null;
 
         if (nativeSparkForced())
@@ -136,6 +139,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
                 dataSet.applyNativeSparkAggregation(null, aggregates,
                                                     false, operationContext);
         if (dataSetWithNativeSparkAggregation != null) {
+            dsp.finalizeTempOperationStrings();
             nativeSparkUsed = true;
             return dataSetWithNativeSparkAggregation;
         }
@@ -197,6 +201,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
             operationContext.popScope();
 
             DataSet ds3 = set4.coalesce(1, true, false, operationContext, true, "Coalesce");
+            handleSparkExplain(ds3, sourceDataSet, dsp);
             return ds3.mapPartitions(new StitchMixedRowFlatMapFunction(operationContext), true, true, "Stitch Mixed rows");
         } else {
             DataSet<ExecRow> ds2 = dataSet.keyBy(new KeyerFunction(operationContext, keyColumns), null, true, "Prepare Keys")
@@ -204,6 +209,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
                     .values(null, false, operationContext, true, "Read Values");
             DataSet<ExecRow> ds3 = ds2.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, false), false, true, "First Aggregation");
             DataSet<ExecRow> ds4 = ds3.coalesce(1, true, false, operationContext, true, "Coalesce");
+            handleSparkExplain(ds4, sourceDataSet, dsp);
             return ds4.mapPartitions(new MergeAllAggregatesFlatMapFunction(operationContext, true), true, true, "Final Aggregation");
         }
 

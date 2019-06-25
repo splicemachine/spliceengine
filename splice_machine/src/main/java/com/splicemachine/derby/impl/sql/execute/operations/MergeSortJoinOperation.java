@@ -181,17 +181,26 @@ public class MergeSortJoinOperation extends JoinOperation {
             throw new IllegalStateException("Operation is not open");
 
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
+        dsp.incrementOpDepth();
+        boolean useNativeSparkJoin = dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null && !rightFromSSQ &&
+            !containsUnsafeSQLRealComparison();
+
+        if (useNativeSparkJoin)
+            dsp.finalizeTempOperationStrings();
 
         // Prepare Left
-
         DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp)
                 .map(new CloneFunction<>(operationContext));
 
        // operationContext.pushScopeForOp("Prepare Left Side");
         DataSet<ExecRow> leftDataSet2 =
             leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
+
         if (!isOuterJoin && !notExistsRightSide)
             leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
+
+        if (useNativeSparkJoin)
+            dsp.finalizeTempOperationStrings();
 
         // Prepare Right
         DataSet<ExecRow> rightDataSet1 = rightResultSet.getDataSet(dsp).map(new CloneFunction<>(operationContext));
@@ -200,13 +209,15 @@ public class MergeSortJoinOperation extends JoinOperation {
 //        if (!isOuterJoin) Remove all nulls from the right side...
             rightDataSet2 = rightDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
 
+        dsp.decrementOpDepth();
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
                 rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<ExecRow> joined;
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null && !rightFromSSQ &&
-            !containsUnsafeSQLRealComparison()){
+
+
+        if (useNativeSparkJoin){
             if (isOuterJoin)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
             else if (notExistsRightSide)
@@ -216,6 +227,7 @@ public class MergeSortJoinOperation extends JoinOperation {
             else
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.INNER,false);
         } else{
+
             PairDataSet<ExecRow, ExecRow> rightDataSet =
                     rightDataSet2.keyBy(new KeyerFunction(operationContext, rightHashKeys));
 //            operationContext.popScope();
@@ -226,6 +238,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, rightFromSSQ=%s, hasRestriction=%s",
                         isOuterJoin ? "outer" : "inner", notExistsRightSide, rightFromSSQ, restriction != null);
             joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
+            handleSparkExplain(joined, leftDataSet2, rightDataSet2, dsp);
         }
             return joined;
                     //.map(new CountProducedFunction(operationContext), true);

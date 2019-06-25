@@ -160,10 +160,17 @@ public class AnyOperation extends SpliceBaseOperation {
             throw new IllegalStateException("Operation is not open");
 
         // we are consuming the dataset, get a ResultDataSet
-        Iterator<ExecRow> iterator = source.getResultDataSet(dsp).toLocalIterator();
+        dsp.incrementOpDepth();
+        DataSet<ExecRow> sourceDS = source.getResultDataSet(dsp);
+        Iterator<ExecRow> iterator = sourceDS.toLocalIterator();
+        dsp.decrementOpDepth();
+        DataSet<ExecRow> ds;
         if (iterator.hasNext())
-                return dsp.singleRowDataSet(iterator.next());
-        return dsp.singleRowDataSet(getRowWithNulls());
+            ds = dsp.singleRowDataSet(iterator.next());
+        else
+            ds = dsp.singleRowDataSet(getRowWithNulls());
+        handleSparkExplain(ds, sourceDS, dsp);
+        return ds;
     }
 
     @Override

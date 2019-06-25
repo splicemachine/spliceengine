@@ -351,7 +351,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         DataSet set;
         OperationContext operationContext=dsp.createOperationContext(this);
         int[] expectedUpdatecounts = null;
-        if (activation.isBatched()) {
+        if (activation.isBatched() && !dsp.isSparkExplain()) {
             /*
              If we are executing batched operations we gather all modified rows into a single dataset by collecting
              one dataset for each original batched statement and then unioning them all together
@@ -382,7 +382,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
 
             set = sets.get(0);
         } else {
+            dsp.incrementOpDepth();
             set=source.getDataSet(dsp).shufflePartitions();
+            dsp.decrementOpDepth();
         }
         return Pair.newPair(set, expectedUpdatecounts);
     }
