@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.function.Partitioner;
@@ -36,6 +37,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.utils.IndentedString;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
@@ -51,10 +53,10 @@ import java.io.SequenceInputStream;
 import java.net.URISyntaxException;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Scanner;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
+
+import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind.NONE;
 
 /**
  * Local control side DataSetProcessor.
@@ -381,4 +383,19 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
         return new ControlTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
     }
+
+    // Operations specific to native spark explains
+    // have no effect on control queries.
+    @Override public boolean isSparkExplain() { return false; }
+    @Override public ExplainNode.SparkExplainKind getSparkExplainKind() { return NONE; }
+    @Override public void setSparkExplain(ExplainNode.SparkExplainKind newValue) {  }
+    @Override public void prependIndentedString(IndentedString indentedString) { }
+    @Override public void prependSpliceExplainString(String explainString) { }
+    @Override public void prependSparkExplainStrings(List<String> stringsToAdd) { }
+    @Override public void finalizeTempOperationStrings() { }
+    @Override public List<String> getNativeSparkExplain() { return null; }
+    @Override public int getOpDepth() { return 0; }
+    @Override public void incrementOpDepth() { }
+    @Override public void decrementOpDepth() { }
+    @Override public void resetOpDepth() { }
 }

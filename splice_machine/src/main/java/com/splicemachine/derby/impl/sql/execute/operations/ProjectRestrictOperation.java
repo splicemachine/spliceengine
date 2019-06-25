@@ -364,12 +364,17 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             return dsp.getEmpty();
         }
         OperationContext operationContext = dsp.createOperationContext(this);
+	dsp.incrementOpDepth();
         DataSet<ExecRow> sourceSet = source.getDataSet(dsp);
+        DataSet<ExecRow> originalSourceDataset = sourceSet;
+        dsp.decrementOpDepth();
         try {
             operationContext.pushScope();
             if (restrictionMethodName != null)
                 sourceSet = sourceSet.filter(new ProjectRestrictPredicateFunction<>(operationContext));
-            return sourceSet.map(new ProjectRestrictMapFunction<>(operationContext, expressions));
+            DataSet<ExecRow> projection = sourceSet.map(new ProjectRestrictMapFunction<>(operationContext, expressions));
+            handleSparkExplain(projection, originalSourceDataset, dsp);
+            return projection;
         } finally {
             operationContext.popScope();
         }

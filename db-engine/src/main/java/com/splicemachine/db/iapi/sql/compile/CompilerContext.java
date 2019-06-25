@@ -655,7 +655,7 @@ public interface CompilerContext extends Context
 	 */
 	boolean isReferenced(SequenceDescriptor sd);
 
-    void setDataSetProcessorType(DataSetProcessorType type);
+    void setDataSetProcessorType(DataSetProcessorType type, boolean setDSPTypeinLCC);
 
     DataSetProcessorType getDataSetProcessorType();
 
