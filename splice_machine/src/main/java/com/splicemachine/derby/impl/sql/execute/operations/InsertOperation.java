@@ -55,6 +55,8 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -374,8 +376,14 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
+
+        operationContext.pushScope();
         if(insertMode.equals(InsertNode.InsertMode.UPSERT) && pkCols==null)
             throw ErrorState.UPSERT_NO_PRIMARY_KEYS.newException(""+heapConglom+"");
+        if (dsp.isSparkExplain()) {
+            dsp.prependSpliceExplainString(this.explainPlan);
+            return set;
+        }
         TxnView txn=getCurrentTransaction();
 
         ClusterHealth.ClusterHealthWatcher healthWatcher = null;
@@ -383,7 +391,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             healthWatcher = SIDriver.driver().clusterHealth().registerWatcher();
         }
 
-        operationContext.pushScope();
         try{
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");

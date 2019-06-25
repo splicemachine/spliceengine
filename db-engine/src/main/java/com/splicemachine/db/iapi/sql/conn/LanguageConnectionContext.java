@@ -1371,6 +1371,8 @@ public interface LanguageConnectionContext extends Context {
 
     CompilerContext.DataSetProcessorType getDataSetProcessorType();
 
+    void setDataSetProcessorType(CompilerContext.DataSetProcessorType type);
+
 	/**
 	 *
 	 * Setting the dynamic withDescriptors

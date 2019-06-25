@@ -180,7 +180,9 @@ public class MergeSortJoinOperation extends JoinOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        boolean isSparkExplain = dsp.isSparkExplain();
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
+        dsp.incrementOpDepth();
 
         // Prepare Left
 
@@ -200,11 +202,14 @@ public class MergeSortJoinOperation extends JoinOperation {
 //        if (!isOuterJoin) Remove all nulls from the right side...
             rightDataSet2 = rightDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
 
+        dsp.decrementOpDepth();
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
                 rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<ExecRow> joined;
+
+
         if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null && !rightFromSSQ &&
             !containsUnsafeSQLRealComparison()){
             if (isOuterJoin)
@@ -216,6 +221,7 @@ public class MergeSortJoinOperation extends JoinOperation {
             else
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.INNER,false);
         } else{
+
             PairDataSet<ExecRow, ExecRow> rightDataSet =
                     rightDataSet2.keyBy(new KeyerFunction(operationContext, rightHashKeys));
 //            operationContext.popScope();
@@ -226,6 +232,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, rightFromSSQ=%s, hasRestriction=%s",
                         isOuterJoin ? "outer" : "inner", notExistsRightSide, rightFromSSQ, restriction != null);
             joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
+            handleSparkExplain(joined, leftDataSet2, rightDataSet2, dsp);
         }
             return joined;
                     //.map(new CountProducedFunction(operationContext), true);

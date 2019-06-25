@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
@@ -32,10 +33,14 @@ import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind.NONE;
 
 /**
  * A DataSetProcessor Factory which only generates Control-Side DataSet processors. This is because memory
@@ -154,5 +159,18 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
             //no-op
             return false;
         }
+
+        // Operations specific to native spark explains
+        // have no effect on non-spark queries.
+        @Override public boolean isSparkExplain() { return false; }
+        @Override public ExplainNode.SparkExplainKind getSparkExplainKind() { return NONE; }
+        @Override public void setSparkExplain(ExplainNode.SparkExplainKind newValue) {  }
+        @Override public void prependSpliceExplainString(String explainString) { }
+        @Override public void prependSparkExplainStrings(List<String> stringsToAdd) { }
+        @Override public List<String> getNativeSparkExplain() { return null; }
+        @Override public int getOpDepth() { return 0; }
+        @Override public void incrementOpDepth() { }
+        @Override public void decrementOpDepth() { }
+        @Override public void resetOpDepth() { }
     }
 }

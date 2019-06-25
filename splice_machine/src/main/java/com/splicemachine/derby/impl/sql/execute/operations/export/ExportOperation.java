@@ -185,48 +185,53 @@ public class ExportOperation extends SpliceBaseOperation {
 
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getDataSet(): begin");
+        dsp.incrementOpDepth();
         DataSet<ExecRow> dataset = source.getDataSet(dsp);
+        dsp.decrementOpDepth();
         OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
-        switch (exportParams.getFormat()) {
-            case "csv": {
-                DataSetWriter writer = dataset.writeToDisk()
-                        .directory(exportParams.getDirectory())
-                        .exportFunction(new ExportFunction(operationContext))
-                        .build();
-                if (LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG, "getDataSet(): writing");
-                operationContext.pushScope();
-                try {
-                    DataSet<ExecRow> resultDs = writer.write();
+        dsp.prependSpliceExplainString(this.explainPlan);
+        if (!dsp.isSparkExplain()) {
+            switch (exportParams.getFormat()) {
+                case "csv": {
+                    DataSetWriter writer = dataset.writeToDisk()
+                    .directory(exportParams.getDirectory())
+                    .exportFunction(new ExportFunction(operationContext))
+                    .build();
                     if (LOG.isTraceEnabled())
-                        SpliceLogUtils.trace(LOG, "getDataSet(): done");
-                    return resultDs;
-                } finally {
-                    operationContext.popScope();
+                        SpliceLogUtils.trace(LOG, "getDataSet(): writing");
+                    operationContext.pushScope();
+                    try {
+                        DataSet<ExecRow> resultDs = writer.write();
+                        if (LOG.isTraceEnabled())
+                            SpliceLogUtils.trace(LOG, "getDataSet(): done");
+                        return resultDs;
+                    } finally {
+                        operationContext.popScope();
+                    }
                 }
-            }
-            case "parquet": {
-                OperationContext<?> writeContext = dsp.createOperationContext(this);
-                long start = System.currentTimeMillis();
-                String compression = null;
-                if (exportParams.getCompression() == ExportFile.COMPRESSION.SNAPPY) {
-                    compression = "snappy";
-                }
-                else if (exportParams.getCompression() == ExportFile.COMPRESSION.NONE) {
-                    compression = "none";
-                }
+                case "parquet": {
+                    OperationContext<?> writeContext = dsp.createOperationContext(this);
+                    long start = System.currentTimeMillis();
+                    String compression = null;
+                    if (exportParams.getCompression() == ExportFile.COMPRESSION.SNAPPY) {
+                        compression = "snappy";
+                    } else if (exportParams.getCompression() == ExportFile.COMPRESSION.NONE) {
+                        compression = "none";
+                    }
 
-                dataset.writeParquetFile(dsp, new int[]{}, exportParams.getDirectory(), compression, writeContext);
-                long end = System.currentTimeMillis();
-                ValueRow vr = new ValueRow(2);
-                vr.setColumn(1,new SQLLongint(writeContext.getRecordsWritten()));
-                vr.setColumn(2, new SQLLongint(end - start));
-                return dsp.singleRowDataSet(vr);
+                    dataset.writeParquetFile(dsp, new int[]{}, exportParams.getDirectory(), compression, writeContext);
+                    long end = System.currentTimeMillis();
+                    ValueRow vr = new ValueRow(2);
+                    vr.setColumn(1, new SQLLongint(writeContext.getRecordsWritten()));
+                    vr.setColumn(2, new SQLLongint(end - start));
+                    return dsp.singleRowDataSet(vr);
 
+                }
+                default:
+                    throw new RuntimeException("Unknown export format: " + exportParams.getFormat());
             }
-            default:
-                throw new RuntimeException("Unknown export format: " + exportParams.getFormat());
         }
-
+        else
+            return dataset;
     }
 }

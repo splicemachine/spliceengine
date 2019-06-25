@@ -146,9 +146,16 @@ public class MergeJoinOperation extends JoinOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        boolean isSparkExplain = dsp.isSparkExplain();
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
+        dsp.incrementOpDepth();
         DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
-        
+        if (isSparkExplain) {
+            // Need to call getDataSet to fully print the spark explain.
+            rightResultSet.getDataSet(dsp);
+            dsp.decrementOpDepth();
+            dsp.prependSpliceExplainString(this.explainPlan);
+        }
         operationContext.pushScope();
         try {
             left = left.map(new CountJoinedLeftFunction(operationContext));
