@@ -97,26 +97,38 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		if (!isOpen)
 			throw new IllegalStateException("Operation is not open");
 
+		dsp.incrementOpDepth();
 		DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
         OperationContext<NestedLoopJoinOperation> operationContext = dsp.createOperationContext(this);
 
+        DataSet<ExecRow> right = null;
+        if (dsp.isSparkExplain()) {
+	    // Need to call getDataSet to fully print the spark explain.
+            dsp.finalizeTempOperationStrings();
+	    right = rightResultSet.getDataSet(dsp);
+	    dsp.decrementOpDepth();
+        }
         operationContext.pushScope();
+        DataSet<ExecRow> result = null;
         try {
             if (isOuterJoin())
-                return left.mapPartitions(new NLJOuterJoinFunction(operationContext), true);
+                result = left.mapPartitions(new NLJOuterJoinFunction(operationContext), true);
             else {
                 if (notExistsRightSide)
-					return left.mapPartitions(new NLJAntiJoinFunction(operationContext), true);
-				else {
-					if (oneRowRightSide)
-						return left.mapPartitions(new NLJOneRowInnerJoinFunction(operationContext), true);
-					else
-						return left.mapPartitions(new NLJInnerJoinFunction(operationContext), true);
-				}
-
-			}
+                    result = left.mapPartitions(new NLJAntiJoinFunction(operationContext), true);
+                else {
+                    if (oneRowRightSide)
+                        result = left.mapPartitions(new NLJOneRowInnerJoinFunction(operationContext), true);
+                    else
+                        result = left.mapPartitions(new NLJInnerJoinFunction(operationContext), true);
+                }
+            }
+            if (dsp.isSparkExplain()) {
+                handleSparkExplain(result, left, right, dsp);
+            }
         } finally {
             operationContext.popScope();
         }
+        return result;
     }
 }

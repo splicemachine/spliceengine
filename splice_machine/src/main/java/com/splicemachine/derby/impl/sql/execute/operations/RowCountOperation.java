@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.stream.function.CloneFunction;
+import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -28,7 +29,9 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import org.spark_project.guava.collect.Iterators;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -199,8 +202,31 @@ public class RowCountOperation extends SpliceBaseOperation {
         final long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<ExecRow> sourceSet = source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
-        return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
+        dsp.incrementOpDepth();
+        DataSet<ExecRow> sourceDS = source.getDataSet(dsp);
+        dsp.decrementOpDepth();
+        DataSet<ExecRow> sourceSet = sourceDS.map(new CloneFunction<>(operationContext));
+        if (dsp.isSparkExplain()) {
+                        DataSet<ExecRow> ds = dsp.createDataSet(Iterators.transform(Collections.emptyIterator(),
+                                                                new Function<String, ExecRow>() {
+                                                             @Nullable
+                                                             @Override
+                                                             public ExecRow apply(@Nullable String n) {
+                                                                 try {
+                                                                     return getExecRowDefinition().getClone();
+                                                                 } catch (Exception e) {
+                                                                     throw new RuntimeException(e);
+                                                                 }
+                                                             }
+                                                         }
+                    ),
+                    this.explainPlan
+            );
+            handleSparkExplain(ds, sourceDS, dsp);
+            return ds;
+        }
+        else
+            return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
     }
 
     @Override

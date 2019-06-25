@@ -14,32 +14,31 @@
 
 package com.splicemachine.derby.lifecycle;
 
-import javax.annotation.Nullable;
-
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.client.SpliceClient;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiterImpl;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.stream.RemoteQueryClientImpl;
-import org.apache.log4j.Logger;
-
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.derby.stream.spark.HregionDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
 import com.splicemachine.hbase.RegionServerLifecycleObserver;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
+import com.splicemachine.stream.RemoteQueryClientImpl;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
+
+import javax.annotation.Nullable;
 
 /**
  * @author Scott Fines
@@ -70,6 +69,11 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
                 SpliceLogUtils.trace(LOG, "chooseProcessor(): localProcessor for op %s", op==null?"null":op.getName());
             return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
         }
+
+        // If we've already committed to running on spark, due to running a substatement
+        // of a statement chosen to run on spark, or for some other reason, stick with the decision.
+        if (op.isOlapServer())
+            return new SparkDataSetProcessor();
 
         switch(activation.getLanguageConnectionContext().getDataSetProcessorType()){
             case FORCED_CONTROL:

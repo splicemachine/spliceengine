@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.ast.PlanPrinter;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -50,6 +51,7 @@ public class ExplainOperation extends SpliceBaseOperation {
     protected static final String NAME = ExplainOperation.class.getSimpleName().replaceAll("Operation", "");
     protected SpliceOperation source;
     protected ExecRow currentTemplate;
+    private ExplainNode.SparkExplainKind sparkExplainKind;
 
     List<String> explainString = new ArrayList<>();
 
@@ -80,10 +82,23 @@ public class ExplainOperation extends SpliceBaseOperation {
      * @param resultSetNumber
      * @throws StandardException
      */
-    public ExplainOperation(SpliceOperation source, Activation activation, int resultSetNumber) throws StandardException {
+    public ExplainOperation(SpliceOperation source, Activation activation,
+                            int resultSetNumber, String sparkExplainKind) throws StandardException {
         super(activation, resultSetNumber, 0, 0);
         this.activation = activation;
         this.source = source;
+
+        if (sparkExplainKind.equals(ExplainNode.SparkExplainKind.EXECUTED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.EXECUTED;
+        else if (sparkExplainKind.equals(ExplainNode.SparkExplainKind.LOGICAL.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.LOGICAL;
+        else if (sparkExplainKind.equals(ExplainNode.SparkExplainKind.OPTIMIZED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.OPTIMIZED;
+        else if (sparkExplainKind.equals(ExplainNode.SparkExplainKind.ANALYZED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.ANALYZED;
+        else
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
+
         init();
     }
 
@@ -100,6 +115,8 @@ public class ExplainOperation extends SpliceBaseOperation {
         super.init(context);
         currentTemplate = new ValueRow(1);
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+        if (source != null)
+            source.init(context);
     }
 
     @Override
@@ -138,6 +155,11 @@ public class ExplainOperation extends SpliceBaseOperation {
     @Override
     public List<SpliceOperation> getSubOperations() {
         return Collections.singletonList(source);
+    }
+
+    @Override
+    public SpliceOperation getLeftOperation() {
+        return (SpliceOperation) source;
     }
 
     @Override
@@ -187,7 +209,20 @@ public class ExplainOperation extends SpliceBaseOperation {
         OperationContext operationContext = dsp.createOperationContext(this);
         operationContext.pushScope();
         try {
-            return dsp.createDataSet(Iterators.transform(explainString.iterator(), new Function<String, ExecRow>() {
+            DataSet<ExecRow> resultDS = null;
+            List<String> explainToDisplay = explainString;
+            if (sparkExplainKind != ExplainNode.SparkExplainKind.NONE &&
+                dsp.getType() == DataSetProcessor.Type.SPARK) {
+                dsp.setSparkExplain(sparkExplainKind);
+                dsp.resetOpDepth();
+                resultDS = source.getResultDataSet(dsp);
+
+                if (resultDS.isNativeSpark())
+                    dsp.prependSparkExplainStrings(resultDS.buildNativeSparkExplain(sparkExplainKind), true, true);
+
+                explainToDisplay = dsp.getNativeSparkExplain();
+            }
+            return dsp.createDataSet(Iterators.transform(explainToDisplay.iterator(), new Function<String, ExecRow>() {
                                                              @Nullable
                                                              @Override
                                                              public ExecRow apply(@Nullable String n) {
@@ -216,6 +251,9 @@ public class ExplainOperation extends SpliceBaseOperation {
         for (int i = 0; i < explainString.size(); ++i) {
             out.writeUTF(explainString.get(i));
         }
+        out.writeUTF(sparkExplainKind.toString());
+        if (!sparkExplainKind.equals(ExplainNode.SparkExplainKind.NONE))
+            out.writeObject(source);
     }
 
     @Override
@@ -226,5 +264,18 @@ public class ExplainOperation extends SpliceBaseOperation {
         for (int i = 0; i < size; ++i) {
             explainString.add(in.readUTF());
         }
+        String sparkExplainKindString = in.readUTF();
+        if (sparkExplainKindString.equals(ExplainNode.SparkExplainKind.EXECUTED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.EXECUTED;
+        else if (sparkExplainKindString.equals(ExplainNode.SparkExplainKind.LOGICAL.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.LOGICAL;
+        else if (sparkExplainKindString.equals(ExplainNode.SparkExplainKind.OPTIMIZED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.OPTIMIZED;
+        else if (sparkExplainKindString.equals(ExplainNode.SparkExplainKind.ANALYZED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.ANALYZED;
+        else
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
+        if (!sparkExplainKind.equals(ExplainNode.SparkExplainKind.NONE))
+            source = (SpliceOperation)in.readObject();
     }
 }

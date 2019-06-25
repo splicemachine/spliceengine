@@ -1249,6 +1249,52 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.getField(arrayField);
     }
 
+    private String getSubQueryText() throws StandardException {
+        String subqueryText = "";
+        SubqueryNode subqueryNode = null;
+        BinaryRelationalOperatorNode binaryRelationalOperatorNode = null;
+        if (restriction instanceof AndNode &&
+            ((AndNode)restriction).getLeftOperand() instanceof  BinaryRelationalOperatorNode) {
+            binaryRelationalOperatorNode =
+            (BinaryRelationalOperatorNode)((AndNode)restriction).getLeftOperand();
+        }
+        if (restriction instanceof BinaryRelationalOperatorNode)
+            binaryRelationalOperatorNode = (BinaryRelationalOperatorNode)restriction;
+        if (binaryRelationalOperatorNode != null) {
+            if (binaryRelationalOperatorNode.getLeftOperand() instanceof SubqueryNode) {
+                subqueryNode = (SubqueryNode) binaryRelationalOperatorNode.getLeftOperand();
+            }
+            if (binaryRelationalOperatorNode.getRightOperand() instanceof SubqueryNode) {
+                subqueryNode = (SubqueryNode) binaryRelationalOperatorNode.getRightOperand();
+            }
+        }
+        if (restriction instanceof UnaryOperatorNode) {
+            UnaryOperatorNode unaryOperatorNode = (UnaryOperatorNode) restriction;
+            if (unaryOperatorNode.getOperand() instanceof SubqueryNode) {
+                subqueryNode = (SubqueryNode)unaryOperatorNode.getOperand();
+            }
+        }
+        if (subqueryNode != null) {
+            subqueryText = subqueryNode.printExplainInformation(",", 0);
+            subqueryText = subqueryText.substring(subqueryText.indexOf("->") + 2).trim();
+            if (subqueryNode.getResultSet() instanceof ProjectRestrictNode) {
+                ProjectRestrictNode prn = (ProjectRestrictNode) subqueryNode.getResultSet();
+                String prnExplainText = prn.printExplainInformation(",", 0);
+                prnExplainText = prnExplainText.substring(prnExplainText.indexOf("->") + 2).trim();
+                subqueryText = subqueryText + "\n" + prnExplainText;
+                while (prn.getChildResult() instanceof ProjectRestrictNode)
+                    prn = (ProjectRestrictNode) prn.getChildResult();
+                if (prn.getChildResult() instanceof FromTable) {
+                    FromTable table = (FromTable) prn.getChildResult();
+                    String tableExplainText = table.printExplainInformation(",", 0);
+                    tableExplainText = tableExplainText.substring(tableExplainText.indexOf("->") + 2).trim();
+                    subqueryText = subqueryText + "\n" + tableExplainText;
+                }
+            }
+        }
+
+        return subqueryText;
+    }
     /**
      * Logic shared by generate() and generateResultSet().
      *
@@ -1264,6 +1310,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 		 * (Remove any true and true predicates first, as they could be left
 		 * by the like transformation.)
 		 */
+	String subqueryText = "";
         if(restrictionList!=null && !restrictionList.isEmpty()){
             restrictionList.eliminateBooleanTrueAndBooleanTrue();
         }
@@ -1396,6 +1443,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // which is the static field that "points" to the userExprFun
             // that evaluates the where clause.
             acb.pushMethodReference(mb,userExprFun);
+            if (mb.isSparkExplain()) {
+                subqueryText = getSubQueryText();
+            }
         }
 
 		/* Determine whether or not reflection is needed for the projection.
@@ -1471,7 +1521,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
         mb.push(hasGroupingFunction);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,15);
+        mb.push(subqueryText);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,16);
     }
 
     /**

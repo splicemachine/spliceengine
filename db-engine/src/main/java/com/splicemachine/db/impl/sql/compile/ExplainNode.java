@@ -53,12 +53,40 @@ import java.util.Collection;
 public class ExplainNode extends DMLStatementNode {
 
     StatementNode node;
+    private SparkExplainKind sparkExplainKind;
+
+    public enum SparkExplainKind {
+        NONE("none"),
+        EXECUTED("executed"),
+        LOGICAL("logical"),
+        OPTIMIZED("optimized"),
+        ANALYZED("analyzed");
+
+        private final String value;
+
+        SparkExplainKind(String value) {
+            this.value = value;
+        }
+
+        public final String getValue() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return value;
+        }
+    }
 
     int activationKind() { return StatementNode.NEED_NOTHING_ACTIVATION; }
 
     public String statementToString() { return "Explain"; }
 
-    public void init(Object statementNode) { node = (StatementNode)statementNode; }
+    public void init(Object statementNode,
+                     Object sparkExplainKind) {
+        node = (StatementNode)statementNode;
+        this.sparkExplainKind = (SparkExplainKind)sparkExplainKind;
+    }
 
     /**
      * Used by splice. Provides direct access to the node underlying the explain node.
@@ -87,21 +115,48 @@ public class ExplainNode extends DMLStatementNode {
          * certain fixed number, then we will perform the Explain in Spark, which will be brutal and useless.
          * This forces us to use control-side execution
          */
-        getCompilerContext().setDataSetProcessorType(CompilerContext.DataSetProcessorType.FORCED_CONTROL);
+        if (!sparkExplainKind.equals(SparkExplainKind.NONE)) {
+            mb.setSparkExplain(true);
+            acb.setDataSetProcessorType(CompilerContext.DataSetProcessorType.FORCED_SPARK);
+            getCompilerContext().setDataSetProcessorType(CompilerContext.DataSetProcessorType.FORCED_SPARK, true);
+        }
+        else
+            getCompilerContext().setDataSetProcessorType(CompilerContext.DataSetProcessorType.FORCED_CONTROL, false);
+
         acb.pushGetResultSetFactoryExpression(mb);
         // parameter
         node.generate(acb, mb);
         acb.pushThisAsActivation(mb);
         int resultSetNumber = getCompilerContext().getNextResultSetNumber();
         mb.push(resultSetNumber);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null, "getExplainResultSet", ClassName.NoPutResultSet, 3);
+        mb.push(sparkExplainKind.toString());
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null, "getExplainResultSet", ClassName.NoPutResultSet, 4);
+        mb.setSparkExplain(false);
     }
 
     @Override
     public ResultDescription makeResultDescription() {
         DataTypeDescriptor dtd = new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.VARCHAR_NAME), true);
         ResultColumnDescriptor[] colDescs = new GenericColumnDescriptor[1];
-        colDescs[0] = new GenericColumnDescriptor("Plan", dtd);
+        String headerString = null;
+        switch (sparkExplainKind) {
+            case EXECUTED:
+                headerString = "\nNative Spark Execution Plan";
+                break;
+            case LOGICAL :
+                headerString = "\nNative Spark Logical Plan";
+                break;
+            case OPTIMIZED :
+                headerString = "\nNative Spark Optimized Plan";
+                break;
+            case ANALYZED :
+                headerString = "\nNative Spark Analyzed Plan";
+                break;
+            default :
+                headerString = "Plan";
+                break;
+        }
+        colDescs[0] = new GenericColumnDescriptor(headerString, dtd);
         String statementType = statementToString();
 
         return getExecutionFactory().getResultDescription(colDescs, statementType );

@@ -396,4 +396,15 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     ScanInformation<ExecRow> getScanInformation();
 
     void setRecursiveUnionReference(NoPutResultSet recursiveUnionReference);
+
+    void handleSparkExplain(DataSet<ExecRow> dataSet,
+                            DataSet<ExecRow> childDataSet,
+                            DataSetProcessor dsp);
+
+    void handleSparkExplain(DataSet<ExecRow> dataSet,
+                            DataSet<ExecRow> leftDataSet,
+                            DataSet<ExecRow> rightDataSet,
+                            DataSetProcessor dsp);
+
+    boolean isOlapServer();
 }

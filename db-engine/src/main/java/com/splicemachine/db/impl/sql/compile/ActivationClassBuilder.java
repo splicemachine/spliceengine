@@ -186,7 +186,7 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
 		// if current type has already been set to Spark, we should honor it
 		if (currentType.equals(CompilerContext.DataSetProcessorType.SPARK))
 			return;
-        myCompCtx.setDataSetProcessorType(type);
+        myCompCtx.setDataSetProcessorType(type, false);
 		constructor.pushThis();
 		constructor.push(type.ordinal());
 		constructor.putField(ClassName.BaseActivation, "datasetProcessorType", "int");

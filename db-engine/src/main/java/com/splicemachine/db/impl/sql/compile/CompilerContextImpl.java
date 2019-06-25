@@ -1172,8 +1172,10 @@ public class CompilerContextImpl extends ContextImpl
     private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
     @Override
-    public void setDataSetProcessorType(DataSetProcessorType type) {
+    public void setDataSetProcessorType(DataSetProcessorType type, boolean setDSPTypeinLCC) {
         dataSetProcessorType = type;
+        if (setDSPTypeinLCC)
+           lcc.setDataSetProcessorType(type);
     }
 
     @Override
