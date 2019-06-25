@@ -26,11 +26,9 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.derby.stream.function.RowOperationFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -315,6 +313,7 @@ public class RowOperation extends SpliceBaseOperation{
 
         ExecRow execRow=new ValueRow(1);
         execRow.setColumn(1,new SQLInteger(123));
+        dsp.prependSpliceExplainString(this.explainPlan);
         return dsp.singleRowDataSet(execRow)
                 .map(new RowOperationFunction(dsp.createOperationContext(this)));
     }

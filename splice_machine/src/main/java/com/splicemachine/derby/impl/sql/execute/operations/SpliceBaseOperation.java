@@ -53,9 +53,6 @@ import java.io.*;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed, Externalizable{
     private static final long serialVersionUID=4l;
@@ -124,6 +121,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         this.optimizerEstimatedRowCount=in.readDouble();
         this.operationInformation=(OperationInformation)in.readObject();
         isTopResultSet=in.readBoolean();
+        explainPlan = in.readUTF();
     }
 
     @Override
@@ -133,6 +131,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         out.writeDouble(optimizerEstimatedRowCount);
         out.writeObject(operationInformation);
         out.writeBoolean(isTopResultSet);
+        out.writeUTF(explainPlan);
     }
 
     @Override
@@ -1007,6 +1006,36 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     public void setRecursiveUnionReference(NoPutResultSet recursiveUnionReference) {
         for(SpliceOperation op : getSubOperations()){
             op.setRecursiveUnionReference(recursiveUnionReference);
+        }
+    }
+
+    @Override
+    public void handleSparkExplain(DataSet<ExecRow> dataSet, DataSet<ExecRow> sourceDataSet, DataSetProcessor dsp) {
+        if (dsp.isSparkExplain()) {
+            if (!dataSet.isNativeSpark()) {
+                if (sourceDataSet.isNativeSpark())
+                    dsp.prependSparkExplainStrings(sourceDataSet.
+                                                   buildNativeSparkExplain(dsp.getSparkExplainKind()));
+                dsp.prependSpliceExplainString(this.explainPlan);
+            }
+        }
+    }
+
+    @Override
+    public void handleSparkExplain(DataSet<ExecRow> dataSet,
+                                   DataSet<ExecRow> leftDataSet,
+                                   DataSet<ExecRow> rightDataSet,
+                                   DataSetProcessor dsp) {
+        if (dsp.isSparkExplain()) {
+            if (!dataSet.isNativeSpark()) {
+                if (leftDataSet.isNativeSpark())
+                    dsp.prependSparkExplainStrings(leftDataSet.
+                                                   buildNativeSparkExplain(dsp.getSparkExplainKind()));
+                if (rightDataSet.isNativeSpark())
+                    dsp.prependSparkExplainStrings(rightDataSet.
+                                                   buildNativeSparkExplain(dsp.getSparkExplainKind()));
+                dsp.prependSpliceExplainString(this.explainPlan);
+            }
         }
     }
 }

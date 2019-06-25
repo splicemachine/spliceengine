@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
@@ -26,7 +27,11 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+
+import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind.NONE;
 
 /**
  * @author Scott Fines
@@ -195,5 +200,17 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
         return delegate.getTableChecker(schemaName, tableName, tableDataSet, decoder, key);
     }
 
+    // Operations specific to native spark explains
+    // have no effect on non-spark queries.
+    @Override public boolean isSparkExplain() { return false; }
+    @Override public ExplainNode.SparkExplainKind getSparkExplainKind() { return NONE; }
+    @Override public void setSparkExplain(ExplainNode.SparkExplainKind newValue) {  }
+    @Override public void prependSpliceExplainString(String explainString) { }
+    @Override public void prependSparkExplainStrings(List<String> stringsToAdd) { }
+    @Override public List<String> getNativeSparkExplain() { return null; }
+    @Override public int getOpDepth() { return 0; }
+    @Override public void incrementOpDepth() { }
+    @Override public void decrementOpDepth() { }
+    @Override public void resetOpDepth() { }
 }
 

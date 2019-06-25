@@ -154,13 +154,16 @@ public class UnionOperation extends SpliceBaseOperation {
 			throw new IllegalStateException("Operation is not open");
 
 		OperationContext operationContext = dsp.createOperationContext(this);
+		dsp.incrementOpDepth();
 		DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
 		DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);
+		dsp.decrementOpDepth();
 		operationContext.pushScope();
 		DataSet<ExecRow> result = left
 		    .union(right, operationContext)
 		    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
 		operationContext.popScope();
+		handleSparkExplain(result, left, right, dsp);
 		return result;
     }
 }

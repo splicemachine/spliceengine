@@ -65,6 +65,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.CreateAliasNode;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
+import com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.FromList;
 import com.splicemachine.db.impl.sql.compile.FromSubquery;
@@ -3058,6 +3059,10 @@ TOKEN [IGNORE_CASE] :
 |	<DENSERANK: "dense_rank">
 |	<GET_CURRENT_CONNECTION: "getCurrentConnection">
 |	<EXPLAIN: "explain">
+|	<SPARKEXPLAIN: "sparkexplain">
+|	<SPARKEXPLAIN_LOGICAL: "sparkexplain_logical">
+|	<SPARKEXPLAIN_OPTIMIZED: "sparkexplain_optimized">
+|	<SPARKEXPLAIN_ANALYZED: "sparkexplain_analyzed">
 |	<EXPORT: "export">
 |	<EXPORT_BINARY: "export_binary">
 |	<FIRSTVALUE: "first_value">
@@ -3946,6 +3951,35 @@ explainStatement() throws StandardException :
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
+                                   SparkExplainKind.NONE,
+                                   getContextManager());
+    }
+    | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   SparkExplainKind.EXECUTED,
+                                   getContextManager());
+    }
+    | <SPARKEXPLAIN_LOGICAL> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   SparkExplainKind.LOGICAL,
+                                   getContextManager());
+    }
+    | <SPARKEXPLAIN_ANALYZED> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   SparkExplainKind.ANALYZED,
+                                   getContextManager());
+    }
+    | <SPARKEXPLAIN_OPTIMIZED> statementNode = preparableSQLDataStatement()
+    {
+        return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   statementNode,
+                                   SparkExplainKind.OPTIMIZED,
                                    getContextManager());
     }
 }
@@ -16982,6 +17016,7 @@ reservedKeyword() :
 |	tok = <CALL>
 |   tok = <CURRENT_ROLE>
 |	tok = <EXPLAIN>
+|	tok = <SPARKEXPLAIN>
 |	tok = <EXPORT>
 |	tok = <LONGINT>
 |	tok = <LTRIM>

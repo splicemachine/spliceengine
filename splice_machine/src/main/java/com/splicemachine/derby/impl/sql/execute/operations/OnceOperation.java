@@ -242,7 +242,10 @@ public class OnceOperation extends SpliceBaseOperation {
 		throw new IllegalStateException("Operation is not open");
 
         // We are consuming the dataset, get a resultDataSet
+	dsp.incrementOpDepth();
         DataSet<ExecRow> raw = source.getResultDataSet(dsp).map(new CloneFunction<>(dsp.createOperationContext(this)));
+        dsp.decrementOpDepth();
+        dsp.prependSpliceExplainString(this.explainPlan);
         final Iterator<ExecRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {
@@ -251,7 +254,9 @@ public class OnceOperation extends SpliceBaseOperation {
             throw Exceptions.parseException(e);
         }
 
-        return dsp.singleRowDataSet(result);
+        DataSet<ExecRow> ds = dsp.singleRowDataSet(result);
+        handleSparkExplain(ds, raw, dsp);
+        return ds;
     }
 
 	@Override

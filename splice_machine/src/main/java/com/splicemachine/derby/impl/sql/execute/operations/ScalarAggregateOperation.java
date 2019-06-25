@@ -124,7 +124,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             throw new IllegalStateException("Operation is not open");
 
         OperationContext<ScalarAggregateOperation> operationContext = dsp.createOperationContext(this);
+        dsp.incrementOpDepth();
         DataSet<ExecRow> dsSource = source.getDataSet(dsp);
+        dsp.decrementOpDepth();
         DataSet<ExecRow> dataSetWithNativeSparkAggregation = null;
 
         if (nativeSparkForced())
@@ -143,6 +145,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         }
         DataSet<ExecRow> ds = dsSource.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, false), false, /*pushScope=*/true, "First Aggregation");
         DataSet<ExecRow> ds2 = ds.coalesce(1, /*shuffle=*/true, /*isLast=*/false, operationContext, /*pushScope=*/true, "Coalesce");
+        handleSparkExplain(ds2, dsSource, dsp);
         return ds2.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, true), /*isLast=*/true, /*pushScope=*/true, "Final Aggregation");
     }
 }

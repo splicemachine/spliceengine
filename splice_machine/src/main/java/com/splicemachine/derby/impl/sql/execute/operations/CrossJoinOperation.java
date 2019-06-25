@@ -125,8 +125,10 @@ public class CrossJoinOperation extends JoinOperation{
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext = dsp.createOperationContext(this);
+        dsp.incrementOpDepth();
         DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
         DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
+        dsp.decrementOpDepth();
 
 //        operationContext.pushScope();
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
@@ -152,6 +154,8 @@ public class CrossJoinOperation extends JoinOperation{
             }
         }
         result = result.map(new CountProducedFunction(operationContext), true);
+
+        handleSparkExplain(result, leftDataSet, rightDataSet, dsp);
         return result;
     }
 
