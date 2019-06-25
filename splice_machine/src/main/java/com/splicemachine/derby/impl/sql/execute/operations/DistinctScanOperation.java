@@ -251,6 +251,7 @@ public class DistinctScanOperation extends ScanOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        dsp.prependSpliceExplainString(this.explainPlan);
         assert currentTemplate != null: "Current Template Cannot Be Null";
         int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
         for (int i = 0; i< currentTemplate.nColumns(); i++) {

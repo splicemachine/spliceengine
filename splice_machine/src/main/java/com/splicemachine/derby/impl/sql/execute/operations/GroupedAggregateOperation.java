@@ -162,7 +162,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             throw new IllegalStateException("Operation is not open");
 
         OperationContext<GroupedAggregateOperation> operationContext = dsp.createOperationContext(this);
+        dsp.incrementOpDepth();
         DataSet set = source.getDataSet(dsp);
+        DataSet sourceDS = set;
+        dsp.decrementOpDepth();
         DataSet dataSetWithNativeSparkAggregation = null;
 
         if (nativeSparkForced() && (isRollup || aggregates.length > 0))
@@ -185,6 +188,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 set.applyNativeSparkAggregation(extendedGroupBy, aggregates,
                                                 isRollup, operationContext);
         if (dataSetWithNativeSparkAggregation != null) {
+            dsp.finalizeTempOperationStrings();
             nativeSparkUsed = true;
             return dataSetWithNativeSparkAggregation;
         }
@@ -235,7 +239,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 operationContext.pushScopeForOp(OperationContext.Scope.READ);
                 DataSet set4 = set3.values(operationContext);
                 operationContext.popScope();
-
                 set = set4;
             } else {
                 //only one distinct aggregate
@@ -252,7 +255,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 operationContext.pushScopeForOp(OperationContext.Scope.READ);
                 DataSet set4 = set3.values(operationContext);
                 operationContext.popScope();
-
                 set = set4;
             }
         }
@@ -303,6 +305,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         operationContext.pushScopeForOp(OperationContext.Scope.FINALIZE);
         DataSet set5 = set4.map(new AggregateFinisherFunction(operationContext), true);
         operationContext.popScope();
+        handleSparkExplain(set5, sourceDS, dsp);
 
         return set5;
     }

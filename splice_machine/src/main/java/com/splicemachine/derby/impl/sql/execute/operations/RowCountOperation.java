@@ -199,8 +199,13 @@ public class RowCountOperation extends SpliceBaseOperation {
         final long fetchLimit = getFetchLimit();
         long offset = getTotalOffset();
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<ExecRow> sourceSet = source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
-        return sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
+        dsp.incrementOpDepth();
+        DataSet<ExecRow> sourceDS = source.getDataSet(dsp);
+        dsp.decrementOpDepth();
+        DataSet<ExecRow> sourceSet = sourceDS.map(new CloneFunction<>(operationContext));
+        DataSet<ExecRow> ds = sourceSet.zipWithIndex(operationContext).mapPartitions(new OffsetFunction<SpliceOperation, ExecRow>(operationContext, offset, fetchLimit));
+        handleSparkExplain(ds, sourceDS, dsp);
+        return ds;
     }
 
     @Override

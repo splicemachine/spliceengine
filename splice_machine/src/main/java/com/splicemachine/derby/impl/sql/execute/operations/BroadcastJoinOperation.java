@@ -184,13 +184,6 @@ public class BroadcastJoinOperation extends JoinOperation{
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
-
-//        operationContext.pushScope();
-        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
 
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
 
@@ -229,9 +222,24 @@ public class BroadcastJoinOperation extends JoinOperation{
            (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
              (restriction ==null || (!isOuterJoin && !notExistsRightSide && !isOneRowRightSide())) &&
               !containsUnsafeSQLRealComparison());
+
+        dsp.incrementOpDepth();
+        if (usesNativeSparkDataSet)
+            dsp.finalizeTempOperationStrings();
+        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
+
+//        operationContext.pushScope();
+        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
+                isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+
+        if (usesNativeSparkDataSet)
+            dsp.finalizeTempOperationStrings();
         if (usesNativeSparkDataSet)
         {
             DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
+            dsp.decrementOpDepth();
             if (isOuterJoin)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)
@@ -251,6 +259,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                     usesNativeSparkDataSet = false;
                 }
             }
+            handleSparkExplain(result, leftDataSet, rightDataSet, dsp);
         }
         else {
             if (isOuterJoin) { // Outer Join with and without restriction
@@ -281,6 +290,12 @@ public class BroadcastJoinOperation extends JoinOperation{
                             result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
                         }
                     }
+                }
+                if (dsp.isSparkExplain()) {
+                    // Need to call getDataSet to fully print the spark explain.
+                    DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
+                    dsp.decrementOpDepth();
+                    handleSparkExplain(result, leftDataSet, rightDataSet, dsp);
                 }
             }
         }

@@ -272,12 +272,16 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
         OperationContext operationContext = dsp.createOperationContext(this);
         // we are returning data to the client, get a resultDataSet
+        dsp.incrementOpDepth();
         DataSet<ExecRow> sourceSet = source.getResultDataSet(dsp);
+        dsp.decrementOpDepth();
 
         dsp.setSchedulerPool("query");
         operationContext.pushScope();
         try {
-            return sourceSet.map(new ScrollInsensitiveFunction(operationContext), true);
+            DataSet<ExecRow> ds = sourceSet.map(new ScrollInsensitiveFunction(operationContext), true);
+            handleSparkExplain(ds, sourceSet, dsp);
+            return ds;
         } finally {
             operationContext.popScope();
         }

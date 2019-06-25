@@ -30,14 +30,13 @@ import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.Partitioner;
-import com.splicemachine.derby.stream.function.RowToLocatedRowAvroFunction;
 import com.splicemachine.derby.stream.function.RowToLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
@@ -47,7 +46,9 @@ import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.IndentedString;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -66,12 +67,11 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.net.URI;
 import java.util.*;
+
+import static com.splicemachine.db.impl.sql.compile.ExplainNode.SparkExplainKind.NONE;
 
 /**
  * Spark-based DataSetProcessor.
@@ -86,6 +86,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private final String TEMP_DIR_PREFIX = "_temp";
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
+
+    private ExplainNode.SparkExplainKind sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
+    private LinkedList<IndentedString> explainStrings = new LinkedList<>();
+    private LinkedList<IndentedString> tempOperationStrings = new LinkedList<>();
+    private LinkedList<List<IndentedString>> spliceOperationStrings = new LinkedList<>();
+
+    private TreeMap<Integer, Integer> numLeadingSpaces = new TreeMap<>();
+    private TreeMap<Integer, String>  spacesMap = new TreeMap<>();
+
+    // The depth of the current operation being processed via getDataSet
+    // in the operation tree.
+    private int opDepth = 0;
 
     public SparkDataSetProcessor() {
     }
@@ -834,4 +846,217 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
         return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
     }
+
+    @Override
+    public boolean isSparkExplain() { return sparkExplainKind != ExplainNode.SparkExplainKind.NONE; }
+
+    @Override
+    public ExplainNode.SparkExplainKind getSparkExplainKind() { return NONE; }
+
+    @Override
+    public void setSparkExplain(ExplainNode.SparkExplainKind newValue) { sparkExplainKind = newValue; }
+
+    @Override
+    public void prependIndentedString(IndentedString indentedString) {
+        tempOperationStrings.addFirst(indentedString);
+    }
+
+    @Override
+    public void prependSpliceExplainString(String explainString) {
+        StringBuilder sb = new StringBuilder();
+        if (!explainString.isEmpty())
+            sb.append("-> ");
+        // Strip out newlines and trailing spaces.
+        sb.append(explainString.replace("\n","").replaceFirst("\\s++$", ""));
+        tempOperationStrings.addFirst(new IndentedString(getOpDepth(), sb.toString()));
+    }
+
+    public void finalizeTempOperationStrings() {
+        if (!tempOperationStrings.isEmpty()) {
+            spliceOperationStrings.addFirst(tempOperationStrings);
+            tempOperationStrings = new LinkedList<>();
+        }
+    }
+
+    @Override
+    public void prependSparkExplainStrings(List<String> stringsToAdd) {
+        finalizeTempOperationStrings();
+        IndentedString newSparkExplain =
+            new IndentedString(getOpDepth()+1, stringsToAdd);
+        newSparkExplain = fixupSparkExplain(newSparkExplain);
+
+        // Handle join cases where there is still one element left in
+        // tempOperationStrings at the same level as the spark operation,
+        // which need to get tied together via a join.
+        if (tempOperationStrings.size() == 1 &&
+            tempOperationStrings.get(0).getIndentationLevel() ==
+            newSparkExplain.getIndentationLevel()) {
+            tempOperationStrings.add(new IndentedString(getOpDepth() + 1, "-> NativeSparkDataSet"));
+            newSparkExplain.setIndentationLevel(getOpDepth() + 2);
+            tempOperationStrings.add(newSparkExplain);
+        }
+        else
+            explainStrings.addFirst(newSparkExplain);
+    }
+
+    private int findIndentation(Map<Integer, Integer>  numLeadingSpaces,
+                                int indentationLevel) {
+        Integer numSpaces = numLeadingSpaces.get(indentationLevel);
+
+        if (numSpaces == null) {
+            numSpaces = 0;
+            for (int i = indentationLevel; i >= 0; i--) {
+                Integer foundSpaces = numLeadingSpaces.get(i);
+                if (foundSpaces == null)
+                    continue;
+                numSpaces = foundSpaces + (indentationLevel - i) * 2;
+                numLeadingSpaces.put(indentationLevel, numSpaces);
+                break;
+            }
+        }
+        return numSpaces;
+    }
+
+    private IndentedString
+    fixupSparkExplain(IndentedString sparkExplain) {
+        if (spliceOperationStrings.isEmpty())
+            return sparkExplain;
+
+        IndentedString newSparkExplain = null;
+        LinkedList<String> newTextLines = new LinkedList<>();
+        for (String string:sparkExplain.getTextLines()) {
+            newTextLines.add(string);
+            int matchIndex =
+               StringUtils.indexOfAny(string, new String[]{"Scan ExistingRDD", "LogicalRDD"});
+            if (!spliceOperationStrings.isEmpty() && matchIndex != -1) {
+                List<IndentedString> list = spliceOperationStrings.removeLast();
+                int baseIndentationLevel = list.get(0).getIndentationLevel();
+                int leadingSpaces = matchIndex;
+                {
+                    // Native spark explain is indented 3 spaces in getNativeSparkExplain().
+                    int numSpaces = leadingSpaces + 3;
+
+                    char[] charArray = new char[numSpaces];
+                    Arrays.fill(charArray, ' ');
+                    String prependString = new String(charArray);
+                    // Adjust the global indentation setting in cases we are dealing
+                    // with one source of a join, and the other source will
+                    // be processed later.
+                    numLeadingSpaces.put(baseIndentationLevel, prependString.length());
+                    spacesMap.put(baseIndentationLevel, prependString);
+                    for (Integer i = numLeadingSpaces.higherKey(baseIndentationLevel); i != null;
+                                 i = numLeadingSpaces.higherKey(i))
+                        numLeadingSpaces.remove(i);
+                    for (Integer i = spacesMap.higherKey(baseIndentationLevel); i != null;
+                                 i = spacesMap.higherKey(i))
+                        spacesMap.remove(i);
+
+                }
+                ListIterator<IndentedString> iter = list.listIterator();
+                boolean firstTime = true;
+                while (iter.hasNext()) {
+                    IndentedString istr = iter.next();
+                    if (istr.getIndentationLevel() <= getOpDepth()+1) {
+
+                        if (!firstTime) {
+                            explainStrings.add(istr);
+                            iter.forEachRemaining(explainStrings::add);
+                            break;
+                        }
+                        else {
+                            prependIndentedString(istr);
+                            continue;
+                        }
+                    }
+                    else
+                        firstTime = false;
+                    for (String str : istr.getTextLines()) {
+                        int indentationLevel = istr.getIndentationLevel() - baseIndentationLevel;
+                        int numExtraSpaces = indentationLevel * 2;
+                        int numSpaces = leadingSpaces + numExtraSpaces;
+                        char[] charArray = new char[numSpaces];
+                        Arrays.fill(charArray, ' ');
+                        String prependString = new String(charArray);
+                        newTextLines.add(prependString + str);
+                    }
+                }
+            }
+        }
+        if (!spliceOperationStrings.isEmpty()) {
+            for (List<IndentedString> listNode:spliceOperationStrings)
+                tempOperationStrings.addAll(listNode);
+            spliceOperationStrings.clear();
+        }
+        newSparkExplain = new IndentedString(sparkExplain.getIndentationLevel(), newTextLines);
+        return newSparkExplain;
+    }
+
+    @Override
+    public List<String> getNativeSparkExplain() {
+        numLeadingSpaces.put(explainStrings.getFirst().getIndentationLevel(), 0);
+        spacesMap.put(explainStrings.getFirst().getIndentationLevel(), "");
+
+        int previousIndentationLevel = -1;
+        int maxIndentationLevel = -1;
+        List<String> sparkExplain = new LinkedList<>();
+        boolean firstLine = true;
+        for (IndentedString strings:explainStrings) {
+            if (strings.getIndentationLevel() <= previousIndentationLevel) {
+                for (int i = maxIndentationLevel; i >= strings.getIndentationLevel(); i--) {
+                    spacesMap.remove(i);
+                    numLeadingSpaces.remove(i);
+                }
+            }
+            String prependString = spacesMap.get(strings.getIndentationLevel());
+            boolean nativeSpark = strings.getTextLines().size() > 1;
+            if (prependString == null) {
+                int indentation = findIndentation(numLeadingSpaces, strings.getIndentationLevel());
+                char[] charArray = new char[indentation];
+                Arrays.fill(charArray, ' ');
+                prependString = new String(charArray);
+                spacesMap.put(strings.getIndentationLevel(), prependString);
+            }
+
+            if (nativeSpark) {
+                if (firstLine)
+                    sparkExplain.add(prependString + "NativeSparkDataSet");
+                else
+                    sparkExplain.add(prependString + "-> NativeSparkDataSet");
+                prependString = prependString + "   ";
+            }
+            int newIndentPos = prependString.length();
+            for (String s:strings.getTextLines()) {
+                String newString = prependString + s;
+                sparkExplain.add(newString);
+                int tempIndentPos = newString.indexOf("+-");
+                if (tempIndentPos > newIndentPos) {
+                    newIndentPos = tempIndentPos;
+                    numLeadingSpaces.put(strings.getIndentationLevel(), newIndentPos);
+                }
+            }
+            previousIndentationLevel = strings.getIndentationLevel();
+            if (previousIndentationLevel > maxIndentationLevel)
+                maxIndentationLevel = previousIndentationLevel;
+            firstLine = false;
+        }
+        return sparkExplain;
+    }
+
+    @Override
+    public int getOpDepth() { return opDepth; }
+
+    @Override
+    public void incrementOpDepth() {
+        if (isSparkExplain())
+            opDepth++;
+    }
+
+    @Override
+    public void decrementOpDepth() {
+        if (isSparkExplain())
+            opDepth--;
+    }
+
+    @Override
+    public void resetOpDepth() { opDepth = 0; }
 }
