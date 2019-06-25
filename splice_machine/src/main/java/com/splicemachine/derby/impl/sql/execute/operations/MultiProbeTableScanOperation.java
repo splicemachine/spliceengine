@@ -225,6 +225,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
+            dsp.prependSpliceExplainString(this.explainPlan);
             int i = 0;
             List<ScanSetBuilder<ExecRow>> datasets = new ArrayList<>(scans.size());
             for (DataScan scan : scans) {

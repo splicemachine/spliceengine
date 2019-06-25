@@ -199,10 +199,14 @@ public class UpdateOperation extends DMLWriteOperation{
         DataSet set = pair.getFirst();
         int[] expectedUpdateCounts = pair.getSecond();
         OperationContext operationContext=dsp.createOperationContext(this);
+        operationContext.pushScope();
+        if (dsp.isSparkExplain()) {
+            dsp.prependSpliceExplainString(this.explainPlan);
+            return set;
+        }
         TxnView txn=getCurrentTransaction();
         ExecRow execRow=getExecRowDefinition();
         int[] execRowTypeFormatIds=WriteReadUtils.getExecRowTypeFormatIds(execRow);
-        operationContext.pushScope();
         try{
             DataSetWriter writer=set.updateData(operationContext)
                     .execRowDefinition(execRow)

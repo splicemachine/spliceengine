@@ -126,14 +126,19 @@ public class WindowOperation extends SpliceBaseOperation {
 
         OperationContext<WindowOperation> operationContext = dsp.createOperationContext(this);
         operationContext.pushScopeForOp(OperationContext.Scope.WINDOW);
-        DataSet dataSet = source.getDataSet(dsp).map(new CloneFunction<>(operationContext));
+        dsp.incrementOpDepth();
+        DataSet<ExecRow> sourceDataSet = source.getDataSet(dsp);
+        dsp.decrementOpDepth();
+        DataSet<ExecRow> dataSet = sourceDataSet.map(new CloneFunction<>(operationContext));
         operationContext.popScope();
 
         try {
-            return  dataSet.windows(windowContext,operationContext,true, OperationContext.Scope.EXECUTE.displayName());
+            dataSet = dataSet.windows(windowContext,operationContext,true, OperationContext.Scope.EXECUTE.displayName());
+            handleSparkExplain(dataSet, sourceDataSet, dsp);
         } finally {
             operationContext.popScope();
         }
+        return dataSet;
     }
 
 

@@ -1838,9 +1838,9 @@ public interface ResultSetFactory {
 			double optimizerEstimatedCost,
 			String explainPlan) throws StandardException;
 
-    NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber) throws StandardException;
+    NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber, String sparkExplainKind) throws StandardException;
 
-    NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber) throws StandardException;
+    NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber, String sparkExplainKind) throws StandardException;
 
     /**
      * Export

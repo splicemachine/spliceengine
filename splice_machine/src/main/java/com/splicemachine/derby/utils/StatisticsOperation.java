@@ -36,7 +36,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.SQLDecimal;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
@@ -103,6 +102,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        dsp.prependSpliceExplainString(this.explainPlan);
         dsp.setSchedulerPool("admin");
         try {
             DataSet statsDataSet;
