@@ -227,6 +227,10 @@ public final class JBitSet{
         bitSet.xor(set.bitSet);
     }
 
+    public void andNot(JBitSet set) {
+        bitSet.andNot(set.bitSet);
+    }
+
     /**
      * Return the size of bitSet
      *

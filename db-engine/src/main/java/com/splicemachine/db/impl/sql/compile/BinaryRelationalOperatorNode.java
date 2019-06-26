@@ -1512,9 +1512,9 @@ public class BinaryRelationalOperatorNode
                         Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
                 selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
                         selectivity : 1.0d - selectivity;
-                if (optTable instanceof FromBaseTable && ((FromBaseTable) optTable).getExistsTable()) {
+                if (optTable instanceof FromTable && ((FromTable) optTable).getExistsTable()) {
                     selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
-                    if (((FromBaseTable) optTable).isAntiJoin()) {
+                    if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
                         selectivity = selectivity /(innerRowCount - innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
                     }
                 }
