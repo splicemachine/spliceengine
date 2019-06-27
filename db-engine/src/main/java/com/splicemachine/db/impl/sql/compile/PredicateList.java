@@ -1749,7 +1749,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     opNode=(BinaryRelationalOperatorNode)andNode.getLeftOperand();
                     // Investigate using invariant interface to check rightOperand
                     if(!(opNode.getLeftOperand() instanceof ColumnReference)
-                            || !isConstantOrParameterNode(opNode.getRightOperand()))
+                            || !opNode.getRightOperand().isConstantOrParameterTreeNode())
                         continue;
 
                     crNode=(ColumnReference)opNode.getLeftOperand();
@@ -1758,7 +1758,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     // Don't push multicolumn IN list into a SELECT for now.
                     if (inNode.leftOperandList.size() > 1)
                         continue;
-                    if(!(inNode.getRightOperandList().isConstantExpression()))
+                    if(!(inNode.getRightOperandList().containsOnlyConstantAndParamNodes()))
                         continue;
 
                     if (!(inNode.getLeftOperand() instanceof ColumnReference))

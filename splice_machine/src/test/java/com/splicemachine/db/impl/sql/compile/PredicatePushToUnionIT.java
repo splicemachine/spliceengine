@@ -532,9 +532,49 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testPredicateWithConstantExpression() throws Exception {
+        String sqlText = "select X, Y, Z from (\n" +
+                "                  select c5, b5, a5 from t5 " +
+                "                     where b5=2 \n" +
+                "                  union all \n" +
+                "                  select c6, b6, a6 from t6 " +
+                "                     where b6=2) dt(Z, Y, X) " +
+                "                where X = substr('abcdeNNN', 1,5)  and Z = add_months('2018-10-01', 2)";
+
+        /* the plan should look like the following:
+        Plan
+        ----------------------------------------------------
+        Cursor(n=9,rows=2,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=8,totalCost=16.024,outputRows=2,outputHeapSize=3 B,partitions=1)
+            ->  ProjectRestrict(n=7,totalCost=12.014,outputRows=2,outputHeapSize=3 B,partitions=1)
+              ->  ProjectRestrict(n=6,totalCost=12.014,outputRows=2,outputHeapSize=3 B,partitions=1,preds=[(SQLCol4[6:1] = dataTypeServices: DATE ),(SQLCol6[6:3] = substring(abcdeNNN, 1, 5) )])
+                ->  Union(n=5,totalCost=12.014,outputRows=2,outputHeapSize=3 B,partitions=1)
+                  ->  ProjectRestrict(n=4,totalCost=4.002,outputRows=1,outputHeapSize=3 B,partitions=1)
+                    ->  TableScan[T6(1744)](n=3,totalCost=4.002,scannedRows=1,outputRows=1,outputHeapSize=3 B,partitions=1,preds=[(A6[3:1] = substring(abcdeNNN, 1, 5) ),(B6[3:2] = 2),(C6[3:3] = dataTypeServices: DATE )])
+                  ->  ProjectRestrict(n=2,totalCost=4.002,outputRows=1,outputHeapSize=3 B,partitions=1)
+                    ->  TableScan[T5(1712)](n=1,totalCost=4.002,scannedRows=1,outputRows=1,outputHeapSize=3 B,partitions=1,preds=[(A5[0:1] = substring(abcdeNNN, 1, 5) ),(B5[0:2] = 2),(C5[0:3] = dataTypeServices: DATE )])
+        9 rows selected
+        */
+
+        rowContainsQuery(new int[]{7, 9}, "explain " + sqlText, methodWatcher,
+                new String[]{"TableScan", "preds=[(A6[3:1] = substring(abcdeNNN, 1, 5) ),(B6[3:2] = 2),(C6[3:3] = dataTypeServices: DATE )]"},
+                new String[]{"TableScan", "preds=[(A5[0:1] = substring(abcdeNNN, 1, 5) ),(B5[0:2] = 2),(C5[0:3] = dataTypeServices: DATE )]"});
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "X   | Y |     Z     |\n" +
+                        "-----------------------\n" +
+                        "abcde | 2 |2018-12-01 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
+
     //negative test cases
     @Test
-    public void testPredicateWithExpression() throws Exception {
+    public void testPredicateWithColumnInExpression() throws Exception {
         /* predicate where expression on columns is not pushed down */
         String sqlText = format("select Y, Z from (select * from v1 left join t11 on Y=t11.b1) dt where Z+1=2 and Y=1", useSpark);
 
