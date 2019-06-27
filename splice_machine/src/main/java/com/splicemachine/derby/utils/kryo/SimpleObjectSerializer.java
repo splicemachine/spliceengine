@@ -38,14 +38,8 @@ public abstract class SimpleObjectSerializer<T> extends Serializer<T> {
     
     @Override
     public T read(Kryo kryo, Input input, Class<T> type) {
-        try {
-            T dvd = type.newInstance();
-            readValue(kryo, input, dvd);
-            return dvd;
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        T dvd = kryo.newInstance(type);
+        readValue(kryo, input, dvd);
+        return dvd;
     }
 }
