@@ -83,6 +83,7 @@ import org.apache.commons.lang3.mutable.MutableDouble;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.*;
@@ -896,5 +897,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         },302);
         instance.register(DataValueDescriptor.class, 303);
         instance.register(ExecRow.class, 304);
+        instance.register(ResultSet.class, 305);
+        instance.register(ResultSet[].class, 306);
     }
 }
