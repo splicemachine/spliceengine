@@ -293,4 +293,8 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
         }
         System.out.printf("timeWaited: %d sec%n", timeWaited);
     }
+
+    public MemstoreAware getMemstoreAware() {
+        return memstoreAware.get();
+    }
 }

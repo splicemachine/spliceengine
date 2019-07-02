@@ -16,6 +16,7 @@ package com.splicemachine.hbase.util;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 
 import java.io.IOException;
@@ -28,8 +29,8 @@ import java.util.Set;
  *         Date: 12/21/15
  */
 public class IteratorRegionScanner extends AbstractIteratorRegionScanner{
-    public IteratorRegionScanner(Iterator<Set<Cell>> kvs,Scan scan){
-        super(kvs,scan);
+    public IteratorRegionScanner(HRegion r, Iterator<Set<Cell>> kvs, Scan scan){
+        super(r, kvs,scan);
     }
 
 
