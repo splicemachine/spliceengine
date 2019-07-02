@@ -158,6 +158,9 @@ public interface CompilerContext extends Context
 	boolean     DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
 	boolean     DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
 	boolean     DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
+	boolean     DEFAULT_USE_OLD_INDEX_LOOKUP_METHOD = false;
+	int         DEFAULT_NUM_THREADS_FOR_INDEX_LOOKUP = 0;
+	int         DEFAULT_INDEX_LOOKUP_BATCH_SIZE = 0;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -671,5 +674,17 @@ public interface CompilerContext extends Context
 	public void setDisablePredicateSimplification(boolean newValue);
 
 	public boolean getDisablePredicateSimplification();
+
+	public void setUseOldIndexLookupMethod(boolean newValue);
+
+	public boolean getUseOldIndexLookupMethod();
+
+	public void setNumThreadsForIndexLookup(int newValue);
+
+	public int getNumThreadsForIndexLookup();
+
+	public void setIndexBatchSize(int newValue);
+
+	public int getIndexBatchSize();
 
 }

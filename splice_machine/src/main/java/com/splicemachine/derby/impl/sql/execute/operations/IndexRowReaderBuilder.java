@@ -63,6 +63,7 @@ public class IndexRowReaderBuilder implements Externalizable{
     private String tableVersion;
     private int[] mainTableKeyColumnTypes;
     private TxnView txn;
+    private boolean useOldIndexLookupMethod = false;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public IndexRowReaderBuilder indexColumns(int[] indexCols){
@@ -89,6 +90,11 @@ public class IndexRowReaderBuilder implements Externalizable{
 
     public IndexRowReaderBuilder lookupBatchSize(int lookupBatchSize){
         this.lookupBatchSize=lookupBatchSize;
+        return this;
+    }
+
+    public IndexRowReaderBuilder useOldIndexLookupMethod(boolean useOldIndexLookupMethod){
+        this.useOldIndexLookupMethod=useOldIndexLookupMethod;
         return this;
     }
 
@@ -198,7 +204,8 @@ public class IndexRowReaderBuilder implements Externalizable{
                 rowDecoder,
                 indexCols,
                 txnOperationFactory,
-                tableFactory);
+                tableFactory,
+                useOldIndexLookupMethod);
     }
 
     @Override
@@ -224,6 +231,7 @@ public class IndexRowReaderBuilder implements Externalizable{
         ArrayUtil.writeIntArray(out,indexCols);
         out.writeUTF(tableVersion);
         ArrayUtil.writeIntArray(out,mainTableKeyColumnTypes);
+        out.writeBoolean(useOldIndexLookupMethod);
     }
 
     @Override
@@ -244,5 +252,6 @@ public class IndexRowReaderBuilder implements Externalizable{
         indexCols=ArrayUtil.readIntArray(in);
         tableVersion=in.readUTF();
         mainTableKeyColumnTypes=ArrayUtil.readIntArray(in);
+        useOldIndexLookupMethod = in.readBoolean();
     }
 }

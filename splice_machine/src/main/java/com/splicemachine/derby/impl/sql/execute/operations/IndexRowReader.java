@@ -53,7 +53,6 @@ import java.util.concurrent.*;
 public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     protected static Logger LOG=Logger.getLogger(IndexRowReader.class);
     private final int batchSize;
-    private final int numBlocks;
     private final ExecRow outputTemplate;
     private final long mainTableConglomId;
     private final byte[] predicateFilterBytes;
@@ -72,7 +71,8 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private final ExecutorService executorService;
     private final CompletionService executorCompletionService;
     private int numQueuedThreads = 0;
-    private final int numConcurrentLookups;
+    private final boolean useOldIndexLookupMethod;
+    private int numConcurrentLookups = 0;
 
     private ExecRow heapRowToReturn;
     private ExecRow indexRowToReturn;
@@ -88,23 +88,25 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                    KeyHashDecoder rowDecoder,
                    int[] indexCols,
                    TxnOperationFactory operationFactory,
-                   PartitionFactory tableFactory){
+                   PartitionFactory tableFactory,
+                   boolean useOldIndexLookupMethod){
         this.sourceIterator=sourceIterator;
         this.outputTemplate=outputTemplate;
         this.txn=txn;
         batchSize=lookupBatchSize;
-        this.numBlocks=Math.max(numConcurrentLookups, 2);
+        this.numConcurrentLookups=Math.max(numConcurrentLookups, 2);
         this.mainTableConglomId=mainTableConglomId;
         this.predicateFilterBytes=predicateFilterBytes;
         this.tableFactory=tableFactory;
         this.keyDecoder=new KeyDecoder(keyDecoder,0);
         this.rowDecoder=rowDecoder;
         this.indexCols=indexCols;
-        this.resultFutures=Lists.newArrayListWithCapacity(this.numBlocks);
-        numConcurrentLookups = 32;  // msirek-temp
+        this.resultFutures=Lists.newArrayListWithCapacity(this.numConcurrentLookups);
+        //numConcurrentLookups = 32;  // msirek-temp
         this.numConcurrentLookups = numConcurrentLookups;
         this.resultFutures=Lists.newArrayListWithCapacity(numConcurrentLookups);
         this.operationFactory = operationFactory;
+        this.useOldIndexLookupMethod = useOldIndexLookupMethod;
 
         executorService = Executors.newFixedThreadPool(numConcurrentLookups);
         executorCompletionService = new ExecutorCompletionService<>(executorService);
@@ -112,7 +114,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
     // Return the maximum number of threads that could be simultaneously
     // doing base conglomerate row lookups.
-    public int getMaxConcurrency() {return this.numBlocks;}
+    public int getMaxConcurrency() {return this.numConcurrentLookups;}
 
     public void close() throws IOException{
         rowDecoder.close();
@@ -186,16 +188,23 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         }
         if(!sourceRows.isEmpty()){
             //submit to the background thread
+            //boolean useOldIndexLookupMethod = getCompilerContext()
             Lookup task=new Lookup(sourceRows);
-            resultFutures.add(executorCompletionService.submit(task));
+            if (useOldIndexLookupMethod)
+                resultFutures.add(SIDriver.driver().getExecutorService().submit(task));
+            else
+                resultFutures.add(executorCompletionService.submit(task));
             numQueuedThreads++;
         }
 
         //if there is only one submitted future, call this again to set off an additional background process
+        if (resultFutures.size() < numConcurrentLookups && sourceRows.size()==batchSize)
+        //if (resultFutures.size() < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
         //if(resultFutures.size()<numBlocks && sourceRows.size()==batchSize) msirek-temp
-        if (numQueuedThreads < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
+        //if (numQueuedThreads < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
             getMoreData();
-        else if(numQueuedThreads > 0){
+        else if(!resultFutures.isEmpty()){
+        // else if(numQueuedThreads > 0){  msirek-temp
             waitForBlockCompletion();
         }
     }
@@ -203,7 +212,11 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private void waitForBlockCompletion() throws StandardException, IOException{
         //wait for the first future to return correctly or error-out
         try{
-            Future<List<Pair<ExecRow, DataResult>>> future=executorCompletionService.take();
+            Future<List<Pair<ExecRow, DataResult>>> future = null;
+            if (useOldIndexLookupMethod)
+                future = resultFutures.remove(0);
+            else
+                future=executorCompletionService.take();
             currentResults=future.get();
             numQueuedThreads--;
         }catch(InterruptedException e){

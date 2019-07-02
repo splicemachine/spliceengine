@@ -1034,8 +1034,11 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
-
-		@return the index row to base row operation as a result set.
+	    @param numThreadsForIndexLookup     If greater than zero, the number of threads
+	                                        to use in place of the system setting.
+	    @param indexBatchSize               If greater than zero, the batch size to use
+		                                    instead of splice.index.batchSize.
+	    @return the index row to base row operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
 	 */
@@ -1057,7 +1060,10 @@ public interface ResultSetFactory {
 			String tableVersion,
 			String explainPlan,
 			GeneratedMethod defaultRowFunc,
-			int defaultValueMapItem)
+			int defaultValueMapItem,
+			boolean useOldIndexLookupMethod,
+			int numThreadsForIndexLookup,
+			int indexBatchSize)
 			throws StandardException;
 
 

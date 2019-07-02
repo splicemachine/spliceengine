@@ -82,6 +82,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     private ExecRow compactRow;
     protected String defaultRowMethodName;
     protected int defaultValueMapItem;
+    private boolean useOldIndexLookupMethod;
+    private int numThreadsForIndexLookup;
+    private int indexBatchSizeOverride;
     int[] columnOrdering;
     int[] format_ids;
     SpliceConglomerate conglomerate;
@@ -116,7 +119,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                                       int heapOnlyColRefItem, int indexColMapItem,
                                       GeneratedMethod restriction, boolean forUpdate,
                                       double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion,
-                                      GeneratedMethod defaultRowFunc, int defaultValueMapItem) throws StandardException {
+                                      GeneratedMethod defaultRowFunc, int defaultValueMapItem,
+                                      boolean useOldIndexLookupMethod,
+                                      int numThreadsForIndexLookup,
+                                      int indexBatchSizeOverride) throws StandardException {
         super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         SpliceLogUtils.trace(LOG,"instantiate with parameters");
         this.resultRowAllocatorMethodName = resultRowAllocator.getMethodName();
@@ -133,6 +139,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         this.tableVersion = tableVersion;
         this.defaultRowMethodName = defaultRowFunc==null? null: defaultRowFunc.getMethodName();
         this.defaultValueMapItem = defaultValueMapItem;
+        this.useOldIndexLookupMethod = useOldIndexLookupMethod;
+        this.numThreadsForIndexLookup = numThreadsForIndexLookup;
+        this.indexBatchSizeOverride = indexBatchSizeOverride;
         init();
     }
 
@@ -153,6 +162,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         tableVersion = in.readUTF();
         defaultRowMethodName = readNullableString(in);
         defaultValueMapItem = in.readInt();
+        useOldIndexLookupMethod = in.readBoolean();
+        numThreadsForIndexLookup = in.readInt();
+        indexBatchSizeOverride = in.readInt();
     }
 
     @Override
@@ -172,6 +184,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         out.writeUTF(tableVersion);
         writeNullableString(defaultRowMethodName, out);
         out.writeInt(defaultValueMapItem);
+        out.writeBoolean(useOldIndexLookupMethod);
+        out.writeInt(numThreadsForIndexLookup);
+        out.writeInt(indexBatchSizeOverride);
     }
 
     @Override
@@ -311,8 +326,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .mainTableVersion(tableVersion)
                     .mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
                     .mainTableAccessedRowColumns(getMainTableRowColumns())
-                    .numConcurrentLookups(lookupBlocks)
-                    .lookupBatchSize(indexBatchSize);
+                    .numConcurrentLookups(numThreadsForIndexLookup > 0 ? numThreadsForIndexLookup : lookupBlocks)
+                    .lookupBatchSize(indexBatchSizeOverride > 0 ? indexBatchSizeOverride : indexBatchSize)
+                    .useOldIndexLookupMethod(useOldIndexLookupMethod);
         }
         OperationContext context = dsp.createOperationContext(this);
         readerBuilder.transaction(context.getTxn());
