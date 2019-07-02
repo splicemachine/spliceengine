@@ -21,7 +21,7 @@ Hortonworks Ambari-managed cluster. Follow these steps:
       - [OLAP Server Log](#OLAP-Server-Log)
   - [Verify your Splice Machine Installation](#Verify-your-Splice-Machine-Installation)
   - [Upgrade from Old Version](#Upgrade-from-Old-Version)
-- [Backdown procedure](#Backdown-procedure)
+- [Removing the Splice Machine Service from a Cluster](#Removing-the-Splice-Machine-Service-from-a-Cluster)
 
 ## Verify Prerequisites
 
@@ -420,7 +420,7 @@ If you are upgrading from versions before 1901, you need to follow these steps:
 3. Restart Ambari server.
 4. Re-install Splice Ambari service from web UI.
 
-# Backdown procedure
+# Removing the Splice Machine Service from a Cluster
 
 To remove Splice Machine from the HDP cluster:
 
@@ -429,16 +429,23 @@ From Ambari Dashboard - Click on "Splice Machine" service, and then on the top r
 
 
 2. Rollback configurations -
-From Amabari Dashboard, click on each service and then on its "Config" tab. Select prior versions that were changed during Splice Machine install and click on "Make Current". On the "Make Current Confirmation" prompt, add Notes if desired and click on "Make Current". Repeat this process for all affected services (HDFS, YARN, HBASE, Zookeeper)
+From Ambari Dashboard, click on each service and then on its "Config" tab. Select prior versions that were changed during Splice Machine install and click on "Make Current". On the "Make Current Confirmation" prompt, add Notes if desired and click on "Make Current". Repeat this process for all affected services (HDFS, YARN, HBASE, Zookeeper)
 
 3. From Ambari Dashboard using the cluster's "Actions" dropdown, select "Stop All", click "Confirm Stop" and wait for cluster to stop.
 
 Then from the ambari server node terminal do :
 
 ````
-sudo yum remove -y splicemachine_ambari_service
+rpm -qa | grep splicemachine_ambari_service
+#(the above command will list the full name of the package installed on the ambari server node use that to replace <package> in the following command)
+sudo rpm -e <package>
 
 sudo rm /etc/yum.repos.d/splicemachine.repo
+
+sudo ambari-server stop
+rm -r /var/lib/ambari-server/resources/common-services/SPLICEMACHINE
+sudo ambari-server start
+
 ````
 
 If the ambari-repo folder was created at install time under /var/www/html on the master node at install time, then remove it:
@@ -446,6 +453,6 @@ If the ambari-repo folder was created at install time under /var/www/html on the
 sudo rm -r /var/www/html/ambari-repo
 ````
 
-4. Restart cluster - From Ambari Dashboard, using the cluster "Actions" dropdown, select "Start All".
+1. Restart cluster - From Ambari Dashboard, using the cluster "Actions" dropdown, select "Start All".
 
 Note that even after start completes, some alerts may still be active until service restarts complete. Just wait for alerts to clear.
