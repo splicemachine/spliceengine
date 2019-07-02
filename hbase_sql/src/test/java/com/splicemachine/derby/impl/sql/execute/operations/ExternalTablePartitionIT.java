@@ -58,8 +58,7 @@ public class ExternalTablePartitionIT {
             throw new RuntimeException(e);
         }
     }
-
-    @Test
+    
     public void testParquetPartitionFirst() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/parquet_partition_first";
@@ -101,16 +100,14 @@ public class ExternalTablePartitionIT {
         }
     }
 
-
-    @Test
     public void testSparkGeneratesFewParquetFiles() throws Exception {
         testSparkGeneratesFewFiles("parquet");
     }
-    @Test
+
     public void testSparkGeneratesFewOrcFiles() throws Exception {
         testSparkGeneratesFewFiles("orc");
     }
-    @Test
+
     public void testSparkGeneratesFewAvroFiles() throws Exception {
         testSparkGeneratesFewFiles("avro");
     }
@@ -148,9 +145,7 @@ public class ExternalTablePartitionIT {
             Assert.fail("An exception should not be thrown");
         }
     }
-
-
-    @Test
+    
     public void testAvroPartitionFirst() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/avro_partition_first";
@@ -192,7 +187,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testOrcPartitionFirst() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/orc_partition_first";
@@ -257,7 +251,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testTextfilePartitionFirst() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/textfile_partition_first";
@@ -299,7 +292,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testParquetPartitionFirstSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/parquet_partition_first_second";
@@ -341,7 +333,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testAvroPartitionFirstSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/avro_partition_first_second";
@@ -383,7 +374,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testOrcPartitionFirstSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/orc_partition_first_second";
@@ -441,7 +431,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testTextfilePartitionFirstSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/textfile_partition_first_second";
@@ -483,7 +472,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testParquetPartitionSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/parquet_partition_second";
@@ -525,7 +513,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testAvroPartitionSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/avro_partition_second";
@@ -567,8 +554,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-
-    @Test
     public void testOrcPartitionSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/orc_partition_second";
@@ -624,8 +609,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-
-    @Test
     public void testTextfilePartitionSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/textfile_partition_second_";
@@ -667,7 +650,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testParquetPartitionLast() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/parquet_partition_last";
@@ -709,8 +691,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-
-    @Test
     public void testAvroPartitionLast() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/avro_partition_last";
@@ -752,7 +732,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testOrcPartitionLast() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/orc_partition_last";
@@ -808,7 +787,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testTextfilePartitionLast() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/textfile_partition_last";
@@ -850,7 +828,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testParquetPartitionThirdSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/parquet_partition_third_second";
@@ -892,7 +869,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testAvroPartitionThirdSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/avro_partition_third_second";
@@ -934,7 +910,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testOrcPartitionThirdSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/orc_partition_third_second";
@@ -990,7 +965,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testTextfilePartitionThirdSecond() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/textfile_partition_third_second";
@@ -1032,7 +1006,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testOrcAggressive() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/orc_aggressive";
@@ -1057,7 +1030,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testParquetAggressive() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/parquet_aggressive";
@@ -1082,7 +1054,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testAvroAggressive() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/avro_aggressive";
@@ -1107,7 +1078,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testTextfileAggressive() throws Exception {
         try {
             String tablePath = getExternalResourceDirectory()+"/textfile_aggressive";
@@ -1132,7 +1102,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testParquetAggressive2() throws Exception{
         try{
             String format = "parquet";
@@ -1175,7 +1144,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testAvroAggressive2() throws Exception{
         try{
             String format = "avro";
@@ -1218,7 +1186,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testOrcAggressive2() throws Exception{
         try{
             String format = "orc";
@@ -1261,7 +1228,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testTextfileAggressive2() throws Exception{
         try{
             String format = "textfile";
@@ -1306,7 +1272,6 @@ public class ExternalTablePartitionIT {
 
     // tests for creating an external table from an existing file:
 
-    @Test
     public void testParquetPartitionExisting() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table parquet_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
@@ -1345,8 +1310,7 @@ public class ExternalTablePartitionIT {
             Assert.fail("An exception should not be thrown. Error: " + e.getMessage());
         }
     }
-
-    @Test
+    
     public void testAvroPartitionExisting() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table avro_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
@@ -1385,7 +1349,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testOrcPartitionExisting() throws Exception {
         try {
             methodWatcher.executeUpdate(String.format("create external table orc_partition_existing (col1 int, col2 varchar(10), col3 boolean, col4 int, col5 double, col6 char)" +
@@ -1423,7 +1386,6 @@ public class ExternalTablePartitionIT {
         }
     }
 
-    @Test
     public void testTextfilePartitionExisting() throws Exception {
         try {
 
@@ -1471,7 +1433,6 @@ public class ExternalTablePartitionIT {
         return count;
     }
 
-    @Test
     public void testInsertionToHiveParquetData() throws Exception {
         methodWatcher.executeUpdate(
                 String.format("create external table pt_parquet(col1 varchar(10), col2 int, col3 char(2)) partitioned by (col3) stored as parquet location '%s'",
@@ -1487,7 +1448,6 @@ public class ExternalTablePartitionIT {
         assertEquals(actual, expected, actual);
     }
 
-    @Test
     public void testInsertionToHiveAvroData() throws Exception {
         methodWatcher.executeUpdate(
                 String.format("create external table pt_avro(col1 varchar(10), col2 int, col3 char(2)) partitioned by (col3) stored as avro location '%s'",
@@ -1503,7 +1463,6 @@ public class ExternalTablePartitionIT {
         assertEquals(actual, expected, actual);
     }
 
-    @Test
     public void testOrcRowGroupStatsWherePartitionColumnIsNotTheLast() throws Exception {
         try {
             String tablePath = SpliceUnitTest.getResourceDirectory() +"orc_test_rowgroupstats";

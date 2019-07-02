@@ -464,7 +464,7 @@
                                 <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
-                                <include>**/*externalTableIT.java</include>
+                                <include>**/*IT.java</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>
