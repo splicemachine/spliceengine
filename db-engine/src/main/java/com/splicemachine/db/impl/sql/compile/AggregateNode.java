@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.List;
-
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -47,7 +45,11 @@ import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.*;
+
+import java.util.List;
+
+import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.FunctionType;
+import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromString;
 /**
  * An Aggregate Node is a node that reprsents a set function/aggregate.
  * It used for all system aggregates as well as user defined aggregates.
@@ -356,6 +358,7 @@ public class AggregateNode extends UnaryOperatorNode
 			// Also forbid any window function inside an aggregate unless in
 			// subquery, cf. SQL 2003, section 10.9, SR 7 a).
 			SelectNode.checkNoWindowFunctions(operand, aggregateName);
+			SelectNode.checkNoGroupingFunctions(operand, aggregateName);
 
 			/*
 			** Check the type of the operand.  Make sure that the user
@@ -431,6 +434,28 @@ public class AggregateNode extends UnaryOperatorNode
 		         operand = castNode.bindExpression( fromList, subqueryList, aggregateVector );
 		     }
 		}
+		else if (isWindowFunction() &&
+                 uad instanceof SumAvgAggregateDefinition &&
+                 operand != null    &&
+                 operand.getTypeId().getTypeFormatId() !=
+                 resultType.getTypeId().getTypeFormatId()) {
+            // For now, the receiver data type picked by
+            // getAggregator() must match the data type of the
+            // operand when processing window functions
+            // to avoid ClassCastExceptions for NativeSparkDataSets.
+            // For non-windowed aggregations, we process the aggregation using
+            // the original data type of the operand for performance.  If it overflows,
+            // a new aggregator that uses the final result type is allocated.
+            // When there is no overflow, a final CAST is applied in
+            // methoc SpliceGeneratorAggregator.finish.
+            operand =
+                (ValueNode)
+                 getNodeFactory().getNode(C_NodeTypes.CAST_NODE,
+                                          operand,
+                                          resultType,
+                                          getContextManager());
+            ((CastNode) operand).bindCastNodeOnly();
+        }
 		
 		checkAggregatorClassName(aggregatorClassName.toString());
 

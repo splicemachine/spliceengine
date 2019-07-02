@@ -132,4 +132,14 @@ public class ZkTimestampSource implements TimestampSource {
             _tc = null;
         }
     }
+
+    @Override
+    public void refresh() {
+        try {
+            TimestampClient client = getTimestampClient();
+            client.refresh();
+        } catch (TimestampIOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -65,6 +65,7 @@ import java.text.RuleBasedCollator;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.MissingResourceException;
 
 
 /**
@@ -2322,6 +2323,59 @@ public class SQLChar
         return result;
     }
 
+    /**
+     * return a string that repeats the leftOperand number of times specified by the rightOperand
+     * @param leftOperand  the string to be repeated
+     * @param rightOperand  the number of times to repeat, it should be a number >= 0. When it is 0,
+     *                      an empty string will be returned if leftOperand is not null.
+     * @param result  the result string
+     * @return
+     * @throws StandardException
+     */
+    public StringDataValue repeat(StringDataValue leftOperand,
+                                  NumberDataValue rightOperand,
+                                  StringDataValue result) throws StandardException {
+        if (result == null)
+        {
+            result = (StringDataValue) getNewNull();
+        }
+
+        if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        int repeatedTimes;
+        if (rightOperand == null || rightOperand.isNull()) {
+            throw StandardException.newException(
+                    SQLState.LANG_INVALID_FUNCTION_ARGUMENT, "NULL", "REPEAT");
+        } else {
+            try {
+                repeatedTimes = rightOperand.getInt();
+            } catch (StandardException e) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_FUNCTION_ARGUMENT, rightOperand, "REPEAT");
+            }
+
+            if (repeatedTimes < 0) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_FUNCTION_ARGUMENT, rightOperand, "REPEAT");
+            }
+        }
+
+        String val = leftOperand.getString();
+        StringBuilder builder = new StringBuilder();
+
+        for (int i=0; i<repeatedTimes; i++) {
+            builder.append(val);
+        }
+
+        result.setValue(builder.toString());
+
+        return result;
+    }
+
 
     /**
      * This method implements the like function for char (with no escape value).
@@ -2450,7 +2504,7 @@ public class SQLChar
             startVal = start.getInt();
         }
 
-        if( isNull() || searchFrom.isNull() )
+        if( searchFrom.isNull() )
         {
             result.setToNull();
             return result;
@@ -2732,6 +2786,59 @@ public class SQLChar
         upper = upper.toUpperCase(getLocale());
         result.setValue(upper);
         return result;
+    }
+
+    public StringDataValue upperWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,
+                                                StringDataValue result)
+            throws StandardException
+    {
+        return upperLowerWithLocale(leftOperand, rightOperand, result, true);
+    }
+
+    public StringDataValue lowerWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,
+                                                StringDataValue result)
+            throws StandardException
+    {
+        return upperLowerWithLocale(leftOperand, rightOperand, result, false);
+    }
+
+    private StringDataValue upperLowerWithLocale(StringDataValue leftOperand, StringDataValue rightOperand,
+                                           StringDataValue result, boolean isUpper)
+                            throws StandardException
+    {
+        if (result == null)
+        {
+            result = (StringDataValue) getNewNull();
+        }
+
+        if (leftOperand == null || leftOperand.isNull() || leftOperand.getString() == null)
+        {
+            result.setToNull();
+            return result;
+        }
+
+        if (rightOperand == null || rightOperand.isNull() || rightOperand.getString() == null) {
+            throw StandardException.newException(
+                    SQLState.LANG_INVALID_FUNCTION_ARGUMENT, "NULL", isUpper?"UPPER":"LOWER");
+        }
+        String localeStr = rightOperand.getString();
+        Locale locale = Locale.forLanguageTag(localeStr);
+        if (!validLocale(locale)) {
+            throw StandardException.newException(
+                    SQLState.LANG_INVALID_FUNCTION_ARGUMENT, localeStr, isUpper?"UPPER":"LOWER");
+        }
+        String str = leftOperand.getString();
+        str = isUpper?str.toUpperCase(locale):str.toLowerCase(locale);
+        result.setValue(str);
+        return result;
+    }
+
+    private boolean validLocale(Locale locale) {
+        try {
+            return !(locale.getISO3Language().equals("") || locale.getISO3Country().equals(""));
+        } catch (MissingResourceException e) {
+            return false;
+        }
     }
 
     /** @see StringDataValue#lower 

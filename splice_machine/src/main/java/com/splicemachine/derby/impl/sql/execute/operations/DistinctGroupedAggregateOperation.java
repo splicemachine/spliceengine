@@ -68,8 +68,11 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 					int resultSetNumber,
 					double optimizerEstimatedRowCount,
 					double optimizerEstimatedCost,
-					boolean isRollup) throws StandardException {
-		super(s, isInSortedOrder, aggregateItem, orderingItem,a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup);
+					boolean isRollup,
+					int groupingIdColPosition,
+					int groupingIdArrayItem) throws StandardException {
+		super(s, isInSortedOrder, aggregateItem, orderingItem,a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup,
+				groupingIdColPosition, groupingIdArrayItem);
 		SpliceLogUtils.trace(LOG, "instance");
     }
 }

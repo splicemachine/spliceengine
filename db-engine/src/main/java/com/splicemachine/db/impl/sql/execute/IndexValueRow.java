@@ -251,6 +251,11 @@ public class IndexValueRow implements ExecIndexRow, Serializable {
 		valueRow.setColumn(position, col);
 	}
 
+	// position is 1-based.
+	public void setColumnValue(int position, DataValueDescriptor col) throws StandardException {
+		valueRow.setColumnValue(position, col);
+	}
+
 	// position is 1-based
 	public ExecRow getClone() {
 		return new IndexValueRow(valueRow.getClone());

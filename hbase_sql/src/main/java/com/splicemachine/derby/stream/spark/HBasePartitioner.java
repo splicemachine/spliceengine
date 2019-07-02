@@ -33,6 +33,7 @@ import org.apache.spark.Partition;
 import org.apache.spark.rdd.NewHadoopPartition;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -61,7 +62,7 @@ public class HBasePartitioner extends org.apache.spark.Partitioner implements Pa
 
     @Override
     public void initialize() {
-        List<Partition> partitions = ((SparkDataSet) dataSet).rdd.partitions();
+        List<Partition> partitions = Arrays.asList(((SparkDataSet) dataSet).rdd.rdd().partitions());
         tableSplits = new ArrayList<>(partitions.size());
         for (Partition p : partitions) {
             NewHadoopPartition nhp = (NewHadoopPartition) p;

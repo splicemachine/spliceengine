@@ -1285,7 +1285,7 @@ public final class SQLDate extends DataType
     public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue returnValue) throws StandardException {
 		if( returnValue == null)
 			returnValue = new SQLDate();
-		if(leftOperand.isNull() || isNull() || daysToSubtract.isNull()) {
+		if(leftOperand.isNull() || daysToSubtract.isNull()) {
 			returnValue.restoreToNull();
 			return returnValue;
 		}
@@ -1298,7 +1298,7 @@ public final class SQLDate extends DataType
     public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue) throws StandardException {
 		if( returnValue == null)
 			returnValue = new SQLInteger();
-		if(leftOperand.isNull() || isNull() || rightOperand.isNull()) {
+		if(leftOperand.isNull() || rightOperand.isNull()) {
 			returnValue.restoreToNull();
 			return returnValue;
 		}

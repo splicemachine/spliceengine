@@ -1411,8 +1411,10 @@ abstract class SQLBinary
 	public void read(Row row, int ordinal) throws StandardException {
 		if (row.isNullAt(ordinal))
 			setToNull();
-		else
-			dataValue = (byte[])row.get(ordinal);
+		else {
+			isNull = false;
+			dataValue = (byte[]) row.get(ordinal);
+		}
 	}
 
 

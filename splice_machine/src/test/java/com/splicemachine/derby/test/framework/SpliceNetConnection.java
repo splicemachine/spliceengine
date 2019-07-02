@@ -37,6 +37,10 @@ public class SpliceNetConnection {
         return getConnectionAs(DB_URL_LOCAL, userName, password);
     }
 
+    public static Connection getConnectionAs(String userName, String password, boolean useSpark) throws SQLException {
+        return getConnectionAs(DB_URL_LOCAL+";useSpark="+useSpark, userName, password);
+    }
+
     public static String getDefaultLocalURL() {
         return String.format(DB_URL_LOCAL, DEFAULT_USER, DEFAULT_USER_PASSWORD);
     }

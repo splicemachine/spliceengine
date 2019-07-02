@@ -104,8 +104,9 @@ public class Exceptions {
         return t instanceof RuntimeException ? (RuntimeException) t : new RuntimeException(t);
     }
 
-    public static void throwAsRuntime(Throwable t) {
+    public static RuntimeException throwAsRuntime(Throwable t) {
         Exceptions.<RuntimeException> doThrow(t);
+        return new RuntimeException();
     }
 
     @SuppressWarnings("unchecked")

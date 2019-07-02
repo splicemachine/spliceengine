@@ -1086,6 +1086,14 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	String getDrdaID();
 
+
+	/**
+	 * Get the DRDA interruption token of this LCC
+	 *
+	 * @return DRDA interruption token this LCC.
+	 */
+	String getRdbIntTkn();
+
 	/**
 	 * Set the DRDA ID of this LCC.
 	 *
@@ -1148,6 +1156,13 @@ public interface LanguageConnectionContext extends Context {
 	 */
 	String getCurrentRoleIdDelimited(Activation a)
 			throws StandardException;
+
+	/**
+	 * @param a activation of statement
+	 * @return String of the group user list in delimited form
+	 * @throws StandardException
+	 */
+	String getCurrentGroupUserDelimited(Activation a) throws StandardException;
 
 	/**
 	 * Checks whether the given role can be legally set for the current user.
@@ -1399,6 +1414,7 @@ public interface LanguageConnectionContext extends Context {
 	void logRollback();
 	void logStartFetching(String statement);
 	void logEndFetching(String statement, long fetchedRows);
+	void logNextBatch(ParameterValueSet pvs);
 	void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
 						   ParameterValueSet pvs);
 	void logEndExecuting(String uuid, long modifiedRows, long badRecords, long nanoTimeSpent);

@@ -667,6 +667,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(SimpleLocaleStringOperatorNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(SpecialFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
@@ -883,6 +888,16 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     
     @Override
     public Visitable visit(ListValueNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(GroupingFunctionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(SelfReferenceNode node) throws StandardException {
         return defaultVisit(node);
     }
 }

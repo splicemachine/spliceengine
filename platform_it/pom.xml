@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>2.8.0.1901-SNAPSHOT</version>
+        <version>2.8.0.1917-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -145,6 +145,10 @@
                     <groupId>net.jpountz.lz4</groupId>
                     <artifactId>lz4</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <!-- Yarn dependencies -->
@@ -187,13 +191,6 @@
                     <artifactId>parquet-avro</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <!-- com.databricks.spark.avro -->
-            <groupId>com.databricks</groupId>
-            <artifactId>spark-avro_${scala.binary.version}</artifactId>
-            <version>4.0.0</version>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -1092,6 +1089,15 @@
             </properties>
         </profile>
         <profile>
+            <id>cdh5.12.2-2.3</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
             <id>cdh5.13.0</id>
             <properties>
                 <!--extraDependency>splice_sentry</extraDependency-->
@@ -1145,8 +1151,26 @@
             </properties>
         </profile>
         <profile>
+            <id>cdh5.16.1</id>
+            <properties>
+                <!--extraDependency>splice_sentry</extraDependency-->
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
             <id>mapr6.0.0</id>
             <properties>
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>mapr6.1.0</id>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
                 <extraDependency>splice_ee</extraDependency>
                 <extraDependency2>splice_ee</extraDependency2>
                 <extraDependency3>splice_ee</extraDependency3>

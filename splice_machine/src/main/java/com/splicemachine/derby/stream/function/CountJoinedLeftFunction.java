@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.spark.sql.Dataset;
 
 public class CountJoinedLeftFunction extends SpliceFunction {
     public CountJoinedLeftFunction() {
@@ -28,5 +29,10 @@ public class CountJoinedLeftFunction extends SpliceFunction {
     public Object call(Object o) throws Exception {
         operationContext.recordJoinedLeft();
         return o;
+    }
+
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        return true;
     }
 }

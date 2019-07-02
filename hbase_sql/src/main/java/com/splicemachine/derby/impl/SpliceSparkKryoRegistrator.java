@@ -54,10 +54,12 @@ import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.serialization.ActivationSerializer;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ListDataTypeSerializer;
+import com.splicemachine.derby.utils.kryo.SimpleObjectSerializer;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.stream.ResultStreamer;
@@ -69,6 +71,7 @@ import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.UUIDSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
 
@@ -743,6 +746,65 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(JoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(DMLWriteOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MiscOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SelfReferenceOperation.class,new Serializer<SelfReferenceOperation>(){
+            @Override
+            public void write(Kryo kryo,Output output,SelfReferenceOperation object){
+                try{
+                    object.writeExternalWithoutChild(new KryoObjectOutput(output,kryo));
+                }catch(IOException e){
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public SelfReferenceOperation read(Kryo kryo,Input input,Class type){
+                SelfReferenceOperation selfReferenceOperation=new SelfReferenceOperation();
+                try{
+                    selfReferenceOperation.readExternal(new KryoObjectInput(input,kryo));
+                }catch(IOException|ClassNotFoundException e){
+                    throw new RuntimeException(e);
+                }
+                return selfReferenceOperation;
+            }
+        });
+
+        instance.register(RecursiveUnionOperation.class,new Serializer<RecursiveUnionOperation>(){
+            @Override
+            public void write(Kryo kryo,Output output,RecursiveUnionOperation object){
+                try{
+                    object.writeExternal(new KryoObjectOutput(output,kryo));
+                }catch(IOException e){
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public RecursiveUnionOperation read(Kryo kryo,Input input,Class type){
+                RecursiveUnionOperation recursiveUnionOperation=new RecursiveUnionOperation();
+                try{
+                    recursiveUnionOperation.readExternal(new KryoObjectInput(input,kryo));
+                    recursiveUnionOperation.setRecursiveUnionReference(recursiveUnionOperation);
+                }catch(IOException|ClassNotFoundException e){
+                    throw new RuntimeException(e);
+                }
+                return recursiveUnionOperation;
+            }
+        });
+
+        instance.register(org.apache.commons.lang3.mutable.MutableDouble.class,
+                          new SimpleObjectSerializer<MutableDouble>() {
+            @Override
+            protected void writeValue(Kryo kryo, Output output, MutableDouble object) throws RuntimeException {
+                output.writeDouble(object.doubleValue());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo, Input input, MutableDouble object) throws RuntimeException {
+                object.setValue(input.readDouble());
+            }
+        });
 
         instance.register(LongBufferedSumAggregator.class,new Serializer<LongBufferedSumAggregator>(){
             @Override
@@ -809,28 +871,5 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
                 return aggregator;
             }
         });
-
-        instance.register(FloatBufferedSumAggregator.class,new Serializer<FloatBufferedSumAggregator>(){
-            @Override
-            public void write(Kryo kryo,Output output,FloatBufferedSumAggregator object){
-                try{
-                    object.writeExternal(new KryoObjectOutput(output,kryo));
-                }catch(IOException e){
-                    throw new RuntimeException(e);
-                }
-            }
-
-            @Override
-            public FloatBufferedSumAggregator read(Kryo kryo,Input input,Class type){
-                FloatBufferedSumAggregator aggregator=new FloatBufferedSumAggregator(64); //todo -sf- make configurable
-                try{
-                    aggregator.readExternal(new KryoObjectInput(input,kryo));
-                }catch(IOException|ClassNotFoundException e){
-                    throw new RuntimeException(e);
-                }
-                return aggregator;
-            }
-        });
-
     }
 }

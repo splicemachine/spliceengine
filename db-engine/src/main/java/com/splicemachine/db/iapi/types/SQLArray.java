@@ -42,6 +42,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.unsafe.Platform;
+import scala.util.hashing.MurmurHash3;
 
 import javax.ws.rs.NotSupportedException;
 import java.io.*;
@@ -606,6 +607,13 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	@Override
 	public void setSparkObject(Object sparkObject) throws StandardException {
 
+	}
+
+	public int hashCode() {
+		if (value.length > 0)
+			return MurmurHash3.arrayHashing().hash(value);
+		else
+			return 0;
 	}
 
 }

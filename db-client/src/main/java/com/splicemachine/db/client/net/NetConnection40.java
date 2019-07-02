@@ -227,6 +227,15 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
             isValidStmt.close();
             isValidStmt = null;
         }
+        synchronized (sideConnectionLock) {
+            if (sideConnection_ != null) {
+                try {
+                    sideConnection_.close();
+                } catch (Exception e) {
+                  // ignore, continue closing
+                }
+            }
+        }
         super.close();
     }
 
@@ -447,6 +456,17 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
     public void setNetworkTimeout( Executor executor, int milliseconds ) throws SQLException
     {
         throw SQLExceptionFactory.notImplemented ("setNetworkTimeout");
+    }
+
+    private Object sideConnectionLock = new Object();
+    public NetConnection getSideConnection() throws SqlException {
+        synchronized (sideConnectionLock) {
+            if (sideConnection_ == null || !sideConnection_.isOpen())
+                sideConnection_ = new NetConnection40(null, 0,
+                        serverNameIP_, portNumber_, databaseName_,
+                        properties_);
+            return sideConnection_;
+        }
     }
 
 }

@@ -247,7 +247,7 @@ public class TypeId{
 
     private static final TypeId TINYINT_ID=create(StoredFormatIds.TINYINT_TYPE_ID,StoredFormatIds.TINYINT_TYPE_ID_IMPL);
 
-    private static final TypeId BIGINT_ID=create(StoredFormatIds.LONGINT_TYPE_ID,StoredFormatIds.LONGINT_TYPE_ID_IMPL);
+    public static final TypeId BIGINT_ID=create(StoredFormatIds.LONGINT_TYPE_ID,StoredFormatIds.LONGINT_TYPE_ID_IMPL);
     private static final TypeId REAL_ID=create(StoredFormatIds.REAL_TYPE_ID,StoredFormatIds.REAL_TYPE_ID_IMPL);
     private static final TypeId DECIMAL_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(false));
     private static final TypeId NUMERIC_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(true));
@@ -1010,6 +1010,15 @@ public class TypeId{
     }
 
     /**
+     * Does this TypeId represent a CHAR or VARCHAR.
+     *
+     * @return Whether or not this TypeId represents a CHAR or VARCHAR data type.
+     */
+    public boolean isCharOrVarChar(){
+        return (formatId==StoredFormatIds.CHAR_TYPE_ID || formatId==StoredFormatIds.VARCHAR_TYPE_ID);
+    }
+
+    /**
      * Is this a Clob?
      *
      * @return true if this is CLOB
@@ -1269,6 +1278,15 @@ public class TypeId{
         // so also make sure it is not a decimal (DECIMAL, NUMERIC)
         // and not floating (REAL, DOUBLE, FLOAT).
         return isNumericTypeId && (!isDecimalTypeId) && (!isFloatingPointTypeId);
+    }
+
+    /**
+     * Is this a BIGINT type id?
+     *
+     * @return Whether or not this is a type id for a BIGINT.
+     */
+    public boolean isBigIntTypeId(){
+        return getTypeFormatId() == StoredFormatIds.LONGINT_TYPE_ID;
     }
 
     /**

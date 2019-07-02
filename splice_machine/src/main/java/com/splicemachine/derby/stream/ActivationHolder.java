@@ -123,8 +123,10 @@ public class ActivationHolder implements Externalizable {
             return;
 
         operationsMap.put(operation.resultSetNumber(), operation);
-        for (SpliceOperation subOp : operation.getSubOperations()) {
-            addSubOperations(operationsMap, subOp);
+        if (operation.getSubOperations() != null) {
+            for (SpliceOperation subOp : operation.getSubOperations()) {
+                addSubOperations(operationsMap, subOp);
+            }
         }
     }
 

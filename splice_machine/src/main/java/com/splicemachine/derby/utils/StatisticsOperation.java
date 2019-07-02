@@ -35,6 +35,9 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.SQLDecimal;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
@@ -66,6 +69,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
     protected boolean useSample;
     protected double sampleFraction;
     private boolean mergeStats;
+    protected DataTypeDescriptor[] dtds;
 
     // serialization
     public StatisticsOperation(){}
@@ -82,6 +86,16 @@ public class StatisticsOperation extends SpliceBaseOperation {
             scanSetBuilder.useSample(useSample).sampleFraction(sampleFraction);
         }
     }
+    public StatisticsOperation(ScanSetBuilder scanSetBuilder, boolean useSample, double sampleFraction, boolean mergeStats, String scope, Activation activation, DataTypeDescriptor[] dataTypeDescriptors) throws StandardException {
+        this(scanSetBuilder, useSample, sampleFraction, mergeStats, scope, activation);
+        this.dtds = dataTypeDescriptors;
+        this.scanSetBuilder.template(buildTemplateRow(dtds));
+    }
+
+    @Override
+    public ExecRow getExecRowDefinition() throws StandardException {
+        return scanSetBuilder.getTemplate().getClone();
+    }
 
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
@@ -97,13 +111,13 @@ public class StatisticsOperation extends SpliceBaseOperation {
                 StructType schema = ExternalTableUtils.getSchema(activation, builder.getBaseTableConglomId());
                 String storedAs = scanSetBuilder.getStoredAs();
                 if (storedAs.equals("T"))
-                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), builder.getEscaped(), builder.getDelimited(), builder.getColumnPositionMap(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
+                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), builder.getEscaped(), builder.getDelimited(), builder.getColumnPositionMap(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("P"))
-                    statsDataSet = dsp.readParquetFile(schema, builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
+                    statsDataSet = dsp.readParquetFile(schema, builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("A"))
-                    statsDataSet = dsp.readAvroFile(schema, builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction);
+                    statsDataSet = dsp.readAvroFile(schema, builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("O"))
-                    statsDataSet = dsp.readORCFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap(), builder.getLocation(), null, null, null, builder.getTemplate(), useSample, sampleFraction, true);
+                    statsDataSet = dsp.readORCFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap(), builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction, true);
                 else {
                     throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
                 }
@@ -196,6 +210,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         out.writeBoolean(useSample);
         out.writeDouble(sampleFraction);
         out.writeBoolean(mergeStats);
+        out.writeObject(dtds);
     }
 
     @Override
@@ -206,6 +221,12 @@ public class StatisticsOperation extends SpliceBaseOperation {
         useSample = in.readBoolean();
         sampleFraction = in.readDouble();
         mergeStats = in.readBoolean();
+        dtds = (DataTypeDescriptor[]) in.readObject();
+        try {
+            scanSetBuilder.template(buildTemplateRow(dtds));
+        } catch (StandardException se) {
+            throw new IOException(se.getMessage(),se);
+        }
     }
 
     public double getSampleFraction() {
@@ -214,5 +235,15 @@ public class StatisticsOperation extends SpliceBaseOperation {
 
     public boolean getUseSample() {
         return useSample;
+    }
+
+    private ExecRow buildTemplateRow(DataTypeDescriptor[] dataTypeDescriptors)  throws StandardException{
+        ExecRow row = new ValueRow(dataTypeDescriptors.length);
+        int outputCol = 0;
+        for (DataTypeDescriptor dtd : dataTypeDescriptors) {
+            row.setColumn(outputCol + 1, dtd.getNull());
+            outputCol++;
+        }
+        return row;
     }
 }

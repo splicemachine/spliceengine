@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.*;
@@ -71,8 +72,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl pkTable=null;
     private volatile TabInfoImpl backupTable=null;
     private volatile TabInfoImpl backupItemsTable=null;
-    private volatile TabInfoImpl backupStatesTable=null;
-    private volatile TabInfoImpl backupJobsTable=null;
     private volatile TabInfoImpl tableStatsTable=null;
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
@@ -235,22 +234,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return backupItemsTable;
     }
 
-    private TabInfoImpl getBackupStatesTable() throws StandardException{
-        if(backupStatesTable==null){
-            backupStatesTable=new TabInfoImpl(new SYSBACKUPFILESETRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(backupStatesTable);
-        return backupStatesTable;
-    }
-
-    private TabInfoImpl getBackupJobsTable() throws StandardException{
-        if(backupJobsTable==null){
-            backupJobsTable=new TabInfoImpl(new SYSBACKUPJOBSRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(backupJobsTable);
-        return backupJobsTable;
-    }
-
     public void createLassenTables(TransactionController tc) throws StandardException{
         SchemaDescriptor systemSchemaDescriptor=getSystemSchemaDescriptor();
 
@@ -281,36 +264,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
                         systemSchemaDescriptor.getSchemaName(),backupItemsTabInfo.getTableName()));
-            }
-        }
-
-        // Create BACKUPFILESET
-        TabInfoImpl backupStatesTabInfo=getBackupStatesTable();
-        if(getTableDescriptor(backupStatesTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
-                        backupStatesTabInfo.getTableName()));
-            }
-            makeCatalog(backupStatesTabInfo,systemSchemaDescriptor,tc);
-        }else{
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(),backupStatesTabInfo.getTableName()));
-            }
-        }
-
-        // Create BACKUPJOBS
-        TabInfoImpl backupJobsTabInfo=getBackupJobsTable();
-        if(getTableDescriptor(backupJobsTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
-                        backupJobsTabInfo.getTableName()));
-            }
-            makeCatalog(backupJobsTabInfo,systemSchemaDescriptor,tc);
-        }else{
-            if(LOG.isTraceEnabled()){
-                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(),backupJobsTabInfo.getTableName()));
             }
         }
     }
@@ -1161,6 +1114,68 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
 
             SpliceLogUtils.info(LOG, "SYS.SYSCOLUMNS upgraded: added column: USEEXTRAPOLATION.");
+        }
+    }
+
+    public void removeUnusedBackupTables(TransactionController tc) throws StandardException {
+        dropUnusedBackupTable("SYSBACKUPFILESET", tc);
+        dropUnusedBackupTable("SYSBACKUPJOBS", tc);
+    }
+
+    public void removeUnusedBackupProcedures(TransactionController tc) throws StandardException {
+        AliasDescriptor ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
+                "SYSCS_SCHEDULE_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        if (ad != null) {
+            dropAliasDescriptor(ad, tc);
+            SpliceLogUtils.info(LOG, "Dropped system procedure SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP");
+        }
+
+        ad = getAliasDescriptor(SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,
+                "SYSCS_CANCEL_DAILY_BACKUP", AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        if (ad != null) {
+            dropAliasDescriptor(ad, tc);
+            SpliceLogUtils.info(LOG, "Dropped system procedure SYSCS_UTIL.SYSCS_CANCEL_DAILY_BACKUP");
+        }
+    }
+
+    private void dropUnusedBackupTable(String tableName, TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(tableName, sd, tc);
+        SpliceTransactionManager sm = (SpliceTransactionManager) tc;
+        if (td != null) {
+            UUID tableId = td.getUUID();
+
+            // Drop column descriptors
+            dropAllColumnDescriptors(tableId, tc);
+
+            long heapId = td.getHeapConglomerateId();
+
+            /*
+             * Drop all the conglomerates.  Drop the heap last, because the
+             * store needs it for locking the indexes when they are dropped.
+             */
+            ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
+            for (ConglomerateDescriptor cd : cds) {
+                // Remove Statistics
+                deletePartitionStatistics(cd.getConglomerateNumber(), tc);
+
+                // Drop index conglomerates
+                if (cd.getConglomerateNumber() != heapId) {
+                    Conglomerate conglomerate = sm.findConglomerate(cd.getConglomerateNumber());
+                    conglomerate.drop(sm);
+                }
+            }
+            // Drop the conglomerate descriptors
+            dropAllConglomerateDescriptors(td, tc);
+
+            // Drop table descriptors
+            dropTableDescriptor(td, sd, tc);
+
+            // Drop base table conglomerate
+            Conglomerate conglomerate = sm.findConglomerate(heapId);
+            conglomerate.drop(sm);
+
+            SpliceLogUtils.info(LOG, "Dropped table %s", tableName);
         }
     }
 }

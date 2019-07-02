@@ -28,13 +28,9 @@ public interface BackupManager{
 
     long incrementalBackup(String directory, boolean sync) throws StandardException;
 
-    void restoreDatabase(String directory,long backupId, boolean sync, boolean validate)throws StandardException;
+    void restoreDatabase(String directory,long backupId, boolean sync, boolean validate, String timestamp, long txnId)throws StandardException;
 
     void removeBackup(List<Long> backupIds) throws StandardException;
-
-    void scheduleDailyBackup(String directory, String type, int hour) throws StandardException;
-
-    void cancelDailyBackup(long jobId) throws StandardException;
 
     BackupJobStatus[] getRunningBackups() throws StandardException;
 

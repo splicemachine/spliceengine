@@ -47,7 +47,7 @@ public class BroadcastJoinCache{
     }
 
     public BroadcastJoinCache(){
-       this(ByteBufferMapTableLoader.INSTANCE);
+       this(ValueRowMapTableLoader.INSTANCE);
     }
 
     public BroadcastJoinCache(JoinTableLoader tableLoader){

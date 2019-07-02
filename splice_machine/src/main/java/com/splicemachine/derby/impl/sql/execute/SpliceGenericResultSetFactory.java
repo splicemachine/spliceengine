@@ -34,6 +34,8 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
+
 public class SpliceGenericResultSetFactory implements ResultSetFactory {
     private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
 
@@ -175,7 +177,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       boolean doesProjection,
                                                       double optimizerEstimatedRowCount,
                                                       double optimizerEstimatedCost,
-                                                      String explainPlan) throws StandardException {
+                                                      String explainPlan,
+                                                      String filterPred,
+                                                      String[] expressions) throws StandardException {
         assert source!=null:"passed in source is null";
         SpliceLogUtils.trace(LOG, "getProjectRestrictResultSet");
         try{
@@ -187,7 +191,9 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     reuseResult,
                     doesProjection,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,
+                    filterPred,
+                    expressions);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -369,13 +375,13 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                        boolean isInSortedOrder, int aggregateItem, int orderItem,
                                                        GeneratedMethod rowAllocator, int maxRowSize, int resultSetNumber,
                                                        double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-                                                       boolean isRollup, String explainPlan) throws StandardException {
+                                                       boolean isRollup, int groupingIdColPosition, int groupingIdArrayItem, String explainPlan) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getGroupedAggregateResultSet");
             ConvertedResultSet below = (ConvertedResultSet)source;
             GroupedAggregateOperation op = new GroupedAggregateOperation(below.getOperation(), isInSortedOrder, aggregateItem, orderItem, source.getActivation(),
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, isRollup);
+                    optimizerEstimatedCost, isRollup, groupingIdColPosition, groupingIdArrayItem);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -455,6 +461,30 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     leftResultSet.getActivation(),
                     resultSetNumber,
                     optimizerEstimatedRowCount,optimizerEstimatedCost);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public NoPutResultSet getRecursiveUnionResultSet(NoPutResultSet leftResultSet,
+                                                     NoPutResultSet rightResultSet,
+                                                     int resultSetNumber,
+                                                     double optimizerEstimatedRowCount,
+                                                     double optimizerEstimatedCost,
+                                                     String explainPlan,
+                                                     int iterationLimit) throws StandardException {
+        try{
+            SpliceLogUtils.trace(LOG, "getRecursiveUnionResultSet");
+            ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
+            ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+            SpliceOperation op = new RecursiveUnionOperation(left.getOperation(),
+                    right.getOperation(),
+                    leftResultSet.getActivation(),
+                    resultSetNumber,
+                    optimizerEstimatedRowCount,optimizerEstimatedCost, iterationLimit);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -812,6 +842,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                                double optimizerEstimatedRowCount,
                                                                double optimizerEstimatedCost,
                                                                boolean isRollup,
+                                                               int groupingIdColPosition, int groupingIdArrayItem,
                                                                String explainPlan) throws StandardException {
         SpliceLogUtils.trace(LOG, "getDistinctGroupedAggregateResultSet");
         try{
@@ -819,7 +850,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             DistinctGroupedAggregateOperation op = new DistinctGroupedAggregateOperation (
                     below.getOperation(), isInSortedOrder, aggregateItem, orderItem, source.getActivation(),
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, isRollup);
+                    optimizerEstimatedCost, isRollup, groupingIdColPosition, groupingIdArrayItem);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1369,7 +1400,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              Activation activation,
                                              int resultSetNumber,
                                              String exportPath,
-                                             boolean compression,
+                                             String compression,
                                              String format,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException {
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
@@ -1403,7 +1434,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              Activation activation,
                                              int resultSetNumber,
                                              String exportPath,
-                                             boolean compression,
+                                             String compression,
                                              int replicationCount,
                                              String encoding,
                                              String fieldSeparator,
@@ -1458,6 +1489,27 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 updateResultSetFieldName,
                 sourceCorrelatedColumnItem,
                 subqueryCorrelatedColumnItem);
+    }
+
+    @Override
+    public NoPutResultSet getSelfReferenceResultSet(Activation activation,
+                                                    GeneratedMethod rowAllocator,
+                                                    int resultSetNumber,
+                                                    double optimizerEstimatedRowCount,
+                                                    double optimizerEstimatedCost,
+                                                    String explainPlan) throws StandardException {
+        try{
+            SpliceLogUtils.trace(LOG, "getSelfReferenceResultSet");
+            SpliceOperation op = new SelfReferenceOperation(
+                    activation,
+                    rowAllocator,
+                    resultSetNumber,
+                    optimizerEstimatedRowCount,optimizerEstimatedCost);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override

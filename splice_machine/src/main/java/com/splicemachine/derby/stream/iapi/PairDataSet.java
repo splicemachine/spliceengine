@@ -37,7 +37,7 @@ public interface PairDataSet<K,V> {
      *
      * @return
      */
-    DataSet<V> values();
+    DataSet<V> values(OperationContext context);
 
     /**
      *
@@ -47,7 +47,7 @@ public interface PairDataSet<K,V> {
      * @param name
      * @return
      */
-    DataSet<V> values(String name);
+    DataSet<V> values(String name, OperationContext context);
 
     /**
      *

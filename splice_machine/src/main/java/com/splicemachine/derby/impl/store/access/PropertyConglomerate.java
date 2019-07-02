@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.Property;
@@ -39,11 +40,13 @@ import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.PropertyManagerService;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class PropertyConglomerate {
 	private static Logger LOG = Logger.getLogger(PropertyConglomerate.class);
@@ -126,7 +129,39 @@ public class PropertyConglomerate {
 		PC_XenaVersion softwareVersion = new PC_XenaVersion();
 		if (create)
 			setProperty(tc,DataDictionary.PROPERTY_CONGLOMERATE_VERSION,softwareVersion, true);
-		getCachedProperties(tc);
+        boolean onHold = false;
+        Clock clock = SIDriver.driver().getClock();
+        do {
+            try {
+                onHold = false;
+		        getCachedProperties(tc);
+            }  catch (Exception e1) {
+                // The exception has so many levels, so use a loop to get the cause
+                Throwable cause = e1;
+                while (cause.getCause() != null) {
+                    String className = cause.getCause().getClass().getName();
+                    // Cannot get the origin class because of the dependency, so compare them by
+                    // class name
+                    if (className.equals("org.apache.hadoop.hbase.NotServingRegionException") ||
+                            className.equals("org.apache.hadoop.hbase.exceptions.RegionOpeningException")) {
+                        onHold = true;
+                        break;
+                    }
+                    cause = cause.getCause();
+                }
+                if (onHold) {
+                    try {
+                        clock.sleep(1, TimeUnit.SECONDS);
+                        LOG.info("Conglomerate region is not online yet, sleep 1 second.");
+                    } catch (InterruptedException e) {
+                        //startup was interrupted, so throw an InterruptedIOException
+                        throw Monitor.exceptionStartingModule(e) ;
+                    }
+                } else {
+                    throw Monitor.exceptionStartingModule(e1) ;
+                }
+            }
+        } while (onHold);
 	}
 
     /* Private/Protected methods of This class: */

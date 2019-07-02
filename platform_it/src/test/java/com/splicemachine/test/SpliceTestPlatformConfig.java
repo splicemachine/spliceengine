@@ -14,31 +14,21 @@
 
 package com.splicemachine.test;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static com.google.common.collect.Lists.transform;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import com.splicemachine.access.configuration.OlapConfigurations;
-import com.splicemachine.compactions.SpliceDefaultCompactor;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
-import org.apache.commons.collections.ListUtils;
-import org.apache.hadoop.hbase.security.access.AccessController;
-import com.splicemachine.compactions.SpliceDefaultCompactor;
-import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
-import org.apache.hadoop.hbase.security.token.TokenProvider;
-import org.apache.hadoop.security.UserGroupInformation;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.OlapConfigurations;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
+import com.splicemachine.compactions.SpliceDefaultCompactor;
+import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
+import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.hbase.*;
+import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
+import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
+import com.splicemachine.utils.BlockingProbeEndpoint;
+import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HConstants;
@@ -47,13 +37,27 @@ import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
+import org.apache.hadoop.hbase.security.access.AccessController;
+import org.apache.hadoop.hbase.security.token.TokenProvider;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.google.common.collect.Lists.transform;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import com.splicemachine.utils.BlockingProbeEndpoint;
-
+import com.splicemachine.hbase.SpliceReplicationService;
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
  */
@@ -61,7 +65,8 @@ class SpliceTestPlatformConfig {
 
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
             RegionServerLifecycleObserver.class,
-            BlockingProbeEndpoint.class
+            BlockingProbeEndpoint.class,
+            SpliceReplicationService.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
@@ -288,6 +293,8 @@ class SpliceTestPlatformConfig {
         config.setInt("splice.authentication.token.renew-interval",120);
         config.set("splice.authentication.impersonation.users", "dgf=splice;splice=*");
         config.setBoolean("splice.authentication.impersonation.enabled", true);
+        config.set("splice.authentication.ldap.mapGroupAttr", "jy=splice,dgf=splice");
+
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing
             config.setBoolean("splice.ignore.missing.transactions", true);

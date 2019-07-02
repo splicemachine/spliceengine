@@ -32,9 +32,10 @@ public interface OperationManager {
      * @param executingThread Thread that's responsible for the operation execution (oen DRDAConnThread)
      * @param submittedTime Operation submitted Time
      * @param engine Running engine CONTROL or SPARK
+     * @param rdbIntTkn DRDA interruption token
      * @return UUID given to the operation that can be used for unregistering or killing it at a later time
      */
-    UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine);
+    UUID registerOperation(SpliceOperation operation, Thread executingThread, Date submittedTime, DataSetProcessor.Type engine, String rdbIntTkn);
 
 
     /**
@@ -60,4 +61,16 @@ public interface OperationManager {
      * @return true if the operation has been killed, false otherwise (if we don't find it)
      */
     boolean killOperation(UUID uuid, String userId) throws StandardException;
+
+
+    /**
+     * Kill a running operation. Only the user that started the operation might kill it. The database owner can kill any
+     * operation. We close the operation and interrupt the executingThread associated with the operation. This might
+     * affect some other operation that could be running on the same thread.
+     *
+     * @param rdbIntTkn Unique identifier for the DRDA connection running the operation
+     * @param userId user that's trying to kill the operation, or null if the user is the database owner
+     * @return true if the operation has been killed, false otherwise (if we don't find it)
+     */
+    boolean killDRDAOperation(String rdbIntTkn, String userId) throws StandardException;
 }

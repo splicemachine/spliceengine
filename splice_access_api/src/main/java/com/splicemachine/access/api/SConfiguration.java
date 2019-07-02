@@ -65,7 +65,7 @@ public interface SConfiguration {
 
     String getAuthenticationLdapServer();
 
-    String getAuthenticationLdapMapGroupAttr();
+    String getAuthenticationMapGroupAttr();
 
     String getAuthenticationNativeAlgorithm();
 
@@ -108,6 +108,12 @@ public interface SConfiguration {
     boolean getBackupUseDistcp();
 
     int getBackupIOBufferSize();
+
+    int getReplicationSnapshotInterval();
+
+    int getReplicationSinkPort();
+
+    int getReplicationProgressUpdateInterval();
 
     String getCompressionAlgorithm();
 
@@ -349,4 +355,6 @@ public interface SConfiguration {
     String getOlapLog4jConfig();
 
     int getMaxCheckTableErrors();
+
+    int getRecursiveQueryIterationLimit();
 }

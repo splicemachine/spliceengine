@@ -148,4 +148,6 @@ public interface ClassName
 
 	String Authorizer = "com.splicemachine.db.iapi.sql.conn.Authorizer";
     String UDTBase = "com.splicemachine.db.shared.common.udt.UDTBase";
+    String SelfReferenceResultSet = "com.splicemachine.derby.impl.sql.execute.operations.SelfReferenceOperation";
+	String RecursiveUnionResultSet = "com.splicemachine.derby.impl.sql.execute.operations.RecursiveUnionOperation";
 }

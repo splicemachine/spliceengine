@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.ServiceLoader;
 
+import com.splicemachine.replication.ReplicationManager;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
@@ -104,6 +105,11 @@ public class ManagerLoader {
         public EncryptionManager getEncryptionManager() throws StandardException {
             checkEncryptionLevels();
             return null;
+        }
+
+        @Override
+        public ReplicationManager getReplicationManager() throws StandardException {
+            throw StandardException.newException(SQLState.MANAGER_DISABLED);
         }
 
         @Override

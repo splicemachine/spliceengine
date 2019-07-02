@@ -740,7 +740,8 @@ public final class SQLSmallint
 	 */
 	public int hashCode()
 	{
-		return (int) value;
+		long longVal = (long) value;
+		return (int) (longVal ^ (longVal >> 32));
 	}
 
 	/*

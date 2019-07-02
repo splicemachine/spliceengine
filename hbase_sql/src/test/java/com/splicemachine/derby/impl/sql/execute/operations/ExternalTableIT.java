@@ -14,9 +14,11 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.client.am.Connection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import org.apache.commons.io.FileUtils;
@@ -2841,5 +2843,152 @@ public class ExternalTableIT extends SpliceUnitTest{
             Assert.assertTrue(colName.compareToIgnoreCase("orc_ext") == 0);
         }
         Assert.assertEquals(1, count);
+    }
+
+    @Test
+    public void testShowCreateTableTextExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"show_text";
+        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myTextTable\n" +
+                "                    (col1 INT, col2 VARCHAR(24))\n" +
+                "                    PARTITIONED BY (col1)\n" +
+                "                    ROW FORMAT DELIMITED FIELDS\n" +
+                "                    TERMINATED BY ','\n" +
+                "                    ESCAPED BY '\\\\' \n" +
+                "                    LINES TERMINATED BY '\\\\n'\n" +
+                "                    STORED AS TEXTFILE\n" +
+                "                    LOCATION '%s'", tablePath));
+        ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','MYTEXTTABLE')");
+        rs.next();
+        Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"MYTEXTTABLE\" (\n" +
+                "\"COL1\" INTEGER\n" +
+                ",\"COL2\" VARCHAR(24)\n" +
+                ") \n" +
+                "PARTITIONED BY (COL1)\n" +
+                "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '\\\\' LINES TERMINATED BY '\\\\n'\n" +
+                "STORED AS TEXTFILE\n" +
+                "LOCATION '" + tablePath + "';", rs.getString(1));
+
+    }
+
+    @Test
+    public void testShowCreateTableOrcExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"show_orc";
+        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myOrcTable\n" +
+                "                    (col1 INT, col2 VARCHAR(24))\n" +
+                "                    PARTITIONED BY (col1)\n" +
+                "                    STORED AS ORC\n" +
+                "                    LOCATION '%s'", tablePath));
+        ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','MYORCTABLE')");
+        rs.next();
+        Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"MYORCTABLE\" (\n" +
+                "\"COL1\" INTEGER\n" +
+                ",\"COL2\" VARCHAR(24)\n" +
+                ") \n" +
+                "PARTITIONED BY (COL1)\n" +
+                "STORED AS ORC\n" +
+                "LOCATION '" + tablePath + "';" , rs.getString(1));
+
+    }
+
+    @Test
+    public void testShowCreateTableParquetExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"show_parquet";
+        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myParquetTable\n" +
+                "                    (col1 INT, col2 VARCHAR(24))\n" +
+                "                    PARTITIONED BY (col2)\n" +
+                "                    STORED AS PARQUET\n" +
+                "                    LOCATION '%s'" , tablePath));
+        ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','MYPARQUETTABLE')");
+        rs.next();
+        Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"MYPARQUETTABLE\" (\n" +
+                "\"COL1\" INTEGER\n" +
+                ",\"COL2\" VARCHAR(24)\n" +
+                ") \n" +
+                "PARTITIONED BY (COL2)\n" +
+                "STORED AS PARQUET\n" +
+                "LOCATION '" + tablePath + "';", rs.getString(1));
+    }
+
+    @Test
+    public void testShowCreateTableSnappyParquetExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"show_snappyparquet";
+        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE mySnappyParquetTable\n" +
+                "                    (col1 INT, col2 VARCHAR(24), col3 INT)\n" +
+                "                    COMPRESSED WITH snappy\n" +
+                "                    PARTITIONED BY (col2,col3)\n" +
+                "                    STORED AS PARQUET\n" +
+                "                    LOCATION '%s'", tablePath));
+        ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','MYSNAPPYPARQUETTABLE')");
+        rs.next();
+        Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"MYSNAPPYPARQUETTABLE\" (\n" +
+                "\"COL1\" INTEGER\n" +
+                ",\"COL2\" VARCHAR(24)\n" +
+                ",\"COL3\" INTEGER\n" +
+                ") \n" +
+                "COMPRESSED WITH snappy\n" +
+                "PARTITIONED BY (COL2,COL3)\n" +
+                "STORED AS PARQUET\n" +
+                "LOCATION '" + tablePath + "';", rs.getString(1));
+
+    }
+
+    @Test
+    public void testShowCreateTableAvroExternalTable() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"show_avro";
+        methodWatcher.execute(String.format("CREATE EXTERNAL TABLE myAvroTable\n" +
+                "                    (col1 INT, col2 VARCHAR(24))\n" +
+                "                    PARTITIONED BY (col1)\n" +
+                "                    STORED AS AVRO\n" +
+                "                    LOCATION '%s'", tablePath));
+        ResultSet rs = methodWatcher.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE('EXTERNALTABLEIT','MYAVROTABLE')");
+        rs.next();
+        Assert.assertEquals("CREATE EXTERNAL TABLE \"EXTERNALTABLEIT\".\"MYAVROTABLE\" (\n" +
+                "\"COL1\" INTEGER\n" +
+                ",\"COL2\" VARCHAR(24)\n" +
+                ") \n" +
+                "PARTITIONED BY (COL1)\n" +
+                "STORED AS AVRO\n" +
+                "LOCATION '" + tablePath + "';", rs.getString(1));
+    }
+
+    @Test
+    public void testConcurrentRead() throws Exception {
+        String tablePath = getExternalResourceDirectory()+"concurrent_test";
+        methodWatcher.execute(String.format("create external table concurrent_test ( a int)" +
+                " stored as parquet location '%s'", tablePath));
+        methodWatcher.execute("insert into concurrent_test values 1,2,3,4");
+        int n = 100;
+        ExtThread[] threads = new ExtThread[n];
+        for (int i = 0; i < n; ++i) {
+            threads[i] = new ExtThread(methodWatcher.createConnection());
+            threads[i].start();
+        }
+
+        for (int i = 0; i < n; ++i) {
+            threads[i].join();
+        }
+
+        for (int i = 0; i < n; ++i) {
+            Assert.assertEquals(true, threads[i].success);
+        }
+    }
+
+
+    public static class ExtThread extends Thread{
+        private TestConnection conn;
+        public volatile boolean success = false;
+        public ExtThread(TestConnection conn) {
+            this.conn = conn;
+        }
+        @Override
+        public void run() {
+
+            try {
+                conn.createStatement().execute("select count(*) from concurrent_test");
+                success = true;
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

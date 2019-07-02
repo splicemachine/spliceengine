@@ -57,7 +57,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
 
     @Override
-    public DataSet<V> values() {
+    public DataSet<V> values(OperationContext context) {
         return new ControlDataSet<>(Iterators.transform(source,new Function<Tuple2<K,V>, V>() {
             @Nullable @Override
             public V apply(@Nullable Tuple2<K,V>t) {
@@ -67,13 +67,13 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> values(String name) {
-        return values();
+    public DataSet<V> values(String name, OperationContext context) {
+        return values(context);
     }
 
     @Override
     public DataSet<V> values(String name, boolean isLast, OperationContext context, boolean pushScope, String scopeDetails) {
-        return values();
+        return values(context);
     }
 
     @Override

@@ -31,11 +31,10 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
-
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.error.StandardException;
 
 /**
  * If a RCL (SELECT list) contains an aggregate, then we must verify
@@ -128,6 +127,16 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 							SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
 							SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
 			}
+		} else if (node instanceof GroupingFunctionNode) {
+			if (groupByList == null || !groupByList.isRollup()) {
+				throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_FUNCTION_NOT_ALLOWED,
+						"GROUPING",
+						"Query without OLAP operations like rollup, cube, groupingsets");
+			} else if (!((GroupingFunctionNode) node).isSingleColumnExpression()) {
+				throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
+						node.toString(),
+						"GROUPING");
+			}
 		}
 		return node;
 	}
@@ -143,7 +152,8 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 	 */
 	public boolean skipChildren(Visitable node) throws StandardException 
 	{
-		return ((node instanceof AggregateNode) ||
+		// skip aggregate node but not window function node
+		return ((node instanceof AggregateNode && !(node instanceof WindowFunctionNode)) ||
 				(node instanceof SubqueryNode) ||
 				(node instanceof ValueNode &&
 						groupByList != null 

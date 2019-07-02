@@ -191,7 +191,7 @@ public class IndexRowReaderBuilder implements Externalizable{
                 outputTemplate,
                 txn,
                 lookupBatchSize,
-                Math.max(numConcurrentLookups,0),
+                Math.max(numConcurrentLookups,2),
                 mainTableConglomId,
                 epfBytes,
                 keyDecoder,

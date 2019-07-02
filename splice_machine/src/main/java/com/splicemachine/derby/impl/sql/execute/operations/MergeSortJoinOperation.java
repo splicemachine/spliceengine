@@ -184,12 +184,13 @@ public class MergeSortJoinOperation extends JoinOperation {
 
         // Prepare Left
 
-        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp).map(new CloneFunction<>(operationContext));
+        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp)
+                .map(new CloneFunction<>(operationContext));
 
        // operationContext.pushScopeForOp("Prepare Left Side");
         DataSet<ExecRow> leftDataSet2 =
             leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
-        if (!isOuterJoin)
+        if (!isOuterJoin && !notExistsRightSide)
             leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
 
         // Prepare Right
@@ -225,14 +226,15 @@ public class MergeSortJoinOperation extends JoinOperation {
                         isOuterJoin ? "outer" : "inner", notExistsRightSide, rightFromSSQ, restriction != null);
             joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
         }
-            return joined.map(new CountProducedFunction(operationContext), true);
+            return joined;
+                    //.map(new CountProducedFunction(operationContext), true);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private DataSet<ExecRow> getJoinedDataset(
         OperationContext operationContext,
         PairDataSet<ExecRow, ExecRow> leftDataSet,
-        PairDataSet<ExecRow, ExecRow> rightDataSet) {
+        PairDataSet<ExecRow, ExecRow> rightDataSet) throws StandardException {
 
         if (isOuterJoin) { // Outer Join
             return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext)
@@ -242,15 +244,15 @@ public class MergeSortJoinOperation extends JoinOperation {
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values()
+                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values(operationContext)
                         .flatMap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
-                    return leftDataSet.subtractByKey(rightDataSet, operationContext)
+                    return leftDataSet.subtractByKey(rightDataSet, operationContext).values(operationContext)
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
                 if (isOneRowRightSide()) {
-                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values()
+                    return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext).values(operationContext)
                         .flatMap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 }
                 if (restriction !=null) { // with restriction

@@ -1020,8 +1020,13 @@ public final class SQLTimestamp extends DataType
 				t = computeGregorianCalendarTimestamp(year);
 			} else {
 				try {
-					DateTime dt = createDateTime();
-					t = new Timestamp(dt.getMillis());
+					t = new Timestamp(SQLDate.getYear(encodedDate) - 1900,
+					                  SQLDate.getMonth(encodedDate) - 1,
+					                  SQLDate.getDay(encodedDate),
+					                  SQLTime.getHour(encodedTime),
+					                  SQLTime.getMinute(encodedTime),
+					                  SQLTime.getSecond(encodedTime),
+					                  nanos);
 				} catch (Exception e) {
 					t = computeGregorianCalendarTimestamp(year);
 				}
@@ -1345,7 +1350,7 @@ public final class SQLTimestamp extends DataType
     public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue resultHolder) throws StandardException {
         if( resultHolder == null)
             resultHolder = new SQLTimestamp();
-        if( isNull() || daysToAdd.isNull())
+        if( leftOperand.isNull() || daysToAdd.isNull())
         {
             resultHolder.restoreToNull();
             return resultHolder;
@@ -1359,7 +1364,7 @@ public final class SQLTimestamp extends DataType
     public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue resultHolder) throws StandardException {
         if( resultHolder == null)
             resultHolder = new SQLTimestamp();
-        if(leftOperand.isNull() || isNull() || daysToSubtract.isNull()) {
+        if(leftOperand.isNull() || daysToSubtract.isNull()) {
             resultHolder.restoreToNull();
             return resultHolder;
         }
@@ -1372,7 +1377,7 @@ public final class SQLTimestamp extends DataType
     public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue resultHolder) throws StandardException {
         if( resultHolder == null)
             resultHolder = new SQLInteger();
-        if(leftOperand.isNull() || isNull() || rightOperand.isNull()) {
+        if(leftOperand.isNull() || rightOperand.isNull()) {
             resultHolder.restoreToNull();
             return resultHolder;
         }
@@ -1709,4 +1714,6 @@ public final class SQLTimestamp extends DataType
 	}
 
 	public int getNanos() { return nanos; }
+	public int getEncodedDate() { return encodedDate; }
+	public int getEncodedTime() { return encodedTime; }
 }

@@ -112,7 +112,7 @@ public class IteratorNoPutResultSet implements NoPutResultSet {
 
 		@Override public boolean returnsRows() { return true; }
 
-		@Override public int modifiedRowCount() { return 0; }
+		@Override public long[] modifiedRowCount() { return new long[]{0}; }
 
 		@Override
 		public ResultDescription getResultDescription() {

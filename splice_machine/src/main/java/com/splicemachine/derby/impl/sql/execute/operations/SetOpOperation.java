@@ -100,6 +100,11 @@ public class SetOpOperation extends SpliceBaseOperation {
     }
 
     @Override
+    public SpliceOperation getRightOperation() {
+        return rightSource;
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeObject(leftSource);

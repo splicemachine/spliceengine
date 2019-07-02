@@ -271,9 +271,14 @@ int CREATE_INDEX_NODE = 146;
 	int CURRENT_SESSION_PROPERTY_NODE = 260;
 	int BINARY_EXPORT_NODE = 261;
 	int LIST_VALUE_NODE = 262;
+	int GROUPING_FUNCTION_NODE = 263;
+	int REPEAT_OPERATOR_NODE = 264;
+	int SIMPLE_LOCALE_STRING_OPERATOR_NODE = 265;
+	int GROUP_USER_NODE = 266;
+	int SELF_REFERENCE_NODE = 267;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = LIST_VALUE_NODE;
+	int FINAL_VALUE = SELF_REFERENCE_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
