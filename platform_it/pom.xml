@@ -143,6 +143,14 @@
                 <exclusion>
                     <groupId>com.sun.jersey</groupId>
                     <artifactId>jersey-core</artifactId>
+                </exclusion>   
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro-mapred</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -164,6 +172,14 @@
                 <exclusion>
                     <groupId>org.apache.parquet</groupId>
                     <artifactId>parquet-hadoop-bundle</artifactId>
+                </exclusion>   
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro-mapred</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -214,6 +230,16 @@
             <artifactId>spark-yarn_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro-mapred</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -232,6 +258,14 @@
                 <exclusion>
                     <groupId>com.twitter</groupId>
                     <artifactId>parquet-avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro-mapred</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -265,6 +299,14 @@
                 <exclusion>
                     <groupId>com.twitter</groupId>
                     <artifactId>parquet-avro</artifactId>
+                </exclusion>   
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro-mapred</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -367,7 +409,7 @@
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <executions>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL
                     <execution>
                         <id>integration-tests-serial</id>
                         <goals>
@@ -398,7 +440,7 @@
                             </systemPropertyVariables>
                         </configuration>
                     </execution>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
+                   = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
                     <execution>
                         <id>integration-tests-parallel</id>
                         <goals>
@@ -422,7 +464,7 @@
                                 <dependency>com.splicemachine:hbase_sql</dependency>
                             </dependenciesToScan>
                             <includes>
-                                <include>**/*IT.java</include>
+                                <include>**/*externalTableIT.java</include>
                             </includes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>
