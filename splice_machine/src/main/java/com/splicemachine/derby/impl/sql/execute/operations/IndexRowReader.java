@@ -198,13 +198,13 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         }
 
         //if there is only one submitted future, call this again to set off an additional background process
-        if (resultFutures.size() < numConcurrentLookups && sourceRows.size()==batchSize)
+        //if (resultFutures.size() < numConcurrentLookups && sourceRows.size()==batchSize)
         //if (resultFutures.size() < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
         //if(resultFutures.size()<numBlocks && sourceRows.size()==batchSize) msirek-temp
-        //if (numQueuedThreads < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
+        if (numQueuedThreads < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
             getMoreData();
-        else if(!resultFutures.isEmpty()){
-        // else if(numQueuedThreads > 0){  msirek-temp
+        //else if(!resultFutures.isEmpty()){
+        else if(numQueuedThreads > 0){  //msirek-temp
             waitForBlockCompletion();
         }
     }
@@ -216,7 +216,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             if (useOldIndexLookupMethod)
                 future = resultFutures.remove(0);
             else
-                future=executorCompletionService.take();
+                future = executorCompletionService.take();
             currentResults=future.get();
             numQueuedThreads--;
         }catch(InterruptedException e){
