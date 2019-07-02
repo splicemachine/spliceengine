@@ -508,12 +508,23 @@ public class GenericStatement implements Statement{
             try {
                 if (disablePredicateSimplificationString != null)
                     disablePredicateSimplification =
-                        Boolean.valueOf(disablePredicateSimplificationString);
+                    Boolean.valueOf(disablePredicateSimplificationString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
             }
             cc.setDisablePredicateSimplification(disablePredicateSimplification);
+
+            String useOldIndexLookupMethodString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.USE_OLD_INDEX_LOOKUP_METHOD);
+            boolean useOldIndexLookupMethod = CompilerContext.DEFAULT_USE_OLD_INDEX_LOOKUP_METHOD;
+            try {
+                if (useOldIndexLookupMethodString != null)
+                    useOldIndexLookupMethod = Boolean.valueOf(useOldIndexLookupMethodString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setUseOldIndexLookupMethod(useOldIndexLookupMethod);
 
             if (! cc.isSparkVersionInitialized()) {
                 // If splice.spark.version is manually set, use it...
@@ -529,6 +540,29 @@ public class GenericStatement implements Statement{
                 }
                 cc.setSparkVersion(sparkVersion);
             }
+
+            String numThreadsForIndexLookupString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.NUM_THREADS_FOR_INDEX_LOOKUP);
+            int numThreadsForIndexLookup = CompilerContext.DEFAULT_NUM_THREADS_FOR_INDEX_LOOKUP;
+            try {
+                if (numThreadsForIndexLookupString != null)
+                    numThreadsForIndexLookup = Integer.valueOf(numThreadsForIndexLookupString);
+            } catch (Exception e) {
+                // If the property value failed to convert to am integer, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setNumThreadsForIndexLookup(numThreadsForIndexLookup);
+
+            String indexBatchSizeString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.INDEX_LOOKUP_BATCH_SIZE);
+            int indexBatchSize = CompilerContext.DEFAULT_INDEX_LOOKUP_BATCH_SIZE;
+            try {
+                if (indexBatchSizeString != null)
+                    indexBatchSize = Integer.valueOf(indexBatchSizeString);
+            } catch (Exception e) {
+                // If the property value failed to convert to am integer, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setIndexBatchSize(indexBatchSize);
+
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)

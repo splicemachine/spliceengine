@@ -236,6 +236,30 @@ public class CompilerContextImpl extends ContextImpl
 	public boolean getConvertMultiColumnDNFPredicatesToInList() {
 		return convertMultiColumnDNFPredicatesToInList;
 	}
+
+	public void setUseOldIndexLookupMethod(boolean newValue) {
+		useOldIndexLookupMethod = newValue;
+	}
+
+	public boolean getUseOldIndexLookupMethod() {
+		return useOldIndexLookupMethod;
+	}
+
+	public void setNumThreadsForIndexLookup(int newValue) {
+		numThreadsForIndexLookup = newValue;
+	}
+
+	public int getNumThreadsForIndexLookup() {
+		return numThreadsForIndexLookup;
+	}
+
+	public void setIndexBatchSize(int newValue) {
+		indexBatchSize = newValue;
+	}
+
+	public int getIndexBatchSize() {
+		return indexBatchSize;
+	}
 	
 	public boolean getMulticolumnInlistProbeOnSparkEnabled() { return multicolumnInlistProbeOnSparkEnabled; }
 
@@ -1110,6 +1134,10 @@ public class CompilerContextImpl extends ContextImpl
 	private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
 	private SparkVersion        sparkVersion = DEFAULT_SPLICE_SPARK_VERSION;
 	private boolean sparkVersionInitialized = false;
+	private boolean             useOldIndexLookupMethod= DEFAULT_USE_OLD_INDEX_LOOKUP_METHOD;
+	private int                 numThreadsForIndexLookup = DEFAULT_NUM_THREADS_FOR_INDEX_LOOKUP;
+	private int                 indexBatchSize = DEFAULT_INDEX_LOOKUP_BATCH_SIZE;
+
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.

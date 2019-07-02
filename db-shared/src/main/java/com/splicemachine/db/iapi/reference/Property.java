@@ -1386,6 +1386,38 @@ public interface Property {
 	String DISABLE_PREDICATE_SIMPLIFICATION =
 		"derby.database.disablePredicateSimplification";
 
+	/**
+	 * If false, use the old IndexLookup method of applying batched gets.
+	 * If true, or not set, use the new method of applying a MultiRowRangeFilter
+	 * in a scan.
+	 */
+	String USE_OLD_INDEX_LOOKUP_METHOD =
+		"derby.database.useOldIndexLookupMethod";
+
+	/**
+	 * The number of threads to use for performing the IndexLookup operation
+	 * which takes the base conglomerate rowkeys read via an index access,
+	 * and uses them to read the corresponding base table rows.
+	 * A setting of zero or less causes the system default number
+	 * of threads to be used (typically 5).
+	 */
+	String NUM_THREADS_FOR_INDEX_LOOKUP =
+		"derby.database.numThreadsForIndexLookup";
+
+	/**
+	 * The number of index rows to bulk fetch at a single time.
+	 *
+	 * Index lookups are bundled together into a single network operation for many rows.
+	 * This setting determines the maximum number of rows which are fetched in a single
+	 * network operation.
+	 *
+	 * If this value is set to anything above zero, its value will be used
+	 * in placed of the system setting splice.index.batchSize, which
+	 * defaults to 4000.
+	 */
+	String INDEX_LOOKUP_BATCH_SIZE =
+		"derby.database.indexBatchSize";
+
 	String BULK_IMPORT_SAMPLE_FRACTION = "splice.bulkImport.sample.fraction";
 
 	/**

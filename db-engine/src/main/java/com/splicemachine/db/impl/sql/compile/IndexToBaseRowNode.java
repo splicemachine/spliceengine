@@ -265,8 +265,11 @@ public class IndexToBaseRowNode extends FromTable{
 
         //generate default row for columns
         generateDefaultRow(acb,mb);
+        mb.push(getCompilerContext().getUseOldIndexLookupMethod());
+        mb.push(getCompilerContext().getNumThreadsForIndexLookup());
+        mb.push(getCompilerContext().getIndexBatchSize());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,18);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getIndexRowToBaseRowResultSet", ClassName.NoPutResultSet,21);
 
 		/* The IndexRowToBaseRowResultSet generator is what we return */
 
