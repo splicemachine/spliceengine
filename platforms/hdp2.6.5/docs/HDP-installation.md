@@ -174,18 +174,15 @@ Information" are in the configurations and make the following changes
     ````
     hadoop fs -mkdir /user/splice
     hadoop fs -mkdir /user/splice/history
-    hadoop fs -mkdir /user/splice/spark-warehouse
 
     hadoop fs -chmod 1777 /user/splice
     hadoop fs -chmod 1777 /user/splice/history
-    hadoop fs -chmod 755 /user/splice/spark-warehouse
 
     hadoop fs -chown hbase:hbase /user/splice
     hadoop fs -chown hbase:spark /user/splice/history
-    hadoop fs -chown hbase:hbase /user/splice/spark-warehouse
     ````
 
-8. Restart all the services affected to start Splice Machine using 'Restart All Required' option from the Amabari dashboard "Actions" drop down button and then click "Confirm Restart All" in the confirmation prompt.
+8. Restart all the services affected to start Splice Machine using 'Restart All Required' option from the Amabari dashboard "Actions" drop down button and then click "Confirm Restart All" in the confirmation popup window.
 Splice Machine is now functional, the rest of this installation procedures are optional.
 
 
