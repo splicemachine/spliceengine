@@ -166,6 +166,8 @@ public class IndexRowReaderBuilder implements Externalizable{
         assert source!=null:"No source specified";
         assert indexCols!=null:"No index columns specified!";
 
+        int numThreads = Math.max(numConcurrentLookups,2);
+
         BitSet rowFieldsToReturn=new BitSet(mainTableAccessedRowColumns.getNumBitsSet());
         for(int i=mainTableAccessedRowColumns.anySetBit();i>=0;i=mainTableAccessedRowColumns.anySetBit(i)){
             rowFieldsToReturn.set(i);
@@ -174,20 +176,24 @@ public class IndexRowReaderBuilder implements Externalizable{
         byte[] epfBytes=epf.toBytes();
 
         DescriptorSerializer[] templateSerializers=VersionedSerializers.forVersion(tableVersion,false).getSerializers(outputTemplate);
-        KeyHashDecoder keyDecoder;
+        KeyHashDecoder [] keyDecoders =  new KeyHashDecoder[numThreads];
         if(mainTableKeyColumnEncodingOrder==null || mainTableAccessedKeyColumns==null || mainTableAccessedKeyColumns.getNumBitsSet()<=0)
-            keyDecoder=NoOpKeyHashDecoder.INSTANCE;
+            for (int i=0; i < numThreads; i++)
+                keyDecoders[i] = NoOpKeyHashDecoder.INSTANCE;
         else{
-            keyDecoder=SkippingKeyDecoder.decoder(VersionedSerializers.typesForVersion(tableVersion),
-                    templateSerializers,
-                    mainTableKeyColumnEncodingOrder,
-                    mainTableKeyColumnTypes,
-                    mainTableKeyColumnSortOrder,
-                    mainTableKeyDecodingMap,
-                    mainTableAccessedKeyColumns);
+            for (int i=0; i < numThreads; i++)
+                keyDecoders[i]=SkippingKeyDecoder.decoder(VersionedSerializers.typesForVersion(tableVersion),
+                        templateSerializers,
+                        mainTableKeyColumnEncodingOrder,
+                        mainTableKeyColumnTypes,
+                        mainTableKeyColumnSortOrder,
+                        mainTableKeyDecodingMap,
+                        mainTableAccessedKeyColumns);
         }
 
-        KeyHashDecoder rowDecoder=new EntryDataDecoder(mainTableRowDecodingMap,null,templateSerializers);
+        KeyHashDecoder [] rowDecoders = new KeyHashDecoder[numThreads];
+        for (int i=0; i < numThreads; i++)
+            rowDecoders[i] = new EntryDataDecoder(mainTableRowDecodingMap,null,templateSerializers);
 
         SIDriver driver=SIDriver.driver();
         TxnOperationFactory txnOperationFactory =driver.getOperationFactory();
@@ -200,8 +206,8 @@ public class IndexRowReaderBuilder implements Externalizable{
                 Math.max(numConcurrentLookups,2),
                 mainTableConglomId,
                 epfBytes,
-                keyDecoder,
-                rowDecoder,
+                keyDecoders,
+                rowDecoders,
                 indexCols,
                 txnOperationFactory,
                 tableFactory,

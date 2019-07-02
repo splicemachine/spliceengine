@@ -14,11 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.apache.spark.InterruptibleIterator;
-import org.apache.spark.TaskContext;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -34,13 +31,10 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.util.MapAttributes;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-import scala.collection.JavaConverters;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -56,15 +50,15 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private final ExecRow outputTemplate;
     private final long mainTableConglomId;
     private final byte[] predicateFilterBytes;
-    private final KeyDecoder keyDecoder;
+    private final KeyDecoder [] keyDecoders;
     private final int[] indexCols;
-    private final KeyHashDecoder rowDecoder;
+    private final KeyHashDecoder [] rowDecoders;
     private final TxnView txn;
     private final TxnOperationFactory operationFactory;
     private final PartitionFactory tableFactory;
 
-    private List<Pair<ExecRow, DataResult>> currentResults;
-    private List<Future<List<Pair<ExecRow, DataResult>>>> resultFutures;
+    private LookupResponse currentResults;
+    private List<Future<LookupResponse>> resultFutures;
     private boolean populated=false;
     private EntryDecoder entryDecoder;
     protected Iterator<ExecRow> sourceIterator;
@@ -73,6 +67,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private int numQueuedThreads = 0;
     private final boolean useOldIndexLookupMethod;
     private int numConcurrentLookups = 0;
+    private Deque<Integer> stackOfThreadNumbers = new ArrayDeque<Integer>();
 
     private ExecRow heapRowToReturn;
     private ExecRow indexRowToReturn;
@@ -84,8 +79,8 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                    int numConcurrentLookups,
                    long mainTableConglomId,
                    byte[] predicateFilterBytes,
-                   KeyHashDecoder keyDecoder,
-                   KeyHashDecoder rowDecoder,
+                   KeyHashDecoder[] keyDecoders,
+                   KeyHashDecoder[] rowDecoders,
                    int[] indexCols,
                    TxnOperationFactory operationFactory,
                    PartitionFactory tableFactory,
@@ -98,8 +93,15 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         this.mainTableConglomId=mainTableConglomId;
         this.predicateFilterBytes=predicateFilterBytes;
         this.tableFactory=tableFactory;
-        this.keyDecoder=new KeyDecoder(keyDecoder,0);
-        this.rowDecoder=rowDecoder;
+        this.keyDecoders = new KeyDecoder[this.numConcurrentLookups];
+        for (int i=0; i < this.numConcurrentLookups; i++) {
+            stackOfThreadNumbers.push(i);
+            this.keyDecoders[i] = new KeyDecoder(keyDecoders[i], 0);
+        }
+        // Start with a dummy LookupResponse so we can avoid the overhead of
+        // null pointer checks.
+        currentResults = new LookupResponse(new ArrayList<>(), stackOfThreadNumbers.pop());
+        this.rowDecoders =rowDecoders;
         this.indexCols=indexCols;
         this.resultFutures=Lists.newArrayListWithCapacity(this.numConcurrentLookups);
         //numConcurrentLookups = 32;  // msirek-temp
@@ -117,8 +119,10 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     public int getMaxConcurrency() {return this.numConcurrentLookups;}
 
     public void close() throws IOException{
-        rowDecoder.close();
-        keyDecoder.close();
+        for (KeyHashDecoder rowDecoder:rowDecoders)
+            rowDecoder.close();
+        for (KeyDecoder keyDecoder:keyDecoders)
+            keyDecoder.close();
         if(entryDecoder!=null)
             entryDecoder.close();
     }
@@ -140,29 +144,24 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     @Override
     public boolean hasNext(){
         try{
-            if(currentResults==null || currentResults.size()<=0)
-                getMoreData();
-
-            if(currentResults==null || currentResults.size()<=0){
-                return false; // No More Data
+            ExecRow row = currentResults.getNextRow();
+            if (row != null) {
+                heapRowToReturn  = row;
+                indexRowToReturn = row;
+                return true;
             }
 
-            Pair<ExecRow, DataResult> next=currentResults.remove(0);
-            //merge the results
-            ExecRow nextScannedRow=next.getFirst();
-            DataResult nextFetchedData=next.getSecond();
-            byte[] rowKey = nextFetchedData.key();
-            if(entryDecoder==null)
-                entryDecoder=new EntryDecoder();
-            for(DataCell kv : nextFetchedData){
-                keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow);
-                rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
-                rowDecoder.decode(nextScannedRow);
+            getMoreData();
+            row = currentResults.getNextRow();
+
+            if (row != null) {
+                heapRowToReturn = row;
+                indexRowToReturn = row;
+                return true;
             }
-            nextScannedRow.setKey(rowKey);
-            heapRowToReturn=nextScannedRow;
-            indexRowToReturn=nextScannedRow;
-            return true;
+
+            // No More Data
+            return false;
         }catch(Exception e){
             throw new RuntimeException(e);
         }
@@ -189,7 +188,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         if(!sourceRows.isEmpty()){
             //submit to the background thread
             //boolean useOldIndexLookupMethod = getCompilerContext()
-            Lookup task=new Lookup(sourceRows);
+            Lookup task=new Lookup(sourceRows, stackOfThreadNumbers.pop());
             if (useOldIndexLookupMethod)
                 resultFutures.add(SIDriver.driver().getExecutorService().submit(task));
             else
@@ -212,12 +211,13 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private void waitForBlockCompletion() throws StandardException, IOException{
         //wait for the first future to return correctly or error-out
         try{
-            Future<List<Pair<ExecRow, DataResult>>> future = null;
+            Future<LookupResponse> future = null;
             if (useOldIndexLookupMethod)
                 future = resultFutures.remove(0);
             else
                 future = executorCompletionService.take();
             currentResults=future.get();
+            currentResults.yieldThreadNumber();
             numQueuedThreads--;
         }catch(InterruptedException e){
             throw new InterruptedIOException(e.getMessage());
@@ -228,15 +228,56 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         }
     }
 
-    public class Lookup implements Callable<List<Pair<ExecRow, DataResult>>>{
-        private final List<Pair<byte[],ExecRow>> sourceRows;
+    public class LookupResponse {
+        private final List<ExecRow> sourceRows;
+        private int threadNumber;
 
-        public Lookup(List<Pair<byte[],ExecRow>> sourceRows){
+        public LookupResponse(List<ExecRow> sourceRows, int threadNumber){
             this.sourceRows=sourceRows;
+            this.threadNumber = threadNumber;
+        }
+
+        public ExecRow getNextRow() {
+            if (sourceRows.isEmpty()) {
+                yieldThreadNumber();
+                return null;
+            }
+            else
+                return sourceRows.remove(0);
+        }
+
+        // Give up reservation of the held thread number so a new
+        // thread can grab it.
+        public void yieldThreadNumber() {
+            if (threadNumber >= 0) {
+                stackOfThreadNumbers.push(currentResults.threadNumber);
+                threadNumber = -1;
+            }
+        }
+    }
+
+    public class Lookup implements Callable<LookupResponse>{
+        private final List<Pair<byte[],ExecRow>> sourceRows;
+        private EntryDecoder decoder;
+        private final int threadNumber;
+
+        public Lookup(List<Pair<byte[],ExecRow>> sourceRows, int threadNumber){
+            this.sourceRows=sourceRows;
+            this.threadNumber = threadNumber;
         }
 
         @Override
-        public List<Pair<ExecRow, DataResult>> call() throws Exception{
+        public LookupResponse call() throws Exception{
+            Pair<ExecRow, DataResult> next;
+            ExecRow nextScannedRow;
+            DataResult nextFetchedData;
+            byte[] rowKey;
+            KeyDecoder keyDecoder = keyDecoders[threadNumber];
+            KeyHashDecoder rowDecoder = rowDecoders[threadNumber];
+
+            if (decoder == null)
+                decoder = new EntryDecoder();
+
             List<byte[]> rowKeys = new ArrayList<>(sourceRows.size());
             for(Pair<byte[],ExecRow> sourceRow : sourceRows){
                 rowKeys.add(sourceRow.getFirst());
@@ -247,13 +288,23 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
             try(Partition table = tableFactory.getTable(Long.toString(mainTableConglomId))){
                 Iterator<DataResult> results=table.batchGet(attributable,rowKeys);
-                List<Pair<ExecRow, DataResult>> locations=Lists.newArrayListWithCapacity(sourceRows.size());
+                List<ExecRow> baseTableRows=Lists.newArrayListWithCapacity(sourceRows.size());
                 for(Pair<byte[],ExecRow> sourceRow : sourceRows){
                     if(!results.hasNext())
                         throw new IllegalStateException("Programmer error: incompatible iterator sizes!");
-                    locations.add(Pair.newPair(sourceRow.getSecond(),results.next().getClone()));
+                    next = Pair.newPair(sourceRow.getSecond(),results.next().getClone());
+                    nextScannedRow = next.getFirst();
+                    nextFetchedData=next.getSecond();
+                    rowKey = nextFetchedData.key();
+                    for(DataCell kv : nextFetchedData){
+                        keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow);
+                        rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
+                        rowDecoder.decode(nextScannedRow);
+                    }
+                    nextScannedRow.setKey(rowKey);
+                    baseTableRows.add(nextScannedRow);
                 }
-                return locations;
+                return new LookupResponse(baseTableRows, threadNumber);
             }
         }
     }
