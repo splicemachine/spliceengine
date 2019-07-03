@@ -947,7 +947,14 @@ public class FromBaseTable extends FromTable {
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
         /* Have all of our dependencies been satisfied? */
-        return dependencyMap == null || assignedTableMap.contains(dependencyMap);
+        if (dependencyMap != null) {
+            if (existsTable || fromSSQ)
+                // the check of getFirstSetBit()!= -1 ensures that exists table or table converted from SSQ won't be the leftmost table
+                return (assignedTableMap.getFirstSetBit()!= -1) && assignedTableMap.contains(dependencyMap);
+            else
+                return assignedTableMap.contains(dependencyMap);
+        }
+        return true;
     }
 
     /**

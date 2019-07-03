@@ -1891,9 +1891,20 @@ public class SubqueryNode extends ValueNode{
             ColumnReference cr = (ColumnReference) leftOperand;
             matchRowId = cr.isRowIdColumn();
         }
+
+        // get the list of outer tables that the exists subquery is correlated to
+        JBitSet correlatedTables = new JBitSet(select.getReferencedTableMap().size());
+        for(Predicate pred : ((SelectNode) resultSet).getWherePredicates()){
+            correlatedTables.or(pred.getReferencedSet());
+        }
+        if (leftOperand != null && leftOperand.getTableNumber() >= 0)
+            correlatedTables.set(leftOperand.getTableNumber());
+
+        correlatedTables.andNot(select.getReferencedTableMap());
+
         // Replace the FromBaseTables in the from list with ExistBaseTables
         select.getFromList().genExistsBaseTables(resultSet.getReferencedTableMap(),
-                outerFromList,flattenableNotExists, matchRowId);
+                outerFromList,flattenableNotExists, matchRowId, correlatedTables);
 
         for(Predicate pred : ((SelectNode) resultSet).getWherePredicates()){
             pred.pushable = false;
@@ -2518,15 +2529,24 @@ public class SubqueryNode extends ValueNode{
         newPRN.setReferencedTableMap(newJBS);
         ((FromTable) newPRN).setTableNumber(tableNumber);
 
-        // set exists flag, dependencyMap. Ideally we should only include the outer relation that the subquery is connected to
-        // in the dependencyMap, not all the tabled in the outer block. this could be a performance enhancement
+        // get the list of outer tables that the subquery is correlated/connected to
+        JBitSet correlatedTables = new JBitSet(numTables);
+        for(Predicate pred : ((SelectNode) resultSet).getWherePredicates()){
+            correlatedTables.or(pred.getReferencedSet());
+        }
+        if (leftOperand != null && leftOperand.getTableNumber() >= 0)
+            correlatedTables.set(leftOperand.getTableNumber());
+
+        correlatedTables.andNot(resultSet.getReferencedTableMap());
+
+        // set exists flag, dependencyMap.
         JBitSet dependencyMap=new JBitSet(numTables);
         int outerSize=outerFromList.size();
         for(int outer=0;outer<outerSize;outer++) {
             FromTable ft = (FromTable) outerFromList.elementAt(outer);
             // SSQ need to be processed after all the joins (including the join with where subquery) ar done,
             // so we should not include SSQs in the where subquery's dependencyMap
-            if (!ft.fromSSQ)
+            if (!ft.fromSSQ && correlatedTables.intersects(ft.getReferencedTableMap()))
                 dependencyMap.or(((FromTable) outerFromList.elementAt(outer)).getReferencedTableMap());
         }
         ((FromTable) newPRN).setExistsTable(true, false, false);
