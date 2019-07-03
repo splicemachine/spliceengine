@@ -76,6 +76,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private ExecRow indexRowToReturn;
     private Future<Boolean> readerFuture;
     private boolean readerThreadStarted = false;
+    private int savedThreadPriority = Thread.currentThread().getPriority();
 
     IndexRowReader(Iterator<ExecRow> sourceIterator,
                    ExecRow outputTemplate,
@@ -133,6 +134,8 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
         if (!readerFuture.isDone())
             readerFuture.cancel(true);
+
+        Thread.currentThread().setPriority(savedThreadPriority);
     }
 
     protected void addResultsToQueue (LookupResponse response) {
@@ -144,7 +147,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             if (currentResults.isEmpty()) {
                 LookupResponse response = null;
                 if (!doneReading || !currentResultsQueue.isEmpty()) {
-                //while (!doneReading) {
+                //while //(!doneReading) {
                 //(response == null && (!doneReading || !currentResultsQueue.isEmpty())) {
                     // currentResults = currentResultsQueue.poll(50L, TimeUnit.MILLISECONDS); msirek-temp
                     //response = currentResultsQueue.poll();
@@ -188,6 +191,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                 AsynchIndexRowReader task = new AsynchIndexRowReader();
                 readerFuture = SIDriver.driver().getExecutorService().submit(task);
                 readerThreadStarted = true;
+                //Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
             }
             getCurrentResultsFromQueue();
             row = currentResults.getNextRow();
@@ -217,8 +221,14 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
         @Override
         public Boolean call() throws Exception {
+            // Thread.currentThread().setPriority(Thread.MAX_PRIORITY);  // msirek-temp
+
             while (sourceIterator.hasNext())
                 getMoreData();
+
+            while (numQueuedThreads > 0) {
+                waitForBlockCompletion();
+            }
 
             doneReading = true;
             // Add an empty LookupResponse so the last take() call doesn't hang.
@@ -257,12 +267,42 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                 //if (resultFutures.size() < numConcurrentLookups && sourceRows.size()==batchSize)
                 //if (resultFutures.size() < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
                 //if(resultFutures.size()<numBlocks && sourceRows.size()==batchSize) msirek-temp
-                if (numQueuedThreads < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
-                    getMoreData();
+//                if (numQueuedThreads < numConcurrentLookups && sourceIterator.hasNext()) // msirek-temp
+//                    getMoreData();
             }
             //else if(!resultFutures.isEmpty()){
             if (numQueuedThreads > 0) {  //msirek-temp
-                waitForBlockCompletion();
+                pollForBlockCompletion();
+            }
+        }
+
+        private void pollForBlockCompletion() throws StandardException, IOException {
+            // poll for a completed future
+            try {
+                LookupResponse response = null;
+                Future<LookupResponse> future;
+                if (useOldIndexLookupMethod)
+                    future = resultFutures.get(0);
+                else
+                    future = executorCompletionService.poll();
+
+                if (future != null)
+                    response = future.get(2L, TimeUnit.MILLISECONDS);
+                if (response != null) {
+                    if (useOldIndexLookupMethod)
+                        resultFutures.remove(0);
+                    response.yieldThreadNumber();
+                    IndexRowReader.this.addResultsToQueue(response);
+                    numQueuedThreads--;
+                }
+            } catch (TimeoutException e) {
+
+            } catch (InterruptedException e) {
+                throw new InterruptedIOException(e.getMessage());
+            } catch (ExecutionException e) {
+                Throwable t = e.getCause();
+                if (t instanceof IOException) throw (IOException) t;
+                else throw Exceptions.parseException(t);
             }
         }
 
