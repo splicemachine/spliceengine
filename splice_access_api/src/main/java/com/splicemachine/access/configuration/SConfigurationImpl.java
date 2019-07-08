@@ -78,6 +78,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long ddlDrainingMaximumWait;
     private final  long ddlRefreshInterval;
     private final  long maxDdlWait;
+    private final long mergeRegionTimeout;
 
     // HConfiguration
     private final  int regionServerHandlerCount;
@@ -333,6 +334,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public long getMaxDdlWait() {
         return maxDdlWait;
+    }
+    @Override
+    public long getMergeRegionTimeout() {
+        return mergeRegionTimeout;
     }
 
     // HConfiguration
@@ -852,6 +857,7 @@ public final class SConfigurationImpl implements SConfiguration {
         ddlDrainingMaximumWait = builder.ddlDrainingMaximumWait;
         ddlRefreshInterval = builder.ddlRefreshInterval;
         maxDdlWait = builder.maxDdlWait;
+        mergeRegionTimeout = builder.mergeRegionTimeout;
         authenticationNativeCreateCredentialsDatabase = builder.authenticationNativeCreateCredentialsDatabase;
         authentication = builder.authentication;
         authenticationCustomProvider = builder.authenticationCustomProvider;

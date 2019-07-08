@@ -203,7 +203,7 @@ public class OptimizerImpl implements Optimizer{
         this.numTablesInQuery=numTablesInQuery;
         numOptimizables=optimizableList.size();
         proposedJoinOrder=new int[numOptimizables];
-        if(numTablesInQuery>6 && optimizableList.optimizeJoinOrder()){
+        if(numOptimizables>6 && optimizableList.optimizeJoinOrder()){
             permuteState=READY_TO_JUMP;
             firstLookOrder=new int[numOptimizables];
         }else
@@ -2410,7 +2410,7 @@ public class OptimizerImpl implements Optimizer{
          ** no timeout.
          */
         if(noTimeout) return false;
-        if(timeExceeded || numTablesInQuery<=6) return timeExceeded;
+        if(timeExceeded || numOptimizables<=6) return timeExceeded;
 
         // All of the following are assumed to be in milliseconds,
         // even if originally derived from a different unit:

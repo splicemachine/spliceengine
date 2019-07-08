@@ -45,13 +45,13 @@ public interface StringDataValue extends ConcatableDataValue
 	int LEADING		= 2;
 
 	/**
-	  For a character string type, the collation derivation should always be 
-	  "explicit"(not possible in Derby 10.3), "implicit" or "none". We will 
-	  start by setting it to "implicit" in TypeDescriptorImpl. At runtime, only 
-	  character string types which are results of aggregate methods dealing 
-	  with operands with different collation types should have a collation 
-	  derivation of "none". All the other character string types should have 
-	  their collation derivation set to "implicit". 
+	  For a character string type, the collation derivation should always be
+	  "explicit"(not possible in Derby 10.3), "implicit" or "none". We will
+	  start by setting it to "implicit" in TypeDescriptorImpl. At runtime, only
+	  character string types which are results of aggregate methods dealing
+	  with operands with different collation types should have a collation
+	  derivation of "none". All the other character string types should have
+	  their collation derivation set to "implicit".
 	 */
 	int COLLATION_DERIVATION_NONE = 0;
 	/** @see StringDataValue#COLLATION_DERIVATION_NONE */
@@ -61,12 +61,12 @@ public interface StringDataValue extends ConcatableDataValue
 	/**
 	 * In Derby 10.3, it is possible to have database with one of the following
 	 * two configurations
-	 * 1)all the character columns will have a collation type of UCS_BASIC. 
-	 * This is same as what we do in Derby 10.2 release. 
-	 * 2)all the character string columns belonging to system tables will have 
-	 * collation type of UCS_BASIC but all the character string columns 
+	 * 1)all the character columns will have a collation type of UCS_BASIC.
+	 * This is same as what we do in Derby 10.2 release.
+	 * 2)all the character string columns belonging to system tables will have
+	 * collation type of UCS_BASIC but all the character string columns
 	 * belonging to user tables will have collation type of TERRITORY_BASED.
-	 * 
+	 *
 	 * Data types will start with collation type defaulting to UCS_BASIC in
 	 * TypeDescriptorImpl. This collation type of course makes sense for
 	 * character string types only. It will be ignored for the rest of the
@@ -134,6 +134,28 @@ public interface StringDataValue extends ConcatableDataValue
 						  DataValueDescriptor escape)
 							throws StandardException;
 
+	/**
+	 * right() function.
+	 * @param length Number of characters to take.
+	 * @param result The result of this method.
+	 * @return A StringDataValue containing the result of the right().
+	 * @throws StandardException.
+	 */
+	StringDataValue right(
+			NumberDataValue length,
+			StringDataValue result)
+		throws StandardException;
+	/**
+	 * left() function.
+	 * @param length Number of characters to take.
+	 * @param result The result of this method.
+	 * @return A StringDataValue containing the result of the left().
+	 * @throws StandardException
+	 */
+	StringDataValue left(
+			NumberDataValue length,
+			StringDataValue result)
+		throws StandardException;
 
 	/**
 	 * The SQL Ansi trim function.
@@ -152,11 +174,11 @@ public interface StringDataValue extends ConcatableDataValue
 			StringDataValue result)
 		throws StandardException;
 
-	/** 
+	/**
 	 * Convert the string to upper case.
 	 *
 	 * @param result	The result (reusable - allocate if null).
-	 * 
+	 *
 	 * @return	The string converted to upper case.
 	 *
 	 * @exception StandardException		Thrown on error
@@ -190,7 +212,7 @@ public interface StringDataValue extends ConcatableDataValue
 	 * Convert the string to lower case.
 	 *
 	 * @param result	The result (reusable - allocate if null).
-	 * 
+	 *
 	 * @return	The string converted to lower case.
 	 *
 	 * @exception StandardException		Thrown on error
@@ -227,17 +249,17 @@ public interface StringDataValue extends ConcatableDataValue
 	 * <b>WARNING</b>: may return a character array that has spare
 	 * characters at the end.  MUST be used in conjunction
 	 * with getLength() to be safe.
-	 * 
+	 *
 	 * @exception StandardException		Thrown on error
 	 */
 	char[] getCharArray() throws StandardException;
 
 	/**
-	 * Gets either SQLChar/SQLVarchar/SQLLongvarchar/SQLClob(base classes) or 
+	 * Gets either SQLChar/SQLVarchar/SQLLongvarchar/SQLClob(base classes) or
 	 * CollatorSQLChar/CollatorSQLVarchar/CollatorSQLLongvarch/CollatorSQLClob
-	 * (subclasses). Whether this method returns the base class or the subclass 
-	 * depends on the value of the RuleBasedCollator. If RuleBasedCollator is 
-	 * null, then the object returned would be baseclass otherwise it would be 
+	 * (subclasses). Whether this method returns the base class or the subclass
+	 * depends on the value of the RuleBasedCollator. If RuleBasedCollator is
+	 * null, then the object returned would be baseclass otherwise it would be
 	 * subcalss.
 	 */
 	StringDataValue getValue(RuleBasedCollator collatorForComparison);

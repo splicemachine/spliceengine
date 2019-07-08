@@ -16,10 +16,8 @@ package com.splicemachine.derby.stream.spark;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -46,11 +44,13 @@ import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.Partition;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
 
 import java.io.*;
-import java.net.URI;
 import java.util.*;
 
 public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSetWriter {
@@ -86,8 +86,9 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                                    boolean outputKeysOnly,
                                    boolean skipSampling,
                                    String indexName,
-                                   double sampleFraction) {
-        super(dataSet, operationContext, heapConglom, txn);
+                                   double sampleFraction,
+                                   byte[] token) {
+        super(dataSet, operationContext, heapConglom, txn, token);
         this.tableVersion = tableVersion;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.pkCols = pkCols;
@@ -248,8 +249,18 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
                 assert rowAndIndexes instanceof SparkDataSet;
 
                 partitionUsingRDDSortUsingDataFrame(bulkImportPartitions, rowAndIndexes, hfileGenerationFunction);
+                Map<Long, Boolean> granted = new HashMap<>();
+                try {
+                    if (token != null && token.length > 0) {
+                        granted = grantCreatePrivilege(allCongloms);
+                    }
+                    bulkLoad(bulkImportPartitions, bulkImportDirectory, "Insert:");
+                } finally {
 
-                bulkLoad(bulkImportPartitions, bulkImportDirectory, "Insert:");
+                    if (granted.size() > 0) {
+                        revokeCreatePrivilege(granted);
+                    }
+                }
             }
         }
         ValueRow valueRow = new ValueRow(3);
@@ -270,5 +281,36 @@ public class BulkInsertDataSetWriter extends BulkDataSetWriter implements DataSe
         }
 
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+    }
+
+    private Map<Long, Boolean> grantCreatePrivilege(List<Long> congloms) throws StandardException {
+        try {
+            Map<Long, Boolean> result = new HashMap<>();
+            SpliceLogUtils.info(LOG, "granting necessary privileges for bulk load");
+            PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
+            for (Long conglomId : congloms) {
+                Partition partition = tableFactory.getTable(Long.toString(conglomId));
+                Boolean granted = partition.grantCreatePrivilege();
+                result.put(conglomId, granted);
+            }
+            return result;
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    private void revokeCreatePrivilege(Map<Long, Boolean> granted) throws StandardException{
+        try {
+            PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
+            for (Long conglomId : granted.keySet()) {
+                if (granted.get(conglomId)) {
+                    Partition partition = tableFactory.getTable(Long.toString(conglomId));
+                    partition.revokeCreatePrivilege();
+                }
+            }
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
     }
 }

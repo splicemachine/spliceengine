@@ -14,8 +14,14 @@
 
 package com.splicemachine.si.data.hbase.coprocessor;
 
+import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.*;
 
 import com.splicemachine.access.HConfiguration;
@@ -44,6 +50,24 @@ import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Append;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Durability;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.OperationWithAttributes;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -440,5 +464,28 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
         AclCheckerService.getService().checkPermission(token, conglomId, Authorizer.SELECT_PRIV);
         return true;
+    }
+
+    private byte[] getToken(String path) throws IOException{
+        byte[] token = null;
+        FSDataInputStream in = null;
+        try {
+            FileSystem fs = FileSystem.get(new URI(path), HConfiguration.unwrapDelegate());
+            Path p = new Path(path, "_token");
+            if (fs.exists(p)) {
+                in = fs.open(p);
+                int len = in.readInt();
+                token = new byte[len];
+                in.readFully(token);
+            }
+            return token;
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+        finally {
+            if (in != null) {
+                in.close();
+            }
+        }
     }
 }

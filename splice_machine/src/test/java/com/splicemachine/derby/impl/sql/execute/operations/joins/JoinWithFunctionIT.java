@@ -314,4 +314,47 @@ public class JoinWithFunctionIT extends SpliceUnitTest {
                         "2018-08-02 |02.08.18 |";
         assertEquals(s, expected, s);
     }
+
+    @Test
+    public void testJoinExpressionOverSetOperation() throws Exception {
+        String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "d\n" +
+                ", (select substr(c, 1, 5) as newC from e " +
+                "   intersect " +
+                "   select substr(c, 1, 5) as newC from e) dt --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                " where substr(CHAR(d.i),1,1) = substr(dt.newC, 1, 1) order by 1", joinStrategy);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+        String expected =
+                "I |NEWC |\n" +
+                        "----------\n" +
+                        " 1 |  1  |\n" +
+                        " 2 |  2  |\n" +
+                        " 3 |  3  |\n" +
+                        " 4 |  4  |";
+        assertEquals(s, expected, s);
+    }
+
+    @Test
+    public void testJoinExpressionOverDTWithSetOperation() throws Exception {
+        String sql = String.format("select * from --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                "d\n" +
+                ", (select newC from (select substr(c, 1, 5) as newC from e " +
+                "                     intersect " +
+                "                     select substr(c, 1, 5) as newC from e) dt0) dt  --SPLICE-PROPERTIES joinStrategy=%s\n" +
+                " where substr(CHAR(d.i),1,1) = substr(dt.newC, 1, 1) order by 1", joinStrategy);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+        String expected =
+                "I |NEWC |\n" +
+                        "----------\n" +
+                        " 1 |  1  |\n" +
+                        " 2 |  2  |\n" +
+                        " 3 |  3  |\n" +
+                        " 4 |  4  |";
+        assertEquals(s, expected, s);
+    }
+
 }
