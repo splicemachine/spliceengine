@@ -817,6 +817,41 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet) {
+        try {
+            Dataset<Row> leftDF = dataset;
+            Dataset<Row> rightDF;
+            if (rightDataSet instanceof NativeSparkDataSet) {
+                rightDF = ((NativeSparkDataSet) rightDataSet).dataset;
+            } else {
+                rightDF = SpliceSpark.getSession().createDataFrame(
+                        ((SparkDataSet) rightDataSet).rdd.map(new LocatedRowToRowFunction()),
+                        context.getOperation().getRightOperation().getExecRowDefinition().schema());
+            }
+            Column expr = null;
+            int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
+            int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
+            if ( leftJoinKeys!=null || rightJoinKeys!=null ) {
+                assert rightJoinKeys != null && leftJoinKeys != null && rightJoinKeys.length == leftJoinKeys.length : "Join Keys Have Issues";
+                for (int i = 0; i < rightJoinKeys.length; i++) {
+                    Column joinEquality = (leftDF.col(ValueRow.getNamedColumn(leftJoinKeys[i]))
+                            .equalTo(rightDF.col(ValueRow.getNamedColumn(rightJoinKeys[i]))));
+                    expr = i != 0 ? expr.and(joinEquality) : joinEquality;
+                }
+            }
+            Dataset<Row> joinedSet = leftDF.crossJoin(rightDF);
+            if (expr != null) {
+                joinedSet = joinedSet.filter(expr);
+            }
+            return new NativeSparkDataSet(joinedSet, context);
+        }  catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * Take a Splice DataSet and  convert to a Spark Dataset
      * doing a map

@@ -1779,7 +1779,7 @@ public class JoinNode extends TableOperatorNode{
             ColumnMappingUtils.updateColumnMappings(leftResultSet.getResultColumns(),nonLocalRefs.iterator());
         }
 
-        if(rightResultSet instanceof Optimizable && isHashableJoin(rightResultSet)){
+        if(rightResultSet instanceof Optimizable && (isHashableJoin(rightResultSet) || isCrossJoin())){
             // Look for unary path to FromBaseTable, to prune preds from nonStoreRestrictionList
             FromBaseTable table=null;
             if(rightResultSet instanceof ProjectRestrictNode){
@@ -1807,7 +1807,7 @@ public class JoinNode extends TableOperatorNode{
         mb.push(rightResultSet.resultColumns.size()); // arg 4
 
         if(rightResultSet instanceof Optimizable &&
-                isHashableJoin(rightResultSet)){
+                (isHashableJoin(rightResultSet) || isCrossJoin())){
             // Add the left & right hash arrays to the method call
             int leftHashKeysItem=acb.addItem(FormatableIntHolder.getFormatableIntHolders(leftHashKeys));
             mb.push(leftHashKeysItem);
@@ -1945,6 +1945,15 @@ public class JoinNode extends TableOperatorNode{
             result=nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy() instanceof HashableJoinStrategy;
         }
 
+        return result;
+    }
+
+    public boolean isCrossJoin() {
+        boolean result = false;
+        if (rightResultSet instanceof Optimizable) {
+            Optimizable nodeOpt=(Optimizable)rightResultSet;
+            result= nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.CROSS;
+        }
         return result;
     }
 
