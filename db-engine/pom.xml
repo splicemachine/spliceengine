@@ -39,6 +39,10 @@
     <artifactId>db-engine</artifactId>
     <dependencies>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.python</groupId>
             <artifactId>jython-standalone</artifactId>
         </dependency>
@@ -66,11 +70,6 @@
             <artifactId>joda-time</artifactId>
             <version>2.3</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>

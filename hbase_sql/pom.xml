@@ -28,6 +28,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>db-engine</artifactId>
         </dependency>
@@ -151,11 +156,6 @@
                     <artifactId>avro-mapred</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <!-- Provided dependencies -->
