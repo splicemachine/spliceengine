@@ -98,7 +98,7 @@ public class BulkImportFunction implements VoidFunction<Iterator<BulkImportParti
                 }
             }
             writeToken(fs, path);
-            loader.doBulkLoad(path.getParent(), (HTable) ((SkeletonHBaseClientPartition)partition).unwrapDelegate());
+            HBasePlatformUtils.bulkLoad(conf, loader, path.getParent(), "splice:" + partition.getTableName());
             fs.delete(path.getParent(), true);
         }
     }
