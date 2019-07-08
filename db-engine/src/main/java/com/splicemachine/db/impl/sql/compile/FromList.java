@@ -1201,7 +1201,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     void genExistsBaseTables(JBitSet referencedTableMap,
                              FromList outerFromList,
                              boolean isNotExists,
-                             boolean matchRowId) throws StandardException{
+                             boolean matchRowId,
+                             JBitSet correlatedTables) throws StandardException{
         JBitSet dependencyMap=(JBitSet)referencedTableMap.clone();
 
         // We currently only flatten single table from lists
@@ -1231,7 +1232,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                 FromTable ft = (FromTable) outerFromList.elementAt(outer);
                 // SSQ need to be processed after all the joins (including the join with where subquery) ar done,
                 // so we should not include SSQs in the where subquery's dependencyMap
-                if (!ft.fromSSQ)
+                // only set dependency to outer tables that the subquery is correlated to
+                if (!ft.fromSSQ && correlatedTables.intersects(ft.getReferencedTableMap()))
                     dependencyMap.or(ft.getReferencedTableMap());
             }
         }

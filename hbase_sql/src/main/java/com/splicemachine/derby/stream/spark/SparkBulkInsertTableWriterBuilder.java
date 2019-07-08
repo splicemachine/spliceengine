@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.DataSetWriter;
@@ -96,6 +97,6 @@ public class SparkBulkInsertTableWriterBuilder<K, V>
     public DataSetWriter build() {
         return new BulkInsertDataSetWriter(dataSet, tableVersion, pkCols, autoIncrementRowLocationArray, heapConglom,
                 execRowDefinition, spliceSequences, operationContext, txn, bulkImportDirectory, samplingOnly, outputKeysOnly,
-                skipSampling, indexName, sampleFraction);
+                skipSampling, indexName, sampleFraction, token);
     }
 }

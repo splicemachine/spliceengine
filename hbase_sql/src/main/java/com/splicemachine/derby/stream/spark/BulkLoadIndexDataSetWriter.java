@@ -62,7 +62,7 @@ public class BulkLoadIndexDataSetWriter extends BulkDataSetWriter implements Dat
                                       String indexName,
                                       String tableVersion) {
 
-        super(dataSet, operationContext, destConglomerate, txn);
+        super(dataSet, operationContext, destConglomerate, txn, null);
         this.bulkLoadDirectory = bulkLoadDirectory;
         this.sampling = sampling;
         this.tentativeIndex = tentativeIndex;

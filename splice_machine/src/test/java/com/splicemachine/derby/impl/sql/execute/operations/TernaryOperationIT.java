@@ -30,6 +30,9 @@ import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -90,7 +93,7 @@ public class TernaryOperationIT {
                         ps.setString(3,"hello world");
                         ps.execute();
 
-                        
+
                         // Each of the following inserted rows represent individual test units,
                         // including expected result (column 'e'), for less test code
                         // testReplaceFunction method.
@@ -184,14 +187,14 @@ public class TernaryOperationIT {
 
         Assert.assertEquals("Incorrect row count returned!",3,count);
     }
-    
+
     @Test
     public void testReplaceFunction() throws Exception {
         int count = 0;
 	    String sCell1 = null;
 	    String sCell2 = null;
 	    ResultSet rs;
-	    
+
 	    rs = methodWatcher.executeQuery("select replace(b, c, d), e from " + tableWatcherB);
 	    count = 0;
 	    while (rs.next()) {
@@ -284,8 +287,62 @@ public class TernaryOperationIT {
             sCell2 = rs.getString(2);
         }
         Assert.assertEquals("Wrong substr result", sCell1, sCell2 );
+    }
 
+    @Test
+    public void testRight() throws Exception {
+        ResultSet rs;
 
+        methodWatcher.execute("create table ta(name VARCHAR(128), cut INT)");
+        methodWatcher.execute(
+                "insert into ta(name, cut) " +
+                "values ('hello world', 5), ('hey dude', 20), (null, 10), ('cute string', null)"
+        );
+
+        String sql = "select right(name, cut) from ta";
+        rs = methodWatcher.executeQuery(sql);
+
+        methodWatcher.execute("drop table ta");
+
+        List<String> expected = new ArrayList<>(2);
+        expected.add("world");
+        expected.add("hey dude");
+        expected.add(null);
+        expected.add(null);
+
+        for (String s: expected) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(s, rs.getString(1));
+        }
+        Assert.assertFalse(rs.next());
+    }
+
+    @Test
+    public void testLeft() throws Exception {
+        ResultSet rs;
+
+        methodWatcher.execute("create table ta(name VARCHAR(128), cut INT)");
+        methodWatcher.execute(
+            "insert into ta(name, cut) " +
+                "values ('hello world', 5), ('hey dude', 20), (null, 10), ('cute string', null)"
+        );
+
+        String sql = "select left(name, cut) from ta";
+        rs = methodWatcher.executeQuery(sql);
+
+        methodWatcher.execute("drop table ta");
+
+        List<String> expected = new ArrayList<>(2);
+        expected.add("hello");
+        expected.add("hey dude");
+        expected.add(null);
+        expected.add(null);
+
+        for (String s: expected) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(s, rs.getString(1));
+        }
+        Assert.assertFalse(rs.next());
     }
 
     @Test
@@ -346,7 +403,7 @@ public class TernaryOperationIT {
         rs.next();
         Assert.assertEquals("Wrong strip result","   space case",rs.getString(1));
 
-        sql  = "values strip('aabbccaa','a')";
+        sql  = "values strip('aabbccaa',,'a')";
         rs = methodWatcher.executeQuery(sql);
         rs.next();
         Assert.assertEquals("Wrong strip result","bbcc",rs.getString(1));
@@ -365,6 +422,21 @@ public class TernaryOperationIT {
         rs = methodWatcher.executeQuery(sql);
         rs.next();
         Assert.assertEquals("Wrong strip result","aabbcc",rs.getString(1));
+
+        sql  = "values strip('12.7000',,'0')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","12.7",rs.getString(1));
+
+        sql  = "values strip('0012.700',,'0')";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","12.7",rs.getString(1));
+
+        sql  = "values strip(' bb  ',)";
+        rs = methodWatcher.executeQuery(sql);
+        rs.next();
+        Assert.assertEquals("Wrong strip result","bb",rs.getString(1));
 
     }
 
@@ -409,15 +481,15 @@ public class TernaryOperationIT {
             methodWatcher.executeQuery(sql);
             Assert.fail("Query is expected to fail with syntax error!");
         } catch (SQLSyntaxErrorException e) {
-            Assert.assertEquals(SQLState.LANG_INVALID_CAST, e.getSQLState());
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
         }
 
         try {
             String sql = "values strip('abc','bc')";
             methodWatcher.executeQuery(sql);
             Assert.fail("Query is expected to fail with syntax error!");
-        } catch (SQLDataException e) {
-            Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_INVALID_TRIM_CHARACTER.startsWith(e.getSQLState()));
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_SYNTAX_ERROR.startsWith(e.getSQLState()));
         }
     }
 }
