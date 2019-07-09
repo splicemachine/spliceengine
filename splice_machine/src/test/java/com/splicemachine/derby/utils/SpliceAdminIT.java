@@ -319,7 +319,6 @@ public class SpliceAdminIT extends SpliceUnitTest{
         DbUtils.closeQuietly(rs);
     }
 
-    @Test
     public void testGetLoggers() throws Exception {
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_LOGGERS()");
         ResultSet rs = cs.executeQuery();
