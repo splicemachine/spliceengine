@@ -2654,13 +2654,6 @@ public class SQLChar
         return stringResult;
     }
 
-    /**
-     * right() function.
-     * @param length Number of characters to take.
-     * @param result The result of this method.
-     * @return A StringDataValue containing the result of the right().
-     * @throws StandardException.
-     */
     public StringDataValue right(
             NumberDataValue length,
             StringDataValue result)
