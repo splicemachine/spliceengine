@@ -126,7 +126,7 @@ while getopts "chkp:s:bld:f" flag ; do
     esac
 done
 
-SYSTEM_PROPS="-Dlog4j.configuration=hbase-log4j.properties -DfailTasksRandomly=${CHAOS}"
+SYSTEM_PROPS="-Dlog4j.configurationFile=hbase-log4j.properties -DfailTasksRandomly=${CHAOS}"
 
 
 #=============================================================================
