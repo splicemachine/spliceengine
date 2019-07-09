@@ -250,10 +250,11 @@ public class SQLConfiguration implements ConfigurationDefault {
      *         then use it, even if the underlying child operation uses a
      *         non-native SparkDataSet.
      *
-     * Defaults to on
+     * Defaults to forced
      */
     public static final String NATIVE_SPARK_AGGREGATION_MODE = "splice.execution.nativeSparkAggregationMode";
-    private static final String DEFAULT_NATIVE_SPARK_AGGREGATION_MODE="on";
+    public static final String DEFAULT_NATIVE_SPARK_AGGREGATION_MODE="forced";
+    public static final CompilerContext.NativeSparkModeType DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE=CompilerContext.NativeSparkModeType.FORCED;
 
 
     @Override
@@ -315,6 +316,6 @@ public class SQLConfiguration implements ConfigurationDefault {
         else if (nativeSparkAggregationModeString.equals("forced"))
             builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
         else
-            builder.nativeSparkAggregationMode = CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+            builder.nativeSparkAggregationMode = SQLConfiguration.DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE;
     }
 }

@@ -1425,7 +1425,7 @@ public interface Property {
 	 *         purposes.
 	 *
 	 * There is a system property of the same name.
-	 * Defaults to the system setting, whose default value is on.
+	 * Defaults to the system setting, whose default value is forced.
 	 */
 	String SPLICE_NATIVE_SPARK_AGGREGATION_MODE =
 		"splice.execution.nativeSparkAggregationMode";
