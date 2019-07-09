@@ -42,7 +42,7 @@ public class BulkDeleteDataSetWriter extends BulkDataSetWriter implements DataSe
 
     public BulkDeleteDataSetWriter(DataSet dataSet, OperationContext operationContext, String bulkDeleteDirectory,
                                    TxnView txn, long heapConglom, int[] colMap) {
-        super(dataSet, operationContext, heapConglom, txn);
+        super(dataSet, operationContext, heapConglom, txn, null);
         this.bulkDeleteDirectory = bulkDeleteDirectory;
         this.colMap = colMap;
     }

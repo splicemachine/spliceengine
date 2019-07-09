@@ -90,6 +90,8 @@ public interface SConfiguration {
 
     long getMaxDdlWait();
 
+    long getMergeRegionTimeout();
+
     // HConfiguration
     int getRegionServerHandlerCount();
 

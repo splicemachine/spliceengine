@@ -816,8 +816,13 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
-        if (dependencyMap != null)
-            return assignedTableMap.contains(dependencyMap);
+        if (dependencyMap != null) {
+            if (existsTable || fromSSQ)
+                // the check of getFirstSetBit()!= -1 ensures that exists table or table converted from SSQ won't be the leftmost table
+                return (assignedTableMap.getFirstSetBit()!= -1) && assignedTableMap.contains(dependencyMap);
+            else
+                return assignedTableMap.contains(dependencyMap);
+        }
 
         return !(childResult instanceof Optimizable) || ((Optimizable)childResult).legalJoinOrder(assignedTableMap);
     }

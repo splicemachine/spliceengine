@@ -51,6 +51,7 @@ public class ConfigurationBuilder {
     public long ddlDrainingMaximumWait;
     public long ddlRefreshInterval;
     public long maxDdlWait;
+    public long mergeRegionTimeout;
 
     // AuthenticationConfiguration
     public boolean authenticationNativeCreateCredentialsDatabase;

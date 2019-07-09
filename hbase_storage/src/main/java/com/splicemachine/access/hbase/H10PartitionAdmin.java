@@ -41,6 +41,7 @@ import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.exceptions.ConnectionClosingException;
+import org.apache.hadoop.hbase.exceptions.MergeRegionException;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.security.access.AccessControlClient;
@@ -227,7 +228,7 @@ public class H10PartitionAdmin implements PartitionAdmin{
 
     @Override
     public void mergeRegions(String regionName1, String regionName2) throws IOException {
-        admin.mergeRegions(Bytes.toBytes(regionName1), Bytes.toBytes(regionName2), false);
+        retriableMergeRegions(regionName1, regionName2, 100, 0);
     }
 
     @Override
@@ -338,7 +339,6 @@ public class H10PartitionAdmin implements PartitionAdmin{
         String regionName = partition.getName();
         admin.assign(regionName.getBytes());
         HBaseFsckRepair.waitUntilAssigned(admin, ((RangedClientPartition)partition).getRegionInfo());
-
     }
 
     @Override
@@ -410,6 +410,18 @@ public class H10PartitionAdmin implements PartitionAdmin{
                     grantPrivilegesIfNeeded(userName, spliceNamespace);
 
                     return Collections.emptyList();
+
+                case "grantCreatePrivilege": {
+                    userName = Bytes.toString(bytes);
+                    boolean granted = grantCreatePrivilege(tableName, userName);
+                    return Arrays.asList(new Boolean(granted).toString().getBytes());
+                }
+
+                case "revokeCreatePrivilege": {
+                    userName = Bytes.toString(bytes);
+                    boolean granted = revokeCreatePrivilege(tableName, userName);
+                    return Arrays.asList(new Boolean(granted).toString().getBytes());
+                }
                 default:
                     throw new UnsupportedOperationException(operation);
 
@@ -460,12 +472,54 @@ public class H10PartitionAdmin implements PartitionAdmin{
             }
             admin.modifyTable(tn, htd);
             SpliceLogUtils.info(LOG, "disabled replication for table %s", tn);
-        }
-        finally {
+        } finally {
             if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
                 admin.enableTable(tn);
             }
         }
+    }
+
+    private boolean grantCreatePrivilege(String tableName, String userName) throws Throwable{
+
+        if (hasCreatePrivilege(tableName, userName)){
+            SpliceLogUtils.info(LOG, "User %s already has create privilege for table %s. Ignore grant request.",
+                    userName, tableName);
+            return false;
+        }
+
+        SpliceLogUtils.info(LOG, "granting create privilege to user %s on table %s", userName, tableName);
+        for (String user : Arrays.asList(userName, userName.toUpperCase(), userName.toLowerCase())) {
+            AccessControlClient.grant(admin.getConnection(), TableName.valueOf(tableName), user,null, null,
+                    Permission.Action.CREATE);
+        }
+        return true;
+    }
+
+    private boolean hasCreatePrivilege(String tableName, String userName) throws Throwable{
+        List<UserPermission> permissions = AccessControlClient.getUserPermissions(admin.getConnection(), tableName);
+        for (String user : Arrays.asList(userName, userName.toUpperCase(), userName.toLowerCase())) {
+            UserPermission up = getPermission(permissions, user);
+            if (up == null || !up.implies(TableName.valueOf(tableName), null, null, Permission.Action.CREATE))
+                return false;
+        }
+        return true;
+    }
+
+
+    private boolean revokeCreatePrivilege(String tableName, String userName) throws Throwable{
+
+        if (!hasCreatePrivilege(tableName, userName)){
+            SpliceLogUtils.info(LOG, "User %s does not have create privilege for table %s. Ignore revoke request.",
+                    userName, tableName);
+            return false;
+        }
+
+        SpliceLogUtils.info(LOG, "revoking create privilege on table %s from user %s", tableName, userName);
+        for (String user : Arrays.asList(userName, userName.toUpperCase(), userName.toLowerCase())) {
+            AccessControlClient.revoke(admin.getConnection(), TableName.valueOf(tableName), user,null, null,
+                    Permission.Action.CREATE);
+        }
+        return true;
     }
 
     private void grantPrivilegesIfNeeded(String userName, String spliceNamespace) throws Throwable {
@@ -507,5 +561,25 @@ public class H10PartitionAdmin implements PartitionAdmin{
             }
         }
         return null;
+    }
+
+    private void retriableMergeRegions(String regionName1, String regionName2, int maxRetries, int retry) throws IOException {
+        try {
+            admin.mergeRegions(Bytes.toBytes(regionName1), Bytes.toBytes(regionName2), false);
+        }
+        catch (MergeRegionException e) {
+            SpliceLogUtils.warn(LOG, "Merge failed:", e);
+            if (e.getMessage().contains("Unable to merge regions not online") && retry < maxRetries) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    throw new IOException(e);
+                }
+                SpliceLogUtils.info(LOG, "retry merging region %s and %s", regionName1, regionName2);
+                retriableMergeRegions(regionName1, regionName2, maxRetries, retry+1);
+            }
+            else
+                throw e;
+        }
     }
 }

@@ -518,7 +518,6 @@ public class BackupSystemProcedures {
             destTable = EngineUtils.validateTable(destTable);
             sourceSchema = EngineUtils.validateSchema(sourceSchema);
             sourceTable = EngineUtils.validateTable(sourceTable);
-            validateTable(destSchema, destTable);
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             backupManager.restoreTable(destSchema, destTable, sourceSchema, sourceTable, directory, backupId, validate);
         } catch (Throwable t) {
