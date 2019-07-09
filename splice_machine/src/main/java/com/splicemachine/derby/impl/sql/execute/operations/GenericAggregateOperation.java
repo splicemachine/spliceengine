@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -69,7 +70,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 					// If the system-level setting was never set up for whatever reason, pick
 					// up the default setting here.
 					if (this.nativeSparkMode == CompilerContext.NativeSparkModeType.SYSTEM)
-						this.nativeSparkMode = CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+						this.nativeSparkMode = SQLConfiguration.DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE;
 				}
 				else
 					this.nativeSparkMode = nativeSparkMode;

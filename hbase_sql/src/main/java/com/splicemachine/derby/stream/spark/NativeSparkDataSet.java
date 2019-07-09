@@ -320,7 +320,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     if (context != null &&
                         context.getOperation().getExecRowDefinition()
                                                   instanceof ValueRow)
-                        vr = (ValueRow) context.getOperation().getExecRowDefinition();
+                        vr = (ValueRow) context.getOperation().getExecRowDefinition().getClone();
                     else
                         vr = new ValueRow(input.size());
                 }
