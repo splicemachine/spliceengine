@@ -69,7 +69,7 @@ import com.splicemachine.utils.logging.Logging;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.logging.log4j;
+import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.net.HostAndPort;
@@ -94,7 +94,7 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH
  */
 @SuppressWarnings("unused")
 public class SpliceAdmin extends BaseAdminProcedures{
-    private static LogManager LOG=LogManager.getLogger(SpliceAdmin.class);
+    private static Logger LOG=Logger.getLogger(SpliceAdmin.class);
 
     public static void SYSCS_SET_LOGGER_LEVEL(final String loggerName,final String logLevel) throws SQLException{
         List<HostAndPort> servers;
@@ -137,7 +137,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
 
         StringBuilder sb=new StringBuilder("select * from (values ");
-        String loggerLevel=LogManager.getLoggerLevel(loggerName);
+        String loggerLevel=logging.getLoggerLevel(loggerName);
         sb.append(String.format("('%s')",loggerLevel));
         sb.append(") foo (logLevel)");
         resultSet[0]=executeStatement(sb);
@@ -190,7 +190,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
 
     public static void SYSCS_GET_LOGGERS_LOCAL(final ResultSet[] resultSet) throws SQLException {
-        LogManager logging;
+        Logging logging;
         try {
             logging = JMXUtils.getLocalMXBeanProxy(JMXUtils.LOGGING_MANAGEMENT, Logging.class);
         }catch(MalformedObjectNameException e){
