@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -718,6 +719,15 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
+    private static Column adaptSQLCharColumn(Column strCol, SQLChar dvd) {
+        try {
+            return functions.rpad(strCol, dvd.getString().length(), " ");
+        } catch (StandardException e) {
+            LOG.warn("Cannot get the SQL CHAR string value, Spark String column is not adapted.", e);
+            return strCol;
+        }
+    }
+
 
     private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
         assert qual_list!=null:"qualifier[][] passed in is null";
@@ -729,7 +739,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 continue; // Cannot Push Down Qualifier
             Column col = dataset.col(allColIdInSpark[q.getStoragePosition()]);
             q.clearOrderableCache();
-            Object value = (probeValue==null || i!=0?q.getOrderable():probeValue).getObject();
+
+            DataValueDescriptor dvd = probeValue;
+            if (dvd == null || i != 0) {
+                dvd = q.getOrderable();
+            }
+
+            if (dvd instanceof  SQLChar) {
+                col = adaptSQLCharColumn(col, (SQLChar) dvd);
+            }
+
+//            Object value = (probeValue==null || i!=0?q.getOrderable():probeValue).getObject();
+            Object value = dvd.getObject();
             switch (q.getOperator()) {
                 case DataType.ORDER_OP_LESSTHAN:
                     col=q.negateCompareResult()?col.geq(value):col.lt(value);
@@ -763,7 +784,14 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 if (q.getVariantType() == Qualifier.VARIANT)
                     continue; // Cannot Push Down Qualifier
                 q.clearOrderableCache();
-                Column orCol = dataset.col(allColIdInSpark[(baseColumnMap != null ? baseColumnMap[q.getStoragePosition()] : q.getStoragePosition())]);
+//                Column orCol = dataset.col(allColIdInSpark[(baseColumnMap != null ? baseColumnMap[q.getStoragePosition()] : q.getStoragePosition())]);
+                Column orCol = dataset.col(allColIdInSpark[q.getStoragePosition()]);
+
+                DataValueDescriptor dvd = q.getOrderable();
+                if (dvd instanceof  SQLChar) {
+                    orCol = adaptSQLCharColumn(orCol, (SQLChar) dvd);
+                }
+
                 Object value = q.getOrderable().getObject();
                 switch (q.getOperator()) {
                     case DataType.ORDER_OP_LESSTHAN:
