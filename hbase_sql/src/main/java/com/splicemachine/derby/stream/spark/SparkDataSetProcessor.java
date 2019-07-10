@@ -728,7 +728,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
-
     private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
         assert qual_list!=null:"qualifier[][] passed in is null";
         boolean     row_qualifies = true;
@@ -749,7 +748,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 col = adaptSQLCharColumn(col, (SQLChar) dvd);
             }
 
-//            Object value = (probeValue==null || i!=0?q.getOrderable():probeValue).getObject();
             Object value = dvd.getObject();
             switch (q.getOperator()) {
                 case DataType.ORDER_OP_LESSTHAN:
@@ -784,7 +782,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 if (q.getVariantType() == Qualifier.VARIANT)
                     continue; // Cannot Push Down Qualifier
                 q.clearOrderableCache();
-//                Column orCol = dataset.col(allColIdInSpark[(baseColumnMap != null ? baseColumnMap[q.getStoragePosition()] : q.getStoragePosition())]);
+
                 Column orCol = dataset.col(allColIdInSpark[q.getStoragePosition()]);
 
                 DataValueDescriptor dvd = q.getOrderable();
