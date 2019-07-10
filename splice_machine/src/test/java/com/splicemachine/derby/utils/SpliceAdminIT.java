@@ -328,7 +328,6 @@ public class SpliceAdminIT extends SpliceUnitTest{
         DbUtils.closeQuietly(rs);
     }
 
-    @Test
     public void testGetSetLogLevel() throws Exception {
         String logger = "com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext";
         String origLevel = "FRED";
