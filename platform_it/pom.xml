@@ -858,7 +858,7 @@
                                     -Dsplice.spark.driver.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
                                 <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
-                                <argument>-Dsplice.spark.driver.memory=1g</argument>
+                                <argument>-Dsplice.spark.driver.memory=4g</argument>
                                 <argument>-Dsplice.spark.enabled=true</argument>
                                 <argument>-Dsplice.spark.executor.cores=16</argument>
                                 <argument>${spark.defaultfs}</argument>
