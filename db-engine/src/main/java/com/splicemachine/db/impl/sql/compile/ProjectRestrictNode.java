@@ -1402,7 +1402,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 		 * Reflection is not needed if all of the columns map directly to source
 		 * columns.
 		 */
-		boolean canUseSparkSQLExpressions = false;
+        boolean canUseSparkSQLExpressions = false;
+        boolean hasGroupingFunction = false;
         if(reflectionNeededForProjection()){
             // for the resultColumns, we generate a userExprFun
             // that creates a new row from expressions against
@@ -1415,6 +1416,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
             /* Generate the Row function for the projection */
             canUseSparkSQLExpressions = resultColumns.generateCore(acb,mb,false);
+            hasGroupingFunction = resultColumns.hasGroupingFunction();
         }else{
             mb.pushNull(ClassName.GeneratedMethod);
         }
@@ -1468,8 +1470,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(filterPred);
 
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
-
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,14);
+        mb.push(hasGroupingFunction);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,15);
     }
 
     /**

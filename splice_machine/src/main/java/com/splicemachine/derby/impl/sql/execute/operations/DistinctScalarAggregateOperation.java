@@ -135,8 +135,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
             dataSetWithNativeSparkAggregation =
                 dataSet.applyNativeSparkAggregation(null, aggregates,
                                                     false, operationContext);
-        if (dataSetWithNativeSparkAggregation != null)
+        if (dataSetWithNativeSparkAggregation != null) {
+            nativeSparkUsed = true;
             return dataSetWithNativeSparkAggregation;
+        }
 
         int numDistinctAggs = 0;
         for (SpliceGenericAggregator aggregator : aggregates) {

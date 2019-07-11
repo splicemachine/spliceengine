@@ -184,8 +184,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             dataSetWithNativeSparkAggregation =
                 set.applyNativeSparkAggregation(extendedGroupBy, aggregates,
                                                 isRollup, operationContext);
-        if (dataSetWithNativeSparkAggregation != null)
+        if (dataSetWithNativeSparkAggregation != null) {
+            nativeSparkUsed = true;
             return dataSetWithNativeSparkAggregation;
+        }
 
         if (isRollup) {
             extendedGroupBy = new int[numOfGroupKeys+1];

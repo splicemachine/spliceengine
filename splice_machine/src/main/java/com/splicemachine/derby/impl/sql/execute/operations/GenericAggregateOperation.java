@@ -47,6 +47,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		protected ExecIndexRow sortTemplateRow;
 		protected CompilerContext.NativeSparkModeType nativeSparkMode =
 		           CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+		protected boolean nativeSparkUsed = false;
 
 		public GenericAggregateOperation () {
 				super();
@@ -83,6 +84,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 			return nativeSparkMode == CompilerContext.NativeSparkModeType.ON ||
 			       nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED;
 		}
+		public boolean nativeSparkUsed() { return nativeSparkUsed; }
 
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {

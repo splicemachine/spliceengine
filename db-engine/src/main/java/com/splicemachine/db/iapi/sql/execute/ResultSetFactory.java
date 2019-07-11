@@ -346,6 +346,8 @@ public interface ResultSetFactory {
 		                   NativeSparkDataSet, if applicable.
 		@param expressions The projected expressions to select from a source
 		                   NativeSparkDataSet, if applicable.
+	        @param hasGroupingFunction Is true if one of the projections is a
+	                                   grouping function that needs special handling.
 		@return the project restrict operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -362,7 +364,8 @@ public interface ResultSetFactory {
                                                double optimizerEstimatedCost,
                                                String explainPlan,
                                                String filterPred,
-                                               String[] expressions) throws StandardException;
+                                               String[] expressions,
+	                                       boolean hasGroupingFunction) throws StandardException;
 
 	/**
 		A hash table result set builds a hash table on its source,

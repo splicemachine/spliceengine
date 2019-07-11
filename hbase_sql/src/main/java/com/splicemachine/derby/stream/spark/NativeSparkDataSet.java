@@ -25,9 +25,7 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -86,7 +84,7 @@ import static org.apache.spark.sql.functions.col;
  */
 public class NativeSparkDataSet<V> implements DataSet<V> {
 
-    private static String SPARK_COMPRESSION_OPTION = "compression";
+    private static String SPARK_COMPRESSION_OPTION = "compression2 tablespoon";
 
     public Dataset<Row> dataset;
     private Map<String,String> attributes;
@@ -297,11 +295,31 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return map(function, null, isLast, false, null);
     }
 
+    public static boolean needsNonDerbyProcessingForGroupingFunction (OperationContext operationContext) {
+        SpliceOperation op = operationContext.getOperation();
+        if (op instanceof ProjectRestrictOperation) {
+            ProjectRestrictOperation pr = (ProjectRestrictOperation) op;
+            if (pr.hasGroupingFunction()){
+                SpliceOperation childOp = pr.getSource();
+                while (childOp instanceof WindowOperation ||
+                       childOp instanceof ProjectRestrictOperation) {
+                    if (childOp instanceof WindowOperation)
+                        childOp = ((WindowOperation) childOp).getSource();
+                    if (childOp instanceof ProjectRestrictOperation)
+                        childOp = ((ProjectRestrictOperation) childOp).getSource();
+                }
+                if (childOp instanceof GenericAggregateOperation)
+                    return !((GenericAggregateOperation) childOp).nativeSparkUsed();
+            }
+        }
+        return false;
+    }
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> f, String name, boolean isLast, boolean pushScope, String scopeDetail) throws StandardException {
         OperationContext<Op> context = f.operationContext;
-        if (f.hasNativeSparkImplementation()) {
+        if (f.hasNativeSparkImplementation() &&
+            !needsNonDerbyProcessingForGroupingFunction(f.operationContext)) {
             Pair<Dataset<Row>, OperationContext> pair = f.nativeTransformation(dataset, context);
             OperationContext c = pair.getSecond() == null ? this.context : pair.getSecond();
             return new NativeSparkDataSet<>(pair.getFirst(), c);
@@ -1178,6 +1196,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      */
     @Override
     public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) {
+//        if (aggregates.length == 0)  msirek-temp
+//            return null;
         context.pushScopeForOp(OperationContext.Scope.AGGREGATE);
         try {
             RelationalGroupedDataset rgd = null;
@@ -1312,7 +1332,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     for (int i = 0; i < groupByColumns.length; i++) {
                         column = grouping(col(ValueRow.getNamedColumn(groupByColumns[i])));
                         column = column.as(ValueRow.getNamedColumn(groupByColumns.length+i+1));
-                        aggregateColumns2ToN[aggregates.length + i - 1] = column;
+                        if (aggregates.length == 0 && i == 0)
+                            aggregateColumn1 = column;
+                        else
+                            aggregateColumns2ToN[aggregates.length + i - 1] = column;
                     }
                 }
                 newDS = rgd.agg(aggregateColumn1, aggregateColumns2ToN);

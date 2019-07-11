@@ -61,6 +61,9 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
         super.init( operand, "grouping", "isGrouping");
     }
 
+    public ValueNode getGroupingIdRefForSpark() {
+        return groupingIdRefForSpark;
+    }
     @Override
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
@@ -162,6 +165,9 @@ public final class GroupingFunctionNode extends UnaryOperatorNode {
         super.acceptChildren(v);
         if (groupingIdRef  != null) {
             groupingIdRef  = (ValueNode)groupingIdRef .accept(v, this);
+        }
+        if (groupingIdRefForSpark  != null) {
+            groupingIdRefForSpark  = (ValueNode)groupingIdRefForSpark.accept(v, this);
         }
     }
 

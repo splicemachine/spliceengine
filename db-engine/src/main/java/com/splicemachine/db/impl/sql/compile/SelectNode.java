@@ -1808,14 +1808,18 @@ public class SelectNode extends ResultSetNode{
 //                }
 //            }
 
-			/* Concatenate the 2 ResultColumnLists */
-            leftRCList.nondestructiveAppend(rightRCList);
+	    /* Concatenate the 2 ResultColumnLists for joins that
+	     *  will return columns from the right ResultSet.
+	     * */
+            if (!rightResultSet.isOneRowResultSet() &&
+                !rightResultSet.isNotExists())  // msirek-temp
+                leftRCList.nondestructiveAppend(rightRCList);
 
-			/* Now we're finally ready to generate the JoinNode and have it
-			 * replace the 1st 2 entries in the FromList.
-			 */
-			JoinNode joinNode;
-			if (!rightResultSet.getFromSSQ()) {
+            /* Now we're finally ready to generate the JoinNode and have it
+             * replace the 1st 2 entries in the FromList.
+             */
+            JoinNode joinNode;
+            if (!rightResultSet.getFromSSQ()) {
                 joinNode = (JoinNode) getNodeFactory().getNode(
                         C_NodeTypes.JOIN_NODE,
                         leftResultSet,

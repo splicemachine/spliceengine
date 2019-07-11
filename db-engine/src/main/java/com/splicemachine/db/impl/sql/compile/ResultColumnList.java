@@ -61,6 +61,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
 import java.lang.reflect.Modifier;
+import java.security.acl.Group;
 import java.sql.ResultSetMetaData;
 import java.sql.Types;
 import java.util.*;
@@ -125,6 +126,16 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 		/* Vectors are 0-based, ResultColumns are 1-based */
         resultColumn.setVirtualColumnId(size()+1);
         addElement(resultColumn);
+    }
+
+    public boolean hasGroupingFunction() {
+        int size=size();
+        for(int index=0;index<size;index++){
+            ResultColumn rc=elementAt(index);
+            if (rc.getExpression() instanceof GroupingFunctionNode)
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -3705,7 +3716,6 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 
                 if ( sourceExpr instanceof VirtualColumnNode && ! ( ((VirtualColumnNode) sourceExpr).getCorrelated()) )
                 {
-                    isExpressableInSparkSQL = false;
                     continue;
                 }
 
