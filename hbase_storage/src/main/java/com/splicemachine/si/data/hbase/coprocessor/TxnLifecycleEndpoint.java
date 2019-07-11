@@ -231,12 +231,14 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         long startTxnId=request.getStartTxnId();
         try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             byte[] destTables=null;
-            if(request.hasDestinationTables())
-                destTables=request.getDestinationTables().toByteArray();
-            Source<TxnMessage.Txn> activeTxns=lifecycleStore.getActiveTransactions(destTables,startTxnId,endTxnId);
-            TxnMessage.ActiveTxnResponse.Builder response=TxnMessage.ActiveTxnResponse.newBuilder();
-            while(activeTxns.hasNext()){
-                response.addTxns(activeTxns.next());
+            if (request.hasDestinationTables()) {
+                destTables = request.getDestinationTables().toByteArray();
+            }
+            TxnMessage.ActiveTxnResponse.Builder response = TxnMessage.ActiveTxnResponse.newBuilder();
+            try (Source<TxnMessage.Txn> activeTxns = lifecycleStore.getActiveTransactions(destTables, startTxnId, endTxnId)) {
+                while (activeTxns.hasNext()) {
+                    response.addTxns(activeTxns.next());
+                }
             }
             done.run(response.build());
         }catch(IOException e){
