@@ -271,6 +271,7 @@ public class ClusterDDLTestIT {
         ResultSet rs = conn1.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
         assertTrue(rs.next());
         long txnId = rs.getLong(1);
+        conn1.prepareStatement("call SYSCS_UTIL.SYSCS_KILL_TRANSACTION(" + txnId + ")");
 
         for (int i = 0; i<1024; ++i) {
             ps.execute();
