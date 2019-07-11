@@ -115,13 +115,15 @@ class SpliceTestPlatformConfig {
 
         config.set(SQLConfiguration.STORAGE_FACTORY_HOME,hbaseRootDirUri);
 
-        //
+        //config.setLong(HConstants.HREGION_MAX_FILESIZE, 10240 * MiB);
         // Coprocessors
         //
         config.set("hbase.coprocessor.regionserver.classes", getRegionServerCoprocessorsAsString());
         config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString(secure));
         config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString(secure));
 
+        config.setLong(HConstants.HREGION_MAX_FILESIZE, 10240 * MiB);
+        
         // Security
 
         if (secure) {
