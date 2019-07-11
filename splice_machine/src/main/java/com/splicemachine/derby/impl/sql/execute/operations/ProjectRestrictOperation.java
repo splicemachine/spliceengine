@@ -72,6 +72,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private ExecRow projRow;
 		private String filterPred = null;
 		private String[] expressions = null;
+		private boolean hasGroupingFunction;
 
 	    protected static final String NAME = ProjectRestrictOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -87,6 +88,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         public boolean hasFilterPred() {
 		    return (filterPred != null && !filterPred.isEmpty());
         }
+
+        public boolean hasGroupingFunction() { return hasGroupingFunction; }
 
         public String getFilterPred() {
 		    if (hasFilterPred())
@@ -115,7 +118,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                         double optimizerEstimatedRowCount,
                                         double optimizerEstimatedCost,
                                         String filterPred,
-                                        String[] expressions) throws StandardException {
+                                        String[] expressions,
+				        boolean hasGroupingFunction) throws StandardException {
 				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
 				this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
@@ -127,6 +131,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				this.source = source;
 				this.filterPred = filterPred;
 				this.expressions = expressions;
+				this.hasGroupingFunction = hasGroupingFunction;
 				init();
 		}
 
@@ -162,6 +167,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				            expressions[i] = readNullableString(in);
 				        }
 				    }
+				    hasGroupingFunction = in.readBoolean();
 				}
 		}
 
@@ -186,6 +192,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				        writeNullableString(expressions[i], out);
 				    }
 				}
+				out.writeBoolean(hasGroupingFunction);
 		}
 
 		@Override

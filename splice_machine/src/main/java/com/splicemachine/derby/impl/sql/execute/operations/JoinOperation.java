@@ -313,15 +313,23 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 								.toString();
 		}
 
-		@Override
-        public ExecRow getExecRowDefinition() throws StandardException {
-            if (mergedRowTemplate == null) {
-                mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
-                JoinUtils.getMergedRow(leftResultSet.getExecRowDefinition(), rightResultSet.getExecRowDefinition(),
-                                          wasRightOuterJoin, mergedRowTemplate);
-            }
-            return mergedRowTemplate;
-        }
+	@Override
+	public ExecRow getExecRowDefinition() throws StandardException {
+	    if (mergedRowTemplate == null) {
+	    	// Semijoin does not include the right relation columns.
+//		if (!wasRightOuterJoin &&  msirek-temp
+//		    (isOneRowRightSide() || notExistsRightSide)) {
+//			mergedRowTemplate = leftResultSet.getExecRowDefinition().getClone();
+//		}
+//		else
+		{
+			mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
+			JoinUtils.getMergedRow(leftResultSet.getExecRowDefinition(), rightResultSet.getExecRowDefinition(),
+			wasRightOuterJoin, mergedRowTemplate);
+		}
+	    }
+	    return mergedRowTemplate;
+	}
 
     public Restriction getRestriction() {
 		if (mergeRestriction == null) {

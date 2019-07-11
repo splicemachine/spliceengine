@@ -137,8 +137,10 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             dataSetWithNativeSparkAggregation =
                 dsSource.applyNativeSparkAggregation(null, aggregates,
                                                      false, operationContext);
-        if (dataSetWithNativeSparkAggregation != null)
+        if (dataSetWithNativeSparkAggregation != null) {
+            nativeSparkUsed = true;
             return dataSetWithNativeSparkAggregation;
+        }
         DataSet<ExecRow> ds = dsSource.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, false), false, /*pushScope=*/true, "First Aggregation");
         DataSet<ExecRow> ds2 = ds.coalesce(1, /*shuffle=*/true, /*isLast=*/false, operationContext, /*pushScope=*/true, "Coalesce");
         return ds2.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, true), /*isLast=*/true, /*pushScope=*/true, "Final Aggregation");

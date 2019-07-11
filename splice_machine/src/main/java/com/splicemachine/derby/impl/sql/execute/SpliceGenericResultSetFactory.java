@@ -180,7 +180,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       double optimizerEstimatedCost,
                                                       String explainPlan,
                                                       String filterPred,
-                                                      String[] expressions) throws StandardException {
+                                                      String[] expressions,
+                                                      boolean hasGroupingFunction) throws StandardException {
         assert source!=null:"passed in source is null";
         SpliceLogUtils.trace(LOG, "getProjectRestrictResultSet");
         try{
@@ -194,7 +195,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     filterPred,
-                    expressions);
+                    expressions,
+                    hasGroupingFunction);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){

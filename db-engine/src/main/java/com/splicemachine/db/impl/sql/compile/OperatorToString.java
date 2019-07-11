@@ -36,9 +36,12 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import org.apache.commons.lang3.mutable.MutableInt;
+
+import java.security.acl.Group;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
@@ -247,6 +250,14 @@ public class OperatorToString {
                     String isNullString = format("%s %s", opToString2(uop.getOperand(), vars), operatorString);
                     vars.relationalOpDepth.decrement();
                     return isNullString;
+                }
+                else if (operand instanceof GroupingFunctionNode) {
+                    GroupingFunctionNode gfn = (GroupingFunctionNode) operand;
+                    ValueNode groupingIdRefForSpark = gfn.getGroupingIdRefForSpark();
+                    if (groupingIdRefForSpark == null)
+                        throwNotImplementedError();
+                    else
+                        return opToString2(groupingIdRefForSpark, vars);
                 }
                 else if (operand instanceof ExtractOperatorNode) {
                     ExtractOperatorNode eon = (ExtractOperatorNode) operand;
