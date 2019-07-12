@@ -73,10 +73,12 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                             new ConcurrentLinkedDeque<Integer>();
 
     private ExecRow heapRowToReturn;
-    private ExecRow indexRowToReturn;
+    // private ExecRow indexRowToReturn;  // msirek-temp
     private Future<Boolean> readerFuture;
     private boolean readerThreadStarted = false;
     private int savedThreadPriority = Thread.currentThread().getPriority();
+    private boolean indexHasProjectedColumns;
+    private volatile int numBatchesCompletedAndQueued = 0;
 
     IndexRowReader(Iterator<ExecRow> sourceIterator,
                    ExecRow outputTemplate,
@@ -118,6 +120,12 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
         executorService = Executors.newFixedThreadPool(numConcurrentLookups);
         executorCompletionService = new ExecutorCompletionService<>(executorService);
+
+         for (int index = 0; index < indexCols.length; index++) {
+            if (indexCols[index] != -1) {
+               indexHasProjectedColumns = true;
+            }
+         }
     }
 
     // Return the maximum number of threads that could be simultaneously
@@ -140,6 +148,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
     protected void addResultsToQueue (LookupResponse response) {
         currentResultsQueue.add(response);
+        numBatchesCompletedAndQueued++;
     }
 
     protected void getCurrentResultsFromQueue () throws StandardException {
@@ -153,6 +162,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                     //response = currentResultsQueue.poll();
                     //Thread.sleep(50L);
                     currentResults = currentResultsQueue.take();
+                    numBatchesCompletedAndQueued--;
                 }
 //                if (response != null)
 //                    currentResults = response;
@@ -168,9 +178,9 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         return heapRowToReturn;
     }
 
-    public ExecRow nextScannedRow(){
-        return indexRowToReturn;
-    }
+//    public ExecRow nextScannedRow(){
+//        return indexRowToReturn;
+//    }  msirek-temp
 
     @Override
     public void remove(){
@@ -180,25 +190,22 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     @Override
     public boolean hasNext(){
         try{
-
             ExecRow row = currentResults.getNextRow();
             if (row != null) {
                 heapRowToReturn  = row;
-                indexRowToReturn = row;
                 return true;
             }
             if (!readerThreadStarted) {
                 AsynchIndexRowReader task = new AsynchIndexRowReader();
                 readerFuture = SIDriver.driver().getExecutorService().submit(task);
                 readerThreadStarted = true;
-                //Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+                // Thread.currentThread().setPriority(Thread.MIN_PRIORITY);  // msirek-temp
             }
             getCurrentResultsFromQueue();
             row = currentResults.getNextRow();
 
             if (row != null) {
                 heapRowToReturn = row;
-                indexRowToReturn = row;
                 return true;
             }
 
@@ -244,6 +251,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                     if (!sourceIterator.hasNext())
                         break;
                     ExecRow next = sourceIterator.next();
+                    if (indexHasProjectedColumns)
                     for (int index = 0; index < indexCols.length; index++) {
                         if (indexCols[index] != -1) {
                             outputTemplate.setColumn(index + 1, next.getColumn(indexCols[index] + 1));
@@ -259,7 +267,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                     if (useOldIndexLookupMethod)
                         resultFutures.add(SIDriver.driver().getExecutorService().submit(task));
                     else
-                        resultFutures.add(executorCompletionService.submit(task));
+                        executorCompletionService.submit(task);
                     numQueuedThreads++;
                 }
 
@@ -271,7 +279,9 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 //                    getMoreData();
             }
             //else if(!resultFutures.isEmpty()){
-            if (numQueuedThreads > 0) {  //msirek-temp
+            //if (numQueuedThreads == numConcurrentLookups) {
+            if (numQueuedThreads > 0 && numBatchesCompletedAndQueued == 0) {  //msirek-temp
+            //if (numQueuedThreads > 0) {  //msirek-temp
                 pollForBlockCompletion();
             }
         }
@@ -287,7 +297,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                     future = executorCompletionService.poll();
 
                 if (future != null)
-                    response = future.get(2L, TimeUnit.MILLISECONDS);
+                    response = future.get(2, TimeUnit.MILLISECONDS);  // msirek-temp
                 if (response != null) {
                     if (useOldIndexLookupMethod)
                         resultFutures.remove(0);
@@ -334,24 +344,44 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     public class LookupResponse {
         private final List<ExecRow> sourceRows;
         private int threadNumber;
+        Iterator<ExecRow> iter;
 
         public LookupResponse(List<ExecRow> sourceRows, int threadNumber){
             this.sourceRows=sourceRows;
             this.threadNumber = threadNumber;
+            this.iter = sourceRows.iterator();
         }
 
         public boolean isEmpty() {
-            return sourceRows.isEmpty();
+           return sourceRows.isEmpty();
         }
 
+//        public ExecRow getNextRow() {
+//            if (!iter.hasNext()) {
+//                yieldThreadNumber();
+//                return null;
+//            }
+//            else
+//                //return sourceRows.remove(0);  // msirek-temp
+//                return iter.next();
+//        }
         public ExecRow getNextRow() {
             if (sourceRows.isEmpty()) {
                 yieldThreadNumber();
                 return null;
             }
             else
-                return sourceRows.remove(0);
+                return sourceRows.remove(0);  // msirek-temp
         }
+//        public ExecRow getNextRow() {
+//            try {
+//                return sourceRows.remove(0);
+//            }
+//            catch (IndexOutOfBoundsException e) {
+//                yieldThreadNumber();
+//                return null;
+//            }
+//        }
 
         // Give up reservation of the held thread number so a new
         // thread can grab it.
