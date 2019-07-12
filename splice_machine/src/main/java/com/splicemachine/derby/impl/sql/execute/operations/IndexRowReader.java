@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.spark.InterruptibleIterator;
@@ -39,8 +40,10 @@ import scala.collection.JavaConverters;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -65,9 +68,11 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private final TxnView txn;
     private final TxnOperationFactory operationFactory;
     private final PartitionFactory tableFactory;
+    private boolean init = false;
 
     private List<Pair<ExecRow, DataResult>> currentResults;
-    private List<Future<List<Pair<ExecRow, DataResult>>>> resultFutures;
+    private ArrayBlockingQueue<Future<List<Pair<ExecRow, DataResult>>>> resultFutures;
+    private ArrayBlockingQueue<ExecRow> toReturn;
     protected Iterator<ExecRow> sourceIterator;
 
     private ExecRow heapRowToReturn;
@@ -96,7 +101,8 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         this.keyDecoder=new KeyDecoder(keyDecoder,0);
         this.rowDecoder=rowDecoder;
         this.indexCols=indexCols;
-        this.resultFutures=Lists.newArrayListWithCapacity(this.numBlocks);
+        this.resultFutures = new ArrayBlockingQueue<>(this.numBlocks - 1);
+        this.toReturn = new ArrayBlockingQueue<>(1024);
         this.operationFactory = operationFactory;
     }
 
@@ -123,30 +129,70 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
     }
 
+    private Thread decoder;
+    private Thread fetcher;
+    private volatile Exception asyncException = null;
+    
     @Override
     public boolean hasNext(){
+        if (!init) {
+            init = true;
+            fetcher = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        getMoreData();
+                    } catch (Exception e) {
+                        asyncException = e;
+                        toReturn.offer(null); // unblock main thread
+                    }
+                }
+            }, "index-fetcher");
+            fetcher.setDaemon(true);
+            fetcher.start();
+            decoder = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        boolean halt = false;
+                        while (!halt) {
+                            List<Pair<ExecRow, DataResult>> results = resultFutures.take().get();
+                            if (results.size() < batchSize) {
+                                // last batch, we must halt
+                                halt = true;
+                            }
+
+                            for (Pair<ExecRow, DataResult> next : results) {
+                                ExecRow nextScannedRow=next.getFirst();
+                                DataResult nextFetchedData=next.getSecond();
+                                byte[] rowKey = nextFetchedData.key();
+                                for(DataCell kv : nextFetchedData){
+                                    keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow);
+                                    rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
+                                    rowDecoder.decode(nextScannedRow);
+                                }
+                                nextScannedRow.setKey(rowKey);
+                                toReturn.put(nextScannedRow);
+                            }
+                        }
+                        toReturn.put(null); // signal we are finished
+                    } catch (Exception e) {
+                        asyncException = e;
+                        toReturn.offer(null); // unblock main thread
+                    }
+                }
+            },"index-decoder");
+            decoder.setDaemon(true);
+            decoder.start();
+        }
         try{
-            if(currentResults==null || currentResults.size()<=0)
-                getMoreData();
-
-            if(currentResults==null || currentResults.size()<=0){
-                return false; // No More Data
-            }
-
-            Pair<ExecRow, DataResult> next=currentResults.remove(0);
-            //merge the results
-            ExecRow nextScannedRow=next.getFirst();
-            DataResult nextFetchedData=next.getSecond();
-            byte[] rowKey = nextFetchedData.key();
-            for(DataCell kv : nextFetchedData){
-                keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow);
-                rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
-                rowDecoder.decode(nextScannedRow);
-            }
-            nextScannedRow.setKey(rowKey);
+            ExecRow nextScannedRow = toReturn.take();
             heapRowToReturn=nextScannedRow;
             indexRowToReturn=nextScannedRow;
-            return true;
+            if (asyncException != null)
+                throw asyncException;
+            
+            return nextScannedRow != null;
         }catch(Exception e){
             throw new RuntimeException(e);
         }
@@ -155,7 +201,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
     /**********************************************************************************************************************************/
         /*private helper methods*/
-    private void getMoreData() throws StandardException, IOException{
+    private void getMoreData() throws StandardException, IOException, InterruptedException {
         //read up to batchSize rows from the source, then submit them to the background thread for processing
         List<Pair<byte[],ExecRow>> sourceRows=Lists.newArrayListWithCapacity(batchSize);
         for(int i=0;i<batchSize;i++){
@@ -170,32 +216,13 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             HBaseRowLocation rl=(HBaseRowLocation)next.getColumn(next.nColumns());
             sourceRows.add(new Pair(rl.getBytes(), outputTemplate.getClone()));
         }
-        if(!sourceRows.isEmpty()){
-            //submit to the background thread
-            Lookup task=new Lookup(sourceRows);
-            resultFutures.add(SIDriver.driver().getExecutorService().submit(task));
-        }
+        //submit to the background thread
+        Lookup task=new Lookup(sourceRows);
+        resultFutures.put(SIDriver.driver().getExecutorService().submit(task));
 
         //if there is only one submitted future, call this again to set off an additional background process
-        if(resultFutures.size()<numBlocks && sourceRows.size()==batchSize)
+        if(sourceRows.size()==batchSize)
             getMoreData();
-        else if(!resultFutures.isEmpty()){
-            waitForBlockCompletion();
-        }
-    }
-
-    private void waitForBlockCompletion() throws StandardException, IOException{
-        //wait for the first future to return correctly or error-out
-        try{
-            Future<List<Pair<ExecRow, DataResult>>> future=resultFutures.remove(0);
-            currentResults=future.get();
-        }catch(InterruptedException e){
-            throw new InterruptedIOException(e.getMessage());
-        }catch(ExecutionException e){
-            Throwable t=e.getCause();
-            if(t instanceof IOException) throw (IOException)t;
-            else throw Exceptions.parseException(t);
-        }
     }
 
     public class Lookup implements Callable<List<Pair<ExecRow, DataResult>>>{
@@ -207,6 +234,8 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
 
         @Override
         public List<Pair<ExecRow, DataResult>> call() throws Exception{
+            if (sourceRows.isEmpty()) return Collections.emptyList();
+            
             List<byte[]> rowKeys = new ArrayList<>(sourceRows.size());
             for(Pair<byte[],ExecRow> sourceRow : sourceRows){
                 rowKeys.add(sourceRow.getFirst());
