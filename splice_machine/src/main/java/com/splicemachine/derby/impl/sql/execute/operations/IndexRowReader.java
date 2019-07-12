@@ -145,7 +145,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                         getMoreData();
                     } catch (Exception e) {
                         asyncException = e;
-                        toReturn.offer(null); // unblock main thread
+                        toReturn.offer(SENTINEL); // unblock main thread
                     }
                 }
             }, "index-fetcher");
