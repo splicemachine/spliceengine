@@ -132,6 +132,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     private Thread decoder;
     private Thread fetcher;
     private volatile Exception asyncException = null;
+    private static ExecRow SENTINEL = new ValueRow();
     
     @Override
     public boolean hasNext(){
@@ -175,10 +176,10 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
                                 toReturn.put(nextScannedRow);
                             }
                         }
-                        toReturn.put(null); // signal we are finished
+                        toReturn.put(SENTINEL); // signal we are finished
                     } catch (Exception e) {
                         asyncException = e;
-                        toReturn.offer(null); // unblock main thread
+                        toReturn.offer(SENTINEL); // unblock main thread
                     }
                 }
             },"index-decoder");
@@ -187,12 +188,21 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         }
         try{
             ExecRow nextScannedRow = toReturn.take();
-            heapRowToReturn=nextScannedRow;
-            indexRowToReturn=nextScannedRow;
-            if (asyncException != null)
-                throw asyncException;
-            
-            return nextScannedRow != null;
+            if ( nextScannedRow == SENTINEL) {
+                heapRowToReturn = null;
+                indexRowToReturn = null;
+                if (asyncException != null)
+                    throw asyncException;
+                
+                return false;
+            } else {
+                heapRowToReturn = nextScannedRow;
+                indexRowToReturn = nextScannedRow;
+                if (asyncException != null)
+                    throw asyncException;
+
+                return true;
+            }
         }catch(Exception e){
             throw new RuntimeException(e);
         }
