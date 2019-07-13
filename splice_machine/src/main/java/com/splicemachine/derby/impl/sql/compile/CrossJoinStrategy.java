@@ -128,8 +128,8 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
 
     @Override
     public void divideUpPredicateLists(Optimizable innerTable, OptimizablePredicateList originalRestrictionList, OptimizablePredicateList storeRestrictionList, OptimizablePredicateList nonStoreRestrictionList, OptimizablePredicateList requalificationRestrictionList, DataDictionary dd) throws StandardException {
-        originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable);
-        originalRestrictionList.copyPredicatesToOtherList(nonStoreRestrictionList);
+       originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable);
+       originalRestrictionList.copyPredicatesToOtherList(nonStoreRestrictionList);
     }
 
     @Override
@@ -181,6 +181,13 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+
+	// Cross join can't handle IndexLookups on the inner table currently because
+        // the join predicates get mapped to the IndexScan instead of the CrossJoin.
+        // Broadcast join has a similar restriction.
+	if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
+            return false;
+
         AccessPath currentAccessPath = innerTable.getCurrentAccessPath();
         boolean isSpark = false;
         boolean isForcedControl = false;
