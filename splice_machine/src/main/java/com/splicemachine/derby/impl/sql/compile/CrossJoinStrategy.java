@@ -128,7 +128,8 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
 
     @Override
     public void divideUpPredicateLists(Optimizable innerTable, OptimizablePredicateList originalRestrictionList, OptimizablePredicateList storeRestrictionList, OptimizablePredicateList nonStoreRestrictionList, OptimizablePredicateList requalificationRestrictionList, DataDictionary dd) throws StandardException {
-        // originalRestrictionList.setPredicatesAndProperties(storeRestrictionList);
+        originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable);
+        originalRestrictionList.copyPredicatesToOtherList(nonStoreRestrictionList);
     }
 
     @Override

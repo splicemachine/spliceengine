@@ -457,6 +457,21 @@ public class CrossJoinIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testSingleTableWithCrossJoinHint() throws Exception {
+        String sqlText = format("select * from \n" +
+                "a --splice-properties joinStrategy=CROSS, useSpark=%s\n" +
+                "where c2=1", useSpark);
+        String expected = "C1 |C2 |\n" +
+                            "--------\n" +
+                            " 1 | 1 |";
+
+        ResultSet rs = classWatcher.executeQuery(sqlText);
+        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        rs.close();
+    }
+
+    @Test
     public void testInequalityCrossJoin() throws Exception {
         try {
             if (idx.equals(NOT_COVER_IDX)) {
