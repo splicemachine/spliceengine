@@ -218,6 +218,15 @@ public class SpliceDateFunctionsIT {
                     "2002/02/26 |yyyy/MM/dd |2002-02-26 |2002-02-26 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
+        sqlText = "Values TO_DATE('19000101','yyyyMMdd')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1     |\n" +
+                "------------\n" +
+                "1900-01-01 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
     @Test @Ignore("Implemented in SpliceDateFunctions but not exposed in SpliceSystemProcedures due to timezone loss.")

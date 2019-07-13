@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.utils;
 
+import static java.lang.String.format;
+
 public class SpliceDateFormatter {
 
     private String format = null;
@@ -23,13 +25,45 @@ public class SpliceDateFormatter {
         this.format = format != null ? format : "yyyy-M-d";
         
         if (format != null) {
+            // The valid format characters of DateTimeFormatter:
+            // See https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html
+            // This pattern excludes matching of format characters
+            // before or after the match string.
+            String excludeFormatCharsPattern1 = "([^GuyDMLdQqYwWEecFahKkHmsSAnNVzOXxZp]+)";
+            String excludeFormatCharsPattern2 = "([^GuyDMLdQqYwWEecFahKkHmsSAnNVzOXxZp]*)";
+
+            // The match string of MM or DD may occur at the beginning or
+            // end of the format string, with no characters preceding it
+            // or following it.  So perform the matched replacement twice,
+            // where we match zero or more format characters on one side
+            // of the match string and one or more format characters
+            // on the other side of the match string.
+
             // Replace MM with M in the date format string.
-            String pattern = "([^M]*)([M])([M])([^M]*)";
-            this.format = this.format.replaceFirst(pattern, "$1$2$4");
+            String pattern1 =
+                    format("%s([M])([M])%s", excludeFormatCharsPattern1,
+                                             excludeFormatCharsPattern2);
+            String pattern2 =
+                    format("%s([M])([M])%s", excludeFormatCharsPattern2,
+                                             excludeFormatCharsPattern1);
+
+            int stringLength = this.format.length();
+            this.format = this.format.replaceFirst(pattern1, "$1$2$4");
+            if (stringLength == this.format.length()) {
+                this.format = this.format.replaceFirst(pattern2, "$1$2$4");
+            }
+            else
+                stringLength = this.format.length();
     
             // Replace dd with d in the date format string.
-            pattern = "([^d]*)([d])([d])([^d]*)";
-            this.format = this.format.replaceFirst(pattern, "$1$2$4");
+            pattern1 = format("%s([d])([d])%s", excludeFormatCharsPattern1,
+                                                excludeFormatCharsPattern2);
+            pattern2 = format("%s([d])([d])%s", excludeFormatCharsPattern2,
+                                                excludeFormatCharsPattern1);
+            this.format = this.format.replaceFirst(pattern1, "$1$2$4");
+            if (stringLength == this.format.length()) {
+                this.format = this.format.replaceFirst(pattern2, "$1$2$4");
+            }
         }
         this.formatter =
               java.time.format.DateTimeFormatter.ofPattern(this.format);
