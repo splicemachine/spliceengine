@@ -32,11 +32,11 @@ public class SpliceDateFormatter {
             String excludeFormatCharsPattern1 = "([^GuyDMLdQqYwWEecFahKkHmsSAnNVzOXxZp]+)";
             String excludeFormatCharsPattern2 = "([^GuyDMLdQqYwWEecFahKkHmsSAnNVzOXxZp]*)";
 
-            // The match string of MM or DD may occur at the beginning or
+            // The match string of MM or dd may occur at the beginning or
             // end of the format string, with no characters preceding it
             // or following it.  So perform the matched replacement twice,
-            // where we match zero or more format characters on one side
-            // of the match string and one or more format characters
+            // where we match zero or more non-format characters on one side
+            // of the match string and one or more non-format characters
             // on the other side of the match string.
 
             // Replace MM with M in the date format string.
