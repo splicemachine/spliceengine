@@ -258,6 +258,25 @@ public class SpliceDateFunctionsIT {
                 " 2012-12-31 20:38:40.0 |  YYYY-MM-DD HH:mm:ss   |  2012-12-31 20:38:40  | 2012-01-31 20:38:40.0 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
+        sqlText = "VALUES TO_TIMESTAMP('19000101 12:01:01','yyyyMMdd HH:mm:ss')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1           |\n" +
+                "-----------------------\n" +
+                "1900-01-01 12:01:01.0 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        sqlText = "VALUES TO_TIMESTAMP('1900365 12:01:01','yyyyDDD HH:mm:ss')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1           |\n" +
+                "-----------------------\n" +
+                "1900-01-01 12:01:01.0 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
     @Test
