@@ -17,12 +17,16 @@ package com.splicemachine.derby.stream.iterator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.derby.stream.iapi.IterableJoinFunction;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.catalyst.plans.logical.Join;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.Iterator;
@@ -33,10 +37,16 @@ public class NestedLoopJoinIterator<Op extends SpliceOperation> implements Itera
     private boolean populated;
     protected ExecRow populatedRow;
     protected IterableJoinFunction iterableJoinFunction;
+    protected boolean projectLeftTableOnly = false;
 
     public NestedLoopJoinIterator(IterableJoinFunction iterableJoinFunction) throws StandardException, IOException {
         this.iterableJoinFunction = iterableJoinFunction;
         populatedRow = iterableJoinFunction.getExecutionFactory().getValueRow(iterableJoinFunction.getNumberOfColumns());
+        OperationContext operationContext = iterableJoinFunction.getOperationContext();
+        if (operationContext.getOperation() instanceof JoinOperation) {
+            JoinOperation joinOp = (JoinOperation)operationContext.getOperation();
+            projectLeftTableOnly = joinOp.projectLeftTableOnly();
+        }
     }
 
     @Override
@@ -47,7 +57,8 @@ public class NestedLoopJoinIterator<Op extends SpliceOperation> implements Itera
             populated = false;
             if (iterableJoinFunction.hasNext()) {
                 populatedRow = JoinUtils.getMergedRow(iterableJoinFunction.getLeftRow(),
-                        iterableJoinFunction.getRightRow(),iterableJoinFunction.wasRightOuterJoin()
+                        iterableJoinFunction.getRightRow(), iterableJoinFunction.wasRightOuterJoin(),
+                        projectLeftTableOnly
                         ,populatedRow);
                 populated = true;
             }

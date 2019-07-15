@@ -52,7 +52,8 @@ public class InnerJoinFunction<Op extends SpliceOperation> extends SpliceJoinFun
     public ExecRow call(Tuple2<ExecRow, Tuple2<ExecRow, ExecRow>> tuple) throws Exception {
         checkInit();
         ExecRow execRow = JoinUtils.getMergedRow(tuple._2()._1(),tuple._2()._2(),
-                op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
+                op.wasRightOuterJoin, op.projectLeftTableOnly(),
+                executionFactory.getValueRow(numberOfColumns));
         op.setCurrentRow(execRow);
         return execRow;
     }
