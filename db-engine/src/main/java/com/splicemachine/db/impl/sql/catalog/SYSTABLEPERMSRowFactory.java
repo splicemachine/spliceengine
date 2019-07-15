@@ -35,17 +35,18 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TablePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
+
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSTABLEPERMS row.
@@ -369,4 +370,61 @@ public class SYSTABLEPERMSRowFactory extends PermissionsCatalogRowFactory
         DataValueDescriptor existingPermDVD = row.getColumn(TABLEPERMSID_COL_NUM);
         perm.setUUID(getUUIDFactory().recreateUUID(existingPermDVD.getString()));
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+                new ColumnDescriptor[]{
+                        new ColumnDescriptor("TABLEPERMSID",1,1, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTEE",2,2,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTOR",3,3,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("TABLEID",4,4,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SELECTPRIV",5,5,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("DELETEPRIV",6,6,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("INSERTPRIV",7,7,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("UPDATEPRIV",8,8,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("REFERENCESPRIV",9,9,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("TRIGGERPRIV",10,10,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("TABLENAME"               ,11,11,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SCHEMAID"               ,12,12,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SCHEMANAME"               ,13,13,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0)
+                });
+        return cdsl;
+    }
+    public static String SYSTABLEPERMS_VIEW_SQL = "create view SYSTABLEPERMSVIEW as \n" +
+            "SELECT P.*, T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSTABLEPERMS P, SYSVW.SYSTABLESVIEW T "+
+            "WHERE T.TABLEID = P.TABLEID AND " +
+            "P.grantee in (select name from sysvw.sysallroles) \n" +
+
+            "UNION ALL \n" +
+
+            "SELECT P.*, T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSTABLEPERMS P, SYSVW.SYSTABLESVIEW T "+
+            "WHERE T.TABLEID = P.TABLEID AND " +
+            "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }

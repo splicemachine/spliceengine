@@ -32,24 +32,18 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
-import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PermDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSPERMS row.
@@ -348,4 +342,53 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
                 SystemColumnImpl.getIndicatorColumn("ISGRANTABLE")
         };
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+                new ColumnDescriptor[]{
+                        new ColumnDescriptor("UUID",1,1, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("OBJECTTYPE",2,2,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("OBJECTID",3,3, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("PERMISSION",4,4, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTOR",5,5,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTEE",6,6,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("ISGRANTABLE",7,7,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("OBJECTNAME",8,8,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SCHEMANAME",9,9,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0)
+                });
+        return cdsl;
+    }
+    public static String SYSPERMS_VIEW_SQL = "create view SYSPERMSVIEW as \n" +
+            "SELECT P.*, case when OBJECTTYPE='SEQUENCE' then SE.SEQUENCENAME else A.ALIAS end as OBJECTNAME, SC.SCHEMANAME " +
+            "FROM SYS.SYSPERMS P left join SYS.SYSALIASES A on P.OBJECTID=A.ALIASID " +
+            "                    left join SYS.SYSSEQUENCES SE on P.OBJECTID=SE.SEQUENCEID " +
+            ", SYS.SYSSCHEMAS SC "+
+            "WHERE case when OBJECTTYPE='SEQUENCE' then SE.SCHEMAID else A.SCHEMAID end = SC.SCHEMAID AND " +
+            "P.grantee in (select name from sysvw.sysallroles) \n " +
+
+            "UNION ALL \n" +
+
+            "SELECT P.*, case when OBJECTTYPE='SEQUENCE' then SE.SEQUENCENAME else A.ALIAS end as OBJECTNAME, SC.SCHEMANAME " +
+            "FROM SYS.SYSPERMS P left join SYS.SYSALIASES A on P.OBJECTID=A.ALIASID " +
+            "                    left join SYS.SYSSEQUENCES SE on P.OBJECTID=SE.SEQUENCEID " +
+            ", SYS.SYSSCHEMAS SC "+
+            "WHERE case when OBJECTTYPE='SEQUENCE' then SE.SCHEMAID else A.SCHEMAID end = SC.SCHEMAID AND " +
+            "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }
