@@ -475,6 +475,42 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     }
 
+    @Test
+    public void testNoSeparatorDateAndTimeImport() throws Exception {
+        methodWatcher.executeUpdate("delete from " + spliceSchemaWatcher.schemaName + "." + TABLE_12);
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "'MMddyyyy'," +  // date format
+                        "'HHmmss'," +    // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, TABLE_12,
+                getResourceDirectory() + "no_separator_dateAndTime.in", 0,
+                BADDIR.getCanonicalPath()));
+        ps.execute();
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_12));
+        List<String> results = Lists.newArrayList();
+
+        while (rs.next()) {
+            Date d = rs.getDate(1);
+            Time t = rs.getTime(2);
+            assertNotNull("Date is null!", d);
+            assertNotNull("Time is null!", t);
+            results.add(String.format("Date:%s,Time:%s", d, t));
+        }
+        Assert.assertTrue("Incorrect number of rows imported", results.size() == 2);
+
+    }
+
 
     @Test
     public void testImportHelloThere() throws Exception {
@@ -818,6 +854,41 @@ public class HdfsImportIT extends SpliceUnitTest {
                         "null)",                    // char set
                 spliceSchemaWatcher.schemaName, TABLE_9,
                 getResourceDirectory() + "iso_order_date.csv",
+                "\"",                           0,
+                BADDIR.getCanonicalPath()));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_9));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            Timestamp order_date = rs.getTimestamp(1);
+            assertNotNull("order_date incorrect", order_date);
+            Assert.assertEquals(order_date.toString(), "2013-06-06 15:02:48.0");
+            results.add(String.format("order_date:%s", order_date));
+        }
+        Assert.assertTrue("import failed!", results.size() == 1);
+    }
+
+    @Test
+    public void testNoSeparatorDateTime() throws Exception {
+        methodWatcher.executeUpdate("delete from " + spliceTableWatcher9);
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "'%s'," +  // character delimiter
+                        "'yyyyMMdd''T''HH:mm:ss.SSS''Z'''," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",                    // char set
+                spliceSchemaWatcher.schemaName, TABLE_9,
+                getResourceDirectory() + "no_separator_datetimes.csv",
                 "\"",                           0,
                 BADDIR.getCanonicalPath()));
         ps.execute();
