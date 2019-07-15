@@ -16,13 +16,24 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import java.sql.SQLException;
+import java.time.format.DateTimeFormatter;
 import static java.lang.String.format;
 
 public class SpliceDateFormatter {
 
-    private String format = null;
-    private java.time.format.DateTimeFormatter formatter = null;
+    private final String format;
+    private DateTimeFormatter formatter = null;
 
+/**
+ * Splice formatter for parsing date strings for the TO_DATE function
+ * and IMPORT statements.
+ * <p>
+ * This class provides the main application entry point for parsing
+ * of dates with a specified format such as {@code yyyy-MM-dd}.
+ * <p>
+ * See https://doc.splicemachine.com/sqlref_builtinfcns_todate.html for
+ * information on supported Splice Machine date/timestamp format strings.
+ */
     public SpliceDateFormatter(String format) {
 
         // The default external format of "yyyy-MM-dd" may be used
@@ -75,7 +86,7 @@ public class SpliceDateFormatter {
         }
         try {
             this.formatter =
-                java.time.format.DateTimeFormatter.ofPattern(format);
+                DateTimeFormatter.ofPattern(format);
         }
         catch (IllegalArgumentException e) {
             // If the format is bad, this.formatter will be null, and the next time
@@ -83,13 +94,23 @@ public class SpliceDateFormatter {
         }
     }
 
-    // Return the original date format used in the SQL.
-    // This may differ from the internal format used by DateTimeFormatter.
+    /**
+     * Returns the original date format used in the SQL (such as in a TO_DATE function).
+     * This may differ from the internal format used inside this class wh
+     *
+     * @param  none
+     * @return The date format string, such as {@code yyyy-MM-dd}
+     * @notes The returned format may differ from the internal format used inside
+     *        this class.  This class utilizes the java.time.format.DateTimeFormatter
+     *        class internally, but with a different internal format necessary
+     *        to match the functionality documented for Splice date formats:
+     *        https://doc.splicemachine.com/sqlref_builtinfcns_todate.html
+     */
     public String getFormat() {
         return format;
     }
 
-    public java.time.format.DateTimeFormatter getFormatter() throws SQLException {
+    public DateTimeFormatter getFormatter() throws SQLException {
         if (formatter == null)
             throw new SQLException("Error parsing datetime with pattern: "+this.format+". Try using an" +
                 " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
@@ -97,5 +118,5 @@ public class SpliceDateFormatter {
         return formatter;
     }
     
-    public void setFormatter(java.time.format.DateTimeFormatter newFormatter) {formatter = newFormatter;}
+    public void setFormatter(DateTimeFormatter newFormatter) {formatter = newFormatter;}
 }
