@@ -1196,8 +1196,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      */
     @Override
     public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) {
-//        if (aggregates.length == 0)  msirek-temp
-//            return null;
         context.pushScopeForOp(OperationContext.Scope.AGGREGATE);
         try {
             RelationalGroupedDataset rgd = null;

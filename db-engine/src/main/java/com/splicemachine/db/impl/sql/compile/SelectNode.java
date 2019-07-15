@@ -1812,7 +1812,7 @@ public class SelectNode extends ResultSetNode{
 	     *  will return columns from the right ResultSet.
 	     * */
             if (!rightResultSet.isOneRowResultSet() &&
-                !rightResultSet.isNotExists())  // msirek-temp
+                !rightResultSet.isNotExists())
                 leftRCList.nondestructiveAppend(rightRCList);
 
             /* Now we're finally ready to generate the JoinNode and have it
