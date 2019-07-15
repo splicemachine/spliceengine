@@ -39,11 +39,14 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSTABLEPERMS row.
@@ -396,4 +399,68 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         DataValueDescriptor existingPermDVD = row.getColumn(SCHEMAPERMSID_COL_NUM);
         perm.setUUID(getUUIDFactory().recreateUUID(existingPermDVD.getString()));
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+                new ColumnDescriptor[]{
+                        new ColumnDescriptor("SCHEMAPERMSID",1,1, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTEE",2,2,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTOR",3,3,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SCHEMAID",4,4,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SELECTPRIV",5,5,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("DELETEPRIV",6,6,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("INSERTPRIV",7,7,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("UPDATEPRIV",8,8,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("REFERENCESPRIV",9,9,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("TRIGGERPRIV",10,10,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("MODIFYPRIV",11,11,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("ACCESSPRIV",12,12,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, true, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SCHEMANAME",13,13,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0)
+                });
+        return cdsl;
+    }
+
+    /* The two branches of UNION-ALL cover both the regular user case and the admin user case.
+       A regular user should only see privileges granted to him/her, the groups he/she belongs to, or the roles directly/indirectly
+       granted to him/her.
+       An admin user should see all the privileges.
+       We can do a union-all as the two branches are mutually exclusive
+     */
+    public static String SYSSCHEMAPERMS_VIEW_SQL = "create view SYSSCHEMAPERMSVIEW as \n" +
+            "SELECT P.*, S.SCHEMANAME FROM SYS.SYSSCHEMAPERMS P, SYSVW.SYSSCHEMASVIEW S "+
+            "WHERE S.SCHEMAID = P.SCHEMAID AND " +
+            "P.grantee in (select name from sysvw.sysallroles)\n" +
+
+            "UNION ALL \n" +
+
+            "SELECT P.*, S.SCHEMANAME FROM SYS.SYSSCHEMAPERMS P, SYSVW.SYSSCHEMASVIEW S "+
+            "WHERE S.SCHEMAID = P.SCHEMAID AND 'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
+
 }
