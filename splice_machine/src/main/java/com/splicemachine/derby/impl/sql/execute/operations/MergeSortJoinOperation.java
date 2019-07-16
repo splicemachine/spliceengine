@@ -186,7 +186,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 
         DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp).map(new CloneFunction<>(operationContext));
 
-       // operationContext.pushScopeForOp("Prepare Left Side");
+       // operationContextSupplier.pushScopeForOp("Prepare Left Side");
         DataSet<ExecRow> leftDataSet2 =
             leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
         if (!isOuterJoin && !notExistsRightSide)
@@ -216,7 +216,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         } else{
             PairDataSet<ExecRow, ExecRow> rightDataSet =
                     rightDataSet2.keyBy(new KeyerFunction(operationContext, rightHashKeys));
-//            operationContext.popScope();
+//            operationContextSupplier.popScope();
             PairDataSet<ExecRow,ExecRow> leftDataSet =
                     leftDataSet2.keyBy(new KeyerFunction<ExecRow,JoinOperation>(operationContext, leftHashKeys));
 

@@ -135,6 +135,6 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     }
 
 //    public DataSetWriter build() throws StandardException {
-//        return new DeletePipelineWriter(txn,heapConglom,operationContext);
+//        return new DeletePipelineWriter(txn,heapConglom,operationContextSupplier);
 //    }
 }

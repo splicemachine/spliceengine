@@ -207,33 +207,33 @@ public class SortOperation extends SpliceBaseOperation{
             dataSet = dataSet.distinct(OperationContext.Scope.DISTINCT.displayName(),
                 false, operationContext, true, OperationContext.Scope.DISTINCT.displayName());
             try {
-                //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
+                //operationContextSupplier.pushScopeForOp(OperationContext.Scope.LOCATE);
                 dataSet = dataSet.map(new SetCurrentLocatedRowFunction(operationContext), true);
                 return dataSet;
             } finally {
-               // operationContext.popScope();
+               // operationContextSupplier.popScope();
             }
         }
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
+        //operationContextSupplier.pushScopeForOp(OperationContext.Scope.SORT_KEYER);
         KeyerFunction f=new KeyerFunction(operationContext,keyColumns);
         PairDataSet pair=dataSet.keyBy(f);
-        //operationContext.popScope();
+        //operationContextSupplier.popScope();
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.SHUFFLE);
+        //operationContextSupplier.pushScopeForOp(OperationContext.Scope.SHUFFLE);
         PairDataSet sortedByKey=pair.sortByKey(new RowComparator(descColumns,nullsOrderedLow),
             OperationContext.Scope.SORT.displayName(), operationContext);
-        //operationContext.popScope();
+        //operationContextSupplier.popScope();
 
-        //operationContext.pushScopeForOp(OperationContext.Scope.READ_SORTED);
+        //operationContextSupplier.pushScopeForOp(OperationContext.Scope.READ_SORTED);
         DataSet sortedValues=sortedByKey.values(OperationContext.Scope.READ_SORTED.displayName());
-        //operationContext.popScope();
+        //operationContextSupplier.popScope();
 
         try{
-            //operationContext.pushScopeForOp(OperationContext.Scope.LOCATE);
+            //operationContextSupplier.pushScopeForOp(OperationContext.Scope.LOCATE);
             return sortedValues.map(new SetCurrentLocatedRowFunction(operationContext),true);
         }finally{
-          //  operationContext.popScope();
+          //  operationContextSupplier.popScope();
         }
     }
 

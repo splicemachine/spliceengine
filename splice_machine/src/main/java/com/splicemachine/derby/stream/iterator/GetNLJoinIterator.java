@@ -15,51 +15,68 @@
 package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.function.NLJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
 
 import java.util.Iterator;
-import java.util.concurrent.Callable;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.function.Supplier;
 
 /**
  * Created by jyuan on 10/10/16.
  */
-public abstract class GetNLJoinIterator implements Callable<Pair<OperationContext, Iterator<ExecRow>>> {
-
-    protected ExecRow locatedRow;
-    protected Supplier<OperationContext> operationContext;
+public abstract class GetNLJoinIterator implements Runnable {
+    protected Supplier<OperationContext> operationContextSupplier;
+    protected OperationContext operationContext;
+    protected SynchronousQueue<ExecRow> in;
+    protected BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out;
+    protected volatile boolean closed = false;
 
     public GetNLJoinIterator() {}
 
-    public GetNLJoinIterator(Supplier<OperationContext> operationContext, ExecRow locatedRow) {
-        this.operationContext = operationContext;
-        this.locatedRow = locatedRow;
+    public GetNLJoinIterator(Supplier<OperationContext> operationContext, SynchronousQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
+        this.operationContextSupplier = operationContext;
+        this.in = in;
+        this.out = out;
     }
-
-    public abstract Pair<OperationContext, Iterator<ExecRow>> call() throws Exception;
-
-
 
     public static GetNLJoinIterator makeGetNLJoinIterator(NLJoinFunction.JoinType joinType,
                                                    Supplier<OperationContext> operationContextSupplier,
-                                                          ExecRow locatedRow) {
+                                                          SynchronousQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
         switch (joinType) {
             case INNER:
-                return new GetNLJoinInnerIterator(operationContextSupplier, locatedRow);
+                return new GetNLJoinInnerIterator(operationContextSupplier, in, out);
 
             case LEFT_OUTER:
-                return new GetNLJoinLeftOuterIterator(operationContextSupplier, locatedRow);
+                return new GetNLJoinLeftOuterIterator(operationContextSupplier, in, out);
 
             case ANTI:
-                return new GetNLJoinAntiIterator(operationContextSupplier, locatedRow);
+                return new GetNLJoinAntiIterator(operationContextSupplier, in, out);
 
             case ONE_ROW_INNER:
-                return new GetNLJoinOneRowIterator(operationContextSupplier, locatedRow);
+                return new GetNLJoinOneRowIterator(operationContextSupplier, in, out);
 
             default:
                 throw new RuntimeException("Unrecognized nested loop join type");
         }
+    }
+
+    public BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> getOut() {
+        return out;
+    }
+
+    public OperationContext getOperationContext() {
+        return operationContext;
+    }
+
+    public SynchronousQueue<ExecRow> getIn() {
+        return in;
+    }
+
+    public void close() {
+        this.closed = true;
     }
 }

@@ -185,7 +185,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
 
-//        operationContext.pushScope();
+//        operationContextSupplier.pushScope();
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
@@ -272,7 +272,7 @@ public class BroadcastJoinOperation extends JoinOperation{
 
         result = result.map(new CountProducedFunction(operationContext), /*isLast=*/true);
 
-//        operationContext.popScope();
+//        operationContextSupplier.popScope();
 
         return result;
     }

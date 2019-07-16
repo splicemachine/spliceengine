@@ -105,7 +105,7 @@ public class BulkLoadIndexJobImpl implements Callable<Void> {
             }
         };
         op.setActivation(ah.getActivation());
-        //scanSetBuilder.operationContext(dsp.createOperationContext(ah.getActivation()));
+        //scanSetBuilder.operationContextSupplier(dsp.createOperationContext(ah.getActivation()));
         scanSetBuilder.operationContext(dsp.createOperationContext(op));
         OperationContext operationContext = scanSetBuilder.getOperationContext();
         BulkLoadIndexDataSetWriterBuilder writerBuilder = dataSet

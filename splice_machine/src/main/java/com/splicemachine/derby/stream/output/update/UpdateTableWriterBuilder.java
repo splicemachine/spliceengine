@@ -215,7 +215,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
 //    public UpdatePipelineWriter build() throws StandardException {
 //        return new UpdatePipelineWriter(heapConglom, formatIds, columnOrdering==null?new int[0]:columnOrdering,
 //        pkCols==null?new int[0]:pkCols,  pkColumns, tableVersion, txn,
-//                execRowDefinition,heapList,operationContext);
+//                execRowDefinition,heapList,operationContextSupplier);
 //    }
 
     @Override

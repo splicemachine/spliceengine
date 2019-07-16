@@ -66,6 +66,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected Iterator<ExecRow> leftSideIterator;
     protected List<OperationContext> operationContextList;
     protected int nLeftRows;
+    protected GetNLJoinIterator currentNLJoinIterator;
     protected OperationContext currentOperationContext;
     protected Iterator<ExecRow> rightSideNLJIterator;
     protected ExecRow leftRow;
@@ -74,11 +75,13 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected boolean isAntiJoin;
     protected boolean isOneRowInnerJoin;
     protected boolean hasMatch;
-    protected List<Future<Pair<OperationContext, Iterator<ExecRow>>>> futures;
+    protected List<Future> futures;
     protected Set<OperationContext> allContexts;
+    protected Set<GetNLJoinIterator> allIterators;
     protected TaskContext taskContext;
     private Deque<ExecRow> firstBatch;
     private volatile boolean isClosed = false;
+    private ArrayBlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out = new ArrayBlockingQueue(1000);
 
     protected ExecutorService executorService;
 
@@ -100,7 +103,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         batchSize = configuration.getNestedLoopJoinBatchSize();
         nLeftRows = 0;
         leftSideIterator = from;
-        executorService = SIDriver.driver().getExecutorService();
+        executorService = SIDriver.driver().getRejectingExecutorService();
         firstBatch = new ArrayDeque<>(batchSize);
 
         initOperationContexts();
@@ -113,6 +116,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
         try {
             operationContextList = new ArrayList<>(batchSize);
             allContexts = Collections.synchronizedSet(new HashSet<>());
+            allIterators = Collections.synchronizedSet(new HashSet<>());
             for (int i = 0; i < batchSize && leftSideIterator.hasNext(); ++i) {
                 firstBatch.addLast(leftSideIterator.next().getClone());
             }
@@ -125,6 +129,11 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     @Override
     public void close() {
         StandardException se = null;
+        synchronized (allIterators) {
+            for(GetNLJoinIterator it : allIterators) {
+                it.close();
+            }
+        }
         synchronized (allContexts) {
             isClosed = true;
             for (OperationContext ctx : allContexts) {
@@ -148,7 +157,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     private void loadBatch() throws StandardException {
 
         try {
-            futures = new ArrayList<Future<Pair<OperationContext, Iterator<ExecRow>>>>();
+            futures = new ArrayList<>();
             while (nLeftRows < batchSize) {
                 if (firstBatch.isEmpty())
                     break;
@@ -166,14 +175,16 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                         throw new RuntimeException(e);
                     }
                 };
-                GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                        supplier, execRow);
+                SynchronousQueue<ExecRow> in = new SynchronousQueue<ExecRow>();
+                GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType, supplier, in, out);
+                allIterators.add(getNLJoinIterator);
                 futures.add(executorService.submit(getNLJoinIterator));
+                in.put(execRow);
             }
             if (nLeftRows > 0) {
-                Future<Pair<OperationContext, Iterator<ExecRow>>> future = futures.remove(0);
-                Pair<OperationContext, Iterator<ExecRow>> result = future.get();
-                currentOperationContext = result.getFirst();
+                Pair<GetNLJoinIterator, Iterator<ExecRow>> result = out.take();
+                currentNLJoinIterator = result.getFirst();
+                currentOperationContext = currentNLJoinIterator.getOperationContext();
                 rightSideNLJIterator = result.getSecond();
                 leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
                 leftRowLocation = new HBaseRowLocation(leftRow.getKey());
@@ -202,41 +213,29 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     if (leftSideIterator.hasNext()) {
                         // If we haven't consumed left side iterator, submit a task to scan righ side
                         ExecRow execRow = leftSideIterator.next();
-                        OperationContext ctx = operationContextList.remove(0);
-                        GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                                () -> {
-                                    try {
-                                        ctx.getOperation().close();
-                                    } catch (StandardException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                    return ctx;
-                                }, execRow.getClone());
-                        futures.add(executorService.submit(getNLJoinIterator));
+                        currentNLJoinIterator.getIn().put(execRow);
                         nLeftRows++;
                     }
 
                     if (nLeftRows > 0) {
                         // If there are pending tasks, wait to get an iterator to righ side
-                        Future<Pair<OperationContext, Iterator<ExecRow>>> future = futures.remove(0);
                         if (taskContext != null && taskContext.isInterrupted()) {
                             LOG.warn("Task killed, raising exception!");
                             throw new TaskKilledException();
                         }
-                        Pair<OperationContext, Iterator<ExecRow>> result;
+                        Pair<GetNLJoinIterator, Iterator<ExecRow>> result;
                         while (true) {
-                            try {
-                                result = future.get(1, TimeUnit.SECONDS);
+                            result = out.poll(1, TimeUnit.SECONDS);
+                            if (result != null)
                                 break;
-                            } catch (TimeoutException e) {
-                                if (taskContext != null && taskContext.isInterrupted()) {
-                                    LOG.warn("Task killed, raising exception!");
-                                    throw new TaskKilledException();
-                                }
+                            if (taskContext != null && taskContext.isInterrupted()) {
+                                LOG.warn("Task killed, raising exception!");
+                                throw new TaskKilledException();
                             }
                         }
                         nLeftRows--;
-                        currentOperationContext = result.getFirst();
+                        currentNLJoinIterator = result.getFirst();
+                        currentOperationContext = currentNLJoinIterator.getOperationContext();
                         rightSideNLJIterator = result.getSecond();
                         leftRow = currentOperationContext.getOperation().getLeftOperation().getCurrentRow();
                         leftRowLocation = new HBaseRowLocation(leftRow.getKey());

@@ -86,7 +86,7 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     /**
      *
-     * Sets the operationContext on this operation.
+     * Sets the operationContextSupplier on this operation.
      *
      * @param operationContext
      */

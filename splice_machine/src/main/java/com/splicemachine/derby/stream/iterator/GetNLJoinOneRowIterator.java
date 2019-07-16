@@ -24,6 +24,9 @@ import com.splicemachine.utils.Pair;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.util.Iterator;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -32,30 +35,43 @@ import java.util.function.Supplier;
 public class GetNLJoinOneRowIterator extends GetNLJoinIterator {
     public GetNLJoinOneRowIterator() {}
 
-    public GetNLJoinOneRowIterator(Supplier<OperationContext> operationContext, ExecRow locatedRow) {
-        super(operationContext, locatedRow);
+    public GetNLJoinOneRowIterator(Supplier<OperationContext> operationContext, SynchronousQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
+        super(operationContext, in, out);
     }
 
     @Override
-    public Pair<OperationContext, Iterator<ExecRow>> call() throws Exception {
-        OperationContext ctx = operationContext.get();
-        JoinOperation op = (JoinOperation) ctx.getOperation();
-        op.getLeftOperation().setCurrentRow(this.locatedRow);
-        SpliceOperation rightOperation=op.getRightOperation();
+    public void run() {
+        try {
+            while (true) {
+                ExecRow locatedRow = null;
+                operationContext = operationContextSupplier.get();
+                while (locatedRow == null ) {
+                    locatedRow = in.poll(1, TimeUnit.SECONDS);
+                    if (closed || operationContext.getOperation().isClosed())
+                        break;
+                }
 
-        rightOperation.openCore(EngineDriver.driver().processorFactory().localProcessor(op.getActivation(), op));
-        Iterator<ExecRow> rightSideNLJIterator = rightOperation.getExecRowIterator();
-        // Lets make sure we perform a call...
-        boolean hasNext = rightSideNLJIterator.hasNext();
-        if (hasNext) {
-            // For left outer join, if there is no match, return an empty row from right side
-            ExecRow lr = rightSideNLJIterator.next();
-            StreamLogUtils.logOperationRecordWithMessage(lr,ctx,"outer - right side no rows");
-            op.setCurrentRow(lr);
-            rightSideNLJIterator = new SingletonIterator(lr);
+                JoinOperation op = (JoinOperation) operationContext.getOperation();
+                op.getLeftOperation().setCurrentRow(locatedRow);
+                SpliceOperation rightOperation = op.getRightOperation();
+
+                rightOperation.openCore(EngineDriver.driver().processorFactory().localProcessor(op.getActivation(), op));
+                Iterator<ExecRow> rightSideNLJIterator = rightOperation.getExecRowIterator();
+                // Lets make sure we perform a call...
+                boolean hasNext = rightSideNLJIterator.hasNext();
+                if (hasNext) {
+                    // For left outer join, if there is no match, return an empty row from right side
+                    ExecRow lr = rightSideNLJIterator.next();
+                    StreamLogUtils.logOperationRecordWithMessage(lr, operationContext, "outer - right side no rows");
+                    op.setCurrentRow(lr);
+                    rightSideNLJIterator = new SingletonIterator(lr);
+                }
+
+                out.put(new Pair<>(this, rightSideNLJIterator));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-
-        return new Pair<>(ctx, rightSideNLJIterator);
     }
 
 }
