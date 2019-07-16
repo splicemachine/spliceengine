@@ -197,8 +197,6 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
             while (true) {
                 while (nLeftRows > 0 && !rightSideNLJIterator.hasNext()) {
 
-                    // We have consumed all rows from right side iterator, reclaim operation context
-                    currentOperationContext.getOperation().close();
                     operationContextList.add(currentOperationContext);
 
                     if (leftSideIterator.hasNext()) {
@@ -206,7 +204,14 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                         ExecRow execRow = leftSideIterator.next();
                         OperationContext ctx = operationContextList.remove(0);
                         GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                                () -> ctx, execRow.getClone());
+                                () -> {
+                                    try {
+                                        ctx.getOperation().close();
+                                    } catch (StandardException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                    return ctx;
+                                }, execRow.getClone());
                         futures.add(executorService.submit(getNLJoinIterator));
                         nLeftRows++;
                     }
