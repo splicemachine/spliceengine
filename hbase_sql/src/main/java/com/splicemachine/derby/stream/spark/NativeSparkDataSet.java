@@ -61,7 +61,7 @@ import static org.apache.spark.sql.functions.*;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.storage.StorageLevel;
 import scala.collection.JavaConversions;
-import scala.collection.mutable.Seq;
+import scala.collection.mutable.Buffer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -70,7 +70,6 @@ import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
-import static java.lang.String.format;
 import static org.apache.spark.sql.functions.broadcast;
 import static org.apache.spark.sql.functions.col;
 
@@ -1279,9 +1278,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             ExecRow rowDef = operationContext.getOperation().getExecRowDefinition();
             Column aggregateColumn1 = null;
-            Column [] aggregateColumns2ToN =
-              new Column [isRollup ? aggregates.length + groupByColumns.length - 1 :
-                          aggregates.length - 1];
+            int arrayLength = isRollup ? aggregates.length + groupByColumns.length - 1 :
+                              aggregates.length - 1;
+            if (arrayLength < 0)
+                arrayLength = 0;
+            Column [] aggregateColumns2ToN = new Column [arrayLength];
             HashSet<String> inputColumns = new HashSet<>();
             Column column = null;
             for (int i = 0; i < aggregates.length; i++) {
@@ -1387,8 +1388,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 if (!inputColumns.contains(colname))
                     dataset = dataset.drop(colname);
             }
-            if (noGroupingColumns)
+            if (noGroupingColumns) {
                 newDS = dataset.agg(aggregateColumn1, aggregateColumns2ToN);
+            }
             else {
                 if (isRollup) {
                     for (int i = 0; i < groupByColumns.length; i++) {
@@ -1400,7 +1402,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                             aggregateColumns2ToN[aggregates.length + i - 1] = column;
                     }
                 }
-                newDS = rgd.agg(aggregateColumn1, aggregateColumns2ToN);
+                if (isRollup || aggregates.length > 0)
+                    newDS = rgd.agg(aggregateColumn1, aggregateColumns2ToN);
+                else
+                    return null;
             }
 
             // Add in any missing columns as nulls, since copying of column
