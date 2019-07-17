@@ -316,10 +316,17 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	@Override
 	public ExecRow getExecRowDefinition() throws StandardException {
 	    if (mergedRowTemplate == null) {
-		mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
-		mergedRowTemplate =
-		JoinUtils.getMergedRow(leftResultSet.getExecRowDefinition(), rightResultSet.getExecRowDefinition(),
-		                       wasRightOuterJoin, projectLeftTableOnly(), mergedRowTemplate);
+	    	// Semijoin does not include the right relation columns.
+//		if (!wasRightOuterJoin &&  msirek-temp
+//		    (isOneRowRightSide() || notExistsRightSide)) {
+//			mergedRowTemplate = leftResultSet.getExecRowDefinition().getClone();
+//		}
+//		else
+		{
+			mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
+			JoinUtils.getMergedRow(leftResultSet.getExecRowDefinition(), rightResultSet.getExecRowDefinition(),
+			wasRightOuterJoin, mergedRowTemplate);
+		}
 	    }
 	    return mergedRowTemplate;
 	}
@@ -369,11 +376,4 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	public String getVTIFileName() {
 		return getSubOperations().get(0).getVTIFileName();
 	}
-
-	public boolean projectLeftTableOnly() {
-    		return isOneRowRightSide() || notExistsRightSide ;
-        }
-
-        public ExecRow getLeftRow() { return leftRow; }
-        public ExecRow getRightRow() { return rightRow; }
 }

@@ -56,7 +56,7 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
                 return returnRows.iterator();
             rightRow = it.next();
             mergedRow = JoinUtils.getMergedRow(leftRow,
-                    rightRow, op.wasRightOuterJoin, op.projectLeftTableOnly(),
+                    rightRow, op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));
             mergedRow.setKey(leftRow.getKey());
             op.setCurrentRow(mergedRow);
@@ -72,7 +72,7 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
         }
         if (returnRows.isEmpty()) {
             mergedRow = JoinUtils.getMergedRow(leftRow,
-                    op.getEmptyRow(), op.wasRightOuterJoin, op.projectLeftTableOnly(),
+                    op.getEmptyRow(), op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));
             mergedRow.setKey(leftRow.getKey());
             returnRows.add(mergedRow);

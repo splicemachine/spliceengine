@@ -49,7 +49,6 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
             rightRow = it.next();
             mergedRow = JoinUtils.getMergedRow(leftRow,
                     rightRow, op.wasRightOuterJoin,
-                    op.projectLeftTableOnly(),
                     executionFactory.getValueRow(numberOfColumns));
             op.setCurrentRow(mergedRow);
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
