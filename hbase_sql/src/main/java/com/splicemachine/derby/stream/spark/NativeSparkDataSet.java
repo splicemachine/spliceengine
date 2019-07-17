@@ -821,6 +821,58 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
     }
 
+    public static boolean joinProjectsOnlyLeftTableColumns(JoinType joinType) {
+        return (joinType == DataSet.JoinType.LEFTANTI ||
+                joinType == DataSet.JoinType.LEFTSEMI);
+    }
+    private Dataset<Row> fixupColumnNames(JoinOperation op, JoinType joinType,
+                                          Dataset<Row> leftDF, Dataset<Row> rightDF,
+                                          Dataset<Row> joinedDF) {
+        if (!joinProjectsOnlyLeftTableColumns(joinType) &&
+            !op.wasRightOuterJoin &&
+             op.getLeftRow().nColumns() > leftDF.schema().length()) {
+            int adjColNo = op.getLeftRow().nColumns();
+            int baseColNo = leftDF.schema().length();
+            // Now add another select expression so that the named columns are
+            // in the correct column positions.
+            StringBuilder expression = new StringBuilder();
+            String[] expressions = new String[op.getLeftRow().nColumns() + rightDF.schema().length()];
+            for (int i = 0; i < leftDF.schema().length(); i++) {
+                String fieldName = ValueRow.getNamedColumn(i);
+                expression.setLength(0);
+                expression.append(fieldName);
+                expressions[i] = expression.toString();
+            }
+            for (int i = leftDF.schema().length(); i < op.getLeftRow().nColumns(); i++) {
+                String fieldName = ValueRow.getNamedColumn(i);
+                DataType dataType;
+                try {
+                    dataType =
+                        op.getLeftRow().getColumn(i + 1).getStructField(fieldName).dataType();
+                }
+                catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
+                expression.setLength(0);
+                expression.append("CAST(null as ");
+                expression.append(dataType.typeName());
+                expression.append(")");
+                expressions[i] = expression.toString();
+            }
+
+            for (int i = 0; i < rightDF.schema().length(); i++) {
+                String fieldName = ValueRow.getNamedColumn(i + baseColNo);
+                expression.setLength(0);
+                expression.append(fieldName);
+                expression.append(" as ");
+                expression.append(ValueRow.getNamedColumn(i + adjColNo));
+                expressions[i + adjColNo] = expression.toString();
+            }
+            joinedDF = joinedDF.selectExpr(expressions);
+        }
+        return joinedDF;
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
@@ -850,10 +902,17 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             DataSet joinedSet;
 
-            if (op.wasRightOuterJoin)
-                joinedSet =  new NativeSparkDataSet(rightDF.join(leftDF,expr,joinType.RIGHTOUTER.strategy()), context);
-            else
-                joinedSet =  new NativeSparkDataSet(leftDF.join(rightDF,expr,joinType.strategy()), context);
+            if (op.wasRightOuterJoin) {
+                joinedSet = new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()), context);
+                NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;
+                nds.dataset = fixupColumnNames(op, joinType, rightDF, leftDF, nds.dataset);
+            }
+            else {
+                joinedSet = new NativeSparkDataSet(leftDF.join(rightDF, expr, joinType.strategy()), context);
+                NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;
+                nds.dataset = fixupColumnNames(op, joinType, leftDF, rightDF, nds.dataset);
+            }
+
             return joinedSet;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -885,11 +944,16 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
                 }
             }
-            Dataset<Row> joinedSet = leftDF.crossJoin(rightDF);
+            Dataset<Row> joinedDF = leftDF.crossJoin(rightDF);
             if (expr != null) {
-                joinedSet = joinedSet.filter(expr);
+                joinedDF = joinedDF.filter(expr);
             }
-            return new NativeSparkDataSet(joinedSet, context);
+            DataSet joinedSet = new NativeSparkDataSet(joinedDF, context);
+            NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;
+            nds.dataset = fixupColumnNames((JoinOperation) context.getOperation(),
+                                           DataSet.JoinType.INNER, leftDF, rightDF, nds.dataset);
+            return joinedSet;
+
         }  catch (Exception e) {
             throw new RuntimeException(e);
         }
