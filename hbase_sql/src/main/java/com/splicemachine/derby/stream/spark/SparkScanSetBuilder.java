@@ -110,7 +110,9 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         }
         if (op != null) {
             ScanOperation sop = (ScanOperation) op;
-            conf.setInt(MRConstants.SPLICE_SPLITS_PER_TABLE, sop.getSplits());
+            int splitsPerTableMin = HConfiguration.getConfiguration().getSplitsPerTableMin();
+            int requestedSplits = sop.getSplits();
+            conf.setInt(MRConstants.SPLICE_SPLITS_PER_TABLE, splitsPerTableMin > requestedSplits ? splitsPerTableMin : requestedSplits);
         }
         try {
              conf.set(MRConstants.SPLICE_SCAN_INFO,getTableScannerBuilderBase64String());
