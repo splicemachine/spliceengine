@@ -191,7 +191,6 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
         try {
             ExecRow execRow = JoinUtils.getMergedRow(leftRow, rightRow == null ? mergeJoinOperation.getEmptyRow() : rightRow,
                     mergeJoinOperation.wasRightOuterJoin,
-                    mergeJoinOperation.projectLeftTableOnly(),
                     mergedRow);
             mergeJoinOperation.setCurrentRow(execRow);
             return execRow;

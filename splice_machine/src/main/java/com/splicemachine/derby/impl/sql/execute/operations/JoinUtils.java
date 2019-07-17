@@ -24,18 +24,13 @@ public class JoinUtils {
     public enum JoinSide {RIGHT, LEFT}
 
     public static ExecRow getMergedRow(ExecRow leftRow, ExecRow rightRow,
-                                       boolean wasRightOuterJoin,
-                                       boolean projectLeftTableOnly,
-                                       ExecRow mergedRow) {
+                                       boolean wasRightOuterJoin, ExecRow mergedRow) {
         if (mergedRow == null) {
             return null;
         }
         DataValueDescriptor[] leftRowArray = leftRow.getRowArray();
         DataValueDescriptor[] rightRowArray = rightRow.getRowArray();
         @SuppressWarnings("MismatchedReadAndWriteOfArray") DataValueDescriptor[] mergedRowArray = mergedRow.getRowArray();
-        if (projectLeftTableOnly) {
-            return leftRow.getClone();
-        }
         if (wasRightOuterJoin) {
             System.arraycopy(rightRowArray, 0, mergedRowArray, 0, rightRowArray.length);
             System.arraycopy(leftRowArray, 0, mergedRowArray, rightRowArray.length, leftRowArray.length);

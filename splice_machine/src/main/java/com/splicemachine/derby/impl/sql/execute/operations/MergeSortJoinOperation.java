@@ -162,9 +162,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
-        mergedRow =
-            JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin,
-                                   projectLeftTableOnly(), mergedRow);
+        JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, mergedRow);
     }
 
     @Override
