@@ -165,7 +165,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         DataSet set = source.getDataSet(dsp);
         DataSet dataSetWithNativeSparkAggregation = null;
 
-        if (nativeSparkForced())
+        if (nativeSparkForced() && (isRollup || aggregates.length > 0))
             set = set.upgradeToSparkNativeDataSet(operationContext);
 
         operationContext.pushScope();
