@@ -64,7 +64,7 @@ public class HRegionUtil extends BaseHRegionUtil{
         HBasePlatformUtils.updateReadRequests(region,numReads);
     }
 
-        public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end,
+    public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end,
                                                 int requestedSplits, long bytesPerSplit) throws IOException {
             assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
         if (LOG.isTraceEnabled())
