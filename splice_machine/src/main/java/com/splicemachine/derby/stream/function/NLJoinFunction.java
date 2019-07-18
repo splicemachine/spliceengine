@@ -64,7 +64,6 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected boolean initialized;
     protected int batchSize;
     protected Iterator<ExecRow> leftSideIterator;
-    protected List<OperationContext> operationContextList;
     protected int nLeftRows;
     protected GetNLJoinIterator currentNLJoinIterator;
     protected OperationContext currentOperationContext;
@@ -114,7 +113,6 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
 
     private void initOperationContexts() throws StandardException {
         try {
-            operationContextList = new ArrayList<>(batchSize);
             allContexts = Collections.synchronizedSet(new HashSet<>());
             allIterators = Collections.synchronizedSet(new HashSet<>());
             for (int i = 0; i < batchSize && leftSideIterator.hasNext(); ++i) {
@@ -163,8 +161,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     break;
                 nLeftRows++;
                 ExecRow execRow = firstBatch.removeFirst();
-                OperationContext context = operationContextList.isEmpty() ? null : operationContextList.remove(0);
-                Supplier<OperationContext> supplier = context != null ? () -> context : () -> {
+                Supplier<OperationContext> supplier = () -> {
                     try {
                         OperationContext ctx = operationContext.getClone();
                         allContexts.add(ctx);
@@ -208,12 +205,10 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
             while (true) {
                 while (nLeftRows > 0 && !rightSideNLJIterator.hasNext()) {
 
-                    operationContextList.add(currentOperationContext);
-
                     if (leftSideIterator.hasNext()) {
                         // If we haven't consumed left side iterator, submit a task to scan righ side
                         ExecRow execRow = leftSideIterator.next();
-                        currentNLJoinIterator.getIn().put(execRow);
+                        currentNLJoinIterator.getIn().put(execRow.getClone());
                         nLeftRows++;
                     }
 

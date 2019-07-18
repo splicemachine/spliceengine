@@ -44,13 +44,13 @@ public class GetNLJoinAntiIterator extends GetNLJoinIterator {
     @Override
     public void run() {
         try {
+            operationContext = operationContextSupplier.get();
             while (true) {
                 ExecRow locatedRow = null;
-                operationContext = operationContextSupplier.get();
                 while (locatedRow == null ) {
                     locatedRow = in.poll(1, TimeUnit.SECONDS);
                     if (closed || operationContext.getOperation().isClosed())
-                        break;
+                        return;
                 }
                 JoinOperation op = (JoinOperation) operationContext.getOperation();
                 op.getLeftOperation().setCurrentRow(locatedRow);
