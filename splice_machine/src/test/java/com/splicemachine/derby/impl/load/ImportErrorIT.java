@@ -246,7 +246,7 @@ public class ImportErrorIT extends SpliceUnitTest {
     public void testCannotInsertAPoorlyFormattedDate() throws Exception {
         final String importFileName = "bad_date.csv";
         final String expectedErrorCode = "22007";
-        final String expectedErrorMsg = "Error parsing datetime 201301-01 with pattern: yyyy-M-d";
+        final String expectedErrorMsg = "22007.S.181 Error parsing datetime 201301-01 with pattern: yyyy-MM-dd. Try using an ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd [Columns in Table: 8] [Columns in File: 8] [Bad Column ID: 6] [Bad Column Value: 201301-01] row Data: [1, 123, 1.4, 1.5555642, Hello, 201301-01, 00:00:00, 2013-01-01 00:00:00]";
         helpTestImportError(importFileName, expectedErrorCode, expectedErrorMsg);
     }
 

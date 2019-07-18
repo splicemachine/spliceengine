@@ -274,12 +274,13 @@ public class RegionTxnStore implements TxnPartition{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"getActiveTxnIds beforeTs=%d, afterTs=%s, destinationTable=%s",beforeTs,afterTs,destinationTable);
 
-        Source<TxnMessage.Txn> activeTxn=getActiveTxns(afterTs,beforeTs,destinationTable);
-        LongArrayList lal=new LongArrayList();
-        while(activeTxn.hasNext()){
-            TxnMessage.Txn next=activeTxn.next();
-            TxnMessage.TxnInfo info=next.getInfo();
-            lal.add(info.getTxnId());
+        LongArrayList lal = new LongArrayList();
+        try (Source<TxnMessage.Txn> activeTxn = getActiveTxns(afterTs, beforeTs, destinationTable)) {
+            while (activeTxn.hasNext()) {
+                TxnMessage.Txn next = activeTxn.next();
+                TxnMessage.TxnInfo info = next.getInfo();
+                lal.add(info.getTxnId());
+            }
         }
         return lal.toArray();
     }
@@ -349,12 +350,12 @@ public class RegionTxnStore implements TxnPartition{
     @Override
     public void rollbackTransactionsAfter(long txnId) throws IOException {
         final Source<TxnMessage.Txn> allTxns = getAllTxns(0l, Long.MAX_VALUE);
-        final Source<TxnMessage.Txn> uncommittedAfter = new UncommittedAfterSource(allTxns, txnId);
-        while (uncommittedAfter.hasNext()) {
-            TxnMessage.Txn txn = uncommittedAfter.next();
-            recordRollback(txn.getInfo().getTxnId());
+        try (Source<TxnMessage.Txn> uncommittedAfter = new UncommittedAfterSource(allTxns, txnId)) {
+            while (uncommittedAfter.hasNext()) {
+                TxnMessage.Txn txn = uncommittedAfter.next();
+                recordRollback(txn.getInfo().getTxnId());
+            }
         }
-        uncommittedAfter.close();
     }
 
     @Override
