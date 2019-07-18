@@ -222,6 +222,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int splitBlockSize;
     private final  long regionMaxFileSize;
     private final  long tableSplitSleepInterval;
+    private final  int splitsPreTableMin;
 
     // Gateway to hadoop config
     private final ConfigurationSource configSource;
@@ -823,6 +824,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public long getTableSplitSleepInterval() {
         return tableSplitSleepInterval;
     }
+    @Override
+    public int getSplitsPreTableMin() {
+        return splitsPreTableMin;
+    }
 
     // ===========
 
@@ -894,6 +899,7 @@ public final class SConfigurationImpl implements SConfiguration {
         splitBlockSize = builder.splitBlockSize;
         regionMaxFileSize = builder.regionMaxFileSize;
         tableSplitSleepInterval = builder.tableSplitSleepInterval;
+        splitsPreTableMin = builder.splitsPreTableMin;
         regionServerHandlerCount = builder.regionServerHandlerCount;
         timestampBlockSize = builder.timestampBlockSize;
         regionLoadUpdateInterval = builder.regionLoadUpdateInterval;
@@ -994,6 +1000,7 @@ public final class SConfigurationImpl implements SConfiguration {
         rollForwardFirstThreads = builder.rollForwardFirstThreads;
         rollForwardSecondThreads = builder.rollForwardSecondThreads;
         metadataRestrictionEnabled = builder.metadataRestrictionEnabled;
+
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

@@ -322,6 +322,8 @@ public interface SConfiguration {
 
     long getTableSplitSleepInterval();
 
+    int getSplitsPreTableMin();
+
     /**
      * Dump splice configuration, including hadoop config, to the log.
      */
