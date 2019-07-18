@@ -17,7 +17,6 @@ package com.splicemachine.hbase;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.backup.BackupJobStatus;
-import com.splicemachine.backup.BackupRegionStatus;
 import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -155,9 +154,7 @@ public class BackupUtils {
             }
             else {
                 try {
-                    byte[] bs = ZkUtils.getData(regionBackupPath);
-                    BackupRegionStatus backupRegionStatus = BackupRegionStatus.parseFrom(bs);
-                    byte[] status = backupRegionStatus.getStatus();
+                    byte[] status = ZkUtils.getData(regionBackupPath);
                     if (Bytes.compareTo(status, HConfiguration.BACKUP_IN_PROGRESS) == 0) {
                         if (LOG.isDebugEnabled())
                             SpliceLogUtils.debug(LOG, "Table %s region %s is in backup", tableName, regionName);
