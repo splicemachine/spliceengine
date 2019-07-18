@@ -36,7 +36,7 @@ public class GetNLJoinLeftOuterIterator extends GetNLJoinIterator {
 
     public GetNLJoinLeftOuterIterator() {}
 
-    public GetNLJoinLeftOuterIterator(Supplier<OperationContext> operationContext, SynchronousQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
+    public GetNLJoinLeftOuterIterator(Supplier<OperationContext> operationContext, BlockingQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
         super(operationContext, in, out);
     }
 

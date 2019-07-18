@@ -35,7 +35,7 @@ import java.util.function.Supplier;
 public class GetNLJoinOneRowIterator extends GetNLJoinIterator {
     public GetNLJoinOneRowIterator() {}
 
-    public GetNLJoinOneRowIterator(Supplier<OperationContext> operationContext, SynchronousQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
+    public GetNLJoinOneRowIterator(Supplier<OperationContext> operationContext, BlockingQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
         super(operationContext, in, out);
     }
 

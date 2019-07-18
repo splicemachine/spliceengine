@@ -31,13 +31,13 @@ import java.util.function.Supplier;
 public abstract class GetNLJoinIterator implements Runnable {
     protected Supplier<OperationContext> operationContextSupplier;
     protected OperationContext operationContext;
-    protected SynchronousQueue<ExecRow> in;
+    protected BlockingQueue<ExecRow> in;
     protected BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out;
     protected volatile boolean closed = false;
 
     public GetNLJoinIterator() {}
 
-    public GetNLJoinIterator(Supplier<OperationContext> operationContext, SynchronousQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
+    public GetNLJoinIterator(Supplier<OperationContext> operationContext, BlockingQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
         this.operationContextSupplier = operationContext;
         this.in = in;
         this.out = out;
@@ -45,7 +45,7 @@ public abstract class GetNLJoinIterator implements Runnable {
 
     public static GetNLJoinIterator makeGetNLJoinIterator(NLJoinFunction.JoinType joinType,
                                                    Supplier<OperationContext> operationContextSupplier,
-                                                          SynchronousQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
+                                                          BlockingQueue<ExecRow> in, BlockingQueue<Pair<GetNLJoinIterator, Iterator<ExecRow>>> out) {
         switch (joinType) {
             case INNER:
                 return new GetNLJoinInnerIterator(operationContextSupplier, in, out);
@@ -72,7 +72,7 @@ public abstract class GetNLJoinIterator implements Runnable {
         return operationContext;
     }
 
-    public SynchronousQueue<ExecRow> getIn() {
+    public BlockingQueue<ExecRow> getIn() {
         return in;
     }
 

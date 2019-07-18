@@ -172,7 +172,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                         throw new RuntimeException(e);
                     }
                 };
-                SynchronousQueue<ExecRow> in = new SynchronousQueue<ExecRow>();
+                BlockingQueue<ExecRow> in = new LinkedBlockingQueue<ExecRow>();
                 GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType, supplier, in, out);
                 allIterators.add(getNLJoinIterator);
                 futures.add(executorService.submit(getNLJoinIterator));
