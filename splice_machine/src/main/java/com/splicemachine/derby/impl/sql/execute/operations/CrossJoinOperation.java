@@ -119,19 +119,31 @@ public class CrossJoinOperation extends JoinOperation{
         return leftResultSet;
     }
 
+    private DataSet<ExecRow> getLeftDataSet(DataSetProcessor dsp) throws StandardException {
+        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp)
+                .map(new CloneFunction<>(operationContext));
+        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
+
+        return leftDataSet;
+    }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
         DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
 
-//        operationContext.pushScope();
-        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
-
         DataSet<ExecRow> result;
+
+        if (isInnerJoin() && rightDataSet.isEmpty())
+            return rightDataSet;
+
+        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
+
+        if (isInnerJoin() && leftDataSet.isEmpty())
+            return leftDataSet;
 
         if (dsp.getType().equals(DataSetProcessor.Type.SPARK)) {
             result = leftDataSet.crossJoin(operationContext, rightDataSet);

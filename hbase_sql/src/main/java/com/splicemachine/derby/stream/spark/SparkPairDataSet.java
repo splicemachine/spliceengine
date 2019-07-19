@@ -144,6 +144,11 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public <W> PairDataSet<K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext){
+        if (rdd.isEmpty() || ((SparkPairDataSet<K, W>)rightDataSet).rdd.isEmpty()) {
+            JavaPairRDD emptyRDD = rdd.isEmpty() ? rdd :
+                    ((SparkPairDataSet<K, W>)rightDataSet).rdd;
+            return new SparkPairDataSet<>(emptyRDD);
+        }
         int numPartitions = SparkUtils.getPartitions(rdd, ((SparkPairDataSet<K, W>)rightDataSet).rdd);
         JavaPairRDD<K, Tuple2<V, W>> rdd1=rdd.join(((SparkPairDataSet<K, W>)rightDataSet).rdd, numPartitions);
         rdd1.setName(name);
@@ -194,7 +199,19 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext){
         int numPartitions = SparkUtils.getPartitions(rdd, ((SparkPairDataSet<K,W>)rightDataSet).rdd);
-        JavaPairRDD<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup=rdd.cogroup(((SparkPairDataSet<K, W>)rightDataSet).rdd, numPartitions);
+        JavaPairRDD<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup;
+        JoinOperation joinOperation = operationContext.getOperation() instanceof JoinOperation ?
+                              ((JoinOperation)operationContext.getOperation()) : null;
+        if (this.rdd.isEmpty()    &&
+            joinOperation != null &&
+            (joinOperation.isOuterJoin || joinOperation.isInnerOrSemiJoin()))
+            cogroup = rdd.cogroup(((SparkPairDataSet<K, W>)this).rdd, numPartitions);
+        else if (((SparkPairDataSet<K, W>) rightDataSet).rdd.isEmpty() &&
+                 joinOperation != null                                 &&
+                 joinOperation.isInnerOrSemiJoin())
+            cogroup = ((SparkPairDataSet<K, V>) rightDataSet).rdd.cogroup(((SparkPairDataSet<K, W>) rightDataSet).rdd, numPartitions);
+        else
+            cogroup = rdd.cogroup(((SparkPairDataSet<K, W>)rightDataSet).rdd, numPartitions);
         return new SparkPairDataSet<>(cogroup,name);
     }
 

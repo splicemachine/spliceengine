@@ -193,15 +193,20 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         boolean isForcedControl = false;
         boolean isOneRow = false;
         boolean isHinted = currentAccessPath.isHintedJoinStrategy();
+        boolean existsJoin = false;
         if (innerTable instanceof FromBaseTable) {
             CompilerContext.DataSetProcessorType dspt = ((FromBaseTable) innerTable).getdataSetProcessorTypeForAccessPath(currentAccessPath);
             isSpark = ((FromBaseTable)innerTable).isSpark(dspt);
             isForcedControl = dspt.name().equals("FORCED_CONTROL");
             isOneRow = ((FromBaseTable) innerTable).isOneRowResultSet();
+            existsJoin = ((FromBaseTable) innerTable).existsTable || outerCost.isExistsTable();
         }
         // Only use cross join when it is inner join
         // Only use cross join when it is on Spark, forced control and isHinted is for debug purpose
-        return !outerCost.isOuterJoin() && (isSpark || (isForcedControl && isHinted)) && !isOneRow;
+        // Cross join illegal for exists subquery.
+        // Only use cross join for joins.
+        return !outerCost.isOuterJoin() && (isSpark || (isForcedControl && isHinted)) &&
+               !isOneRow && !existsJoin && !outerCost.isOuterMostOptimizable();
     }
 
     @Override

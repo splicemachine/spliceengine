@@ -700,20 +700,39 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return isOneRowResultSet();
     }
 
+    private void setExistsTable(AccessPath accessPath) {
+        FromTable fromTable = this;
+
+        if (fromTable instanceof ProjectRestrictNode &&
+            ((ProjectRestrictNode) fromTable).childResult instanceof SelectNode) {
+            SelectNode sn = (SelectNode)((ProjectRestrictNode) fromTable).childResult;
+            accessPath.setExistsTable(sn.hasDistinct());
+            return;
+        }
+        while (fromTable instanceof ProjectRestrictNode &&
+            ((ProjectRestrictNode)fromTable).childResult instanceof FromTable)
+            fromTable = (FromTable)((ProjectRestrictNode)fromTable).childResult;
+        accessPath.setExistsTable(fromTable.existsTable);
+    }
+
     @Override
     public void initAccessPaths(Optimizer optimizer){
         if(currentAccessPath==null){
             currentAccessPath=optimizer.newAccessPath();
         }
+        setExistsTable(currentAccessPath);
         if(bestAccessPath==null){
             bestAccessPath=optimizer.newAccessPath();
         }
+        setExistsTable(bestAccessPath);
         if(bestSortAvoidancePath==null){
             bestSortAvoidancePath=optimizer.newAccessPath();
         }
+        setExistsTable(bestSortAvoidancePath);
         if(trulyTheBestAccessPath==null){
             trulyTheBestAccessPath=optimizer.newAccessPath();
         }
+        setExistsTable(trulyTheBestAccessPath);
     }
 
     @Override

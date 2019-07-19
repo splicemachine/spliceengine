@@ -150,8 +150,12 @@ public class MergeJoinOperation extends JoinOperation {
         DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
         
         operationContext.pushScope();
+
         try {
             left = left.map(new CountJoinedLeftFunction(operationContext));
+            if (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+                (isOuterJoin || isInnerOrSemiJoin()) && left.isEmpty())
+                return left;
             if (isOuterJoin)
                 return left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext), true);
             else {

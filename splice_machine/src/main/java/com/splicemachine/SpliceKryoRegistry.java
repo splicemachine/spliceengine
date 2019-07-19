@@ -660,10 +660,14 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                     public void write(Kryo kryo,Output output,com.splicemachine.db.impl.sql.execute.IndexRow object){
                         super.write(kryo,output,object);
                         boolean[] orderedNulls=object.getOrderedNulls();
-                        output.writeInt(orderedNulls.length);
-                        for(boolean orderedNull : orderedNulls){
-                            output.writeBoolean(orderedNull);
+                        if (orderedNulls != null) {
+                            output.writeInt(orderedNulls.length);
+                            for(boolean orderedNull : orderedNulls){
+                                output.writeBoolean(orderedNull);
+                            }
                         }
+                        else
+                            output.writeInt(0);
                     }
 
                     @Override
@@ -675,7 +679,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                         for(int i=0;i<orderedNulls.length;i++){
                             orderedNulls[i]=input.readBoolean();
                         }
-                        row.setOrderedNulls(orderedNulls);
+                        if (orderedNulls.length != 0)
+                            row.setOrderedNulls(orderedNulls);
                         return row;
                     }
 

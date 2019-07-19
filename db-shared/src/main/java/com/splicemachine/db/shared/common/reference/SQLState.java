@@ -1050,7 +1050,8 @@ public interface SQLState {
 	String LANG_TRIGGER_BAD_REF_CLAUSE_DUPS                            = "42Y93";
 	String LANG_BINARY_LOGICAL_NON_BOOLEAN                             = "42Y94";
 	String LANG_BINARY_OPERATOR_NOT_SUPPORTED                          = "42Y95";
-  String LANG_INVALID_SORT_STRATEGY                                  = "42Y96";
+        String LANG_INVALID_SORT_STRATEGY                                  = "42Y96";
+        String LANG_INVALID_EXPLAIN_MODE                                   = "42Y98";
 	String LANG_UNKNOWN												                         = "42Y96.U";
 	String LANG_INVALID_ESCAPE										                     = "42Y97";
 	String LANG_JAVACC_SYNTAX										                       = "42Y98.U";

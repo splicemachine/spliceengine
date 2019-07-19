@@ -568,13 +568,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
-
-
-    @Override
-    public boolean isEmpty() {
-        throw new UnsupportedOperationException("isEmpty() not supported");
-    }
-
     @Override
     public <Op extends SpliceOperation, U> DataSet< U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
         try {
@@ -782,6 +775,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
         try {
+            boolean isInnerOrSemijoin = ((JoinOperation)context.getOperation()).isInnerOrSemiJoin();
+            boolean isOuterJoin = ((JoinOperation)context.getOperation()).isOuterJoin;
+            if ((isInnerOrSemijoin && rightDataSet.isEmpty()) ||
+                ((isInnerOrSemijoin || isOuterJoin) && this.isEmpty())) {
+                JavaRDD emptyRDD = this.isEmpty() ? this.getRDD() :
+                                   rightDataSet.getRDD();
+                return new SparkDataSet<>(emptyRDD);
+            }
             JoinOperation op = (JoinOperation) context.getOperation();
             Dataset<Row> leftDF = dataset;
             Dataset<Row> rightDF;
@@ -822,6 +823,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet) {
         try {
+            if (rightDataSet.isEmpty() || this.isEmpty()) {
+                JavaRDD emptyRDD = this.isEmpty() ? this.getRDD() :
+                                   rightDataSet.getRDD();
+                return new SparkDataSet<>(emptyRDD);
+            }
             Dataset<Row> leftDF = dataset;
             Dataset<Row> rightDF;
             if (rightDataSet instanceof NativeSparkDataSet) {
@@ -1115,4 +1121,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return new SparkTableSamplerBuilder(this, this.context);
     }
 
+    @Override
+    public boolean isEmpty() {
+        return this.dataset.javaRDD().isEmpty();
+    }
+
+    @Override
+    public JavaRDD getRDD() { return this.dataset.javaRDD(); }
 }

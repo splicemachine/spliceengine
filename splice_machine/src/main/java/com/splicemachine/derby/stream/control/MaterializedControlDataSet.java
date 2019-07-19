@@ -23,4 +23,9 @@ public class MaterializedControlDataSet<V> extends ControlDataSet<V> {
     public DataSet getClone() {
         return new MaterializedControlDataSet<V>(dataset);
     }
+
+    @Override
+    public boolean isEmpty() {
+        return this.dataset.isEmpty();
+    }
 }

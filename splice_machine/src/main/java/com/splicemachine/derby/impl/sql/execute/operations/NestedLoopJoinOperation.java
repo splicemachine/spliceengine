@@ -101,6 +101,11 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
         operationContext.pushScope();
         try {
+
+            if (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+                isInnerOrSemiJoin() && left.isEmpty())
+                return left;
+
             if (isOuterJoin)
                 return left.mapPartitions(new NLJOuterJoinFunction(operationContext), true);
             else {

@@ -22,6 +22,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.utils.Pair;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -362,4 +363,6 @@ public interface DataSet<V> extends //Iterable<V>,
     InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException;
     UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException;
     TableSamplerBuilder sample(OperationContext operationContext) throws StandardException;
+
+    JavaRDD getRDD();
 }

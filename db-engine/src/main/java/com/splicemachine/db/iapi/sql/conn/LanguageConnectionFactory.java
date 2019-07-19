@@ -125,6 +125,7 @@ public interface LanguageConnectionFactory {
                                 CompilerContext.DataSetProcessorType type,
 								boolean skipStats,
 								double defaultSelectivityFactor,
+								boolean explainMode,
 								String ipAddress,
                                 String defaultSchema,
                                 Properties sessionProperties)
