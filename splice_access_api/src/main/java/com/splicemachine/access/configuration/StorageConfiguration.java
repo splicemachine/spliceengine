@@ -36,13 +36,10 @@ public class StorageConfiguration implements ConfigurationDefault {
     public static final String SPLIT_BLOCK_SIZE = "splice.splitBlockSize";
     public static final int DEFAULT_SPLIT_BLOCK_SIZE=32*1024*1024;
 
-    public static final String SPLITS_PER_TABLE_MINIMUM = "splice.splitsPerTableMinimum";
-    public static final int DEFAULT_SPLITS_PER_TABLE_MINIMUM = 16;
-
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.splitBlockSize = configurationSource.getInt(SPLIT_BLOCK_SIZE, DEFAULT_SPLIT_BLOCK_SIZE);
+
         builder.tableSplitSleepInterval = configurationSource.getLong(TABLE_SPLIT_SLEEP_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
-        builder.splitsPreTableMin = configurationSource.getInt(SPLITS_PER_TABLE_MINIMUM, DEFAULT_SPLITS_PER_TABLE_MINIMUM);
     }
 }
