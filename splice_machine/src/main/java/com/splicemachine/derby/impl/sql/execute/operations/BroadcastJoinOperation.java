@@ -183,10 +183,7 @@ public class BroadcastJoinOperation extends JoinOperation{
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
 
-//        operationContext.pushScope();
-        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
                 isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
@@ -194,8 +191,10 @@ public class BroadcastJoinOperation extends JoinOperation{
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
 
         boolean useDataset = SpliceClient.isClient() ||
+                             isInnerOrSemiJoin()     ||
                 rightResultSet.getEstimatedCost() / 1000 > configuration.getBroadcastDatasetCostThreshold() ||
                         rightResultSet.accessExternalTable();
+
         /** For semi-join, it is possible that the right side is a result from complex operations, like a sequence
          * of joins or some aggregations on top of base table. So heuristically it is better to go through the dataset implementation
          * if the rightResultSet is not a simple access of the base table
@@ -218,9 +217,16 @@ public class BroadcastJoinOperation extends JoinOperation{
             useDataset = false;
 
         DataSet<ExecRow> result;
+        DataSet<ExecRow> leftDataSet;
         if (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
-                (restriction ==null || (!isOuterJoin && !notExistsRightSide))) {
+                (restriction ==null || (!isOuterJoin && !notExistsRightSide && !isOneRowRightSide()))) {
             DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
+            if (isInnerOrSemiJoin() && rightDataSet.isEmpty())
+                return rightDataSet;
+
+            leftDataSet = leftResultSet.getDataSet(dsp);
+            leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
+
             if (isOuterJoin)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)
@@ -238,6 +244,8 @@ public class BroadcastJoinOperation extends JoinOperation{
             }
         }
         else {
+            leftDataSet = leftResultSet.getDataSet(dsp);
+            leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
             if (isOuterJoin) { // Outer Join with and without restriction
                 result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
                         .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))

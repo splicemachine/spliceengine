@@ -32,6 +32,8 @@ public interface JoinTable extends AutoCloseable{
 
     Iterator<ExecRow> fetchInner(ExecRow outer) throws IOException, StandardException;
 
+    boolean isEmpty();
+
     @Override
     void close();
 }

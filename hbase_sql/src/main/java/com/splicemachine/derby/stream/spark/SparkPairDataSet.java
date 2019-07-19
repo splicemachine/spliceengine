@@ -144,6 +144,11 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K, V>{
 
     @Override
     public <W> PairDataSet<K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, String name, OperationContext operationContext){
+        if (rdd.isEmpty() || ((SparkPairDataSet<K, W>)rightDataSet).rdd.isEmpty()) {
+            JavaPairRDD emptyRDD = rdd.isEmpty() ? rdd :
+                    ((SparkPairDataSet<K, W>)rightDataSet).rdd;
+            return new SparkPairDataSet<>(emptyRDD);
+        }
         int numPartitions = SparkUtils.getPartitions(rdd, ((SparkPairDataSet<K, W>)rightDataSet).rdd);
         JavaPairRDD<K, Tuple2<V, W>> rdd1=rdd.join(((SparkPairDataSet<K, W>)rightDataSet).rdd, numPartitions);
         rdd1.setName(name);

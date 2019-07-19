@@ -59,6 +59,12 @@ class ValueRowMappedJoinTable implements JoinTable{
             return rows.iterator();
     }
 
+
+    @Override
+    public boolean isEmpty() {
+        return table.isEmpty();
+    }
+
     //nothing to close
     @Override public void close(){}
 

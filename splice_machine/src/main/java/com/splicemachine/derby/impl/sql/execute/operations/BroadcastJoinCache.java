@@ -128,6 +128,11 @@ public class BroadcastJoinCache{
         }
 
         @Override
+        public boolean isEmpty() {
+            return delegate.isEmpty();
+        }
+
+        @Override
         public void close(){
             if (closed)
                 return;

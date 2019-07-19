@@ -190,8 +190,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
+        if (!this.source.hasNext()) {
+            return new ControlPairDataSet(Collections.emptyIterator());
+        }
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterator(limit(ControlUtils.checkCancellation(((ControlPairDataSet<K,W>) rightDataSet).source,operationContext), operationContext));
+        if (rightSide.isEmpty())
+            return new ControlPairDataSet(Collections.emptyIterator());
+        else
         return new ControlPairDataSet(Iterators.concat(Iterators.transform(ControlUtils.checkCancellation(source,operationContext),new Function<Tuple2<K, V>, Iterator<Tuple2<K, Tuple2<V, W>>>>() {
             @Nullable
             @Override
