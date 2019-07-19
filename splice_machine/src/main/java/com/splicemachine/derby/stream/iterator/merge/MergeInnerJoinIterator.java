@@ -52,6 +52,9 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                     operationContext.recordFilter();
                 }
             }
+            if (moreRightRows.isFalse())
+                return false;
+
             while (leftRS.hasNext()) {
                 if (left == null)
                     left = leftRS.next().getClone();
@@ -59,6 +62,8 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                     left.transfer(leftRS.next());
                 if (!joinColumnHasNull(left, true)) {
                     currentRightIterator = rightsForLeft(left);
+                    if (moreRightRows.isFalse())
+                        return false;
                     while (currentRightIterator.hasNext()) {
                         currentExecRow = mergeRows(left, currentRightIterator.next());
                         if (mergeJoinOperation.getRestriction().apply(currentExecRow)) {
@@ -70,6 +75,8 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                         operationContext.recordFilter();
                     }
                 }
+                else if (moreRightRows.isFalse())
+                    return false;
             }
             return false;
         }  catch (Exception e) {

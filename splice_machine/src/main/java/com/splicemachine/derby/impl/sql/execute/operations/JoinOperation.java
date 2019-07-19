@@ -368,4 +368,15 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	public String getVTIFileName() {
 		return getSubOperations().get(0).getVTIFileName();
 	}
+
+	public boolean isInnerJoin() {
+    	    return !isOuterJoin        &&
+                   !notExistsRightSide &&
+	           !isOneRowRightSide();
+        }
+
+	public boolean isInnerOrSemiJoin() {
+    	    return !isOuterJoin        &&
+                   !notExistsRightSide;
+        }
 }

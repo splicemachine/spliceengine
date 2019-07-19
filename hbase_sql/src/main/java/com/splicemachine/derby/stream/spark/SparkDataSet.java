@@ -66,6 +66,7 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Column;
@@ -492,7 +493,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public boolean isEmpty() {
-        return rdd.take(1).isEmpty();
+        return rdd.isEmpty();
     }
 
     @Override
@@ -688,6 +689,12 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
         try {
+            if ((joinType == JoinType.INNER || joinType == JoinType.LEFTSEMI) &&
+                (rightDataSet.isEmpty() || this.isEmpty())) {
+                JavaRDD emptyRDD = this.isEmpty() ? rdd :
+                                   rightDataSet.getRDD();
+                return new SparkDataSet<>(emptyRDD);
+            }
             JoinOperation op = (JoinOperation) context.getOperation();
             Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
                     rdd.map(new LocatedRowToRowFunction()),
@@ -986,4 +993,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
         return new SparkTableSamplerBuilder(this, operationContext);
     }
+
+    @Override
+    public JavaRDD getRDD() { return this.rdd; }
 }

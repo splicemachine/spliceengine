@@ -34,6 +34,11 @@ package com.splicemachine.db.impl.sql.execute;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 
 /**
@@ -111,5 +116,27 @@ public class IndexRow extends ValueRow implements ExecIndexRow
 
 	public ValueRow cloneMe() {
 		return new IndexRow(nColumns());
+	}
+
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		super.writeExternal(out);
+		out.writeBoolean(orderedNulls != null);
+		if (orderedNulls != null) {
+			out.writeInt(orderedNulls.length);
+			for (boolean b : orderedNulls)
+				out.writeBoolean(b);
+		}
+	}
+	@Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		super.readExternal(in);
+		boolean orderedNullsPresent = in.readBoolean();
+		if (orderedNullsPresent) {
+			int numElements = in.readInt();
+			orderedNulls = new boolean[numElements];
+			for (int i = 0; i < numElements; i++)
+				orderedNulls[i] = in.readBoolean();
+		}
 	}
 }
