@@ -126,6 +126,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
@@ -3878,44 +3879,53 @@ StatementNode
 preparableSQLDataStatement() throws StandardException :
 {
 	StatementNode	dmlStatement;
+	boolean eligibleForExplainMode = false;
 }
 {
 	/*
 	** RESOLVE: Ignoring temporary table declarations for now.
 	*/
+	(
 	dmlStatement = preparableDeleteStatement()
 	{
-		return dmlStatement;
+	    eligibleForExplainMode = true;
 	}
 |
 	dmlStatement = preparableSelectStatement(true)
 	{
-		return dmlStatement;
+	    eligibleForExplainMode = true;
 	}
+
 |
 	dmlStatement = insertStatement()
 	{
-		return dmlStatement;
+	    eligibleForExplainMode = true;
 	}
 |
 	dmlStatement = preparableUpdateStatement()
 	{
-		return dmlStatement;
+	    eligibleForExplainMode = true;
 	}
 |
 	dmlStatement = callStatement()
-	{
-		return dmlStatement;
-	}
+
 |
 	dmlStatement = savepointStatement()
-	{
-		return dmlStatement;
-	}
+
 | dmlStatement = analyzeStatements()
-  {
-    return dmlStatement;
-  }
+
+  )
+
+  	{
+  	    Boolean explainMode = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.EXPLAINMODE);
+
+        if (eligibleForExplainMode && explainMode != null && explainMode == true)
+                return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
+                                   dmlStatement,
+                                   getContextManager());
+        else
+		    return dmlStatement;
+	}
 }
 
 StatementNode
@@ -3927,6 +3937,9 @@ explainStatement() throws StandardException :
 {
     <EXPLAIN> statementNode = preparableSQLDataStatement()
     {
+        if (statementNode instanceof ExplainNode)
+            return statementNode;
+        else
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    getContextManager());

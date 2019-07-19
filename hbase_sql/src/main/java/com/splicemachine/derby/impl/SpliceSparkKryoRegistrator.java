@@ -536,10 +536,14 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
                     public void write(Kryo kryo, Output output, IndexRow object) {
                         super.write(kryo, output, object);
                         boolean[] orderedNulls = object.getOrderedNulls();
-                        output.writeInt(orderedNulls.length);
-                        for (boolean orderedNull : orderedNulls) {
-                            output.writeBoolean(orderedNull);
+                        if (orderedNulls != null) {
+                            output.writeInt(orderedNulls.length);
+                            for (boolean orderedNull : orderedNulls) {
+                                output.writeBoolean(orderedNull);
+                            }
                         }
+                        else
+                            output.writeInt(0);
                     }
 
                     @Override
@@ -551,7 +555,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
                         for(int i=0;i<orderedNulls.length;i++){
                             orderedNulls[i] = input.readBoolean();
                         }
-                        row.setOrderedNulls(orderedNulls);
+                        if (orderedNulls.length != 0)
+                            row.setOrderedNulls(orderedNulls);
                         return row;
                     }
 

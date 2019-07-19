@@ -45,7 +45,8 @@ public interface SessionProperties {
         DEFAULTSELECTIVITYFACTOR(1),
         SKIPSTATS(2),
         RECURSIVEQUERYITERATIONLIMIT(3),
-        OLAPQUEUE(4);
+        OLAPQUEUE(4),
+        EXPLAINMODE(5);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
@@ -77,7 +78,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useSpark, defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit");
+                    "useSpark, defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, explainMode");
         }
 
         String valString = pair.getSecond();
@@ -87,6 +88,7 @@ public interface SessionProperties {
         switch (property) {
             case USESPARK:
             case SKIPSTATS:
+            case EXPLAINMODE:
                 try {
                     boolean val = Boolean.parseBoolean(valString);
                 } catch (Exception e) {

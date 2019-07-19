@@ -20,14 +20,12 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.PeekingIterator;
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
     private static final Logger LOG = Logger.getLogger(MergeOuterJoinIterator.class);
@@ -49,6 +47,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     protected boolean forSSQ = false;
     protected boolean isSemiJoin = false;
     protected int[] hashKeySortOrders;
+    protected MutableBoolean moreRightRows = new MutableBoolean(true);
 
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
@@ -118,10 +117,18 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
                 && compare(left, currentRights.get(0)) == 0){ // that match this left
             return currentRights.iterator();
         }
+        if (moreRightRows.isFalse())
+            return Collections.emptyIterator();
+
+        currentRights.clear();
+
+        if (!rightRS.hasNext()) {
+            moreRightRows.setFalse();
+            return Collections.emptyIterator();
+        }
 
         if (leftRS.hasNext() && compareLefts(left,leftRS.peek()) == 0) { // Next Left
             // If not, look for the ones that do
-            currentRights = new ArrayList<ExecRow>();
             while (rightRS.hasNext()) {
                 int comparison = compare(left, rightRS.peek());
                 if (comparison == 0) { // if matches left, add to buffer

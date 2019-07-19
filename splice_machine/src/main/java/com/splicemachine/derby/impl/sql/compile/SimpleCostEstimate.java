@@ -32,6 +32,8 @@ public class SimpleCostEstimate implements CostEstimate{
      */
     private boolean isOuterJoin;
     private boolean isAntiJoin;
+    private boolean isExistsTable;
+    private boolean isOuterMostOptimizable;
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
     private int numPartitions;
@@ -283,6 +285,8 @@ public class SimpleCostEstimate implements CostEstimate{
         }
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
         clone.isAntiJoin = this.isAntiJoin;
+        clone.isExistsTable = this.isExistsTable;
+        // Don't copy isOuterMostOptimizable on purpose.
         clone.isOuterJoin = this.isOuterJoin();
         clone.setRowOrdering(roClone);
         clone.setPredicateList(predicateList);
@@ -438,6 +442,26 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override
     public void setAntiJoin(boolean isAntiJoin) {
         this.isAntiJoin = isAntiJoin;
+    }
+
+    @Override
+    public boolean isExistsTable() {
+        return isExistsTable;
+    }
+
+    @Override
+    public void setExistsTable(boolean isExistsTable) {
+        this.isExistsTable = isExistsTable;
+    }
+
+    @Override
+    public boolean isOuterMostOptimizable()  {
+        return isOuterMostOptimizable;
+    }
+
+    @Override
+    public void setOuterMostOptimizable(boolean isOuterMostOptimizable) {
+        this.isOuterMostOptimizable = isOuterMostOptimizable;
     }
 
     public double getProjectionRows() {

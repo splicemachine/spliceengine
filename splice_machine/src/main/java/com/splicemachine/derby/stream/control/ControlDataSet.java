@@ -60,6 +60,7 @@ import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
@@ -362,7 +363,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public boolean isEmpty() {
-        return iterator.hasNext();
+        return !iterator.hasNext();
     }
 
     @Override
@@ -774,4 +775,7 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) { return null; }
+
+    @Override
+    public JavaRDD getRDD() { throw new UnsupportedOperationException(); }
 }

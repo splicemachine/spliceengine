@@ -190,8 +190,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
+        if (!this.source.hasNext()) {
+            return new ControlPairDataSet(Collections.emptyIterator());
+        }
         // Materializes the right side
         final Multimap<K,W> rightSide = multimapFromIterator(limit(ControlUtils.checkCancellation(((ControlPairDataSet<K,W>) rightDataSet).source,operationContext), operationContext));
+        if (rightSide.isEmpty())
+            return new ControlPairDataSet(Collections.emptyIterator());
+        else
         return new ControlPairDataSet(Iterators.concat(Iterators.transform(ControlUtils.checkCancellation(source,operationContext),new Function<Tuple2<K, V>, Iterator<Tuple2<K, Tuple2<V, W>>>>() {
             @Nullable
             @Override
@@ -278,8 +284,21 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet, OperationContext operationContext) {
-        Multimap<K, V> left = multimapFromIterator(limit(ControlUtils.checkCancellation(source,operationContext), operationContext));
-        Multimap<K, W> right = multimapFromIterator(limit(ControlUtils.checkCancellation(((ControlPairDataSet<K, W>) rightDataSet).source, operationContext), operationContext));
+        JoinOperation joinOperation = operationContext.getOperation() instanceof JoinOperation ?
+                                      ((JoinOperation)operationContext.getOperation()) : null;
+        Iterator leftIterator = limit(ControlUtils.checkCancellation(source,operationContext), operationContext);
+        if (!leftIterator.hasNext() &&
+            joinOperation != null   &&
+            (joinOperation.isOuterJoin || joinOperation.isInnerOrSemiJoin()))
+            return new ControlPairDataSet<>(Collections.emptyIterator());
+        Iterator rightIterator = limit(ControlUtils.checkCancellation(((ControlPairDataSet<K, W>) rightDataSet).source, operationContext), operationContext);
+        if (!rightIterator.hasNext()  &&
+            joinOperation != null     &&
+            joinOperation.isInnerOrSemiJoin())
+            return new ControlPairDataSet<>(Collections.emptyIterator());
+
+        Multimap<K, V> left = multimapFromIterator(leftIterator);
+        Multimap<K, W> right = multimapFromIterator(rightIterator);
 
         List<Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>> result = new ArrayList<>();
         for (K key: Sets.union(left.keySet(),right.keySet())){

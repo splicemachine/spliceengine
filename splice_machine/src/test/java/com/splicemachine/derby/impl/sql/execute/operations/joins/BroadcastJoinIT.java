@@ -16,6 +16,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -39,6 +41,7 @@ import java.util.Collection;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Scott Fines
@@ -276,6 +279,42 @@ public class BroadcastJoinIT extends SpliceUnitTest {
             classWatcher.executeUpdate(SpliceUnitTest.format("insert into tab1 select a+%d,b from tab1", factor));
             factor = factor * 2;
         }
+
+        // Empty table for testing efficiency of join with empty table.
+        new TableCreator(conn)
+                .withCreate("create table t22 (a int, b int, primary key(a,b))")
+                .create();
+
+        // Single row table for testing that merge join doesn't read all
+        // left table rows when it doesn't have to.
+        new TableCreator(conn)
+                .withCreate("create table t33 (a int, b int, primary key(a,b))")
+                .withInsert("insert into t33 values(?,?)")
+                .withRows(rows(
+                        row(0,0)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t11 (a int, b int, primary key(a,b))")
+                .withInsert("insert into t11 values(?,?)")
+                .withRows(rows(
+                        row(1,1),
+                        row(1,2),
+                        row(1,3),
+                        row(1,4),
+                        row(1,5),
+                        row(1,6),
+                        row(1,7),
+                        row(1,8),
+                        row(1,9),
+                        row(1,10)))
+                .create();
+
+        factor = 10;
+        for (int i = 1; i <= 16; i++) {
+            classWatcher.executeUpdate(SpliceUnitTest.format("insert into t11 select a, b+%d from t11", factor));
+            factor = factor * 2;
+        }
         conn.commit();
     }
 
@@ -283,7 +322,173 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     public static void createDataSet() throws Exception {
         createData(classWatcher.getOrCreateConnection(), schemaWatcher.toString());
     }
-    
+
+    private void assertUnderTimeLimit (Timer readTimer, boolean longQuery) {
+        double conversion = 1000*1000*1000d;
+        double elapsed = readTimer.getTime().getStopWallTimestamp() -
+                         readTimer.getTime().getStartWallTimestamp();
+        double seconds = elapsed / conversion;
+        double timeLimit;
+        if (longQuery)
+            timeLimit = useSpark ? 60d : 180d;
+        else
+            timeLimit = useSpark ? 1.5d : 0.5d;
+
+        assertTrue(format("Query did not finish in %f seconds!  Actual time: %f seconds", timeLimit, seconds),
+                   seconds <= timeLimit);
+    }
+
+    private void testQueryUnderTimeLimit(String sqlText, String expected,
+                                         Timer readTimer, String joinStrategy,
+                                         boolean longQuery) throws Exception {
+        String query = format(sqlText, joinStrategy);
+        // Warm up the query once if using spark.
+        if (useSpark)
+            testQuery(query, expected, classWatcher);
+        readTimer.startTiming();
+        testQuery(query, expected, classWatcher);
+        readTimer.stopTiming();
+        assertUnderTimeLimit(readTimer, longQuery);
+    }
+
+    @Test
+    public void testFastJoinWithZeroRowsTable() throws Exception {
+        Timer readTimer = Metrics.newTimer();
+        String expected = "";
+
+        String sqlText = format("select 1 from t11, t22" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        " where t11.b=t22.b", useSpark
+        );
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "BROADCAST", false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "SORTMERGE", false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "NESTEDLOOP",false);
+        if (useSpark)
+            testQueryUnderTimeLimit(sqlText, expected, readTimer, "CROSS",false);
+
+        sqlText = format("select 1 from t22, t11" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        " where t11.b=t22.b", useSpark
+        );
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "BROADCAST", false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "SORTMERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "NESTEDLOOP",false);
+        if (useSpark)
+            testQueryUnderTimeLimit(sqlText, expected, readTimer, "CROSS",false);
+
+        sqlText = format("select 1 from t11, t22" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        " where t11.a=t22.a and t11.b=t22.b", useSpark
+        );
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+
+        sqlText = format("select 1 from t22, t11" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        " where t11.a=t22.a and t11.b=t22.b", useSpark
+        );
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+
+        sqlText = format("select 1 from t11, t22" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        " where t11.a=t22.a", useSpark
+        );
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+
+        sqlText = format("select 1 from t22, t11" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        " where t11.a=t22.a", useSpark
+        );
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+
+        // Test semijoin
+        sqlText = format("select 1 from t11 --SPLICE-PROPERTIES useSpark=%s\n" +
+                        "where a in (select a from t22" +
+                        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+                        " )", useSpark, useSpark);
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "BROADCAST", false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "SORTMERGE",false);
+
+        sqlText = format("select 1 from t22 --SPLICE-PROPERTIES useSpark=%s\n" +
+                        "where a in (select a from t11" +
+                        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+                        " )", useSpark, useSpark);
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "BROADCAST", false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "SORTMERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "NESTEDLOOP",false);
+
+        // Test outer joins
+        sqlText = format("select count(*) from t11 --splice-properties useSpark=%s, joinStrategy=%%s\n" +
+        "right outer join t22     --splice-properties useSpark=%s\n" +
+        "on t11.a=t22.a", useSpark, useSpark);
+
+        expected =  "1 |\n" +
+                    "----\n" +
+                    " 0 |";
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "BROADCAST",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "SORTMERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "NESTEDLOOP",false);
+
+        sqlText = format("select count(*) from t22\n" +
+        "left outer join t11 --splice-properties useSpark=true, joinStrategy=%%s\n" +
+        "on t11.a=t22.a", useSpark);
+
+        expected =  "1 |\n" +
+                    "----\n" +
+                    " 0 |";
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "BROADCAST",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "SORTMERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "NESTEDLOOP",false);
+
+        // Test multiple joins
+        expected = "";
+        sqlText = format("select 1 from t22, t11" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        ", t11 tab1, t11 tab2" +
+        " where t11.a=t22.a and tab1.a=t11.a and tab2.a=tab1.a", useSpark
+        );
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "BROADCAST", false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "SORTMERGE",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "NESTEDLOOP",false);
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE",false);
+        if (useSpark)
+            testQueryUnderTimeLimit(sqlText, expected, readTimer, "CROSS",false);
+    }
+
+    // Join t11 with a table with one row and make sure merge join doesn't
+    // read all left table rows (tested via query timing).
+    @Test
+    public void testFastMergeJoinWithSingleRowTable() throws Exception {
+        Timer readTimer = Metrics.newTimer();
+        String expected = "";
+
+        String sqlText = format("select 1 from t11, t33" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        " where t11.a=t33.a", useSpark
+        );
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE", false);
+
+        sqlText = format("select 1 from t33, t11" +
+        " --SPLICE-PROPERTIES joinStrategy=%%s,useSpark=%s\n" +
+        " where t11.a=t33.a", useSpark
+        );
+
+        testQueryUnderTimeLimit(sqlText, expected, readTimer, "MERGE", false);
+    }
     @Test
     public void testNumericColumnsBroadCastJoin() throws Exception {
 

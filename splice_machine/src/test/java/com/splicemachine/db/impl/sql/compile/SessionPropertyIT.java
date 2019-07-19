@@ -130,6 +130,22 @@ public class SessionPropertyIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testExplainModeSessionProperty() throws Exception {
+        TestConnection conn = methodWatcher.createConnection();
+        conn.execute("set session_property explainMode=true");
+
+        String sqlText = "select * from t1 where a1=1";
+
+        // The query output should be the explain text.
+        rowContainsQuery(1, sqlText, "Cursor", conn);
+
+        // reset property
+        conn.execute("set session_property explainMode=null");
+
+        conn.close();
+    }
+
+    @Test
     public void testUseSparkSessionProperty() throws Exception {
         TestConnection conn = methodWatcher.createConnection();
         conn.execute("set session_property useSpark=true");

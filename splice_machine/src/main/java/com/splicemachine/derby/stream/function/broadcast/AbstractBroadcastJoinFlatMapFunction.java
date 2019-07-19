@@ -37,6 +37,7 @@ import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -60,6 +61,10 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
 
     @Override
     public final Iterator<Out> call(Iterator<In> locatedRows) throws Exception {
+        if ((getOperation().isOuterJoin || getOperation().isInnerOrSemiJoin())
+             && !locatedRows.hasNext()) {
+            return Collections.emptyIterator();
+        }
         init();
         JoinTable table;
         try {
@@ -71,6 +76,9 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
             }
             throw ee;
         }
+        if (operation.isInnerOrSemiJoin() && table.isEmpty())
+            return Collections.emptyIterator();
+
         Iterator<Out> it = call(locatedRows, table).iterator();
         return new Iterator<Out>() {
             @Override

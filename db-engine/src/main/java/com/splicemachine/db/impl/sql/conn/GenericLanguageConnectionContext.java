@@ -358,6 +358,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             CompilerContext.DataSetProcessorType type,
             boolean skipStats,
             double defaultSelectivityFactor,
+            boolean explainMode,
             String ipAddress,
             String defaultSchema,
             Properties connectionProperties
@@ -415,6 +416,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
         }
 
+        if (explainMode)
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.EXPLAINMODE, new Boolean(explainMode).toString());
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
 

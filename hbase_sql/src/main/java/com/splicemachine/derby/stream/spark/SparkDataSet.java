@@ -24,6 +24,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
@@ -66,6 +67,7 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.Column;
@@ -477,7 +479,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public boolean isEmpty() {
-        return rdd.take(1).isEmpty();
+        return rdd.isEmpty();
     }
 
     @Override
@@ -672,6 +674,15 @@ public class SparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) throws StandardException {
+        boolean isInnerOrSemijoin = ((JoinOperation)context.getOperation()).isInnerOrSemiJoin();
+        boolean isOuterJoin = ((JoinOperation)context.getOperation()).isOuterJoin;
+
+        if ((isInnerOrSemijoin && rightDataSet.isEmpty()) ||
+            ((isInnerOrSemijoin || isOuterJoin) && this.isEmpty())) {
+            JavaRDD emptyRDD = this.isEmpty() ? rdd :
+                               rightDataSet.getRDD();
+            return new SparkDataSet<>(emptyRDD);
+        }
         Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
                         context.getOperation().getLeftOperation().getExecRowDefinition().schema());
@@ -683,6 +694,11 @@ public class SparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet) throws StandardException {
+        if (rightDataSet.isEmpty() || this.isEmpty()) {
+            JavaRDD emptyRDD = this.isEmpty() ? rdd :
+                               rightDataSet.getRDD();
+            return new SparkDataSet<>(emptyRDD);
+        }
         Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
                         context.getOperation().getLeftOperation().getExecRowDefinition().schema());
@@ -907,4 +923,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @Override
     public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) { return null; }
+
+    @Override
+    public JavaRDD getRDD() { return this.rdd; }
 }

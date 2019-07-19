@@ -53,6 +53,7 @@ class AccessPathImpl implements AccessPath{
     private CostEstimate costEstimate=null;
     private boolean isJoinStrategyHinted = false;
     private boolean missingHashKeyOK = false;
+    private boolean isExistsTable = false;
 
     AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
@@ -82,6 +83,8 @@ class AccessPathImpl implements AccessPath{
             else
                 this.costEstimate.setCost(costEstimate);
         }
+        if (this.costEstimate != null && isExistsTable)
+            this.costEstimate.setExistsTable(isExistsTable);
     }
 
     @Override public boolean getCoveringIndexScan(){ return coveringIndexScan; }
@@ -97,6 +100,9 @@ class AccessPathImpl implements AccessPath{
 
     @Override public int getLockMode(){ return lockMode; }
     @Override public void setLockMode(int lockMode){ this.lockMode=lockMode; }
+
+    @Override public boolean isExistsTable() { return isExistsTable; }
+    @Override public void setExistsTable(boolean isExistsTable) { this.isExistsTable = isExistsTable; }
 
     @Override
     public void copy(AccessPath copyFrom){

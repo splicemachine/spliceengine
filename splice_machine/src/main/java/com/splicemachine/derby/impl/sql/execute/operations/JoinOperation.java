@@ -391,4 +391,15 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	public ExecRow getLeftRow() { return leftRow; }
 	public ExecRow getRightRow() { return rightRow; }
+
+	public boolean isInnerJoin() {
+    	    return !isOuterJoin        &&
+                   !notExistsRightSide &&
+	           !isOneRowRightSide();
+        }
+
+	public boolean isInnerOrSemiJoin() {
+    	    return !isOuterJoin        &&
+                   !notExistsRightSide;
+        }
 }

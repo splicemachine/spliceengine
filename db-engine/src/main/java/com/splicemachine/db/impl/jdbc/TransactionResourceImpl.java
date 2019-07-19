@@ -134,6 +134,7 @@ public final class TransactionResourceImpl
 	private String drdaID;
 	private String rdbIntTkn;
     private CompilerContext.DataSetProcessorType useSpark;
+    private boolean explainMode;
     private boolean skipStats;
     private double defaultSelectivityFactor;
 	private String ipAddress;
@@ -180,6 +181,16 @@ public final class TransactionResourceImpl
             }
         } else
             useSpark = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+
+        String explainModeString = info.getProperty("explainMode",null);
+        if (explainModeString != null) {
+            try {
+                explainMode = Boolean.parseBoolean(StringUtil.SQLToUpperCase(explainModeString));
+            } catch (Exception sparkE) {
+                throw new SQLException(StandardException.newException(SQLState.LANG_INVALID_EXPLAIN_MODE, explainModeString).getMessage(), SQLState.LANG_INVALID_EXPLAIN_MODE);
+            }
+        } else
+            explainMode = false;
 
         String skipStatsString = info.getProperty("skipStats", null);
         if (skipStatsString != null) {
@@ -242,7 +253,7 @@ public final class TransactionResourceImpl
 	{
 		// setting up local connection
 		lcc = database.setupConnection(cm, username, groupuserlist, drdaID, dbname, rdbIntTkn, useSpark,
-                skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                skipStats, defaultSelectivityFactor, explainMode, ipAddress, defaultSchema, sessionProperties);
 	}
 
 	/**

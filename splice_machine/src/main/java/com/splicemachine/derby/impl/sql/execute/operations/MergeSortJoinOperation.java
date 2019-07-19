@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.stream.control.ControlPairDataSet;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -175,6 +176,18 @@ public class MergeSortJoinOperation extends JoinOperation {
         return "MergeSortJoin:" + super.prettyPrint(indentLevel);
     }
 
+    private DataSet<ExecRow> getLeftDataSet(DataSetProcessor dsp) throws StandardException {
+	// Prepare Left
+        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp)
+                .map(new CloneFunction<>(operationContext));
+
+        DataSet<ExecRow> leftDataSet2 =
+            leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
+        if (!isOuterJoin && !notExistsRightSide)
+            leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
+        return leftDataSet2;
+    }
+
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
@@ -182,23 +195,14 @@ public class MergeSortJoinOperation extends JoinOperation {
 
         OperationContext<JoinOperation> operationContext = dsp.<JoinOperation>createOperationContext(this);
 
-        // Prepare Left
-
-        DataSet<ExecRow> leftDataSet1 = leftResultSet.getDataSet(dsp)
-                .map(new CloneFunction<>(operationContext));
-
-       // operationContext.pushScopeForOp("Prepare Left Side");
-        DataSet<ExecRow> leftDataSet2 =
-            leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
-        if (!isOuterJoin && !notExistsRightSide)
-            leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
-
         // Prepare Right
         DataSet<ExecRow> rightDataSet1 = rightResultSet.getDataSet(dsp).map(new CloneFunction<>(operationContext));
         DataSet<ExecRow> rightDataSet2 =
             rightDataSet1.map(new CountJoinedRightFunction(operationContext));
 //        if (!isOuterJoin) Remove all nulls from the right side...
             rightDataSet2 = rightDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
+
+        DataSet<ExecRow> leftDataSet2 = getLeftDataSet(dsp);
 
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",

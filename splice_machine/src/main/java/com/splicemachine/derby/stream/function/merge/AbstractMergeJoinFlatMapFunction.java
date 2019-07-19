@@ -60,9 +60,12 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         if (!initialized) {
             joinOperation = getOperation();
             initialized = true;
-            if (!leftPeekingIterator.hasNext())
+            if ((joinOperation.isInnerOrSemiJoin() ||
+                 joinOperation.isOuterJoin)
+                 && !leftPeekingIterator.hasNext()) {
                 return Collections.EMPTY_LIST.iterator();
-            initRightScan(leftPeekingIterator);
+            }
+            initRightScan(leftPeekingIterator, joinOperation.getLeftOperation());
         }
         final SpliceOperation rightSide = joinOperation.getRightOperation();
         rightSide.reset();
@@ -74,6 +77,11 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 return locatedRow;
             }
         });
+            if (joinOperation.isInnerOrSemiJoin()
+                 && !rightIterator.hasNext()) {
+                rightSide.close();
+                return Collections.EMPTY_LIST.iterator();
+            }
         ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(null); // reset to null to avoid any side effects
         ((BaseActivation)joinOperation.getActivation()).setScanKeys(null);
         ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(null);
@@ -122,8 +130,12 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                          rightHashKeySortOrders[keyPos] == 1;
         return retval;
     }
-    protected void initRightScan(PeekingIterator<ExecRow> leftPeekingIterator) throws StandardException{
-        ExecRow firstHashRow = joinOperation.getKeyRow(leftPeekingIterator.peek());
+    protected void initRightScan(PeekingIterator<ExecRow> leftPeekingIterator,
+                                 SpliceOperation leftOperation) throws StandardException{
+        ExecRow leftRow = leftPeekingIterator.hasNext() ?
+                           leftPeekingIterator.peek() :
+                           leftOperation.getExecRowDefinition();
+        ExecRow firstHashRow = joinOperation.getKeyRow(leftRow);
         ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
         int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
         int nCols = startPosition != null ? startPosition.nColumns():0;

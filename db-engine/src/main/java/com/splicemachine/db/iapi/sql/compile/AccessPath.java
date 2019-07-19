@@ -118,6 +118,23 @@ public interface AccessPath {
 	int getLockMode();
 
 	/**
+	 *
+	 *  Access path for an Exists subquery.
+	 *
+	 * @return
+	 */
+	boolean isExistsTable();
+
+	/**
+	 *
+	 * Set the isExists flag.
+	 *
+	 *
+	 * @param isExistsTable
+	 */
+	void setExistsTable(boolean isExistsTable);
+
+	/**
 	 * Copy all information from the given AccessPath to this one.
 	 */
 	void copy(AccessPath copyFrom);

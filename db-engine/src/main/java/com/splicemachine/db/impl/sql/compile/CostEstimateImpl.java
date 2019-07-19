@@ -43,6 +43,8 @@ public class CostEstimateImpl implements CostEstimate {
     public double	singleScanRowCount;
     public boolean isOuterJoin;
     public boolean isAntiJoin;
+    public boolean isExistsTable;
+    public boolean isOuterMostOptimizable;
 
     private boolean singleRow = false;
 
@@ -496,6 +498,26 @@ public class CostEstimateImpl implements CostEstimate {
     @Override
     public void setAntiJoin(boolean isAntiJoin) {
         this.isAntiJoin = isAntiJoin;
+    }
+
+    @Override
+    public boolean isExistsTable() {
+        return isExistsTable;
+    }
+
+    @Override
+    public void setExistsTable(boolean isExistsTable) {
+        this.isExistsTable = isExistsTable;
+    }
+
+    @Override
+    public boolean isOuterMostOptimizable()  {
+        return isOuterMostOptimizable;
+    }
+
+    @Override
+    public void setOuterMostOptimizable(boolean isOuterMostOptimizable) {
+        this.isOuterMostOptimizable = isOuterMostOptimizable;
     }
 
     @Override

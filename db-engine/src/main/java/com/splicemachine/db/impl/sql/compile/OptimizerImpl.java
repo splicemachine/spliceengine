@@ -191,6 +191,8 @@ public class OptimizerImpl implements Optimizer{
 
         outermostCostEstimate=getNewCostEstimate(0.0d,1.0d,1.0d);
 
+        outermostCostEstimate.setOuterMostOptimizable(true);
+
         currentCost=getNewCostEstimate(0.0d,0.0d,0.0d);
 
         currentSortAvoidanceCost=getNewCostEstimate(0.0d,0.0d,0.0d);
@@ -1055,12 +1057,19 @@ public class OptimizerImpl implements Optimizer{
 
         /* if the current optimizable is from SSQ, we need to use outer join, set the OuterJoin flag in cost accordingly */
         boolean savedOuterJFlag = false;
+        boolean savedExistsTable = false;
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
             if (fromTable.getFromSSQ()) {
                 savedOuterJFlag = outerCost.isOuterJoin();
                 outerCost.setOuterJoin(true);
             }
+            while (fromTable instanceof ProjectRestrictNode &&
+	        ((ProjectRestrictNode)fromTable).childResult instanceof FromTable)
+            	fromTable = (FromTable)((ProjectRestrictNode)fromTable).childResult;
+
+            savedExistsTable = outerCost.isExistsTable();
+            outerCost.setExistsTable(fromTable.existsTable);
         }
 		/* Cost the optimizable at the current join position */
         optimizable.optimizeIt(this,predicateList,outerCost,currentRowOrdering);
@@ -1071,6 +1080,7 @@ public class OptimizerImpl implements Optimizer{
             FromTable fromTable = (FromTable)optimizable;
             if (fromTable.getFromSSQ())
                 outerCost.setOuterJoin(savedOuterJFlag);
+            outerCost.setExistsTable(savedExistsTable);
         }
     }
 

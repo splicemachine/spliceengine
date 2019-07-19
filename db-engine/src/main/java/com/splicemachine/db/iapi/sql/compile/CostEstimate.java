@@ -87,6 +87,41 @@ public interface CostEstimate extends StoreCostResult {
     void setAntiJoin(boolean isAntiJoin);
 
     /**
+     *
+     *  Key flag to identify Exists subquery table.
+     *
+     * @return
+     */
+    boolean isExistsTable();
+
+    /**
+     *
+     * Set the isExistsTable flag on the cost so illegal join strategies can be avoided.
+     *
+     *
+     * @param isExistsTable
+     */
+    void setExistsTable(boolean isExistsTable);
+
+    /**
+     *
+     *  Flag to indicate the outermost optimizable's cost.
+     *  Used when costing an operation on a single source, not a join.
+     *
+     * @return
+     */
+    boolean isOuterMostOptimizable();
+
+    /**
+     *
+     * Set the isOuterMostOptimizable flag on the cost.
+     *
+     *
+     * @param isOuterMostOptimizable
+     */
+    void setOuterMostOptimizable(boolean isOuterMostOptimizable);
+
+    /**
      * Copy the values from the given cost estimate into this one.
      */
     void setCost(CostEstimate other);

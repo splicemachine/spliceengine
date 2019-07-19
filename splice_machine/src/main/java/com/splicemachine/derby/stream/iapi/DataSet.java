@@ -23,6 +23,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.utils.Pair;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -367,4 +368,5 @@ public interface DataSet<V> extends //Iterable<V>,
     DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) throws StandardException;
 
     DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext);
+    JavaRDD getRDD();
 }
