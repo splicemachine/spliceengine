@@ -100,6 +100,9 @@ public class NestedLoopJoinOperation extends JoinOperation {
         OperationContext<NestedLoopJoinOperation> operationContext = dsp.createOperationContext(this);
 
         operationContext.pushScope();
+        if (isInnerOrSemiJoin() && left.isEmpty())
+        	return left;
+
         try {
             if (isOuterJoin)
                 return left.mapPartitions(new NLJOuterJoinFunction(operationContext), true);
