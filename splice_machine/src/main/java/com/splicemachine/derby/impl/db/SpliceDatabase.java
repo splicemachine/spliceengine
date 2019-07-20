@@ -126,12 +126,13 @@ public class SpliceDatabase extends BasicDatabase{
                                                      CompilerContext.DataSetProcessorType dspt,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
+                                                     boolean explainMode,
                                                      String ipAddress,
                                                      String defaultSchema)
             throws StandardException{
 
         final LanguageConnectionContext lctx=super.setupConnection(cm, user, groupuserlist,
-                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema);
+                drdaID, dbname, rdbIntTkn, dspt, skipStats, defaultSelectivityFactor, explainMode, ipAddress, defaultSchema);
 
         // If you add a visitor, be careful of ordering.
 
@@ -164,12 +165,13 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        CompilerContext.DataSetProcessorType type,
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
+                                                                       boolean explainMode,
                                                                        String ipAddress) throws StandardException{
         TransactionController tc=((SpliceAccessManager)af).marshallTransaction(cm,txn);
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
-                groupuserlist,drdaID,dbname, rdbIntTkn,type,skipStats, defaultSelectivityFactor, ipAddress,
+                groupuserlist,drdaID,dbname, rdbIntTkn,type,skipStats, defaultSelectivityFactor, explainMode, ipAddress,
                 null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());

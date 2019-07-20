@@ -43,7 +43,8 @@ public interface SessionProperties {
     enum PROPERTYNAME{
         USESPARK(0),
         DEFAULTSELECTIVITYFACTOR(1),
-        SKIPSTATS(2);
+        SKIPSTATS(2),
+        EXPLAINMODE(3);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
@@ -75,7 +76,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useSpark, defaultSelectivityFactor, skipStats");
+                    "useSpark, defaultSelectivityFactor, skipStats, explainMode");
         }
 
         String valString = pair.getSecond();
@@ -85,6 +86,7 @@ public interface SessionProperties {
         switch (property) {
             case USESPARK:
             case SKIPSTATS:
+            case EXPLAINMODE:
                 try {
                     boolean val = Boolean.parseBoolean(valString);
                 } catch (Exception e) {

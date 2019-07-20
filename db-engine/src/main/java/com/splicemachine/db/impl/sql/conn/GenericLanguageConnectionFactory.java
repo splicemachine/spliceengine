@@ -154,6 +154,7 @@ public class GenericLanguageConnectionFactory
         CompilerContext.DataSetProcessorType type,
 		boolean skipStats,
 		double defaultSelectvityFactor,
+		boolean explainMode,
 		String ipAddresss,
         String defaultSchema) throws StandardException {
 		
@@ -171,6 +172,7 @@ public class GenericLanguageConnectionFactory
                                                     type,
 				                                    skipStats,
 				                                    defaultSelectvityFactor,
+													explainMode,
 													ipAddresss,
                                                     defaultSchema
 				);
