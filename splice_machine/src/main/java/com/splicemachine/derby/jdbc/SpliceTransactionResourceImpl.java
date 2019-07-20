@@ -89,7 +89,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
             ArrayList<String> grouplist = new ArrayList<>();
             grouplist.add(username);
-            lcc=database.generateLanguageConnectionContext(txn, cm, username,grouplist,drdaID, dbname, rdbIntTkn, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress);
+            lcc=database.generateLanguageConnectionContext(txn, cm, username,grouplist,drdaID, dbname, rdbIntTkn, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, false, ipAddress);
 
             return true;
         } catch (Throwable t) {
