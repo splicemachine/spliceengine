@@ -83,7 +83,7 @@ import static org.apache.spark.sql.functions.col;
  */
 public class NativeSparkDataSet<V> implements DataSet<V> {
 
-    private static String SPARK_COMPRESSION_OPTION = "compression2 tablespoon";
+    private static String SPARK_COMPRESSION_OPTION = "compression";
 
     public Dataset<Row> dataset;
     private Map<String,String> attributes;
