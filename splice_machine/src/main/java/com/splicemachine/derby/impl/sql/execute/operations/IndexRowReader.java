@@ -171,7 +171,6 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
         catch (InterruptedException e) {
             throw Exceptions.parseException(e);
         }
->>>>>>> e19c5149bd... SPLICE-2291 Reduce RPC calls for IndexLookup.
     }
 
     @Override
@@ -205,15 +204,6 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
             getCurrentResultsFromQueue();
             row = currentResults.getNextRow();
 
-            Pair<ExecRow, DataResult> next=currentResults.remove(0);
-            //merge the results
-            ExecRow nextScannedRow=next.getFirst();
-            DataResult nextFetchedData=next.getSecond();
-            byte[] rowKey = nextFetchedData.key();
-            for(DataCell kv : nextFetchedData){
-                keyDecoder.decode(kv.keyArray(),kv.keyOffset(),kv.keyLength(),nextScannedRow);
-                rowDecoder.set(kv.valueArray(),kv.valueOffset(),kv.valueLength());
-                rowDecoder.decode(nextScannedRow);
             if (row != null) {
                 heapRowToReturn = row;
                 return true;
