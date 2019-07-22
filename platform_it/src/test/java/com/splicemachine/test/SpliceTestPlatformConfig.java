@@ -113,6 +113,9 @@ class SpliceTestPlatformConfig {
         config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString(secure));
         config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString(secure));
 
+        config.set("splice.index.batchSize", "100");
+        config.set("splice.index.numConcurrentLookups", "10");
+
         // Security
 
         if (secure) {
