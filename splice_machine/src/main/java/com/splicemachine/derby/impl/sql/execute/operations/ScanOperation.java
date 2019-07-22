@@ -229,8 +229,11 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         // Bug where splits return 1 extra row
         else if (this.getEstimatedRowCount()<100) {
             s = s.cacheRows(100).batchCells(-1);
-        } else {
-            s.cacheRows(1000).batchCells(-1);
+//        }
+        else {
+            s.cacheRows(2000).batchCells(-1);
+            if (this.getEstimatedRowCount()<1000)
+                s.setSmall(true);
         }
         deSiify(s);
         return s;
