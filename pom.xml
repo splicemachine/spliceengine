@@ -375,8 +375,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>2.6.5</version>
+                <version>2.9.1</version>
             </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.9.1</version>
             <dependency>
                 <groupId>org.codehaus.jackson</groupId>
                 <artifactId>jackson-core-asl</artifactId>
@@ -861,6 +865,7 @@
                 <spark.version>2.3.2.3.1.0.0-78</spark.version>
                 <spark.major.version>spark2.3</spark.major.version>
                 <kafka.version>2.0.0.3.1.0.0-78</kafka.version>
+                <jackson.version>2.9.1</jackson.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
                 <parquet.version>orc-spark-2.3</parquet.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
@@ -897,6 +902,7 @@
                 <scala.version>2.12.8</scala.version>
                 <spark.major.version>spark2.4</spark.major.version>
                 <kafka.version>2.0.0.3.1.0.0-78</kafka.version>
+                <jackson.version>2.6.5</jackson.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
                 <parquet.version>orc-spark-2.4</parquet.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
