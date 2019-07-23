@@ -33,6 +33,7 @@ import com.splicemachine.db.impl.sql.*;
 import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
 import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.db.shared.common.udt.UDTBase;
@@ -892,5 +893,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return recursiveUnionOperation;
             }
         },302);
+        instance.register(ManagedCache.class, EXTERNALIZABLE_SERIALIZER, 304);
     }
 }
