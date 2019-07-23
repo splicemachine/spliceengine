@@ -496,7 +496,6 @@ public class ExportOperationIT {
         );
     }
 
-    @Test
     public void exportExceptionsS3() throws Exception {
         try {
             new TableCreator(methodWatcher.getOrCreateConnection())
