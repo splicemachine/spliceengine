@@ -235,7 +235,7 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final int DEFAULT_RECURSIVE_QUERY_ITERATION_LIMIT = 20;
 
     public static final String METADATA_RESTRICTION_ENABLED = "splice.metadataRestrictionEnabled";
-    public static final String METADATA_RESTRICTION_DISABLE = "DISABLE";
+    public static final String METADATA_RESTRICTION_DISABLED = "DISABLED";
     public static final String METADATA_RESTRICTION_NATIVE = "NATIVE";
     public static final String METADATA_RESTRICTION_RANGER = "RANGER";
     public static final String DEFAULT_METADATA_RESTRICTION_ENABLED = METADATA_RESTRICTION_NATIVE;

@@ -67,7 +67,7 @@ public class SchemaFilterVTI implements DatasetProvider, VTICosting {
         for(SchemaDescriptor schema: schemas) {
             String schemaName = schema.getSchemaName();
             StatementPermission statementPermission = new StatementSchemaPermission(schemaName, null, Authorizer.ACCESS_PRIV);
-            if (!lcc.getAuthorizer().canSeeSchema(lcc.getLastActivation(), statementPermission)) {
+            if (!lcc.getAuthorizer().canSeeSchema(activation, statementPermission)) {
                 ValueRow valueRow = new ValueRow(1);
                 valueRow.setColumn(1, new SQLVarchar(schemaName));
                 items.add(valueRow);

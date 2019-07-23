@@ -1362,7 +1362,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         metadataAccessRestrictionEnabled =
                 metadataRestriction.equals(SQLConfiguration.METADATA_RESTRICTION_NATIVE) ||
                         metadataRestriction.equals(SQLConfiguration.METADATA_RESTRICTION_RANGER);
-        SpliceLogUtils.trace(LOG,"metadataAccessRestritionEnabled=%b",metadataAccessRestrictionEnabled);
+        SpliceLogUtils.info(LOG,"metadataAccessRestritionEnabled=%s",metadataRestriction);
     }
 
     @Override

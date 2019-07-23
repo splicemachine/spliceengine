@@ -673,7 +673,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         List<SchemaDescriptor> lists =new ArrayList<>();
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
         SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
-        ScanController sc=tc.openScan(
+        // don't hold open across commit
+        // for update
+        // all fields as objects
+        // start position -
+        // startSearchOperation - none
+        //
+        // stop position -through last row
+        // stopSearchOperation - none
+        try (ScanController sc = tc.openScan(
                 ti.getHeapConglomerate(),
                 false,   // don't hold open across commit
                 0,       // for update
@@ -684,14 +692,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 0,                            // startSearchOperation - none
                 null,                //
                 null, // stop position -through last row
-                0);                           // stopSearchOperation - none
-        ExecRow outRow=rf.makeEmptyRow();
-        SchemaDescriptor schemaDescr;
-        while(sc.fetchNext(outRow.getRowArray())){
-            schemaDescr=(SchemaDescriptor)rf.buildDescriptor(outRow,null,this);
-            lists.add(schemaDescr);
+                0)) {
+            ExecRow outRow = rf.makeEmptyRow();
+            SchemaDescriptor schemaDescr;
+            while (sc.fetchNext(outRow.getRowArray())) {
+                schemaDescr = (SchemaDescriptor) rf.buildDescriptor(outRow, null, this);
+                lists.add(schemaDescr);
+            }
         }
-        sc.close();
         return lists;
     }
 
