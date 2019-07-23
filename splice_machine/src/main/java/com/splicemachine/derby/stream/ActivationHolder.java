@@ -18,8 +18,10 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.derby.utils.StatisticsOperation;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -64,6 +66,7 @@ public class ActivationHolder implements Externalizable {
     private static ThreadLocal<SpliceTransactionResourceImpl> impl = new ThreadLocal<>();
     private String currentUser;
     private List<String> groupUsers = null;
+    private ManagedCache<String, Optional<String>> propertyCache = null;
 
     public ActivationHolder() {
 
@@ -165,6 +168,7 @@ public class ActivationHolder implements Externalizable {
             out.writeObject(groupUsers);
         } else
             out.writeBoolean(false);
+        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getPropertyCache());
     }
 
     private void init(TxnView txn, boolean reinit){
@@ -176,7 +180,7 @@ public class ActivationHolder implements Externalizable {
             }
 
             txnResource = new SpliceTransactionResourceImpl();
-            txnResource.marshallTransaction(txn);
+            txnResource.marshallTransaction(txn, propertyCache);
             impl.set(txnResource);
             activation = soi.getActivation(this, txnResource.getLcc());
             activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
@@ -214,6 +218,7 @@ public class ActivationHolder implements Externalizable {
             groupUsers = (List<String>)in.readObject();
         } else
             groupUsers = null;
+        propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
     }
 
     public void setActivation(Activation activation) {
