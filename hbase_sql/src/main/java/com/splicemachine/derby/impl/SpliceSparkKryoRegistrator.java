@@ -38,6 +38,7 @@ import com.splicemachine.db.impl.sql.*;
 import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
 import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.derby.ddl.*;
@@ -748,7 +749,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(MiscOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER);
-
         instance.register(org.apache.commons.lang3.mutable.MutableDouble.class,
                           new SimpleObjectSerializer<MutableDouble>() {
             @Override
