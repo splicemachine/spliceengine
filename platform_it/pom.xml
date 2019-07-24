@@ -424,7 +424,7 @@
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <executions>
-                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL
+                    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
                     <execution>
                         <id>integration-tests-serial</id>
                         <goals>
@@ -455,7 +455,7 @@
                             </systemPropertyVariables>
                         </configuration>
                     </execution>
-                   = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
+                   <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
                     <execution>
                         <id>integration-tests-parallel</id>
                         <goals>
