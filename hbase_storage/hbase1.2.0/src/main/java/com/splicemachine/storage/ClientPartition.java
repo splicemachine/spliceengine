@@ -119,7 +119,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     }
 
     //@Override
-    public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
+    public Iterator<DataResult> batchGet2(Attributable attributes,List<byte[]> rowKeys) throws IOException{
         /*
         boolean skipNewLogic = false, doBothPaths = false;
         Iterator<DataResult> retcode = null;
@@ -183,7 +183,7 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
     }
 
     //@Override
-    public Iterator<DataResult> batchGet2(Attributable attributes,List<byte[]> rowKeys) throws IOException{
+    public Iterator<DataResult> batchGet(Attributable attributes,List<byte[]> rowKeys) throws IOException{
         List<Get> gets=new ArrayList<>(rowKeys.size());
         for(byte[] rowKey : rowKeys){
             Get g=new Get(rowKey);
