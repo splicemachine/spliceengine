@@ -75,6 +75,7 @@ import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
+import org.spark_project.guava.base.Optional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -751,6 +752,32 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ManagedCache.class,EXTERNALIZABLE_SERIALIZER);
+
+        Serializer<Optional> optionalSerializer = new Serializer<Optional>() {
+            @Override
+            public void write(Kryo kryo, Output output, Optional object) {
+                if (object.isPresent()) {
+                    output.writeBoolean(false);
+                    kryo.writeClassAndObject(output, object.get());
+                } else {
+                    output.writeBoolean(true);
+                }
+            }
+
+            @Override
+            public Optional read(Kryo kryo, Input input, Class<Optional> type) {
+                boolean isNull = input.readBoolean();
+                if (isNull) {
+                    return Optional.absent();
+                } else {
+                    return Optional.of(kryo.readClassAndObject(input));
+                }
+            }
+        };
+
+        instance.register(Optional.class, optionalSerializer);
+        instance.register(Optional.absent().getClass(), optionalSerializer);
+        instance.register(Optional.of("").getClass(), optionalSerializer);
         instance.register(SelfReferenceOperation.class,new Serializer<SelfReferenceOperation>(){
             @Override
             public void write(Kryo kryo,Output output,SelfReferenceOperation object){
