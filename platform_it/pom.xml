@@ -1141,7 +1141,7 @@
             </properties>
         </profile>
         <profile>
-            <id>hdp3.1.0-2.4</id>
+            <id>hdp3.1.6-2.4</id>
             <properties>
                 <extraDependency>splice_ranger_service</extraDependency>
                 <extraDependency2>splice_ranger_admin</extraDependency2>
