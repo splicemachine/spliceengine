@@ -78,13 +78,21 @@ import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.commons.lang3.mutable.MutableDouble;
+import org.spark_project.guava.base.Optional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Properties;
+import java.util.TreeMap;
 
 
 /**
@@ -850,5 +858,31 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER, 299);
         instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER, 300);
         instance.register(ManagedCache.class, EXTERNALIZABLE_SERIALIZER, 304);
+
+        Serializer<Optional> optionalSerializer = new Serializer<Optional>() {
+            @Override
+            public void write(Kryo kryo, Output output, Optional object) {
+                if (object.isPresent()) {
+                    output.writeBoolean(false);
+                    kryo.writeClassAndObject(output, object.get());
+                } else {
+                    output.writeBoolean(true);
+                }
+            }
+
+            @Override
+            public Optional read(Kryo kryo, Input input, Class<Optional> type) {
+                boolean isNull = input.readBoolean();
+                if (isNull) {
+                    return Optional.absent();
+                } else {
+                    return Optional.of(kryo.readClassAndObject(input));
+                }
+            }
+        };
+
+        instance.register(Optional.class, optionalSerializer, 305);
+        instance.register(Optional.absent().getClass(), optionalSerializer, 306);
+        instance.register(Optional.of("").getClass(), optionalSerializer, 307);
     }
 }
