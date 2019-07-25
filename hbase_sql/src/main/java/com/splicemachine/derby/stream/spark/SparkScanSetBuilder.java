@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.spark;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -112,6 +113,8 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             ScanOperation sop = (ScanOperation) op;
             int splitsPerTableMin = HConfiguration.getConfiguration().getSplitsPerTableMin();
             int requestedSplits = sop.getSplits();
+            if (requestedSplits == 0 && splitsPerTableMin < 0)
+                throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, splitsPerTableMin);
             conf.setInt(MRConstants.SPLICE_SPLITS_PER_TABLE, requestedSplits != 0 ? requestedSplits : splitsPerTableMin);
         }
         try {
