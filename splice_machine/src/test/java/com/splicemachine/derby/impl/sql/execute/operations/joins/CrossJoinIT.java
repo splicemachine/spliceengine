@@ -473,11 +473,12 @@ public class CrossJoinIT extends SpliceUnitTest {
         rs.close();
 
         List<String> expectedErrors =
-           Arrays.asList("Unexpected error message: No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.");
+           Arrays.asList("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.");
 
         // Single-table query plan now will never use cross join.
         // NestedLoopJoinStrategy handles this.  Eliminating selection of cross
         // join for single-table access simplifies join planning as well since
+        // cross join can't handle subqueries.
         testFail(sqlText, expectedErrors, classWatcher);
     }
 
