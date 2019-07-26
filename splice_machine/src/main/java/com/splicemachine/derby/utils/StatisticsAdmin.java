@@ -788,6 +788,32 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return row;
     }
 
+    public static ExecRow generateRowFromStats(long conglomId,
+                                               String partitionId,
+                                               long timestamp,
+                                               boolean isStale,
+                                               boolean inProgress,
+                                               long rowCount,
+                                               long partitionSize,
+                                               int meanRowWidth,
+                                               long numberOfPartitions,
+                                               int statsType,
+                                               double sampleFraction) throws StandardException {
+        ExecRow row = new ValueRow(SYSTABLESTATISTICSRowFactory.SYSTABLESTATISTICS_COLUMN_COUNT);
+        row.setColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID,new SQLVarchar(partitionId));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.TIMESTAMP,new SQLTimestamp(new Timestamp(timestamp)));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.STALENESS,new SQLBoolean(isStale));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.INPROGRESS,new SQLBoolean(inProgress));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.ROWCOUNT,new SQLLongint(rowCount));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE,new SQLLongint(partitionSize));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH,new SQLInteger(meanRowWidth));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS,new SQLLongint(numberOfPartitions));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE,new SQLInteger(statsType));
+        row.setColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION, new SQLDouble(sampleFraction));
+        return row;
+    }
+
     public static ExecRow generateRowFromStats(long conglomId, String regionId, int columnId, ItemStatistics columnStatistics) throws StandardException {
         ExecRow row = new ValueRow(SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT);
         row.setColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID,new SQLLongint(conglomId));
