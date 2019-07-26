@@ -824,51 +824,67 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return (joinType == DataSet.JoinType.LEFTANTI ||
                 joinType == DataSet.JoinType.LEFTSEMI);
     }
+
+    private static boolean
+    leftDFOfJoinProjectsFewerColumnsThanDefined(JoinOperation op,
+                                                JoinType      joinType,
+                                                Dataset<Row>  leftDF) {
+        return !joinProjectsOnlyLeftTableColumns(joinType) &&
+               !op.wasRightOuterJoin &&
+                op.getLeftRow().nColumns() > leftDF.schema().length();
+    }
+
+    // If the left DataSet defines more columns than the left DataFrame,
+    // the column names will be off.  Let's fill the gaps to match the
+    // ExecRowDefinition.
     private Dataset<Row> fixupColumnNames(JoinOperation op, JoinType joinType,
                                           Dataset<Row> leftDF, Dataset<Row> rightDF,
                                           Dataset<Row> joinedDF) {
-        if (!joinProjectsOnlyLeftTableColumns(joinType) &&
-            !op.wasRightOuterJoin &&
-             op.getLeftRow().nColumns() > leftDF.schema().length()) {
-            int adjColNo = op.getLeftRow().nColumns();
-            int baseColNo = leftDF.schema().length();
-            // Now add another select expression so that the named columns are
-            // in the correct column positions.
-            StringBuilder expression = new StringBuilder();
-            String[] expressions = new String[op.getLeftRow().nColumns() + rightDF.schema().length()];
-            for (int i = 0; i < leftDF.schema().length(); i++) {
-                String fieldName = ValueRow.getNamedColumn(i);
-                expression.setLength(0);
-                expression.append(fieldName);
-                expressions[i] = expression.toString();
-            }
-            for (int i = leftDF.schema().length(); i < op.getLeftRow().nColumns(); i++) {
-                String fieldName = ValueRow.getNamedColumn(i);
-                DataType dataType;
-                try {
-                    dataType =
-                        op.getLeftRow().getColumn(i + 1).getStructField(fieldName).dataType();
-                }
-                catch (StandardException e) {
-                    throw new RuntimeException(e);
-                }
-                expression.setLength(0);
-                expression.append("CAST(null as ");
-                expression.append(dataType.typeName());
-                expression.append(")");
-                expressions[i] = expression.toString();
-            }
+        boolean needsFixup =
+                leftDFOfJoinProjectsFewerColumnsThanDefined(op, joinType, leftDF);
+        if (!needsFixup)
+            return joinedDF;
 
-            for (int i = 0; i < rightDF.schema().length(); i++) {
-                String fieldName = ValueRow.getNamedColumn(i + baseColNo);
-                expression.setLength(0);
-                expression.append(fieldName);
-                expression.append(" as ");
-                expression.append(ValueRow.getNamedColumn(i + adjColNo));
-                expressions[i + adjColNo] = expression.toString();
-            }
-            joinedDF = joinedDF.selectExpr(expressions);
+        int adjColNo = op.getLeftRow().nColumns();
+        int baseColNo = leftDF.schema().length();
+
+        // Now add another select expression so that the named columns are
+        // in the correct column positions.
+        StringBuilder expression = new StringBuilder();
+        String[] expressions = new String[op.getLeftRow().nColumns() + rightDF.schema().length()];
+        for (int i = 0; i < leftDF.schema().length(); i++) {
+            String fieldName = ValueRow.getNamedColumn(i);
+            expression.setLength(0);
+            expression.append(fieldName);
+            expressions[i] = expression.toString();
         }
+        for (int i = leftDF.schema().length(); i < op.getLeftRow().nColumns(); i++) {
+            String fieldName = ValueRow.getNamedColumn(i);
+            DataType dataType;
+            try {
+                dataType =
+                    op.getLeftRow().getColumn(i + 1).getStructField(fieldName).dataType();
+            }
+            catch (StandardException e) {
+                throw new RuntimeException(e);
+            }
+            expression.setLength(0);
+            expression.append("CAST(null as ");
+            expression.append(dataType.typeName());
+            expression.append(")");
+            expressions[i] = expression.toString();
+        }
+
+         for (int i = 0; i < rightDF.schema().length(); i++) {
+            String fieldName = ValueRow.getNamedColumn(i + baseColNo);
+            expression.setLength(0);
+            expression.append(fieldName);
+            expression.append(" as ");
+            expression.append(ValueRow.getNamedColumn(i + adjColNo));
+            expressions[i + adjColNo] = expression.toString();
+        }
+        joinedDF = joinedDF.selectExpr(expressions);
+
         return joinedDF;
     }
 
@@ -902,13 +918,15 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             DataSet joinedSet;
 
             if (op.wasRightOuterJoin) {
-                joinedSet = new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()), context);
-                NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;
+                NativeSparkDataSet nds =
+                  new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()), context);
+                joinedSet = nds;
                 nds.dataset = fixupColumnNames(op, joinType, rightDF, leftDF, nds.dataset);
             }
             else {
-                joinedSet = new NativeSparkDataSet(leftDF.join(rightDF, expr, joinType.strategy()), context);
-                NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;
+                NativeSparkDataSet nds =
+                  new NativeSparkDataSet(leftDF.join(rightDF, expr, joinType.strategy()), context);
+                joinedSet = nds;
                 nds.dataset = fixupColumnNames(op, joinType, leftDF, rightDF, nds.dataset);
             }
 
