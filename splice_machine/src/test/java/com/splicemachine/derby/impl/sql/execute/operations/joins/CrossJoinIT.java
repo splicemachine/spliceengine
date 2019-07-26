@@ -27,7 +27,9 @@ import org.spark_project.guava.collect.Lists;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -469,6 +471,14 @@ public class CrossJoinIT extends SpliceUnitTest {
         String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
         rs.close();
+
+        List<String> expectedErrors =
+           Arrays.asList("Unexpected error message: No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.");
+
+        // Single-table query plan now will never use cross join.
+        // NestedLoopJoinStrategy handles this.  Eliminating selection of cross
+        // join for single-table access simplifies join planning as well since
+        testFail(sqlText, expectedErrors, classWatcher);
     }
 
     @Test
