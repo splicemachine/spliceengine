@@ -906,6 +906,44 @@ public class HdfsImportIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testDaylightSavingsTimeProblematicDateTime() throws Exception {
+        methodWatcher.executeUpdate("delete from " + spliceTableWatcher9);
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "'%s'," +  // character delimiter
+                        "'yyyyMMdd''T''HH:mm:ss.SSSSSS'," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",                    // char set
+                spliceSchemaWatcher.schemaName, TABLE_9,
+                getResourceDirectory() + "no_separator_datetimes_dst.csv",
+                "\"",                           0,
+                BADDIR.getCanonicalPath()));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_9));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            Timestamp order_date = rs.getTimestamp(1);
+            assertNotNull("order_date incorrect", order_date);
+            // The system may or may not be in a time zone that observes daylight savings.
+            Assert.assertTrue(String.format("Unexpected timestamp value: %s", order_date.toString()),
+                                order_date.toString().equals("2012-03-11 03:05:12.123456") ||
+                                order_date.toString().equals("2012-03-11 02:05:12.123456"));
+            results.add(String.format("order_date:%s", order_date));
+        }
+        Assert.assertTrue("import failed!", results.size() == 1);
+    }
+
+    @Test
     public void testImportCustomTimeFormatMillisWithTz() throws Exception {
         methodWatcher.executeUpdate("delete from " + spliceTableWatcher9);
 
