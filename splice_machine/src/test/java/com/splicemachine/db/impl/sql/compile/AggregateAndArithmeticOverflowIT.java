@@ -1623,82 +1623,82 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
 
     @Test
     public void testNativeSparkJoinsWithStddev_pop() throws Exception {
-        String sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,10)), cast(stddev_pop(a.b/100000000000000) as decimal(38,10)), cast(stddev_pop(b.b/100000000000000) as decimal(38,10)), cast(stddev_pop(b.c) as decimal(38,10)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        String sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,9)), cast(stddev_pop(a.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.c) as decimal(38,9)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
         "where a.c = b.c", useSpark);
 
         String expected =
-        "1        |       2        |       3        |  4   |\n" +
-        "-----------------------------------------------------------\n" +
-        "13856.4064605510 |9797.9589711327 |9797.9589711327 |0E-10 |";
+            "1        |       2       |       3       |  4  |\n" +
+            "-------------------------------------------------------\n" +
+            "13856.406460551 |9797.958971133 |9797.958971133 |0E-9 |";
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,10)), cast(stddev_pop(a.b/100000000000000) as decimal(38,10)), cast(stddev_pop(b.b/100000000000000) as decimal(38,10)), cast(stddev_pop(b.c) as decimal(38,10)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,9)), cast(stddev_pop(a.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.c) as decimal(38,9)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
         "where a.c = b.c group by b.d", useSpark);
 
         expected =
-        "1        |       2        |  3   |  4   |\n" +
-        "------------------------------------------------\n" +
-        "9797.9589711327 |9797.9589711327 |0E-10 |0E-10 |\n" +
-        "9797.9589711327 |9797.9589711327 |0E-10 |0E-10 |\n" +
-        "9797.9589711327 |9797.9589711327 |0E-10 |0E-10 |\n" +
-        "9797.9589711327 |9797.9589711327 |0E-10 |0E-10 |\n" +
-        "9797.9589711327 |9797.9589711327 |0E-10 |0E-10 |";
+            "1       |       2       |  3  |  4  |\n" +
+            "--------------------------------------------\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |";
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,10)), cast(stddev_pop(a.b/100000000000000) as decimal(38,10)), cast(stddev_pop(b.b/100000000000000) as decimal(38,10)), cast(stddev_pop(b.c) as decimal(38,10)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,9)), cast(stddev_pop(a.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.c) as decimal(38,9)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
         "where a.c = b.c group by rollup(b.d)", useSpark);
 
         expected =
-        "1        |       2        |       3        |  4   |\n" +
-        "-----------------------------------------------------------\n" +
-        "13856.4064605510 |9797.9589711327 |9797.9589711327 |0E-10 |\n" +
-        " 9797.9589711327 |9797.9589711327 |     0E-10      |0E-10 |\n" +
-        " 9797.9589711327 |9797.9589711327 |     0E-10      |0E-10 |\n" +
-        " 9797.9589711327 |9797.9589711327 |     0E-10      |0E-10 |\n" +
-        " 9797.9589711327 |9797.9589711327 |     0E-10      |0E-10 |\n" +
-        " 9797.9589711327 |9797.9589711327 |     0E-10      |0E-10 |";
+            "1        |       2       |       3       |  4  |\n" +
+            "-------------------------------------------------------\n" +
+            "13856.406460551 |9797.958971133 |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |";
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,10)), cast(stddev_pop(a.b/100000000000000) as decimal(38,10)), cast(stddev_pop(b.b/100000000000000) as decimal(38,10)), cast(stddev_pop(b.c) as decimal(38,10)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,9)), cast(stddev_pop(a.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.c) as decimal(38,9)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
         "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
 
         expected =
-        "1        |       2        |       3        |  4   |\n" +
-        "-----------------------------------------------------------\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "      0E-10      |     0E-10      |     0E-10      |0E-10 |\n" +
-        "13856.4064605510 |9797.9589711327 |9797.9589711327 |0E-10 |\n" +
-        " 9797.9589711327 |     0E-10      |9797.9589711327 |0E-10 |\n" +
-        " 9797.9589711327 |     0E-10      |9797.9589711327 |0E-10 |\n" +
-        " 9797.9589711327 |     0E-10      |9797.9589711327 |0E-10 |\n" +
-        " 9797.9589711327 |     0E-10      |9797.9589711327 |0E-10 |\n" +
-        " 9797.9589711327 |     0E-10      |9797.9589711327 |0E-10 |";
+            "1        |       2       |       3       |  4  |\n" +
+            "-------------------------------------------------------\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "13856.406460551 |9797.958971133 |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |";
 
         testQuery(sqlText, expected, methodWatcher);
     }
