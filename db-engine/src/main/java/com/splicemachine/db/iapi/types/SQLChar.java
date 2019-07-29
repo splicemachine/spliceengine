@@ -170,6 +170,10 @@ public class SQLChar
     private     char[]  rawData;
     private     int     rawLength = -1;
 
+    // This field stores the defined size of SQL CHAR(.), to give OLAP Spark the needed information.
+    // Since Spark SQL does not support fixed-length string.
+    private     int     sqlCharSize = -1;
+
     // For null strings, cKey = null.
     private CollationKey cKey;
 
@@ -927,6 +931,8 @@ public class SQLChar
     */
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeBoolean(isNull);
+        out.writeInt(sqlCharSize);
+
         if (isNull()) {
             return;
         }
@@ -1166,6 +1172,8 @@ public class SQLChar
 
     public void readExternal(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
+        sqlCharSize = in.readInt();
+
         if (isNull()) {
             return;
         }
@@ -1474,7 +1482,9 @@ public class SQLChar
     {
         try
         {
-            return new SQLChar(getString());
+            SQLChar ret = new SQLChar(getString());
+            ret.setSqlCharSize(sqlCharSize);
+            return ret;
         }
         catch (StandardException se)
         {
@@ -3468,6 +3478,9 @@ public class SQLChar
     public Format getFormat() {
     	return Format.CHAR;
     }
+
+    public int getSqlCharSize() { return sqlCharSize; }
+    public void setSqlCharSize(int size) { sqlCharSize = size; }
 
     /**
      *
