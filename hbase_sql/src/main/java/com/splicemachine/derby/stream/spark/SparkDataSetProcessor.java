@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataType;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -295,7 +296,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return new HBasePartitioner(dataSet, template, keyDecodingMap, keyOrder, rightHashKeys);
     }
 
-
     @Override
     public <V> DataSet<V> readParquetFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
                                           String location, OperationContext context, Qualifier[][] qualifiers,
@@ -311,7 +311,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
                     return getEmpty();
 
-                // Infer schema from external files\
+                // Infer schema from external files
                 StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "p");
 
                 table = SpliceSpark.getSession()
@@ -324,7 +324,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
-            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            table = processExternalDataset(execRow, table, baseColumnMap, qualifiers, probeValue);
 
             if (useSample) {
                 return new NativeSparkDataSet(table
@@ -377,7 +377,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
-            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
                 return new NativeSparkDataSet(table
@@ -570,13 +570,30 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     }
 
-    private Dataset<Row> processExternalDataset(Dataset<Row> rawDataset,int[] baseColumnMap,Qualifier[][] qualifiers,DataValueDescriptor probeValue) throws StandardException {
+    private Dataset<Row> processExternalDataset(
+                ExecRow execRow,
+                Dataset<Row> rawDataset, int[] baseColumnMap, Qualifier[][] qualifiers,
+                DataValueDescriptor probeValue) throws StandardException {
         String[] allCols = rawDataset.columns();
         List<Column> cols = new ArrayList();
+
         for (int i = 0; i < baseColumnMap.length; i++) {
-            if (baseColumnMap[i] != -1)
-                cols.add(new Column(allCols[i]));
+            if (baseColumnMap[i] != -1) {
+                Column col = new Column(allCols[i]);
+                DataValueDescriptor dvd = execRow.getColumn(baseColumnMap[i] + 1);
+
+                if (dvd instanceof SQLChar &&
+                    !(dvd instanceof SQLVarchar)) {
+                    SQLChar sc = (SQLChar) dvd;
+                    if (sc.getSqlCharSize() > 0) {
+                        Column adapted = functions.rpad(col, sc.getSqlCharSize(), " ");
+                        col = adapted.as(allCols[i]);
+                    }
+                }
+                cols.add(col);
+            }
         }
+
         Dataset dataset = rawDataset
                 .select(cols.toArray(new Column[cols.size()]));
         if (qualifiers !=null) {
@@ -591,10 +608,12 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
+    public <V> DataSet<V> readPinnedTable(
+            long conglomerateId, int[] baseColumnMap, String location, OperationContext context,
+            Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
         try {
             Dataset<Row> table = SpliceSpark.getSession().table("SPLICE_"+conglomerateId);
-            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
             return new SparkDataSet(table
                     .rdd().toJavaRDD()
                     .map(new RowToLocatedRowFunction(context,execRow)));
@@ -705,7 +724,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             } catch (Exception e) {
                 return handleExceptionInCaseOfEmptySet(e,location);
             }
-            table = processExternalDataset(table,baseColumnMap,qualifiers,probeValue);
+            table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
 
             if (useSample) {
                 return new NativeSparkDataSet(table
@@ -716,15 +735,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
-        }
-    }
-
-    private static Column adaptSQLCharColumn(Column strCol, SQLChar dvd) {
-        try {
-            return functions.rpad(strCol, dvd.getString().length(), " ");
-        } catch (StandardException e) {
-            LOG.warn("Cannot get the SQL CHAR string value, Spark String column is not adapted.", e);
-            return strCol;
         }
     }
 
@@ -742,10 +752,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             DataValueDescriptor dvd = probeValue;
             if (dvd == null || i != 0) {
                 dvd = q.getOrderable();
-            }
-
-            if (dvd instanceof  SQLChar) {
-                col = adaptSQLCharColumn(col, (SQLChar) dvd);
             }
 
             Object value = dvd.getObject();
@@ -784,11 +790,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 q.clearOrderableCache();
 
                 Column orCol = dataset.col(allColIdInSpark[q.getStoragePosition()]);
-
-                DataValueDescriptor dvd = q.getOrderable();
-                if (dvd instanceof  SQLChar) {
-                    orCol = adaptSQLCharColumn(orCol, (SQLChar) dvd);
-                }
 
                 Object value = q.getOrderable().getObject();
                 switch (q.getOperator()) {
