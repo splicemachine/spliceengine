@@ -178,21 +178,6 @@ public class BroadcastJoinOperation extends JoinOperation{
         return leftResultSet;
     }
 
-    private boolean containsUnsafeSQLRealComparison() throws StandardException {
-	    int numKeys = leftHashKeys.length;
-	    ExecRow LeftExecRow = getLeftOperation().getExecRowDefinition();
-	    ExecRow RightExecRow = getRightOperation().getExecRowDefinition();
-	    for (int i = 0; i < numKeys; i++) {
-	        if (LeftExecRow.getColumn(leftHashKeys[i]+1) instanceof SQLReal)
-	            if (! (RightExecRow.getColumn(rightHashKeys[i]+1) instanceof SQLReal))
-	                return true;
-
-	        if (RightExecRow.getColumn(rightHashKeys[i]+1) instanceof SQLReal)
-	            if (! (LeftExecRow.getColumn(leftHashKeys[i]+1) instanceof SQLReal))
-	                return true;
-            }
-	    return false;
-    }
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
