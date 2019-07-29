@@ -2353,9 +2353,25 @@ public class SQLParser
      * CREATE TABLE X AS [SELECT A, B, C FROM Y] WITH DATA
      */
    public String parseQueryString(String src) {
-       boolean inSection = false;
-       StringBuilder buf = new StringBuilder();
+        boolean inSection = false;
+        StringBuilder buf = new StringBuilder();
+
+        // Use a non-printable character as an end-of-hint marker.
+        char endOfHintMarker = 0x01;
+
+        // Strip out comments starting with --, except --splice-properties hints.
+        src = src.replaceFirst("(--)(?i)(?!splice-properties)(.*?)(\\n|\\r|\\r\\n)", " ");
+
+        // Add an end-of-hint marker to a --splice-properties hint, so we know where to
+        // place the newline later on.
+        src = src.replaceFirst("(--)(?i)(?=splice-properties)(.*?)(\\n|\\r|\\r\\n)",
+                               "$1$2$3"+Character.toString(endOfHintMarker));
+
+        // Strip out C-style comments:   /* This type of comment */
+        src = src.replaceFirst("(/\\*.*?\\*/)(\\n|\\r|\\r\\n)", " ");
         for (String part : src.split("\\s+")) {
+            if (part.charAt(0) == endOfHintMarker)
+                part = "\n" + part.substring(1);
             if (inSection && part.equalsIgnoreCase("with")) {
                 inSection = false;
             } else if (inSection) {
