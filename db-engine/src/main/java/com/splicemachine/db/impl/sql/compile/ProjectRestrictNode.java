@@ -1686,16 +1686,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         if (!nopProjectRestrict()) {
             setDepth(depth);
             tree.add(this);
-            if (projectSubquerys != null && !projectSubquerys.isEmpty()) {
-                for (SubqueryNode node:projectSubquerys) {
-                    node.buildTree(tree,depth+1);
-                }
-            }
-            if (restrictSubquerys != null && !restrictSubquerys.isEmpty()) {
-                for (SubqueryNode node:restrictSubquerys) {
-                    node.buildTree(tree,depth+1);
-                }
-            }
+            // look for subqueries in restrictions, print if any
+            for (SubqueryNode sub: RSUtils.collectExpressionNodes(this, SubqueryNode.class))
+                sub.buildTree(tree,depth+1);
+
             childResult.buildTree(tree, depth+1);
         }
         else {
