@@ -810,6 +810,11 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         public StringDataValue getNullChar(StringDataValue previous, int collationType, int maxSize)
         throws StandardException
         {
+            if (previous != null) {
+                previous.setToNull();
+                return previous;
+            }
+
             SQLChar ret = null;
 
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC) {
@@ -819,7 +824,6 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             }
             ret.setSqlCharSize(maxSize);
 
-            if (previous != null) previous.setToNull();
             return ret;
         }
 
@@ -858,6 +862,11 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         public StringDataValue getNullVarchar(StringDataValue previous, int collationType, int maxSize)
         throws StandardException
         {
+            if (previous != null) {
+                previous.setToNull();
+                return previous;
+            }
+
             SQLVarchar ret = null;
 
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC) {
@@ -867,7 +876,6 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             }
             ret.setSqlCharSize(maxSize);
 
-            if (previous != null) previous.setToNull();
             return ret;
         }
 
