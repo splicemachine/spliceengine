@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static com.splicemachine.subquery.SubqueryITUtil.ZERO_SUBQUERY_NODES;
+import static com.splicemachine.subquery.SubqueryITUtil.*;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -365,14 +365,15 @@ public class Subquery_Flattening_Aggregate_IT {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
-    // uncorrelated aggregates subqueries - we DO flatten these as well
+    // uncorrelated aggregates subqueries - we do not flatten scalar aggregate subquery, for grouped aggregate subquery, they
+    // are flattened through SubqueryNode.preprocess().
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-    public void uncorrelatedAggregateSubquery() throws Exception {
+    public void uncorrelatedScalarAggregateSubquery() throws Exception {
         String sql = "select * from A where a2 < (select sum(b1) from B)";
-        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(sql, ONE_SUBQUERY_NODE, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |\n" +
@@ -383,13 +384,38 @@ public class Subquery_Flattening_Aggregate_IT {
     }
 
     @Test
-    public void uncorrelatedAggregateSubquery2() throws Exception {
+    public void uncorrelatedGroupedAggregateSubquery() throws Exception {
+        String sql = "select * from A where a2 in (select sum(b1) from B group by b2)";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |A3 |\n" +
+                "------------\n" +
+                " 0 | 0 | 0 |\n" +
+                " 5 | 5 | 5 |");
+    }
+
+    @Test
+    public void uncorrelatedScalarAggregateSubquery2() throws Exception {
         String sql = "select * from A where a2 > (select sum(b1) from B)" +
                 "                       or  a3 > (select sum(b2) from B)";
-        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(sql, TWO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 4 |40 |40  |\n" +
+                " 5 |50 |500 |");
+    }
+
+    @Test
+    public void uncorrelatedGroupedAggregateSubquery2() throws Exception {
+        String sql = "select * from A where a2 > ANY (select sum(b1) from B group by b2)" +
+                "                       and  a3 > ANY (select sum(b2) from B group by b2)";
+        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+                "A1 |A2 |A3  |\n" +
+                "-------------\n" +
+                " 1 |10 |10  |\n" +
+                " 2 |20 |20  |\n" +
+                " 3 |30 |30  |\n" +
+                " 4 |40 |40  |\n" +
+                " 5 | 5 | 5  |\n" +
                 " 5 |50 |500 |");
     }
 
@@ -404,7 +430,7 @@ public class Subquery_Flattening_Aggregate_IT {
         String sql = "select * from A where a2 > " +
                 "              (select sum(b1) from B where b2 > " +
                 "                  (select sum(a1) from A))";
-        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(sql, TWO_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 3 |30 |30  |\n" +
@@ -418,7 +444,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "              (select sum(b1) from B where b2 > " +
                 "                  (select sum(a1) from A where a1 < " +
                 "                      (select count(b1) from B)))";
-        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(sql, THREE_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 3 |30 |30  |\n" +
@@ -433,7 +459,7 @@ public class Subquery_Flattening_Aggregate_IT {
                 "                  (select sum(a1) from A where a1 < " +
                 "                      (select count(b1) from B where b2 > " +
                 "                          (select max(a3) from A))))";
-        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(sql, FOUR_SUBQUERY_NODES, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 4 |40 |40  |\n" +
@@ -445,7 +471,7 @@ public class Subquery_Flattening_Aggregate_IT {
         String sql = "select t1.* from A t1 where t1.a2 > " +
                 "              (select sum(b1) from B t2 where t2.b2 > " +
                 "                  (select sum(a1) from A t3 where t3.a2=t2.b1))";
-        assertUnorderedResult(sql, ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(sql, ONE_SUBQUERY_NODE, "" +
                 "A1 |A2 |A3  |\n" +
                 "-------------\n" +
                 " 1 |10 |10  |\n" +
