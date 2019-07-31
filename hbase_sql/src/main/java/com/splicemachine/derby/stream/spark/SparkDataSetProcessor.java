@@ -577,10 +577,21 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         String[] allCols = rawDataset.columns();
         List<Column> cols = new ArrayList();
 
+        // Temporary hack. baseColumnMap are constructed with column index starting at 0.
+        // However, for stats table, somehow, this index starts at 1.
+        // A full fix might affect other component, so we employ this simple hack for now.
+        boolean baseColumnStartedAtOne = true;
+
         for (int i = 0; i < baseColumnMap.length; i++) {
             if (baseColumnMap[i] != -1) {
                 Column col = new Column(allCols[i]);
-                DataValueDescriptor dvd = execRow.getColumn(baseColumnMap[i] + 1);
+                DataValueDescriptor dvd = null;
+
+                if (baseColumnMap[i] == 0) baseColumnStartedAtOne = false;
+                if (baseColumnStartedAtOne)
+                    dvd = execRow.getColumn(baseColumnMap[i]);
+                else
+                    dvd = execRow.getColumn(baseColumnMap[i] + 1);
 
                 if (dvd instanceof SQLChar &&
                     !(dvd instanceof SQLVarchar)) {
