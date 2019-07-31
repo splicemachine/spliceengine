@@ -214,6 +214,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int splitBlockSize;
     private final  long regionMaxFileSize;
     private final  long tableSplitSleepInterval;
+    private final  int splitsPerTableMin;
 
     // Gateway to hadoop config
     private final ConfigurationSource configSource;
@@ -796,6 +797,11 @@ public final class SConfigurationImpl implements SConfiguration {
         return tableSplitSleepInterval;
     }
 
+    @Override
+    public int getSplitsPerTableMin() {
+        return splitsPerTableMin;
+    }
+
     // ===========
 
     /**
@@ -866,6 +872,7 @@ public final class SConfigurationImpl implements SConfiguration {
         splitBlockSize = builder.splitBlockSize;
         regionMaxFileSize = builder.regionMaxFileSize;
         tableSplitSleepInterval = builder.tableSplitSleepInterval;
+        splitsPerTableMin = builder.splitsPerTableMin;
         regionServerHandlerCount = builder.regionServerHandlerCount;
         timestampBlockSize = builder.timestampBlockSize;
         regionLoadUpdateInterval = builder.regionLoadUpdateInterval;
