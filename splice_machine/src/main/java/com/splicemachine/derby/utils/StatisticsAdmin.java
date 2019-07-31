@@ -545,7 +545,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         for (ColumnDescriptor descriptor : colsToCollect) {
             accessedColumns.set(descriptor.getStoragePosition() - 1);
             row.setColumn(outputCol + 1, descriptor.getType().getNull());
-            columnPositionMap[outputCol] = descriptor.getPosition();
+            columnPositionMap[outputCol] = descriptor.getPosition() - 1;
             outputCol++;
             allColumnLengths[descriptor.getPosition() - 1] = descriptor.getType().getMaximumWidth();
         }
