@@ -287,7 +287,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     }
     
     @Test
-    public void testNumericColumnsBroadCastJoin() throws Exception {
+    public void testNumericJoinColumns() throws Exception {
 
         String [] joinTypes = {"NestedLoop", "SortMerge", "Broadcast", "Cross" };
         for (String strategy:joinTypes) {
