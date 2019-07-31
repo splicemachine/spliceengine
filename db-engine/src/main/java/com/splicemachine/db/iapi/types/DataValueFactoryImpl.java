@@ -58,35 +58,35 @@ import java.util.Properties;
  */
 public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleControl {
         LocaleFinder localeFinder;
-        //BasicDatabase first boots DVF in it's boot method and then sets
+        //BasicDatabase first boots DVF in it's boot method and then sets 
         //this databaseLocale in DVF.
     	private Locale databaseLocale;
-    	//Following Collator object will be initialized using databaseLocale.
+    	//Following Collator object will be initialized using databaseLocale.  
     	private RuleBasedCollator collatorForCharacterTypes;
 
         DataValueFactoryImpl()
         {
         }
-
+        
         /*
          ** ModuleControl methods.
          */
-
+        
     	/* (non-Javadoc)
     	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot(boolean, java.util.Properties)
     	 */
     	public void boot(boolean create, Properties properties) throws StandardException {
-
+    		
     		DataValueDescriptor decimalImplementation = getNullDecimal(null);
-
+    		
     		TypeId.decimalImplementation = decimalImplementation;
     		RegisteredFormatIds.TwoByte[StoredFormatIds.SQL_DECIMAL_ID]
     									= decimalImplementation.getClass().getName();
-
+    		    		
     		// Generate a DECIMAL value represetentation of 0
     		decimalImplementation = decimalImplementation.getNewNull();
     		decimalImplementation.setValue(0L);
-    		NumberDataType.ZERO_DECIMAL = decimalImplementation;
+    		NumberDataType.ZERO_DECIMAL = decimalImplementation;    		
 
     		ModuleFactory monitor = Monitor.getMonitor();
     		//The Locale on monitor has already been set by the boot code in
@@ -99,10 +99,10 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     		//will be used if user has requested territory based collation.
     		databaseLocale = monitor.getLocale(this);
 
-    		//If we are here for database create time, verify that there is
-    		//Collator support for the database's locale. If not, then we
-    		//will throw an exception.
-    		//Notice that this Collator support check is happening only during
+    		//If we are here for database create time, verify that there is 
+    		//Collator support for the database's locale. If not, then we 
+    		//will throw an exception. 
+    		//Notice that this Collator support check is happening only during 
     		//database creation time. This is because, during database create
     		//time, DVF has access to collation property of the database and
     		//hence it can do the Collator support check
@@ -112,22 +112,22 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     		//Once the database is created, the collation property gets
     		//saved in the database and during susbsequent boots of the
     		//database, collation attribute of the database is only available
-    		//once store has finished reading it. So, during subsequent
-    		//database boot up time, the collation attribute of the database
+    		//once store has finished reading it. So, during subsequent 
+    		//database boot up time, the collation attribute of the database 
     		//will be checked the first time a collation operation is done.
-    		//And if the Collator support is not found at that point, user will
-    		//get an exception for Collator unavailability. This first
-    		//collation operation can happen if the database needs to be
+    		//And if the Collator support is not found at that point, user will 
+    		//get an exception for Collator unavailability. This first 
+    		//collation operation can happen if the database needs to be 
     		//recovered during boot time or otherwise it will happen when the
     		//user has executed a SQL which requires collation operation.
 	    	if (create) {
-	    		//Get the collation property from the JDBC url(this will be
-	    		//available only during database create time). It can only have
+	    		//Get the collation property from the JDBC url(this will be 
+	    		//available only during database create time). It can only have 
 	    		//one of the 2 possible values - UCS_BASIC or TERRITORY_BASED.
 	    		//This property can only be specified at database create time.
-	    		//If the user has requested for territory based database, then
+	    		//If the user has requested for territory based database, then 
 	    		//verify that JVM has Collator support for the database locale.
-	    		String userDefinedCollation =
+	    		String userDefinedCollation = 
 	    			properties.getProperty(Attribute.COLLATION);
 	    		if (userDefinedCollation != null) {//Invalid value handling
 					int collationType = DataTypeDescriptor.getCollationType(userDefinedCollation);
@@ -139,7 +139,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 						} else
 							throw StandardException.newException(SQLState.INVALID_COLLATION, userDefinedCollation);
 					}
-	    		}
+	    		}    		
 	    	}
     	}
 
@@ -148,7 +148,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     	 */
     	public void stop() {
     	}
-
+ 
         /**
          * @see DataValueFactory#getDataValue
          *
@@ -308,7 +308,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
                 if (previous == null)
                         return new SQLBoolean(value);
-
+        
                 previous.setValue(value);
                 return previous;
         }
@@ -392,7 +392,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 previous.setValue(value);
                 return previous;
         }
-
+        
         /**
          * Return a StringDataValue to represent a SQL CHAR
          * with the given collation re-using previous if not null.
@@ -403,15 +403,15 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getCharDataValue(value, previous);
-
+            
             if (previous == null)
                 return new CollatorSQLChar(value, getCharacterCollator(collationType));
-
+            
             previous.setValue(value);
             return previous;
         }
 
-
+        
 
         public StringDataValue getVarcharDataValue(String value)
         {
@@ -427,7 +427,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 previous.setValue(value);
                 return previous;
         }
-
+        
         /**
          * Return a StringDataValue to represent a SQL VARCHAR
          * with the given collation re-using previous if not null.
@@ -438,11 +438,11 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getVarcharDataValue(value, previous);
-
+            
             if (previous == null)
                 return new CollatorSQLVarchar(value,
                         getCharacterCollator(collationType));
-
+            
             previous.setValue(value);
             return previous;
         }
@@ -461,7 +461,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 previous.setValue(value);
                 return previous;
         }
-
+        
         /**
          * Return a StringDataValue to represent a SQL LONG VARCHAR
          * with the given collation re-using previous if not null.
@@ -472,11 +472,11 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getLongvarcharDataValue(value, previous);
-
+            
             if (previous == null)
                 return new CollatorSQLLongvarchar(value,
                         getCharacterCollator(collationType));
-
+            
             previous.setValue(value);
             return previous;
         }
@@ -488,11 +488,11 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 previous.setValue(value);
                 return previous;
         }
-
+        
         public StringDataValue getClobDataValue(Clob value, StringDataValue previous) throws StandardException
         {
             if (previous == null) { return new SQLClob(value); }
-
+            
             previous.setValue(value);
             return previous;
         }
@@ -503,17 +503,17 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getClobDataValue(value, previous);
-
+            
             if (previous == null)
             {
                 return new CollatorSQLClob(value,
                         getCharacterCollator(collationType));
             }
-
+            
             previous.setValue(value);
             return previous;
         }
-
+    
         /**
          * Return a StringDataValue to represent a SQL CLOB
          * with the given collation re-using previous if not null.
@@ -524,11 +524,11 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getClobDataValue(value, previous);
-
+            
             if (previous == null)
                 return new CollatorSQLClob(value,
                         getCharacterCollator(collationType));
-
+            
             previous.setValue(value);
             return previous;
         }
@@ -621,7 +621,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return previous;
         }
 
-        public NumberDataValue          getNullInteger(NumberDataValue dataValue)
+        public NumberDataValue          getNullInteger(NumberDataValue dataValue) 
         {
                 if (dataValue == null)
                 {
@@ -799,33 +799,13 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getNullChar(previous);
-
+            
             if (previous == null)
                 return new CollatorSQLChar(getCharacterCollator(collationType));
-
+            
             previous.setToNull();
             return previous;
-        }
-
-        public StringDataValue getNullChar(StringDataValue previous, int collationType, int maxSize)
-        throws StandardException
-        {
-            if (previous != null) {
-                previous.setToNull();
-                return previous;
-            }
-
-            SQLChar ret = null;
-
-            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC) {
-                ret = (SQLChar) getCharDataValue((String) null);
-            } else {
-                ret = new CollatorSQLChar(getCharacterCollator(collationType));
-            }
-            ret.setSqlCharSize(maxSize);
-
-            return ret;
-        }
+         }
 
         public StringDataValue          getNullVarchar(StringDataValue dataValue)
         {
@@ -839,7 +819,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                         return dataValue;
                 }
         }
-
+        
         /**
          * Get a SQL VARCHAR set to NULL with collation set to collationType.
          * If the supplied value is null then get a new value,
@@ -851,32 +831,12 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getNullChar(previous);
-
+            
             if (previous == null)
                 return new CollatorSQLVarchar(getCharacterCollator(collationType));
-
+            
             previous.setToNull();
             return previous;
-        }
-
-        public StringDataValue getNullVarchar(StringDataValue previous, int collationType, int maxSize)
-        throws StandardException
-        {
-            if (previous != null) {
-                previous.setToNull();
-                return previous;
-            }
-
-            SQLVarchar ret = null;
-
-            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC) {
-                    ret = (SQLVarchar) getVarcharDataValue((String) null);
-            } else {
-                    ret = new CollatorSQLVarchar(getCharacterCollator(collationType));
-            }
-            ret.setSqlCharSize(maxSize);
-
-            return ret;
         }
 
         public StringDataValue          getNullLongvarchar(StringDataValue dataValue)
@@ -891,7 +851,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                         return dataValue;
                 }
         }
-
+        
         /**
          * Get a SQL LONG VARCHAR set to NULL with collation set to collationType.
          * If the supplied value is null then get a new value,
@@ -903,10 +863,10 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getNullChar(previous);
-
+            
             if (previous == null)
                 return new CollatorSQLLongvarchar(getCharacterCollator(collationType));
-
+            
             previous.setToNull();
             return previous;
         }
@@ -923,7 +883,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                         return dataValue;
                 }
         }
-
+        
         /**
          * Get a SQL CLOB set to NULL with collation set to collationType.
          * If the supplied value is null then get a new value,
@@ -935,10 +895,10 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         {
             if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
                 return getNullChar(previous);
-
+            
             if (previous == null)
                 return new CollatorSQLClob(getCharacterCollator(collationType));
-
+            
             previous.setToNull();
             return previous;
         }
@@ -1089,7 +1049,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     /**
      * getNullXML:
      * Get an XML with a SQL null value. If the supplied value is
-     * null then get a new value, otherwise set it to null and return
+     * null then get a new value, otherwise set it to null and return 
      * that value.
      * @param dataValue An XMLDataValue instance to re-use.
      * @return An XMLDataValue instance corresponding to a
@@ -1108,7 +1068,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     }
 
     /** @see DataValueFactory#getCharacterCollator(int) */
-    public RuleBasedCollator getCharacterCollator(int collationType)
+    public RuleBasedCollator getCharacterCollator(int collationType) 
     throws StandardException {
     	if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
     		return (RuleBasedCollator)null;
@@ -1119,11 +1079,11 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 			//	Calculate the collator strength. COLLATION_TYPE_TERRITORY_BASED use strength -1, i e unspecified.
 			int strength = collationType - StringDataValue.COLLATION_TYPE_TERRITORY_BASED_PRIMARY;
     		collatorForCharacterTypes = verifyCollatorSupport(strength);
-    		return collatorForCharacterTypes;
+    		return collatorForCharacterTypes;    	    		
     	} else
-    		return collatorForCharacterTypes;
+    		return collatorForCharacterTypes;    	
     }
-
+    
     /**
      * Verify that JVM has support for the Collator for the datbase's locale.
      *
@@ -1144,9 +1104,9 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         }
     	if (!localeFound)
 			throw StandardException.newException(
-					SQLState.COLLATOR_NOT_FOUND_FOR_LOCALE,
+					SQLState.COLLATOR_NOT_FOUND_FOR_LOCALE, 
 					databaseLocale.toString());
-
+    	
     	RuleBasedCollator collator = (RuleBasedCollator)Collator.getInstance(databaseLocale);
 
 		if (strength != -1)
@@ -1154,28 +1114,28 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 
 		return collator;
     }
-    /**
+    /** 
      * @see DataValueFactory#getNull(int, int)
      */
-    public DataValueDescriptor getNull(int formatId, int collationType)
+    public DataValueDescriptor getNull(int formatId, int collationType) 
     throws StandardException {
 
-    	//For StoredFormatIds.SQL_DECIMAL_ID, different implementations are
-    	//required for different VMs. getNullDecimal method is not static and
+    	//For StoredFormatIds.SQL_DECIMAL_ID, different implementations are 
+    	//required for different VMs. getNullDecimal method is not static and 
     	//hence can't be called in the static getNullDVDWithUCS_BASICcollation
-    	//method in this class. That is why StoredFormatIds.SQL_DECIMAL_ID is
+    	//method in this class. That is why StoredFormatIds.SQL_DECIMAL_ID is 
     	//getting handled here.
     	if (formatId == StoredFormatIds.SQL_DECIMAL_ID)
     		return getNullDecimal(null);
 		else {
-			DataValueDescriptor returnDVD =
+			DataValueDescriptor returnDVD = 
 				DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
 			//If we are dealing with default collation, then we have got the
 			//right DVD already. Just return it.
 			if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
-				return returnDVD;
-			//If we are dealing with territory based collation and returnDVD is
-			//of type StringDataValue, then we need to return a StringDataValue
+				return returnDVD;			
+			//If we are dealing with territory based collation and returnDVD is 
+			//of type StringDataValue, then we need to return a StringDataValue   
 			//with territory based collation.
 
                 // TODO JL Need to collation support in Splice Machine.
@@ -1183,27 +1143,27 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 //			if (returnDVD instanceof StringDataValue)
 //				return ((StringDataValue)returnDVD).getValue(getCharacterCollator(collationType));
 //			else
-				return returnDVD;
+				return returnDVD;			
 		}
     }
-
+    
     /**
      * This method will return a DVD based on the formatId. It doesn't take
      * into account the collation that should be associated with collation
-     * sensitive DVDs, which are all the character type DVDs. Such DVDs
+     * sensitive DVDs, which are all the character type DVDs. Such DVDs 
      * returned from this method have default UCS_BASIC collation associated
      * with them. If collation associated should be terriotry based, then that
-     * needs to be handled by the caller of this method. An example of such
+     * needs to be handled by the caller of this method. An example of such 
      * code in the caller can be seen in DataValueFactory.getNull method.
-     *
+     * 
      * Another thing to note is this method does not deal with format id
      * associated with decimal. This is because different implementation are
      * required for different VMs. This is again something that needs to be
-     * handled by the caller. An example of such code in the caller can be
+     * handled by the caller. An example of such code in the caller can be 
      * seen in DataValueFactory.getNull method.
-     *
+     *  
      * @param formatId Return a DVD based on the format id
-     * @return DataValueDescriptor with default collation of UCS_BASIC
+     * @return DataValueDescriptor with default collation of UCS_BASIC 
      */
     public static DataValueDescriptor getNullDVDWithUCS_BASICcollation(
     int formatId) {
@@ -1282,7 +1242,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 
                 return localeFinder;
         }
-
+		
     	public enum Format{
             BOOLEAN(StoredFormatIds.SQL_BOOLEAN_ID),
             TINYINT(StoredFormatIds.SQL_TINYINT_ID),
@@ -1315,7 +1275,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             Format(int storedFormatId) {
                 this.storedFormatId = storedFormatId;
             }
-
+            
             public int getStoredFormatId() {
             	return this.storedFormatId;
             }
@@ -1376,5 +1336,5 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 }
             }
         }
-
+        
 }
