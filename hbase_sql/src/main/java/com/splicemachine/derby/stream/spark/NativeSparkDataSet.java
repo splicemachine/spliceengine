@@ -1478,6 +1478,5 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     @Override
     public JavaRDD getRDD() { return this.dataset.javaRDD(); }
-    }
-
+    
 }
