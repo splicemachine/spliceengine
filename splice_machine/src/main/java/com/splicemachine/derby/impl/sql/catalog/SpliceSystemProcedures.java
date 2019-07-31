@@ -1346,34 +1346,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disablePeer);
 
-                    Procedure setupReplicationSink = Procedure.newBuilder().name("SETUP_REPLICATION_SINK")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                            .build();
-                    procedures.add(setupReplicationSink);
-
-                    Procedure setupReplicationSinkLocal = Procedure.newBuilder().name("SETUP_REPLICATION_SINK_LOCAL")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                            .build();
-                    procedures.add(setupReplicationSinkLocal);
-
-                    Procedure shutdownReplicationSink = Procedure.newBuilder().name("SHUTDOWN_REPLICATION_SINK")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                            .build();
-                    procedures.add(shutdownReplicationSink);
-
-                    Procedure shutdownReplicationSinkLocal = Procedure.newBuilder().name("SHUTDOWN_REPLICATION_SINK_LOCAL")
-                            .numOutputParams(0)
-                            .numResultSets(1)
-                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
-                            .build();
-                    procedures.add(shutdownReplicationSinkLocal);
-
                     Procedure enableTableReplication = Procedure.newBuilder().name("ENABLE_TABLE_REPLICATION")
                             .numOutputParams(0)
                             .numResultSets(1)

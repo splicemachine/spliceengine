@@ -63,7 +63,7 @@ import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
 import com.splicemachine.utils.BlockingProbeEndpoint;
-import com.splicemachine.hbase.SpliceReplicationService;
+import com.splicemachine.hbase.SpliceRSRpcServices;
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
  */
@@ -72,7 +72,7 @@ class SpliceTestPlatformConfig {
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
             RegionServerLifecycleObserver.class,
             BlockingProbeEndpoint.class,
-            SpliceReplicationService.class
+            SpliceRSRpcServices.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
@@ -314,6 +314,15 @@ class SpliceTestPlatformConfig {
         // Snapshots
         //
         config.setBoolean("hbase.snapshot.enabled", true);
+
+
+        //
+        // Replication
+        //
+        //config.setBoolean("hbase.replication.bulkload.enabled", true);
+        config.set("hbase.replication.source.service", "com.splicemachine.replication.SpliceReplication");
+        config.set("hbase.replication.sink.service", "com.splicemachine.replication.SpliceReplication");
+
 
         HConfiguration.reloadConfiguration(config);
         return HConfiguration.unwrapDelegate();

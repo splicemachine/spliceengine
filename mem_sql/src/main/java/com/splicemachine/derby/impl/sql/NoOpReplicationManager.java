@@ -58,24 +58,4 @@ public class NoOpReplicationManager implements ReplicationManager {
     public void disableTableReplication(String tableName) {
 
     }
-
-    @Override
-    public void setupReplicationSink() throws StandardException {
-
-    }
-
-    @Override
-    public void setupReplicationSinkLocal() throws StandardException {
-
-    }
-
-    @Override
-    public void shutdownReplicationSink() throws StandardException {
-
-    }
-
-    @Override
-    public void shutdownReplicationSinkLocal() throws StandardException {
-
-    }
 }

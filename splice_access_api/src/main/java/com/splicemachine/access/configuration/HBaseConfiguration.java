@@ -101,7 +101,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
 
     public static final String DDL_PATH="/ddl";
     public static final String DDL_CHANGE_PATH="/ddlChange";
-    public static final String SPLICE_REPLICATION_PATH = "/splice/replication";
 
     /**
      * Location of Startup node in ZooKeeper. The presence of this node

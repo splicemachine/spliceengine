@@ -202,3 +202,24 @@ service BlockingProbeEndpoint {
     rpc blockPostFlush(BlockingProbeRequest)
         returns (BlockingProbeResponse);
 }
+
+message GetRegionServerLSNRequest {
+}
+
+message GetRegionServerLSNReponse {
+    optional bool isNew  = 1;
+    message Result {
+        optional uint64 lsn = 1;
+        optional string regionName = 2;
+        optional bool valid = 3;
+    }
+    repeated Result result = 2;
+}
+
+message TestResponse {
+    optional uint64 count = 1;
+}
+
+service SpliceRSRpcServices {
+    rpc getRegionServerLSN(GetRegionServerLSNRequest) returns (GetRegionServerLSNReponse);
+}

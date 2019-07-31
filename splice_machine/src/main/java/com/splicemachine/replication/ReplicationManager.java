@@ -26,8 +26,4 @@ public interface ReplicationManager {
     void disablePeer(short peerId) throws StandardException;
     void enableTableReplication(String tableName) throws StandardException;
     void disableTableReplication(String tableName) throws StandardException;
-    void setupReplicationSink() throws StandardException;
-    void setupReplicationSinkLocal() throws StandardException;
-    void shutdownReplicationSink() throws StandardException;
-    void shutdownReplicationSinkLocal() throws StandardException;
 }

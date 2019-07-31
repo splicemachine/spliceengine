@@ -63,6 +63,7 @@ import com.splicemachine.storage.PartitionInfoCache;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.storage.RangedClientPartition;
 
+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor;
 /**
  * @author Scott Fines
  *         Date: 12/31/15
@@ -494,15 +495,16 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         TableName tn = tableInfoFactory.getTableInfo(tableName);
         boolean tableEnabled = admin.isTableEnabled(tn);
         try {
-            HTableDescriptor htd = admin.getTableDescriptor(tn);
+            org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
             if (tableEnabled) {
                 admin.disableTable(tn);
             }
 
-            for (HColumnDescriptor hcd : htd.getFamilies()) {
-                hcd.setScope(HConstants.REPLICATION_SCOPE_GLOBAL);
+            ColumnFamilyDescriptor[] cds = td.getColumnFamilies();
+            for (ColumnFamilyDescriptor cd : cds) {
+                ((ModifyableColumnFamilyDescriptor)cd).setScope(HConstants.REPLICATION_SCOPE_GLOBAL);
             }
-            admin.modifyTable(tn, htd);
+            admin.modifyTable(td);
             SpliceLogUtils.info(LOG, "enabled replication for table %s", tn);
         }
         finally {
@@ -517,17 +519,19 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         TableName tn = tableInfoFactory.getTableInfo(tableName);
         boolean tableEnabled = admin.isTableEnabled(tn);
         try {
-            HTableDescriptor htd = admin.getTableDescriptor(tn);
+            org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
             if (tableEnabled) {
                 admin.disableTable(tn);
             }
 
-            for (HColumnDescriptor hcd : htd.getFamilies()) {
-                hcd.setScope(HConstants.REPLICATION_SCOPE_LOCAL);
+            ColumnFamilyDescriptor[] cds = td.getColumnFamilies();
+            for (ColumnFamilyDescriptor cd : cds) {
+                ((ModifyableColumnFamilyDescriptor)cd).setScope(HConstants.REPLICATION_SCOPE_LOCAL);
             }
-            admin.modifyTable(tn, htd);
+            admin.modifyTable(td);
             SpliceLogUtils.info(LOG, "disabled replication for table %s", tn);
-        } finally {
+        }
+        finally {
             if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
                 admin.enableTable(tn);
             }
