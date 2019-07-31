@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
@@ -36,6 +37,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collection;
 
+import static com.splicemachine.db.iapi.sql.compile.JoinStrategy.JoinStrategyType.NESTED_LOOP;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
@@ -285,96 +287,99 @@ public class BroadcastJoinIT extends SpliceUnitTest {
     }
     
     @Test
-    public void testNumericColumnsBroadCastJoin() throws Exception {
+    public void testNumericJoinColumns() throws Exception {
 
-        String expected = "1 |\n" +
+        String [] joinTypes = {"NestedLoop", "SortMerge", "Broadcast", "Cross" };
+        for (String strategy:joinTypes) {
+            String expected = "1 |\n" +
             "----\n" +
             " 1 |\n" +
             " 1 |";
-    
-        String expected2 = "1 |\n" +
+
+            String expected2 = "1 |\n" +
             "----\n" +
             " 1 |";
-        
-        String sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
-            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
-            " where tab1.num1=tab2.num2", useSpark
-        );
 
-        ResultSet rs = classWatcher.executeQuery(sqlText);
-        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
-        rs.close();
-    
-        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
-            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
-            " where tab1.num1=tab2.num3", useSpark
-        );
-    
-        rs = classWatcher.executeQuery(sqlText);
-        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
-        rs.close();
-    
-        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
-            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
-            " where tab1.num1=tab2.num4", useSpark
-        );
-    
-        rs = classWatcher.executeQuery(sqlText);
-        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
-        rs.close();
-    
-        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
-            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
-            " where tab1.num1=tab2.num5", useSpark
-        );
-    
-        rs = classWatcher.executeQuery(sqlText);
-        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected2 + "\n,actual result: " + resultString, expected2, resultString);
-        rs.close();
-    
-        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
-            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
-            " where tab1.num3=tab2.num1", useSpark
-        );
-    
-        rs = classWatcher.executeQuery(sqlText);
-        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
-        rs.close();
-    
-        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
-            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
-            " where tab1.num3=tab2.num2", useSpark
-        );
-    
-        rs = classWatcher.executeQuery(sqlText);
-        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
-        rs.close();
-    
-        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
-            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
-            " where tab1.num3=tab2.num4", useSpark
-        );
-    
-        rs = classWatcher.executeQuery(sqlText);
-        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
-        rs.close();
-    
-        sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
-            " --SPLICE-PROPERTIES joinStrategy=BROADCAST,useSpark=%s \n" +
-            " where tab1.num3=tab2.num5", useSpark
-        );
-    
-        rs = classWatcher.executeQuery(sqlText);
-        resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected2 + "\n,actual result: " + resultString, expected2, resultString);
-        rs.close();
+            String sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=%s,useSpark=%s \n" +
+            " where tab1.num1=tab2.num2", strategy, useSpark
+            );
+
+            ResultSet rs = classWatcher.executeQuery(sqlText);
+            String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+            rs.close();
+
+            sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=%s,useSpark=%s \n" +
+            " where tab1.num1=tab2.num3", strategy, useSpark
+            );
+
+            rs = classWatcher.executeQuery(sqlText);
+            resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+            rs.close();
+
+            sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=%s,useSpark=%s \n" +
+            " where tab1.num1=tab2.num4", strategy, useSpark
+            );
+
+            rs = classWatcher.executeQuery(sqlText);
+            resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+            rs.close();
+
+            sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=%s,useSpark=%s \n" +
+            " where tab1.num1=tab2.num5", strategy, useSpark
+            );
+
+            rs = classWatcher.executeQuery(sqlText);
+            resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected2 + "\n,actual result: " + resultString, expected2, resultString);
+            rs.close();
+
+            sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=%s,useSpark=%s \n" +
+            " where tab1.num3=tab2.num1", strategy, useSpark
+            );
+
+            rs = classWatcher.executeQuery(sqlText);
+            resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+            rs.close();
+
+            sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=%s,useSpark=%s \n" +
+            " where tab1.num3=tab2.num2", strategy, useSpark
+            );
+
+            rs = classWatcher.executeQuery(sqlText);
+            resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+            rs.close();
+
+            sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=%s,useSpark=%s \n" +
+            " where tab1.num3=tab2.num4", strategy, useSpark
+            );
+
+            rs = classWatcher.executeQuery(sqlText);
+            resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+            rs.close();
+
+            sqlText = format("select 1 from " + s3 + " tab1, " + s3 + " tab2 " +
+            " --SPLICE-PROPERTIES joinStrategy=%s,useSpark=%s \n" +
+            " where tab1.num3=tab2.num5", strategy, useSpark
+            );
+
+            rs = classWatcher.executeQuery(sqlText);
+            resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected2 + "\n,actual result: " + resultString, expected2, resultString);
+            rs.close();
+        }
     }
 
     @Test
