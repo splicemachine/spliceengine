@@ -471,11 +471,11 @@ public class DataTypeDescriptor implements Formatable{
 
     private DataTypeDescriptor(DataTypeDescriptor source, int collationType, int collationDerivation){
         //There might be other places, but one place this method gets called
-        //from is ResultColumn.init. When the ResultColumn(RC) is for a
-        //ColumnDescriptor(CD), the RC's TypeDescriptorImpl(TDI) should get
+        //from is ResultColumn.init. When the ResultColumn(RC) is for a 
+        //ColumnDescriptor(CD), the RC's TypeDescriptorImpl(TDI) should get 
         //all the attributes of CD's TDI. So, if the CD is for a user table's
-        //character type column, then this call by RC.init should have CD's
-        //collation attributes copied into RC along with other attributes.
+        //character type column, then this call by RC.init should have CD's 
+        //collation attributes copied into RC along with other attributes. 
         this.typeId=source.typeId;
         typeDescriptor=new TypeDescriptorImpl(source.typeDescriptor,
                 source.getPrecision(),
@@ -743,7 +743,7 @@ public class DataTypeDescriptor implements Formatable{
 
 				/*
 				 * If we are doing an implicit (var)char->decimal conversion
-				 * then the resulting decimal's precision could be as high as
+				 * then the resulting decimal's precision could be as high as 
 				 * 2 * the maximum width (precisely 2mw-1) for the (var)char
 				 * and the scale could be as high as the maximum width
 				 * (precisely mw-1) for the (var)char.
@@ -904,11 +904,6 @@ public class DataTypeDescriptor implements Formatable{
      */
     public DataValueDescriptor getNull() throws StandardException{
         DataValueDescriptor returnDVD=typeId.getNull();
-
-        if (returnDVD instanceof SQLChar) {
-            ((SQLChar)returnDVD).setSqlCharSize(typeDescriptor.getMaximumWidth());
-        }
-
         //If we are dealing with default collation, then we have got the
         //right DVD already. Just return it.
         if (typeId.getTypeFormatId() == StoredFormatIds.DECIMAL_TYPE_ID) {
@@ -1387,7 +1382,7 @@ public class DataTypeDescriptor implements Formatable{
 
             case StoredFormatIds.DECIMAL_TYPE_ID:
 				/*
-				** 0.415 converts from number decimal digits to number of 8-bit digits.
+				** 0.415 converts from number decimal digits to number of 8-bit digits. 
 				** Add 1.0 for the sign byte, and 0.5 to force it to round up.
 				*/
                 return (getPrecision()*0.415)+1.5;
@@ -1717,7 +1712,7 @@ public class DataTypeDescriptor implements Formatable{
         return sbuf.toString();
     }
 
-    /* Return the typename with the collation name for
+    /* Return the typename with the collation name for 
      * String types.
      */
     public String getSQLTypeNameWithCollation(){
