@@ -162,6 +162,7 @@ public class ConfigurationBuilder {
     public int rollForwardSecondWait;
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
+    public int splitsPerTableMin;
 
     // PipelineConfiguration
     public int coreWriterThreads;
