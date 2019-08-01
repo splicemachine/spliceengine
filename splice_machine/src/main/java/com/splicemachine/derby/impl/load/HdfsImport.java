@@ -38,7 +38,6 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -50,6 +49,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -684,20 +684,32 @@ public class HdfsImport {
 
                 // In the SET clause, even for column with default value, we don't want to use the case expression but
                 // just need the column name
-                String setColumnList = generateColumnList(lcc,schemaName,tableName,insertColumnList, false, null);
-                String subqSelect = generateColumnList(lcc,schemaName,tableName,insertColumnList, true, "importVTI");
+                // Remove the PK columns from the insertColumnList to avoid using PkRowHash encoding
+                // which incurs an RPC call for every row to update
+                List<String> insertColumnListExcludingPK = new ArrayList<>();
+                List<String> pkList = Arrays.asList(pkColums);
+                for (Object insertColumn: columnInfo.getImportColumns()) {
+                    if (!pkList.contains(insertColumn))
+                        insertColumnListExcludingPK.add((String)insertColumn);
+                }
 
-                String updateSql = "UPDATE " + entityName +
-                        "\n set (" + setColumnList + ") = \n" +
-                        "(SELECT "+ subqSelect + " from " + vtiTable + " " +
-                        pkConditions + ")";
+                // we don't need an update statement if the only columns to update are PK columns
+                if (!insertColumnListExcludingPK.isEmpty()) {
+                    String setColumnList = generateColumnList(lcc, schemaName, tableName, insertColumnListExcludingPK, false, null);
+                    String subqSelect = generateColumnList(lcc, schemaName, tableName, insertColumnListExcludingPK, true, "importVTI");
 
-                //update for rows that has match for PK
-                try (PreparedStatement ips = conn.prepareStatement(updateSql)) {
-                    ips.executeUpdate();
-                    rowsUpdated = ips.getUpdateCount();
-                } catch (Exception e) {
-                    throw new SQLException(e);
+                    String updateSql = "UPDATE " + entityName +
+                            "\n set (" + setColumnList + ") = \n" +
+                            "(SELECT " + subqSelect + " from " + vtiTable + " " +
+                            pkConditions + ")";
+
+                    //update for rows that has match for PK
+                    try (PreparedStatement ips = conn.prepareStatement(updateSql)) {
+                        ips.executeUpdate();
+                        rowsUpdated = ips.getUpdateCount();
+                    } catch (Exception e) {
+                        throw new SQLException(e);
+                    }
                 }
 
                 //update the insertSQL with conditions
