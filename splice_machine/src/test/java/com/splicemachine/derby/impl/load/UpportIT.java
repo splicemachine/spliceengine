@@ -506,8 +506,8 @@ public class UpportIT extends SpliceUnitTest {
 
         ResultSet resultSet = statement.executeQuery();
         //make sure that the bad records list is good
-        //all 5 rows are updated, no extra row inserted
-        validateMergeResults(resultSet,5,0, 0);
+        //no row should be updated, as we only use the pk column for the merge_data_from_file call
+        validateMergeResults(resultSet,0,0, 0);
 
         //make sure that the data matches
         List<int[]> actualData = Lists.newArrayListWithExpectedSize(size);
