@@ -125,7 +125,7 @@ public interface Authorizer
 	 */
 	void authorize(int operation) throws StandardException;
 
-    boolean canSeeSchema(Activation activation, StatementPermission statementPermission);
+    boolean canSeeSchema(Activation activation, String schemaName, String authorizationId);
 
     /**
 	  Verify the connected user is authorized to perform the requested

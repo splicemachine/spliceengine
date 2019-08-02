@@ -273,7 +273,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
 
 	public static final String RANGER_USER_SCHEMA =
-            "select S.* from SYS.SYSSCHEMAS as S where S.SCHEMANAME not in " +
+            "select S.* from SYS.SYSSCHEMAS as S where S.SCHEMANAME in " +
             "(select name from new com.splicemachine.derby.vti.SchemaFilterVTI() as b (NAME VARCHAR(128))) ";
 
 

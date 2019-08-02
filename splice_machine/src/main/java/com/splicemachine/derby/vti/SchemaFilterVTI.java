@@ -1,20 +1,13 @@
 package com.splicemachine.derby.vti;
 
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
-import com.splicemachine.db.iapi.sql.dictionary.StatementSchemaPermission;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -24,12 +17,11 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.impl.driver.SIDriver;
 
-import java.sql.*;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -66,8 +58,7 @@ public class SchemaFilterVTI implements DatasetProvider, VTICosting {
 
         for(SchemaDescriptor schema: schemas) {
             String schemaName = schema.getSchemaName();
-            StatementPermission statementPermission = new StatementSchemaPermission(schemaName, null, Authorizer.ACCESS_PRIV);
-            if (!lcc.getAuthorizer().canSeeSchema(activation, statementPermission)) {
+            if (lcc.getAuthorizer().canSeeSchema(activation, schemaName, schema.getAuthorizationId())) {
                 ValueRow valueRow = new ValueRow(1);
                 valueRow.setColumn(1, new SQLVarchar(schemaName));
                 items.add(valueRow);
