@@ -147,39 +147,39 @@ public class DataDictionaryCache {
                 }
             }
         };
-        oidTdCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(tdCacheSize).build());
-        nameTdCache = new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(tdCacheSize).build());
+        oidTdCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(tdCacheSize).build(), tdCacheSize);
+        nameTdCache = new ManagedCache<>(CacheBuilder.newBuilder().maximumSize(tdCacheSize).build(), tdCacheSize);
         if(stmtCacheSize>0){
-            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build());
-            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build());
+            spsNameCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build(), stmtCacheSize);
+            storedPreparedStatementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(stmtCacheSize).removalListener(dependentInvalidator).build(), stmtCacheSize);
         }
-        sequenceGeneratorCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(seqgenCacheSize).build());
+        sequenceGeneratorCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(seqgenCacheSize).build(), seqgenCacheSize);
         partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
-                .maximumSize(partstatCacheSize).build());
+                .maximumSize(partstatCacheSize).build(), partstatCacheSize);
         conglomerateCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
-                .maximumSize(conglomerateCacheSize).build());
+                .maximumSize(conglomerateCacheSize).build(), conglomerateCacheSize);
         conglomerateDescriptorCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
-                .maximumSize(conglomerateDescriptorCacheSize).build());
+                .maximumSize(conglomerateDescriptorCacheSize).build(), conglomerateDescriptorCacheSize);
         statementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
-                (statementCacheSize).removalListener(dependentInvalidator).build());
+                (statementCacheSize).removalListener(dependentInvalidator).build(), statementCacheSize);
         schemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
-                schemaCacheSize).build());
+                schemaCacheSize).build(), schemaCacheSize);
         oidSchemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
-                schemaCacheSize).build());
+                schemaCacheSize).build(), schemaCacheSize);
         aliasDescriptorCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
-                .maximumSize(aliasDescriptorCacheSize).build());
+                .maximumSize(aliasDescriptorCacheSize).build(), aliasDescriptorCacheSize);
         roleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
-                roleCacheSize).build());
+                roleCacheSize).build(), roleCacheSize);
         tokenCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
-                tokenCacheSize).build());
+                tokenCacheSize).build(), tokenCacheSize);
         permissionsCache=new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
-                permissionsCacheSize).build());
+                permissionsCacheSize).build(), permissionsCacheSize);
         defaultRoleCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
-                (defaultRoleCacheSize).build());
+                (defaultRoleCacheSize).build(), defaultRoleCacheSize);
         roleGrantCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
-                (roleGrantCacheSize).build());
+                (roleGrantCacheSize).build(), roleGrantCacheSize);
         propertyCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
-                (propertyCacheSize).build());
+                (propertyCacheSize).build(), propertyCacheSize);
         this.dd = dd;
     }
 
@@ -603,6 +603,14 @@ public class DataDictionaryCache {
         tokenCache.invalidate(ByteSlice.wrap(token));
     }
 
+    public ManagedCache<String, Optional<String>> getPropertyCache() {
+        return this.propertyCache;
+    }
+
+    public void setPropertyCache(ManagedCache<String, Optional<String>> propertyCache) {
+        this.propertyCache = propertyCache;
+    }
+
     public void propertyCacheAdd(String key, Optional<String> optional) throws StandardException {
         if (!dd.canWriteCache(null))
             return;
@@ -612,8 +620,6 @@ public class DataDictionaryCache {
     }
 
     public Optional<String> propertyCacheFind(String key) throws StandardException {
-        if (!dd.canReadCache(null))
-            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("propertyCacheFind " + key);
         return propertyCache.getIfPresent(key);
