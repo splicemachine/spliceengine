@@ -393,6 +393,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         createSystemViews(tc);
 
+        createPermissionTableSystemViews(tc);
+
     }
 
     @Override
@@ -1384,5 +1386,35 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         updateMetadataSPSes(tc);
 
         SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + (metadataRestrictionEnabled?"restrict " : "not restrict ") + "schema access!");
+    }
+
+    public void createPermissionTableSystemViews(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+        //Add the SYSVW schema if it does not exists
+        if (getSchemaDescriptor(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
+            SpliceLogUtils.info(LOG, "SYSVW does not exist, system views for permission tables are not created!");
+            return;
+        }
+
+        //create AllRoles view
+        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
+
+        // create systablepermsView
+        createOneSystemView(tc, SYSTABLEPERMS_CATALOG_NUM, "SYSTABLEPERMSVIEW", 0, sysVWSchema, SYSTABLEPERMSRowFactory.SYSTABLEPERMS_VIEW_SQL);
+
+        // create sysschemapermsView
+        createOneSystemView(tc, SYSSCHEMAPERMS_CATALOG_NUM, "SYSSCHEMAPERMSVIEW", 0, sysVWSchema, SYSSCHEMAPERMSRowFactory.SYSSCHEMAPERMS_VIEW_SQL);
+
+        // create syscolpermsView
+        createOneSystemView(tc, SYSCOLPERMS_CATALOG_NUM, "SYSCOLPERMSVIEW", 0, sysVWSchema, SYSCOLPERMSRowFactory.SYSCOLPERMS_VIEW_SQL);
+
+        // create sysroutinepermsView
+        createOneSystemView(tc, SYSROUTINEPERMS_CATALOG_NUM, "SYSROUTINEPERMSVIEW", 0, sysVWSchema, SYSROUTINEPERMSRowFactory.SYSROUTINEPERMS_VIEW_SQL);
+
+        // create syspermsView
+        createOneSystemView(tc, SYSPERMS_CATALOG_NUM, "SYSPERMSVIEW", 0, sysVWSchema, SYSPERMSRowFactory.SYSPERMS_VIEW_SQL);
+
+
+        SpliceLogUtils.info(LOG, "System Views for permission tables created in SYSVW!");
     }
 }

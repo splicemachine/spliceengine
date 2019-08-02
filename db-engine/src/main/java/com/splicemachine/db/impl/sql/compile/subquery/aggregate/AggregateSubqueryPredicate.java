@@ -79,6 +79,13 @@ class AggregateSubqueryPredicate implements org.spark_project.guava.base.Predica
         /* Find column references in the aggregate expression */
         List<ColumnReference> aggregateColumnRefs = RSUtils.collectNodes(resultColumns.elementAt(0).getExpression(), ColumnReference.class);
 
+        // if this is a scalar aggregate subquery, do not flatten it, as it is more performant to compute the subquery once and
+        // cache and reuse it
+        if (subqueryNode.isNonCorrelatedSubquery() &&
+                (subquerySelectNode.getGroupByList() == null || subquerySelectNode.getGroupByList().isEmpty()))
+            return false;
+
+
         /* subquery where clause must meet several conditions */
         ValueNode whereClause = subquerySelectNode.getWhereClause();
         /* If there is no where clause on the subquery then ok */
