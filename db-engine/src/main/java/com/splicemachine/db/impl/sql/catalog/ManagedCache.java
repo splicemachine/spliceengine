@@ -15,18 +15,30 @@ package com.splicemachine.db.impl.sql.catalog;
 
 
 import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
 
 import java.beans.ConstructorProperties;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.HashMap;
+import java.util.Map;
 
-public class ManagedCache<K, V> implements ManagedCacheMBean, GenericManagedCacheIFace<K, V>{
+public class ManagedCache<K, V> implements ManagedCacheMBean, GenericManagedCacheIFace<K, V>, Externalizable {
 
-    private final org.spark_project.guava.cache.Cache<K,V> managedCache;
-
+    private org.spark_project.guava.cache.Cache<K,V> managedCache;
+    private long maxSize = 0;
 
     @ConstructorProperties({"managedCache"})
-    public ManagedCache(Cache<K, V> managedCache){
+    public ManagedCache(Cache<K, V> managedCache, long maxSize){
         this.managedCache = managedCache;
+        this.maxSize = maxSize;
     }
+
+    public ManagedCache() {
+    }
+
     @Override public long getSize(){ return managedCache.size(); }
     @Override public long getHitCount(){ return managedCache.stats().hitCount(); }
     @Override public long getMissCount(){ return managedCache.stats().missCount(); }
@@ -38,4 +50,19 @@ public class ManagedCache<K, V> implements ManagedCacheMBean, GenericManagedCach
     @Override public V getIfPresent(K k) { return managedCache.getIfPresent(k);}
     @Override public void invalidate(K k) { managedCache.invalidate(k);}
 
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeLong(maxSize);
+        out.writeObject(new HashMap<>(managedCache.asMap()));
+    }
+
+    @Override
+    public void readExternal(ObjectInput objectInput) throws IOException, ClassNotFoundException {
+        maxSize= objectInput.readLong();
+        Map<K, V> map = (Map<K, V>) objectInput.readObject();
+        this.managedCache = CacheBuilder.newBuilder().recordStats().maximumSize(maxSize).build();
+        for (Map.Entry<K, V> entry : map.entrySet()) {
+            managedCache.put(entry.getKey(), entry.getValue());
+        }
+    }
 }
