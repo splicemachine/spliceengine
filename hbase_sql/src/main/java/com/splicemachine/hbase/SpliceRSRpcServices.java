@@ -73,39 +73,24 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
 
         SpliceMessage.GetRegionServerLSNReponse.Builder responseBuilder =
                 SpliceMessage.GetRegionServerLSNReponse.newBuilder();
-        try {
-            List<? extends Region> regions = regionServerServices.getRegions();
-            // JY- TODO: only collect LSNs for tables under replication
-            // Get all the online tables in this RS
-//            Set<TableName> tableSet = this.regionServerServices.getOnlineTables();
-//            for (TableName tableName : tableSet) {
-//                // get all the regions of this table on this RS
-//                regionSet.addAll(this.regionServerServices.getOnlineRegions(tableName));
-//            }
 
-            // Go through each Region on this RS
-            for (Region region : regions) {
-                if (!region.isReadOnly()) {
-                    // What should be the key value
-                    WAL wal = regionServerServices.getWAL(region.getRegionInfo());
-                    long readPoint = ((HRegion)region).getReadPoint(IsolationLevel.READ_COMMITTED);
-                    String encodedRegionName = region.getRegionInfo().getEncodedName();
-                    responseBuilder.addResult(
-                            SpliceMessage.GetRegionServerLSNReponse.Result.
-                                    newBuilder().
-                                    setLsn(readPoint-1).
-                                    setRegionName(encodedRegionName).
-                                    setValid(true).build()
-                    );
-                }
+        List<? extends Region> regions = regionServerServices.getRegions();
+        for (Region region : regions) {
+            HRegion hRegion = (HRegion)region;
+            NavigableMap<byte[],java.lang.Integer> replicationScope = hRegion.getReplicationScope();
+            if (!region.isReadOnly() && !replicationScope.isEmpty()) {
+                long readPoint = ((HRegion)region).getReadPoint(IsolationLevel.READ_COMMITTED);
+                String encodedRegionName = region.getRegionInfo().getEncodedName();
+                responseBuilder.addResult(
+                        SpliceMessage.GetRegionServerLSNReponse.Result.
+                                newBuilder().
+                                setLsn(readPoint-1).
+                                setRegionName(encodedRegionName).
+                                setValid(true).build()
+                );
             }
-            SpliceMessage.GetRegionServerLSNReponse response = responseBuilder.build();
-            done.run(response);
         }
-        catch (IOException ioe) {
-            SpliceLogUtils.error(LOG, ioe);
-            // Call ServerRpcController#getFailedOn() to retrieve this IOException at client side.
-            ResponseConverter.setControllerException(controller, ioe);
-        }
+        SpliceMessage.GetRegionServerLSNReponse response = responseBuilder.build();
+        done.run(response);
     }
 }

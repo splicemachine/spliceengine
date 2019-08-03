@@ -158,9 +158,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SPLICE_REPLICATION_SNAPSHOT_INTERVAL = "splice.replication.snapshot.interval";
     public static final int DEFAULT_SPLICE_REPLICATION_SNAPSHOT_INTERVAL = 1000;
 
-    public static final String SPLICE_REPLICATION_SINK_PORT = "splice.replicationSink.port";
-    public static final int DEFAULT_SPLICE_REPLICATION_SINK_PORT = 60016;
-
     public static final String SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL = "splice.replication.progress.update.interval";
     public static final int DEFAULT_SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL = 200;
 
@@ -198,6 +195,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
     public static final String SLAVE_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
+    public static final byte[] REPLICATION_PROGRESS_ROWKEY_BYTES = Bytes.toBytes("ReplicationProgress");
+    public static final byte[] REPLICATION_PROGRESS_TSCOL_BYTES = Bytes.toBytes("Timestamp");
+
     @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
     public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
 
@@ -234,7 +234,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.backupUseDistcp = configurationSource.getBoolean(SPLICE_BACKUP_USE_DISTCP, DEFAULT_SPLICE_USE_DISTCP);
         builder.backupIOBufferSize = configurationSource.getInt(SPLICE_BACKUP_IO_BUFFER_SIZE, DEFAULT_SPLICE_BACKUP_IO_BUFFER_SIZE);
         builder.replicationSnapshotInterval = configurationSource.getInt(SPLICE_REPLICATION_SNAPSHOT_INTERVAL, DEFAULT_SPLICE_REPLICATION_SNAPSHOT_INTERVAL);
-        builder.replicationSinkPort = configurationSource.getInt(SPLICE_REPLICATION_SINK_PORT, DEFAULT_SPLICE_REPLICATION_SINK_PORT);
         builder.replicationProgressUpdateInterval = configurationSource.getInt(SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL, DEFAULT_SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL);
     }
 }

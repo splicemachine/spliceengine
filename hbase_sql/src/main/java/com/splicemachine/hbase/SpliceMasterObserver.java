@@ -52,13 +52,15 @@ import java.util.*;
 /**
  * Responsible for actions (create system tables, restore tables) that should only happen on one node.
  */
-public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, Coprocessor {
+public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, Coprocessor, Stoppable {
 
     private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
     private TimestampServer timestampServer;
     private DatabaseLifecycleManager manager;
     private OlapServer olapServer;
+    private ChoreService choreService;
+    volatile boolean stopped = false;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
@@ -105,6 +107,8 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
     public void preStopMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
             LOG.warn("Stopping SpliceMasterObserver");
+            stopped = true;
+            choreService.shutdown();
             manager.shutdown();
             this.timestampServer.stopServer();
         } catch (Throwable t) {
@@ -144,6 +148,16 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
     public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
             boot(ctx.getEnvironment().getServerName());
+            this.choreService = new ChoreService("Splice Master ChoreService");
+            ReplicationSnapshotChore replicationSnapshotChore =
+                    new ReplicationSnapshotChore("ReplicationSnapshotChore", this,
+                            HConfiguration.getConfiguration().getReplicationSnapshotInterval());
+            choreService.scheduleChore(replicationSnapshotChore);
+
+            ReplicationProgressTrackerChore replicationProgressTrackerChore =
+                    new ReplicationProgressTrackerChore(" ReplicationProgressTrackerChore", this,
+                            HConfiguration.getConfiguration().getReplicationProgressUpdateInterval());
+            choreService.scheduleChore(replicationProgressTrackerChore);
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -239,5 +253,15 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
                 }
             }
         }
+    }
+
+    @Override
+    public void stop(String why) {
+        stopped = true;
+    }
+
+    @Override
+    public boolean isStopped() {
+        return stopped;
     }
 }

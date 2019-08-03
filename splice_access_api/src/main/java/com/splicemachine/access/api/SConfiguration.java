@@ -114,8 +114,6 @@ public interface SConfiguration {
 
     int getReplicationSnapshotInterval();
 
-    int getReplicationSinkPort();
-
     int getReplicationProgressUpdateInterval();
 
     String getCompressionAlgorithm();
