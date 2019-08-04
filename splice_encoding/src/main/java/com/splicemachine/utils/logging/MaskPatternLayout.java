@@ -24,7 +24,8 @@ public class MaskPatternLayout extends PatternLayout {
         try {
             maskPattern = Pattern.compile(pattern);
         } catch (Exception e) {
-            logger.error("Error to compile regex for mask pattern, will not mask anything", e);
+            logger.error("Error to compile regex for mask pattern, will not mask anything. Invalid pattern: "
+                    + pattern, e);
         }
     }
 
