@@ -279,6 +279,19 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return considerSortAvoidancePath;
     }
 
+    public static boolean isNonCoveringIndex(Optimizable innerTable) {
+        try {
+            AccessPath path = innerTable.getCurrentAccessPath();
+            if (path != null) {
+                ConglomerateDescriptor cd = path.getConglomerateDescriptor();
+                return (cd != null && cd.isIndex() && !innerTable.isCoveringIndex(cd));
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("could not determine if index is covering", e);
+        }
+        return false;
+    }
+
     @Override
     public void rememberJoinStrategyAsBest(AccessPath ap){
         Optimizer optimizer=ap.getOptimizer();
@@ -1302,4 +1315,16 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         mb.push(defaultValueItem);
         return 2;
     }
+
+    public boolean isAboveSparkThreshold(CostEstimate costEstimate) {
+        long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().
+                                 getDetermineSparkRowThreshold();
+        return (costEstimate.getScannedBaseTableRows() > sparkRowThreshold ||
+                costEstimate.getEstimatedRowCount() > sparkRowThreshold);
+    }
+
+    public boolean isAboveSparkThreshold(AccessPath accessPath) {
+        return isAboveSparkThreshold(accessPath.getCostEstimate());
+    }
+
 }
