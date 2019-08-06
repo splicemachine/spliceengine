@@ -306,7 +306,6 @@ public class CreateTableWithDataIT{
         testCommentsInCTAS("/* WITH and AS in a C-style comment */", viewRef);
         testCommentsInCTAS("/* A C-style comment followed be newline */\n", viewRef);
         testCommentsInCTAS("/* A C-style comment \n spanning \n multiple \n lines */", viewRef);
-        testCommentsInCTAS("/* /* A nested C-style comment */ */", viewRef);
         testCommentsInCTAS("/* -- dash dash comment inside a C-style comment */", viewRef);
         testCommentsInCTAS("/* --splice-properties useSpark=true  hint inside comment should be OK */", viewRef);
         // A splice properties hint should work
