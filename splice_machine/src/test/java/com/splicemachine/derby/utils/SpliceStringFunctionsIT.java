@@ -537,4 +537,16 @@ public class SpliceStringFunctionsIT {
         }
     }
 
+    @Test
+    public void testCastToFixedLengthCharType() throws Exception {
+        String sqlText = "values '-' || cast('aaa' as CHAR(5)) || '-'";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected = "1    |\n" +
+                "---------\n" +
+                "-aaa  - |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
 }
