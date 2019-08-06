@@ -26,4 +26,6 @@ public interface ReplicationManager {
     void disablePeer(short peerId) throws StandardException;
     void enableTableReplication(String tableName) throws StandardException;
     void disableTableReplication(String tableName) throws StandardException;
+    void setReplicationRole(String role) throws StandardException;
+    String getReplicationRole() throws StandardException;
 }

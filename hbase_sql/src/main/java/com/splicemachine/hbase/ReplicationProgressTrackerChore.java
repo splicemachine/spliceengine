@@ -1,3 +1,17 @@
+/*
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
@@ -54,10 +68,10 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
             if (!admin.tableExists(replicationProgressTable))
                 return;
 
-            if (latestTimestamp != 0 && noMoreProgress(connection)) {
-                // Do nothing if no progress was made
-                return;
-            }
+//            if (latestTimestamp != 0 && noMoreProgress(connection)) {
+//                // Do nothing if no progress was made
+//                return;
+//            }
 
             if (replicationProgress.size() == 0) {
                 getReplicationProgress(connection, replicationProgress);
@@ -105,17 +119,17 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
             byte[] colName = CellUtil.cloneQualifier(cell);
             if(Arrays.equals(colName, HBaseConfiguration.REPLICATION_PROGRESS_TSCOL_BYTES)){
                 latestTimestamp = Bytes.toLong(CellUtil.cloneValue(cell));
-                //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "timestamp = %d", latestTimestamp);
-                //}
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "timestamp = %d", latestTimestamp);
+                }
             }
             else {
                 String region = Bytes.toString(CellUtil.cloneQualifier(cell));
                 Long seqNum = Bytes.toLong(CellUtil.cloneValue(cell));
                 replicationProgress.put(region, seqNum);
-                //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "region=%s, seqNum=%s", region, seqNum);
-                //}
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "region=%s, seqNum=%s", region, seqNum);
+                }
             }
         }
     }
@@ -133,9 +147,9 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
             for (Result r : scanner) {
                 byte[] rowKey = r.getRow();
                 long timestamp = new Long(new String(rowKey));
-                //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "Checking snapshot taken at %d", timestamp);
-                //}
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "Checking snapshot taken at %d", timestamp);
+                }
                 CellScanner s = r.cellScanner();
                 while (s.advance()) {
                     Cell cell = s.current();
@@ -143,23 +157,22 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
                     Long seqNum = Bytes.toLong(CellUtil.cloneValue(cell));
                     if (replicationProgress.containsKey(region)) {
                         long appliedSeqNum = replicationProgress.get(region);
-                        //if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.info(LOG,
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG,
                                     "region=%s, snapshot=%d, progress=%d", region, seqNum, appliedSeqNum);
-                        //}
+                        }
                         if (appliedSeqNum < seqNum) {
                             // applied seqNum is behind snapshot seqNum,cannot move timestamp forward
                             return;
                         }
                     }
-//                    else {
-//                        // If no replication has completed for this region, cannot move timestamp forward
-//                        return;
-//                    }
                 }
                 Delete d = new Delete(rowKey);
                 // We have replicated beyond this snapshot, delete it and bump up timestamp
                 snapshotTable.delete(d);
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "Deleted snapshot %d.", timestamp);
+                }
                 setTimestamp(timestamp);
             }
         }finally {
@@ -169,25 +182,25 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
 
     private void setTimestamp(long timestamp) throws IOException, KeeperException, InterruptedException {
         TimestampSource timestampSource = SIDriver.driver().getTimestampSource();
-        long currentTimestamp = timestampSource.nextTimestamp();
+        long currentTimestamp = timestampSource.currentTimestamp();
         if (currentTimestamp < timestamp) {
             RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
             HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), rzk);
             ConfigurationSource configurationSource = env.configuration().getConfigSource();
             String rootNode = configurationSource.getString(HConfiguration.SPLICE_ROOT_PATH, HConfiguration.DEFAULT_ROOT_PATH);
             String node = rootNode + HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
-            //if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.info(LOG, "bump up timestamp to %d", timestamp);
-            //}
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "bump up timestamp to %d", timestamp);
+            }
             byte[] data = Bytes.toBytes(timestamp);
             rzk.setData(node, data, -1 /* version */);
             timestampSource.refresh();
         }
         else {
-            //if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.info(LOG, "current timestamp = %d. Applied changes from master until timestamp %d",
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "current timestamp = %d. Applied changes from master until timestamp %d",
                         currentTimestamp, timestamp);
-            //}
+            }
         }
     }
 }

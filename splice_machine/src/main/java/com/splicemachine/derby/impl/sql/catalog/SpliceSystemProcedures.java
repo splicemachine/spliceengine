@@ -1364,6 +1364,21 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disableTableReplication);
 
+                    Procedure setReplicationRole = Procedure.newBuilder().name("SET_REPLICATION_ROLE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .varchar("role", 10)
+                            .build();
+                    procedures.add(setReplicationRole);
+
+                    Procedure getReplicationRole = Procedure.newBuilder().name("GET_REPLICATION_ROLE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getReplicationRole);
+
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

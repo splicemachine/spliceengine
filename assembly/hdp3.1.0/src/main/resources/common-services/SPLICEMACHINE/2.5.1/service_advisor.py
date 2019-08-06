@@ -291,7 +291,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.driver.userClassPathFirst=true",
         "splice.spark.executor.extraJavaOptions=-Dhdp.version=3.1.0.0-78",
         "splice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
-        "splice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/2.6.3.0-235/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*",
+        "splice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*",
         "splice.spark.yarn.jars=/usr/hdp/3.1.0.0-78/spark2/jars/*"
       ]
     return dashDProperties

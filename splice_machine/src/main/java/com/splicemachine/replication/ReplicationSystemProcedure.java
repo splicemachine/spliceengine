@@ -111,4 +111,24 @@ public class ReplicationSystemProcedure {
             resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
         }
     }
+
+    public static void SET_REPLICATION_ROLE(String role, ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+            replicationManager.setReplicationRole(role);
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("set replication role to '%s'", role));
+        } catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+        }
+    }
+
+    public static void GET_REPLICATION_ROLE(ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+            String role = replicationManager.getReplicationRole();
+            resultSets[0] = ProcedureUtils.generateResult("ROLE", String.format("%s", role));
+        } catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+        }
+    }
 }

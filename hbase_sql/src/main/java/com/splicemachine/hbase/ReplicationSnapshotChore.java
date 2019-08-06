@@ -30,8 +30,10 @@ public class ReplicationSnapshotChore extends ScheduledChore {
     private static final Logger LOG = Logger.getLogger(ReplicationSnapshotChore.class);
 
     final static byte[] cf = SIConstants.DEFAULT_FAMILY_BYTES;
-    ConcurrentHashMap<String, Long> previousSnapshot;
-    Admin admin;
+
+    private ConcurrentHashMap<String, Long> previousSnapshot;
+    private Admin admin;
+    private long preTimestamp;
 
     public ReplicationSnapshotChore(final String name, final Stoppable stopper, final int period) throws IOException {
         super(name, stopper, period);
@@ -59,23 +61,25 @@ public class ReplicationSnapshotChore extends ScheduledChore {
             // Get LSNs for each region server
             ConcurrentHashMap<String, Long> snapshot = new ConcurrentHashMap<>();
             List<Future<Void>> futures = Lists.newArrayList();
-            long timestamp = SIDriver.driver().getTimestampSource().nextTimestamp();
-            for (PartitionServer server : servers) {
-                ServerName serverName = ServerName.valueOf(server.getHostname(), server.getPort(), server.getStartupTimestamp());
-                GetLSNTask task = new GetLSNTask(snapshot, serverName);
-                futures.add(executorService.submit(task));
-            }
-            for (Future<Void> future : futures) {
-                future.get();
-            }
+            long timestamp = SIDriver.driver().getTimestampSource().currentTimestamp();
+            if (timestamp != preTimestamp) {
 
-            // Send Snapshots to each peer
-            if (snapshotChanged(previousSnapshot, snapshot)) {
+                for (PartitionServer server : servers) {
+                    ServerName serverName = ServerName.valueOf(server.getHostname(), server.getPort(), server.getStartupTimestamp());
+                    GetLSNTask task = new GetLSNTask(snapshot, serverName);
+                    futures.add(executorService.submit(task));
+                }
+                for (Future<Void> future : futures) {
+                    future.get();
+                }
+
+                // Send Snapshots to each peer
                 for (ReplicationPeerDescription peer : peers) {
                     String clusterKey = peer.getPeerConfig().getClusterKey();
                     updateSlaveTable(clusterKey, timestamp, snapshot);
                 }
                 previousSnapshot = snapshot;
+                preTimestamp = timestamp;
             }
 
         }
@@ -105,8 +109,8 @@ public class ReplicationSnapshotChore extends ScheduledChore {
             if (!previousSnapshot.containsKey(key))
                 return true;
 
-            Long value = snapshot.get(key);
-            Long oldValue = previousSnapshot.get(key);
+            long value = snapshot.get(key);
+            long oldValue = previousSnapshot.get(key);
             if (value != oldValue)
                 return true;
         }
@@ -145,13 +149,13 @@ public class ReplicationSnapshotChore extends ScheduledChore {
             // add encoded region column into the put
             for (HashMap.Entry<String, Long> entry : snapshot.entrySet()) {
                 put.addColumn(cf, Bytes.toBytes(entry.getKey()), Bytes.toBytes(entry.getValue()));
-                //if (LOG.isDebugEnabled()) {
+                if (LOG.isDebugEnabled()) {
                     sb.append(String.format("{region=%s, LSN=%d}", entry.getKey(), entry.getValue()));
-                //}
+                }
             }
-            //if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.info(LOG, "ts = %d, LSNs = %s", timestamp, sb.toString());
-            //}
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "ts = %d, LSNs = %s", timestamp, sb.toString());
+            }
             table.put(put);
         }
         catch (Exception e) {

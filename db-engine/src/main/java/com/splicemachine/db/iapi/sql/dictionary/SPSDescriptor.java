@@ -298,7 +298,8 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         setCompileTime();
         setParams(preparedStatement.getParameterTypes());
 
-        if (!dd.isReadOnlyUpgrade()) {
+        String role = lcc.getReplicationRole();
+        if (!dd.isReadOnlyUpgrade() && role.compareToIgnoreCase("SLAVE") != 0) {
 
             dd.startWriting(lcc);
 
@@ -518,6 +519,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
             LanguageConnectionContext lcc = (LanguageConnectionContext)
                     cm.getContext(LanguageConnectionContext.CONTEXT_ID);
 
+            String role = lcc.getReplicationRole();
             if (!lcc.getDataDictionary().isReadOnlyUpgrade()) {
 
                 // First try compiling in a nested transaction so we can
@@ -899,7 +901,8 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
 
         DataDictionary dd = getDataDictionary();
 
-        if (dd.isReadOnlyUpgrade())
+        String role = lcc.getReplicationRole();
+        if (dd.isReadOnlyUpgrade() || role.compareToIgnoreCase("SLAVE") == 0)
             return;
 
 

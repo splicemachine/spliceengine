@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.store;
 
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.timestamp.api.TimestampSource;
 
 /**
@@ -23,6 +24,11 @@ import com.splicemachine.timestamp.api.TimestampSource;
 public class TestingTimestampSource implements TimestampSource{
     private long id = 0;
     private long memory = 0;
+
+    @Override
+    public long currentTimestamp() {
+        return id;
+    }
 
     @Override
     public long nextTimestamp() {

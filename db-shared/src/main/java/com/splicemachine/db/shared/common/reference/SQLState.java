@@ -1981,6 +1981,14 @@ public interface SQLState {
 	String RESTORE_TXNID_TOO_LARGE								   = "BR023";
 	String NO_BACKUP_EXT_TABLE									   = "BR024";
 
+	/**
+	 * Replication
+	 */
+	String INVALID_REPLICATION_ROLE									= "RPL001";
+
+    /**
+     * External table
+     */
 	String ROW_FORMAT_NOT_ALLOWED_WITH_PARQUET					   	= "EXT01";
 	String ROW_FORMAT_NOT_ALLOWED_WITH_ORC						   	= "EXT02";
 	String STORED_AS_REQUIRED_WITH_EXTERNAL_TABLES		   			= "EXT03";

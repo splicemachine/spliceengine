@@ -84,7 +84,7 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
                 responseBuilder.addResult(
                         SpliceMessage.GetRegionServerLSNReponse.Result.
                                 newBuilder().
-                                setLsn(readPoint-1).
+                                setLsn(readPoint).
                                 setRegionName(encodedRegionName).
                                 setValid(true).build()
                 );

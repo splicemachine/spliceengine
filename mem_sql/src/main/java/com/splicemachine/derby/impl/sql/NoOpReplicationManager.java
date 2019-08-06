@@ -58,4 +58,14 @@ public class NoOpReplicationManager implements ReplicationManager {
     public void disableTableReplication(String tableName) {
 
     }
+
+    @Override
+    public void setReplicationRole(String role) throws StandardException {
+
+    }
+
+    @Override
+    public String getReplicationRole() throws StandardException {
+        return null;
+    }
 }

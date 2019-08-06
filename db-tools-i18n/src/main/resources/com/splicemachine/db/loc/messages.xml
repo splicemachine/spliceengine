@@ -9024,6 +9024,11 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>table</arg>
            </msg>
            <msg>
+               <name>RPL001</name>
+               <text>Incorrect replication role '{0}'</text>
+               <arg>role</arg>
+           </msg>
+           <msg>
                <name>EXT01</name>
                <text>row format specification not allowed with 'stored as parquet' </text>
            </msg>

@@ -307,6 +307,9 @@ message NotifyModifyClasspath {
     optional string classpath = 1;
 }
 
+message SetReplicationRole {
+    optional string role = 1;
+}
 
 enum DDLChangeType {
     CHANGE_PK = 0;
@@ -350,6 +353,7 @@ enum DDLChangeType {
     UPDATE_SCHEMA_OWNER=38;
     GRANT_REVOKE_ROLE = 39;
     SET_DATABASE_PROPERTY = 40;
+    SET_REPLICATION_ROLE = 41;
 }
 
 message DDLChange {
@@ -390,4 +394,5 @@ message DDLChange {
     optional UpdateSchemaOwner updateSchemaOwner = 35;
     optional GrantRevokeRole grantRevokeRole = 36;
     optional SetDatabaseProperty setDatabaseProperty = 37;
+    optional SetReplicationRole setReplicationRole = 38;
 }

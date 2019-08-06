@@ -44,6 +44,8 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 
     private volatile boolean restoreMode=false;
 
+    private volatile String replicationRole = SIConstants.REPLICATION_ROLE_NONE;
+
     public ClientTxnLifecycleManager(TimestampSource timestampSource,
                                      ExceptionFactory exceptionFactory){
         this.timestampSource = timestampSource;
@@ -131,7 +133,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                 if (subId <= SIConstants.SUBTRANSANCTION_ID_MASK)
                     return createWritableTransaction(parent.getBeginTimestamp(), subId, parent, isolationLevel, additive, parentTxn, destinationTable, null);
             }
-            long timestamp = timestampSource.nextTimestamp();
+            long timestamp = getTimestamp();
             return createWritableTransaction(timestamp, 0, null, isolationLevel, additive, parentTxn, destinationTable, taskId);
         }else
             return createReadableTransaction(isolationLevel,additive,parentTxn);
@@ -187,7 +189,20 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
     }
 
     @Override
+    public void setReplicationRole (String role) {
+        this.replicationRole = role;
+    }
+
+    @Override
+    public String getReplicationRole() {
+        return replicationRole;
+    }
+
+    @Override
     public Txn elevateTransaction(Txn txn,byte[] destinationTable) throws IOException{
+        if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0) {
+            throw exceptionFactory.doNotRetry("Cannot elevate a Txn, because splice is read-only.");
+        }
         if(!txn.allowsWrites()){
             //we've elevated from a read-only to a writable, so make sure that we add
             //it to the keep alive
@@ -241,7 +256,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                           TxnView parentTxn,
                                           byte[] destinationTable,
                                           TaskId taskId) throws IOException{
-		/*
+		if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0) {
+            throw exceptionFactory.doNotRetry("Cannot create a writeable Txn, because splice is read-only.");
+        }
+        /*
 		 * Create a writable transaction directly.
 		 *
 		 * This uses 2 network calls--once to get a beginTimestamp, and then once to record the
@@ -281,7 +299,7 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 		 *
 		 */
         if(parentTxn.equals(Txn.ROOT_TRANSACTION)){
-            long beginTimestamp=timestampSource.nextTimestamp();
+            long beginTimestamp=getTimestamp();
             Txn newTxn = ReadOnlyTxn.createReadOnlyParentTransaction(beginTimestamp, beginTimestamp, isolationLevel, this, exceptionFactory, additive);
             // keep track of this transaction
             store.registerActiveTransaction(newTxn);
@@ -291,4 +309,10 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
         }
     }
 
+    private long getTimestamp() {
+        if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0)
+            return timestampSource.currentTimestamp();
+        else
+            return timestampSource.nextTimestamp();
+    }
 }

@@ -87,12 +87,13 @@ public class TimestampOracle implements TimestampOracleStatistics{
 			}
     }
 
-	public long getNextTimestamp(boolean refresh) throws TimestampIOException {
+	public long getNextTimestamp(boolean refresh, boolean increment) throws TimestampIOException {
 		if (refresh) {
             _maxReservedTimestamp = timestampBlockManager.initialize();
 			_timestampCounter.set(_maxReservedTimestamp);
 		}
-		long nextTS = _timestampCounter.addAndGet(TIMESTAMP_INCREMENT);
+
+		long nextTS = increment ? _timestampCounter.addAndGet(TIMESTAMP_INCREMENT): _timestampCounter.get();
 		long maxTS = _maxReservedTimestamp; // avoid the double volatile read
 		if (nextTS > maxTS) {
 			reserveNextBlock(maxTS);
