@@ -201,7 +201,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final long controlExecutionRowLimit;
     private final int maxCheckTableErrors;
     private final int recursiveQueryIterationLimit;
-    private boolean metadataRestrictionEnabled;
+    private String metadataRestrictionEnabled;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -750,7 +750,7 @@ public final class SConfigurationImpl implements SConfiguration {
         return recursiveQueryIterationLimit;
     }
     @Override
-    public boolean getMetadataRestrictionEnabled() {
+    public String getMetadataRestrictionEnabled() {
         return metadataRestrictionEnabled;
     }
 
