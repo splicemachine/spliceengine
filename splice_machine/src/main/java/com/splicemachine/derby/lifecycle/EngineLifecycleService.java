@@ -152,13 +152,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
 
     @Override
     public void shutdown() throws Exception{
-        try{
-            if(internalConnection!=null)
-                internalConnection.close();
-        }catch(Exception e){
-            LOG.error("Unexpected error during shutdown",e);
-        }
-
+        
         EngineDriver.shutdownDriver();
 
         try{
