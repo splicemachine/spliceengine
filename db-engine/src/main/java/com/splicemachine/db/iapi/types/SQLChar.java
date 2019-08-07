@@ -1963,7 +1963,7 @@ public class SQLChar
 
                 strBuilder = new StringBuilder(getString());
 
-                for ( ; sourceWidth < desiredWidth-1; sourceWidth++)
+                for ( ; sourceWidth < desiredWidth; sourceWidth++)
                 {
                     strBuilder.append(' ');
                 }
