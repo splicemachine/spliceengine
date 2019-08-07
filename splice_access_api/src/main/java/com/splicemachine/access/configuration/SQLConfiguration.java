@@ -235,7 +235,10 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final int DEFAULT_RECURSIVE_QUERY_ITERATION_LIMIT = 20;
 
     public static final String METADATA_RESTRICTION_ENABLED = "splice.metadataRestrictionEnabled";
-    public static final boolean DEFAULT_METADATA_RESTRICTION_ENABLED = true;
+    public static final String METADATA_RESTRICTION_DISABLED = "DISABLED";
+    public static final String METADATA_RESTRICTION_NATIVE = "NATIVE";
+    public static final String METADATA_RESTRICTION_RANGER = "RANGER";
+    public static final String DEFAULT_METADATA_RESTRICTION_ENABLED = METADATA_RESTRICTION_NATIVE;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -268,7 +271,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.broadcastRegionRowThreshold = configurationSource.getLong(BROADCAST_REGION_ROW_THRESHOLD, DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
         builder.broadcastDatasetCostThreshold = configurationSource.getLong(BROADCAST_DATASET_COST_THRESHOLD, DEFAULT_BROADCAST_DATASET_COST_THRESHOLD);
         builder.recursiveQueryIterationLimit = configurationSource.getInt(RECURSIVE_QUERY_ITERATION_LIMIT, DEFAULT_RECURSIVE_QUERY_ITERATION_LIMIT);
-        builder.metadataRestrictionEnabled = configurationSource.getBoolean(METADATA_RESTRICTION_ENABLED, DEFAULT_METADATA_RESTRICTION_ENABLED);
+        builder.metadataRestrictionEnabled = configurationSource.getString(METADATA_RESTRICTION_ENABLED, DEFAULT_METADATA_RESTRICTION_ENABLED);
 
         //always disable debug statements by default
         builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);
