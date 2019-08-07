@@ -19,7 +19,8 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import org.junit.Assert;
+
+import org.junit.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -34,10 +35,6 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Table;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
 
 import com.splicemachine.derby.test.framework.SpliceTestDataSource;
 import com.splicemachine.homeless.TestUtils;
@@ -251,6 +248,7 @@ public class ClusterDDLTestIT {
 
 
     @Test
+    @Ignore("SPLICE-2365")
     public void testMissingTransactions() throws Exception {
         Connection conn1 = dataSource.getConnection("localhost", 1527);
 

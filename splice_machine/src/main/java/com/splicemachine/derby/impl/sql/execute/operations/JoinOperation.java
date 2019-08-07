@@ -391,4 +391,5 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	public ExecRow getLeftRow() { return leftRow; }
 	public ExecRow getRightRow() { return rightRow; }
+
 }

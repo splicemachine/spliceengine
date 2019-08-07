@@ -191,7 +191,7 @@ public class TPCHIT extends SpliceUnitTest {
         executeUpdate(sql15a);
         executeQuery(sql15b, "", false);
 
-        assertSubqueryNodeCount(conn(), sql15b, ZERO_SUBQUERY_NODES);
+        assertSubqueryNodeCount(conn(), sql15b, ONE_SUBQUERY_NODE);
     }
 
     @Test
@@ -238,7 +238,7 @@ public class TPCHIT extends SpliceUnitTest {
     public void sql22() throws Exception {
         String sql = getContent("22.sql");
         executeQuery(sql, getContent("22.expected.txt"), true);
-        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
+        assertSubqueryNodeCount(conn(), sql, ONE_SUBQUERY_NODE);
     }
 
     @Test

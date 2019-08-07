@@ -218,6 +218,44 @@ public class SpliceDateFunctionsIT {
                     "2002/02/26 |yyyy/MM/dd |2002-02-26 |2002-02-26 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
+        sqlText = "Values TO_DATE('19000101','yyyyMMdd')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1     |\n" +
+                "------------\n" +
+                "1900-01-01 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+        sqlText = "Values TO_DATE('12190001','MMyyyydd')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1     |\n" +
+                "------------\n" +
+                "1900-12-01 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        sqlText = "VALUES TO_DATE('19000101 12:01:01','yyyyMMdd HH:mm:ss')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1     |\n" +
+                "------------\n" +
+                "1900-01-01 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        sqlText = "VALUES TO_DATE('1900365','yyyyDDD')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1     |\n" +
+                "------------\n" +
+                "1900-12-31 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
     @Test @Ignore("Implemented in SpliceDateFunctions but not exposed in SpliceSystemProcedures due to timezone loss.")
@@ -238,6 +276,25 @@ public class SpliceDateFunctionsIT {
                 "-------------------------------------------------------------------------------------------------\n" +
                 "2012-12-31 00:00:00.03 |YYYY-MM-DD HH:mm:ss.SSS |2012-12-31 00:00:00.03 |2012-01-31 00:00:00.03 |\n" +
                 " 2012-12-31 20:38:40.0 |  YYYY-MM-DD HH:mm:ss   |  2012-12-31 20:38:40  | 2012-01-31 20:38:40.0 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+        sqlText = "VALUES TO_TIMESTAMP('19000101 12:01:01','yyyyMMdd HH:mm:ss')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1           |\n" +
+                "-----------------------\n" +
+                "1900-01-01 12:01:01.0 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        sqlText = "VALUES TO_TIMESTAMP('1900365 12:01:01','yyyyDDD HH:mm:ss')";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1           |\n" +
+                "-----------------------\n" +
+                "1900-01-01 12:01:01.0 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }

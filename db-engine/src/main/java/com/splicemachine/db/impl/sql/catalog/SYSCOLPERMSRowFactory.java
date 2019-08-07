@@ -31,11 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
@@ -43,13 +39,14 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.UserType;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSCOLPERMS row.
@@ -322,4 +319,49 @@ public class SYSCOLPERMSRowFactory extends PermissionsCatalogRowFactory
         DataValueDescriptor existingPermDVD = row.getColumn(COLPERMSID_COL_NUM);
         perm.setUUID(getUUIDFactory().recreateUUID(existingPermDVD.getString()));
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+                new ColumnDescriptor[]{
+                        new ColumnDescriptor("COLPERMSID",1,1, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTEE",2,2,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTOR",3,3,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("TABLEID",4,4,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("TYPE",5,5,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("COLUMNS",6,6,
+                                new DataTypeDescriptor(TypeId.getUserDefinedTypeId("com.splicemachine.db.iapi.services.io.FormatableBitSet", false), false),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("TABLENAME"               ,7,7,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SCHEMAID"               ,8,8,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SCHEMANAME"               ,9,9,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0)
+                });
+        return cdsl;
+    }
+    public static String SYSCOLPERMS_VIEW_SQL = "create view SYSCOLPERMSVIEW as \n" +
+            "SELECT P.*, T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSCOLPERMS P, SYSVW.SYSTABLESVIEW T "+
+            "WHERE T.TABLEID = P.TABLEID AND " +
+            "P.grantee in (select name from sysvw.sysallroles) \n" +
+
+            "UNION ALL \n" +
+
+            "SELECT P.*, T.TABLENAME, T.SCHEMAID, T.SCHEMANAME FROM SYS.SYSCOLPERMS P, SYSVW.SYSTABLESVIEW T "+
+            "WHERE T.TABLEID = P.TABLEID AND " +
+            "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }

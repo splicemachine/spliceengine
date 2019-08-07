@@ -110,6 +110,10 @@ public class MetaDataAccessControlIT {
         adminConn.execute(format("grant access, select, insert on schema %s to %s", SCHEMA_A, ROLE_A));
         adminConn.execute(format("grant access on schema %s to %s", SCHEMA_B, ROLE_B));
 
+        // grant table privileges
+        adminConn.execute(format("grant insert on %s.%s to %s", SCHEMA_B, TABLE2, USER1));
+        adminConn.execute(format("grant delete on %s.%s to %s", SCHEMA_B, TABLE2, ROLE_F));
+
         // grant execution privileges
         adminConn.execute(format("grant execute on procedure syscs_util.syscs_get_schema_info to %s", USER1));
         adminConn.execute(format("grant execute on procedure syscs_util.syscs_get_schema_info to %s", USER2));
@@ -119,6 +123,10 @@ public class MetaDataAccessControlIT {
         adminConn.execute(format("grant usage on DERBY AGGREGATE SYSFUN.STATS_MERGE to %s", USER2));
         adminConn.execute(format("grant execute on procedure syscs_util.SHOW_CREATE_TABLE to %s", USER1));
         adminConn.execute(format("grant execute on procedure syscs_util.SHOW_CREATE_TABLE to %s", USER2));
+
+        // create sequence to test usage perm
+        adminConn.execute(format("CREATE SEQUENCE %s.s1 START WITH 100", SCHEMA_A));
+        adminConn.execute(format("grant usage on SEQUENCE %s.s1 TO %s", SCHEMA_A, ROLE_F));
 
         // create user connections
         user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
@@ -155,7 +163,7 @@ public class MetaDataAccessControlIT {
         // with only access privilege, user1 cannot select the table
         assertFailed(user1Conn, format("select a2 from %s.%s where a2=1", SCHEMA_B, TABLE2), SQLState.AUTH_NO_COLUMN_PERMISSION);
 
-        // with no acess privilege, user2 annot see the schema
+        // with no acess privilege, user2 cannot see the schema
         assertFailed(user2Conn, format("select a1 from %s.%s where a1=1", SCHEMA_A, TABLE1), SQLState.LANG_SCHEMA_DOES_NOT_EXIST);
     }
 
@@ -188,13 +196,13 @@ public class MetaDataAccessControlIT {
     @Test
     public void testShowTableWithAccessControl() throws Exception {
         ResultSet rs = user1Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,null)");
-        /* expected 9 tables: 7 sysvw views, and 2 user tables t1, and t2 */
-        assertEquals("Expected to have 9 tables", 9, resultSetSize(rs));
+        /* expected 14 tables: 12 sysvw views, and 2 user tables t1, and t2 */
+        assertEquals("Expected to have 9 tables", 14, resultSetSize(rs));
         rs.close();
 
-        /* expected just 7 sysvw views */
+        /* expected just 12 sysvw views */
         rs = user2Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,null)");
-        assertEquals("Expected to have 7 tables", 7, resultSetSize(rs));
+        assertEquals("Expected to have 12 tables", 12, resultSetSize(rs));
         rs.close();
 
     }
@@ -325,5 +333,122 @@ public class MetaDataAccessControlIT {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
             rs.close();
         }
+    }
+
+    @Test
+    public void testSysSchemaPermsView() throws Exception {
+        ResultSet rs = user1Conn.query("select grantee, grantor, selectpriv, deletepriv, insertpriv, accesspriv, schemaname from sysvw.sysschemapermsview");
+        String expected = "GRANTEE            | GRANTOR |SELECTPRIV |DELETEPRIV |INSERTPRIV |ACCESSPRIV |          SCHEMANAME            |\n" +
+                "---------------------------------------------------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_ROLE_A | SPLICE  |     y     |     N     |     y     |     y     |METADATAACCESSCONTROLITSCHEMA_A |\n" +
+                "METADATAACCESSCONTROLIT_ROLE_B | SPLICE  |     N     |     N     |     N     |     y     |METADATAACCESSCONTROLITSCHEMA_B |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = user2Conn.query("select grantee, grantor, selectpriv, deletepriv, insertpriv, accesspriv, schemaname from sysvw.sysschemapermsview");
+        expected = "";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = adminConn.query("select grantee, grantor, selectpriv, deletepriv, insertpriv, accesspriv, schemaname from sysvw.sysschemapermsview " +
+                " where grantee like '%METADATAACCESSCONTROLIT%'");
+        expected = "GRANTEE            | GRANTOR |SELECTPRIV |DELETEPRIV |INSERTPRIV |ACCESSPRIV |          SCHEMANAME            |\n" +
+                "---------------------------------------------------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_ROLE_A | SPLICE  |     y     |     N     |     y     |     y     |METADATAACCESSCONTROLITSCHEMA_A |\n" +
+                "METADATAACCESSCONTROLIT_ROLE_B | SPLICE  |     N     |     N     |     N     |     y     |METADATAACCESSCONTROLITSCHEMA_B |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSysTablePermsView() throws Exception {
+        ResultSet rs = user1Conn.query("select grantee, grantor, selectpriv, deletepriv, insertpriv, tablename, schemaname from sysvw.systablepermsview");
+        String expected = "GRANTEE            | GRANTOR |SELECTPRIV |DELETEPRIV |INSERTPRIV | TABLENAME |          SCHEMANAME            |\n" +
+                "---------------------------------------------------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_ROLE_F | SPLICE  |     N     |     y     |     N     |    T2     |METADATAACCESSCONTROLITSCHEMA_B |\n" +
+                "  METADATAACCESSCONTROLIT_TOM  | SPLICE  |     N     |     N     |     y     |    T2     |METADATAACCESSCONTROLITSCHEMA_B |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = user2Conn.query("select grantee, grantor, selectpriv, deletepriv, insertpriv, tablename, schemaname from sysvw.systablepermsview");
+        expected = "";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = adminConn.query("select grantee, grantor, selectpriv, deletepriv, insertpriv, tablename, schemaname from sysvw.systablepermsview where grantee like '%METADATAACCESSCONTROLIT%'");
+        expected = "GRANTEE            | GRANTOR |SELECTPRIV |DELETEPRIV |INSERTPRIV | TABLENAME |          SCHEMANAME            |\n" +
+                "---------------------------------------------------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_ROLE_F | SPLICE  |     N     |     y     |     N     |    T2     |METADATAACCESSCONTROLITSCHEMA_B |\n" +
+                "  METADATAACCESSCONTROLIT_TOM  | SPLICE  |     N     |     N     |     y     |    T2     |METADATAACCESSCONTROLITSCHEMA_B |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSysRoutinePermsView() throws Exception {
+        ResultSet rs = user1Conn.query("select grantee, grantor, alias, schemaname from sysvw.sysroutinepermsview");
+        String expected = "GRANTEE           | GRANTOR |             ALIAS              |SCHEMANAME |\n" +
+                "------------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_TOM | SPLICE  |   COLLECT_TABLE_STATISTICS     |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_TOM | SPLICE  |       SHOW_CREATE_TABLE        |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_TOM | SPLICE  |     SYSCS_GET_SCHEMA_INFO      |SYSCS_UTIL |\n" +
+                "          PUBLIC            | SPLICE  |   SYSCS_KILL_DRDA_OPERATION    |SYSCS_UTIL |\n" +
+                "          PUBLIC            | SPLICE  |SYSCS_KILL_DRDA_OPERATION_LOCAL |SYSCS_UTIL |\n" +
+                "          PUBLIC            | SPLICE  |     SYSCS_MODIFY_PASSWORD      |SYSCS_UTIL |\n" +
+                "          PUBLIC            | SPLICE  |     SYSCS_SAVE_SOURCECODE      |SYSCS_UTIL |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = user2Conn.query("select grantee, grantor, alias, schemaname from sysvw.sysroutinepermsview");
+        expected = "GRANTEE            | GRANTOR |             ALIAS              |SCHEMANAME |\n" +
+                "--------------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |   COLLECT_TABLE_STATISTICS     |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |       SHOW_CREATE_TABLE        |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |     SYSCS_GET_SCHEMA_INFO      |SYSCS_UTIL |\n" +
+                "           PUBLIC             | SPLICE  |   SYSCS_KILL_DRDA_OPERATION    |SYSCS_UTIL |\n" +
+                "           PUBLIC             | SPLICE  |SYSCS_KILL_DRDA_OPERATION_LOCAL |SYSCS_UTIL |\n" +
+                "           PUBLIC             | SPLICE  |     SYSCS_MODIFY_PASSWORD      |SYSCS_UTIL |\n" +
+                "           PUBLIC             | SPLICE  |     SYSCS_SAVE_SOURCECODE      |SYSCS_UTIL |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = adminConn.query("select grantee, grantor, alias, schemaname from sysvw.sysroutinepermsview where grantee like '%METADATAACCESSCONTROLIT%'");
+        expected = "GRANTEE            | GRANTOR |          ALIAS          |SCHEMANAME |\n" +
+                "-------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |COLLECT_TABLE_STATISTICS |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |    SHOW_CREATE_TABLE    |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |  SYSCS_GET_SCHEMA_INFO  |SYSCS_UTIL |\n" +
+                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |COLLECT_TABLE_STATISTICS |SYSCS_UTIL |\n" +
+                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |    SHOW_CREATE_TABLE    |SYSCS_UTIL |\n" +
+                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |  SYSCS_GET_SCHEMA_INFO  |SYSCS_UTIL |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSysPermsView() throws Exception {
+        ResultSet rs = user1Conn.query("select objecttype, permission, grantee, grantor, objectname, schemaname from sysvw.syspermsview");
+        String expected = "OBJECTTYPE    |PERMISSION |            GRANTEE            | GRANTOR |OBJECTNAME  |          SCHEMANAME            |\n" +
+                "---------------------------------------------------------------------------------------------------------------------\n" +
+                "DERBY AGGREGATE |   USAGE   |  METADATAACCESSCONTROLIT_TOM  | SPLICE  |STATS_MERGE |            SYSFUN              |\n" +
+                "   SEQUENCE     |   USAGE   |METADATAACCESSCONTROLIT_ROLE_F | SPLICE  |    S1      |METADATAACCESSCONTROLITSCHEMA_A |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = user2Conn.query("select objecttype, permission, grantee, grantor, objectname, schemaname from sysvw.syspermsview");
+        expected = "OBJECTTYPE    |PERMISSION |           GRANTEE            | GRANTOR |OBJECTNAME  |SCHEMANAME |\n" +
+                "-----------------------------------------------------------------------------------------------\n" +
+                "DERBY AGGREGATE |   USAGE   |METADATAACCESSCONTROLIT_JERRY | SPLICE  |STATS_MERGE |  SYSFUN   |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        rs = adminConn.query("select objecttype, permission, grantee, grantor, objectname, schemaname from sysvw.syspermsview where grantee like '%METADATAACCESSCONTROLIT%'");
+        expected = "OBJECTTYPE    |PERMISSION |            GRANTEE            | GRANTOR |OBJECTNAME  |          SCHEMANAME            |\n" +
+                "---------------------------------------------------------------------------------------------------------------------\n" +
+                "DERBY AGGREGATE |   USAGE   | METADATAACCESSCONTROLIT_JERRY | SPLICE  |STATS_MERGE |            SYSFUN              |\n" +
+                "DERBY AGGREGATE |   USAGE   |  METADATAACCESSCONTROLIT_TOM  | SPLICE  |STATS_MERGE |            SYSFUN              |\n" +
+                "   SEQUENCE     |   USAGE   |METADATAACCESSCONTROLIT_ROLE_F | SPLICE  |    S1      |METADATAACCESSCONTROLITSCHEMA_A |";
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 }

@@ -25,11 +25,15 @@ import org.junit.rules.ExpectedException;
 
 import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -41,6 +45,22 @@ public class SpliceDateFunctionsTest {
 
     private static final DateFormat DF = new SimpleDateFormat("yyyy/MM/dd");
     private static final DateFormat DFT = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
+
+    private static Timestamp
+    getTimestamp(ZonedDateTime zdt) {
+        return Timestamp.valueOf(LocalDateTime.ofInstant(zdt.toInstant(),
+                                 ZoneId.systemDefault()));
+    }
+
+    private static Time
+    getTime(ZonedDateTime zdt) {
+        return Time.valueOf(getTimestamp(zdt).toLocalDateTime().toLocalTime());
+    }
+
+    private static Date
+    getDate(ZonedDateTime zdt) {
+        return Date.valueOf(getTimestamp(zdt).toLocalDateTime().toLocalDate());
+    }
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -157,8 +177,7 @@ public class SpliceDateFunctionsTest {
             assertEquals(date, SpliceDateFunctions.TO_DATE(source));
             fail("Expected to get an exception for parsing the wrong date pattern.");
         } catch (SQLException e) {
-           assertEquals("Error parsing datetime 2014/06/24 with pattern: yyyy-M-d. Try using an ISO8601 pattern such " +
-                            "as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
+           assertEquals("Error parsing datetime 2014/06/24 with pattern: yyyy-MM-dd. Try using an ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                         e.getLocalizedMessage());
         }
     }
@@ -294,11 +313,7 @@ public class SpliceDateFunctionsTest {
         assertEquals("2014-03-08 20:33:40.287469", SpliceDateFunctions.TO_TIMESTAMP("2014-03-08 20:33:40.287469","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
         // DB-4678
         assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.SSSSSS").toString());
-        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.ssssss").toString());
-        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.NNNNNN").toString());
-        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.nnnnnn").toString());
-        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.FFFFFF").toString());
-        assertEquals("2015-12-12 11:11:12.123456", SpliceDateFunctions.TO_TIMESTAMP("2015-12-12 11:11:12.123456","yyyy-MM-dd HH:mm:ss.ffffff").toString());
+        // Fractional seconds in format string must now be represented with capital 'S'.
 
         // Note: we have to format the java.sql.Timestamp here to get the output we want.  The information is there, it's just that the default format is w/o timezone
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
@@ -306,12 +321,105 @@ public class SpliceDateFunctionsTest {
         assertEquals("2013-03-23 19:45:00.987-0700", sdf.format(SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987-07", "yyyy-MM-dd HH:mm:ss.SSSZ")));
     }
 
-    @Test @Ignore("DB-5033")
+    @Test
     public void testSupportMultipleTimestampFormats() throws Exception {
+        Timestamp ts = SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987654-05","yyyy-MM-dd HH:mm:ss.SSSSSSZ");
+
         // Jodatime does not support microseconds?
-        assertEquals("2013-03-23 19:45:00.987654-05", SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987654-05","yyyy-MM-dd HH:mm:ss.ssssssZ").toString());
+        // No longer using Joda DateTime.
+        ZonedDateTime zdt = java.time.ZonedDateTime.parse("2013-03-24T00:45:00.987654Z");
+        Timestamp expectedTS = getTimestamp(zdt);
+        assertTrue(String.format("Unexpected timestamp value.  Expected: %s,  Actual: %s", expectedTS, ts), expectedTS.equals(ts));
+
         // Jodatime does not support microseconds?
-        assertEquals("2013-03-23 19:45:00.987654-0200", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSSZ").format(SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987654-02","yyyy-MM-dd HH:mm:ss.SSSSSSZ")));
+        ts = SpliceDateFunctions.TO_TIMESTAMP("2013-03-23 19:45:00.987654-02","yyyy-MM-dd HH:mm:ss.SSSSSSZ");
+        zdt = java.time.ZonedDateTime.parse("2013-03-23T21:45:00.987654Z");
+        expectedTS = getTimestamp(zdt);
+        assertTrue(String.format("Unexpected timestamp value.  Expected: %s,  Actual: %s", expectedTS, ts), expectedTS.equals(ts));
+    }
+
+    private static void checkTimestamp(String source, String format, String expected) throws Exception {
+        Timestamp ts = SpliceDateFunctions.TO_TIMESTAMP(source, format);
+        ZonedDateTime zdt = java.time.ZonedDateTime.parse(expected);
+        Timestamp expectedTS = getTimestamp(zdt);
+        assertTrue(String.format("Unexpected time value.  Expected: %s,  Actual: %s", expectedTS, ts), expectedTS.equals(ts));
+    }
+
+    private static void checkTime(String source, String format, String expected) throws Exception {
+        Time time = SpliceDateFunctions.TO_TIME(source, format);
+        ZonedDateTime zdt = java.time.ZonedDateTime.parse(expected);
+        Time expectedTime = getTime(zdt);
+        assertTrue(String.format("Unexpected time value.  Expected: %s,  Actual: %s", expectedTime, time), expectedTime.equals(time));
+    }
+
+    private static void checkDate(String source, String format, String expected) throws Exception {
+        Date date = SpliceDateFunctions.TO_DATE(source, format);
+        ZonedDateTime zdt = java.time.ZonedDateTime.parse(expected);
+        Date expectedDate = getDate(zdt);
+        assertTrue(String.format("Unexpected time value.  Expected: %s,  Actual: %s", expectedDate, date), expectedDate.equals(date));
+    }
+
+    private static void checkTime2(String source, String format, String expected) throws Exception {
+        Time time = SpliceDateFunctions.TO_TIME(source, format);
+        Time expectedTime = Time.valueOf(expected);
+        assertTrue(String.format("Unexpected time value.  Expected: %s,  Actual: %s", expectedTime, time), expectedTime.equals(time));
+    }
+
+    @Test
+    public void testTimeFormats() throws Exception {
+        checkTime("2013-03-23 19:45:00.987654-05", "yyyy-MM-dd HH:mm:ss.SSSSSSZ", "2013-03-24T00:45:00.987654Z");
+        checkTime("2013-03-23 19:45:00.987654-02", "yyyy-MM-dd HH:mm:ss.SSSSSSZ", "2013-03-23T21:45:00.987654Z");
+
+        checkTime("2001.07.04 AD at 12:08:56 PDT", "yyyy.MM.dd G 'at' HH:mm:ss z", "2001-07-04T19:08:56Z");
+        checkTime("Wed, Jul 4, '01 00:00:00.123456 PDT", "EEE, MMM d, ''yy HH:mm:ss.SSSSSS z", "2001-07-04T07:00:00Z");
+        checkTime2("12:08 PM", "h:mm a", "12:08:00");
+
+        checkTime("12 o'clock PM, Pacific Daylight Time", "hh 'o''clock' a, zzzz", "2001-07-04T19:00:00Z");
+        checkTime("0:08 PM, PDT", "K:mm a, z", "2001-07-04T19:08:00Z");
+        checkTime("02001.July.04 AD 12:08 PM PDT", "yyyyy.MMMMM.dd GGG hh:mm aaa z", "2001-07-04T19:08:00Z");
+        checkTime("Wed, 4 Jul 2001 12:08:56 -0700", "EEE, d MMM yyyy HH:mm:ss Z", "2001-07-04T19:08:56Z");
+        checkTime("010704120856-0700", "yyMMddHHmmssZ", "2001-07-04T19:08:56Z");
+        checkTime("2001-07-04T12:08:56.235-0700", "yyyy-MM-dd'T'HH:mm:ss.SSSZ", "2001-07-04T19:08:56Z");
+        checkTime("2001-07-04T12:08:56.235-07:00", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", "2001-07-04T19:08:56Z");
+        checkTime("2001-W27-3 12:08:56-07:00", "YYYY-'W'ww-e HH:mm:ssXXX", "2001-07-04T19:08:56Z");
+    }
+
+    @Test
+    public void testTimeStampFormats() throws Exception {
+        checkTimestamp("2013-03-23 19:45:00.987654-05", "yyyy-MM-dd HH:mm:ss.SSSSSSZ", "2013-03-24T00:45:00.987654Z");
+        checkTimestamp("2013-03-23 19:45:00.987654-02", "yyyy-MM-dd HH:mm:ss.SSSSSSZ", "2013-03-23T21:45:00.987654Z");
+
+        checkTimestamp("2001.07.04 AD at 12:08:56 PDT", "yyyy.MM.dd G 'at' HH:mm:ss z", "2001-07-04T19:08:56Z");
+        checkTimestamp("Wed, Jul 4, '01 00:00:00.123456 PDT", "EEE, MMM d, ''yy HH:mm:ss.SSSSSS z", "2001-07-04T07:00:00.123456Z");
+        checkTimestamp("07200104 12:08 PM+11", "MMyyyydd h:mm aZ", "2001-07-04T01:08:00Z");
+
+        checkTimestamp("07200104 12 o'clock PM, Pacific Daylight Time", "MMyyyydd hh 'o''clock' a, zzzz", "2001-07-04T19:00:00Z");
+        checkTimestamp("07200104 0:08 PM, PDT", "MMyyyydd K:mm a, z", "2001-07-04T19:08:00Z");
+        checkTimestamp("02001.July.04 AD 12:08 PM PDT", "yyyyy.MMMMM.dd GGG hh:mm aaa z", "2001-07-04T19:08:00Z");
+        checkTimestamp("Wed, 4 Jul 2001 12:08:56 -0700", "EEE, d MMM yyyy HH:mm:ss Z", "2001-07-04T19:08:56Z");
+        checkTimestamp("010704120856-0700", "yyMMddHHmmssZ", "2001-07-04T19:08:56Z");
+        checkTimestamp("2001-07-04T12:08:56.235-0700", "yyyy-MM-dd'T'HH:mm:ss.SSSZ", "2001-07-04T19:08:56.235Z");
+        checkTimestamp("2001-07-04T12:08:56.235-07:00", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", "2001-07-04T19:08:56.235Z");
+        checkTimestamp("2001-W27-3 12:08:56-07:00", "YYYY-'W'ww-e HH:mm:ssXXX", "2001-07-03T19:08:56Z");
+    }
+
+    @Test
+    public void testDateFormats() throws Exception {
+        checkDate("2013-03-23 19:45:00.987654-05", "yyyy-MM-dd HH:mm:ss.SSSSSSZ", "2013-03-24T00:45:00.987654Z");
+        checkDate("2013-03-23 19:45:00.987654-02", "yyyy-MM-dd HH:mm:ss.SSSSSSZ", "2013-03-23T21:45:00.987654Z");
+
+        checkDate("2001.07.04 AD at 12:08:56 PDT", "yyyy.MM.dd G 'at' HH:mm:ss z", "2001-07-04T19:08:56Z");
+        checkDate("Wed, Jul 4, '01 00:00:00.123456 PDT", "EEE, MMM d, ''yy HH:mm:ss.SSSSSS z", "2001-07-04T07:00:00.123456Z");
+        checkDate("07200104 12:08 PM+11", "MMyyyydd h:mm aZ", "2001-07-04T01:08:00Z");
+
+        checkDate("07200104 12 o'clock PM, Pacific Daylight Time", "MMyyyydd hh 'o''clock' a, zzzz", "2001-07-04T19:00:00Z");
+        checkDate("07200104 0:08 PM, PDT", "MMyyyydd K:mm a, z", "2001-07-04T19:08:00Z");
+        checkDate("02001.July.04 AD 12:08 PM", "yyyyy.MMMMM.dd GGG hh:mm aaa", "2001-07-04T19:08:00Z");
+        checkDate("Wed, 4 Jul 2001 12:08:56 -0700", "EEE, d MMM yyyy HH:mm:ss Z", "2001-07-04T19:08:56Z");
+        checkDate("010704120856-0700", "yyMMddHHmmssZ", "2001-07-04T19:08:56Z");
+        checkDate("2001-07-04T12:08:56.235-0700", "yyyy-MM-dd'T'HH:mm:ss.SSSZ", "2001-07-04T19:08:56.235Z");
+        checkDate("2001-07-04T12:08:56.235-07:00", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", "2001-07-04T19:08:56.235Z");
+        checkDate("2001-W27-3 12:08:56-07:00", "YYYY-'W'ww-e HH:mm:ssXXX", "2001-07-03T19:08:56Z");
     }
 
     @Test @Ignore("DB-5033")

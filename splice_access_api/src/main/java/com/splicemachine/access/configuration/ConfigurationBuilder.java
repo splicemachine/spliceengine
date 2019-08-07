@@ -78,7 +78,7 @@ public class ConfigurationBuilder {
     public String authorizationScheme;
     public String rangerServiceName;
     public int sentryPollingInterval;
-    public boolean metadataRestrictionEnabled;
+    public String metadataRestrictionEnabled;
 
     // StatsConfiguration
     public double fallbackNullFraction;
@@ -165,6 +165,7 @@ public class ConfigurationBuilder {
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
+    public int splitsPerTableMin;
 
     // PipelineConfiguration
     public int coreWriterThreads;

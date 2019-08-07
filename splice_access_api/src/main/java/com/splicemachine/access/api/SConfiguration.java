@@ -323,6 +323,8 @@ public interface SConfiguration {
 
     long getTableSplitSleepInterval();
 
+    int getSplitsPerTableMin();
+
     /**
      * Dump splice configuration, including hadoop config, to the log.
      */
@@ -366,9 +368,10 @@ public interface SConfiguration {
 
     int getRecursiveQueryIterationLimit();
 
-    boolean getMetadataRestrictionEnabled();
-
     void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
 
     CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
+
+    String getMetadataRestrictionEnabled();
+
 }

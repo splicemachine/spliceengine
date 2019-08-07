@@ -31,6 +31,8 @@ public class SubqueryITUtil {
     public static final int ZERO_SUBQUERY_NODES = 0;
     public static final int ONE_SUBQUERY_NODE = 1;
     public static final int TWO_SUBQUERY_NODES = 2;
+    public static final int THREE_SUBQUERY_NODES = 3;
+    public static final int FOUR_SUBQUERY_NODES = 4;
 
     /* See SubqueryFlatteningTestTables.sql.  Queries that select from A with predicates that do not eliminate
      * any rows expect this result. */

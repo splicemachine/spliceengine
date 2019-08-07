@@ -294,7 +294,10 @@ class SpliceTestPlatformConfig {
         config.set("splice.authentication.impersonation.users", "dgf=splice;splice=*");
         config.setBoolean("splice.authentication.impersonation.enabled", true);
         config.set("splice.authentication.ldap.mapGroupAttr", "jy=splice,dgf=splice");
-   //     config.setBoolean("splice.metadataRestrictionEnabled", true);
+        config.setInt("splice.txn.completedTxns.cacheSize", 4096);
+        // below two parameters are needed to test ranger authorization on standalone system
+        // config.set("splice.authorization.scheme", "RANGER");
+        // config.set("splice.metadataRestrictionEnabled", "RANGER");
 
         // Get more test coverage of the broadcast join Dataset path, as this is the
         // future of splice OLAP query execution.

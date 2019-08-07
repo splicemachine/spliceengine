@@ -31,11 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
@@ -43,11 +39,16 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.catalog.UUID;
+
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSROUTINEPERMS row.
@@ -265,4 +266,43 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
         DataValueDescriptor existingPermDVD = row.getColumn(ROUTINEPERMSID_COL_NUM);
         perm.setUUID(getUUIDFactory().recreateUUID(existingPermDVD.getString()));
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+                new ColumnDescriptor[]{
+                        new ColumnDescriptor("ROUTINEPERMSID",1,1, DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTEE",2,2,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTOR",3,3,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("ALIASID",4,4,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("GRANTOPTION",5,5,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("ALIAS",6,6,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("SCHEMANAME",7,7,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0)
+                });
+        return cdsl;
+    }
+    public static String SYSROUTINEPERMS_VIEW_SQL = "create view SYSROUTINEPERMSVIEW as \n" +
+            "SELECT P.*, A.ALIAS, S.SCHEMANAME FROM SYS.SYSROUTINEPERMS P, SYS.SYSALIASES A, SYS.SYSSCHEMAS S "+
+            "WHERE P.ALIASID = A.ALIASID AND A.SCHEMAID= S.SCHEMAID AND " +
+            "P.grantee in (select name from sysvw.sysallroles) \n" +
+
+            "UNION ALL \n" +
+
+            "SELECT P.*, A.ALIAS, S.SCHEMANAME FROM SYS.SYSROUTINEPERMS P, SYS.SYSALIASES A, SYS.SYSSCHEMAS S "+
+            "WHERE P.ALIASID = A.ALIASID AND A.SCHEMAID= S.SCHEMAID AND " +
+            "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128)))";
 }
