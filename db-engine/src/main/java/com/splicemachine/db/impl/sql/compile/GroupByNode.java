@@ -1039,7 +1039,6 @@ public class GroupByNode extends SingleChildResultSetNode{
     private void addNewColumnsForAggregation() throws StandardException{
         aggInfo=new AggregatorInfoList();
         List<SubstituteExpressionVisitor> havingRefsToSubstitute=null;
-        VirtualColumnNode vcForGroupingFunction = null;
 
         if(groupingList!=null){
             List<SubstituteExpressionVisitor> referencesToSubstitute=new ArrayList<SubstituteExpressionVisitor>();
