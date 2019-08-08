@@ -95,7 +95,7 @@ public class SpliceStringFunctions {
      * 
      * @param s string to be evaluated
      * @param regexp regular expression
-     * 
+     *
      * @return flag indicating whether or not there is a match
      */
     public static boolean REGEXP_LIKE(String s, String regexp)
@@ -107,7 +107,26 @@ public class SpliceStringFunctions {
 	        throw new RuntimeException(String.format("Unable to fetch Pattern for regexp [%s]", regexp), e);
 	    }
     }
-    
+
+    /**
+     * Implements logic for the SQL function CHR.
+     *
+     * @param i INTEGER or SMALLINT to be evaluated
+     * @return Returns the character that has the ASCII code value specified by the argument
+     */
+    public static String CHR(Integer i)
+    {
+        if (i == null)
+            return null;
+        if (i < 0)
+            return String.valueOf((char)255);
+        else if (i >= 256)
+            return String.valueOf((char)(i % 256));
+        else
+            return String.valueOf((char)i.intValue());
+    }
+
+
     private static LoadingCache<String, Pattern> patternCache = CacheBuilder.newBuilder().maximumSize(100).build(
         new CacheLoader<String, Pattern>() {
             @Override

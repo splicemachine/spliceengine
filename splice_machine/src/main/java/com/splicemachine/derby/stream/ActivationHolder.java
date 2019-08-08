@@ -18,8 +18,10 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.derby.utils.StatisticsOperation;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -62,6 +64,7 @@ public class ActivationHolder implements Externalizable {
     private TxnView txn;
     private boolean initialized = false;
     private static ThreadLocal<SpliceTransactionResourceImpl> impl = new ThreadLocal<>();
+    private ManagedCache<String, Optional<String>> propertyCache = null;
 
     public ActivationHolder() {
 
@@ -151,6 +154,7 @@ public class ActivationHolder implements Externalizable {
         out.writeObject(operationsList);
         out.writeObject(soi);
         SIDriver.driver().getOperationFactory().writeTxnStack(txn,out);
+        out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getPropertyCache());
     }
 
     private void init(TxnView txn, boolean reinit){
@@ -162,7 +166,7 @@ public class ActivationHolder implements Externalizable {
             }
 
             txnResource = new SpliceTransactionResourceImpl();
-            txnResource.marshallTransaction(txn);
+            txnResource.marshallTransaction(txn, propertyCache);
             impl.set(txnResource);
             activation = soi.getActivation(this, txnResource.getLcc());
 
@@ -190,6 +194,7 @@ public class ActivationHolder implements Externalizable {
         }
         soi = (SpliceObserverInstructions) in.readObject();
         txn = SIDriver.driver().getOperationFactory().readTxnStack(in);
+        propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
     }
 
     public void setActivation(Activation activation) {

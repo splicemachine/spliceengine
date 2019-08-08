@@ -377,7 +377,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         /* Find out whether or not to log info on executing statements to error log
          */
-        String logStatementProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logStatementText");
+        String logStatementProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logStatementText");
         logStatementText=logStatementProperty == null || Boolean.valueOf(logStatementProperty);
         // log statements by default
         if (!logStatementText) {
@@ -388,7 +388,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.valueOf
                 (maxStatementLogLenStr);
 
-        String logQueryPlanProperty=PropertyUtil.getServiceProperty(getTransactionCompile(),"derby.language.logQueryPlan");
+        String logQueryPlanProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
 
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;

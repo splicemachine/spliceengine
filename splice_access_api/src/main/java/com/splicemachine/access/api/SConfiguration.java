@@ -88,6 +88,8 @@ public interface SConfiguration {
 
     long getMaxDdlWait();
 
+    long getMergeRegionTimeout();
+
     // HConfiguration
     int getRegionServerHandlerCount();
 
@@ -312,6 +314,8 @@ public interface SConfiguration {
     long getRegionMaxFileSize();
 
     long getTableSplitSleepInterval();
+
+    int getSplitsPerTableMin();
 
     /**
      * Dump splice configuration, including hadoop config, to the log.

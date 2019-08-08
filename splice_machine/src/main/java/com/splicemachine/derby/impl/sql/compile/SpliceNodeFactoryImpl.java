@@ -435,7 +435,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
           case C_NodeTypes.LOCATE_FUNCTION_NODE:
 		  case C_NodeTypes.SUBSTRING_OPERATOR_NODE:
+		  case C_NodeTypes.RIGHT_OPERATOR_NODE:
 		  case C_NodeTypes.TRIM_OPERATOR_NODE:
+		  case C_NodeTypes.LEFT_OPERATOR_NODE:
 		  case C_NodeTypes.TIMESTAMP_ADD_FN_NODE:
 		  case C_NodeTypes.TIMESTAMP_DIFF_FN_NODE:
 		  case C_NodeTypes.REPLACE_OPERATOR_NODE:
@@ -633,6 +635,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
 			case C_NodeTypes.SET_SESSION_PROPERTY_NODE:
 				return C_NodeNames.SET_SESSION_PROPERTY_NAME;
+
+			case C_NodeTypes.DIGITS_OPERATOR_NODE:
+				return C_NodeNames.UNARY_OPERATOR_NODE_NAME;
 
             // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
 		  // THEM TO tools/jar/DBMSnodes.properties

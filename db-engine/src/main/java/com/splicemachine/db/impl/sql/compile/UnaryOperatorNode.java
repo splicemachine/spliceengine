@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -92,28 +93,33 @@ public class UnaryOperatorNode extends OperatorNode
 
 	public final static int XMLPARSE_OP = 0;
 	public final static int XMLSERIALIZE_OP = 1;
+	public final static int DIGITS_OP = 2;
 
 	// NOTE: in the following 4 arrays, order
 	// IS important.
 
 	static final String[] UnaryOperators = {
 		"xmlparse",
-		"xmlserialize"
+		"xmlserialize",
+		"digits"
 	};
 
 	static final String[] UnaryMethodNames = {
 		"XMLParse",
-		"XMLSerialize"
+		"XMLSerialize",
+		"digits"
 	};
 
 	static final String[] UnaryResultTypes = {
 		ClassName.XMLDataValue, 		// XMLParse
-		ClassName.StringDataValue		// XMLSerialize
+		ClassName.StringDataValue,		// XMLSerialize
+		ClassName.StringDataValue	    // DIGITS
 	};
 
 	static final String[] UnaryArgTypes = {
 		ClassName.StringDataValue,		// XMLParse
-		ClassName.XMLDataValue			// XMLSerialize
+		ClassName.XMLDataValue,			// XMLSerialize
+		ClassName.NumberDataValue       // DIGITS
 	};
 
 	// Array to hold Objects that contain primitive
@@ -139,7 +145,7 @@ public class UnaryOperatorNode extends OperatorNode
 					Object		methodNameOrAddedArgs)
 	{
 		this.operand = (ValueNode) operand;
-		if (operatorOrOpType instanceof String) {
+		if (operatorOrOpType instanceof String)  {
 		// then 2nd and 3rd params are operator and methodName,
 		// respectively.
 			this.operator = (String) operatorOrOpType;
@@ -314,6 +320,8 @@ public class UnaryOperatorNode extends OperatorNode
             bindXMLParse();
         else if (operatorType == XMLSERIALIZE_OP)
             bindXMLSerialize();
+        else if (operatorType == DIGITS_OP)
+        	bindDigits();
         return this;
 	}
 
@@ -441,6 +449,69 @@ public class UnaryOperatorNode extends OperatorNode
         setCollationUsingCompilationSchema();
     }
 
+	private void bindDigits()
+			throws StandardException{
+		TypeId operandType;
+		int jdbcType;
+
+		/*
+		 ** Check the type of the operand
+		 */
+		operandType=operand.getTypeId();
+
+		jdbcType=operandType.getJDBCTypeId();
+
+		/* DIGITS only allows numeric types and CHAR/VARCHAR */
+		if(!operandType.isNumericTypeId() && !operandType.isCharOrVarChar())
+			throw StandardException.newException(
+					SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+					getOperatorString(),operandType.getSQLTypeName());
+
+
+		/* For DIGITS, if operand is a CHAR/VARCHAR, convert it to DECIMAL(31,6) */
+		if(operatorType==DIGITS_OP && (jdbcType==Types.CHAR || jdbcType == Types.VARCHAR)){
+			DataTypeDescriptor dataTypeDescriptor = new DataTypeDescriptor(
+					TypeId.getBuiltInTypeId(Types.DECIMAL),
+					31,
+					6,
+					operand.getTypeServices() != null?operand.getTypeServices().isNullable():true,
+					TypeId.DECIMAL_MAXWIDTH);
+
+			operand=(ValueNode)getNodeFactory().getNode(
+					C_NodeTypes.CAST_NODE,
+					operand,
+					dataTypeDescriptor,
+					getContextManager());
+			((CastNode)operand).bindCastNodeOnly();
+			operandType = operand.getTypeId();
+			jdbcType = operandType.getJDBCTypeId();
+		}
+		int resultLength;
+		switch (jdbcType) {
+			case Types.SMALLINT:
+			case Types.TINYINT:
+			    resultLength = 5;
+			    break;
+			case Types.INTEGER:
+			    resultLength = 10;
+			    break;
+			case Types.BIGINT:
+			    resultLength = 19;
+			    break;
+			case Types.DECIMAL:
+			case Types.DOUBLE:
+			case Types.REAL:
+			case Types.FLOAT:
+				resultLength = operand.getTypeServices().getPrecision();
+				break;
+			default:
+				resultLength = 19;
+		}
+
+		setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.CHAR),
+				                       operand.getTypeServices() != null? operand.getTypeServices().isNullable(): true,
+				                       resultLength));
+	}
 	/**
 	 * Preprocess an expression tree.  We do a number of transformations
 	 * here (including subqueries, IN lists, LIKE and BETWEEN) plus
@@ -591,6 +662,14 @@ public class UnaryOperatorNode extends OperatorNode
 		}
 		else if (operand.getTypeServices() == null)
 		{
+			if (operatorType == DIGITS_OP)
+			{
+				// for parameter, if we don't know the type, assume it is CHAR
+				operand.setType(
+						new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.CHAR),true));
+				return;
+			}
+
 			throw StandardException.newException(SQLState.LANG_UNARY_OPERAND_PARM, operator);
 		}
 	}
@@ -625,11 +704,22 @@ public class UnaryOperatorNode extends OperatorNode
 
 		if (needField) {
 
+			int numArgs = 0;
+
+			if (operatorType == DIGITS_OP) {
+				mb.dup();
+				mb.cast(receiverType);
+				numArgs ++;
+
+				mb.push(getTypeServices().getMaximumWidth());
+				numArgs ++;
+
+			}
 			/* Allocate an object for re-use to hold the result of the operator */
 			LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
 			mb.getField(field);
 
-            int numArgs = 1;
+            numArgs ++;
 
             // XML operators take extra arguments.
             numArgs += addXmlOpMethodParams(acb, mb, field);
