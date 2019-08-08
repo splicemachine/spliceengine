@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLReal;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -313,7 +314,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 								.toString();
 		}
 
-		@Override
+        @Override
         public ExecRow getExecRowDefinition() throws StandardException {
             if (mergedRowTemplate == null) {
                 mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
@@ -368,4 +369,27 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	public String getVTIFileName() {
 		return getSubOperations().get(0).getVTIFileName();
 	}
+
+        protected boolean containsUnsafeSQLRealComparison() throws StandardException {
+            int[] leftHashKeys = getLeftHashKeys();
+            int[] rightHashKeys = getRightHashKeys();
+
+	    int numKeys = leftHashKeys.length;
+	    ExecRow LeftExecRow = getLeftOperation().getExecRowDefinition();
+	    ExecRow RightExecRow = getRightOperation().getExecRowDefinition();
+	    for (int i = 0; i < numKeys; i++) {
+	        if (LeftExecRow.getColumn(leftHashKeys[i]+1) instanceof SQLReal)
+	            if (! (RightExecRow.getColumn(rightHashKeys[i]+1) instanceof SQLReal))
+	                return true;
+
+	        if (RightExecRow.getColumn(rightHashKeys[i]+1) instanceof SQLReal)
+	            if (! (LeftExecRow.getColumn(leftHashKeys[i]+1) instanceof SQLReal))
+	                return true;
+            }
+	    return false;
+        }
+
+	public ExecRow getLeftRow() { return leftRow; }
+	public ExecRow getRightRow() { return rightRow; }
+
 }

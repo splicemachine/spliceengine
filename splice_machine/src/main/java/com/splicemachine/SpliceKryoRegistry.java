@@ -35,6 +35,7 @@ import com.splicemachine.db.impl.sql.*;
 import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
 import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.db.shared.common.udt.UDTBase;
@@ -79,6 +80,7 @@ import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.commons.lang3.mutable.MutableDouble;
+import org.spark_project.guava.base.Optional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -86,7 +88,14 @@ import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Properties;
+import java.util.TreeMap;
 
 
 /**
@@ -850,6 +859,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER,296);
         instance.register(SetOpOperation.class,EXTERNALIZABLE_SERIALIZER,297);
         instance.register(ExportFile.COMPRESSION.class, 298);
+        instance.register(CrossJoinOperation.class, EXTERNALIZABLE_SERIALIZER, 303);
         instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER, 299);
         instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER, 300);
         instance.register(SelfReferenceOperation.class,new Serializer<SelfReferenceOperation>(){
@@ -896,8 +906,35 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             }
         },302);
         instance.register(DataValueDescriptor.class, 303);
-        instance.register(ExecRow.class, 304);
-        instance.register(ResultSet.class, 305);
-        instance.register(ResultSet[].class, 306);
+        instance.register(ManagedCache.class, EXTERNALIZABLE_SERIALIZER, 304);
+
+        Serializer<Optional> optionalSerializer = new Serializer<Optional>() {
+            @Override
+            public void write(Kryo kryo, Output output, Optional object) {
+                if (object.isPresent()) {
+                    output.writeBoolean(false);
+                    kryo.writeClassAndObject(output, object.get());
+                } else {
+                    output.writeBoolean(true);
+                }
+            }
+
+            @Override
+            public Optional read(Kryo kryo, Input input, Class<Optional> type) {
+                boolean isNull = input.readBoolean();
+                if (isNull) {
+                    return Optional.absent();
+                } else {
+                    return Optional.of(kryo.readClassAndObject(input));
+                }
+            }
+        };
+
+        instance.register(Optional.class, optionalSerializer, 305);
+        instance.register(Optional.absent().getClass(), optionalSerializer, 306);
+        instance.register(Optional.of("").getClass(), optionalSerializer, 307);
+        instance.register(ExecRow.class, 308);
+        instance.register(ResultSet.class, 309);
+        instance.register(ResultSet[].class, 310);
     }
 }

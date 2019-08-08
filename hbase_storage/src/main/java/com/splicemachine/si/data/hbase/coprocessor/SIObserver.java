@@ -17,6 +17,7 @@ package com.splicemachine.si.data.hbase.coprocessor;
 import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +29,9 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.pipeline.AclCheckerService;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HConstants;
@@ -509,8 +513,41 @@ public class SIObserver extends BaseRegionObserver{
 
     @Override
     public void preBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> familyPaths) throws IOException {
-        checkAccess();
-        super.preBulkLoadHFile(ctx, familyPaths);
+
+        try {
+            String path = familyPaths.get(0).getSecond();
+            byte[] token = getToken(new Path(path).getParent().toString());
+            if (token != null) {
+                AclCheckerService.getService().checkPermission(token, conglomId, Authorizer.INSERT_PRIV);
+            } else {
+                checkAccess();
+            }
+        } catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "Encountered an error in preBulkLoadHFile: %s", e);
+            throw new IOException(e);
+        }
     }
-    
+
+    private byte[] getToken(String path) throws IOException{
+        byte[] token = null;
+        FSDataInputStream in = null;
+        try {
+            FileSystem fs = FileSystem.get(new URI(path), HConfiguration.unwrapDelegate());
+            Path p = new Path(path, "_token");
+            if (fs.exists(p)) {
+                in = fs.open(p);
+                int len = in.readInt();
+                token = new byte[len];
+                in.readFully(token);
+            }
+            return token;
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+        finally {
+            if (in != null) {
+                in.close();
+            }
+        }
+    }
 }

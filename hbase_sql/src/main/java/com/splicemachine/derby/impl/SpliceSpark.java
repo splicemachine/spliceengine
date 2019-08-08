@@ -308,6 +308,12 @@ public class SpliceSpark {
         conf.set("spark.worker.ui.retainedDrivers", System.getProperty("splice.spark.worker.ui.retainedDrivers", "100"));
         conf.set("spark.ui.retainedJobs", System.getProperty("splice.spark.ui.retainedJobs", "100"));
 
+        /*
+
+           Spark SQL
+
+         */
+        conf.set("spark.sql.retainGroupColumns", "true");
 
         if (LOG.isDebugEnabled()) {
             printConfigProps(conf);
@@ -335,8 +341,8 @@ public class SpliceSpark {
     }
 
     public static void popScope() {
-        SpliceSpark.getContext().setLocalProperty("spark.rdd.scope", null);
-        SpliceSpark.getContext().setLocalProperty("spark.rdd.scope.noOverride", null);
+        SpliceSpark.getContext().setLocalProperty(SCOPE_KEY, null);
+        SpliceSpark.getContext().setLocalProperty(SCOPE_OVERRIDE, null);
     }
     
     public synchronized static void setContext(JavaSparkContext sparkContext) {
@@ -346,8 +352,6 @@ public class SpliceSpark {
     }
 
     public synchronized static void setContext(SparkContext sparkContext) {
-        session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
-        ctx = new JavaSparkContext(sparkContext);
-        initialized = true;
+        setContext(new JavaSparkContext(sparkContext));
     }
 }

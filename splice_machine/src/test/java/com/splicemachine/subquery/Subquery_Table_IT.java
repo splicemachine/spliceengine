@@ -14,6 +14,7 @@
 
 package com.splicemachine.subquery;
 
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
@@ -25,6 +26,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +39,7 @@ import static org.junit.Assert.assertEquals;
  * Test table subqueries -- subqueries that can return multiple rows and columns.  These can appear only in FROM,
  * IN, ALL, ANY, or EXISTS parts of the enclosing query.
  */
-public class Subquery_Table_IT {
+public class Subquery_Table_IT extends SpliceUnitTest {
 
     private static final String SCHEMA = Subquery_Table_IT.class.getSimpleName();
 
@@ -110,6 +112,15 @@ public class Subquery_Table_IT {
             s.executeUpdate("create table tt4 (a4 int, b4 int, c4 int)");
             s.executeUpdate("insert into tt4 select * from tt1");
             s.executeUpdate("insert into tt4 select * from tt1");
+
+            s.executeUpdate("create table tab1 (a1 int not null, b1 int)");
+            s.executeUpdate("insert into tab1 values (1,1),(2,2),(3,3)");
+            s.executeUpdate("create table tab2 (a2 int not null, b2 int)");
+            s.executeUpdate("insert into tab2 values (1,1),(1,1),(2,2), (2,2)");
+            s.executeUpdate("create table tab3 (a3 int not null, b3 int)");
+            s.executeUpdate("insert into tab3 values (1,1),(2,2),(4,4)");
+            s.executeUpdate("create table tab4 (a4 int not null, b4 int)");
+            s.executeUpdate("insert into tab4 values (1,1),(2,2),(5,5)");
         }
     }
 
@@ -979,6 +990,141 @@ public class Subquery_Table_IT {
         rs.close();
     }
 
+    @Test
+    public void testSemiJoinWithExistsSubquery() throws Exception {
+        String sqlText = "select * from tab3, tab1 where exists (select 1 from tab2 where a1=a2)";
+
+        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB3", "TAB2", "TAB1"));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A3 |B3 |A1 |B1 |\n" +
+                        "----------------\n" +
+                        " 1 | 1 | 1 | 1 |\n" +
+                        " 1 | 1 | 2 | 2 |\n" +
+                        " 2 | 2 | 1 | 1 |\n" +
+                        " 2 | 2 | 2 | 2 |\n" +
+                        " 4 | 4 | 1 | 1 |\n" +
+                        " 4 | 4 | 2 | 2 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSemiJoinWithInSubquery() throws Exception {
+        String sqlText = "select * from TAB3, TAB1 where b1 in (select b2 from TAB2 where a1=a2)";
+
+        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB3", "TAB2", "TAB1"));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A3 |B3 |A1 |B1 |\n" +
+                        "----------------\n" +
+                        " 1 | 1 | 1 | 1 |\n" +
+                        " 1 | 1 | 2 | 2 |\n" +
+                        " 2 | 2 | 1 | 1 |\n" +
+                        " 2 | 2 | 2 | 2 |\n" +
+                        " 4 | 4 | 1 | 1 |\n" +
+                        " 4 | 4 | 2 | 2 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSemiJoinWithInSubqueryWithMultipleTables() throws Exception {
+        String sqlText = "select * from tab1, tab4 where b1 in (select b2 from tab2, tab3  where a2=a3)";
+
+        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB4", "TAB3", "TAB2", "TAB1"));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A1 |B1 |A4 |B4 |\n" +
+                        "----------------\n" +
+                        " 1 | 1 | 1 | 1 |\n" +
+                        " 1 | 1 | 2 | 2 |\n" +
+                        " 1 | 1 | 5 | 5 |\n" +
+                        " 2 | 2 | 1 | 1 |\n" +
+                        " 2 | 2 | 2 | 2 |\n" +
+                        " 2 | 2 | 5 | 5 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSemiJoinWithNotExistsSubquery() throws Exception {
+        String sqlText = "select * from tab3, tab1 where not exists (select 1 from tab2 where a1=a2)";
+
+        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB3", "TAB2", "TAB1"));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A3 |B3 |A1 |B1 |\n" +
+                        "----------------\n" +
+                        " 1 | 1 | 3 | 3 |\n" +
+                        " 2 | 2 | 3 | 3 |\n" +
+                        " 4 | 4 | 3 | 3 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSemiJoinWithNotInSubquery() throws Exception {
+        String sqlText = "select * from tab3, tab1 where a1 not in (select a2 from tab2)";
+
+        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB3", "TAB2", "TAB1"));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A3 |B3 |A1 |B1 |\n" +
+                        "----------------\n" +
+                        " 1 | 1 | 3 | 3 |\n" +
+                        " 2 | 2 | 3 | 3 |\n" +
+                        " 4 | 4 | 3 | 3 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSemiJoinWithNonCorrelatedExistsSubquery() throws Exception {
+        String sqlText = "select * from tab1, tab3 --splice-properties useDefaultRowCount=300\n" +
+                " where not exists (select 1 from tab2)";
+
+        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB3", "TAB2", "TAB1"));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testSemiJoinWithSubqueryCorrelatedToMultipleOuterTables() throws Exception {
+        String sqlText = "select * from tab3, tab1, tab4 where exists (select 1 from tab2 where a1=a2 and a2=a4)";
+
+        testOrderOfTables("explain " + sqlText, Arrays.asList("TAB3", "TAB2", "TAB4", "TAB1"));
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A3 |B3 |A1 |B1 |A4 |B4 |\n" +
+                        "------------------------\n" +
+                        " 1 | 1 | 1 | 1 | 1 | 1 |\n" +
+                        " 1 | 1 | 2 | 2 | 2 | 2 |\n" +
+                        " 2 | 2 | 1 | 1 | 1 | 1 |\n" +
+                        " 2 | 2 | 2 | 2 | 2 | 2 |\n" +
+                        " 4 | 4 | 1 | 1 | 1 | 1 |\n" +
+                        " 4 | 4 | 2 | 2 | 2 | 2 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
     private static void assertUnorderedResult(ResultSet rs, String expectedResult) throws Exception {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
@@ -989,5 +1135,26 @@ public class Subquery_Table_IT {
 
     private TestConnection conn() {
         return methodWatcher.getOrCreateConnection();
+    }
+
+
+    private void testOrderOfTables(String sqlText, List<String> orderList) throws Exception {
+        List<String> resultTableList = new ArrayList<>();
+
+        try(ResultSet resultSet = methodWatcher.executeQuery(sqlText)){
+            int i=0;
+            while(resultSet.next()){
+                String resultString = resultSet.getString(1);
+                if (resultString.contains("TableScan")) {
+                    int index = resultString.indexOf('[');
+                    int endIndex = resultString.indexOf('(');
+                    if (index >= 0)
+                        resultTableList.add(resultString.substring(index+1, endIndex));
+                }
+            }
+
+            Assert.assertTrue("Table Join order does not match, expected: " + orderList.toString() + "\nWas: "
+                    + resultTableList.toString(), resultTableList.toString().equals(orderList.toString()));
+        }
     }
 }

@@ -28,6 +28,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOp
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.CountWriteFunction;
@@ -679,6 +680,17 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new NativeSparkDataSet(leftDF, leftContext).join(context, rightDataSet, joinType, isBroadcast);
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet) throws StandardException {
+        Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
+                rdd.map(new LocatedRowToRowFunction()),
+                        context.getOperation().getLeftOperation().getExecRowDefinition().schema());
+        OperationContext<SpliceOperation> leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
+
+        return new NativeSparkDataSet(leftDF, leftContext).crossJoin(context, rightDataSet);
+    }
+
     /**
      * Take a Splice DataSet and  convert to a Spark Dataset
      * doing a map
@@ -883,4 +895,16 @@ public class SparkDataSet<V> implements DataSet<V> {
     public TableSamplerBuilder sample(OperationContext operationContext) throws StandardException {
         return new SparkTableSamplerBuilder(this, operationContext);
     }
+
+    @Override
+    public DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) throws StandardException {
+         if (operationContext.getOperation() != null &&
+             operationContext.getOperation().getExecRowDefinition() != null)
+             return new NativeSparkDataSet(this.rdd, "", operationContext);
+         else
+             return this;
+    }
+
+    @Override
+    public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) { return null; }
 }

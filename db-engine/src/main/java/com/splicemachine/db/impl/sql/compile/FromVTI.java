@@ -279,6 +279,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         tempBitSet.or(correlationMap);
 
 		/* Have all of our dependencies been satisified? */
+        if (existsTable || fromSSQ)
+            return (assignedTableMap.getFirstSetBit()!= -1) && tempBitSet.contains(dependencyMap);
+
         return tempBitSet.contains(dependencyMap);
     }
 

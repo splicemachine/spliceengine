@@ -31,22 +31,22 @@
 
 package com.splicemachine.db.impl.sql.conn;
 
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.property.PersistentSet;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
+import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.iapi.util.StringUtil;
+
 import java.util.List;
-import java.util.Iterator;
 
 public class GenericAuthorizer implements Authorizer {
 	//
@@ -92,6 +92,11 @@ public class GenericAuthorizer implements Authorizer {
 	public void authorize( int operation) throws StandardException
 	{
 		authorize( (Activation) null, operation);
+	}
+
+	@Override
+	public boolean canSeeSchema(Activation activation, String schemaName, String authorizationId) {
+		return true;
 	}
 
 	/**

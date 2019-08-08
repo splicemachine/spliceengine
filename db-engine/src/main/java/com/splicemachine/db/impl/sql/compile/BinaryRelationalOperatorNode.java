@@ -1512,9 +1512,9 @@ public class BinaryRelationalOperatorNode
                         Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
                 selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
                         selectivity : 1.0d - selectivity;
-                if (optTable instanceof FromBaseTable && ((FromBaseTable) optTable).getExistsTable()) {
+                if (optTable instanceof FromTable && ((FromTable) optTable).getExistsTable()) {
                     selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
-                    if (((FromBaseTable) optTable).isAntiJoin()) {
+                    if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
                         selectivity = selectivity /(innerRowCount - innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
                     }
                 }
@@ -1975,6 +1975,7 @@ public class BinaryRelationalOperatorNode
      */
     private boolean valNodeReferencesOptTable(ValueNode valNode,
                                               FromTable optTable,boolean forPush,boolean walkOptTableSubtree){
+        
         // Following call will initialize/reset the btnVis,
         // valNodeBaseTables, and optBaseTables fields of this object.
         initBaseTableVisitor(optTable.getReferencedTableMap().size(),
@@ -1990,6 +1991,15 @@ public class BinaryRelationalOperatorNode
             // or beneath optTable.
             if(walkOptTableSubtree)
                 buildTableNumList(optTable,forPush);
+
+            // If the valNode references a table number in optTable's referencedTableMap,
+            // we know this node references a column from the optTable, no further checking is needed.
+            // For a column referencing the output of a set operation, we may not be able to
+            // trace back the base table from the column reference's source.
+            if (valNode instanceof ColumnReference) {
+                if (valNode.getTableNumber() >= 0 && optBaseTables.get(valNode.getTableNumber()))
+                    return true;
+            }
 
             // Now get the base table numbers that are in valNode's
             // subtree.  In most cases valNode will be a ColumnReference

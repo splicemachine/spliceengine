@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
@@ -177,9 +178,71 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       boolean doesProjection,
                                                       double optimizerEstimatedRowCount,
                                                       double optimizerEstimatedCost,
+                                                      String explainPlan) throws StandardException  {
+        return getProjectRestrictResultSet(source,
+                                           restriction,
+                                           projection,
+                                           resultSetNumber,
+                                           constantRestriction,
+                                           mapRefItem,
+                                           cloneMapItem,
+                                           reuseResult,
+                                           doesProjection,
+                                           optimizerEstimatedRowCount,
+                                           optimizerEstimatedCost,
+                                           explainPlan,
+                                           null,
+                                           null,
+                                           false);
+    }
+    @Override
+    public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
+                                                      GeneratedMethod restriction,
+                                                      GeneratedMethod projection,
+                                                      int resultSetNumber,
+                                                      GeneratedMethod constantRestriction,
+                                                      int mapRefItem,
+                                                      int cloneMapItem,
+                                                      boolean reuseResult,
+                                                      boolean doesProjection,
+                                                      double optimizerEstimatedRowCount,
+                                                      double optimizerEstimatedCost,
                                                       String explainPlan,
                                                       String filterPred,
-                                                      String[] expressions) throws StandardException {
+                                                      String[] expressions) throws StandardException  {
+        return getProjectRestrictResultSet(source,
+                                           restriction,
+                                           projection,
+                                           resultSetNumber,
+                                           constantRestriction,
+                                           mapRefItem,
+                                           cloneMapItem,
+                                           reuseResult,
+                                           doesProjection,
+                                           optimizerEstimatedRowCount,
+                                           optimizerEstimatedCost,
+                                           explainPlan,
+                                           filterPred,
+                                           expressions,
+                                           false);
+    }
+
+    @Override
+    public NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
+                                                      GeneratedMethod restriction,
+                                                      GeneratedMethod projection,
+                                                      int resultSetNumber,
+                                                      GeneratedMethod constantRestriction,
+                                                      int mapRefItem,
+                                                      int cloneMapItem,
+                                                      boolean reuseResult,
+                                                      boolean doesProjection,
+                                                      double optimizerEstimatedRowCount,
+                                                      double optimizerEstimatedCost,
+                                                      String explainPlan,
+                                                      String filterPred,
+                                                      String[] expressions,
+                                                      boolean hasGroupingFunction) throws StandardException {
         assert source!=null:"passed in source is null";
         SpliceLogUtils.trace(LOG, "getProjectRestrictResultSet");
         try{
@@ -193,7 +256,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     filterPred,
-                    expressions);
+                    expressions,
+                    hasGroupingFunction);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -375,13 +439,16 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                        boolean isInSortedOrder, int aggregateItem, int orderItem,
                                                        GeneratedMethod rowAllocator, int maxRowSize, int resultSetNumber,
                                                        double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-                                                       boolean isRollup, int groupingIdColPosition, int groupingIdArrayItem, String explainPlan) throws StandardException {
+                                                       boolean isRollup, int groupingIdColPosition, int groupingIdArrayItem,
+                                                       String explainPlan, int encodedNativeSparkMode) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getGroupedAggregateResultSet");
             ConvertedResultSet below = (ConvertedResultSet)source;
+            CompilerContext.NativeSparkModeType
+            nativeSparkMode = CompilerContext.NativeSparkModeType.values()[encodedNativeSparkMode];
             GroupedAggregateOperation op = new GroupedAggregateOperation(below.getOperation(), isInSortedOrder, aggregateItem, orderItem, source.getActivation(),
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, isRollup, groupingIdColPosition, groupingIdArrayItem);
+                    optimizerEstimatedCost, isRollup, groupingIdColPosition, groupingIdArrayItem, nativeSparkMode);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -400,15 +467,19 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                       boolean singleInputRow,
                                                       double optimizerEstimatedRowCount,
                                                       double optimizerEstimatedCost,
-                                                      String explainPlan) throws StandardException {
+                                                      String explainPlan,
+                                                      int encodedNativeSparkMode) throws StandardException {
         SpliceLogUtils.trace(LOG, "getScalarAggregateResultSet");
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
+            CompilerContext.NativeSparkModeType
+            nativeSparkMode = CompilerContext.NativeSparkModeType.values()[encodedNativeSparkMode];
             ScalarAggregateOperation op = new ScalarAggregateOperation(
                     below.getOperation(), isInSortedOrder, aggregateItem, source.getActivation(),
                     rowAllocator, resultSetNumber, singleInputRow,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,
+                    nativeSparkMode);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -810,10 +881,13 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                               boolean singleInputRow,
                                                               double optimizerEstimatedRowCount,
                                                               double optimizerEstimatedCost,
-                                                              String explainPlan) throws StandardException {
+                                                              String explainPlan,
+                                                              int encodedNativeSparkMode) throws StandardException {
         SpliceLogUtils.trace(LOG, "getDistinctScalarAggregateResultSet");
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
+            CompilerContext.NativeSparkModeType
+            nativeSparkMode = CompilerContext.NativeSparkModeType.values()[encodedNativeSparkMode];
             DistinctScalarAggregateOperation op = new DistinctScalarAggregateOperation(below.getOperation(),
                     isInSortedOrder,
                     aggregateItem,
@@ -823,7 +897,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     resultSetNumber,
                     singleInputRow,
                     optimizerEstimatedRowCount,
-                    optimizerEstimatedCost);
+                    optimizerEstimatedCost,
+                    nativeSparkMode);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -843,14 +918,17 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                                double optimizerEstimatedCost,
                                                                boolean isRollup,
                                                                int groupingIdColPosition, int groupingIdArrayItem,
-                                                               String explainPlan) throws StandardException {
+                                                               String explainPlan,
+                                                               int encodedNativeSparkMode) throws StandardException {
         SpliceLogUtils.trace(LOG, "getDistinctGroupedAggregateResultSet");
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
+            CompilerContext.NativeSparkModeType
+            nativeSparkMode = CompilerContext.NativeSparkModeType.values()[encodedNativeSparkMode];
             DistinctGroupedAggregateOperation op = new DistinctGroupedAggregateOperation (
                     below.getOperation(), isInSortedOrder, aggregateItem, orderItem, source.getActivation(),
                     rowAllocator, maxRowSize, resultSetNumber, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, isRollup, groupingIdColPosition, groupingIdArrayItem);
+                    optimizerEstimatedCost, isRollup, groupingIdColPosition, groupingIdArrayItem, nativeSparkMode);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1026,6 +1104,35 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             throw Exceptions.parseException(e);
         }
     }
+
+    @Override
+    public NoPutResultSet getCrossJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getCrossJoinResultSet");
+        try{
+            ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
+            ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+            JoinOperation op = new CrossJoinOperation(left.getOperation(), leftNumCols,
+                    right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
+                    leftResultSet.getActivation(),
+                    joinClause, resultSetNumber,
+                    oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
 
     @Override
     public NoPutResultSet getMergeSortJoinResultSet(

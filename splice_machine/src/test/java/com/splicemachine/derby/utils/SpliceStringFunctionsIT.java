@@ -28,11 +28,9 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLDataException;
-import java.sql.SQLSyntaxErrorException;
+import java.sql.*;
 
+import static java.lang.String.format;
 import static junit.framework.Assert.assertEquals;
 
 /**
@@ -64,6 +62,20 @@ public class SpliceStringFunctionsIT {
     private static final SpliceTableWatcher tableWatcherD = new SpliceTableWatcher(
     	"D", schemaWatcher.schemaName, "(a varchar(30), b varchar(30), c varchar(30))");
 
+    // Table for CHR testing.
+    private static final SpliceTableWatcher tableWatcherE = new SpliceTableWatcher(
+            "E", schemaWatcher.schemaName, "(a int, b char(1))");
+
+    // Table for DIGITS testing.
+    private static final SpliceTableWatcher tableWatcherF = new SpliceTableWatcher(
+            "F", schemaWatcher.schemaName, "(a int, b char(4))");
+
+    private static final SpliceTableWatcher tableWatcherG = new SpliceTableWatcher(
+            "G", schemaWatcher.schemaName, "(a char(20), b varchar(20))");
+
+    private static final SpliceTableWatcher tableWatcherH = new SpliceTableWatcher(
+            "H", schemaWatcher.schemaName, "(a float(7), b real, c double)");
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -71,6 +83,10 @@ public class SpliceStringFunctionsIT {
             .around(tableWatcherB)
             .around(tableWatcherC)
             .around(tableWatcherD)
+            .around(tableWatcherE)
+            .around(tableWatcherF)
+            .around(tableWatcherG)
+            .around(tableWatcherH)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -188,6 +204,62 @@ public class SpliceStringFunctionsIT {
                         ps.setString(1, "AAA");
                         ps.setString(2, null);
                         ps.setString(3, null);
+                        ps.execute();
+
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherE + " (a, b) values (?, ?)");
+                        ps.setInt(1, 0);
+                        ps.setString(2, "\u0000");
+                        ps.execute();
+
+                        ps.setInt(1, 255);
+                        ps.setString(2, "ÿ");
+                        ps.execute();
+
+                        ps.setInt(1, 256);
+                        ps.setString(2, "\u0000");
+                        ps.execute();
+
+                        ps.setInt(1, 65);
+                        ps.setString(2, "A");
+                        ps.execute();
+
+                        ps.setInt(1, 97);
+                        ps.setString(2, "a");
+                        ps.execute();
+
+                        ps.setInt(1, 321);
+                        ps.setString(2, "A");
+                        ps.execute();
+
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherF+ " (a, b) values (?, ?)");
+                        ps.setInt(1, 1111567890);
+                        ps.setString(2, "1111");
+                        ps.execute();
+
+                        ps.setInt(1, 1234567890);
+                        ps.setString(2, "1234");
+                        ps.execute();
+
+                        ps.setNull(1, 4);
+                        ps.setNull(2, 1);
+                        ps.execute();
+
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherG+ " (a, b) values (?, ?)");
+                        ps.setString(1,"12345678901234567890");
+                        ps.setString(2,"12345678901234567890");
+                        ps.execute();
+                        ps.setString(1,"21345678901234567890");
+                        ps.setString(2,"21345678901234567890");
+                        ps.execute();
+
+                        ps = classWatcher.prepareStatement(
+                                "insert into " + tableWatcherH+ " (a, b, c) values (?, ?, ?)");
+                        ps.setFloat(1,0.123456789f);
+                        ps.setFloat(2,0.123456789f);
+                        ps.setDouble(3,1234567890.0123456789);
                         ps.execute();
 
                     } catch (Exception e) {
@@ -336,4 +408,236 @@ public class SpliceStringFunctionsIT {
             Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_INVALID_FUNCTION_ARGUMENT.startsWith(e.getSQLState()));
         }
     }
+
+    @Test
+    public void testCHR() throws Exception {
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
+
+        rs = methodWatcher.executeQuery("SELECT chr(a), b from " + tableWatcherE);
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell2, sCell1);
+        }
+        rs.close();
+
+        String sqlText = "values chr(67.0)";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "C", rs.getString(1) );
+
+        sqlText = "values chr(null)";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", null, rs.getString(1) );
+    }
+
+    @Test
+    public void testCHRNegative() throws Exception {
+        try {
+            String sqlText = "values chr(1,2)";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals("42Y03" , e.getSQLState());
+        }
+
+        try {
+            String sqlText = "values chr('A')";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLDataException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testDIGITSWithNumberType() throws Exception {
+        String sCell1;
+        String sCell2;
+        ResultSet rs;
+
+        rs = methodWatcher.executeQuery("SELECT substr(digits(a),1,4), b from " + tableWatcherF);
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            Assert.assertEquals("Wrong result value", sCell2, sCell1);
+        }
+        rs.close();
+
+        String sqlText = "values digits(cast(67 as smallint))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "00067", rs.getString(1) );
+        rs.close();
+
+        sqlText = "values length (digits(cast(67 as smallint)))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "5", rs.getString(1) );
+        rs.close();
+
+        sqlText = "values digits(cast(67 as int))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "0000000067", rs.getString(1) );
+        rs.close();
+
+        sqlText = "values digits(cast(67 as bigint))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "0000000000000000067", rs.getString(1) );
+        rs.close();
+
+        sqlText = "values digits(cast(67 as tinyint))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "00067", rs.getString(1) );
+        rs.close();
+
+
+        sqlText = "values digits(cast(-6.28 as decimal(6,2)))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "000628", rs.getString(1) );
+        rs.close();
+
+        /* test null */
+        sqlText = "SELECT digits(a), digits(b) from " + tableWatcherF + " where a is null";
+        rs = methodWatcher.executeQuery(sqlText);
+        String expected = "1  |  2  |\n" +
+                "------------\n" +
+                "NULL |NULL |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        /* test float, real and double */
+        sqlText = "SELECT digits(a), length(digits(a)), digits(b), length(digits(b)), digits(c), length(digits(c)) from " + tableWatcherH;
+        rs = methodWatcher.executeQuery(sqlText);
+        expected = "1            | 2 |           3            | 4 |                          5                          | 6 |\n" +
+                "--------------------------------------------------------------------------------------------------------------------\n" +
+                "00000000000000000123457 |23 |00000000000000000123457 |23 |0000000000000000000000000000000000001234567890012346 |52 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+
+    @Test
+    public void testDIGITSWithCharacterType() throws Exception {
+        String sqlText = "SELECT digits(a), digits(b) from " + tableWatcherG;
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected = "1                |               2                |\n" +
+                "------------------------------------------------------------------\n" +
+                "0000012345678901234567890000000 |0000012345678901234567890000000 |\n" +
+                "0000021345678901234567890000000 |0000021345678901234567890000000 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "SELECT digits(a), digits(b) from " + tableWatcherG + " --splice-properties useSpark=true";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // char type is converted to decimal (31,6), so it can only accommodate 25 digits before the decimal point
+        sqlText = "values digits('1234567890123456789012345678901')";
+        try {
+        rs = methodWatcher.executeQuery(sqlText);
+        } catch (SQLDataException e) {
+            Assert.assertEquals("22003", e.getSQLState());
+        } finally {
+            if (rs != null)
+                rs.close();
+        }
+
+        sqlText = "values digits('1234567890123456789012345.678901')";
+        rs = methodWatcher.executeQuery(sqlText);
+        expected = "1                |\n" +
+                "---------------------------------\n" +
+                "1234567890123456789012345678901 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "values digits('-1234567890123456789012345.678901')";
+        rs = methodWatcher.executeQuery(sqlText);
+        expected = "1                |\n" +
+                "---------------------------------\n" +
+                "1234567890123456789012345678901 |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
+
+    @Test
+    public void testDIGITSNegative() throws Exception {
+        try {
+            String sqlText = "values digits(1,2)";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals("42X01" , e.getSQLState());
+        }
+
+        try {
+            String sqlText = "values digits('A')";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLDataException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testDIGITSWithParameter() throws Exception {
+        try (Connection conn = methodWatcher.getOrCreateConnection()) {
+            /* test string as input parameter */
+            String sqlText = format("select * from %s where digits(?) = (select col1 from (values digits('1234')) dt(col1))", tableWatcherF);
+            String expected = "A     |  B  |\n" +
+                    "------------------\n" +
+                    "1111567890 |1111 |\n" +
+                    "1234567890 |1234 |\n" +
+                    "   NULL    |NULL |";
+            try (PreparedStatement ps = conn.prepareStatement(sqlText)) {
+                ps.setString(1, "1234");
+                ResultSet rs = ps.executeQuery();
+                assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+            }
+
+            /* test integer as input parameter, it will be treated as character also */
+            try (PreparedStatement ps = conn.prepareStatement(sqlText)) {
+                ps.setInt(1, 1234);
+                ResultSet rs = ps.executeQuery();
+                assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+            }
+
+            sqlText = format("select * from %s where digits(cast(? as int)) = (select col1 from (values digits(1234)) dt(col1))", tableWatcherF);
+            try (PreparedStatement ps = conn.prepareStatement(sqlText)) {
+                ps.setInt(1, 1234);
+                ResultSet rs = ps.executeQuery();
+                assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                rs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testCastToFixedLengthCharType() throws Exception {
+        String sqlText = "values '-' || cast('aaa' as CHAR(5)) || '-'";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected = "1    |\n" +
+                "---------\n" +
+                "-aaa  - |";
+
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
 }

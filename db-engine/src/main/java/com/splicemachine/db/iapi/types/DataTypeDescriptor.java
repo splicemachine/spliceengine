@@ -810,8 +810,6 @@ public class DataTypeDescriptor implements Formatable{
             scale=higherType.getScale();
         }
 
-        lowerType.getChildren();
-
         if (higherType != null && higherType.getChildren() == null && lowerType!=null && lowerType.getChildren()!=null) // set children
             higherType.setChildren(lowerType.getChildren());
 
@@ -1605,6 +1603,12 @@ public class DataTypeDescriptor implements Formatable{
     }
 
     public String toSparkString() {
+        if (typeDescriptor.getJDBCTypeId() == Types.NUMERIC) {
+            String typeString = typeDescriptor.getSQLstring();
+            String pattern = "(NUMERIC)";
+            typeString = typeString.replaceFirst(pattern, "DECIMAL");
+            return typeString;
+        }
         return typeDescriptor.getSQLstring();
     }
 

@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.configuration;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -235,7 +236,29 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final int DEFAULT_RECURSIVE_QUERY_ITERATION_LIMIT = 20;
 
     public static final String METADATA_RESTRICTION_ENABLED = "splice.metadataRestrictionEnabled";
-    public static final boolean DEFAULT_METADATA_RESTRICTION_ENABLED = true;
+    public static final String METADATA_RESTRICTION_DISABLED = "DISABLED";
+    public static final String METADATA_RESTRICTION_NATIVE = "NATIVE";
+    public static final String METADATA_RESTRICTION_RANGER = "RANGER";
+    public static final String DEFAULT_METADATA_RESTRICTION_ENABLED = METADATA_RESTRICTION_NATIVE;
+
+    /**
+     * Specify whether aggregation uses unsafe row native spark execution.
+     *
+     * Modes: on, off, forced
+     *
+     * on:  If the child operation produces a native spark data source,
+     *      then use native spark aggregation.
+     * off: Never use native spark aggregation.
+     * forced: If the aggregation may legally use native spark aggregation,
+     *         then use it, even if the underlying child operation uses a
+     *         non-native SparkDataSet.
+     *
+     * Defaults to forced
+     */
+    public static final String NATIVE_SPARK_AGGREGATION_MODE = "splice.execution.nativeSparkAggregationMode";
+    public static final String DEFAULT_NATIVE_SPARK_AGGREGATION_MODE="forced";
+    public static final CompilerContext.NativeSparkModeType DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE=CompilerContext.NativeSparkModeType.FORCED;
+
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -268,7 +291,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.broadcastRegionRowThreshold = configurationSource.getLong(BROADCAST_REGION_ROW_THRESHOLD, DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
         builder.broadcastDatasetCostThreshold = configurationSource.getLong(BROADCAST_DATASET_COST_THRESHOLD, DEFAULT_BROADCAST_DATASET_COST_THRESHOLD);
         builder.recursiveQueryIterationLimit = configurationSource.getInt(RECURSIVE_QUERY_ITERATION_LIMIT, DEFAULT_RECURSIVE_QUERY_ITERATION_LIMIT);
-        builder.metadataRestrictionEnabled = configurationSource.getBoolean(METADATA_RESTRICTION_ENABLED, DEFAULT_METADATA_RESTRICTION_ENABLED);
+        builder.metadataRestrictionEnabled = configurationSource.getString(METADATA_RESTRICTION_ENABLED, DEFAULT_METADATA_RESTRICTION_ENABLED);
 
         //always disable debug statements by default
         builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);
@@ -284,5 +307,18 @@ public class SQLConfiguration implements ConfigurationDefault {
 
         builder.networkBindAddress = configurationSource.getString(NETWORK_BIND_ADDRESS, DEFAULT_NETWORK_BIND_ADDRESS);
         builder.maxCheckTableErrors = configurationSource.getInt(MAX_CHECK_TABLE_ERRORS, DEFAULT_MAX_CHECK_TABLE_ERRORS);
+
+        String nativeSparkAggregationModeString =
+            configurationSource.getString(NATIVE_SPARK_AGGREGATION_MODE,
+                                          DEFAULT_NATIVE_SPARK_AGGREGATION_MODE);
+        nativeSparkAggregationModeString = nativeSparkAggregationModeString.toLowerCase();
+        if (nativeSparkAggregationModeString.equals("on"))
+            builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
+        else if (nativeSparkAggregationModeString.equals("off"))
+            builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
+        else if (nativeSparkAggregationModeString.equals("forced"))
+            builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
+        else
+            builder.nativeSparkAggregationMode = SQLConfiguration.DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE;
     }
 }

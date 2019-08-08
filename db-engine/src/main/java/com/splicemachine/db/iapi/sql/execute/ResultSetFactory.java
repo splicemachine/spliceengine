@@ -346,6 +346,8 @@ public interface ResultSetFactory {
 		                   NativeSparkDataSet, if applicable.
 		@param expressions The projected expressions to select from a source
 		                   NativeSparkDataSet, if applicable.
+	        @param hasGroupingFunction Is true if one of the projections is a
+	                                   grouping function that needs special handling.
 		@return the project restrict operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -362,7 +364,36 @@ public interface ResultSetFactory {
                                                double optimizerEstimatedCost,
                                                String explainPlan,
                                                String filterPred,
+                                               String[] expressions,
+	                                       boolean hasGroupingFunction) throws StandardException;
+
+	// Provide old versions of getProjectRestrictResultSet so an upgrade from 2.7 to 2.8
+	// can handle old versions of this method that were serialized to disk.
+	NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
+                                               GeneratedMethod restriction,
+                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod constantRestriction,
+                                               int mapArrayItem,
+                                               int cloneMapItem,
+                                               boolean reuseResult,
+                                               boolean doesProjection,
+                                               double optimizerEstimatedRowCount,
+                                               double optimizerEstimatedCost,
+                                               String explainPlan,
+                                               String filterPred,
                                                String[] expressions) throws StandardException;
+
+	NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
+                                               GeneratedMethod restriction,
+                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod constantRestriction,
+                                               int mapArrayItem,
+                                               int cloneMapItem,
+                                               boolean reuseResult,
+                                               boolean doesProjection,
+                                               double optimizerEstimatedRowCount,
+                                               double optimizerEstimatedCost,
+                                               String explainPlan) throws StandardException;
 
 	/**
 		A hash table result set builds a hash table on its source,
@@ -471,6 +502,8 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
+	 	@param encodedNativeSparkMode Is native spark processing on, off, or should we
+	                                      use the system setting (from SConfiguration)?
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -485,7 +518,8 @@ public interface ResultSetFactory {
 		boolean singleInputRow,
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
-		String explainPlan) 
+		String explainPlan,
+		int encodedNativeSparkMode)
 			throws StandardException;
 
 	/**
@@ -508,6 +542,8 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
+	 	@param encodedNativeSparkMode Is native spark processing on, off, or should we
+	                                      use the system setting (from SConfiguration)?
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -522,7 +558,8 @@ public interface ResultSetFactory {
 		boolean singleInputRow,
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
-		String explainPlan) 
+		String explainPlan,
+		int encodedNativeSparkMode)
 			throws StandardException;
 
 	/**
@@ -542,9 +579,11 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 		@param isRollup true if this is a GROUP BY ROLLUP()
-	    @param groupingIdColPosition column position of the groupingId column which is only used for rollup
-	    @param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
+		@param groupingIdColPosition column position of the groupingId column which is only used for rollup
+		@param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
 	                               which is only used for rollup
+	 	@param encodedNativeSparkMode Is native spark processing on, off, or should we
+	                                      use the system setting (from SConfiguration)?
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -561,7 +600,8 @@ public interface ResultSetFactory {
 		boolean isRollup,
 		int groupingIdColPosition,
 		int groupingIdArrayItem,
-		String explainPlan) 
+		String explainPlan,
+		int encodedNativeSparkMode)
 			throws StandardException;
 
 	/**
@@ -584,9 +624,11 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 		@param isRollup true if this is a GROUP BY ROLLUP()
-	    @param groupingIdColPosition column position of the groupingId column which is only used for rollup
-	    @param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
+		@param groupingIdColPosition column position of the groupingId column which is only used for rollup
+		@param groupingIdArrayItem entry in preparedStatement's savedObjects for the bit array of groupingId values,
 	                                which is only used for rollup
+	 	@param encodedNativeSparkMode Is native spark processing on, off, or should we
+	                                      use the system setting (from SConfiguration)?
 		@return the scalar aggregation operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
@@ -600,10 +642,11 @@ public interface ResultSetFactory {
 		int resultSetNumber, 
 		double optimizerEstimatedRowCount,
 		double optimizerEstimatedCost,
-        boolean isRollup,
+		boolean isRollup,
 		int groupingIdColPosition,
 		int groupingIdArrayItem,
-        String explainPlan) 
+		String explainPlan,
+		int encodedNativeSparkMode)
 			throws StandardException;
 
 	/**
@@ -1150,6 +1193,23 @@ public interface ResultSetFactory {
 											  int leftNumCols,
 											  NoPutResultSet rightResultSet,
 											  int rightNumCols,
+											  GeneratedMethod joinClause,
+											  int resultSetNumber,
+											  boolean oneRowRightSide,
+											  boolean notExistsRightSide,
+											  boolean rightFromSSQ,
+											  double optimizerEstimatedRowCount,
+											  double optimizerEstimatedCost,
+											  String userSuppliedOptimizerOverrides,
+											  String explainPlan)
+			throws StandardException;
+
+	NoPutResultSet getCrossJoinResultSet(NoPutResultSet leftResultSet,
+											  int leftNumCols,
+											  NoPutResultSet rightResultSet,
+											  int rightNumCols,
+                                              int leftHashKeyItem,
+                                              int rightHashKeyItem,
 											  GeneratedMethod joinClause,
 											  int resultSetNumber,
 											  boolean oneRowRightSide,

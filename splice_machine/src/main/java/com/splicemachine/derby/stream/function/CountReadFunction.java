@@ -25,6 +25,11 @@ public class CountReadFunction extends SpliceFunction {
     }
 
     @Override
+    public boolean hasNativeSparkImplementation() {
+        return true;
+    }
+
+    @Override
     public Object call(Object o) throws Exception {
         operationContext.recordRead();
         return o;

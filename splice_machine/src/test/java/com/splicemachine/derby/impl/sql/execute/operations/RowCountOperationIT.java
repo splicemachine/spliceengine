@@ -179,7 +179,7 @@ public class RowCountOperationIT {
         validateOrdered("" +
                 "avg |\n" +
                 "------\n" +
-                " 18  |", "select avg(distinct a) as \"avg\" from A fetch first row only");
+                " 19  |", "select avg(distinct a) as \"avg\" from A fetch first row only");
     }
 
     @Test
@@ -187,7 +187,7 @@ public class RowCountOperationIT {
         validateOrdered("" +
                 "avg |\n" +
                 "------\n" +
-                " 18  |", "select top 1 avg(distinct a) as \"avg\" from A");
+                " 19  |", "select top 1 avg(distinct a) as \"avg\" from A");
     }
 
     @Test

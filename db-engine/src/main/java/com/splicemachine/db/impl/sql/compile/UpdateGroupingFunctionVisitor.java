@@ -34,6 +34,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
+import java.util.HashMap;
+
 /**
  * Created by yxia on 1/16/19.
  */
@@ -42,11 +44,14 @@ public class UpdateGroupingFunctionVisitor implements Visitor
     private VirtualColumnNode groupingIdVField;
     private GroupByList groupByList;
     private Class     skipOverClass;
+    HashMap<Integer, VirtualColumnNode> groupingIdColumns;
 
-    UpdateGroupingFunctionVisitor(VirtualColumnNode groupingIdVField, GroupByList groupByList, Class skipThisClass) {
+    UpdateGroupingFunctionVisitor(VirtualColumnNode groupingIdVField, GroupByList groupByList,
+                                  HashMap<Integer, VirtualColumnNode> groupingIdColumns, Class skipThisClass) {
         this.groupingIdVField = groupingIdVField;
         this.groupByList = groupByList;
         this.skipOverClass = skipThisClass;
+        this.groupingIdColumns = groupingIdColumns;
     }
 
     @Override
@@ -54,6 +59,7 @@ public class UpdateGroupingFunctionVisitor implements Visitor
         if (node instanceof GroupingFunctionNode) {
             ((GroupingFunctionNode) node).setGroupByColumnPosition(groupByList);
             ((GroupingFunctionNode) node).setGroupingIdRef(groupingIdVField);
+            ((GroupingFunctionNode) node).setGroupingIdRefForSpark(groupingIdColumns.get(((GroupingFunctionNode) node).getGroupByColumnPosition()));
         }
         return node;
     }

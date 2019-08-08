@@ -790,7 +790,7 @@ public class SpliceRegionAdmin {
 
         // return the primary key or index value in ExecRow
         ExecRow dataRow = FileFunction.getRow(read, quotedColumns, null,
-                execRow, null, timeFormat, dateFormat, timestampFormat, null);
+                execRow, null, timeFormat, dateFormat, timestampFormat, null, null, null);
 
         // Encoded row value
         DataHash dataHash = getEncoder(td, index, execRow);
@@ -948,31 +948,27 @@ public class SpliceRegionAdmin {
     private static void waitUntilMergeDone(String r1, String r2, PartitionAdmin admin, String conglomId)
             throws IOException, InterruptedException, StandardException {
 
-        boolean done = false;
-        int wait = 0;
-        int maxWait = 12000;
-        SystemClock clock = new SystemClock();
-        while (!done && wait < maxWait) {
-            done = true;
+        boolean merged = false;
+        long timeout = SIDriver.driver().getConfiguration().getMergeRegionTimeout();
+        long expiration = timeout + System.currentTimeMillis();
+        while (System.currentTimeMillis() < expiration && !merged) {
+            merged = true;
             Iterable<? extends Partition> partitions = admin.allPartitions(conglomId);
             List<Partition> partitionList = Lists.newArrayList(partitions);
 
             // If one of the region is still present, break and wait
             for (Partition p : partitionList) {
                 if (p.getEncodedName().compareTo(r1) == 0 || p.getEncodedName().compareTo(r2) == 0) {
-                    done = false;
+                    merged = false;
                     break;
                 }
             }
-            if (!done) {
-                if (wait % 10 == 0) {
-                    SpliceLogUtils.info(LOG, "waiting for %s and %s to be merged", r1, r2);
-                }
-                clock.sleep(100, TimeUnit.MILLISECONDS);
-                wait++;
+            if (!merged) {
+                Thread.sleep(500);
             }
+
         }
-        if (done) {
+        if (merged) {
             SpliceLogUtils.info(LOG, "merged region %s and %s", r1, r2);
         }
         else {

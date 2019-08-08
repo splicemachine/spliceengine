@@ -20,9 +20,6 @@ import com.splicemachine.pipeline.ErrorState;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
 import org.joda.time.Months;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.spark_project.guava.collect.ImmutableMap;
 
 import java.sql.Date;
@@ -30,8 +27,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.Calendar;
 import java.util.Map;
 
@@ -43,9 +39,6 @@ import java.util.Map;
  * without including the schema prefix in SQL statements.
  */
 public class SpliceDateFunctions {
-    private static final DateTimeFormatter DEFAULT_DATE_TIME_FORMATTER = ISODateTimeFormat.dateOptionalTimeParser();
-    private static final DateTimeFormatter DEFAULT_DATE_FORMATTER = ISODateTimeFormat.localDateParser();
-
     private static final Map<String, Integer> WEEK_DAY_MAP = new ImmutableMap.Builder<String, Integer>()
             .put("sunday", 1).put("monday", 2).put("tuesday", 3).put("wednesday", 4).put("thursday", 5)
             .put("friday", 6).put("saturday", 7).build();
@@ -63,52 +56,34 @@ public class SpliceDateFunctions {
         return TO_TIMESTAMP(source,null);
     }
 
+    public static Timestamp
+    TO_TIMESTAMP(String source, String format, SpliceDateTimeFormatter formatter) throws SQLException {
+        if (source == null) return null;
+        if (formatter == null)
+            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
+        return Timestamp.valueOf(stringWithFormatToLocalDateTime(source, formatter));
+    }
+
     /**
      * Implements the TO_TIMESTAMP(source, pattern) function.
      */
-    public static Timestamp TO_TIMESTAMP(String source, String format) throws SQLException {
+    public static Timestamp
+    TO_TIMESTAMP(String source, String format) throws SQLException {
 
         if (source == null) return null;
-        String microTest = format == null ? null : format.toUpperCase();
-        try {
-            // An indicator of 'z' or 'Z' at the end of the string indicates a time zone is
-            // specified, so matching on uppercase Z handles both.
-            // Test for the only valid ISO8601 prefix that Timestamp.valueOf supports.
-            // Other format strings will be sent directly to the Joda DateTimeFormatter
-            // which will further qualify the string as a valid
-            // timestamp format or throw an exception if it's not valid.
-            if (microTest == null ||
-                (format.startsWith("yyyy-MM-dd HH:mm:ss") &&
-                 !(microTest.endsWith("Z")))) {
-                // If timestamp format does not include time zone,
-                // do not parse using Joda DateTimeFormatter, as it
-                // doesn't convert timestamps in the gap where daylight
-                // savings adjusts the clock ahead.
-                return Timestamp.valueOf(source);
-            }
-        }
-        catch (IllegalArgumentException e) {
-            // If format contains nanoseconds, but is not a valid SQL timestamp format
-            // Do nothing, fall through to below logic which can convert Joda DateTime
-            // to java.sql.Date.
-        }
+        return TO_TIMESTAMP(source, format, (ZoneId) null);
 
-        DateTime dt = stringWithFormatToDateTime(source, format);
+    }
 
-        if (microTest != null && microTest.endsWith("Z"))
-            return new Timestamp(dt.getMillis());
-        else{
-            // Fix for incompatible conversion of Joda time, where a timestamp like
-            // 0100-09-02 00:00:00.0 is read in as 0100-09-02 23:52:58.0
-            // This issue does not affect DateTimes with a timezone.
-            return new Timestamp(dt.getYear() - 1900,
-                          dt.getMonthOfYear() - 1,
-                                 dt.getDayOfMonth(),
-                                 dt.getHourOfDay(),
-                                 dt.getMinuteOfHour(),
-                                 dt.getSecondOfMinute(),
-                           dt.getMillisOfSecond()*1000000);
-        }
+    public static Timestamp
+    TO_TIMESTAMP(String source, String format, ZoneId zoneId) throws SQLException {
+        if (source == null) return null;
+        SpliceDateTimeFormatter formatter =
+          new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
+        if (zoneId != null)
+            formatter.setFormatter(formatter.getFormatter().withZone(zoneId));
+
+        return Timestamp.valueOf(stringWithFormatToLocalDateTime(source, formatter));
     }
 
     /**
@@ -122,7 +97,52 @@ public class SpliceDateFunctions {
      */
     public static Time TO_TIME(String source, String format) throws SQLException {
         if (source == null) return null;
-        return new Time(stringWithFormatToDateTime(source, format).getMillis()) ;
+        return TO_TIME(source, format, (ZoneId) null);
+    }
+
+    public static Time TO_TIME(String source, String format, ZoneId zoneId) throws SQLException {
+        if (source == null) return null;
+        SpliceDateTimeFormatter formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIME);
+        if (zoneId != null)
+            formatter.setFormatter(formatter.getFormatter().withZone(zoneId));
+        if (formatter.isTimeOnlyFormat())
+            return Time.valueOf(stringWithFormatToLocalTime(source, formatter));
+
+        // First, try to parse a DateTime.  If unable to, try to parse a time-only value.
+        // If we succeed with a time-only format, set a flag to avoid the work of attempting to
+        // parse a full timestamp the next time around.
+        try {
+            // Need an extra conversion to Timestamp to handle daylight savings.
+            return Time.valueOf(Timestamp.valueOf(stringWithFormatToLocalDateTime(source, formatter)).
+                                toLocalDateTime().toLocalTime());
+        }
+        catch (Exception e) {
+            formatter.setTimeOnlyFormat(true);
+            Time parsedTime = Time.valueOf(stringWithFormatToLocalTime(source, formatter));
+            return parsedTime;
+        }
+    }
+
+    public static Time TO_TIME(String source, String format, SpliceDateTimeFormatter formatter) throws SQLException {
+        if (source == null) return null;
+        if (formatter == null)
+            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIME);
+        if (formatter.isTimeOnlyFormat())
+            return Time.valueOf(stringWithFormatToLocalTime(source, formatter));
+
+        // First, try to parse a DateTime.  If unable to, try to parse a time-only value.
+        // If we succeed with a time-only format, set a flag to avoid the work of attempting to
+        // parse a full timestamp the next time around.
+        try {
+            // Need an extra conversion to Timestamp to handle daylight savings.
+            return Time.valueOf(Timestamp.valueOf(stringWithFormatToLocalDateTime(source, formatter)).
+                                toLocalDateTime().toLocalTime());
+        }
+        catch (Exception e) {
+            formatter.setTimeOnlyFormat(true);
+            Time parsedTime = Time.valueOf(stringWithFormatToLocalTime(source, formatter));
+            return parsedTime;
+        }
     }
 
     /**
@@ -142,20 +162,45 @@ public class SpliceDateFunctions {
 
     public static Date TO_DATE(String source, String format, ZoneId zoneId) throws SQLException {
         if (source == null) return null;
-        SpliceDateFormatter formatter = new SpliceDateFormatter(format);
+        SpliceDateTimeFormatter formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
         if (zoneId != null)
             formatter.setFormatter(formatter.getFormatter().withZone(zoneId));
-        return stringWithFormatToDate(source, formatter);
+
+        if (formatter.isDateOnlyFormat())
+            return stringWithFormatToDate(source, formatter);
+
+        // First, try to parse a DateTime.  If unable to, try to parse a date-only value.
+        // If we succeed with a parse-only format, set a flag to avoid the work of attempting to
+        // parse a full timestamp the next time around.
+        try {
+            return Date.valueOf(stringWithFormatToLocalDateTime(source, formatter).toLocalDate());
+        }
+        catch (Exception e) {
+            Date parsedDate = stringWithFormatToDate(source, formatter);
+            formatter.setDateOnlyFormat(true);
+            return parsedDate;
+        }
     }
 
-    public static Date TO_DATE(String source, String format, SpliceDateFormatter formatter) throws SQLException {
+    public static Date TO_DATE(String source, String format, SpliceDateTimeFormatter formatter) throws SQLException {
         if (source == null) return null;
         if (formatter == null)
-            formatter = new SpliceDateFormatter(format);
-        return stringWithFormatToDate(source, formatter);
+            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
+
+        // First, try to parse a DateTime.  If unable to, try to parse a date-only value.
+        // If we succeed with a parse-only format, set a flag to avoid the work of attempting to
+        // parse a full timestamp the next time around.
+        try {
+            return Date.valueOf(stringWithFormatToLocalDateTime(source, formatter).toLocalDate());
+        }
+        catch (Exception e) {
+            Date parsedDate = stringWithFormatToDate(source, formatter);
+            formatter.setDateOnlyFormat(true);
+            return parsedDate;
+        }
     }
 
-    public static Date stringWithFormatToDate(String source, SpliceDateFormatter formatter) throws SQLException {
+    public static Date stringWithFormatToDate(String source, SpliceDateTimeFormatter formatter) throws SQLException {
         java.sql.Date sqlDate = null;
 
         try {
@@ -174,26 +219,96 @@ public class SpliceDateFunctions {
         return sqlDate;
     }
 
-    private static DateTime stringWithFormatToDateTime(String source, String format) throws SQLException {
-        DateTimeFormatter parser = DEFAULT_DATE_TIME_FORMATTER;
-        if (format != null) {
-            try {
-                parser = DateTimeFormat.forPattern(format);
-            } catch (Exception e) {
-                throw new SQLException("Error creating a datetime parser for pattern: "+format+". Try using an" +
-                " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+    private static LocalDateTime
+    stringWithFormatToLocalDateTime(String source,
+                                    SpliceDateTimeFormatter formatter) throws SQLException {
+        LocalDateTime dateTime = null;
+        try {
+            if (formatter.hasTimezoneOffset())
+            {
+                ZonedDateTime zonedDateTime =
+                  ZonedDateTime.parse(source, formatter.getFormatter());
+
+                // Add in the displacement between the provided zone offset and
+                // the current zone offset of the computer we're running on and
+                // get the corresponding local timestamp.
+                // The Joda DateTimeFormatter does this automatically.
+                // We're just preserving the same behavior, but
+                // using the standard Java DateTimeFormatter.
+                LocalDateTime localDateTime =
+                  LocalDateTime.ofInstant(zonedDateTime.toInstant(),
+                                          ZoneId.systemDefault());
+                return localDateTime;
+
+            }
+            else {
+                if (formatter.needsTsRemoved())
+                    source = source.replace("T", " " );
+                dateTime = LocalDateTime.parse(source, formatter.getFormatter());
             }
         }
-        DateTime parsed;
-        try {
-            parsed = parser.withOffsetParsed().parseDateTime(source);
-        } catch (Exception e) {
-            throw new SQLException("Error parsing datetime "+source+" with pattern: "+format+". Try using an" +
-            " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+        catch (Exception e) {
+            if (e.getMessage().startsWith("pattern") ||
+                e.getMessage().contains("could not be parsed"))
+                throw new SQLException("Error parsing datetime "+source+" with pattern: "+formatter.getFormat()+". Try using an" +
+                " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+            else {
+                if (formatter.hasTimezoneOffset()) {
+                    // Did we mistakenly flag we have a timezone offset?
+                    try {
+                        return LocalDateTime.parse(source, formatter.getFormatter());
+                    }
+                    catch (Exception ee) {
+                        throw new SQLException(ee.getMessage(), SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+                    }
+                }
+                // For errors not related to parsing, send the original message as it may
+                // contain additional information useful to the end user.
+                throw new SQLException(e.getMessage(), SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+            }
         }
-        return parsed;
+        return dateTime;
     }
 
+    private static LocalTime
+    stringWithFormatToLocalTime(String source,
+                                SpliceDateTimeFormatter formatter) throws SQLException {
+        LocalTime time = null;
+        try {
+
+            if (formatter.hasTimezoneOffset())
+            {
+                ZonedDateTime zonedDateTime =
+                  ZonedDateTime.parse(source, formatter.getFormatter());
+
+                // Add in the displacement between the provided zone offset and
+                // the current zone offset of the computer we're running on and
+                // get the corresponding local timestamp.
+                // The Joda DateTimeFormatter does this automatically.
+                // We're just preserving the same behavior, but
+                // using the standard Java DateTimeFormatter.
+                LocalDateTime localDateTime =
+                  LocalDateTime.ofInstant(zonedDateTime.toInstant(),
+                                          ZoneId.systemDefault());
+                return localDateTime.toLocalTime();
+            }
+            else {
+                if (formatter.needsTsRemoved())
+                    source = source.replace("T", " ");
+                time = LocalTime.parse(source, formatter.getFormatter());
+            }
+        }
+        catch (Exception e) {
+            if (e.getMessage().startsWith("pattern") ||
+                e.getMessage().contains("could not be parsed"))
+                throw new SQLException("Error parsing datetime "+source+" with pattern: "+formatter.getFormat()+". Try using an" +
+                " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd", SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+            else // For errors not related to parsing, send the original message as it may
+                 // contain additional information useful to the end user.
+                throw new SQLException(e.getMessage(), SQLState.LANG_DATE_SYNTAX_EXCEPTION);
+        }
+        return time;
+    }
 
     /**
      * Implements the LAST_DAY function
@@ -273,7 +388,6 @@ public class SpliceDateFunctions {
         } else if ("second".equals(lowerCaseField)) {
             source.setNanos(0);
             return source;
-
         } else if ("minute".equals(lowerCaseField)) {
             DateTime modified = dt.minusSeconds(dt.getSecondOfMinute());
             Timestamp ret = new Timestamp(modified.getMillis());

@@ -475,6 +475,42 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     }
 
+    @Test
+    public void testNoSeparatorDateAndTimeImport() throws Exception {
+        methodWatcher.executeUpdate("delete from " + spliceSchemaWatcher.schemaName + "." + TABLE_12);
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "'MMddyyyy'," +  // date format
+                        "'HHmmss'," +    // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, TABLE_12,
+                getResourceDirectory() + "no_separator_dateAndTime.in", 0,
+                BADDIR.getCanonicalPath()));
+        ps.execute();
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_12));
+        List<String> results = Lists.newArrayList();
+
+        while (rs.next()) {
+            Date d = rs.getDate(1);
+            Time t = rs.getTime(2);
+            assertNotNull("Date is null!", d);
+            assertNotNull("Time is null!", t);
+            results.add(String.format("Date:%s,Time:%s", d, t));
+        }
+        Assert.assertTrue("Incorrect number of rows imported", results.size() == 2);
+
+    }
+
 
     @Test
     public void testImportHelloThere() throws Exception {
@@ -829,6 +865,79 @@ public class HdfsImportIT extends SpliceUnitTest {
             Timestamp order_date = rs.getTimestamp(1);
             assertNotNull("order_date incorrect", order_date);
             Assert.assertEquals(order_date.toString(), "2013-06-06 15:02:48.0");
+            results.add(String.format("order_date:%s", order_date));
+        }
+        Assert.assertTrue("import failed!", results.size() == 1);
+    }
+
+    @Test
+    public void testNoSeparatorDateTime() throws Exception {
+        methodWatcher.executeUpdate("delete from " + spliceTableWatcher9);
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "'%s'," +  // character delimiter
+                        "'yyyyMMdd''T''HH:mm:ss.SSS''Z'''," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",                    // char set
+                spliceSchemaWatcher.schemaName, TABLE_9,
+                getResourceDirectory() + "no_separator_datetimes.csv",
+                "\"",                           0,
+                BADDIR.getCanonicalPath()));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_9));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            Timestamp order_date = rs.getTimestamp(1);
+            assertNotNull("order_date incorrect", order_date);
+            Assert.assertEquals(order_date.toString(), "2013-06-06 15:02:48.0");
+            results.add(String.format("order_date:%s", order_date));
+        }
+        Assert.assertTrue("import failed!", results.size() == 1);
+    }
+
+    @Test
+    public void testDaylightSavingsTimeProblematicDateTime() throws Exception {
+        methodWatcher.executeUpdate("delete from " + spliceTableWatcher9);
+        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // insert column list
+                        "'%s'," +  // file path
+                        "','," +   // column delimiter
+                        "'%s'," +  // character delimiter
+                        "'yyyyMMdd''T''HH:mm:ss.SSSSSS'," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "%d," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "null," +  // has one line records
+                        "null)",                    // char set
+                spliceSchemaWatcher.schemaName, TABLE_9,
+                getResourceDirectory() + "no_separator_datetimes_dst.csv",
+                "\"",                           0,
+                BADDIR.getCanonicalPath()));
+        ps.execute();
+
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", spliceSchemaWatcher.schemaName,
+                TABLE_9));
+        List<String> results = Lists.newArrayList();
+        while (rs.next()) {
+            Timestamp order_date = rs.getTimestamp(1);
+            assertNotNull("order_date incorrect", order_date);
+            // The system may or may not be in a time zone that observes daylight savings.
+            Assert.assertTrue(String.format("Unexpected timestamp value: %s", order_date.toString()),
+                                order_date.toString().equals("2012-03-11 03:05:12.123456") ||
+                                order_date.toString().equals("2012-03-11 02:05:12.123456"));
             results.add(String.format("order_date:%s", order_date));
         }
         Assert.assertTrue("import failed!", results.size() == 1);

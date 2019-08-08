@@ -1561,18 +1561,30 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         return reUse;
     } // end of getDB2Length
 
-	public NumberDataValue isGrouping(DataValueDescriptor value, int position) throws StandardException {
-    	NumberDataValue result = getDataValueFactory().getNullByte(null);
-    	if (value == null || value.isNull()) {
+	public NumberDataValue isGrouping(DataValueDescriptor value,
+					  DataValueDescriptor valueFromSpark,
+					  int position) throws StandardException {
+		NumberDataValue result = getDataValueFactory().getNullByte(null);
+		boolean sparkValueIsNull = (valueFromSpark == null || valueFromSpark.isNull());
+		if ((value == null || value.isNull()) && sparkValueIsNull) {
 			result.setValue(0);
 			return result;
 		}
 
 		// value is expected to be of type SQLBit
-    	byte[] bitArray = value.getBytes();
-    	FormatableBitSet bitSet = new FormatableBitSet(bitArray);
-    	result.setValue(bitSet.get(position)?1:0);
-    	return result;
+		// The bit array is only computed when the spark NativeDataSet
+		// path is not taken, otherwise the value is computed directly
+		// by spark.
+		if (sparkValueIsNull) {
+			byte[] bitArray = value.getBytes();
+			FormatableBitSet bitSet = new FormatableBitSet(bitArray);
+			result.setValue(bitSet.get(position) ? 1 : 0);
+
+		}
+		else
+			result.setValue(valueFromSpark);
+
+		return result;
 	}
 
 	/* Dependable interface implementation */

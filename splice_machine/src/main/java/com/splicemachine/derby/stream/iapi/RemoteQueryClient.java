@@ -30,5 +30,6 @@ public interface RemoteQueryClient extends AutoCloseable {
 
     Iterator<ExecRow> getIterator();
 
-    void waitForCompletion(int time, TimeUnit unit) throws InterruptedException, TimeoutException, ExecutionException;
+    /** Close this client forcefully, terminating any currently running query */
+    void interrupt();
 }

@@ -258,7 +258,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator",
         "splice.spark.kryoserializer.buffer.max=512m",
         "splice.spark.kryoserializer.buffer=4m",
-        "splice.spark.locality.wait=100",
+        "splice.spark.locality.wait=0",
         "splice.spark.memory.fraction=0.5",
         "splice.spark.scheduler.mode=FAIR",
         "splice.spark.serializer=org.apache.spark.serializer.KryoSerializer",

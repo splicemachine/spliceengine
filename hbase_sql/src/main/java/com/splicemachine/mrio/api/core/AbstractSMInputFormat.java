@@ -118,8 +118,13 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                     }
                     // Convert MB to bytes.
                     tableSize *= 1048576;
+                    int splitsPerTableMin = HConfiguration.getConfiguration().getSplitsPerTableMin();
                     if (tableSize < 0)
                         tableSize = 0;
+                    else if ((this.splits == splitsPerTableMin) && (tableSize / HConfiguration.getConfiguration().getSplitBlockSize() > splitsPerTableMin)) {
+                        this.splits = 0;
+                        tableSize = 0;
+                    }
                 }
                 catch (Exception e) {
                     // Don't cause the query to abort if we couldn't get the table size.

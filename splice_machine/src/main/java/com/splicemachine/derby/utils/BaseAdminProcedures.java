@@ -169,7 +169,6 @@ public abstract class BaseAdminProcedures {
         try {
             PreparedStatement ps = connection.prepareStatement(sb.toString());
             result = ps.executeQuery();
-            connection.commit();
         } catch (SQLException e) {
             connection.rollback();
             throw new SQLException(sb.toString(), e);
