@@ -147,10 +147,11 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
 	public DataValueDescriptor getResult() throws StandardException
 	{
         Object  javaReturnValue = _aggregator.terminate();
-
-        if ( javaReturnValue == null ) { return null; }
-
         DataValueDescriptor dvd = _resultType.getNull();
+        if ( javaReturnValue == null ) {
+        	return dvd;
+        }
+
         dvd.setObjectForCast( javaReturnValue, true, javaReturnValue.getClass().getName() );
 
         return dvd;

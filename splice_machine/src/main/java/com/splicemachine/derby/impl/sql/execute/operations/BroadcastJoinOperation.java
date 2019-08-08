@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.client.SpliceClient;
+import com.splicemachine.db.iapi.types.SQLReal;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
@@ -218,8 +219,12 @@ public class BroadcastJoinOperation extends JoinOperation{
             useDataset = false;
 
         DataSet<ExecRow> result;
-        if (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
-                (restriction ==null || (!isOuterJoin && !notExistsRightSide))) {
+        boolean usesNativeSparkDataSet =
+           (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+             (restriction ==null || (!isOuterJoin && !notExistsRightSide && !isOneRowRightSide())) &&
+              !containsUnsafeSQLRealComparison());
+        if (usesNativeSparkDataSet)
+        {
             DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
             if (isOuterJoin)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
@@ -228,12 +233,16 @@ public class BroadcastJoinOperation extends JoinOperation{
 
             else { // Inner Join
                 if (isOneRowRightSide()) {
-                    result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTSEMI,true)
-                            .filter(new JoinRestrictionPredicateFunction(operationContext));
+                    result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTSEMI,true);
                 } else {
-                    result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true)
-                            .filter(new JoinRestrictionPredicateFunction(operationContext));
+                    result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.INNER,true);
 
+                }
+                // Adding a filter in this manner disables native spark execution,
+                // so only do it if required.
+                if (restriction != null) {
+                    result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
+                    usesNativeSparkDataSet = false;
                 }
             }
         }

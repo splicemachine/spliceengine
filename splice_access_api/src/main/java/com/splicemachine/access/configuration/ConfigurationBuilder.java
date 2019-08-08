@@ -15,6 +15,7 @@
 package com.splicemachine.access.configuration;
 
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 
 import java.util.List;
 import java.util.Map;
@@ -77,7 +78,7 @@ public class ConfigurationBuilder {
     public String authorizationScheme;
     public String rangerServiceName;
     public int sentryPollingInterval;
-    public boolean metadataRestrictionEnabled;
+    public String metadataRestrictionEnabled;
 
     // StatsConfiguration
     public double fallbackNullFraction;
@@ -163,6 +164,7 @@ public class ConfigurationBuilder {
     public int rollForwardSecondWait;
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
+    public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
     public int splitsPerTableMin;
 
     // PipelineConfiguration

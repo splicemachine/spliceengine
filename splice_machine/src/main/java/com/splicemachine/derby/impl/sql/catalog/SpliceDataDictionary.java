@@ -19,6 +19,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
@@ -249,6 +250,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View: " + viewName + " in SYSVW is created!");
     }
 
+    private String getSchemaViewSQL() {
+        SConfiguration configuration=SIDriver.driver().getConfiguration();
+        String metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
+        String schemaViewSQL;
+        if (metadataRestrictionEnabled.equals(SQLConfiguration.METADATA_RESTRICTION_NATIVE)) {
+            schemaViewSQL = SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL;
+        } else if (metadataRestrictionEnabled.equals(SQLConfiguration.METADATA_RESTRICTION_RANGER)) {
+            schemaViewSQL = SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_RANGER;
+        } else {
+            schemaViewSQL = SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1;
+        }
+        return schemaViewSQL;
+    }
+
     public void createSystemViews(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSVW schema if it does not exists
@@ -262,10 +277,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createOneSystemView(tc, SYSROLES_CATALOG_NUM, "SYSALLROLES", 0, sysVWSchema, SYSROLESRowFactory.ALLROLES_VIEW_SQL);
 
         // create sysschemasview
-        SConfiguration configuration=SIDriver.driver().getConfiguration();
-        boolean metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
-        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema,
-                (metadataRestrictionEnabled ? SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL:SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1));
+        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema, getSchemaViewSQL());
 
         // create conglomeratesInSchemas view
         createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "SYSCONGLOMERATEINSCHEMAS", 0, sysVWSchema, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
@@ -1345,8 +1357,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public void setMetadataAccessRestrictionEnabled() {
-        metadataAccessRestrictionEnabled = SIDriver.driver().getConfiguration().getMetadataRestrictionEnabled();
-        SpliceLogUtils.trace(LOG,"metadataAccessRestritionEnabled=%b",metadataAccessRestrictionEnabled);
+        String metadataRestriction =
+                SIDriver.driver().getConfiguration().getMetadataRestrictionEnabled();
+        metadataAccessRestrictionEnabled =
+                metadataRestriction.equals(SQLConfiguration.METADATA_RESTRICTION_NATIVE) ||
+                        metadataRestriction.equals(SQLConfiguration.METADATA_RESTRICTION_RANGER);
+        SpliceLogUtils.info(LOG,"metadataAccessRestritionEnabled=%s",metadataRestriction);
     }
 
     @Override
@@ -1356,19 +1372,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         SConfiguration configuration=SIDriver.driver().getConfiguration();
 
-        boolean metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
+        String metadataRestrictionEnabled = configuration.getMetadataRestrictionEnabled();
 
         // check sysschemasview
         TableDescriptor td = getTableDescriptor("SYSSCHEMASVIEW", sysVWSchema, tc);
+        String schemaViewSQL = getSchemaViewSQL();
 
         if (td != null) {
             ViewDescriptor vd = getViewDescriptor(td);
-            boolean existingViewRestrictMetadataAccess = !vd.getViewText().equals(SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1);
+            boolean needUpdate = !vd.getViewText().equals(schemaViewSQL);
 
             // view definition matches the setting, no update needed
-            if (metadataRestrictionEnabled && existingViewRestrictMetadataAccess ||
-                    !metadataRestrictionEnabled && !existingViewRestrictMetadataAccess)
-                return;
+            if (!needUpdate) return;
 
             // drop the view deifnition
             dropAllColumnDescriptors(td.getUUID(), tc);
@@ -1378,14 +1393,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // add new view deifnition
-        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema,
-                (metadataRestrictionEnabled?SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL:
-                        SYSSCHEMASRowFactory.SYSSCHEMASVIEW_VIEW_SQL1));
+        createOneSystemView(tc, SYSSCHEMAS_CATALOG_NUM, "SYSSCHEMASVIEW", 0, sysVWSchema, schemaViewSQL);
 
         // we need to re-generate the metadataSPS due to the definition change of sysschemasview
         updateMetadataSPSes(tc);
 
-        SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + (metadataRestrictionEnabled?"restrict " : "not restrict ") + "schema access!");
+        SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + metadataRestrictionEnabled);
     }
 
     public void createPermissionTableSystemViews(TransactionController tc) throws StandardException {

@@ -15,6 +15,7 @@
 package com.splicemachine.access.configuration;
 
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Field;
@@ -202,7 +203,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final long controlExecutionRowLimit;
     private final int maxCheckTableErrors;
     private final int recursiveQueryIterationLimit;
-    private boolean metadataRestrictionEnabled;
+    private String metadataRestrictionEnabled;
+    private CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -755,7 +757,7 @@ public final class SConfigurationImpl implements SConfiguration {
         return recursiveQueryIterationLimit;
     }
     @Override
-    public boolean getMetadataRestrictionEnabled() {
+    public String getMetadataRestrictionEnabled() {
         return metadataRestrictionEnabled;
     }
 
@@ -1000,7 +1002,7 @@ public final class SConfigurationImpl implements SConfiguration {
         rollForwardFirstThreads = builder.rollForwardFirstThreads;
         rollForwardSecondThreads = builder.rollForwardSecondThreads;
         metadataRestrictionEnabled = builder.metadataRestrictionEnabled;
-
+        nativeSparkAggregationMode = builder.nativeSparkAggregationMode;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
@@ -1107,5 +1109,15 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getMaxCheckTableErrors() {
         return maxCheckTableErrors;
+    }
+
+    @Override
+    public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
+        nativeSparkAggregationMode = newValue;
+    }
+
+    @Override
+    public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode() {
+        return nativeSparkAggregationMode;
     }
 }

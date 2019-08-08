@@ -96,16 +96,16 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
                 .create();
 
         new TableCreator(conn)
-                .withCreate("create table ts_bigint (b bigint, c int)")
-                .withInsert("insert into ts_bigint values(?, ?)")
+                .withCreate("create table ts_bigint (b bigint, c int, d int)")
+                .withInsert("insert into ts_bigint values(?, ?, ?)")
                 .withRows(rows(
-                        row(1000000000000000000L, 1),
-                        row(1000000000000000000L, 1),
-                        row(1000000000000000000L, 1),
-                        row(1000000000000000000L, 1),
-                        row(1000000000000000000L, 1),
-                        row(null, null),
-                        row(null, null)))
+                        row(1000000000000000000L, 1, 1),
+                        row(1000000000000000000L, 1, 2),
+                        row(1000000000000000000L, 1, 3),
+                        row(2000000000000000000L, 1, 4),
+                        row(-1000000000000000000L, 1, 5),
+                        row(null, null, null),
+                        row(null, null, null)))
                 .create();
 
         String sqlText = "insert into ts_bigint select * from ts_bigint";
@@ -359,6 +359,12 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
 
     @Test
     public void testAvg() throws Exception {
+        // Native spark execution is sensitive to precision loss from
+        // differing orders of source rows.  DB-7960 fixes this issue
+        // in Splice, but we have no control over native spark execution,
+        // so skip these tests on Spark for now...
+        if (useSpark)
+            return;
         String sqlText = format("select avg(distinct  b/100) from ts_real --splice-properties useSpark=%s", useSpark);
 
         String expected =
@@ -440,9 +446,9 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         sqlText = format("select avg(b) from ts_bigint --splice-properties useSpark=%s", useSpark);
 
         expected =
-                "1          |\n" +
-                "---------------------\n" +
-                "1000000000000000000 |";
+                "1         |\n" +
+                "--------------------\n" +
+                "800000000000000000 |";
 
         testQuery(sqlText, expected, methodWatcher);
 
@@ -496,13 +502,19 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         expected =
                 "1        |\n" +
                 "------------------\n" +
-                "5000000000000000 |";
+                "5000000000000001 |";
 
         testQuery(sqlText, expected, methodWatcher);
     }
 
     @Test
     public void testSum() throws Exception {
+        // Native spark execution is sensitive to precision loss from
+        // differing orders of source rows.  DB-7960 fixes this issue
+        // in Splice, but we have no control over native spark execution,
+        // so skip these tests on Spark for now...
+        if (useSpark)
+            return;
         String sqlText = format("select sum(distinct  b/100) from ts_real --splice-properties useSpark=%s", useSpark);
 
         String expected =
@@ -588,7 +600,7 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         expected =
                 "1          |\n" +
                 "----------------------\n" +
-                "80000000000000000000 |";
+                "64000000000000000000 |";
 
         testQuery(sqlText, expected, methodWatcher);
 
@@ -869,5 +881,826 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
     }
 
+    @Test
+    public void testNativeSparkJoinsWithMax() throws Exception {
+        String sqlText = format("select max(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
 
+        String expected =
+        "1          |\n" +
+        "---------------------\n" +
+        "4000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select max(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1          |\n" +
+        "---------------------\n" +
+        "1000000000000000000 |\n" +
+        "3000000000000000000 |\n" +
+        "3000000000000000000 |\n" +
+        "3000000000000000000 |\n" +
+        "4000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select max(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1          |\n" +
+        "---------------------\n" +
+        "1000000000000000000 |\n" +
+        "3000000000000000000 |\n" +
+        "3000000000000000000 |\n" +
+        "3000000000000000000 |\n" +
+        "4000000000000000000 |\n" +
+        "4000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select max(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1          |\n" +
+        "----------------------\n" +
+        "-2000000000000000000 |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        " 1000000000000000000 |\n" +
+        " 1000000000000000000 |\n" +
+        " 1000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 4000000000000000000 |\n" +
+        " 4000000000000000000 |\n" +
+        " 4000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testNativeSparkJoinsWithMin() throws Exception {
+        String sqlText = format("select min(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+        "1          |\n" +
+        "----------------------\n" +
+        "-2000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select min(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1          |\n" +
+        "----------------------\n" +
+        "-2000000000000000000 |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        " 1000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select min(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1          |\n" +
+        "----------------------\n" +
+        "-2000000000000000000 |\n" +
+        "-2000000000000000000 |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        " 1000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select min(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1          |\n" +
+        "----------------------\n" +
+        "-2000000000000000000 |\n" +
+        "-2000000000000000000 |\n" +
+        "-2000000000000000000 |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        " 1000000000000000000 |\n" +
+        " 1000000000000000000 |\n" +
+        " 1000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 4000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testNativeSparkJoinsWithSum() throws Exception {
+        String sqlText = format("select sum(a.b+a.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+        "1            |\n" +
+        "-------------------------\n" +
+        "10240000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select sum(a.b+a.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1           |\n" +
+        "------------------------\n" +
+        "2048000000000000000000 |\n" +
+        "2048000000000000000000 |\n" +
+        "2048000000000000000000 |\n" +
+        "2048000000000000000000 |\n" +
+        "2048000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select sum(a.b+a.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1            |\n" +
+        "-------------------------\n" +
+        "10240000000000000000000 |\n" +
+        "2048000000000000000000  |\n" +
+        "2048000000000000000000  |\n" +
+        "2048000000000000000000  |\n" +
+        "2048000000000000000000  |\n" +
+        "2048000000000000000000  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select sum(a.b+a.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1            |\n" +
+        "-------------------------\n" +
+        "-2560000000000000000000 |\n" +
+        "-512000000000000000000  |\n" +
+        "-512000000000000000000  |\n" +
+        "-512000000000000000000  |\n" +
+        "-512000000000000000000  |\n" +
+        "-512000000000000000000  |\n" +
+        "1024000000000000000000  |\n" +
+        "1024000000000000000000  |\n" +
+        "1024000000000000000000  |\n" +
+        "1024000000000000000000  |\n" +
+        "1024000000000000000000  |\n" +
+        "10240000000000000000000 |\n" +
+        "2560000000000000000000  |\n" +
+        "2560000000000000000000  |\n" +
+        "2560000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        " 512000000000000000000  |\n" +
+        "5120000000000000000000  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+
+    @Test
+    public void testNativeSparkJoinsWithSumDistinct() throws Exception {
+        String sqlText = format("select sum(distinct a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+        "1          |\n" +
+        "---------------------\n" +
+        "8000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select sum(distinct a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1          |\n" +
+        "----------------------\n" +
+        "-1000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 8000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select sum(distinct a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1          |\n" +
+        "----------------------\n" +
+        "-1000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 8000000000000000000 |\n" +
+        " 8000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select sum(distinct a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1          |\n" +
+        "----------------------\n" +
+        "-1000000000000000000 |\n" +
+        "-2000000000000000000 |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        "          0          |\n" +
+        " 1000000000000000000 |\n" +
+        " 1000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 2000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 3000000000000000000 |\n" +
+        " 4000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 5000000000000000000 |\n" +
+        " 8000000000000000000 |\n" +
+        " 8000000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+    }
+
+    @Test
+    public void testNativeSparkJoinsWithAvg() throws Exception {
+        String sqlText = format("select avg(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+        "1            |\n" +
+        "--------------------------\n" +
+        "1600000000000000000.0000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select avg(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1            |\n" +
+        "--------------------------\n" +
+        "-200000000000000000.0000 |\n" +
+        "1800000000000000000.0000 |\n" +
+        "1800000000000000000.0000 |\n" +
+        "1800000000000000000.0000 |\n" +
+        "2800000000000000000.0000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select avg(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1            |\n" +
+        "--------------------------\n" +
+        "-200000000000000000.0000 |\n" +
+        "1600000000000000000.0000 |\n" +
+        "1800000000000000000.0000 |\n" +
+        "1800000000000000000.0000 |\n" +
+        "1800000000000000000.0000 |\n" +
+        "2800000000000000000.0000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select avg(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1             |\n" +
+        "---------------------------\n" +
+        "-200000000000000000.0000  |\n" +
+        "-2000000000000000000.0000 |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "1000000000000000000.0000  |\n" +
+        "1000000000000000000.0000  |\n" +
+        "1600000000000000000.0000  |\n" +
+        "1800000000000000000.0000  |\n" +
+        "1800000000000000000.0000  |\n" +
+        "1800000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2800000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "4000000000000000000.0000  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testNativeSparkJoinsWithAvgDistinct() throws Exception {
+        String sqlText = format("select avg(distinct a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+        "1            |\n" +
+        "--------------------------\n" +
+        "1333333333333333333.3333 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select avg(distinct a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1            |\n" +
+        "--------------------------\n" +
+        "-333333333333333333.3333 |\n" +
+        "1666666666666666666.6667 |\n" +
+        "1666666666666666666.6667 |\n" +
+        "1666666666666666666.6667 |\n" +
+        "2666666666666666666.6667 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select avg(distinct a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1            |\n" +
+        "--------------------------\n" +
+        "-333333333333333333.3333 |\n" +
+        "1333333333333333333.3333 |\n" +
+        "1666666666666666666.6667 |\n" +
+        "1666666666666666666.6667 |\n" +
+        "1666666666666666666.6667 |\n" +
+        "2666666666666666666.6667 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select avg(distinct a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1             |\n" +
+        "---------------------------\n" +
+        "-2000000000000000000.0000 |\n" +
+        "-333333333333333333.3333  |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "         0.0000           |\n" +
+        "1000000000000000000.0000  |\n" +
+        "1000000000000000000.0000  |\n" +
+        "1333333333333333333.3333  |\n" +
+        "1666666666666666666.6667  |\n" +
+        "1666666666666666666.6667  |\n" +
+        "1666666666666666666.6667  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2000000000000000000.0000  |\n" +
+        "2666666666666666666.6667  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "3000000000000000000.0000  |\n" +
+        "4000000000000000000.0000  |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testNativeSparkJoinsWithCount() throws Exception {
+        String sqlText = format("select count(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+        "1  |\n" +
+        "------\n" +
+        "6400 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1  |\n" +
+        "------\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1  |\n" +
+        "------\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "6400 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(a.b+b.b) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1  |\n" +
+        "------\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        "6400 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testNativeSparkJoinsWithCountStar() throws Exception {
+        String sqlText = format("select count(*) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+        "1  |\n" +
+        "------\n" +
+        "6400 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1  |\n" +
+        "------\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1  |\n" +
+        "------\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "6400 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(*) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1  |\n" +
+        "------\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        "1280 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        " 256 |\n" +
+        "6400 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testNativeSparkJoinsWithCountDistinct() throws Exception {
+        String sqlText = format("select count(distinct a.b+b.b), count(distinct a.b), count(distinct b.b), count(distinct b.c) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+        "1 | 2 | 3 | 4 |\n" +
+        "----------------\n" +
+        " 6 | 3 | 3 | 1 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(distinct a.b+b.b), count(distinct a.b), count(distinct b.b), count(distinct b.c) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+        "1 | 2 | 3 | 4 |\n" +
+        "----------------\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 3 | 3 | 1 | 1 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(distinct a.b+b.b), count(distinct a.b), count(distinct b.b), count(distinct b.c) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+        "1 | 2 | 3 | 4 |\n" +
+        "----------------\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 3 | 3 | 1 | 1 |\n" +
+        " 6 | 3 | 3 | 1 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select count(distinct a.b+b.b), count(distinct a.b), count(distinct b.b), count(distinct b.c) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+        "1 | 2 | 3 | 4 |\n" +
+        "----------------\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 1 | 1 | 1 | 1 |\n" +
+        " 3 | 1 | 3 | 1 |\n" +
+        " 3 | 1 | 3 | 1 |\n" +
+        " 3 | 1 | 3 | 1 |\n" +
+        " 3 | 1 | 3 | 1 |\n" +
+        " 3 | 1 | 3 | 1 |\n" +
+        " 6 | 3 | 3 | 1 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testNativeSparkJoinsWithStddev_pop() throws Exception {
+        String sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,9)), cast(stddev_pop(a.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.c) as decimal(38,9)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c", useSpark);
+
+        String expected =
+            "1        |       2       |       3       |  4  |\n" +
+            "-------------------------------------------------------\n" +
+            "13856.406460551 |9797.958971133 |9797.958971133 |0E-9 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,9)), cast(stddev_pop(a.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.c) as decimal(38,9)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by b.d", useSpark);
+
+        expected =
+            "1       |       2       |  3  |  4  |\n" +
+            "--------------------------------------------\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |\n" +
+            "9797.958971133 |9797.958971133 |0E-9 |0E-9 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,9)), cast(stddev_pop(a.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.c) as decimal(38,9)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(b.d)", useSpark);
+
+        expected =
+            "1        |       2       |       3       |  4  |\n" +
+            "-------------------------------------------------------\n" +
+            "13856.406460551 |9797.958971133 |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |\n" +
+            "9797.958971133  |9797.958971133 |     0E-9      |0E-9 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select cast(stddev_pop((a.b+b.b)/100000000000000) as decimal(38,9)), cast(stddev_pop(a.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.b/100000000000000) as decimal(38,9)), cast(stddev_pop(b.c) as decimal(38,9)) from ts_bigint a, ts_bigint b --splice-properties useSpark=%s\n" +
+        "where a.c = b.c group by rollup(a.d, b.d)", useSpark);
+
+        expected =
+            "1        |       2       |       3       |  4  |\n" +
+            "-------------------------------------------------------\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "     0E-9       |     0E-9      |     0E-9      |0E-9 |\n" +
+            "13856.406460551 |9797.958971133 |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |\n" +
+            "9797.958971133  |     0E-9      |9797.958971133 |0E-9 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+    //SUM, MAX, MIN, AVG, COUNT, COUNT, STDDEV_POP, COUNT(DISTINCT ), SUM(DISTINCT ), AVG(DISTINCT )
 }

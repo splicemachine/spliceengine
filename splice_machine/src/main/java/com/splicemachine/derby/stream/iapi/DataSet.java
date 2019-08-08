@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.*;
@@ -362,4 +363,8 @@ public interface DataSet<V> extends //Iterable<V>,
     InsertDataSetWriterBuilder insertData(OperationContext operationContext) throws StandardException;
     UpdateDataSetWriterBuilder updateData(OperationContext operationContext) throws StandardException;
     TableSamplerBuilder sample(OperationContext operationContext) throws StandardException;
+
+    DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) throws StandardException;
+
+    DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext);
 }
