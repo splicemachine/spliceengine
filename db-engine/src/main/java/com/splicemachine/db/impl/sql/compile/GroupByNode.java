@@ -110,6 +110,8 @@ public class GroupByNode extends SingleChildResultSetNode{
 
     private GroupByColumn groupingIdColumn;
 
+    private HashMap<Integer, VirtualColumnNode>groupingIdColumns = new HashMap<>();
+
     @Override
     public boolean isParallelizable(){
         return true; //is a grouped aggregate
@@ -826,7 +828,78 @@ public class GroupByNode extends SingleChildResultSetNode{
         }
         return havingRefsToSubstitute;
     }
+    /**
+     * Get the null aggregate result expression
+     * column.
+     *
+     * @return the value node
+     *
+     * @exception StandardException on error
+     */
+    public ValueNode	getNewNullResultExpressionForGroupingID()
+            throws StandardException
+    {
 
+        DataTypeDescriptor type = null;
+        try {
+                type =  new DataTypeDescriptor( TypeId.getBuiltInTypeId( Types.TINYINT), true);
+                return getNullNode(type);
+        }
+        catch (StandardException e) {
+            if (e.getSqlState().compareTo(SQLState.LANG_NONULL_DATATYPE) == 0) {
+               throw StandardException.newException(SQLState.LANG_INVALID_AGGREGATION_DATATYPE,
+                                                      type.getTypeId().getSQLTypeName());
+             }
+             else throw e;
+        }
+    }
+
+    private void addGroupingIdColumnsForNativeSpark() throws StandardException {
+        ResultColumnList bottomRCL = childResult.getResultColumns();
+        ResultColumnList groupByRCL = resultColumns;
+
+        int numElements = groupByRCL.size()-1;
+        for (int i = 0; i < numElements; i++) {
+            String colName = String.format("##UnaggColumn-GroupingId-Col%d", i);
+            GroupByColumn gbn = (GroupByColumn)getNodeFactory().getNode(
+                C_NodeTypes.GROUP_BY_COLUMN,
+                getNewNullResultExpressionForGroupingID(),
+                getContextManager());
+
+            ResultColumn newRC=(ResultColumn)getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                colName,
+                gbn.getColumnExpression(),
+                getContextManager());
+
+            bottomRCL.addElement(newRC);
+            newRC.markGenerated();
+            newRC.bindResultColumnToExpression();
+            newRC.setVirtualColumnId(bottomRCL.size());
+
+            // add result column to the groupbylist
+            ResultColumn gbRC=(ResultColumn)getNodeFactory().getNode(
+                    C_NodeTypes.RESULT_COLUMN,
+                    colName,
+                    gbn.getColumnExpression(),
+                    getContextManager());
+            groupByRCL.addElement(gbRC);
+            gbRC.markGenerated();
+            gbRC.bindResultColumnToExpression();
+            gbRC.setVirtualColumnId(groupByRCL.size());
+
+            gbn.setColumnPosition(bottomRCL.size());
+
+            VirtualColumnNode vc=(VirtualColumnNode)getNodeFactory().getNode(
+                C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                this,
+                gbRC,
+                new Integer(groupByRCL.size()),
+                getContextManager());
+
+            groupingIdColumns.put(numElements - i - 1, vc);
+        }
+    }
     private void addGroupingIdColumnAndUpdateGroupingFunction() throws StandardException {
         ResultColumnList bottomRCL=childResult.getResultColumns();
         ResultColumnList groupByRCL=resultColumns;
@@ -874,13 +947,19 @@ public class GroupByNode extends SingleChildResultSetNode{
                 new Integer(groupByRCL.size()), //sometimes the boxing is needed to make it compile
                 getContextManager());
 
-        //update the GROUPING function in the parent result column if any
-        UpdateGroupingFunctionVisitor updateGroupingFunctionVisitor = new UpdateGroupingFunctionVisitor(vc, groupingList, null);
-        parent.getResultColumns().accept(updateGroupingFunctionVisitor);
-        if (havingClause != null)
-            havingClause.accept(updateGroupingFunctionVisitor);
+        addGroupingIdColumnsForNativeSpark();
+        updateGroupingFunctions(vc);
 
         return;
+    }
+
+    private void updateGroupingFunctions(VirtualColumnNode vc) throws StandardException {
+            //update the GROUPING function in the parent result column if any
+            UpdateGroupingFunctionVisitor updateGroupingFunctionVisitor = new UpdateGroupingFunctionVisitor(vc, groupingList,
+                                                                                       groupingIdColumns, null);
+            parent.getResultColumns().accept(updateGroupingFunctionVisitor);
+            if (havingClause != null)
+                havingClause.accept(updateGroupingFunctionVisitor);
     }
 
     /**
@@ -979,8 +1058,6 @@ public class GroupByNode extends SingleChildResultSetNode{
             for(SubstituteExpressionVisitor refVisistor : referencesToSubstitute)
                 parent.getResultColumns().accept(refVisistor);
         }
-
-
 
         addAggregateColumns();
 
@@ -1216,9 +1293,11 @@ public class GroupByNode extends SingleChildResultSetNode{
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
         mb.push(this.printExplainInformationForActivation());
-
+        CompilerContext.NativeSparkModeType nativeSparkMode;
+        nativeSparkMode = getCompilerContext().getNativeSparkAggregationMode();
+        mb.push(nativeSparkMode.ordinal());
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,resultSet,
-                ClassName.NoPutResultSet,11);
+                ClassName.NoPutResultSet,12);
     }
 
     ///////////////////////////////////////////////////////////////
@@ -1267,9 +1346,12 @@ public class GroupByNode extends SingleChildResultSetNode{
         }
 
         mb.push(printExplainInformationForActivation());
-        
+
+        CompilerContext.NativeSparkModeType nativeSparkMode;
+        nativeSparkMode = getCompilerContext().getNativeSparkAggregationMode();
+        mb.push(nativeSparkMode.ordinal());
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,resultSet,
-                ClassName.NoPutResultSet, 13);
+                ClassName.NoPutResultSet, 14);
     }
 
     /**

@@ -47,11 +47,14 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
+
+import static java.lang.String.format;
 
 /**
  * A ProjectRestrictNode represents a result set for any of the basic DML
@@ -1207,14 +1210,21 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         String [] expressions = new String[numberOfValues];
 
         int i = 0;
+        String tempString;
+        StringBuilder sb = new StringBuilder();
         if (genExpressions) {
             for (ResultColumn rc : resultColumns) {
+                tempString =
                 expressions[i] = OperatorToString.opToSparkString(rc.getExpression());
                 if (expressions[i].isEmpty()) {
                     genExpressions = false;
                     numberOfValues = 0;
                     break;
                 }
+                sb.append(tempString);
+                sb.append(format(" as %s", ValueRow.getNamedColumn(i)));
+                expressions[i] = sb.toString();
+                sb.setLength(0);
                 i++;
             }
         }
@@ -1392,7 +1402,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 		 * Reflection is not needed if all of the columns map directly to source
 		 * columns.
 		 */
-		boolean canUseSparkSQLExpressions = false;
+        boolean canUseSparkSQLExpressions = false;
+        boolean hasGroupingFunction = false;
         if(reflectionNeededForProjection()){
             // for the resultColumns, we generate a userExprFun
             // that creates a new row from expressions against
@@ -1405,6 +1416,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
             /* Generate the Row function for the projection */
             canUseSparkSQLExpressions = resultColumns.generateCore(acb,mb,false);
+            hasGroupingFunction = resultColumns.hasGroupingFunction();
         }else{
             mb.pushNull(ClassName.GeneratedMethod);
         }
@@ -1458,8 +1470,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         mb.push(filterPred);
 
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
-
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,14);
+        mb.push(hasGroupingFunction);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,15);
     }
 
     /**

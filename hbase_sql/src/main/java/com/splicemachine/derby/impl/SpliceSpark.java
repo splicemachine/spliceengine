@@ -308,6 +308,12 @@ public class SpliceSpark {
         conf.set("spark.worker.ui.retainedDrivers", System.getProperty("splice.spark.worker.ui.retainedDrivers", "100"));
         conf.set("spark.ui.retainedJobs", System.getProperty("splice.spark.ui.retainedJobs", "100"));
 
+        /*
+
+           Spark SQL
+
+         */
+        conf.set("spark.sql.retainGroupColumns", "true");
 
         if (LOG.isDebugEnabled()) {
             printConfigProps(conf);

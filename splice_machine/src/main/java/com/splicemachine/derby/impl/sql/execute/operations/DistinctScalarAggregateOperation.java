@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
@@ -68,8 +69,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
                                             int resultSetNumber,
                                             boolean singleInputRow,
                                             double optimizerEstimatedRowCount,
-                                            double optimizerEstimatedCost) throws StandardException {
-        super(source, aggregateItem, source.getActivation(), rowAllocator, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+                                            double optimizerEstimatedCost,
+                                            CompilerContext.NativeSparkModeType nativeSparkMode) throws StandardException {
+        super(source, aggregateItem, source.getActivation(), rowAllocator, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, nativeSparkMode);
         this.orderItem = orderItem;
         init();
     }
@@ -121,6 +123,22 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
 
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> dataSet = source.getDataSet(dsp);
+        DataSet<ExecRow> dataSetWithNativeSparkAggregation = null;
+
+        if (nativeSparkForced())
+            dataSet = dataSet.upgradeToSparkNativeDataSet(operationContext);
+
+        // If the aggregation can be applied using native Spark UnsafeRow, then do so
+        // and return immediately.  Otherwise, use traditional Splice lower-level
+        // functional APIs.
+        if (nativeSparkEnabled())
+            dataSetWithNativeSparkAggregation =
+                dataSet.applyNativeSparkAggregation(null, aggregates,
+                                                    false, operationContext);
+        if (dataSetWithNativeSparkAggregation != null) {
+            nativeSparkUsed = true;
+            return dataSetWithNativeSparkAggregation;
+        }
 
         int numDistinctAggs = 0;
         for (SpliceGenericAggregator aggregator : aggregates) {

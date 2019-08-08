@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -55,7 +56,8 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 	 *	 	output row 
 	 * @param	maxRowSize		approx row size, passed to sorter
 	 * @param	resultSetNumber	The resultSetNumber for this result set
-	 *
+	 * @param 	nativeSparkMode Is native spark processing on, off, or should we
+	 *                              use the system setting (from SConfiguration)?
 	 * @exception StandardException Thrown on error
 	 */
     public DistinctGroupedAggregateOperation(SpliceOperation s,
@@ -70,9 +72,11 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 					double optimizerEstimatedCost,
 					boolean isRollup,
 					int groupingIdColPosition,
-					int groupingIdArrayItem) throws StandardException {
+					int groupingIdArrayItem,
+					CompilerContext.NativeSparkModeType nativeSparkMode) throws StandardException {
+
 		super(s, isInSortedOrder, aggregateItem, orderingItem,a, ra, maxRowSize, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup,
-				groupingIdColPosition, groupingIdArrayItem);
+				groupingIdColPosition, groupingIdArrayItem, nativeSparkMode);
 		SpliceLogUtils.trace(LOG, "instance");
     }
 }

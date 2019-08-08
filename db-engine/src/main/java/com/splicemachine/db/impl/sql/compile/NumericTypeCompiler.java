@@ -192,6 +192,29 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		}
 	}
 
+	private boolean integralType(TypeId typeId) {
+		switch (typeId.getJDBCTypeId()) {
+			case java.sql.Types.TINYINT:
+			case java.sql.Types.SMALLINT:
+			case java.sql.Types.INTEGER:
+			case java.sql.Types.BIGINT:
+				return true;
+			default:
+				break;
+		}
+		return false;
+	}
+
+	private boolean
+	shouldCastToDecimal(TypeId leftTypeId, TypeId rightTypeId, String operator) {
+		if (!operator.equals(DIVIDE_OP))
+			return true;
+		if (integralType(leftTypeId) && integralType(rightTypeId))
+			return false;
+
+		return true;
+	}
+
 	/**
 	 * @see TypeCompiler#resolveArithmeticOperation
 	 *
@@ -325,7 +348,9 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 				precision = typeId.getMaximumPrecision();
 				scale = typeId.getMaximumScale();
 			}
-			else if (typeId.isBigIntTypeId()) {
+			else if (typeId.isBigIntTypeId() &&
+			         shouldCastToDecimal(leftTypeId, rightTypeId, operator))
+			{
 				typeId = TypeId.getBuiltInTypeId(Types.DECIMAL);
 				// Leave room for 4 digits right of the decimal place when averaging.
 				// For the old client, use the old size of 31 for consistent behavior.

@@ -260,17 +260,21 @@ public class SpliceGenericAggregator implements Serializable{
 				aggInstance = (ExecAggregator)agg;
 				DataTypeDescriptor dtd = aggInfo.getResultDescription().getColumnInfo()[ 0 ].getType();
 
-				// BIGINT aggregation writes the final result to a data type of DEC(31,1), but it is
-                // faster to aggregate longs until we overflow, so do not use the result data type
-                // to determine the data type of the running SUM for this case.
-                if (typeFormatId == SQL_LONGINT_ID)
-                    dtd = getBuiltInDataTypeDescriptor (Types.BIGINT, true);
-				aggInstance= aggInstance.setup(
-                        cf,
-                        aggInfo.getAggregateName(),
-                        dtd
-                );
-					cachedAggregator = aggInstance;
+                                // BIGINT aggregation writes the final result to a data type of DEC(31,1), but it is
+                                // faster to aggregate longs until we overflow, so do not use the result data type
+                                // to determine the data type of the running SUM for this case.
+                                // Do not use this optimization for AVG to make results on control
+                                // consistent with native spark execution, since decimal division
+                                // uses ROUND_HALF_UP while dividing a long rounds down.
+                                if (typeFormatId == SQL_LONGINT_ID &&
+                                    !aggInfo.getAggregateName().equals("AVG"))
+                                    dtd = getBuiltInDataTypeDescriptor (Types.BIGINT, true);
+                                aggInstance= aggInstance.setup(
+                                        cf,
+                                        aggInfo.getAggregateName(),
+                                        dtd
+                                );
+                                cachedAggregator = aggInstance;
 			}catch(Exception e){
 				throw StandardException.unexpectedUserException(e);
 			}
