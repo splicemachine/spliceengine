@@ -29,4 +29,7 @@ public class CountProducedFunction extends SpliceFunction {
         operationContext.recordProduced();
         return o;
     }
+
+    @Override
+    public boolean hasNativeSparkImplementation() { return true; }
 }

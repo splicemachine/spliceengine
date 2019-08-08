@@ -36,9 +36,7 @@ public class SpliceStddevPop<K extends Double> extends SpliceUDAVariance<K>
     @Override
     public K terminate() {
        if (result == null) {
-           if (count == 0) {
-               result = new Double(0);
-           } else {
+           if (count != 0) {
                result = new Double(Math.sqrt(variance/count));
            }
         }

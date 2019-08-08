@@ -28,6 +28,11 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
+            <artifactId>db-engine</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
             <artifactId>splice_encoding</artifactId>
             <version>3.1.0.1925-SNAPSHOT</version>
         </dependency>

@@ -25,12 +25,11 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
@@ -56,15 +55,13 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.*;
+import static org.apache.spark.sql.functions.*;
+
+import org.apache.spark.sql.types.*;
 import org.apache.spark.storage.StorageLevel;
+import scala.collection.JavaConversions;
+import scala.collection.mutable.Buffer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -107,6 +104,20 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         this.context = context;
     }
 
+    public NativeSparkDataSet(Dataset<Row> dataset, OperationContext context,
+                              boolean assignNewColumnNames) {
+        if (assignNewColumnNames) {
+            int cols = dataset.columns().length;
+            String[] colNames = new String[cols];
+            for (int i = 0; i < cols; i++) {
+                colNames[i] = "c" + i;
+            }
+            this.dataset = dataset.toDF(colNames);
+        }
+        else
+            this.dataset = dataset;
+        this.context = context;
+    }
 
     public NativeSparkDataSet(Dataset<Row> dataset, ExecRow execRow) {
         this(dataset);
@@ -118,7 +129,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     public NativeSparkDataSet(JavaRDD<V> rdd, String ignored, OperationContext context) {
-        this(NativeSparkDataSet.<V>toSparkRow(rdd, context));
+        this(NativeSparkDataSet.<V>toSparkRow(rdd, context), context);
         try {
             this.execRow = context.getOperation().getExecRowDefinition();
         } catch (Exception e) {
@@ -283,11 +294,31 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return map(function, null, isLast, false, null);
     }
 
+    public static boolean needsNonDerbyProcessingForGroupingFunction (OperationContext operationContext) {
+        SpliceOperation op = operationContext.getOperation();
+        if (op instanceof ProjectRestrictOperation) {
+            ProjectRestrictOperation pr = (ProjectRestrictOperation) op;
+            if (pr.hasGroupingFunction()){
+                SpliceOperation childOp = pr.getSource();
+                while (childOp instanceof WindowOperation ||
+                       childOp instanceof ProjectRestrictOperation) {
+                    if (childOp instanceof WindowOperation)
+                        childOp = ((WindowOperation) childOp).getSource();
+                    if (childOp instanceof ProjectRestrictOperation)
+                        childOp = ((ProjectRestrictOperation) childOp).getSource();
+                }
+                if (childOp instanceof GenericAggregateOperation)
+                    return !((GenericAggregateOperation) childOp).nativeSparkUsed();
+            }
+        }
+        return false;
+    }
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> f, String name, boolean isLast, boolean pushScope, String scopeDetail) throws StandardException {
         OperationContext<Op> context = f.operationContext;
-        if (f.hasNativeSparkImplementation()) {
+        if (f.hasNativeSparkImplementation() &&
+            !needsNonDerbyProcessingForGroupingFunction(f.operationContext)) {
             Pair<Dataset<Row>, OperationContext> pair = f.nativeTransformation(dataset, context);
             OperationContext c = pair.getSecond() == null ? this.context : pair.getSecond();
             return new NativeSparkDataSet<>(pair.getFirst(), c);
@@ -301,7 +332,18 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             @Nullable
             @Override
             public V apply(@Nullable Row input) {
-                ValueRow vr = new ValueRow(input.size());
+                ValueRow vr;
+                try {
+                    if (context != null &&
+                        context.getOperation().getExecRowDefinition()
+                                                  instanceof ValueRow)
+                        vr = (ValueRow) context.getOperation().getExecRowDefinition().getClone();
+                    else
+                        vr = new ValueRow(input.size());
+                }
+                catch (StandardException se) {
+                    vr = new ValueRow(input.size());
+                }
                 vr.fromSparkRow(input);
                 return (V) vr;
             }
@@ -778,6 +820,74 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return (plan != null && !plan.isEmpty() ? plan : f.getSparkName());
     }
 
+    public static boolean joinProjectsOnlyLeftTableColumns(JoinType joinType) {
+        return (joinType == DataSet.JoinType.LEFTANTI ||
+                joinType == DataSet.JoinType.LEFTSEMI);
+    }
+
+    private static boolean
+    leftDFOfJoinProjectsFewerColumnsThanDefined(JoinOperation op,
+                                                JoinType      joinType,
+                                                Dataset<Row>  leftDF) {
+        return !joinProjectsOnlyLeftTableColumns(joinType) &&
+               !op.wasRightOuterJoin &&
+                op.getLeftRow().nColumns() > leftDF.schema().length();
+    }
+
+    // If the left DataSet defines more columns than the left DataFrame,
+    // the column names will be off.  Let's fill the gaps to match the
+    // ExecRowDefinition.
+    private Dataset<Row> fixupColumnNames(JoinOperation op, JoinType joinType,
+                                          Dataset<Row> leftDF, Dataset<Row> rightDF,
+                                          Dataset<Row> joinedDF) {
+        boolean needsFixup =
+                leftDFOfJoinProjectsFewerColumnsThanDefined(op, joinType, leftDF);
+        if (!needsFixup)
+            return joinedDF;
+
+        int adjColNo = op.getLeftRow().nColumns();
+        int baseColNo = leftDF.schema().length();
+
+        // Now add another select expression so that the named columns are
+        // in the correct column positions.
+        StringBuilder expression = new StringBuilder();
+        String[] expressions = new String[op.getLeftRow().nColumns() + rightDF.schema().length()];
+        for (int i = 0; i < leftDF.schema().length(); i++) {
+            String fieldName = ValueRow.getNamedColumn(i);
+            expression.setLength(0);
+            expression.append(fieldName);
+            expressions[i] = expression.toString();
+        }
+        for (int i = leftDF.schema().length(); i < op.getLeftRow().nColumns(); i++) {
+            String fieldName = ValueRow.getNamedColumn(i);
+            DataType dataType;
+            try {
+                dataType =
+                    op.getLeftRow().getColumn(i + 1).getStructField(fieldName).dataType();
+            }
+            catch (StandardException e) {
+                throw new RuntimeException(e);
+            }
+            expression.setLength(0);
+            expression.append("CAST(null as ");
+            expression.append(dataType.typeName());
+            expression.append(")");
+            expressions[i] = expression.toString();
+        }
+
+         for (int i = 0; i < rightDF.schema().length(); i++) {
+            String fieldName = ValueRow.getNamedColumn(i + baseColNo);
+            expression.setLength(0);
+            expression.append(fieldName);
+            expression.append(" as ");
+            expression.append(ValueRow.getNamedColumn(i + adjColNo));
+            expressions[i + adjColNo] = expression.toString();
+        }
+        joinedDF = joinedDF.selectExpr(expressions);
+
+        return joinedDF;
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) {
@@ -807,10 +917,19 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             DataSet joinedSet;
 
-            if (op.wasRightOuterJoin)
-                joinedSet =  new NativeSparkDataSet(rightDF.join(leftDF,expr,joinType.RIGHTOUTER.strategy()), context);
-            else
-                joinedSet =  new NativeSparkDataSet(leftDF.join(rightDF,expr,joinType.strategy()), context);
+            if (op.wasRightOuterJoin) {
+                NativeSparkDataSet nds =
+                  new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()), context);
+                joinedSet = nds;
+                nds.dataset = fixupColumnNames(op, joinType, rightDF, leftDF, nds.dataset);
+            }
+            else {
+                NativeSparkDataSet nds =
+                  new NativeSparkDataSet(leftDF.join(rightDF, expr, joinType.strategy()), context);
+                joinedSet = nds;
+                nds.dataset = fixupColumnNames(op, joinType, leftDF, rightDF, nds.dataset);
+            }
+
             return joinedSet;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -842,11 +961,16 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     expr = i != 0 ? expr.and(joinEquality) : joinEquality;
                 }
             }
-            Dataset<Row> joinedSet = leftDF.crossJoin(rightDF);
+            Dataset<Row> joinedDF = leftDF.crossJoin(rightDF);
             if (expr != null) {
-                joinedSet = joinedSet.filter(expr);
+                joinedDF = joinedDF.filter(expr);
             }
-            return new NativeSparkDataSet(joinedSet, context);
+            DataSet joinedSet = new NativeSparkDataSet(joinedDF, context);
+            NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;
+            nds.dataset = fixupColumnNames((JoinOperation) context.getOperation(),
+                                           DataSet.JoinType.INNER, leftDF, rightDF, nds.dataset);
+            return joinedSet;
+
         }  catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1115,4 +1239,229 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return new SparkTableSamplerBuilder(this, this.context);
     }
 
+    @Override
+    public DataSet upgradeToSparkNativeDataSet(OperationContext operationContext) {
+         return this;
+    }
+
+
+    /**
+     * This function takes the current source NativeSparkDataSet ("this")
+     * and builds a new NativeSparkDataSet with aggregate functions applied.
+     *
+     * The aggregations described in the aggregates array are applied to the
+     * DataFrame contained in this NativeSparkDataSet (this.dataset) using
+     * the RelationalGroupedDataset agg method (for grouped aggregations), or
+     * the Dataset agg method (for non-grouped aggregations).
+     *
+     * @param isRollup, if true, causes a ROLLUP to be done.  Otherwise,
+     *                  GROUP BY is done.
+     * @param groupByColumns is an array of zero-based GROUP BY columns.
+     *                       If null, or having zero length, no
+     *                       grouping is done before aggregation.
+     * @param aggregates is an array describing the aggregate functions to compute
+     *                   and return as columns in the output row.
+     * @param operationContext
+     * @return A new SparkNativeDataSet containing a DataFrame with
+     *         aggregations applied.  The consumer expects null columns were used
+     *         as placeholders for splice aggregators, so new column names that pack
+     *         column names consecutively (e.g. c0,c1,c2,c3...) will not be done.
+     *         Instead the target column ids defined in aggregates will be used,
+     *         (e.g.  c3, c6, c9 ...).  The null placeholder columns are stripped
+     *         out of the input Dataset (in case there is some performance advantage).
+     *         Columns present in the ExecRow definition, but absent from the select
+     *         list, are added as null values to the result dataset.
+     *         A return value of null means a NativeSparkDataSet could not be generated for
+     *         the aggregations described in the aggregates array and traditional
+     *         Splice low-level functions should be used.
+     */
+    @Override
+    public DataSet applyNativeSparkAggregation(int[] groupByColumns, SpliceGenericAggregator[] aggregates, boolean isRollup, OperationContext operationContext) {
+        context.pushScopeForOp(OperationContext.Scope.AGGREGATE);
+        try {
+            RelationalGroupedDataset rgd = null;
+            String groupingColumn1;
+            final boolean noGroupingColumns =
+                  groupByColumns == null || groupByColumns.length == 0;
+            if (!noGroupingColumns) {
+                groupingColumn1 = ValueRow.getNamedColumn(groupByColumns[0]);
+                String[] groupingColumns2ToN = new String[groupByColumns.length - 1];
+                for (int i = 0; i < groupingColumns2ToN.length; i++)
+                    groupingColumns2ToN[i] = ValueRow.getNamedColumn(groupByColumns[i + 1]);
+                if (isRollup) {
+                    rgd = dataset.rollup(groupingColumn1, groupingColumns2ToN);
+                }
+                else
+                    rgd = dataset.groupBy(groupingColumn1, groupingColumns2ToN);
+            }
+            ExecRow rowDef = operationContext.getOperation().getExecRowDefinition();
+            Column aggregateColumn1 = null;
+            int arrayLength = isRollup ? aggregates.length + groupByColumns.length - 1 :
+                              aggregates.length - 1;
+            if (arrayLength < 0)
+                arrayLength = 0;
+            Column [] aggregateColumns2ToN = new Column [arrayLength];
+            HashSet<String> inputColumns = new HashSet<>();
+            Column column = null;
+            for (int i = 0; i < aggregates.length; i++) {
+
+                String sourceColName =
+                    ValueRow.getNamedColumn(aggregates[i].getInputColumnId() - 1);
+                String targetColName =
+                    ValueRow.getNamedColumn(aggregates[i].getResultColumnId() - 1);
+                DataType targetDataType = operationContext.getOperation().getExecRowDefinition().
+                           getColumn(aggregates[i].getResultColumnId()).getStructField(targetColName).dataType();
+                String [] arrOfStr = aggregates[i].getAggregatorInfo().getAggregateName().split("[.]");
+                String aggName = arrOfStr[arrOfStr.length-1];
+                Column sourceColumn = col(sourceColName);
+
+                switch (aggName) {
+                    case "SUM":
+                        column = aggregates[i].isDistinct() ?
+                                  sumDistinct(sourceColumn) :
+                                  sum(sourceColumn);
+                        column = column.cast(targetDataType);
+                        inputColumns.add(sourceColName);
+                        break;
+                    case "MAX":
+                        column = max(sourceColumn);
+                        inputColumns.add(sourceColName);
+                        break;
+                    case "MIN":
+                        column = min(sourceColumn);
+                        inputColumns.add(sourceColName);
+                        break;
+                    case "AVG":
+                        inputColumns.add(sourceColName);
+                        // Splice already bumps the scale up by 4 for AVG,
+                        // Spark does the same as well in class Average.
+                        // The redundant scale adjustment causes overflows,
+                        // which manifest as nulls in Spark.  If we attempt to
+                        // remove the redundant scale adjustment by applying a CAST,
+                        // we get truncated digits (e.g. 4 trailing zeroes in the
+                        // rightmost positions to the right of the decimal place).
+                        // To make results from the control path match results from
+                        // the Spark path we evaluate avg as sum/count.
+
+                        if (aggregates[i].isDistinct()) {
+                            Column dividend = sumDistinct(sourceColumn);
+                            Column divisor  = countDistinct(sourceColumn);
+                            column = dividend.divide(divisor).cast(targetDataType);
+                        }
+                        else {
+                            Column dividend = sum(sourceColumn);
+                            Column divisor  = org.apache.spark.sql.functions.count(sourceColumn);
+                            column = dividend.divide(divisor).cast(targetDataType);
+                        }
+                        break;
+                    case "COUNT":
+                        column = aggregates[i].isDistinct() ?
+                                  countDistinct(sourceColumn) :
+                                  org.apache.spark.sql.functions.count(sourceColumn);
+                        column = column.cast(targetDataType);
+                        inputColumns.add(sourceColName);
+                        break;
+                    case "COUNT(*)":
+                        // There is no COUNT(DISTINCT *) in the grammar.
+                        if (aggregates[i].isDistinct())
+                            return null;
+
+                        column = org.apache.spark.sql.functions.count(new Column("*"));
+                        column = column.cast(targetDataType);
+                        break;
+                    case "SpliceStddevPop":
+                        column = stddev_pop(sourceColName);
+                        column = column.cast(targetDataType);
+                        // Distinct not currently supported.  See SPLICE-1820.
+                        if (aggregates[i].isDistinct())
+                            return null;
+                        inputColumns.add(sourceColName);
+                        break;
+                    case "SpliceStddevSamp":
+                        column = stddev_samp(sourceColName);
+                        column = column.cast(targetDataType);
+                        // Distinct not currently supported.  See SPLICE-1820.
+                        if (aggregates[i].isDistinct())
+                            return null;
+
+                        // stddev_samp may return NaN when the count is 1, so
+                        // return null directly when the count is 1 or less.
+                        // See SPARK-13860.
+                        column = when(column.isNaN(),null).otherwise(column);
+                        inputColumns.add(sourceColName);
+                        break;
+                    default:
+                        return null;
+                }
+                column = column.as(targetColName);
+                if (i == 0)
+                    aggregateColumn1 = column;
+                else
+                    aggregateColumns2ToN[i-1] = column;
+            }
+
+            Dataset<Row> newDS;
+            // Prune out unused columns.
+            for (String colname:dataset.columns()) {
+                if (!inputColumns.contains(colname))
+                    dataset = dataset.drop(colname);
+            }
+            if (noGroupingColumns) {
+                newDS = dataset.agg(aggregateColumn1, aggregateColumns2ToN);
+            }
+            else {
+                if (isRollup) {
+                    for (int i = 0; i < groupByColumns.length; i++) {
+                        column = grouping(col(ValueRow.getNamedColumn(groupByColumns[i])));
+                        column = column.as(ValueRow.getNamedColumn(groupByColumns.length+i+1));
+                        if (aggregates.length == 0 && i == 0)
+                            aggregateColumn1 = column;
+                        else
+                            aggregateColumns2ToN[aggregates.length + i - 1] = column;
+                    }
+                }
+                if (isRollup || aggregates.length > 0)
+                    newDS = rgd.agg(aggregateColumn1, aggregateColumns2ToN);
+                else
+                    return null;
+            }
+
+            // Add in any missing columns as nulls, since copying of column
+            // values from the spark row in ValueRow.fromSparkRow() is done by
+            // column position, not column name, the Dataset schema must
+            // match the ExecRow definition in case the parent operation
+            // does not use native spark execution.
+            for (int i=0; i < rowDef.nColumns(); i++) {
+                String fieldName =  ValueRow.getNamedColumn(i);
+
+                try {
+                    int fieldIndex = newDS.schema().fieldIndex(fieldName);
+                }
+                catch (IllegalArgumentException e) {
+                    DataType dataType =
+                        rowDef.getColumn(i+1).getStructField(fieldName).dataType();
+                    Column newCol = lit(null).cast(dataType);
+                    newDS = newDS.withColumn(fieldName, newCol);
+                }
+            }
+            // Now add another select expression so that the named columns are
+            // in the correct column positions.
+            StringBuilder expression = new StringBuilder();
+            String [] expressions = new String[rowDef.nColumns()];
+            for (int i=0; i < rowDef.nColumns(); i++) {
+                String fieldName = ValueRow.getNamedColumn(i);
+                expressions[i] = fieldName;
+                expression.append(fieldName);
+                if (i != rowDef.nColumns())
+                    expression.append(", ");
+            }
+            newDS = newDS.selectExpr(expressions);
+            return new NativeSparkDataSet(newDS, this.context, false);
+
+        } catch (Exception e){
+            throw new RuntimeException(e);
+        }finally {
+            context.popScope();
+        }
+    }
 }

@@ -299,6 +299,11 @@ class SpliceTestPlatformConfig {
         // config.set("splice.authorization.scheme", "RANGER");
         // config.set("splice.metadataRestrictionEnabled", "RANGER");
 
+        // Get more test coverage of the broadcast join Dataset path, as this is the
+        // future of splice OLAP query execution.
+        config.setLong("splice.optimizer.broadcastDatasetCostThreshold", -1);
+
+
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing
             config.setBoolean("splice.ignore.missing.transactions", true);

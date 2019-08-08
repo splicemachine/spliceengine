@@ -1603,6 +1603,12 @@ public class DataTypeDescriptor implements Formatable{
     }
 
     public String toSparkString() {
+        if (typeDescriptor.getJDBCTypeId() == Types.NUMERIC) {
+            String typeString = typeDescriptor.getSQLstring();
+            String pattern = "(NUMERIC)";
+            typeString = typeString.replaceFirst(pattern, "DECIMAL");
+            return typeString;
+        }
         return typeDescriptor.getSQLstring();
     }
 

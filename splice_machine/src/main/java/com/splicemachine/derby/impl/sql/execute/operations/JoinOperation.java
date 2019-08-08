@@ -314,7 +314,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 								.toString();
 		}
 
-		@Override
+        @Override
         public ExecRow getExecRowDefinition() throws StandardException {
             if (mergedRowTemplate == null) {
                 mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
@@ -387,5 +387,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	                return true;
             }
 	    return false;
-    }
+        }
+
+	public ExecRow getLeftRow() { return leftRow; }
+	public ExecRow getRightRow() { return rightRow; }
+
 }

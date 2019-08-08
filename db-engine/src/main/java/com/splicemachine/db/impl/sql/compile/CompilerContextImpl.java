@@ -259,7 +259,24 @@ public class CompilerContextImpl extends ContextImpl
 	public boolean isSparkVersionInitialized() {
 		return sparkVersionInitialized;
 	}
-	
+
+        public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
+		nativeSparkAggregationMode = newValue;
+	}
+
+	public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode() {
+		return nativeSparkAggregationMode;
+	}
+
+	public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue) {
+		allowOverflowSensitiveNativeSparkExpressions = newValue;
+	}
+
+	public boolean getAllowOverflowSensitiveNativeSparkExpressions() {
+		return allowOverflowSensitiveNativeSparkExpressions;
+	}
+
+
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
@@ -1110,6 +1127,8 @@ public class CompilerContextImpl extends ContextImpl
 	private boolean             disablePredicateSimplification = DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION;
 	private SparkVersion        sparkVersion = DEFAULT_SPLICE_SPARK_VERSION;
 	private boolean sparkVersionInitialized = false;
+	private CompilerContext.NativeSparkModeType nativeSparkAggregationMode = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+	private boolean allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.

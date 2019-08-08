@@ -144,7 +144,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 		setValue(val);
 		if ((value != null) && (scale >= 0)) {
-			setValue(value.setScale(scale, BigDecimal.ROUND_DOWN));
+			setValue(value.setScale(scale, BigDecimal.ROUND_HALF_UP));
 		}
 		if (value ==null) {
 			this.precision = precision;
@@ -946,7 +946,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 											SQLDecimal.getWholeDigits(divisorBigDecimal) +
 											1),
 										NumberDataValue.MIN_DECIMAL_DIVIDE_SCALE),
-									BigDecimal.ROUND_DOWN));
+									BigDecimal.ROUND_HALF_UP));
 
 		return result;
 	}
@@ -1071,7 +1071,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 									("DECIMAL/NUMERIC("+desiredPrecision+","+desiredScale+")"));
 		}
 		rawData = null;
-		setValue(value.setScale(desiredScale, BigDecimal.ROUND_DOWN));
+		setValue(value.setScale(desiredScale, BigDecimal.ROUND_HALF_UP));
 	}
 
 	/**

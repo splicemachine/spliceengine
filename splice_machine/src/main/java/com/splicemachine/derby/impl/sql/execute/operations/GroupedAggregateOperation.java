@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -88,9 +89,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                         double optimizerEstimatedRowCount,
                                         double optimizerEstimatedCost,
                                         boolean isRollup,
+                                        CompilerContext.NativeSparkModeType nativeSparkMode,
                                         GroupedAggregateContext groupedAggregateContext) throws
                                                                                          StandardException {
-        super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+        super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, nativeSparkMode);
         this.isRollup = isRollup;
         this.groupedAggregateContext = groupedAggregateContext;
     }
@@ -107,9 +109,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                                      double optimizerEstimatedCost,
                                      boolean isRollup,
                                      int groupingIdColPosition,
-                                     int groupingIdArrayItem) throws StandardException {
+                                     int groupingIdArrayItem,
+                                     CompilerContext.NativeSparkModeType nativeSparkMode) throws StandardException {
         this(s, isInSortedOrder, aggregateItem, a, ra, maxRowSize, resultSetNumber,
-                optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup,
+                optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup, nativeSparkMode,
                 new DerbyGroupedAggregateContext(orderingItem, groupingIdColPosition, groupingIdArrayItem));
     }
 
@@ -160,15 +163,32 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
         OperationContext<GroupedAggregateOperation> operationContext = dsp.createOperationContext(this);
         DataSet set = source.getDataSet(dsp);
+        DataSet dataSetWithNativeSparkAggregation = null;
+
+        if (nativeSparkForced() && (isRollup || aggregates.length > 0))
+            set = set.upgradeToSparkNativeDataSet(operationContext);
 
         operationContext.pushScope();
         set = set.map(new CountReadFunction(operationContext));
         operationContext.popScope();
+
         // Have distinct Aggregates?
         boolean hasMultipleDistinct = false;
         int numOfGroupKeys = groupedAggregateContext.getGroupingKeys().length;
-
         int[] extendedGroupBy = groupedAggregateContext.getGroupingKeys();
+
+        // If the aggregation can be applied using native Spark UnsafeRow, then do so
+        // and return immediately.  Otherwise, use traditional Splice lower-level
+        // functional APIs.
+        if (nativeSparkEnabled())
+            dataSetWithNativeSparkAggregation =
+                set.applyNativeSparkAggregation(extendedGroupBy, aggregates,
+                                                isRollup, operationContext);
+        if (dataSetWithNativeSparkAggregation != null) {
+            nativeSparkUsed = true;
+            return dataSetWithNativeSparkAggregation;
+        }
+
         if (isRollup) {
             extendedGroupBy = new int[numOfGroupKeys+1];
             for (int i=0; i<numOfGroupKeys; i++)
@@ -248,8 +268,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 tmpGroupKey[i] = i;
             set2 = set.keyBy(new KeyerFunction(operationContext, tmpGroupKey), operationContext);
         }
-        else
+        else {
             set2 = set.keyBy(new KeyerFunction(operationContext, extendedGroupBy), operationContext);
+        }
         operationContext.popScope();
         
         operationContext.pushScopeForOp(OperationContext.Scope.REDUCE);

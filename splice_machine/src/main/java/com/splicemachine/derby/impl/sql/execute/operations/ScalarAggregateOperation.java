@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.ScalarAggregateFlatMapFunction;
@@ -62,8 +63,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                                     int resultSetNumber,
                                     boolean singleInputRow,
                                     double optimizerEstimatedRowCount,
-                                    double optimizerEstimatedCost) throws StandardException  {
-		super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
+                                    double optimizerEstimatedCost,
+                                    CompilerContext.NativeSparkModeType nativeSparkMode) throws StandardException  {
+		super(s, aggregateItem, a, ra, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost, nativeSparkMode);
 		this.isInSortedOrder = isInSortedOrder;
 		this.singleInputRow = singleInputRow;
     }
@@ -123,6 +125,22 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
         OperationContext<ScalarAggregateOperation> operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> dsSource = source.getDataSet(dsp);
+        DataSet<ExecRow> dataSetWithNativeSparkAggregation = null;
+
+        if (nativeSparkForced())
+            dsSource = dsSource.upgradeToSparkNativeDataSet(operationContext);
+
+        // If the aggregation can be applied using native Spark UnsafeRow, then do so
+        // and return immediately.  Otherwise, use traditional Splice lower-level
+        // functional APIs.
+        if (nativeSparkEnabled())
+            dataSetWithNativeSparkAggregation =
+                dsSource.applyNativeSparkAggregation(null, aggregates,
+                                                     false, operationContext);
+        if (dataSetWithNativeSparkAggregation != null) {
+            nativeSparkUsed = true;
+            return dataSetWithNativeSparkAggregation;
+        }
         DataSet<ExecRow> ds = dsSource.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, false), false, /*pushScope=*/true, "First Aggregation");
         DataSet<ExecRow> ds2 = ds.coalesce(1, /*shuffle=*/true, /*isLast=*/false, operationContext, /*pushScope=*/true, "Coalesce");
         return ds2.mapPartitions(new ScalarAggregateFlatMapFunction(operationContext, true), /*isLast=*/true, /*pushScope=*/true, "Final Aggregation");
