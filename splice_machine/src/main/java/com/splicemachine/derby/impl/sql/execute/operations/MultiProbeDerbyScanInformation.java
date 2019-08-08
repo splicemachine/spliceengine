@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -24,8 +25,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.ListDataType;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SerializationUtils;
 import com.splicemachine.si.api.txn.TxnView;
@@ -49,6 +49,8 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     private int inlistPosition;
     private int sortRequired;
     private String getProbeValsFuncName;
+    private DataTypeDescriptor[] inlistDataTypes;
+    private int inlistTypeArrayItem;
 
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public MultiProbeDerbyScanInformation(String resultRowAllocatorMethodName,
@@ -63,6 +65,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                                           String getProbeValsFuncName,
 										  int sortRequired,
 										  int inlistPosition,
+										  int inlistTypeArrayItem,
 										  String tableVersion,
 										  String defaultRowMethodName,
 										  int defaultValueMapItem) {
@@ -72,6 +75,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         this.getProbeValsFuncName = getProbeValsFuncName;
         this.sortRequired = sortRequired;
         this.inlistPosition = inlistPosition;
+        this.inlistTypeArrayItem = inlistTypeArrayItem;
     }
 
     @Deprecated
@@ -137,30 +141,6 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     protected Qualifier[][] populateQualifiers() throws StandardException {
 		Qualifier[][] qualifiers = super.populateQualifiers();
 		if(qualifiers!=null){
-			/*
-			 * The first qualifier is the qualifier for the start and stop keys, so
-			 * set it on that field.
-			 */
-			Qualifier[] ands  = qualifiers[0];
-			int numColumns = (probeValue instanceof ListDataType) ?
-				((ListDataType)probeValue).getLength() : 1;
-			if(ands!=null){
-				for (int i = 0; i < numColumns; i++) {
-					Qualifier qual = ands[i];
-					if (qual != null && probeValue != null) {
-						qual.clearOrderableCache();
-						//Qualifiers are sorted in the code generation phase,
-						//and inlist will already be put in the first
-						DataValueDescriptor dvd = probeValue;
-						if (numColumns != 1)
-							dvd = ((ListDataType)dvd).getDVD(i);
-						// A dvd could be null if the source is a parameter value.
-						if (dvd != null)
-					  	    qual.getOrderable().setValue(dvd);
-					}
-				}
-			}
-
 			// populate the orderableCache if invariant for qualifiers, to avoid
 			// setting them by multiple-threads
 			for (int i = 0; i < qualifiers.length; i++) {
@@ -188,6 +168,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 					}
 				}
                 out.writeObject(probeValue);
+				out.writeInt(inlistTypeArrayItem);
 		}
 
 		@Override
@@ -203,6 +184,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 					}
 				}
                 probeValue = (DataValueDescriptor)in.readObject();
+				inlistTypeArrayItem = in.readInt();
 
 		}
 
@@ -213,6 +195,13 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
                     (getProbeValsFuncName != null),
                     "No getProbeValsFuncName found for multi-probe scan.");
         }
+
+        // get the inlist column types
+		if (inlistDataTypes == null) {
+        	if (inlistTypeArrayItem != -1) {
+        		inlistDataTypes = (DataTypeDescriptor[])((FormatableArrayHolder)gsps.getSavedObject(inlistTypeArrayItem)).getArray(DataTypeDescriptor.class);
+			}
+		}
 
 		SpliceMethod<DataValueDescriptor[]> getProbeVals = new SpliceMethod<>(getProbeValsFuncName, activation);
 		DataValueDescriptor[] probingVals = getProbeVals.invoke();
@@ -236,10 +225,60 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
              * ideal, but it works for now.
              */
 
+            // special handing for char type
+			boolean[] toRemove = new boolean[probingVals.length];
+			for (int position = 0; position < inlistDataTypes.length; position++) {
+				DataTypeDescriptor dtd = inlistDataTypes[position];
+				boolean isFixedCharType = dtd.getTypeName().equals(TypeId.CHAR_NAME);
+				boolean isVarCharType = dtd.getTypeName().equals(TypeId.VARCHAR_NAME);
+
+				if (!isFixedCharType && !isVarCharType)
+					continue;
+
+				int maxSize = dtd.getMaximumWidth();
+				for (int index = 0; index < probingVals.length; index++) {
+					 DataValueDescriptor dvd = probingVals[index];
+					 if (dvd instanceof ListDataType) {
+						 ListDataType listData = (ListDataType) dvd;
+						 DataValueDescriptor dvd1 = listData.getDVD(position);
+						 if (dvd1 instanceof SQLChar) {
+						 	// we may prune some probe value based on the string length
+						 	if (isFixedCharType && dvd1.getLength() != maxSize) {
+								toRemove[index] = true;
+								continue;
+							} else if (isVarCharType && dvd1.getLength() > maxSize) {
+								toRemove[index] = true;
+								continue;
+							}
+							 // if column is of varchar type, we need to change the probe values from SQLChar to SQLVarchar,
+							 // so that duplicate removal won't ignore the trailing spaces
+							 if (isVarCharType && !(dvd1 instanceof SQLVarchar))
+								 listData.setDVD(position, new SQLVarchar(dvd1.getString()));
+						 }
+
+					 } else {
+					 	if (dvd instanceof SQLChar) {
+							// we may prune some probe value based on the string length
+							if (isFixedCharType && dvd.getLength() != maxSize) {
+								toRemove[index] = true;
+								continue;
+							} else if (isVarCharType && dvd.getLength() > maxSize) {
+								toRemove[index] = true;
+								continue;
+							}
+
+							if (isVarCharType && !(dvd instanceof SQLVarchar))
+								probingVals[index] = new SQLVarchar(dvd.getString());
+						}
+					 }
+				}
+			}
 			// eliminate duplicates from probeValues
-			HashSet<DataValueDescriptor> vset = new HashSet<DataValueDescriptor>(probingVals.length);
-			for (int i = 0; i < probingVals.length; i++)
-				vset.add(probingVals[i].cloneValue(false));
+			HashSet<DataValueDescriptor> vset = new HashSet<>(probingVals.length);
+			for (int i = 0; i < probingVals.length; i++) {
+				if (!toRemove[i])
+					vset.add(probingVals[i].cloneValue(false));
+			}
 
 			DataValueDescriptor[] probeValues1 = vset.toArray(new DataValueDescriptor[vset.size()]);
 

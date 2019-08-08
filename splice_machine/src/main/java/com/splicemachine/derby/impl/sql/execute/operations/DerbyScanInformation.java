@@ -49,7 +49,7 @@ import java.util.List;
 public class DerbyScanInformation implements ScanInformation<ExecRow>, Externalizable {
     private static final long serialVersionUID = 1l;
     //fields marked transient as a documentation tool, so we know which fields aren't set
-    private transient GenericStorablePreparedStatement gsps;
+    protected transient GenericStorablePreparedStatement gsps;
     protected transient Activation activation;
     public static final int[] Empty_Array = {};
     //serialized fields

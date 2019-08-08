@@ -1088,7 +1088,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 * @throws StandardException
 	 */
 	protected final DataValueDescriptor getParameter(int position) throws StandardException { 
-		return pvs.getParameter(position); 
+		return pvs.getParameter(position);
 		} 
 	
 	/**
