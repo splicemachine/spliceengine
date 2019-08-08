@@ -13,6 +13,7 @@ import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Collection;
 
@@ -151,6 +152,45 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
                         row("splice", 2, "2018-12-04"),
                         row("splice", 2, "2018-12-05")))
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t7 (a7 char(5), b7 char(5), c7 int, primary key(a7, b7))")
+                .withInsert("insert into t7 values (?,?,?)")
+                .withRows(rows(
+                        row("AAAAA", "AAAAA", 1),
+                        row("BBB", "BBB", 2),
+                        row("CCCC", "CCCC", 3)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t8 (a8 char(3), b8 char(3), c8 int, primary key(a8, b8))")
+                .withInsert("insert into t8 values (?,?,?)")
+                .withRows(rows(
+                        row("aaa", "aaa", 1),
+                        row("b", "b", 2),
+                        row("cc", "cc", 3)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t9 (a9 varchar(5), b9 varchar(5), c9 int, primary key(a9, b9))")
+                .withInsert("insert into t9 values (?,?,?)")
+                .withRows(rows(
+                        row("AAAAA", "AAAAA", 1),
+                        row("BBB", "BBB", 2),
+                        row("BBB  ", "BBB  ", 22),
+                        row("CCCC", "CCCC", 3)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t10 (a10 varchar(3), b10 varchar(3), c10 int, primary key(a10, b10))")
+                .withInsert("insert into t10 values (?,?,?)")
+                .withRows(rows(
+                        row("aaa", "aaa", 1),
+                        row("b", "b", 2),
+                        row("b  ", "b  ", 22),
+                        row("cc", "cc", 3)))
+                .create();
+
     }
 
     @BeforeClass
@@ -183,7 +223,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{5,8,10}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{5, 8, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"TableScan", "preds=[(C3[7:2] = 1),(B3[7:1] = 1)]"},
                 new String[]{"IndexScan", "preds=[(C2[3:1] = 1),(B2[3:2] = 1)]"},
                 new String[]{"IndexScan", "preds=[(C1[0:1] = 1),(B1[0:2] = 1)]"});
@@ -226,7 +266,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{5,8,10}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{5, 8, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"TableScan", "preds=[(C3[7:2] = 1),(B3[7:1] = 1)]"},
                 new String[]{"IndexScan", "preds=[(C2[3:1] = 1),(B2[3:2] = 1)]"},
                 new String[]{"IndexScan", "preds=[(C1[0:1] = 1)]"});
@@ -267,7 +307,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{6,9,11}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{6, 9, 11}, "explain " + sqlText, methodWatcher,
                 new String[]{"MultiProbeTableScan", "preds=[(A3[9:1] IN (A         ,B         ,C         ))]"},
                 new String[]{"MultiProbeTableScan", "preds=[(A2[3:1] IN (A         ,B         ,C         ))]"},
                 new String[]{"MultiProbeTableScan", "preds=[(A1[0:1] IN (A         ,B         ,C         ))]"});
@@ -325,7 +365,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
                       ->  IndexScan[IDX_T2(2913)](n=1,totalCost=4.028,scannedRows=17,outputRows=17,outputHeapSize=34 B,partitions=1,baseTable=T2(2896),preds=[(C2[0:1] = 1),(B2[0:2] = 1)])
         10 rows selected
          */
-        rowContainsQuery(new int[]{8,10}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{8, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"preds=[(C3[3:2] = 1),(B3[3:1] = 1)]"},
                 new String[]{"IndexScan", "preds=[(C2[0:1] = 1),(B2[0:2] = 1)]"});
 
@@ -456,7 +496,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
                     new String[]{"MultiProbeTableScan", "preds=[((A6[3:1],B6[3:2],C6[3:3]) IN ((substring(abcdeNNN, 1, 5),2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5),2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"},
                     new String[]{"MultiProbeTableScan", "preds=[((A5[0:1],B5[0:2],C5[0:3]) IN ((substring(abcdeNNN, 1, 5),2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5),2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"});
         } else {
-            rowContainsQuery(new int[]{7,8,10,11}, "explain " + sqlText, methodWatcher,
+            rowContainsQuery(new int[]{7, 8, 10, 11}, "explain " + sqlText, methodWatcher,
                     new String[]{"ProjectRestrict", "preds=[(C6[3:3] IN (dataTypeServices: DATE ,dataTypeServices: DATE ))]"},
                     new String[]{"MultiProbeTableScan", "preds=[(A6[3:1] IN (substring(abcdeNNN, 1, 5),splice)),(B6[3:2] = 2)]"},
                     new String[]{"ProjectRestrict", "preds=[(C5[0:3] IN (dataTypeServices: DATE ,dataTypeServices: DATE ))]"},
@@ -513,7 +553,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         19 rows selected
 
          */
-        rowContainsQuery(new int[]{7,8,12, 14, 17, 19}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{7, 8, 12, 14, 17, 19}, "explain " + sqlText, methodWatcher,
                 new String[]{"TableScan", "preds=[(T11.A1[17:1] = C         )]"},
                 new String[]{"TableScan", "preds=[(T3.C3[15:2] = 3),(T3.B3[15:1] = 3)]"},
                 new String[]{"TableScan", "preds=[(T11.A1[9:1] = C         )]"},
@@ -534,13 +574,13 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
 
     @Test
     public void testPredicateWithConstantExpression() throws Exception {
-        String sqlText = "select X, Y, Z from (\n" +
-                "                  select c5, b5, a5 from t5 " +
+        String sqlText = format("select X, Y, Z from (\n" +
+                "                  select c5, b5, a5 from t5 --splice-properties useSpark=%s \n" +
                 "                     where b5=2 \n" +
                 "                  union all \n" +
                 "                  select c6, b6, a6 from t6 " +
                 "                     where b6=2) dt(Z, Y, X) " +
-                "                where X = substr('abcdeNNN', 1,5)  and Z = add_months('2018-10-01', 2)";
+                "                where X = substr('abcdeNNN', 1,5)  and Z = add_months('2018-10-01', 2)", useSpark);
 
         /* the plan should look like the following:
         Plan
@@ -594,7 +634,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{8,10}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{8, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"preds=[(B3[3:1] = 1)]"},
                 new String[]{"IndexScan", "preds=[(B2[0:2] = 1)]"});
 
@@ -604,6 +644,348 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
                         "--------\n" +
                         " 1 | 1 |";
 
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testPredicatePushToUnionWithCharColumnOfDifferentLength() throws Exception {
+        String[] constants = new String[]{"AAAAA", "BBB", "BBB  ", "cc", "cc "};
+        String[] expectedRS = new String[]{
+                "1    |\n" +
+                        "---------\n" +
+                        "-AAAAA- |",
+
+                "",
+
+                "1    |\n" +
+                        "---------\n" +
+                        "-BBB  - |",
+
+                "",
+                "1   |\n" +
+                        "-------\n" +
+                        "-cc - |"};
+        for (int i = 0; i < constants.length; i++) {
+            String sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n " +
+                    "union all select a8 from t8) dt(a) where a ='%s'", useSpark, constants[i]);
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+            assertEquals("\n" + sqlText + "\n", expectedRS[i], TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+
+        // test constant expression
+        String[] expectedRS1 = new String[]{
+                "",
+                "1   |\n" +
+                        "-------\n" +
+                        "-b  - |"};
+        for (int i = 0; i < 2; i++) {
+            String sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n" +
+                    "union all select a8 from t8) dt(a) where a = substr('b  ',1, %d+1)", useSpark, i + 1);
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+            assertEquals("\n" + sqlText + "\n", expectedRS1[i], TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+    }
+
+    @Test
+    public void testInlistPushToUnionWithCharColumnOfDifferentLength() throws Exception {
+        String sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n" +
+                "union all select a8 from t8) dt(a) where a in ('AAAAA', 'aaa', 'BBB', 'b', 'CCCC ','cc ')", useSpark);
+        String expected = "1    |\n" +
+                "---------\n" +
+                "-AAAAA- |\n" +
+                "-CCCC - |\n" +
+                " -aaa-  |\n" +
+                " -cc -  |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n" +
+                "union all select a8 from t8) dt(a) where a in ('BBB', 'BBB  ', 'b    ', 'b  ')", useSpark);
+        expected = "1    |\n" +
+                "---------\n" +
+                "-BBB  - |\n" +
+                " -b  -  |";
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // test inlist with expression
+        sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n" +
+                "union all select a8 from t8) dt(a) " +
+                "where a in (cast('BBB' as CHAR(3)), cast('BBB' as CHAR(5)), cast('b' as CHAR(3)), cast('b' as CHAR(5)))", useSpark);
+        expected = "1    |\n" +
+                "---------\n" +
+                "-BBB  - |\n" +
+                " -b  -  |";
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // test inlist on non-PK column
+        sqlText = format("select '-' || b || '-' from (select b7 from t7 --splice-properties useSpark=%s\n" +
+                "union all select b8 from t8) dt(b) where b in ('BBB', 'BBB  ', 'b    ', 'b  ')", useSpark);
+        expected = "1    |\n" +
+                "---------\n" +
+                "-BBB  - |\n" +
+                " -b  -  |";
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testPredicatePushToUnionWithVarcharColumnOfDifferentLength() throws Exception {
+        String[] constants = new String[]{"AAAAA", "BBB", "BBB  ", "cc", "cc "};
+        String[] expectedRS = new String[]{
+                "1    |\n" +
+                        "---------\n" +
+                        "-AAAAA- |",
+
+                "1   |\n" +
+                        "-------\n" +
+                        "-BBB- |",
+
+                "1    |\n" +
+                        "---------\n" +
+                        "-BBB  - |",
+
+                "1  |\n" +
+                        "------\n" +
+                        "-cc- |",
+                ""};
+        for (int i = 0; i < constants.length; i++) {
+            String sqlText = format("select '-' || a || '-' from (select a9 from t9 --splice-properties useSpark=%s\n " +
+                    "union all select a10 from t10) dt(a) where a ='%s'", useSpark, constants[i]);
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+            assertEquals("\n" + sqlText + "\n", expectedRS[i], TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+
+        // test constant expression
+        String[] expectedRS1 = new String[]{
+                "1  |\n" +
+                        "-----\n" +
+                        "-b- |",
+                "",
+                "1   |\n" +
+                        "-------\n" +
+                        "-b  - |"};
+        for (int i = 0; i <= 2; i++) {
+            String sqlText = format("select '-' || a || '-' from (select a9 from t9 --splice-properties useSpark=%s\n" +
+                    "union all select a10 from t10) dt(a) where a = substr('b  ', 1, %d+1)", useSpark, i);
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+            assertEquals("\n" + sqlText + "\n", expectedRS1[i], TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+    }
+
+    @Test
+    public void testInlistPushToUnionWithVarcharColumnOfDifferentLength() throws Exception {
+        String sqlText = format("select '-' || a || '-' from (select a9 from t9 --splice-properties useSpark=%s\n" +
+                "union all select a10 from t10) dt(a) where a in ('AAAAA', 'aaa', 'BBB', 'b', 'b  ', 'CCCC ','cc ')", useSpark);
+        String expected = "1    |\n" +
+                "---------\n" +
+                "-AAAAA- |\n" +
+                " -BBB-  |\n" +
+                " -aaa-  |\n" +
+                " -b  -  |\n" +
+                "  -b-   |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = format("select '-' || a || '-' from (select a9 from t9 --splice-properties useSpark=%s\n" +
+                "union all select a10 from t10) dt(a) where a in ('BBB', 'BBB  ', 'b', 'b  ')", useSpark);
+        expected = "1    |\n" +
+                "---------\n" +
+                "-BBB  - |\n" +
+                " -BBB-  |\n" +
+                " -b  -  |\n" +
+                "  -b-   |";
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // test inlist with expression
+        sqlText = format("select '-' || a || '-' from (select a9 from t9 --splice-properties useSpark=%s\n" +
+                "union all select a10 from t10) dt(a) " +
+                "where a in (cast('BBB' as CHAR(3)), cast('BBB' as CHAR(5)), cast('b' as CHAR(3)), cast('b' as CHAR(5)))", useSpark);
+        expected = "1    |\n" +
+                "---------\n" +
+                "-BBB  - |\n" +
+                " -BBB-  |\n" +
+                " -b  -  |";
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // test inlist on non-PK column
+        sqlText = format("select '-' || b || '-' from (select b9 from t9 --splice-properties useSpark=%s\n" +
+                "union all select b10 from t10) dt(b) where b in ('BBB', 'BBB  ', 'b', 'b  ')", useSpark);
+        expected = "1    |\n" +
+                "---------\n" +
+                "-BBB  - |\n" +
+                " -BBB-  |\n" +
+                " -b  -  |\n" +
+                "  -b-   |";
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testUnsatisfiableEqualityConditionAfterPushToUnion() throws Exception {
+        // case to rewrite to unsatisfiable condition if equality condition to a constant with column length that does not match
+        // in this case branch 1 for the query to t7 will be pruned as a7 is of length 5 > len('BBB')
+        String sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n" +
+                "union all select a8 from t8) dt(a) where a ='BBB'", useSpark);
+        String expected = "";
+        ResultSet rs = methodWatcher.executeQuery("explain  " + sqlText);
+        String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        Assert.assertTrue("Query is expected to be pruned but not", explainPlanText.contains("Values"));
+        rs.close();
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // negative case, rewrite does not happen for non-equality condition
+        sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n" +
+                "union all select a8 from t8) dt(a) where a >'BBB'", useSpark);
+        expected = "1    |\n" +
+                "---------\n" +
+                "-CCCC - |\n" +
+                " -aaa-  |\n" +
+                " -b  -  |\n" +
+                " -cc -  |";
+        rs = methodWatcher.executeQuery("explain  " + sqlText);
+        explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        Assert.assertTrue("Query is not expected to be pruned", !explainPlanText.contains("Values"));
+        rs.close();
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+
+    @Test
+    public void testUnsatisfiableInlistConditionAfterPushToUnion() throws Exception {
+        String sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n" +
+                "union all select a8 from t8) dt(a) where a in ('cc ', 'CCCC')", useSpark);
+        String expected = "1   |\n" +
+                "-------\n" +
+                "-cc - |";
+        ResultSet rs = methodWatcher.executeQuery("explain  " + sqlText);
+        String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        Assert.assertTrue("Query is expected to be pruned but not", explainPlanText.contains("Values"));
+        rs.close();
+
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testInlistWithParameterPushToUnionWithCharColumnOfDifferentLength() throws Exception {
+        String sqlText = format("select '-' || a || '-' from (select a7 from t7 --splice-properties useSpark=%s\n" +
+                "union all select a8 from t8) dt(a) where a in (?, ?, ?)", useSpark);
+        PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "AAAAA");
+        ps.setString(2, "CCCC");
+        ps.setString(3, "cc ");
+        ResultSet rs = ps.executeQuery();
+        String expected = "1    |\n" +
+                "---------\n" +
+                "-AAAAA- |\n" +
+                " -cc -  |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // set parameters that can be pruned during execution stage
+        ps.setString(1, "aaa");
+        ps.setString(2, "b");
+        ps.setString(3, "cc");
+        rs = ps.executeQuery();
+        expected = "1   |\n" +
+                "-------\n" +
+                "-aaa- |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testPredicateWithParameterPushToUnionWithVarCharColumnOfDifferentLength() throws Exception {
+        String sqlText = format("select '-' || a || '-' from (select a9 from t9 --splice-properties useSpark=%s\n" +
+                "union all select a10 from t10) dt(a) where a in (?, ?, ?)", useSpark);
+        PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "AAAAA");
+        ps.setString(2, "CCCC");
+        ps.setString(3, "cc ");
+        ResultSet rs = ps.executeQuery();
+        String expected = "1    |\n" +
+                "---------\n" +
+                "-AAAAA- |\n" +
+                "-CCCC-  |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // set parameters that can be pruned during execution stage
+        ps.setString(1, "AAAAA");
+        ps.setString(2, "B   ");
+        ps.setString(3, "CCCC");
+        rs = ps.executeQuery();
+        expected = "1    |\n" +
+                "---------\n" +
+                "-AAAAA- |\n" +
+                "-CCCC-  |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // test inlist with elements different only on trailing spaces
+        ps.setString(1, "b");
+        ps.setString(2, "b ");
+        ps.setString(3, "b  ");
+        rs = ps.executeQuery();
+        expected = "1   |\n" +
+                "-------\n" +
+                "-b  - |\n" +
+                " -b-  |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    // test mixture branch
+    @Test
+    public void testPredicateWithParameterPushToUnionWithDifferentCharColumnTypes() throws Exception {
+        String sqlText = format("select '-' || a || '-' from (select a9 from t9 --splice-properties useSpark=%s\n" +
+                "union all select a8 from t8) dt(a) where a in (?, ?, ?)", useSpark);
+        PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "AAAAA");
+        ps.setString(2, "CCCC");
+        ps.setString(3, "cc ");
+        ResultSet rs = ps.executeQuery();
+        String expected = "1    |\n" +
+                "---------\n" +
+                "-AAAAA- |\n" +
+                "-CCCC-  |\n" +
+                " -cc -  |";
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }

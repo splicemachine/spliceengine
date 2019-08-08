@@ -271,6 +271,10 @@ public final class ListDataType extends DataType {
     public DataValueDescriptor getDVD(int index) {
         return dvd[index];
     }
+
+    public void setDVD(int index, DataValueDescriptor value) {
+	    dvd[index] = value;
+    }
     
 	/*
 	 * DataValueDescriptor interface
