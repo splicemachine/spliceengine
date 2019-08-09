@@ -181,7 +181,9 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+	    return false;
 
+	    /*
 	// Cross join can't handle IndexLookups on the inner table currently because
         // the join predicates get mapped to the IndexScan instead of the CrossJoin.
         // Broadcast join has a similar restriction.
@@ -202,6 +204,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         // Only use cross join when it is inner join
         // Only use cross join when it is on Spark, forced control and isHinted is for debug purpose
         return !outerCost.isOuterJoin() && (isSpark || (isForcedControl && isHinted)) && !isOneRow;
+	     */
     }
 
     @Override
