@@ -535,12 +535,18 @@ need to restart each of those services.
 
 There are a few configuration modifications you might want to make:
 
+* [Enable automatically restart for HBase service](#enable-automatically-restart) if you want HBase recover automatically after some failures.
 * [Modify the Authentication Mechanism](#modify-the-authentication-mechanism) if you want to
   authenticate users with something other than the default *native
   authentication* mechanism.
 * [Modify the Log Location](#modify-the-log-location) if you want your Splice Machine
   log entries stored somewhere other than in the logs for your region
   servers.
+  
+### Enable Automatically Restart
+
+After network partition, HBase master or region server may exit. So you may want to enable auto restart for Hbase in
+Ambari -> Admin -> Service Auto Start.
 
 ### Modify the Authentication Mechanism
 

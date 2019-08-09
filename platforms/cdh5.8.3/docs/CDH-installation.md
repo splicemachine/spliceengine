@@ -562,12 +562,18 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
 
 There are a few configuration modifications you might want to make:
 
+* [Enable automatically restart for HBase service](#enable-automatically-restart) if you want HBase recover automatically after some failures.
 * [Modify the Authentication Mechanism](#modify-the-authentication-mechanism) if you want to
   authenticate users with something other than the default *native
   authentication* mechanism.
 * [Modify the Log Location](#modify-the-logging-location) if you want your Splice Machine
   log entries stored somewhere other than in the logs for your region
   servers.
+  
+### Enable Automatically Restart
+
+After network partition, HBase master or region server may exit. So you may want to enable "Automatically Restart Process"
+in HBase configuration page, in order to make the server be able to recover after such failures.
 
 ### Modify the Authentication Mechanism
 
