@@ -48,6 +48,7 @@ import static org.junit.Assert.assertEquals;
  */
 
 
+@Ignore
 @RunWith(Parameterized.class)
 public class BroadcastJoinIT extends SpliceUnitTest {
 
