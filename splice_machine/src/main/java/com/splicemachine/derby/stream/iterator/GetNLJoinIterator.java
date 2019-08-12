@@ -21,6 +21,7 @@ import com.splicemachine.utils.Pair;
 
 import java.util.Iterator;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 /**
  * Created by jyuan on 10/10/16.
@@ -28,11 +29,11 @@ import java.util.concurrent.Callable;
 public abstract class GetNLJoinIterator implements Callable<Pair<OperationContext, Iterator<ExecRow>>> {
 
     protected ExecRow locatedRow;
-    protected OperationContext operationContext;
+    protected Supplier<OperationContext> operationContext;
 
     public GetNLJoinIterator() {}
 
-    public GetNLJoinIterator(OperationContext operationContext, ExecRow locatedRow) {
+    public GetNLJoinIterator(Supplier<OperationContext> operationContext, ExecRow locatedRow) {
         this.operationContext = operationContext;
         this.locatedRow = locatedRow;
     }
@@ -42,20 +43,20 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
 
 
     public static GetNLJoinIterator makeGetNLJoinIterator(NLJoinFunction.JoinType joinType,
-                                                   OperationContext operationContext,
+                                                   Supplier<OperationContext> operationContextSupplier,
                                                           ExecRow locatedRow) {
         switch (joinType) {
             case INNER:
-                return new GetNLJoinInnerIterator(operationContext, locatedRow);
+                return new GetNLJoinInnerIterator(operationContextSupplier, locatedRow);
 
             case LEFT_OUTER:
-                return new GetNLJoinLeftOuterIterator(operationContext, locatedRow);
+                return new GetNLJoinLeftOuterIterator(operationContextSupplier, locatedRow);
 
             case ANTI:
-                return new GetNLJoinAntiIterator(operationContext, locatedRow);
+                return new GetNLJoinAntiIterator(operationContextSupplier, locatedRow);
 
             case ONE_ROW_INNER:
-                return new GetNLJoinOneRowIterator(operationContext, locatedRow);
+                return new GetNLJoinOneRowIterator(operationContextSupplier, locatedRow);
 
             default:
                 throw new RuntimeException("Unrecognized nested loop join type");
