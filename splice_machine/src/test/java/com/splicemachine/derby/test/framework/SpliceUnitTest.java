@@ -220,6 +220,26 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void rowContainsQuery(int[] levels, String query,SpliceWatcher methodWatcher,String[]... contains) throws Exception {
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                i++;
+                for(int level : levels){
+                    if(level==i){
+                        String resultString = resultSet.getString(1);
+                        for (String phrase: contains[k]) {
+                            Assert.assertTrue("failed query at level (" + level + "): \n" + query + "\nExpected: " + phrase + "\nWas: "
+                                    + resultString, resultString.contains(phrase));
+                        }
+                        k++;
+                    }
+                }
+            }
+        }
+    }
+
     protected void rowContainsCount(int[] levels, String query,SpliceWatcher methodWatcher,double[] counts, double[] deltas ) throws Exception {
         try(ResultSet resultSet = methodWatcher.executeQuery(query)){
             int i=0;
@@ -326,26 +346,6 @@ public class SpliceUnitTest {
         }
     }
 
-    protected void testUpdateFail(String sqlText,
-                                  List<String> expectedErrors,
-                                  SpliceWatcher methodWatcher) throws Exception {
-        ResultSet rs = null;
-        try {
-            methodWatcher.executeUpdate(sqlText);
-            String failMsg = format("Update not expected to succeed.\n%s", sqlText);
-            fail(failMsg);
-        }
-        catch (Exception e) {
-            boolean found = expectedErrors.contains(e.getMessage());
-            if (!found)
-                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
-        }
-        finally {
-            if (rs != null)
-                rs.close();
-        }
-    }
-
     protected void testFail(String sqlText,
                             List<String> expectedErrors,
                             SpliceWatcher methodWatcher) throws Exception {
@@ -363,6 +363,22 @@ public class SpliceUnitTest {
         finally {
             if (rs != null)
                 rs.close();
+        }
+    }
+
+    protected void testUpdateFail(String sqlText,
+                                  List<String> expectedErrors,
+                                  SpliceWatcher methodWatcher) throws Exception {
+
+        try {
+            methodWatcher.executeUpdate(sqlText);
+            String failMsg = format("Update not expected to succeed.\n%s", sqlText);
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = expectedErrors.contains(e.getMessage());
+            if (!found)
+                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
         }
     }
 
