@@ -18,6 +18,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -25,6 +26,7 @@ import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.stats.FakeColumnStatisticsImpl;
@@ -87,6 +89,7 @@ import org.spark_project.guava.base.Optional;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.*;
@@ -105,6 +108,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
     //ExternalizableSerializers are stateless, no need to create more than we need
     private static final ExternalizableSerializer EXTERNALIZABLE_SERIALIZER=ExternalizableSerializer.INSTANCE;
     private static final UnmodifiableCollectionsSerializer UNMODIFIABLE_COLLECTIONS_SERIALIZER=new UnmodifiableCollectionsSerializer();
+    private static final DefaultSerializers.KryoSerializableSerializer KRYO_SERIALIZABLE_SERIALIZER = new DefaultSerializers.KryoSerializableSerializer();
 
     private static volatile KryoPool spliceKryoPool;
 
@@ -502,11 +506,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
 
         //register Activation-related classes
-        instance.register(ActivationSerializer.ArrayFieldStorage.class,EXTERNALIZABLE_SERIALIZER,48);
-        instance.register(ActivationSerializer.DataValueStorage.class,EXTERNALIZABLE_SERIALIZER,49);
-        instance.register(ActivationSerializer.ExecRowStorage.class,EXTERNALIZABLE_SERIALIZER,50);
-        instance.register(ActivationSerializer.SerializableStorage.class,EXTERNALIZABLE_SERIALIZER,51);
-        instance.register(ActivationSerializer.CachedOpFieldStorage.class,EXTERNALIZABLE_SERIALIZER,151);
+        instance.register(ActivationSerializer.ArrayFieldStorage.class,KRYO_SERIALIZABLE_SERIALIZER,48);
+        instance.register(ActivationSerializer.DataValueStorage.class,KRYO_SERIALIZABLE_SERIALIZER,49);
+        instance.register(ActivationSerializer.ExecRowStorage.class,KRYO_SERIALIZABLE_SERIALIZER,50);
+        instance.register(ActivationSerializer.SerializableStorage.class,KRYO_SERIALIZABLE_SERIALIZER,51);
+        instance.register(ActivationSerializer.CachedOpFieldStorage.class,KRYO_SERIALIZABLE_SERIALIZER,151);
 
         instance.register(SpliceObserverInstructions.class,EXTERNALIZABLE_SERIALIZER,52);
         instance.register(SpliceObserverInstructions.ActivationContext.class,EXTERNALIZABLE_SERIALIZER,53);
@@ -773,12 +777,12 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         // instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
         instance.register(MergeLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,182);
         instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,184);
-        instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,185);
+        instance.register(ActivationSerializer.BooleanFieldStorage.class, KRYO_SERIALIZABLE_SERIALIZER,185);
         instance.register(WindowFunctionInfoList.class,EXTERNALIZABLE_SERIALIZER,186);
         instance.register(WindowFunctionInfo.class,EXTERNALIZABLE_SERIALIZER,187);
         instance.register(TentativeDropColumnDesc.class,EXTERNALIZABLE_SERIALIZER,190);
         instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,191);
-        instance.register(ActivationSerializer.BooleanFieldStorage.class,EXTERNALIZABLE_SERIALIZER,192);
+        instance.register(ActivationSerializer.BooleanFieldStorage.class,KRYO_SERIALIZABLE_SERIALIZER,192);
         instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,193);
         instance.register(DDLChangeType.class,195);
         instance.register(ExportOperation.class,EXTERNALIZABLE_SERIALIZER,197);
@@ -907,6 +911,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return recursiveUnionOperation;
             }
         },302);
+        instance.register(DataValueDescriptor.class, 303);
         instance.register(ManagedCache.class, EXTERNALIZABLE_SERIALIZER, 304);
 
         Serializer<Optional> optionalSerializer = new Serializer<Optional>() {
@@ -934,6 +939,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(Optional.class, optionalSerializer, 305);
         instance.register(Optional.absent().getClass(), optionalSerializer, 306);
         instance.register(Optional.of("").getClass(), optionalSerializer, 307);
+        instance.register(ExecRow.class, 308);
+        instance.register(ResultSet.class, 309);
+        instance.register(ResultSet[].class, 310);
         instance.register(getClassFromString("java.util.Arrays$ArrayList"),
                           new ArraysAsListSerializer(), 312);
 

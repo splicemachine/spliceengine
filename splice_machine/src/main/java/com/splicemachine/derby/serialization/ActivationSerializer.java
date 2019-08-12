@@ -14,6 +14,11 @@
 
 package com.splicemachine.derby.serialization;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.KryoSerializable;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -44,11 +49,12 @@ import java.util.Map;
  * @author Scott Fines
  * Created on: 5/17/13
  */
-public class ActivationSerializer {
+public class ActivationSerializer extends Serializer<ActivationHolder> {
 
     private static final Logger LOG = Logger.getLogger(ActivationSerializer.class);
 
-        public static void write(ActivationHolder source,ObjectOutput out) throws IOException {
+    @Override
+    public void write(Kryo kryo, Output output, ActivationHolder source) {
         if (classFactory == null) {
             LanguageConnectionContext lcc = source.getActivation().getLanguageConnectionContext();
             classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
@@ -56,27 +62,29 @@ public class ActivationSerializer {
         Visitor visitor = new Visitor(source);
         try {
             visitor.visitAll();
-        } catch (IllegalAccessException e) {
-            throw new IOException(e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        visitor.write(out);
+        visitor.write(kryo, output);
     }
 
-        public static Activation readInto(ObjectInput in, ActivationHolder destination) throws IOException, StandardException {
-        try {
-            if (classFactory == null) {
-                LanguageConnectionContext lcc = destination.getActivation().getLanguageConnectionContext();
-                classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
-            }
-            return new Visitor(destination).read(in);
-        } catch (IllegalAccessException | NoSuchFieldException | ClassNotFoundException e) {
-            throw new IOException(e);
+    @Override
+    public ActivationHolder read(Kryo kryo, Input input, Class type) {
+        return null;  // this won't be used
+    }
+
+    public static Activation readInto(Kryo kryo, Input input,  ActivationHolder destination) {
+        if (classFactory == null) {
+            LanguageConnectionContext lcc = destination.getActivation().getLanguageConnectionContext();
+            classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
         }
+        return new Visitor(destination).read(kryo, input);
     }
 
     private static final List<FieldStorageFactory> factories;
     private static final ArrayFactory arrayFactory;
     private static ClassFactory classFactory;
+    private static Kryo kryo;
 
     static{
         factories = Lists.newArrayList();
@@ -90,6 +98,7 @@ public class ActivationSerializer {
         //always add SerializableFactory last, because otherwise it'll swallow everything else.
         factories.add(new SerializableFactory());
     }
+
 
     private static class Visitor{
         private final Map<Integer,SpliceOperation> operationsMap;
@@ -155,57 +164,56 @@ public class ActivationSerializer {
             }
         }
 
-        private void write(ObjectOutput out) throws IOException {
+        private void setField(Class clazz, String fieldName, FieldStorage storage){
+            try {
+                Field declaredField = clazz.getDeclaredField(fieldName);
+                if(!declaredField.isAccessible()){
+                    declaredField.setAccessible(true);
+                    declaredField.set(activation,storage.getValue(activationHolder));
+                    declaredField.setAccessible(false);
+                }else
+                    declaredField.set(activation,storage.getValue(activationHolder));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public void write(Kryo kryo, Output out) {
             out.writeInt(fields.size());
             for(Map.Entry<String,FieldStorage> entry:fields.entrySet()){
                 String fieldName = entry.getKey();
                 FieldStorage storage = entry.getValue();
-                out.writeUTF(fieldName);
-                out.writeObject(storage);
+                out.writeString(fieldName);
+                kryo.writeClassAndObject(out, storage);
             }
 
             out.writeInt(baseFields.size());
             for(Map.Entry<String,FieldStorage> entry:baseFields.entrySet()){
                 String fieldName = entry.getKey();
                 FieldStorage storage = entry.getValue();
-                out.writeUTF(fieldName);
-                out.writeObject(storage);
+                out.writeString(fieldName);
+                kryo.writeClassAndObject(out, storage);
             }
         }
 
-        @SuppressWarnings("rawtypes")
-		private Activation read(ObjectInput in) throws IOException,
-                IllegalAccessException,
-                NoSuchFieldException,
-                ClassNotFoundException, StandardException {
+        public Activation read(Kryo kryo, Input in) {
             int numFieldsToRead = in.readInt();
             Class actClass = activation.getClass();
             for(int i=0;i<numFieldsToRead;i++){
-                String fieldName = in.readUTF();
-                FieldStorage storage = (FieldStorage)in.readObject();
+                String fieldName = in.readString();
+                FieldStorage storage = (FieldStorage)kryo.readClassAndObject(in);
                 setField(actClass, fieldName, storage);
             }
 
             int numBaseFieldsToRead = in.readInt();
             Class baseActClass = getBaseActClass(actClass);
             for(int i=0;i<numBaseFieldsToRead;i++){
-                String fieldName = in.readUTF();
-                FieldStorage storage = (FieldStorage)in.readObject();
+                String fieldName = in.readString();
+                FieldStorage storage = (FieldStorage)kryo.readClassAndObject(in);
                 setField(baseActClass,fieldName,storage);
             }
             return activation;
         }
-
-        private void setField(Class clazz, String fieldName, FieldStorage storage) throws NoSuchFieldException, IllegalAccessException, StandardException {
-            Field declaredField = clazz.getDeclaredField(fieldName);
-            if(!declaredField.isAccessible()){
-                declaredField.setAccessible(true);
-                declaredField.set(activation,storage.getValue(activationHolder));
-                declaredField.setAccessible(false);
-            }else
-                declaredField.set(activation,storage.getValue(activationHolder));
-        }
-
     }
 
     private static Class getBaseActClass(Class actClass) {
@@ -235,7 +243,7 @@ public class ActivationSerializer {
         return null;
     }
 
-    private interface FieldStorage extends Externalizable{
+    private interface FieldStorage extends KryoSerializable {
 
         Object getValue(ActivationHolder context) throws StandardException;
     }
@@ -255,12 +263,12 @@ public class ActivationSerializer {
         }
 
         @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
+        public void write (Kryo kryo, Output out) {
             out.writeBoolean(data);
         }
 
         @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        public void read (Kryo kryo, Input in) {
             this.data = in.readBoolean();
         }
 
@@ -298,25 +306,22 @@ public class ActivationSerializer {
 
         @Override
         @SuppressWarnings("ForLoopReplaceableByForEach")
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeUTF(arrayType.getName());
+        public void write (Kryo kryo, Output out) {
             out.writeInt(data.length);
             for(int i=0;i<data.length;i++){
                 FieldStorage storage = data[i];
-                out.writeBoolean(storage!=null);
-                if(storage!=null)
-                   out.writeObject(storage);
+                kryo.writeClassAndObject(out, storage);
             }
+            kryo.writeClass(out, arrayType);
         }
 
         @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            arrayType = Class.forName(in.readUTF());
+        public void read (Kryo kryo, Input in) {
             data = new FieldStorage[in.readInt()];
             for(int i=0;i<data.length;i++){
-                if(in.readBoolean())
-                    data[i] = (FieldStorage)in.readObject();
+                data[i] = (FieldStorage)kryo.readClassAndObject(in);
             }
+            arrayType = kryo.readClass(in).getType();
         }
 
         @Override
@@ -388,13 +393,13 @@ public class ActivationSerializer {
         }
 
         @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeObject(dvd);
+        public void write (Kryo kryo, Output out) {
+            kryo.writeClassAndObject(out, dvd);
         }
 
         @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            dvd = (DataValueDescriptor) in.readObject();
+        public void read (Kryo kryo, Input in) {
+            dvd = (DataValueDescriptor) kryo.readClassAndObject(in);
         }
     }
 
@@ -444,15 +449,15 @@ public class ActivationSerializer {
         }
 
         @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
+        public void write (Kryo kryo, Output out) {
             out.writeBoolean(isIndexType);
-            out.writeObject(data);
+            kryo.writeClassAndObject(out, data);
         }
 
         @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        public void read (Kryo kryo, Input in) {
             this.isIndexType = in.readBoolean();
-            this.data = (ArrayFieldStorage)in.readObject();
+            this.data = (ArrayFieldStorage)kryo.readClassAndObject(in);
         }
     }
 
@@ -492,12 +497,12 @@ public class ActivationSerializer {
         }
 
         @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
+        public void write (Kryo kryo, Output out) {
             out.writeInt(resultSetNumber);
         }
 
         @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        public void read (Kryo kryo, Input in) {
             resultSetNumber = in.readInt();
         }
     }
@@ -532,13 +537,13 @@ public class ActivationSerializer {
         }
 
         @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            out.writeObject(data);
+        public void write (Kryo kryo, Output out) {
+            kryo.writeClassAndObject(out, data);
         }
 
         @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            data = (Serializable)in.readObject();
+        public void read (Kryo kryo, Input in) {
+            data = (Serializable)kryo.readClassAndObject(in);
         }
     }
 }

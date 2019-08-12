@@ -24,6 +24,7 @@ import com.splicemachine.utils.Pair;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 /**
  * Created by jyuan on 10/10/16.
@@ -31,13 +32,14 @@ import java.util.Iterator;
 public class GetNLJoinOneRowIterator extends GetNLJoinIterator {
     public GetNLJoinOneRowIterator() {}
 
-    public GetNLJoinOneRowIterator(OperationContext operationContext, ExecRow locatedRow) {
+    public GetNLJoinOneRowIterator(Supplier<OperationContext> operationContext, ExecRow locatedRow) {
         super(operationContext, locatedRow);
     }
 
     @Override
     public Pair<OperationContext, Iterator<ExecRow>> call() throws Exception {
-        JoinOperation op = (JoinOperation) this.operationContext.getOperation();
+        OperationContext ctx = operationContext.get();
+        JoinOperation op = (JoinOperation) ctx.getOperation();
         op.getLeftOperation().setCurrentRow(this.locatedRow);
         SpliceOperation rightOperation=op.getRightOperation();
 
@@ -48,12 +50,12 @@ public class GetNLJoinOneRowIterator extends GetNLJoinIterator {
         if (hasNext) {
             // For left outer join, if there is no match, return an empty row from right side
             ExecRow lr = rightSideNLJIterator.next();
-            StreamLogUtils.logOperationRecordWithMessage(lr,operationContext,"outer - right side no rows");
+            StreamLogUtils.logOperationRecordWithMessage(lr,ctx,"outer - right side no rows");
             op.setCurrentRow(lr);
             rightSideNLJIterator = new SingletonIterator(lr);
         }
 
-        return new Pair<>(operationContext, rightSideNLJIterator);
+        return new Pair<>(ctx, rightSideNLJIterator);
     }
 
 }
