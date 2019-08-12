@@ -28,6 +28,7 @@ import com.splicemachine.utils.Pair;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 /**
  * Created by jyuan on 10/10/16.
@@ -35,14 +36,14 @@ import java.util.concurrent.Callable;
 public abstract class GetNLJoinIterator implements Callable<Pair<OperationContext, Iterator<ExecRow>>> {
 
     protected ExecRow locatedRow;
-    protected OperationContext operationContext;
     protected boolean initialized;
     protected ContextManager cm;
     protected boolean newContextManager, lccPushed;
+    protected Supplier<OperationContext> operationContext;
 
     public GetNLJoinIterator() {}
 
-    public GetNLJoinIterator(OperationContext operationContext, ExecRow locatedRow) {
+    public GetNLJoinIterator(Supplier<OperationContext> operationContext, ExecRow locatedRow) {
         this.operationContext = operationContext;
         this.locatedRow = locatedRow;
     }
@@ -50,8 +51,9 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
     public abstract Pair<OperationContext, Iterator<ExecRow>> call() throws Exception;
 
     private boolean needsLCCInContext() {
-        if (operationContext != null) {
-            Activation activation = operationContext.getActivation();
+        OperationContext ctx = operationContext.get();
+        if (ctx != null) {
+            Activation activation = ctx.getActivation();
             if (activation != null) {
                 LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
                 if (lcc != null) {
@@ -83,8 +85,9 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
             catch (SQLException e) {
                 // If the current LCC is not available in the context,
                 // push it now.
-                if (operationContext != null) {
-                    Activation activation = operationContext.getActivation();
+                OperationContext ctx = operationContext.get();
+                if (ctx != null) {
+                    Activation activation = ctx.getActivation();
                     if (activation != null && activation.getLanguageConnectionContext() != null) {
                         lccPushed = true;
                         cm.pushContext(activation.getLanguageConnectionContext());
@@ -108,20 +111,20 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
     }
 
     public static GetNLJoinIterator makeGetNLJoinIterator(NLJoinFunction.JoinType joinType,
-                                                   OperationContext operationContext,
+                                                   Supplier<OperationContext> operationContextSupplier,
                                                           ExecRow locatedRow) {
         switch (joinType) {
             case INNER:
-                return new GetNLJoinInnerIterator(operationContext, locatedRow);
+                return new GetNLJoinInnerIterator(operationContextSupplier, locatedRow);
 
             case LEFT_OUTER:
-                return new GetNLJoinLeftOuterIterator(operationContext, locatedRow);
+                return new GetNLJoinLeftOuterIterator(operationContextSupplier, locatedRow);
 
             case ANTI:
-                return new GetNLJoinAntiIterator(operationContext, locatedRow);
+                return new GetNLJoinAntiIterator(operationContextSupplier, locatedRow);
 
             case ONE_ROW_INNER:
-                return new GetNLJoinOneRowIterator(operationContext, locatedRow);
+                return new GetNLJoinOneRowIterator(operationContextSupplier, locatedRow);
 
             default:
                 throw new RuntimeException("Unrecognized nested loop join type");

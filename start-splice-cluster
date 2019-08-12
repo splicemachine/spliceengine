@@ -167,7 +167,7 @@ pushd "${RUN_DIR}" > /dev/null
 if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
   MEM_LOG="${RUN_DIR}/spliceMem.log"
   echo "Starting MEM. Log file is ${MEM_LOG}"
-  (${MVN} -Pmem exec:java > ${MEM_LOG} 2>&1) &    ## IN MEMORY
+  (MAVEN_OPTS="${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=4000" ${MVN} -Pmem exec:java > ${MEM_LOG} 2>&1) &    ## IN MEMORY
   exit 0;
 fi
 
