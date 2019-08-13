@@ -865,7 +865,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationHolder.class,EXTERNALIZABLE_SERIALIZER,296);
         instance.register(SetOpOperation.class,EXTERNALIZABLE_SERIALIZER,297);
         instance.register(ExportFile.COMPRESSION.class, 298);
-        instance.register(CrossJoinOperation.class, EXTERNALIZABLE_SERIALIZER, 303);
         instance.register(FormatableProperties.class,EXTERNALIZABLE_SERIALIZER, 299);
         instance.register(BadRecordsRecorder.class,EXTERNALIZABLE_SERIALIZER, 300);
         instance.register(SelfReferenceOperation.class,new Serializer<SelfReferenceOperation>(){
@@ -911,7 +910,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 return recursiveUnionOperation;
             }
         },302);
-        instance.register(DataValueDescriptor.class, 303);
+        instance.register(CrossJoinOperation.class, EXTERNALIZABLE_SERIALIZER, 303);
         instance.register(ManagedCache.class, EXTERNALIZABLE_SERIALIZER, 304);
 
         Serializer<Optional> optionalSerializer = new Serializer<Optional>() {
@@ -942,6 +941,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ExecRow.class, 308);
         instance.register(ResultSet.class, 309);
         instance.register(ResultSet[].class, 310);
+        instance.register(DataValueDescriptor.class, 311);
         instance.register(getClassFromString("java.util.Arrays$ArrayList"),
                           new ArraysAsListSerializer(), 312);
 
