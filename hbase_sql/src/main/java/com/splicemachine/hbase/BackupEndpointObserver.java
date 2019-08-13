@@ -17,6 +17,7 @@ package com.splicemachine.hbase;
 import com.google.protobuf.Service;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.backup.BackupRegionStatus;
 import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
@@ -25,6 +26,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.coprocessor.*;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionLifeCycleTracker;
@@ -158,7 +161,10 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
                 canceled = BackupUtils.backupCanceled();
                 if (!canceled) {
                     // Create a ZNode to indicate that the region is being copied
-                    boolean created = ZkUtils.recursiveSafeCreate(regionBackupPath, HConfiguration.BACKUP_IN_PROGRESS, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    RegionInfo regionInfo = region.getRegionInfo();
+                    BackupRegionStatus backupRegionStatus = new BackupRegionStatus(regionInfo.getStartKey(), regionInfo.getEndKey(),
+                            HConfiguration.BACKUP_IN_PROGRESS);
+                    boolean created = ZkUtils.recursiveSafeCreate(regionBackupPath, backupRegionStatus.toBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     if (LOG.isDebugEnabled()) {
                         if (ZkUtils.getRecoverableZooKeeper().exists(regionBackupPath, false) != null) {
                             SpliceLogUtils.debug(LOG,"created znode %s to mark backup in progress, created = %s", regionBackupPath, created);
