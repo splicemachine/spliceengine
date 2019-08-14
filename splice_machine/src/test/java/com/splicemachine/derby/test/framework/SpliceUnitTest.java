@@ -213,7 +213,6 @@ public class SpliceUnitTest {
                     if(level==i){
                         Assert.assertTrue("failed query at level ("+level+"): \n"+query+"\nExpected: "+contains[k]+"\nWas: "
                                               +resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
-			}
                         k++;
                     }
                 }
