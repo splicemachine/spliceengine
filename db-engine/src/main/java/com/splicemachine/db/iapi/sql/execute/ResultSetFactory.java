@@ -1034,6 +1034,7 @@ public interface ResultSetFactory {
 								GeneratedMethod getProbeValsFunc,
 								int sortRequired,
 								int inlistPosition,
+								int inlistTypeArrayItem,
 								String tableName,
 								String userSuppliedOptimizerOverrides,
 								String indexName,

@@ -35,8 +35,6 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-
 public class SpliceGenericResultSetFactory implements ResultSetFactory {
     private static Logger LOG = Logger.getLogger(SpliceGenericResultSetFactory.class);
 
@@ -785,6 +783,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod stopKeyGetter, int stopSearchOperator,
             boolean sameStartStopPosition, boolean rowIdKey, String qualifiersField,
             GeneratedMethod getProbeValsFunc, int sortRequired, int inlistPosition,
+            int inlistTypeArrayItem,
             String tableName, String userSuppliedOptimizerOverrides,
             String indexName, boolean isConstraint, boolean forUpdate,
             int colRefItem, int indexColItem, int lockMode,
@@ -821,6 +820,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     getProbeValsFunc,
                     sortRequired,
                     inlistPosition,
+                    inlistTypeArrayItem,
                     tableName,
                     userSuppliedOptimizerOverrides,
                     indexName,

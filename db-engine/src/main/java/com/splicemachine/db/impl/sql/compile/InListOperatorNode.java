@@ -107,8 +107,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 				getContextManager());
 
 		ilon.copyFields(this);
-		if (isOrdered)
-			ilon.markAsOrdered();
+		ilon.markAsOrdered(isOrdered);
 
 		if (sortDescending)
 			ilon.markSortDescending();
@@ -930,9 +929,9 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	 * Indicate that the IN-list values for this node are ordered (i.e. they
 	 * are all constants and they have been sorted).
 	 */
-	protected void markAsOrdered()
+	protected void markAsOrdered(boolean ordered)
 	{
-		isOrdered = true;
+		isOrdered = ordered;
 	}
 
 	/**
