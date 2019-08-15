@@ -211,6 +211,29 @@ public class CreateTableWithDataIT{
             s.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t5");
         }
     }
+
+    private void testCommentsInCTAS(String commentString, String viewRef) throws Exception {
+        String depsalTable = "depsal";
+        String depsalTableRef = spliceSchemaWatcher.schemaName + "." + depsalTable;
+        String depsalTableDef = format("create table %s as " +
+                "select dept, salary, ssn from %s %s where dept < 3 with data", depsalTableRef, viewRef, commentString);
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(spliceSchemaWatcher.schemaName, depsalTable);
+
+        methodWatcher.executeUpdate(depsalTableDef);
+        String sqlText = format("select * from %s order by dept, salary", depsalTableRef);
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        String expected = "DEPT |SALARY |   SSN   |\n" +
+                "------------------------\n" +
+                "  1  | 75000 |11199222 |\n" +
+                "  2  | 52000 |22200555 |\n" +
+                "  2  | 78000 |88844777 |";
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        try(PreparedStatement ps=methodWatcher.prepareStatement(String.format("drop table %s",depsalTableRef))){
+            ps.executeUpdate();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void createTableWithViewJoins() throws Exception {
@@ -276,23 +299,19 @@ public class CreateTableWithDataIT{
 
         methodWatcher.execute(viewDef);
 
-        String depsalTable = "depsal";
-        String depsalTableRef = spliceSchemaWatcher.schemaName + "." + depsalTable;
-        String depsalTableDef = format("create table %s as " +
-                "select dept, salary, ssn from %s with data", depsalTableRef, viewRef);
-        new TableDAO(methodWatcher.getOrCreateConnection()).drop(spliceSchemaWatcher.schemaName, depsalTable);
-
-        methodWatcher.executeUpdate(depsalTableDef);
-        String sqlText = format("select * from %s order by dept, salary", depsalTableRef);
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-
-        String expected = "DEPT |SALARY |   SSN   |\n" +
-                "------------------------\n" +
-                "  1  | 75000 |11199222 |\n" +
-                "  2  | 52000 |22200555 |\n" +
-                "  2  | 78000 |88844777 |\n" +
-                "  3  | 76000 |33366777 |";
-        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        testCommentsInCTAS("--comment hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello hello\n", viewRef);
+        testCommentsInCTAS("-- WITH and AS in a comment \n", viewRef);
+        testCommentsInCTAS("-- /* C-style comment inside a '--' comment */ \n", viewRef);
+        testCommentsInCTAS("/* A C-style comment */", viewRef);
+        testCommentsInCTAS("/* WITH and AS in a C-style comment */", viewRef);
+        testCommentsInCTAS("/* A C-style comment followed be newline */\n", viewRef);
+        testCommentsInCTAS("/* A C-style comment \n spanning \n multiple \n lines */", viewRef);
+        testCommentsInCTAS("/* -- dash dash comment inside a C-style comment */", viewRef);
+        testCommentsInCTAS("/* --splice-properties useSpark=true  hint inside comment should be OK */", viewRef);
+        // A splice properties hint should work
+        testCommentsInCTAS("--splice-properties useSpark=true\n", viewRef);
+        // Mixed case hints should work too.
+        testCommentsInCTAS("--spLice-prOperties useSpark=true\n", viewRef);
     }
 }
 
