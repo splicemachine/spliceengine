@@ -69,7 +69,9 @@ public class SQLVarchar
 	{
 		try
 		{
-			return new SQLVarchar(getString());
+			SQLVarchar ret = new SQLVarchar(getString());
+			ret.setSqlCharSize(super.getSqlCharSize());
+			return ret;
 		}
 		catch (StandardException se)
 		{
@@ -93,7 +95,7 @@ public class SQLVarchar
 	{
 		if (collatorForComparison == null)
 		{//null collatorForComparison means use UCS_BASIC for collation
-		    return this;			
+		    return this;
 		} else {
 			//non-null collatorForComparison means use collator sensitive
 			//implementation of SQLVarchar
@@ -209,10 +211,10 @@ public class SQLVarchar
 	{
 		return TypeId.VARCHAR_PRECEDENCE;
 	}
-    
+
     /**
-     * returns the reasonable minimum amount by 
-     * which the array can grow . See readExternal. 
+     * returns the reasonable minimum amount by
+     * which the array can grow . See readExternal.
      * when we know that the array needs to grow by at least
      * one byte, it is not performant to grow by just one byte
      * instead this amount is used to provide a resonable growby size.
@@ -220,9 +222,9 @@ public class SQLVarchar
      */
     protected final int growBy()
     {
-        return RETURN_SPACE_THRESHOLD;  //seems reasonable for a varchar or clob 
+        return RETURN_SPACE_THRESHOLD;  //seems reasonable for a varchar or clob
     }
-    
+
     public Format getFormat() {
     	return Format.VARCHAR;
     }

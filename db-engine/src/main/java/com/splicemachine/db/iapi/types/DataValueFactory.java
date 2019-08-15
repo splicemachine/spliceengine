@@ -43,7 +43,7 @@ import java.text.RuleBasedCollator;
 
 /**
  * This interface is how we get data values of different types.
- * 
+ *
  * For any method that takes a 'previous' argument it is required
  * that the caller pass in an object of the same class that would
  * be returned by the call if null was passed for previous.
@@ -122,7 +122,7 @@ public interface DataValueFactory
          */
         BooleanDataValue        getDataValue(Boolean value, BooleanDataValue previous)
                                                         throws StandardException;
-        
+
         // ------ LONGVARBIT
 
         /**
@@ -165,7 +165,7 @@ public interface DataValueFactory
          *
          */
         StringDataValue         getVarcharDataValue(String value);
-        
+
         /**
          * Get a SQLVarhar object to represent a SQL VARCHAR  (UCS_BASIC)
          * with the given value. A null argument means get a SQL NULL value.
@@ -176,7 +176,7 @@ public interface DataValueFactory
          */
         StringDataValue getVarcharDataValue(String value, StringDataValue previous)
             throws StandardException;
-        
+
         /**
          * Get a StringDataValue to represent a SQL VARCHAR with the
          * passed in collationType. A null argument means get a SQL NULL value.
@@ -194,7 +194,7 @@ public interface DataValueFactory
          *
          */
         StringDataValue         getLongvarcharDataValue(String value);
-        
+
         /**
          * Get a SQLLongvarchar object to represent a SQL LONG VARCHAR  (UCS_BASIC)
          * with the given value. A null argument means get a SQL NULL value.
@@ -217,8 +217,8 @@ public interface DataValueFactory
          */
         StringDataValue getLongvarcharDataValue(String value, StringDataValue previous,
                 int collationType) throws StandardException;
-        
- 
+
+
         /**
          * Get a SQLClob object to represent a SQL CLOB  (UCS_BASIC)
          * with the given value. A null argument means get a SQL NULL value.
@@ -392,7 +392,7 @@ public interface DataValueFactory
          *
          */
         StringDataValue         getCharDataValue(String value);
-        
+
         /**
          * Get a SQLChar object to represent a SQL CHAR  (UCS_BASIC
          * with the given value. A null argument means get a SQL NULL value.
@@ -403,7 +403,7 @@ public interface DataValueFactory
          */
         StringDataValue  getCharDataValue(String value, StringDataValue previous)
                                                         throws StandardException;
-        
+
         /**
          * Get a StringDataValue to represent a SQL CHAR with the
          * passed in collationType. A null argument means get a SQL NULL value.
@@ -534,7 +534,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL int with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -542,14 +542,14 @@ public interface DataValueFactory
 
         /**
          * Get a SQL smallint with  a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          */
         NumberDataValue getNullShort(NumberDataValue dataValue);
 
         /**
          * Get a SQL tinyint with  a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -557,7 +557,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL bigint with  a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -565,7 +565,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL float with  a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -573,7 +573,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL double with  a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -598,7 +598,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL boolean with  a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          */
         BooleanDataValue getNullBoolean(BooleanDataValue dataValue);
@@ -612,7 +612,7 @@ public interface DataValueFactory
 
     /**
          * Get a SQL Bit with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          * @exception StandardException         Thrown on error
@@ -621,7 +621,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL Bit Varying with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          * @exception StandardException         Thrown on error
@@ -649,15 +649,15 @@ public interface DataValueFactory
          */
         BitDataValue            getNullBlob(BitDataValue dataValue)
                 throws StandardException;
-        
+
     // ------ CHAR
         /**
          * Get a SQL CHAR (UCS_BASIC) with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          */
         StringDataValue         getNullChar(StringDataValue dataValue);
-        
+
         /**
          * Get a SQL CHAR set to NULL with collation set to collationType.
          * If the supplied value is null then get a new value,
@@ -667,14 +667,18 @@ public interface DataValueFactory
                 int collationType)
         throws StandardException;
 
+
+        StringDataValue getNullChar(StringDataValue dataValue, int collationType, int maxSize)
+        throws StandardException;
+
         /**
          * Get a SQL VARCHAR (UCS_BASIC) with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
         StringDataValue         getNullVarchar(StringDataValue dataValue);
-        
+
         /**
          * Get a SQL VARCHAR set to NULL with collation set to collationType.
          * If the supplied value is null then get a new value,
@@ -684,14 +688,17 @@ public interface DataValueFactory
                 int collationType)
         throws StandardException;
 
+        StringDataValue getNullVarchar(StringDataValue previous, int collationType, int maxSize)
+        throws StandardException;
+
         /**
          * Get a SQL LONG VARCHAR (UCS_BASIC) with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
         StringDataValue         getNullLongvarchar(StringDataValue dataValue);
-        
+
         /**
          * Get a SQL LONG VARCHAR set to NULL with collation set to collationType.
          * If the supplied value is null then get a new value,
@@ -703,7 +710,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL CLOB (UCS_BASIC) with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -720,7 +727,7 @@ public interface DataValueFactory
 
         /**
          * Get a User-defined data value with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -729,7 +736,7 @@ public interface DataValueFactory
         UserDataValue           getNullObject(Object o);
         /**
          * Get a RefDataValue with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -737,7 +744,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL date with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -745,7 +752,7 @@ public interface DataValueFactory
 
         /**
          * Get a SQL time with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          *
          */
@@ -753,28 +760,28 @@ public interface DataValueFactory
 
         /**
          * Get a SQL timestamp with a SQL null value. If the supplied value
-         * is null then get a new value, otherwise set it to null and return 
+         * is null then get a new value, otherwise set it to null and return
          * that value.
          */
         DateTimeDataValue       getNullTimestamp(DateTimeDataValue dataValue);
 
         /**
          * Get an XML with a SQL null value. If the supplied value is
-         * null then get a new value, otherwise set it to null and return 
+         * null then get a new value, otherwise set it to null and return
          * that value.
          */
         XMLDataValue            getNullXML(XMLDataValue dataValue);
-        
+
         /**
-         * Return the RuleBasedCollator depending on the collation type. 
-         * If the collation type is UCS_BASIC, then this method will return 
+         * Return the RuleBasedCollator depending on the collation type.
+         * If the collation type is UCS_BASIC, then this method will return
          * null. If the collation type is TERRITORY_BASED then the return
          * value will be the Collator derived from the database's locale.
          * If this is the first time Collator is being requested for a
-         * database with collation type of TERRITORY_BASED, then we will check 
-         * to make sure that JVM supports the Collator for the database's 
-         * locale. If not, we will throw an exception 
-         * 
+         * database with collation type of TERRITORY_BASED, then we will check
+         * to make sure that JVM supports the Collator for the database's
+         * locale. If not, we will throw an exception
+         *
          * This method will be used when Store code is trying to create a DVD
          * template row using the format ids and the collation types. First a
          * DVD will be constructed just using format id. Then if the DVD is of
@@ -786,16 +793,16 @@ public interface DataValueFactory
          * UCS_BASIC.) If the Collator object returned is not null, then we
          * will construct collation sensitive DVD for the character types. So,
          * the return value of this method determines if we are going to create
-         * a character DVD with default collation or with custom collation. 
-         * 
+         * a character DVD with default collation or with custom collation.
+         *
          * @param collationType This will be UCS_BASIC or TERRITORY_BASED
-         *  
+         *
          * @return Collator null if the collation type is UCS_BASIC.
          *  Collator based on territory if the collation type is TERRITORY_BASED
          */
-        RuleBasedCollator getCharacterCollator(int collationType) 
+        RuleBasedCollator getCharacterCollator(int collationType)
         throws StandardException;
-        
+
         /**
          * Return an object based on the format id and collation type. For
          * format ids which do not correspond to character types, a format id
@@ -806,13 +813,13 @@ public interface DataValueFactory
          * Using collation type, we will determine if we need to construct
          * collation sensitive DVD and associate the correct RuleBasedCollator
          * with such DVDs.
-         *  
+         *
          * @param formatId Format id for the DVD
          * @param collationType this is meaningful only for character types.
-         * 
-         * @return DataValueDescriptor which will be constructed using the 
-         * passed parameters 
+         *
+         * @return DataValueDescriptor which will be constructed using the
+         * passed parameters
          */
-        DataValueDescriptor getNull(int formatId, int collationType) 
+        DataValueDescriptor getNull(int formatId, int collationType)
         throws StandardException;
 }
