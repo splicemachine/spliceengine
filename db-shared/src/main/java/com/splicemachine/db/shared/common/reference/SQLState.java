@@ -1402,6 +1402,9 @@ public interface SQLState {
     String RTS_EXCEPT_RS                                   = "43Y60.U";
     String RTS_EXCEPT                                      = "43Y61.U";
 
+    // calcite related errors
+    String LANG_INVADLID_CONVERSION                                    = "44Y00.U";
+
     // com.splicemachine.db.catalog.types
     String TI_SQL_TYPE_NAME = "44X00.U";
     String TI_NEXT_ERROR    = "44X05.U";
@@ -1524,29 +1527,29 @@ public interface SQLState {
     String LANG_STATEMENT_NEEDS_RECOMPILE         = "XCL32.S";
 
 
-    //delete rule restriction violation errors
-    String LANG_CANT_BE_DEPENDENT_ESELF            = "XCL33.S";
-    String LANG_CANT_BE_DEPENDENT_ECYCLE           = "XCL34.S";
-    String LANG_CANT_BE_DEPENDENT_MPATH            = "XCL35.S";
-    String LANG_DELETE_RULE_MUSTBE_ESELF           = "XCL36.S";
-    String LANG_DELETE_RULE_MUSTBE_ECASCADE        = "XCL37.S";
-    String LANG_DELETE_RULE_MUSTBE_MPATH           = "XCL38.S";
-    String LANG_DELETE_RULE_CANT_BE_CASCADE_ESELF  = "XCL39.S";
-    String LANG_DELETE_RULE_CANT_BE_CASCADE_ECYCLE = "XCL40.S";
-    String LANG_DELETE_RULE_CANT_BE_CASCADE_MPATH  = "XCL41.S";
+	//delete rule restriction violation errors
+	String LANG_CANT_BE_DEPENDENT_ESELF								   = "XCL33.S";
+	String LANG_CANT_BE_DEPENDENT_ECYCLE							   = "XCL34.S";
+	String LANG_CANT_BE_DEPENDENT_MPATH								   = "XCL35.S";
+	String LANG_DELETE_RULE_MUSTBE_ESELF                   			   = "XCL36.S";
+	String LANG_DELETE_RULE_MUSTBE_ECASCADE							   = "XCL37.S";
+	String LANG_DELETE_RULE_MUSTBE_MPATH							   = "XCL38.S";
+	String LANG_DELETE_RULE_CANT_BE_CASCADE_ESELF					   = "XCL39.S";	
+	String LANG_DELETE_RULE_CANT_BE_CASCADE_ECYCLE					   = "XCL40.S";	
+	String LANG_DELETE_RULE_CANT_BE_CASCADE_MPATH					   = "XCL41.S";	
 
-    // referential action types
-    String LANG_DELETE_RULE_CASCADE    = "XCL42.S";
-    String LANG_DELETE_RULE_SETNULL    = "XCL43.S";
-    String LANG_DELETE_RULE_RESTRICT   = "XCL44.S";
-    String LANG_DELETE_RULE_NOACTION   = "XCL45.S";
-    String LANG_DELETE_RULE_SETDEFAULT = "XCL46.S";
+	// referential action types
+	String LANG_DELETE_RULE_CASCADE									   = "XCL42.S";	
+	String LANG_DELETE_RULE_SETNULL									   = "XCL43.S";	
+	String LANG_DELETE_RULE_RESTRICT								   = "XCL44.S";	
+	String LANG_DELETE_RULE_NOACTION								   = "XCL45.S";	
+	String LANG_DELETE_RULE_SETDEFAULT								   = "XCL46.S";	
 
-    String LANG_STATEMENT_UPGRADE_REQUIRED = "XCL47.S";
+	String LANG_STATEMENT_UPGRADE_REQUIRED							   = "XCL47.S";
 
-    //truncate table
-    String LANG_NO_TRUNCATE_ON_FK_REFERENCE_TABLE      = "XCL48.S";
-    String LANG_NO_TRUNCATE_ON_ENABLED_DELETE_TRIGGERS = "XCL49.S";
+	//truncate table
+	String LANG_NO_TRUNCATE_ON_FK_REFERENCE_TABLE                      = "XCL48.S";
+	String LANG_NO_TRUNCATE_ON_ENABLED_DELETE_TRIGGERS                 = "XCL49.S";
 
     // Initial release of Apache Derby did not support upgrade
     String LANG_CANT_UPGRADE_DATABASE = "XCL50.S";

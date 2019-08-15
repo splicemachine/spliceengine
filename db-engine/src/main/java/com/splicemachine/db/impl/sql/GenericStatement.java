@@ -55,12 +55,14 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+import org.apache.calcite.plan.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -90,6 +92,8 @@ public class GenericStatement implements Statement{
     private GenericStorablePreparedStatement preparedStmt;
     private String sessionPropertyValues = "null";
     private final String statementTextTrimed;
+    private String rewriteStmt;
+    private SqlPlanner planner;
 
     /**
      * Constructor for a Statement given the text of the statement in a String
@@ -498,7 +502,23 @@ public class GenericStatement implements Statement{
 
         setSSQFlatteningForUpdateDisabled(lcc, cc);
         setVarcharDB2CompatibilityMode(lcc, cc);
+        setUseCalciteOptimizer(lcc, cc);
         return cc;
+    }
+
+    private void setUseCalciteOptimizer(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
+        String useCalciteString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                Property.SPLICE_USE_CALICITE_OPTIMIZER);
+        // if database property is not set, treat it as false
+        Boolean useCalciteOptimizer = false;
+        try {
+            if (useCalciteString != null)
+                useCalciteOptimizer = Boolean.valueOf(useCalciteString);
+        } catch (Exception e) {
+            // If the property value failed to convert to a boolean, don't throw an error,
+            // just use the default setting.
+        }
+        cc.setUseCalciteOptimizer(useCalciteOptimizer);
     }
 
     private void setVarcharDB2CompatibilityMode(LanguageConnectionContext lcc, CompilerContext cc) throws StandardException {
@@ -827,9 +847,24 @@ public class GenericStatement implements Statement{
         long startTime = System.nanoTime();
         try {
 
+
             StatementNode qt;
             if (boundAndOptimizedStatement == null) {
                 qt = parse(lcc, paramDefaults, timestamps, cc);
+
+/*
+            if (statementText.toLowerCase().startsWith("call")) {
+                rewriteStmt = statementText;
+            } else
+            if (cc.getUseCalciteOptimizer()) {
+                if (planner == null) {
+                    SpliceContext spliceContext = new SpliceContext(lcc, cc);
+                    planner = new CalciteSqlPlanner(spliceContext);
+                }
+                rewriteStmt = planner.parse(statementText);
+            } else
+*/
+                rewriteStmt = statementText;
 
                 /*
                  ** Tell the data dictionary that we are about to do
@@ -861,8 +896,16 @@ public class GenericStatement implements Statement{
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
+
             return qt;
-        } catch (StandardException e) {
+        } /*catch (ValidationException ve) {
+
+        } catch (RelConversionException rce) {
+
+        } catch (SqlParseException sqlpe) {
+
+        } */
+        catch (StandardException e) {
             lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
             throw e;
         }  finally{ // for block introduced by pushCompilerContext()
@@ -941,7 +984,7 @@ public class GenericStatement implements Statement{
 
         //Only top level statements go through here, nested statement
         //will invoke this method from other places
-        StatementNode qt=(StatementNode)p.parseStatement(statementText,paramDefaults);
+        StatementNode qt=(StatementNode)p.parseStatement(rewriteStmt,paramDefaults);
 
         timestamps[1]=getCurrentTimeMillis(lcc);
 
@@ -980,7 +1023,31 @@ public class GenericStatement implements Statement{
 
             maintainCacheEntry(lcc, qt, foundInCache);
 
-            qt.optimizeStatement();
+            if (cc.getUseCalciteOptimizer() && !rewriteStmt.toLowerCase().startsWith("call")) {
+                if (planner == null) {
+                    Context spliceContext = lcc.getSqlPlannerFactory().newContext(lcc, cc);
+                    planner = lcc.getSqlPlannerFactory().getSqlPlanner(spliceContext);
+                }
+                ResultSetNode resultSetNode = null;
+                StatementNode stmtNode = qt;
+                QueryTreeNode parent = qt;
+                while (stmtNode instanceof StatementNode){
+                    if (stmtNode instanceof ExplainNode) {
+                        parent = stmtNode;
+                        stmtNode = ((ExplainNode) stmtNode).getPlanRoot();
+                    } else if (stmtNode instanceof CursorNode) {
+                        parent = stmtNode;
+                        resultSetNode = ((DMLStatementNode)stmtNode).getResultSetNode();
+                        break;
+                    }
+                }
+
+                QueryTreeNode convertedTree = planner.optimize(resultSetNode, rewriteStmt);
+                assert parent instanceof CursorNode: "expect CursorNode";
+                parent.init(convertedTree);
+            } else
+                qt.optimizeStatement();
+
             dumpOptimizedTree(lcc,qt,false);
             timestamps[3]=getCurrentTimeMillis(lcc);
 

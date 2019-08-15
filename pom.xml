@@ -78,6 +78,8 @@
         <scalamock.version>3.1.4</scalamock.version>
         <commons.lang3.version>3.5</commons.lang3.version>
         <fasterxml.jackson.version>2.9.9</fasterxml.jackson.version>
+        <commons.lang3.version>3.3.2</commons.lang3.version>
+        <calcite.version>1.26.0</calcite.version>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
     </properties>

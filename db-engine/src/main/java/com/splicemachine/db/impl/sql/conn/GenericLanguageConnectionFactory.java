@@ -81,50 +81,51 @@ import java.util.Properties;
  *
  */
 public class GenericLanguageConnectionFactory
-    implements LanguageConnectionFactory, CacheableFactory, PropertySetCallback, ModuleControl, ModuleSupportable {
+	implements LanguageConnectionFactory, CacheableFactory, PropertySetCallback, ModuleControl, ModuleSupportable {
 
-    /*
-        fields
-     */
-    private     ExecutionFactory        ef;
-    private     OptimizerFactory        of;
-    private        TypeCompilerFactory        tcf;
-    private     DataValueFactory        dvf;
-    private     UUIDFactory                uuidFactory;
-    private     JavaFactory                javaFactory;
-    private     ClassFactory            classFactory;
-    private     NodeFactory                nodeFactory;
-    private     PropertyFactory            pf;
-    private AuthorizationFactory        authorizationFactory;
+	/*
+		fields
+	 */
+	private 	ExecutionFactory		ef;
+	private 	OptimizerFactory		of;
+	private		TypeCompilerFactory		tcf;
+	private 	DataValueFactory		dvf;
+	private 	UUIDFactory				uuidFactory;
+	private 	JavaFactory				javaFactory;
+	private 	ClassFactory			classFactory;
+	private 	NodeFactory				nodeFactory;
+	private 	PropertyFactory			pf;
+	private AuthorizationFactory        authorizationFactory;
+	private     SqlPlannerFactory       sqlPlannerFactory;
 
-    private        int                        nextLCCInstanceNumber;
+	private		int						nextLCCInstanceNumber;
 
-    /*
-      for caching prepared statements
-    */
-    private int cacheSize = Property.STATEMENT_CACHE_SIZE_DEFAULT;
+	/*
+	  for caching prepared statements 
+	*/
+	private int cacheSize = Property.STATEMENT_CACHE_SIZE_DEFAULT;
 
-    /*
-       constructor
-    */
-    public GenericLanguageConnectionFactory() {
-    }
+	/*
+	   constructor
+	*/
+	public GenericLanguageConnectionFactory() {
+	}
 
-    /*
-       LanguageConnectionFactory interface
-    */
+	/*
+	   LanguageConnectionFactory interface
+	*/
 
-    /*
-        these are the methods that do real work, not just look for factories
-     */
+	/*
+		these are the methods that do real work, not just look for factories
+	 */
 
-    /**
-        Get a Statement for the connection
-        @param compilationSchema schema
-        @param statementText the text for the statement
-        @param forReadOnly if concurrency is CONCUR_READ_ONLY
-        @return    The Statement
-     */
+	/**
+		Get a Statement for the connection
+		@param compilationSchema schema
+		@param statementText the text for the statement
+		@param forReadOnly if concurrency is CONCUR_READ_ONLY
+		@return	The Statement
+	 */
         public Statement getStatement(SchemaDescriptor compilationSchema, String statementText, boolean forReadOnly,
                                       LanguageConnectionContext lcc) throws StandardException
         {
@@ -335,7 +336,7 @@ public class GenericLanguageConnectionFactory
         tcf =
            (TypeCompilerFactory) Monitor.startSystemModule(TypeCompilerFactory.MODULE);
         nodeFactory = (NodeFactory) Monitor.bootServiceModule(create, this, NodeFactory.MODULE, startParams);
-
+        sqlPlannerFactory = (SqlPlannerFactory)Monitor.bootServiceModule(create, this, SqlPlannerFactory.MODULE, startParams);
     }
 
     /**
@@ -452,4 +453,10 @@ public class GenericLanguageConnectionFactory
         }
         return authorizationFactory;
     }
+
+	@Override
+	public SqlPlannerFactory getSqlPlannerFactory() {
+		return sqlPlannerFactory;
+
+	}
 }

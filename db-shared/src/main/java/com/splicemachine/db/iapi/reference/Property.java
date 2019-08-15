@@ -1244,5 +1244,9 @@ public interface Property {
      */
     String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
             "splice.optimizer.disablePerParallelTaskJoinCosting";
+
+    String SPLICE_USE_CALICITE_OPTIMIZER =
+            "splice.optimization.useCalcite";
+
 }
 

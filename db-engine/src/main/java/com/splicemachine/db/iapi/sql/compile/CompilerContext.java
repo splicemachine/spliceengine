@@ -770,4 +770,9 @@ public interface CompilerContext extends Context
     boolean compilingTrigger();
 
     void setCompilingTrigger(boolean newVal);
+
+	boolean getUseCalciteOptimizer();
+
+	void setUseCalciteOptimizer(boolean value);
+
 }

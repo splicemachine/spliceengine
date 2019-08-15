@@ -33,18 +33,13 @@ package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.db.InternalDatabase;
-
 import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
-
 import com.splicemachine.db.iapi.sql.compile.*;
-
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.Statement;
-
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.JavaFactory;
@@ -196,4 +191,9 @@ public interface LanguageConnectionFactory {
     Parser newParser(CompilerContext cc);
 
     CommentStripper newCommentStripper();
+
+	/**
+	 Get the SqlPlannerFactory to use with this language connection
+	 */
+	SqlPlannerFactory getSqlPlannerFactory();
 }

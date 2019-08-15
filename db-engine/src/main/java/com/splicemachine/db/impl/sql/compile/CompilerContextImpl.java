@@ -1215,6 +1215,8 @@ public class CompilerContextImpl extends ContextImpl
     private       NewMergeJoinExecutionType           newMergeJoin                                 = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private       boolean                             disablePerParallelTaskJoinCosting            = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     private       boolean                             varcharDB2CompatibilityMode                  = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
+    private       boolean                             useCalciteOptimizer                          = false;
+
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.
@@ -1296,6 +1298,14 @@ public class CompilerContextImpl extends ContextImpl
     @Override
     public void setCompilingTrigger(boolean newVal) {
         compilingTrigger = newVal;
+    }
+
+    public boolean getUseCalciteOptimizer() {
+        return useCalciteOptimizer;
+    }
+
+    public void setUseCalciteOptimizer(boolean value) {
+        useCalciteOptimizer = value;
     }
 
 } // end of class CompilerContextImpl

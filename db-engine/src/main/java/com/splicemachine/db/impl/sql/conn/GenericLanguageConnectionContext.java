@@ -212,6 +212,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected TypeCompilerFactory tcf;
     protected OptimizerFactory of;
     protected LanguageConnectionFactory connFactory;
+    protected SqlPlannerFactory sqlPlannerFactory;
 
     /*
      * A statement context is "pushed" and "popped" at the beginning and
@@ -400,18 +401,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.type = type;
         this.sparkExecutionType = sparkExecutionType;
         this.ipAddress = ipAddress;
-        dataFactory = lcf.getDataValueFactory();
-        tcf = lcf.getTypeCompilerFactory();
-        of = lcf.getOptimizerFactory();
-        langFactory = lf;
-        connFactory = lcf;
-        this.db = db;
-        this.userName = userName;
-        this.groupuserlist = groupuserlist;
-        this.instanceNumber = instanceNumber;
-        this.drdaID = drdaID;
-        this.dbname = dbname;
-        this.rdbIntTkn = rdbIntTkn;
+        dataFactory=lcf.getDataValueFactory();
+        tcf=lcf.getTypeCompilerFactory();
+        of=lcf.getOptimizerFactory();
+        langFactory=lf;
+        connFactory=lcf;
+        sqlPlannerFactory = lcf.getSqlPlannerFactory();
+        this.db=db;
+        this.userName=userName;
+        this.groupuserlist=groupuserlist;
+        this.instanceNumber=instanceNumber;
+        this.drdaID=drdaID;
+        this.dbname=dbname;
+        this.rdbIntTkn=rdbIntTkn;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
         this.spsCache = spsCache;
@@ -4218,6 +4220,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public long getActiveStateTxId() {
         return activeStateTxId;
+    }
+
+    public SqlPlannerFactory getSqlPlannerFactory() {
+        return sqlPlannerFactory;
     }
 
 }

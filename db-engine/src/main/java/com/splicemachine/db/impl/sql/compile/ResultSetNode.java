@@ -1768,4 +1768,9 @@ public abstract class ResultSetNode extends QueryTreeNode{
     public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         return true;
     }
+
+    public void fillInCostEstimate(CostEstimate value) {
+        costEstimate = value;
+        finalCostEstimate = costEstimate;
+    }
 }

@@ -44,6 +44,11 @@ import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
+import com.splicemachine.db.iapi.sql.compile.SqlPlannerFactory;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
@@ -1566,4 +1571,7 @@ public interface LanguageConnectionContext extends Context {
      * @note this method has side effects.
      */
     PreparedStatement lookupStatement(GenericStatement statement) throws StandardException;
+
+	SqlPlannerFactory getSqlPlannerFactory();
+
 }
