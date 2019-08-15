@@ -55,7 +55,11 @@ import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.tools.RelConversionException;
+import org.apache.calcite.tools.ValidationException;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -81,6 +85,7 @@ public class GenericStatement implements Statement{
     private GenericStorablePreparedStatement preparedStmt;
     private String sessionPropertyValues = "null";
     private final String statementTextTrimed;
+    private String rewriteStmt;
 
     /**
      * Constructor for a Statement given the text of the statement in a String
@@ -444,6 +449,19 @@ public class GenericStatement implements Statement{
                 cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
             }
 
+            String useCalciteString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                    Property.SPLICE_USE_CALICITE_OPTIMIZER);
+            // if database property is not set, treat it as false
+            Boolean useCalciteOptimizer = false;
+            try {
+                if (useCalciteString != null)
+                    useCalciteOptimizer = Boolean.valueOf(useCalciteString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setUseCalciteOptimizer(useCalciteOptimizer);
+
             /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
             String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
                     Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
@@ -602,6 +620,15 @@ public class GenericStatement implements Statement{
         long startTime = System.nanoTime();
         try {
 
+            if (statementText.toLowerCase().startsWith("values")) {
+                rewriteStmt = statementText;
+            } else
+            if (cc.getUseCalciteOptimizer()) {
+                CalciteSqlPlanner planner = new CalciteSqlPlanner();
+                rewriteStmt = planner.parse(statementText).replaceAll("`", "");
+            } else
+                rewriteStmt = statementText;
+
             StatementNode qt = parse(lcc, paramDefaults, timestamps, cc);
 
             /*
@@ -628,7 +655,14 @@ public class GenericStatement implements Statement{
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
-        } catch (StandardException e) {
+        } catch (ValidationException ve) {
+
+        } catch (RelConversionException rce) {
+
+        } catch (SqlParseException sqlpe) {
+
+        }
+        catch (StandardException e) {
             lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
             throw e;
         }  finally{ // for block introduced by pushCompilerContext()
@@ -646,7 +680,7 @@ public class GenericStatement implements Statement{
 
         //Only top level statements go through here, nested statement
         //will invoke this method from other places
-        StatementNode qt=(StatementNode)p.parseStatement(statementText,paramDefaults);
+        StatementNode qt=(StatementNode)p.parseStatement(rewriteStmt,paramDefaults);
 
         timestamps[1]=getCurrentTimeMillis(lcc);
 

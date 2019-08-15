@@ -1448,4 +1448,7 @@ public interface Property {
 	 */
 	String SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS =
 		"splice.execution.allowOverflowSensitiveNativeSparkExpressions";
+
+	String SPLICE_USE_CALICITE_OPTIMIZER =
+			"splice.optimization.useCalcite";
 }

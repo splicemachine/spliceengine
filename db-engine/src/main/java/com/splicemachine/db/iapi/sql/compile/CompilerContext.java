@@ -700,4 +700,8 @@ public interface CompilerContext extends Context
 	public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
 
 	public boolean getAllowOverflowSensitiveNativeSparkExpressions();
+
+	boolean getUseCalciteOptimizer();
+
+	void setUseCalciteOptimizer(boolean value);
 }

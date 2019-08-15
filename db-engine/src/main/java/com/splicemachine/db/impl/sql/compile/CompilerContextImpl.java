@@ -276,7 +276,13 @@ public class CompilerContextImpl extends ContextImpl
 		return allowOverflowSensitiveNativeSparkExpressions;
 	}
 
+	public boolean getUseCalciteOptimizer() {
+		return useCalciteOptimizer;
+	}
 
+	public void setUseCalciteOptimizer(boolean value) {
+		useCalciteOptimizer = value;
+	}
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
@@ -1129,6 +1135,7 @@ public class CompilerContextImpl extends ContextImpl
 	private boolean sparkVersionInitialized = false;
 	private CompilerContext.NativeSparkModeType nativeSparkAggregationMode = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
 	private boolean allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
+	private boolean     useCalciteOptimizer = false;
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.
