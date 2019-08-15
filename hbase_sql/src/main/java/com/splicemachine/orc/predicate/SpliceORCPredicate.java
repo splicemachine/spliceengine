@@ -259,8 +259,6 @@ public class SpliceORCPredicate implements OrcPredicate, Externalizable {
                 int j = baseColumnMap.get(storagePos);
                 if (j==-1) // Partition Column Not In List...
                     continue;
-                if (isCollectStats)
-                    j = j -1;  // stats related indexes are passed on one based index but rowStruct array is zero based
 
                 DataType dataType = rowStruct.fields()[j].dataType();
                 if (dataType instanceof BooleanType) {
