@@ -57,6 +57,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
+import java.util.Arrays;
 
 /**
  * Created by jleach on 2/27/17.
@@ -108,16 +109,17 @@ public class StatisticsOperation extends SpliceBaseOperation {
             OperationContext<StatisticsOperation> operationContext = dsp.createOperationContext(this);
             if (scanSetBuilder.getStoredAs() != null) {
                 ScanSetBuilder builder = scanSetBuilder;
+                int[] zeroBased = Arrays.stream(builder.getColumnPositionMap()).map((int x) -> x - 1).toArray();
                 StructType schema = ExternalTableUtils.getSchema(activation, builder.getBaseTableConglomId());
                 String storedAs = scanSetBuilder.getStoredAs();
                 if (storedAs.equals("T"))
-                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), builder.getEscaped(), builder.getDelimited(), builder.getColumnPositionMap(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
+                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), builder.getEscaped(), builder.getDelimited(), zeroBased, operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("P"))
-                    statsDataSet = dsp.readParquetFile(schema, builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
+                    statsDataSet = dsp.readParquetFile(schema, zeroBased, builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("A"))
-                    statsDataSet = dsp.readAvroFile(schema, builder.getColumnPositionMap(), builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
+                    statsDataSet = dsp.readAvroFile(schema, zeroBased, builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("O"))
-                    statsDataSet = dsp.readORCFile(builder.getColumnPositionMap(), builder.getPartitionByColumnMap(), builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction, true);
+                    statsDataSet = dsp.readORCFile(zeroBased, builder.getPartitionByColumnMap(), builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction, true);
                 else {
                     throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
                 }
