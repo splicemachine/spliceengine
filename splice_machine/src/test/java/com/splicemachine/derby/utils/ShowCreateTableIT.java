@@ -290,4 +290,77 @@ public class ShowCreateTableIT extends SpliceUnitTest
         }
     }
 
+    @Test
+    public void testDateColumnHavingDefaultValue() throws Exception
+    {
+        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\"\n" +
+                "(\n" +
+                "\"I\" DATE DEFAULT '2019-01-01'\n" +
+                ",\"J\" DATE DEFAULT CURRENT_DATE\n" +
+                ")";
+        methodWatcher.executeUpdate(DDL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T13')");
+        rs.next();
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T13\" (\n" +
+                "\"I\" DATE DEFAULT '2019-01-01'\n" +
+                ",\"J\" DATE DEFAULT CURRENT_DATE\n" +
+                ") ;", rs.getString(1));
+
+    }
+
+    @Test
+    public void testTimeColumnHavingDefaultValue() throws Exception
+    {
+        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T14\"\n" +
+                "(\n" +
+                "\"I\" TIME DEFAULT '18:18:18'\n" +
+                ",\"J\" TIME DEFAULT CURRENT_TIME\n" +
+                ")";
+        methodWatcher.executeUpdate(DDL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T14')");
+        rs.next();
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T14\" (\n" +
+                "\"I\" TIME DEFAULT '18:18:18'\n" +
+                ",\"J\" TIME DEFAULT CURRENT_TIME\n" +
+                ") ;", rs.getString(1));
+
+    }
+
+    @Test
+    public void testTimestampColumnHavingDefaultValue() throws Exception
+    {
+        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T15\"\n" +
+                "(\n" +
+                "\"I\" TIMESTAMP DEFAULT '2013-03-23 09:45:00'\n" +
+                ",\"J\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n" +
+                ")";
+        methodWatcher.executeUpdate(DDL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T15')");
+        rs.next();
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T15\" (\n" +
+                "\"I\" TIMESTAMP DEFAULT '2013-03-23 09:45:00'\n" +
+                ",\"J\" TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n" +
+                ") ;", rs.getString(1));
+
+    }
+
+    @Test
+    public void testTextDefaultValue() throws Exception
+    {
+        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T16\"\n" +
+                "(\n" +
+                "\"I\" LONG VARCHAR DEFAULT 'I'\n" +
+                ",\"J\" TEXT DEFAULT 'J'\n" +
+                ",\"K\" CLOB DEFAULT 'K'\n" +
+                ")";
+        methodWatcher.executeUpdate(DDL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T16')");
+        rs.next();
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T16\" (\n" +
+                "\"I\" LONG VARCHAR DEFAULT 'I'\n" +
+                ",\"J\" CLOB(2147483647) DEFAULT 'J'\n" +
+                ",\"K\" CLOB(2147483647) DEFAULT 'K'\n" +
+                ") ;", rs.getString(1));
+
+    }
 }
