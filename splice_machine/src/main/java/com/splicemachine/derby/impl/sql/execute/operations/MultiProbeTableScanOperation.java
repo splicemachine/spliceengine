@@ -101,6 +101,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         GeneratedMethod getProbingValsFunc,
         int sortRequired,
         int inlistPosition,
+        int inlistTypeArrayItem,
         String tableName,
         String userSuppliedOptimizerOverrides,
         String indexName,
@@ -181,6 +182,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 getProbingValsFunc==null?null:getProbingValsFunc.getMethodName(),
                 sortRequired,
                 inlistPosition,
+                inlistTypeArrayItem,
                 tableVersion,
                 defaultRowFunc==null?null:defaultRowFunc.getMethodName(),
                 defaultValueMapItem
@@ -249,7 +251,11 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 datasets.add(ssb);
                 i++;
             }
-            return dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
+            // it is possible that all inlist elements are pruned
+            if (datasets.isEmpty())
+                return dataSet;
+            else
+                return dataSet.parallelProbe(datasets, operationContext).map(new SetCurrentLocatedRowAndRowKeyFunction<>(operationContext));
         }
         catch (Exception e) {
                 throw StandardException.plainWrapException(e);

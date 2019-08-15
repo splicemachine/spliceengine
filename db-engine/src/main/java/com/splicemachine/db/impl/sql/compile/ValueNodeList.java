@@ -793,6 +793,20 @@ public class ValueNodeList extends QueryTreeNodeVector
 			DataTypeDescriptor dtd = dtdList.get(i);
 			maxSize[i] = dtd.getMaximumWidth();
 			typeid[i] = dtd.getTypeName();
+
+			if (typeid[i].equals(TypeId.VARCHAR_NAME)) {
+				for (int index = 0; index < size(); index++) {
+					ValueNode valueNode = (ValueNode) elementAt(index);
+					if (valueNode instanceof ListValueNode)
+						valueNode = ((ListValueNode) valueNode).getValue(i);
+
+					CharConstantNode charConstantNode = (CharConstantNode)valueNode;
+
+					if (!(charConstantNode.getValue() instanceof SQLVarchar)) {
+						charConstantNode.setValue(new SQLVarchar(charConstantNode.getString()));
+					}
+				}
+			}
 		}
 		
 		HashSet<ValueNode> vset = new HashSet<ValueNode>(getNodes());
