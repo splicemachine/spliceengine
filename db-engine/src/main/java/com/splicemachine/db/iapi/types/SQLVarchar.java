@@ -31,12 +31,13 @@
 
 package com.splicemachine.db.iapi.types;
 
-import java.sql.Clob;
-import java.text.RuleBasedCollator;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+
+import java.sql.Clob;
+import java.text.RuleBasedCollator;
 
 /**
  * SQLVarchar represents a VARCHAR value with UCS_BASIC collation.
@@ -409,5 +410,29 @@ public class SQLVarchar
                 comparison);
     }
 
+    /* Compared to SQLChar, SQLVarchar honors the trailing space of a string */
+    @Override
+	public int hashCode()
+	{
+		if (SanityManager.DEBUG) {
+			SanityManager.ASSERT(!(this instanceof CollationElementsInterface),
+					"SQLVarchar.hashCode() does not work with collation");
+		}
+
+		try {
+			String str = getString();
+
+			if (str == null)
+			{
+				return 0;
+			} else {
+				return str.hashCode();
+			}
+		}
+		catch (StandardException se)
+		{
+			throw new RuntimeException(se);
+		}
+	}
 
 }
