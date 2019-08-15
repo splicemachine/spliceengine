@@ -260,7 +260,7 @@ public class CompilerContextImpl extends ContextImpl
         return sparkVersionInitialized;
     }
 
-        public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
+    public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
         nativeSparkAggregationMode = newValue;
     }
 
@@ -1161,6 +1161,7 @@ public class CompilerContextImpl extends ContextImpl
     private int                 nextOJLevel = 1;
     private boolean             outerJoinFlatteningDisabled;
     private boolean             ssqFlatteningForUpdateDisabled;
+    private boolean             useCalciteOptimizer = false;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.
@@ -1214,4 +1215,13 @@ public class CompilerContextImpl extends ContextImpl
     public Vector<Integer> getSkipStatsTableList() {
         return skipStatsTableList;
     }
+
+    public boolean getUseCalciteOptimizer() {
+        return useCalciteOptimizer;
+    }
+
+    public void setUseCalciteOptimizer(boolean value) {
+        useCalciteOptimizer = value;
+    }
+
 } // end of class CompilerContextImpl

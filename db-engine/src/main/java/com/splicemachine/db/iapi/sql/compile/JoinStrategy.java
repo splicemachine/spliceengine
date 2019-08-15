@@ -260,7 +260,6 @@ public interface JoinStrategy {
      * @param tableLocked    Whether or not the table is marked (in sys.systables)
      *                        as always using table locking
      * @param isolationLevel        Isolation level specified (or not) for scans
-     * @param maxMemoryPerTable    Max memory per table
      * @param genInListVals Whether or not we are going to generate IN-list
      *  values with which to probe the inner table.
      *
@@ -282,7 +281,6 @@ public interface JoinStrategy {
                     int lockMode,
                     boolean tableLocked,
                     int isolationLevel,
-                    int maxMemoryPerTable,
                     boolean genInListVals,
                     String tableVersion,
                     boolean pin,

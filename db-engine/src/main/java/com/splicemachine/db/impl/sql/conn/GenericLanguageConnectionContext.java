@@ -197,6 +197,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected TypeCompilerFactory tcf;
     protected OptimizerFactory of;
     protected LanguageConnectionFactory connFactory;
+    protected SqlPlannerFactory sqlPlannerFactory;
 
     /* 
      * A statement context is "pushed" and "popped" at the beginning and
@@ -376,6 +377,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         of=lcf.getOptimizerFactory();
         langFactory=lf;
         connFactory=lcf;
+        sqlPlannerFactory = lcf.getSqlPlannerFactory();
         this.db=db;
         this.userName=userName;
         this.groupuserlist=groupuserlist;
@@ -3961,5 +3963,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         return nljPredicatePushDownDisabled;
+    }
+
+    public SqlPlannerFactory getSqlPlannerFactory() {
+        return sqlPlannerFactory;
     }
 }

@@ -92,6 +92,7 @@ public class GenericLanguageConnectionFactory
 	private 	NodeFactory				nodeFactory;
 	private 	PropertyFactory			pf;
 	private AuthorizationFactory        authorizationFactory;
+	private     SqlPlannerFactory       sqlPlannerFactory;
 
 	private		int						nextLCCInstanceNumber;
 
@@ -322,6 +323,7 @@ public class GenericLanguageConnectionFactory
 		tcf =
 		   (TypeCompilerFactory) Monitor.startSystemModule(TypeCompilerFactory.MODULE);
 		nodeFactory = (NodeFactory) Monitor.bootServiceModule(create, this, NodeFactory.MODULE, startParams);
+		sqlPlannerFactory = (SqlPlannerFactory)Monitor.bootServiceModule(create, this, SqlPlannerFactory.MODULE, startParams);
 
 	}
 
@@ -439,5 +441,11 @@ public class GenericLanguageConnectionFactory
 			authorizationFactory = AuthorizationFactoryService.newAuthorizationFactory();
 		}
 		return authorizationFactory;
+	}
+
+	@Override
+	public SqlPlannerFactory getSqlPlannerFactory() {
+		return sqlPlannerFactory;
+
 	}
 }

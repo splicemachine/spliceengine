@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
+import com.splicemachine.db.iapi.sql.compile.SqlPlannerFactory;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
@@ -1460,5 +1461,7 @@ public interface LanguageConnectionContext extends Context {
 	String getReplicationRole();
 
     boolean isNLJPredicatePushDownDisabled();
+
+	SqlPlannerFactory getSqlPlannerFactory();
 
 }

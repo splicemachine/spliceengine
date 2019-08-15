@@ -77,7 +77,6 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
             int lockMode,
             boolean tableLocked,
             int isolationLevel,
-            int maxMemoryPerTable,
             boolean genInListVals, String tableVersion, boolean pin,
             int splits,
             String delimited,

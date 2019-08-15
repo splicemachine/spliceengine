@@ -93,6 +93,7 @@
         <scalatest.version>2.2.4</scalatest.version>
         <scalamock.version>3.1.4</scalamock.version>
         <commons.lang3.version>3.3.2</commons.lang3.version>
+        <calcite.version>1.26.0-SNAPSHOT</calcite.version>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
     </properties>
@@ -214,7 +215,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>12.0.1</version>
+                <version>16.0</version>
             </dependency>
             <dependency>
                 <groupId>com.googlecode.concurrentlinkedhashmap</groupId>

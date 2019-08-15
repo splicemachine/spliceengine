@@ -43,7 +43,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 
-class AccessPathImpl implements AccessPath{
+public class AccessPathImpl implements AccessPath{
     ConglomerateDescriptor cd=null;
     boolean coveringIndexScan=false;
     boolean nonMatchingIndexScan=false;
@@ -55,8 +55,13 @@ class AccessPathImpl implements AccessPath{
     private boolean isJoinStrategyHinted = false;
     private boolean missingHashKeyOK = false;
 
-    AccessPathImpl(Optimizer optimizer){
+    public AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
+    }
+
+    // use it to generate AcccessPathImpl object when CalcitePlanner is used
+    public AccessPathImpl() {
+        this.optimizer = null;
     }
 
     public boolean isMissingHashKeyOK(){ return missingHashKeyOK; }

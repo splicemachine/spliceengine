@@ -2376,7 +2376,6 @@ public class FromBaseTable extends FromTable {
                 getLockMode(),
                 (tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY),
                 getCompilerContext().getScanIsolationLevel(),
-                ap.getOptimizer().getMaxMemoryPerTable(),
                 multiProbing,
                 tableDescriptor.getVersion(),
                 pin,
@@ -3561,11 +3560,34 @@ public class FromBaseTable extends FromTable {
         return referencedCols;
     }
 
+    public void setReferencedCols() throws StandardException {
+        boolean isSysstatements=tableName.equals("SYS","SYSSTATEMENTS");
+        /* Template must reflect full row.
+         * Compact RCL down to partial row.
+         */
+        referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,isSysstatements,false,false);
+        resultColumns=resultColumns.compactColumns(cursorTargetTable,isSysstatements);
+    }
+
     public void setAggregateForSpecialMaxScan(AggregateNode aggrNode) {
         aggrForSpecialMaxScan = aggrNode;
     }
 
     public AggregateNode getAggregateForSpecialMaxScan() {
         return aggrForSpecialMaxScan;
+    }
+
+    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+        return baseConglomerateDescriptor;
+    }
+
+    public void setTrulyTheBestAccessPath(AccessPath accessPath) {
+        trulyTheBestAccessPath = accessPath;
+    }
+
+    public void setConditionList(PredicateList storeRestrictionList,
+                                 PredicateList nonStoreRestrictionList) {
+        this.storeRestrictionList = storeRestrictionList;
+        this.nonStoreRestrictionList = nonStoreRestrictionList;
     }
 }

@@ -49,13 +49,14 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
-import com.splicemachine.db.impl.sql.compile.ExplainNode;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
+import org.apache.calcite.plan.Context;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -81,6 +82,8 @@ public class GenericStatement implements Statement{
     private GenericStorablePreparedStatement preparedStmt;
     private String sessionPropertyValues = "null";
     private final String statementTextTrimed;
+    private String rewriteStmt;
+    private SqlPlanner planner;
 
     /**
      * Constructor for a Statement given the text of the statement in a String
@@ -444,6 +447,19 @@ public class GenericStatement implements Statement{
                 cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
             }
 
+            String useCalciteString = PropertyUtil.getCachedDatabaseProperty(lcc,
+                    Property.SPLICE_USE_CALICITE_OPTIMIZER);
+            // if database property is not set, treat it as false
+            Boolean useCalciteOptimizer = false;
+            try {
+                if (useCalciteString != null)
+                    useCalciteOptimizer = Boolean.valueOf(useCalciteString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setUseCalciteOptimizer(useCalciteOptimizer);
+
             /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
             String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
                     Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
@@ -645,6 +661,21 @@ public class GenericStatement implements Statement{
         long startTime = System.nanoTime();
         try {
 
+/*
+            if (statementText.toLowerCase().startsWith("call")) {
+                rewriteStmt = statementText;
+            } else
+            if (cc.getUseCalciteOptimizer()) {
+                if (planner == null) {
+                    SpliceContext spliceContext = new SpliceContext(lcc, cc);
+                    planner = new CalciteSqlPlanner(spliceContext);
+                }
+                rewriteStmt = planner.parse(statementText);
+            } else
+*/
+                rewriteStmt = statementText;
+
+
             StatementNode qt = parse(lcc, paramDefaults, timestamps, cc);
 
             /*
@@ -655,7 +686,7 @@ public class GenericStatement implements Statement{
 
             DataDictionary dataDictionary = lcc.getDataDictionary();
 
-            bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary);
+            bindAndOptimize(lcc, timestamps, foundInCache, qt, cc);
 
             /* we need to move the commit of nested sub-transaction
              * after we mark PS valid, during compilation, we might need
@@ -671,7 +702,14 @@ public class GenericStatement implements Statement{
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
-        } catch (StandardException e) {
+        } /*catch (ValidationException ve) {
+
+        } catch (RelConversionException rce) {
+
+        } catch (SqlParseException sqlpe) {
+
+        } */
+        catch (StandardException e) {
             lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
             throw e;
         }  finally{ // for block introduced by pushCompilerContext()
@@ -689,7 +727,7 @@ public class GenericStatement implements Statement{
 
         //Only top level statements go through here, nested statement
         //will invoke this method from other places
-        StatementNode qt=(StatementNode)p.parseStatement(statementText,paramDefaults);
+        StatementNode qt=(StatementNode)p.parseStatement(rewriteStmt,paramDefaults);
 
         timestamps[1]=getCurrentTimeMillis(lcc);
 
@@ -705,7 +743,7 @@ public class GenericStatement implements Statement{
                                  long[] timestamps,
                                  boolean foundInCache,
                                  StatementNode qt,
-                                 DataDictionary dataDictionary) throws StandardException{
+                                 CompilerContext cc) throws StandardException{
 
         try{
             // start a nested transaction -- all locks acquired by bind
@@ -765,7 +803,31 @@ public class GenericStatement implements Statement{
             if(foundInCache && qt instanceof ExplainNode){
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
             }
-            qt.optimizeStatement();
+
+            if (cc.getUseCalciteOptimizer() && !rewriteStmt.toLowerCase().startsWith("call")) {
+                if (planner == null) {
+                    Context spliceContext = lcc.getSqlPlannerFactory().newContext(lcc, cc);
+                    planner = lcc.getSqlPlannerFactory().getSqlPlanner(spliceContext);
+                }
+                ResultSetNode resultSetNode = null;
+                StatementNode stmtNode = qt;
+                QueryTreeNode parent = qt;
+                while (stmtNode instanceof StatementNode){
+                    if (stmtNode instanceof ExplainNode) {
+                        parent = stmtNode;
+                        stmtNode = ((ExplainNode) stmtNode).getPlanRoot();
+                    } else if (stmtNode instanceof CursorNode) {
+                        parent = stmtNode;
+                        resultSetNode = ((DMLStatementNode)stmtNode).getResultSetNode();
+                        break;
+                    }
+                }
+
+                QueryTreeNode convertedTree = planner.optimize(resultSetNode, rewriteStmt);
+                assert parent instanceof CursorNode: "expect CursorNode";
+                parent.init(convertedTree);
+            } else
+                qt.optimizeStatement();
             dumpOptimizedTree(lcc,qt,false);
             timestamps[3]=getCurrentTimeMillis(lcc);
 

@@ -306,6 +306,18 @@
                     <groupId>com.twitter</groupId>
                     <artifactId>parquet-avro</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.calcite</groupId>
+                    <artifactId>calcite-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.calcite</groupId>
+                    <artifactId>calcite-linq4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.calcite</groupId>
+                    <artifactId>calcite-avatica</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -341,6 +353,11 @@
                     <artifactId>bcprov-jdk15</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-core</artifactId>
+            <version>1.26.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>

@@ -139,7 +139,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             int lockMode,
             boolean tableLocked,
             int isolationLevel,
-            int maxMemoryPerTable,
             boolean genInListVals,
             String tableVersion,
             boolean pin,

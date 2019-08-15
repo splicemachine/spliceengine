@@ -710,4 +710,8 @@ public interface CompilerContext extends Context
     public boolean isSSQFlatteningForUpdateDisabled();
 
     public void setSSQFlatteningForUpdateDisabled(boolean onOff);
+
+	boolean getUseCalciteOptimizer();
+
+	void setUseCalciteOptimizer(boolean value);
 }

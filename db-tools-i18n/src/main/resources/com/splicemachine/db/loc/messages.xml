@@ -7763,6 +7763,12 @@ MessageId.java.
             </msg>
 
             <msg>
+                <name>44Y00.U</name>
+                <text>Fail to convert to Calcite operator for type '{0}'.</text>
+                <arg>condition</arg>
+            </msg>
+
+            <msg>
                 <name>46001</name>
                 <text>Exception while accessing jar file using URL '{0}'.</text>
                 <arg>url</arg>

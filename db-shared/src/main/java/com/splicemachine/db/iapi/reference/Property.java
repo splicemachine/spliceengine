@@ -1511,5 +1511,8 @@ public interface Property {
     String CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN = "disableNLJPredicatePushDown";
 
     String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
+
+    String SPLICE_USE_CALICITE_OPTIMIZER =
+            "splice.optimization.useCalcite";
 }
 

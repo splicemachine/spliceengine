@@ -1764,4 +1764,9 @@ public abstract class ResultSetNode extends QueryTreeNode{
     public boolean getContainsSelfReference() {
         return containsSelfReference;
     }
+
+    public void fillInCostEstimate(CostEstimate value) {
+        costEstimate = value;
+        finalCostEstimate = costEstimate;
+    }
 }

@@ -1377,6 +1377,9 @@ public interface SQLState {
 	String RTS_EXCEPT_RS                                               = "43Y60.U";
 	String RTS_EXCEPT                                                  = "43Y61.U";
 
+	// calcite realted errors
+	String LANG_INVADLID_CONVERSION                                    = "44Y00.U";
+
 	// com.splicemachine.db.catalog.types
 	String TI_SQL_TYPE_NAME			= "44X00.U";
 	String TI_NEXT_ERROR			= "44X05.U";
