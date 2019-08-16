@@ -129,6 +129,12 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             dateTimeFormat = in.readUTF();
         if (in.readBoolean())
             timestampFormat = in.readUTF();
+        this.dateFormatter      = new SpliceDateTimeFormatter(dateTimeFormat,
+                                                          SpliceDateTimeFormatter.FormatterType.DATE);
+        this.timestampFormatter = new SpliceDateTimeFormatter(timestampFormat,
+                                                          SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
+        this.timeFormatter      = new SpliceDateTimeFormatter(timeFormat,
+                                                          SpliceDateTimeFormatter.FormatterType.TIME);
         execRow =WriteReadUtils.getExecRowFromTypeFormatIds(ArrayUtil.readIntArray(in));
         if (in.readBoolean())
             columnIndex = ArrayUtil.readIntArray(in);
