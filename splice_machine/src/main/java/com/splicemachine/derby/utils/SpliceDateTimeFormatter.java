@@ -79,7 +79,7 @@ public class SpliceDateTimeFormatter {
                     " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                     SQLState.LANG_DATE_SYNTAX_EXCEPTION);
 
-            formatterType = FormatterType.TIME;
+            formatterType = FormatterType.DATE;
         }
         formatterType = FormatterType.TIMESTAMP;
     }
