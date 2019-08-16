@@ -35,6 +35,17 @@ public class SpliceDateTimeFormatter {
         TIME
     }
 
+    public static final String defaultDateFormatString = "yyyy-MM-dd";
+    public static final String defaultTimeFormatString = "HH:mm:ss";
+    public static final String defaultTimestampFormatString = "yyyy-MM-dd HH:mm:ss";
+
+    public static SpliceDateTimeFormatter defaultDateFormatter =
+        new SpliceDateTimeFormatter(null, FormatterType.DATE);
+    public static SpliceDateTimeFormatter defaultTimeFormatter =
+        new SpliceDateTimeFormatter(null, FormatterType.TIME);
+    public static SpliceDateTimeFormatter defaultTimestampFormatter =
+        new SpliceDateTimeFormatter(null, FormatterType.TIMESTAMP);
+
     private FormatterType formatterType;
     private final String format;
     private java.time.format.DateTimeFormatter formatter = null;
@@ -96,16 +107,16 @@ public class SpliceDateTimeFormatter {
             this.formatterType = formatterType;
             if (formatterType == FormatterType.DATE) {
                 format = "yyyy-M-d";
-                this.format = "yyyy-MM-dd";
+                this.format = defaultDateFormatString;
             }
             else if (formatterType == FormatterType.TIMESTAMP) {
                 format = "yyyy-M-d [H][:m][:s].SSSSSS";
-                this.format = "yyyy-MM-dd HH:mm:ss";
+                this.format = defaultTimestampFormatString;
                 needsTsRemoved = true;
             }
             else if (formatterType == FormatterType.TIME) {
                 format = "H:m:s";
-                this.format = "HH:mm:ss";
+                this.format = defaultTimeFormatString;
             }
             else {
                 // Leave the formatter uninitialized.
