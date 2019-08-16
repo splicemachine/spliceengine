@@ -31,6 +31,8 @@ import java.time.*;
 import java.util.Calendar;
 import java.util.Map;
 
+import static com.splicemachine.derby.utils.SpliceDateTimeFormatter.*;
+
 
 /**
  * Implementation of standard Splice Date functions,
@@ -59,8 +61,12 @@ public class SpliceDateFunctions {
     public static Timestamp
     TO_TIMESTAMP(String source, String format, SpliceDateTimeFormatter formatter) throws SQLException {
         if (source == null) return null;
-        if (formatter == null)
-            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
+        if (formatter == null) {
+            if (format == null || format.equals(defaultTimestampFormatString))
+                formatter = defaultTimestampFormatter;
+            else
+                formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
+        }
         return Timestamp.valueOf(stringWithFormatToLocalDateTime(source, formatter));
     }
 
@@ -78,8 +84,13 @@ public class SpliceDateFunctions {
     public static Timestamp
     TO_TIMESTAMP(String source, String format, ZoneId zoneId) throws SQLException {
         if (source == null) return null;
-        SpliceDateTimeFormatter formatter =
-          new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
+        SpliceDateTimeFormatter formatter;
+        if (zoneId == null &&
+            (format == null || format.equals(defaultTimestampFormatString)))
+            formatter = defaultTimestampFormatter;
+        else
+            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
+
         if (zoneId != null)
             formatter.setFormatter(formatter.getFormatter().withZone(zoneId));
 
@@ -102,7 +113,12 @@ public class SpliceDateFunctions {
 
     public static Time TO_TIME(String source, String format, ZoneId zoneId) throws SQLException {
         if (source == null) return null;
-        SpliceDateTimeFormatter formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIME);
+        SpliceDateTimeFormatter formatter;
+        if (zoneId == null &&
+            (format == null || format.equals(defaultTimeFormatString)))
+            formatter = defaultTimeFormatter;
+        else
+            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIME);
         if (zoneId != null)
             formatter.setFormatter(formatter.getFormatter().withZone(zoneId));
         if (formatter.isTimeOnlyFormat())
@@ -125,8 +141,12 @@ public class SpliceDateFunctions {
 
     public static Time TO_TIME(String source, String format, SpliceDateTimeFormatter formatter) throws SQLException {
         if (source == null) return null;
-        if (formatter == null)
-            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIME);
+        if (formatter == null) {
+            if (format == null || format.equals(defaultTimeFormatString))
+                formatter = defaultTimeFormatter;
+            else
+                formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIME);
+        }
         if (formatter.isTimeOnlyFormat())
             return Time.valueOf(stringWithFormatToLocalTime(source, formatter));
 
@@ -162,7 +182,12 @@ public class SpliceDateFunctions {
 
     public static Date TO_DATE(String source, String format, ZoneId zoneId) throws SQLException {
         if (source == null) return null;
-        SpliceDateTimeFormatter formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
+        SpliceDateTimeFormatter formatter;
+        if (zoneId == null &&
+            (format == null || format.equals(defaultDateFormatString)))
+            formatter = defaultDateFormatter;
+        else
+            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
         if (zoneId != null)
             formatter.setFormatter(formatter.getFormatter().withZone(zoneId));
 
@@ -184,9 +209,12 @@ public class SpliceDateFunctions {
 
     public static Date TO_DATE(String source, String format, SpliceDateTimeFormatter formatter) throws SQLException {
         if (source == null) return null;
-        if (formatter == null)
-            formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
-
+        if (formatter == null) {
+            if (format == null || format.equals(defaultDateFormatString))
+                formatter = defaultDateFormatter;
+            else
+                formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
+        }
         // First, try to parse a DateTime.  If unable to, try to parse a date-only value.
         // If we succeed with a parse-only format, set a flag to avoid the work of attempting to
         // parse a full timestamp the next time around.
