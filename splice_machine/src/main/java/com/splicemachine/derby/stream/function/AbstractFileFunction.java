@@ -79,17 +79,17 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
 
         this.dateFormatter      = (dateFormat == null ||
                                    dateFormat.equals(defaultDateFormatString)) ?
-                                  defaultDateFormatter :
+        DEFAULT_DATE_FORMATTER :
                                   new SpliceDateTimeFormatter(dateFormat,
                                        SpliceDateTimeFormatter.FormatterType.DATE);
         this.timestampFormatter = (timestampFormat == null ||
                                    timestampFormat.equals(defaultTimestampFormatString)) ?
-                                  defaultTimestampFormatter :
+        DEFAULT_TIMESTAMP_FORMATTER :
                                   new SpliceDateTimeFormatter(timestampFormat,
                                        SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
         this.timeFormatter      = (timeFormat == null ||
                                    timeFormat.equals(defaultTimeFormatString)) ?
-                                  defaultTimeFormatter :
+        DEFAULT_TIME_FORMATTER :
                                   new SpliceDateTimeFormatter(timeFormat,
                                        SpliceDateTimeFormatter.FormatterType.TIME);
     }
