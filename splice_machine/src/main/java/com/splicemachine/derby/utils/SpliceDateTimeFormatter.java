@@ -39,12 +39,12 @@ public class SpliceDateTimeFormatter {
     public static final String defaultTimeFormatString = "HH:mm:ss";
     public static final String defaultTimestampFormatString = "yyyy-MM-dd HH:mm:ss";
 
-    public static SpliceDateTimeFormatter defaultDateFormatter =
-        new SpliceDateTimeFormatter(null, FormatterType.DATE);
-    public static SpliceDateTimeFormatter defaultTimeFormatter =
-        new SpliceDateTimeFormatter(null, FormatterType.TIME);
-    public static SpliceDateTimeFormatter defaultTimestampFormatter =
-        new SpliceDateTimeFormatter(null, FormatterType.TIMESTAMP);
+    public static SpliceDateTimeFormatter DEFAULT_DATE_FORMATTER =
+                  SpliceDateTimeFormatter.of(FormatterType.DATE);
+    public static SpliceDateTimeFormatter DEFAULT_TIME_FORMATTER =
+                  SpliceDateTimeFormatter.of(FormatterType.TIME);
+    public static SpliceDateTimeFormatter DEFAULT_TIMESTAMP_FORMATTER =
+                  SpliceDateTimeFormatter.of(FormatterType.TIMESTAMP);
 
     private FormatterType formatterType;
     private final String format;
@@ -82,6 +82,10 @@ public class SpliceDateTimeFormatter {
             formatterType = FormatterType.DATE;
         }
         formatterType = FormatterType.TIMESTAMP;
+    }
+
+    public static SpliceDateTimeFormatter of(FormatterType formatterType) {
+        return new SpliceDateTimeFormatter(null, formatterType);
     }
 
 /**

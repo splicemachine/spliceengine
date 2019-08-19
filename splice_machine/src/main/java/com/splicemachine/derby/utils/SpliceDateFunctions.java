@@ -63,7 +63,7 @@ public class SpliceDateFunctions {
         if (source == null) return null;
         if (formatter == null) {
             if (format == null || format.equals(defaultTimestampFormatString))
-                formatter = defaultTimestampFormatter;
+                formatter = DEFAULT_TIMESTAMP_FORMATTER;
             else
                 formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
         }
@@ -87,7 +87,7 @@ public class SpliceDateFunctions {
         SpliceDateTimeFormatter formatter;
         if (zoneId == null &&
             (format == null || format.equals(defaultTimestampFormatString)))
-            formatter = defaultTimestampFormatter;
+            formatter = DEFAULT_TIMESTAMP_FORMATTER;
         else
             formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
 
@@ -116,7 +116,7 @@ public class SpliceDateFunctions {
         SpliceDateTimeFormatter formatter;
         if (zoneId == null &&
             (format == null || format.equals(defaultTimeFormatString)))
-            formatter = defaultTimeFormatter;
+            formatter = DEFAULT_TIME_FORMATTER;
         else
             formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIME);
         if (zoneId != null)
@@ -143,7 +143,7 @@ public class SpliceDateFunctions {
         if (source == null) return null;
         if (formatter == null) {
             if (format == null || format.equals(defaultTimeFormatString))
-                formatter = defaultTimeFormatter;
+                formatter = DEFAULT_TIME_FORMATTER;
             else
                 formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.TIME);
         }
@@ -185,7 +185,7 @@ public class SpliceDateFunctions {
         SpliceDateTimeFormatter formatter;
         if (zoneId == null &&
             (format == null || format.equals(defaultDateFormatString)))
-            formatter = defaultDateFormatter;
+            formatter = DEFAULT_DATE_FORMATTER;
         else
             formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
         if (zoneId != null)
@@ -211,7 +211,7 @@ public class SpliceDateFunctions {
         if (source == null) return null;
         if (formatter == null) {
             if (format == null || format.equals(defaultDateFormatString))
-                formatter = defaultDateFormatter;
+                formatter = DEFAULT_DATE_FORMATTER;
             else
                 formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
         }
