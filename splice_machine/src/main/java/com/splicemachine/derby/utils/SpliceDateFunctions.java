@@ -215,6 +215,9 @@ public class SpliceDateFunctions {
             else
                 formatter = new SpliceDateTimeFormatter(format, SpliceDateTimeFormatter.FormatterType.DATE);
         }
+        if (formatter.isDateOnlyFormat())
+            return stringWithFormatToDate(source, formatter);
+
         // First, try to parse a DateTime.  If unable to, try to parse a date-only value.
         // If we succeed with a parse-only format, set a flag to avoid the work of attempting to
         // parse a full timestamp the next time around.
