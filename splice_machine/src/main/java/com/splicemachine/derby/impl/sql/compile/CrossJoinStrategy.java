@@ -232,12 +232,13 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         innerCost.setBase(innerCost.cloneMe());
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
-        double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
+        double totalJoinedRows = outerCost.rowCount() * innerCost.rowCount();
         double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        innerCost.setRemoteCost(SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows));
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
         innerCost.setNumPartitions(outerCost.partitionCount());
@@ -262,10 +263,15 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
+        assert outerCost.localCostPerPartition() != 0d || outerCost.localCost() == 0d;
+        assert innerCost.localCostPerPartition() != 0d || innerCost.localCost() == 0d;
+        assert innerCost.remoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        assert outerCost.remoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
+        double innerLocalCost = innerCost.localCostPerPartition()*innerCost.partitionCount();
+        double innerRemoteCost = innerCost.remoteCostPerPartition()*innerCost.partitionCount();
         return outerCost.localCostPerPartition() +
-                outerCost.remoteCost() / outerCost.partitionCount() +
-                innerCost.localCost() +
-                (outerCost.rowCount()/outerCost.partitionCount())*innerCost.getRemoteCost() +
+                outerCost.remoteCostPerPartition()  +
+                (outerCost.rowCount()/outerCost.partitionCount()) * (innerLocalCost + innerRemoteCost) +
                 joiningRowCost/outerCost.partitionCount();
     }
 

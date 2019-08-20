@@ -1516,6 +1516,8 @@ public class OptimizerImpl implements Optimizer{
     private void addCost(CostEstimate addend,CostEstimate destCost){
         destCost.setRemoteCost(addend.remoteCost());
         destCost.setLocalCost(destCost.localCost()+addend.localCost());
+        destCost.setRemoteCostPerPartition(addend.remoteCostPerPartition());
+        destCost.setLocalCostPerPartition(destCost.localCostPerPartition()+addend.localCostPerPartition());
         destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
@@ -1918,6 +1920,10 @@ public class OptimizerImpl implements Optimizer{
 
         currentCost.setLocalCost(newLocalCost);
         currentCost.setRemoteCost(newRemoteCost);
+        // For join costing, cost and cost per partition are the same.
+        currentCost.setLocalCostPerPartition(newLocalCost);
+        currentCost.setRemoteCostPerPartition(newRemoteCost);
+
         currentCost.setRowCount(prevRowCount);
         currentCost.setSingleScanRowCount(prevSingleScanRowCount);
         currentCost.setBase(null);
@@ -1936,6 +1942,8 @@ public class OptimizerImpl implements Optimizer{
                 AccessPath ap=pullMe.getBestSortAvoidancePath();
                 double prevLocalCost;
                 double prevRemoteCost;
+                double prevLocalCostPerPartition;
+                double prevRemoteCostPerPartition;
 
 				/*
 				** Subtract the sort avoidance cost estimate of the
@@ -1957,6 +1965,8 @@ public class OptimizerImpl implements Optimizer{
 					 */
                     prevRemoteCost=outermostCostEstimate.remoteCost();
                     prevLocalCost=outermostCostEstimate.localCost();
+                    prevLocalCostPerPartition=outermostCostEstimate.localCostPerPartition();
+                    prevRemoteCostPerPartition=outermostCostEstimate.remoteCostPerPartition();
                 }else{
                     CostEstimate localCE= optimizableList.getOptimizable(prevPosition)
                             .getBestSortAvoidancePath().getCostEstimate();
@@ -1964,27 +1974,41 @@ public class OptimizerImpl implements Optimizer{
                     prevSingleScanRowCount=localCE.singleScanRowCount();
                     prevRemoteCost= currentSortAvoidanceCost.remoteCost()-ap.getCostEstimate().remoteCost();
                     prevLocalCost= currentSortAvoidanceCost.localCost()-ap.getCostEstimate().localCost();
+                    prevLocalCostPerPartition=currentSortAvoidanceCost.localCostPerPartition() -
+		                                  ap.getCostEstimate().localCostPerPartition();
+                    prevRemoteCostPerPartition=currentSortAvoidanceCost.remoteCostPerPartition() -
+		                                  ap.getCostEstimate().remoteCostPerPartition();
                 }
 
                 // See discussion above for "newCost"; same applies here.
                 if(prevRemoteCost<=0.0){
-                    if(joinPosition==0)
-                        prevRemoteCost=0.0;
+                    if(joinPosition==0) {
+			prevRemoteCost = 0.0;
+			prevRemoteCostPerPartition = 0.0;
+		    }
                     else{
                         prevRemoteCost= recoverCostFromProposedJoinOrder(true);
+                        // Join planning stores cost per partition in remoteCost and localCost.
+                        prevRemoteCostPerPartition = prevRemoteCost;
                     }
                 }
 
                 if(prevLocalCost<=0.0){
-                    if(joinPosition==0)
-                        prevLocalCost=0.0;
+                    if(joinPosition==0) {
+	   	        prevLocalCost = 0.0;
+		        prevLocalCostPerPartition = 0.0;
+		    }
                     else{
                         prevLocalCost= recoverCostFromProposedJoinOrder(true);
+                        // Join planning stores cost per partition in remoteCost and localCost.
+                        prevLocalCostPerPartition=prevLocalCost;
                     }
                 }
 
                 currentSortAvoidanceCost.setLocalCost(prevLocalCost);
                 currentSortAvoidanceCost.setRemoteCost(prevRemoteCost);
+                currentSortAvoidanceCost.setLocalCostPerPartition(prevLocalCostPerPartition);
+                currentSortAvoidanceCost.setRemoteCostPerPartition(prevRemoteCostPerPartition);
                 currentSortAvoidanceCost.setRowCount(prevRowCount);
                 currentSortAvoidanceCost.setSingleScanRowCount(prevSingleScanRowCount);
                 currentSortAvoidanceCost.setBase(null);

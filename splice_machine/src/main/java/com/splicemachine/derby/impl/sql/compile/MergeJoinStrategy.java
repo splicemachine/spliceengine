@@ -137,7 +137,9 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        innerCost.setRemoteCost(SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows));
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
@@ -160,12 +162,15 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
+
+        assert innerCost.remoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        double innerRemoteCost = innerCost.remoteCostPerPartition() * innerCost.partitionCount();
         if (outerTableEmpty) {
             return (outerCost.localCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
         else
             return outerCost.localCostPerPartition()+innerCost.localCostPerPartition()+
-                innerCost.remoteCost()/outerCost.partitionCount() +
+                innerRemoteCost/outerCost.partitionCount() +
                 innerCost.getOpenCost()+innerCost.getCloseCost()
                         + joiningRowCost/outerCost.partitionCount();
     }

@@ -93,7 +93,9 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double joinCost = mergeSortJoinStrategyLocalCost(innerCost, outerCost,totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        innerCost.setRemoteCost(SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost,outerCost,totalOutputRows));
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost,outerCost,totalOutputRows);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
         innerCost.setNumPartitions(outerCost.partitionCount());
@@ -137,17 +139,16 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
 
-        long innerTablePartitions = innerCost.partitionCount();
+        long outerTablePartitions = outerCost.partitionCount();
         double innerRowCount = innerCost.rowCount() > 1? innerCost.rowCount():1;
         int innerRowCountPerPartition =
-           (innerRowCount / innerTablePartitions) > Integer.MAX_VALUE ?
-           Integer.MAX_VALUE : (int)(innerRowCount / innerTablePartitions);
+           (innerRowCount / outerTablePartitions) > Integer.MAX_VALUE ?
+           Integer.MAX_VALUE : (int)(innerRowCount / outerTablePartitions);
 
         double factor = 1d;
         double innerSortCost =
             getSortCost(innerRowCountPerPartition, localLatency*factor);
 
-        long outerTablePartitions = outerCost.partitionCount();
         double outerRowCount = outerCost.rowCount() > 1? outerCost.rowCount():1;
         int outerRowCountPerPartition =
            (outerRowCount / outerTablePartitions) > Integer.MAX_VALUE ?
@@ -156,12 +157,22 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double outerSortCost =
             getSortCost(outerRowCountPerPartition, localLatency*factor);
 
-        double outerShuffleCost = outerCost.localCostPerPartition()+outerCost.getRemoteCost()/outerCost.partitionCount()
+        assert outerCost.localCostPerPartition() != 0d || outerCost.localCost() == 0d;
+        assert innerCost.localCostPerPartition() != 0d || innerCost.localCost() == 0d;
+        assert outerCost.remoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
+        assert innerCost.remoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+
+        double outerLocalCost = outerCost.localCostPerPartition()*outerCost.partitionCount();
+        double innerLocalCost = innerCost.localCostPerPartition()*innerCost.partitionCount();
+
+        double outerShuffleCost = outerCost.localCostPerPartition()
+                +outerCost.remoteCostPerPartition()*outerCost.partitionCount()
                 +outerCost.getOpenCost()+outerCost.getCloseCost();
-        double innerShuffleCost = innerCost.localCostPerPartition()+innerCost.getRemoteCost()/innerCost.partitionCount()
+        double innerShuffleCost = innerCost.localCostPerPartition()
+                +innerCost.remoteCostPerPartition()*innerCost.partitionCount()
                 +innerCost.getOpenCost()+innerCost.getCloseCost();
-        double outerReadCost = outerCost.localCost()/outerCost.partitionCount();
-        double innerReadCost = innerCost.localCost()/outerCost.partitionCount();
+        double outerReadCost = outerLocalCost/outerCost.partitionCount();
+        double innerReadCost = innerLocalCost/outerCost.partitionCount();
 
         return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost+
                innerSortCost+outerSortCost+

@@ -94,6 +94,11 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         //cost information
         newEstimate.setLocalCost(baseLocalCost+localCostPerRow*outputRows);
         newEstimate.setRemoteCost(remoteCostPerRow*outputRows);
+        int numPartitions = newEstimate.partitionCount();
+        if (numPartitions <= 0)
+            numPartitions = 1;
+        newEstimate.setLocalCostPerPartition(newEstimate.localCost()/numPartitions);
+        newEstimate.setRemoteCostPerPartition(newEstimate.remoteCost()/numPartitions);
 
         return newEstimate;
     }
