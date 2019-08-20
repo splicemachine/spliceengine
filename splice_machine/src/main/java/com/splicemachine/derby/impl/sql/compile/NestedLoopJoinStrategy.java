@@ -327,10 +327,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double innerRemoteCost = innerCost.remoteCostPerPartition()*innerCost.partitionCount();
         if (useSparkCostFormula)
             return outerCost.localCostPerPartition() +
-            //(outerCost.rowCount()/outerCost.partitionCount())*(innerLocalCost+innerRemoteCost)
                    ((outerCost.rowCount()/outerCost.partitionCount())
                     * innerLocalCost) +
-            ((outerCost.rowCount())*(innerRemoteCost))  // msirek-temp
+            ((outerCost.rowCount())*(innerRemoteCost))
                     + joiningRowCost/outerCost.partitionCount();
         else
             return outerCost.localCostPerPartition() +
