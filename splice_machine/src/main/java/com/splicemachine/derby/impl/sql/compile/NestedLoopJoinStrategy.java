@@ -272,8 +272,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setRowCount(totalRowCount);
-        double remoteCost = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalRowCount);
-        innerCost.setRemoteCost(remoteCost);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalRowCount);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, usesSpark);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
@@ -322,9 +323,14 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         // the primary key or index on the inner table, could be to sort the outer
         // table on the join key and then perform a merge join with the inner table.
 
+        double innerLocalCost = innerCost.localCostPerPartition()*innerCost.partitionCount();
+        double innerRemoteCost = innerCost.remoteCostPerPartition()*innerCost.partitionCount();
         if (useSparkCostFormula)
             return outerCost.localCostPerPartition() +
-                   (outerCost.rowCount())*(innerCost.localCost()+innerCost.getRemoteCost())
+            //(outerCost.rowCount()/outerCost.partitionCount())*(innerLocalCost+innerRemoteCost)
+                   ((outerCost.rowCount()/outerCost.partitionCount())
+                    * innerLocalCost) +
+            ((outerCost.rowCount())*(innerRemoteCost))  // msirek-temp
                     + joiningRowCost/outerCost.partitionCount();
         else
             return outerCost.localCostPerPartition() +
