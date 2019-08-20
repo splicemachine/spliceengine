@@ -300,6 +300,10 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         } else {
             costEstimate.setEstimatedRowCount(currentOffset+currentFetchFirst);
             costEstimate.setRemoteCost(scaleFactor*costEstimate.getRemoteCost());
+            int numPartitions = costEstimate.partitionCount();
+            if (numPartitions <= 0)
+                numPartitions = 1;
+            costEstimate.setRemoteCostPerPartition(costEstimate.remoteCost()/numPartitions);
         }
 
     }
@@ -335,6 +339,10 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
                 costEstimate.setFromBaseTableRows(costEstimate.getFromBaseTableRows()*scaleFactor);
                 costEstimate.setScannedBaseTableRows(costEstimate.getScannedBaseTableRows()*scaleFactor);
                 costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()*scaleFactor);
+                int numPartitions = costEstimate.partitionCount();
+                if (numPartitions <= 0)
+                    numPartitions = 1;
+                costEstimate.setRemoteCostPerPartition(costEstimate.remoteCost()/numPartitions);
         }
     }
 

@@ -276,7 +276,11 @@ public interface CostEstimate extends StoreCostResult {
 
     double localCostPerPartition();
 
+    double remoteCostPerPartition();
+
     void setLocalCostPerPartition(double localCostPerPartition);
+
+    void setRemoteCostPerPartition(double remoteCostPerPartition);
 
     double getAccumulatedMemory();
 

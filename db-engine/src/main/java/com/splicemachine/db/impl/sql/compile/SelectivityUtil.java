@@ -258,7 +258,8 @@ public class SelectivityUtil {
         int numpartitions = outerCostEstimate.partitionCount();
         if (numpartitions <= 0)
             numpartitions = 1;
-        return getTotalRemoteCost(outerCostEstimate.remoteCost(),innerCostEstimate.remoteCost(),
+        return getTotalRemoteCost(outerCostEstimate.remoteCost(),
+                                  innerCostEstimate.remoteCost(),
                 outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows)/numpartitions;
     }
 
