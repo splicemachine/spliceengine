@@ -133,7 +133,7 @@ public class ExportFile {
                 SpliceLogUtils.trace(LOG, "Deleting file: %s/%s", exportParams.getDirectory(), file);
             try {
                 if (file != null && !file.isEmpty())
-                    fileSystem.delete(exportParams.getDirectory(), file, false);
+                    fileSystem.delete(file, false);
             } catch(NoSuchFileException e) {
                 SpliceLogUtils.warn(LOG, "Unable to delete file %s/%s, but that won't prevent export.", exportParams.getDirectory(), file);
             }

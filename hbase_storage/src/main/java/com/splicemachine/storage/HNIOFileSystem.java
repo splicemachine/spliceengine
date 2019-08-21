@@ -75,7 +75,7 @@ public class HNIOFileSystem extends DistributedFileSystem{
         int index = 0;
         for (FileStatus status : statuses) {
             if (status != null && status.getPath() != null)
-                files[index++] = status.getPath().getName();
+                files[index++] = status.getPath().toString();
         }
         return files;
     }
