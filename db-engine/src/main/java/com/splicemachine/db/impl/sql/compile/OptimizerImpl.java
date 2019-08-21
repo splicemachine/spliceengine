@@ -1516,8 +1516,8 @@ public class OptimizerImpl implements Optimizer{
     private void addCost(CostEstimate addend,CostEstimate destCost){
         destCost.setRemoteCost(addend.remoteCost());
         destCost.setLocalCost(destCost.localCost()+addend.localCost());
-        destCost.setRemoteCostPerPartition(addend.remoteCostPerPartition());
-        destCost.setLocalCostPerPartition(destCost.localCostPerPartition()+addend.localCostPerPartition());
+        destCost.setRemoteCostPerPartition(addend.getRemoteCostPerPartition());
+        destCost.setLocalCostPerPartition(destCost.getLocalCostPerPartition()+addend.getLocalCostPerPartition());
         destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
@@ -1965,19 +1965,21 @@ public class OptimizerImpl implements Optimizer{
 					 */
                     prevRemoteCost=outermostCostEstimate.remoteCost();
                     prevLocalCost=outermostCostEstimate.localCost();
-                    prevLocalCostPerPartition=outermostCostEstimate.localCostPerPartition();
-                    prevRemoteCostPerPartition=outermostCostEstimate.remoteCostPerPartition();
+                    prevLocalCostPerPartition=outermostCostEstimate.getLocalCostPerPartition();
+                    prevRemoteCostPerPartition=outermostCostEstimate.getRemoteCostPerPartition();
                 }else{
-                    CostEstimate localCE= optimizableList.getOptimizable(prevPosition)
+                    CostEstimate localCE = optimizableList.getOptimizable(prevPosition)
                             .getBestSortAvoidancePath().getCostEstimate();
-                    prevRowCount=localCE.rowCount();
-                    prevSingleScanRowCount=localCE.singleScanRowCount();
-                    prevRemoteCost= currentSortAvoidanceCost.remoteCost()-ap.getCostEstimate().remoteCost();
-                    prevLocalCost= currentSortAvoidanceCost.localCost()-ap.getCostEstimate().localCost();
-                    prevLocalCostPerPartition=currentSortAvoidanceCost.localCostPerPartition() -
-		                                  ap.getCostEstimate().localCostPerPartition();
-                    prevRemoteCostPerPartition=currentSortAvoidanceCost.remoteCostPerPartition() -
-		                                  ap.getCostEstimate().remoteCostPerPartition();
+                    prevRowCount = localCE.rowCount();
+                    prevSingleScanRowCount = localCE.singleScanRowCount();
+                    prevRemoteCost = currentSortAvoidanceCost.remoteCost() -
+		                         ap.getCostEstimate().remoteCost();
+                    prevLocalCost = currentSortAvoidanceCost.localCost() -
+		                        ap.getCostEstimate().localCost();
+                    prevLocalCostPerPartition = currentSortAvoidanceCost.getLocalCostPerPartition() -
+		                                    ap.getCostEstimate().getLocalCostPerPartition();
+                    prevRemoteCostPerPartition = currentSortAvoidanceCost.getRemoteCostPerPartition() -
+		                                     ap.getCostEstimate().getRemoteCostPerPartition();
                 }
 
                 // See discussion above for "newCost"; same applies here.

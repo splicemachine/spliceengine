@@ -157,19 +157,19 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double outerSortCost =
             getSortCost(outerRowCountPerPartition, localLatency*factor);
 
-        assert outerCost.localCostPerPartition() != 0d || outerCost.localCost() == 0d;
-        assert innerCost.localCostPerPartition() != 0d || innerCost.localCost() == 0d;
-        assert outerCost.remoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
-        assert innerCost.remoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        assert outerCost.getLocalCostPerPartition() != 0d || outerCost.localCost() == 0d;
+        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
+        assert outerCost.getRemoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
+        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
 
-        double outerLocalCost = outerCost.localCostPerPartition()*outerCost.partitionCount();
-        double innerLocalCost = innerCost.localCostPerPartition()*innerCost.partitionCount();
+        double outerLocalCost = outerCost.getLocalCostPerPartition()*outerCost.partitionCount();
+        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
 
-        double outerShuffleCost = outerCost.localCostPerPartition()
-                +outerCost.remoteCostPerPartition()*outerCost.partitionCount()
+        double outerShuffleCost = outerCost.getLocalCostPerPartition()
+                +outerCost.getRemoteCostPerPartition()*outerCost.partitionCount()
                 +outerCost.getOpenCost()+outerCost.getCloseCost();
-        double innerShuffleCost = innerCost.localCostPerPartition()
-                +innerCost.remoteCostPerPartition()*innerCost.partitionCount()
+        double innerShuffleCost = innerCost.getLocalCostPerPartition()
+                +innerCost.getRemoteCostPerPartition()*innerCost.partitionCount()
                 +innerCost.getOpenCost()+innerCost.getCloseCost();
         double outerReadCost = outerLocalCost/outerCost.partitionCount();
         double innerReadCost = innerLocalCost/outerCost.partitionCount();

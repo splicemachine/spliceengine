@@ -323,16 +323,16 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         // the primary key or index on the inner table, could be to sort the outer
         // table on the join key and then perform a merge join with the inner table.
 
-        double innerLocalCost = innerCost.localCostPerPartition()*innerCost.partitionCount();
-        double innerRemoteCost = innerCost.remoteCostPerPartition()*innerCost.partitionCount();
+        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.partitionCount();
         if (useSparkCostFormula)
-            return outerCost.localCostPerPartition() +
+            return outerCost.getLocalCostPerPartition() +
                    ((outerCost.rowCount()/outerCost.partitionCount())
                     * innerLocalCost) +
             ((outerCost.rowCount())*(innerRemoteCost))
                     + joiningRowCost/outerCost.partitionCount();
         else
-            return outerCost.localCostPerPartition() +
+            return outerCost.getLocalCostPerPartition() +
                    (outerCost.rowCount()/outerCost.partitionCount())
                     * (innerCost.localCost()+innerCost.getRemoteCost()) +
                    joiningRowCost/outerCost.partitionCount();
