@@ -263,14 +263,14 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
-        assert outerCost.localCostPerPartition() != 0d || outerCost.localCost() == 0d;
-        assert innerCost.localCostPerPartition() != 0d || innerCost.localCost() == 0d;
-        assert innerCost.remoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        assert outerCost.remoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
-        double innerLocalCost = innerCost.localCostPerPartition()*innerCost.partitionCount();
-        double innerRemoteCost = innerCost.remoteCostPerPartition()*innerCost.partitionCount();
-        return outerCost.localCostPerPartition() +
-                outerCost.remoteCostPerPartition()  +
+        assert outerCost.getLocalCostPerPartition() != 0d || outerCost.localCost() == 0d;
+        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
+        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        assert outerCost.getRemoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
+        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.partitionCount();
+        return outerCost.getLocalCostPerPartition() +
+                outerCost.getRemoteCostPerPartition()  +
                 (outerCost.rowCount()/outerCost.partitionCount()) * (innerLocalCost + innerRemoteCost) +
                 joiningRowCost/outerCost.partitionCount();
     }

@@ -173,9 +173,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
-        assert innerCost.localCostPerPartition() != 0d || innerCost.localCost() == 0d;
-        assert innerCost.remoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        return (outerCost.localCostPerPartition())+((innerCost.localCostPerPartition()+innerCost.remoteCostPerPartition()) * innerCost.partitionCount())+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
+        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
+        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        return (outerCost.getLocalCostPerPartition())+((innerCost.getLocalCostPerPartition()+innerCost.getRemoteCostPerPartition()) * innerCost.partitionCount())+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
                + joiningRowCost/outerCost.partitionCount();
     }
 

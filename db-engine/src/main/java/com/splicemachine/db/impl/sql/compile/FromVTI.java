@@ -245,11 +245,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 costEstimate.setSingleScanRowCount(estimatedRowCount);
                 costEstimate.setLocalCost(estimatedCost);
                 costEstimate.setRemoteCost(estimatedCost);
-                int numPartitions = costEstimate.partitionCount();
-                if (numPartitions <= 0)
-                    numPartitions = 1;
-                costEstimate.setLocalCostPerPartition(estimatedCost/numPartitions);
-                costEstimate.setRemoteCostPerPartition(estimatedCost/numPartitions);
+                costEstimate.setLocalCostPerPartition(estimatedCost, costEstimate.partitionCount());
+                costEstimate.setRemoteCostPerPartition(estimatedCost, costEstimate.partitionCount());
 
             }
             catch (SQLException sqle)

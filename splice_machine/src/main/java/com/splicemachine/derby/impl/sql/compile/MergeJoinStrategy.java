@@ -163,13 +163,13 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
 
-        assert innerCost.remoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        double innerRemoteCost = innerCost.remoteCostPerPartition() * innerCost.partitionCount();
+        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerCost.partitionCount();
         if (outerTableEmpty) {
-            return (outerCost.localCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
+            return (outerCost.getLocalCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
         else
-            return outerCost.localCostPerPartition()+innerCost.localCostPerPartition()+
+            return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition()+
                 innerRemoteCost/outerCost.partitionCount() +
                 innerCost.getOpenCost()+innerCost.getCloseCost()
                         + joiningRowCost/outerCost.partitionCount();
