@@ -624,7 +624,8 @@ public class GenericStatement implements Statement{
                 rewriteStmt = statementText;
             } else
             if (cc.getUseCalciteOptimizer()) {
-                CalciteSqlPlanner planner = new CalciteSqlPlanner();
+                SpliceContext spliceContext = new SpliceContext(lcc);
+                CalciteSqlPlanner planner = new CalciteSqlPlanner(spliceContext);
                 rewriteStmt = planner.parse(statementText).replaceAll("`", "");
             } else
                 rewriteStmt = statementText;
