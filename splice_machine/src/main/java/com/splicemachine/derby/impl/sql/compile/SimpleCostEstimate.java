@@ -69,10 +69,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.numRows=numRows>1?numRows:1;
         this.singleScanRowCount=singleScanRowCount;
         this.numPartitions=numPartitions;
-        if (numPartitions <= 0)
-            numPartitions = 1;
-        this.localCostPerPartition = localCost/numPartitions;
-        this.remoteCostPerPartition = remoteCost/numPartitions;
+        setLocalCostPerPartition(localCost, numPartitions);
+        setLocalCostPerPartition(remoteCost, numPartitions);
     }
 
     @Override public double getOpenCost(){ return openCost; }
@@ -125,8 +123,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.projectionCost = other.getProjectionCost();
         this.projectionRows = other.getProjectionRows();
         this.scannedBaseTableRows = other.getScannedBaseTableRows();
-        this.localCostPerPartition = other.localCostPerPartition();
-        this.remoteCostPerPartition = other.remoteCostPerPartition();
+        this.localCostPerPartition = other.getLocalCostPerPartition();
+        this.remoteCostPerPartition = other.getRemoteCostPerPartition();
         this.accumulatedMemory = other.getAccumulatedMemory();
         this.setSingleRow(other.isSingleRow());
     }
@@ -369,7 +367,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
         double sumLocalCost = addend.localCost()+localCost;
         double sumRemoteCost = addend.remoteCost()+remoteCost;
-        double sumRemoteCostPerPartition = addend.remoteCostPerPartition()+remoteCostPerPartition;
+        double sumRemoteCostPerPartition = addend.getRemoteCostPerPartition()+remoteCostPerPartition;
         double rowCount = addend.rowCount()+numRows;
 
         if(retval==null)
@@ -526,7 +524,7 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public double localCostPerPartition() {
+    public double getLocalCostPerPartition() {
         return localCostPerPartition;
     }
 
@@ -536,7 +534,21 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public double remoteCostPerPartition() {
+    public void setLocalCostPerPartition(double localCost, int numPartitions) {
+        if (numPartitions <= 0)
+            numPartitions = 1;
+        setLocalCostPerPartition(localCost / numPartitions);
+    }
+
+    @Override
+    public void setRemoteCostPerPartition(double remoteCost, int numPartitions) {
+        if (numPartitions <= 0)
+            numPartitions = 1;
+        setRemoteCostPerPartition(remoteCost / numPartitions);
+    }
+
+    @Override
+    public double getRemoteCostPerPartition() {
         return remoteCostPerPartition;
     }
 
