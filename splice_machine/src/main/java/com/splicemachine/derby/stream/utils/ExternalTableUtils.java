@@ -235,19 +235,14 @@ public class ExternalTableUtils {
 
     public static boolean isEmptyDirectory(String location) throws Exception {
         String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
+        return ((files.length == 0) || (files.length == 1 && "_SUCCESS".equals(truncateFileNameFromFullPath(files[0]))));
 
-        if ((files.length == 0) || (files.length == 1 && "_SUCCESS".equals(truncateFileNameFromFullPath(files[0]))))
-            return true;
-        else
-            return false;
     }
 
     public static boolean isExisting(String location) throws Exception {
         FileInfo fileInfo = ImportUtils.getFileSystem(location).getInfo(location);
-        if (fileInfo.exists())
-            return true;
-        else
-            return false;
+        return  fileInfo.exists();
+
     }
 
     public static String truncateFileNameFromFullPath(String file)
