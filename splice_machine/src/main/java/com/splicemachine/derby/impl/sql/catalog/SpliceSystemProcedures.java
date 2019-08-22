@@ -1395,6 +1395,23 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .catalog("procName")
                             .build();
                     procedures.add(updateSystemProcedure);
+
+                    Procedure enableSchemaReplication = Procedure.newBuilder().name("ENABLE_SCHEMA_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .build();
+                    procedures.add(enableSchemaReplication);
+
+
+                    Procedure disableSchemaReplication = Procedure.newBuilder().name("DISABLE_SCHEMA_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .build();
+                    procedures.add(disableSchemaReplication);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

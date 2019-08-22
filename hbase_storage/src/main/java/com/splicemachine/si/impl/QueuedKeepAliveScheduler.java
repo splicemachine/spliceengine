@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.concurrent.ThreadLocalRandom;
@@ -86,6 +87,9 @@ public class QueuedKeepAliveScheduler implements KeepAliveScheduler{
 
         @Override
         public void run(){
+            if (SIDriver.driver().lifecycleManager().isRestoreMode()){
+                return;
+            }
             if(txn.getEffectiveState()!=Txn.State.ACTIVE){
                 return; //nothing to do, we no longer need to keep anything alive
             }

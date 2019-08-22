@@ -14,6 +14,7 @@
 
 package com.splicemachine.replication;
 
+import com.clearspring.analytics.util.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -21,16 +22,18 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.drda.RemoteUser;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.procedures.ProcedureUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.net.HostAndPort;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 
 /**
  * Created by jyuan on 2/8/19.
@@ -112,6 +115,56 @@ public class ReplicationSystemProcedure {
         }
     }
 
+    public static void ENABLE_SCHEMA_REPLICATION(String schemaName, ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            List<String> tables = getTablesFromSchema(schemaName);
+            List<Future<Void>> futures = Lists.newArrayList();
+            for (String tableName:tables) {
+                TableDescriptor td = SpliceRegionAdmin.getTableDescriptor(schemaName, tableName);
+                ConglomerateDescriptor[] conglomerateDescriptors = td.getConglomerateDescriptors();
+                ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+                for (ConglomerateDescriptor cd : conglomerateDescriptors) {
+                    long conglomerate = cd.getConglomerateNumber();
+                    EnableReplicationCallable callable = new EnableReplicationCallable(replicationManager, conglomerate);
+                    Future<Void> future = SIDriver.driver().getExecutorService().submit(callable);
+                    futures.add(future);
+                }
+            }
+            for (Future<Void> future : futures) {
+                future.get();
+            }
+            resultSets[0] = ProcedureUtils.generateResult(
+                    "Success", String.format("Enabled replication for table %s", schemaName));
+        } catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+        }
+    }
+
+    public static void DISABLE_SCHEMA_REPLICATION(String schemaName, ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            List<Future<Void>> futures = Lists.newArrayList();
+            List<String> tables = getTablesFromSchema(schemaName);
+            for (String tableName:tables) {
+                TableDescriptor td = SpliceRegionAdmin.getTableDescriptor(schemaName, tableName);
+                ConglomerateDescriptor[] conglomerateDescriptors = td.getConglomerateDescriptors();
+                ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+                for (ConglomerateDescriptor cd : conglomerateDescriptors) {
+                    long conglomerate = cd.getConglomerateNumber();
+                    DisableReplicationCallable callable = new DisableReplicationCallable(replicationManager, conglomerate);
+                    Future<Void> future = SIDriver.driver().getExecutorService().submit(callable);
+                    futures.add(future);
+                }
+            }
+            for (Future<Void> future : futures) {
+                future.get();
+            }
+            resultSets[0] = ProcedureUtils.generateResult(
+                    "Success", String.format("Enabled replication for schema %s", schemaName));
+        } catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+        }
+    }
+
     public static void SET_REPLICATION_ROLE(String role, ResultSet[] resultSets) throws StandardException, SQLException {
         try {
             ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
@@ -129,6 +182,57 @@ public class ReplicationSystemProcedure {
             resultSets[0] = ProcedureUtils.generateResult("ROLE", String.format("%s", role));
         } catch (Exception e) {
             resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+        }
+    }
+
+    private static List<String> getTablesFromSchema(String schemaName) throws SQLException{
+
+        List<String> tables = Lists.newArrayList();
+
+        String sql = "select tablename from sys.systables t, sys.sysschemas s " +
+                "where t.schemaid=s.schemaid and s.schemaname=?";
+        Connection conn = SpliceAdmin.getDefaultConn();
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setString(1, schemaName);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            tables.add(rs.getString(1));
+        }
+
+        return tables;
+    }
+
+    private static class EnableReplicationCallable implements Callable<Void> {
+        private ReplicationManager replicationManager;
+        private long conglomerate;
+
+        public EnableReplicationCallable(ReplicationManager replicationManager,
+                                         long conglomerate){
+            this.replicationManager = replicationManager;
+            this.conglomerate = conglomerate;
+        }
+
+        @Override
+        public Void call() throws StandardException {
+            replicationManager.enableTableReplication(Long.toString(conglomerate));
+            return null;
+        }
+    }
+
+    private static class DisableReplicationCallable implements Callable<Void> {
+        private ReplicationManager replicationManager;
+        private long conglomerate;
+
+        public DisableReplicationCallable(ReplicationManager replicationManager,
+                                         long conglomerate){
+            this.replicationManager = replicationManager;
+            this.conglomerate = conglomerate;
+        }
+
+        @Override
+        public Void call() throws StandardException {
+            replicationManager.disableTableReplication(Long.toString(conglomerate));
+            return null;
         }
     }
 }
