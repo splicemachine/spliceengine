@@ -35,6 +35,17 @@ public class SpliceDateTimeFormatter {
         TIME
     }
 
+    public static final String defaultDateFormatString = "yyyy-MM-dd";
+    public static final String defaultTimeFormatString = "HH:mm:ss";
+    public static final String defaultTimestampFormatString = "yyyy-MM-dd HH:mm:ss";
+
+    public static SpliceDateTimeFormatter DEFAULT_DATE_FORMATTER =
+                  SpliceDateTimeFormatter.of(FormatterType.DATE);
+    public static SpliceDateTimeFormatter DEFAULT_TIME_FORMATTER =
+                  SpliceDateTimeFormatter.of(FormatterType.TIME);
+    public static SpliceDateTimeFormatter DEFAULT_TIMESTAMP_FORMATTER =
+                  SpliceDateTimeFormatter.of(FormatterType.TIMESTAMP);
+
     private FormatterType formatterType;
     private final String format;
     private java.time.format.DateTimeFormatter formatter = null;
@@ -68,9 +79,13 @@ public class SpliceDateTimeFormatter {
                     " ISO8601 pattern such as, yyyy-MM-dd'T'HH:mm:ss.SSSZZ, yyyy-MM-dd'T'HH:mm:ssZ or yyyy-MM-dd",
                     SQLState.LANG_DATE_SYNTAX_EXCEPTION);
 
-            formatterType = FormatterType.TIME;
+            formatterType = FormatterType.DATE;
         }
         formatterType = FormatterType.TIMESTAMP;
+    }
+
+    public static SpliceDateTimeFormatter of(FormatterType formatterType) {
+        return new SpliceDateTimeFormatter(null, formatterType);
     }
 
 /**
@@ -96,16 +111,16 @@ public class SpliceDateTimeFormatter {
             this.formatterType = formatterType;
             if (formatterType == FormatterType.DATE) {
                 format = "yyyy-M-d";
-                this.format = "yyyy-MM-dd";
+                this.format = defaultDateFormatString;
             }
             else if (formatterType == FormatterType.TIMESTAMP) {
                 format = "yyyy-M-d [H][:m][:s].SSSSSS";
-                this.format = "yyyy-MM-dd HH:mm:ss";
+                this.format = defaultTimestampFormatString;
                 needsTsRemoved = true;
             }
             else if (formatterType == FormatterType.TIME) {
                 format = "H:m:s";
-                this.format = "HH:mm:ss";
+                this.format = defaultTimeFormatString;
             }
             else {
                 // Leave the formatter uninitialized.
