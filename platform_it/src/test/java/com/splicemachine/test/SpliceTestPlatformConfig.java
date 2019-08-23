@@ -329,7 +329,13 @@ class SpliceTestPlatformConfig {
         //config.setBoolean("hbase.replication.bulkload.enabled", true);
         config.set("hbase.replication.source.service", "com.splicemachine.replication.SpliceReplication");
         config.set("hbase.replication.sink.service", "com.splicemachine.replication.SpliceReplication");
-
+        config.setBoolean("replication.source.eof.autorecovery", true);
+//        config.setLong("replication.source.sleepforretrie", 10);
+//        config.setInt("replication.source.maxretriesmultiplier", 100);
+        //config.setBoolean("hbase.replication", true);
+//        config.setInt("hbase.regionserver.hlog.blocksize", 1024*1024*1024);
+//        config.setLong("hbase.regionserver.logroll.period", 120*60*1000);
+        config.set("replication.replicationsource.implementation", "com.splicemachine.replication.SpliceReplicationSource");
 
         HConfiguration.reloadConfiguration(config);
         return HConfiguration.unwrapDelegate();
