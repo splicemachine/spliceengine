@@ -11,12 +11,13 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.*;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
  * Created by yxia on 8/20/19.
  */
-public class SpliceSchema implements SchemaPlus {
+public class SpliceSchema implements Schema {
 
     private LanguageConnectionContext lcc;
     private String schemaName;
@@ -48,7 +49,10 @@ public class SpliceSchema implements SchemaPlus {
     }
 
     public Set<String> getTableNames() {
-        return null;
+        Set<String> s = new HashSet<>();
+        s.add("T1");
+        s.add("T2");
+        return s;
     }
 
     public RelProtoDataType getType(String name) {
@@ -86,11 +90,6 @@ public class SpliceSchema implements SchemaPlus {
     public Schema snapshot(SchemaVersion version) {
         return null;
     }
-
-    public SchemaPlus getParentSchema() {
-        return null;
-    }
-
     public SchemaPlus add(String name, Schema schema){
         return null;
     }
@@ -122,15 +121,13 @@ public class SpliceSchema implements SchemaPlus {
 
     }
 
-    public void setCacheEnabled(boolean cache) {
-
-    }
-
-    public boolean isCacheEnabled() {
-        return false;
-    }
-
     public String getName() {
         return schemaName;
     }
+
+   /*
+    public boolean contentsHaveChangedSince(long t1,long t2) {
+        return false;
+    }
+    */
 }

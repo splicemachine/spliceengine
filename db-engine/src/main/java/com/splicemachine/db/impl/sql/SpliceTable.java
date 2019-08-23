@@ -33,7 +33,12 @@ public class SpliceTable extends AbstractQueryableTable implements TranslatableT
     }
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
-        return null;
+        RelDataTypeFactory.FieldInfoBuilder b = typeFactory.builder();
+        b.add("a1", typeFactory.createJavaType(Integer.class));
+        b.add("b1", typeFactory.createJavaType(Integer.class));
+        b.add("c1", typeFactory.createJavaType(Integer.class));
+
+        return b.build();
     }
 
     public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {

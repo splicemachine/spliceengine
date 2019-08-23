@@ -7,6 +7,7 @@ package com.splicemachine.db.impl.sql;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -14,11 +15,14 @@ import org.apache.calcite.tools.*;
 
 public class CalciteSqlPlanner {
     public static final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
-    private SchemaPlus defaultSchema;
+
+    public static final SchemaPlus defaultSchema = Frameworks.createRootSchema(true);
+ //   public static final SchemaPlus defaultSchema = CalciteSchema.createRootSchema(true, false).plus();
     private Planner planner;
 
     public CalciteSqlPlanner(SpliceContext spliceContext) {
-        defaultSchema = new SpliceSchema(spliceContext.getLcc(), "SPLICE");
+        Schema spliceSchema = new SpliceSchema(spliceContext.getLcc(), "SPLICE");
+        defaultSchema.add("SPLICE", spliceSchema);
         FrameworkConfig config = Frameworks.newConfigBuilder()
                 .defaultSchema(defaultSchema)
                 .context(spliceContext)
@@ -29,9 +33,9 @@ public class CalciteSqlPlanner {
 
     public String parse(String sql) throws SqlParseException, ValidationException, RelConversionException {
         SqlNode parse = planner.parse(sql);
-        return parse.toString();
-   //     SqlNode validate = planner.validate(parse);
-   //     return validate.toString();
+      //  return parse.toString();
+        SqlNode validate = planner.validate(parse);
+        return validate.toString();
         /*
         RelNode tree = planner.convert(validate);
 
