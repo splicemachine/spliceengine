@@ -70,6 +70,7 @@ import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.UUIDSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -83,6 +84,8 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.*;
+
+import static com.splicemachine.SpliceKryoRegistry.getClassFromString;
 
 /**
  *
@@ -901,5 +904,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
                 return aggregator;
             }
         });
+
+        instance.register(getClassFromString("java.util.Arrays$ArrayList"),
+                          new ArraysAsListSerializer());
     }
 }
