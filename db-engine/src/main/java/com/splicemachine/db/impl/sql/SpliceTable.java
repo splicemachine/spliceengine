@@ -34,9 +34,9 @@ public class SpliceTable extends AbstractQueryableTable implements TranslatableT
 
     public RelDataType getRowType(RelDataTypeFactory typeFactory) {
         RelDataTypeFactory.FieldInfoBuilder b = typeFactory.builder();
-        b.add("a1", typeFactory.createJavaType(Integer.class));
-        b.add("b1", typeFactory.createJavaType(Integer.class));
-        b.add("c1", typeFactory.createJavaType(Integer.class));
+        b.add("A1", typeFactory.createJavaType(Integer.class));
+        b.add("B1", typeFactory.createJavaType(Integer.class));
+        b.add("C1", typeFactory.createJavaType(Integer.class));
 
         return b.build();
     }
