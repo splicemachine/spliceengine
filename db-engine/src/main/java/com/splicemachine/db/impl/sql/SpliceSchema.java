@@ -11,6 +11,7 @@ import org.apache.calcite.rel.type.RelProtoDataType;
 import org.apache.calcite.schema.*;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -76,7 +77,7 @@ public class SpliceSchema implements Schema {
     }
 
     public Set<String> getSubSchemaNames() {
-        return null;
+        return Collections.emptySet();
     }
 
     public Expression getExpression(SchemaPlus parentSchema, String name) {
