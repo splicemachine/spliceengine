@@ -12,7 +12,6 @@ import org.apache.calcite.schema.*;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -22,14 +21,16 @@ public class SpliceSchema implements Schema {
 
     private LanguageConnectionContext lcc;
     private String schemaName;
+    private boolean isRoot;
 
-    public SpliceSchema(LanguageConnectionContext lcc, String schemaName) {
+    public SpliceSchema(LanguageConnectionContext lcc, String schemaName, boolean isRoot) {
         this.lcc = lcc;
         this.schemaName = schemaName;
+        this.isRoot = isRoot;
     }
 
     public static SpliceSchema create(String name, LanguageConnectionContext lcc) {
-        return new SpliceSchema(lcc, name);
+        return new SpliceSchema(lcc, name, false);
 
     }
 
@@ -50,10 +51,7 @@ public class SpliceSchema implements Schema {
     }
 
     public Set<String> getTableNames() {
-        Set<String> s = new HashSet<>();
-        s.add("T1");
-        s.add("T2");
-        return s;
+        return Collections.emptySet();
     }
 
     public RelProtoDataType getType(String name) {
@@ -72,7 +70,21 @@ public class SpliceSchema implements Schema {
         return null;
     }
 
-    public SchemaPlus getSubSchema(String name) {
+    public Schema getSubSchema(String schemaName) {
+        // splice does not support nested schemas
+        if (isRoot) {
+            try {
+                SchemaDescriptor sd = lcc.getDataDictionary().getSchemaDescriptor(schemaName, lcc.getTransactionCompile(), true);
+                SpliceSchema subSchema = null;
+                if (sd != null) {
+                    subSchema = create(sd.getSchemaName(), lcc);
+                }
+                return subSchema;
+            } catch (StandardException e) {
+
+            }
+        }
+
         return null;
     }
 
@@ -91,7 +103,7 @@ public class SpliceSchema implements Schema {
     public Schema snapshot(SchemaVersion version) {
         return null;
     }
-    public SchemaPlus add(String name, Schema schema){
+    public Schema add(String name, Schema schema){
         return null;
     }
 

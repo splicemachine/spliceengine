@@ -8,7 +8,6 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
-import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -18,12 +17,13 @@ public class CalciteSqlPlanner {
     public static final JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
 
  //   public static final SchemaPlus defaultSchema = Frameworks.createRootSchema(true);
-    public static final SchemaPlus defaultSchema = CalciteSchema.createRootSchema(true, false).plus();
+  //  public static final SchemaPlus defaultSchema = CalciteSchema.createRootSchema(false, false).plus();
     private Planner planner;
 
     public CalciteSqlPlanner(SpliceContext spliceContext) {
-        Schema spliceSchema = new SpliceSchema(spliceContext.getLcc(), "SPLICE");
-        defaultSchema.add("SPLICE", spliceSchema);
+        SpliceSchema spliceSchema = new SpliceSchema(spliceContext.getLcc(), "", true);
+        SchemaPlus defaultSchema = CalciteSchema.createRootSchema(false, false, spliceSchema.getName(), spliceSchema).plus();
+        //defaultSchema.add("SPLICE", spliceSchema);
         FrameworkConfig config = Frameworks.newConfigBuilder()
                 .defaultSchema(defaultSchema)
                 .context(spliceContext)
