@@ -1,4 +1,4 @@
-package com.splicemachine.db.impl.sql;
+package com.splicemachine.db.impl.sql.calcite;
 
 /**
  * Created by yxia on 8/16/19.
@@ -21,7 +21,7 @@ public class CalciteSqlPlanner {
     private Planner planner;
 
     public CalciteSqlPlanner(SpliceContext spliceContext) {
-        SpliceSchema spliceSchema = new SpliceSchema(spliceContext.getLcc(), "", true);
+        SpliceSchema spliceSchema = new SpliceSchema(spliceContext.getLcc(), "", null, true);
         SchemaPlus defaultSchema = CalciteSchema.createRootSchema(false, false, spliceSchema.getName(), spliceSchema).plus();
         //defaultSchema.add("SPLICE", spliceSchema);
         FrameworkConfig config = Frameworks.newConfigBuilder()

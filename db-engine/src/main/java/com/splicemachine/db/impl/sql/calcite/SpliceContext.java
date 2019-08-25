@@ -1,4 +1,4 @@
-package com.splicemachine.db.impl.sql;
+package com.splicemachine.db.impl.sql.calcite;
 
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import org.apache.calcite.plan.Context;
@@ -9,11 +9,11 @@ import org.apache.calcite.plan.Context;
 public class SpliceContext implements Context {
     LanguageConnectionContext lcc;
 
-    SpliceContext(LanguageConnectionContext lcc) {
+    public SpliceContext(LanguageConnectionContext lcc) {
         this.lcc = lcc;
     }
 
-    LanguageConnectionContext getLcc() {
+    public LanguageConnectionContext getLcc() {
         return lcc;
     }
     public <T> T unwrap(Class<T> clazz) {

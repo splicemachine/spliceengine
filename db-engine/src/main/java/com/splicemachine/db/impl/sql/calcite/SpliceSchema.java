@@ -1,7 +1,8 @@
-package com.splicemachine.db.impl.sql;
+package com.splicemachine.db.impl.sql.calcite;
 
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -22,32 +23,33 @@ public class SpliceSchema implements Schema {
     private LanguageConnectionContext lcc;
     private String schemaName;
     private boolean isRoot;
+    private SchemaDescriptor schemaDescriptor;
 
-    public SpliceSchema(LanguageConnectionContext lcc, String schemaName, boolean isRoot) {
+    public SpliceSchema(LanguageConnectionContext lcc, String schemaName, SchemaDescriptor sd, boolean isRoot) {
         this.lcc = lcc;
         this.schemaName = schemaName;
         this.isRoot = isRoot;
+        this.schemaDescriptor = sd;
     }
 
-    public static SpliceSchema create(String name, LanguageConnectionContext lcc) {
-        return new SpliceSchema(lcc, name, false);
+    public static SpliceSchema create(String name, SchemaDescriptor sd, LanguageConnectionContext lcc) {
+        return new SpliceSchema(lcc, name, sd, false);
 
     }
 
     public Table getTable(String tableName) {
         try {
-            SchemaDescriptor sd = lcc.getDataDictionary().getSchemaDescriptor(schemaName, lcc.getTransactionCompile(), true);
-            TableDescriptor td=lcc.getDataDictionary().getTableDescriptor(tableName,sd, lcc.getTransactionCompile());
+            if (schemaDescriptor == null)
+                schemaDescriptor = lcc.getDataDictionary().getSchemaDescriptor(schemaName, lcc.getTransactionCompile(), true);
+            TableDescriptor td=lcc.getDataDictionary().getTableDescriptor(tableName, schemaDescriptor, lcc.getTransactionCompile());
             SpliceTable table = null;
             if (td != null) {
-                table = new SpliceTable(this, schemaName, td.getName(),  TableType.TABLE);
+                table = new SpliceTable(this, schemaName, td.getName(),  TableType.TABLE, td, lcc);
             }
             return table;
         } catch (StandardException e) {
-
+            throw new RuntimeException(SQLState.LANG_TABLE_NOT_FOUND,e);
         }
-
-        return null;
     }
 
     public Set<String> getTableNames() {
@@ -77,11 +79,11 @@ public class SpliceSchema implements Schema {
                 SchemaDescriptor sd = lcc.getDataDictionary().getSchemaDescriptor(schemaName, lcc.getTransactionCompile(), true);
                 SpliceSchema subSchema = null;
                 if (sd != null) {
-                    subSchema = create(sd.getSchemaName(), lcc);
+                    subSchema = create(sd.getSchemaName(), sd, lcc);
                 }
                 return subSchema;
             } catch (StandardException e) {
-
+                throw new RuntimeException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, e);
             }
         }
 
@@ -138,9 +140,4 @@ public class SpliceSchema implements Schema {
         return schemaName;
     }
 
-   /*
-    public boolean contentsHaveChangedSince(long t1,long t2) {
-        return false;
-    }
-    */
 }
