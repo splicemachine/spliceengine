@@ -147,9 +147,9 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
             for (Result r : scanner) {
                 byte[] rowKey = r.getRow();
                 long timestamp = new Long(new String(rowKey));
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "Checking snapshot taken at %d", timestamp);
-                }
+                //if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.info(LOG, "Checking snapshot taken at %d", timestamp);
+                //}
                 CellScanner s = r.cellScanner();
                 while (s.advance()) {
                     Cell cell = s.current();
@@ -157,10 +157,10 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
                     Long seqNum = Bytes.toLong(CellUtil.cloneValue(cell));
                     if (replicationProgress.containsKey(region)) {
                         long appliedSeqNum = replicationProgress.get(region);
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG,
+                        //if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.info(LOG,
                                     "region=%s, snapshot=%d, progress=%d", region, seqNum, appliedSeqNum);
-                        }
+                        //}
                         if (appliedSeqNum < seqNum) {
                             // applied seqNum is behind snapshot seqNum,cannot move timestamp forward
                             return;
@@ -170,9 +170,9 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
                 Delete d = new Delete(rowKey);
                 // We have replicated beyond this snapshot, delete it and bump up timestamp
                 snapshotTable.delete(d);
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "Deleted snapshot %d.", timestamp);
-                }
+                //if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.info(LOG, "Deleted snapshot %d.", timestamp);
+                //}
                 setTimestamp(timestamp);
             }
         }finally {
@@ -189,18 +189,18 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
             ConfigurationSource configurationSource = env.configuration().getConfigSource();
             String rootNode = configurationSource.getString(HConfiguration.SPLICE_ROOT_PATH, HConfiguration.DEFAULT_ROOT_PATH);
             String node = rootNode + HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "bump up timestamp to %d", timestamp);
-            }
+            //if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.info(LOG, "bump up timestamp to %d", timestamp);
+            //}
             byte[] data = Bytes.toBytes(timestamp);
             rzk.setData(node, data, -1 /* version */);
             timestampSource.refresh();
         }
         else {
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "current timestamp = %d. Applied changes from master until timestamp %d",
+            //if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.info(LOG, "current timestamp = %d. Applied changes from master until timestamp %d",
                         currentTimestamp, timestamp);
-            }
+            //}
         }
     }
 }

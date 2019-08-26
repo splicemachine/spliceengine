@@ -149,13 +149,13 @@ public class ReplicationSnapshotChore extends ScheduledChore {
             // add encoded region column into the put
             for (HashMap.Entry<String, Long> entry : snapshot.entrySet()) {
                 put.addColumn(cf, Bytes.toBytes(entry.getKey()), Bytes.toBytes(entry.getValue()));
-                if (LOG.isDebugEnabled()) {
+                //if (LOG.isDebugEnabled()) {
                     sb.append(String.format("{region=%s, LSN=%d}", entry.getKey(), entry.getValue()));
-                }
+                //}
             }
-            if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.debug(LOG, "ts = %d, LSNs = %s", timestamp, sb.toString());
-            }
+            //if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.info(LOG, "ts = %d, LSNs = %s", timestamp, sb.toString());
+            //}
             table.put(put);
         }
         catch (Exception e) {
