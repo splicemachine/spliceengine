@@ -1379,6 +1379,22 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getReplicationRole);
 
+                    Procedure updateAllSystemProcedures = Procedure.newBuilder()
+                            .name("SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES")
+                            .numOutputParams(0).numResultSets(0).modifiesSql()
+                            .returnType(null).isDeterministic(false)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(updateAllSystemProcedures);
+
+                    Procedure updateSystemProcedure = Procedure.newBuilder().name("SYSCS_UPDATE_SYSTEM_PROCEDURE")
+                            .numOutputParams(0).numResultSets(0).modifiesSql()
+                            .returnType(null).isDeterministic(false)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("procName")
+                            .build();
+                    procedures.add(updateSystemProcedure);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
