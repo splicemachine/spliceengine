@@ -1640,57 +1640,6 @@ public class SystemProcedures{
     }
 
     /**
-     * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
-     * the stored procedure will be dropped and then created again.
-     *
-     * @param schemaName name of the system schema
-     * @param procName   name of the system stored procedure
-     * @throws SQLException
-     */
-    public static void SYSCS_UPDATE_SYSTEM_PROCEDURE(String schemaName,String procName)
-            throws SQLException{
-        try{
-            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-            TransactionController tc=lcc.getTransactionExecute();
-            DataDictionary dd=lcc.getDataDictionary();
-
-            /*
-            ** Inform the data dictionary that we are about to write to it.
-            ** There are several calls to data dictionary "get" methods here
-            ** that might be done in "read" mode in the data dictionary, but
-            ** it seemed safer to do this whole operation in "write" mode.
-            **
-            ** We tell the data dictionary we're done writing at the end of
-            ** the transaction.
-            */
-            dd.startWriting(lcc);
-
-            dd.createOrUpdateSystemProcedure(schemaName,procName,tc);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
-        }
-    }
-
-    /**
-     * Create or update all system stored procedures.  If the system stored procedure alreadys exists in the data dictionary,
-     * the stored procedure will be dropped and then created again.
-     *
-     * @throws SQLException
-     */
-    public static void SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES()
-            throws SQLException{
-        try{
-            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-            TransactionController tc=lcc.getTransactionExecute();
-            DataDictionary dd=lcc.getDataDictionary();
-
-            dd.createOrUpdateAllSystemProcedures(tc);
-        }catch(StandardException se){
-            throw PublicAPI.wrapStandardException(se);
-        }
-    }
-
-    /**
      * Empty as much of the cache as possible. It is not guaranteed
      * that the cache is empty after this call, as statements may be kept
      * by currently executing queries, activations that are about to be garbage
