@@ -291,6 +291,19 @@ public class AuthenticationIT {
                     assertTrue(rs.next());
                     assertEquals("\"SPLICE\"", rs.getString(1));
                 }
+
+                // Test that Kryo serialization of the groupUsers list in ActivationHolder
+                // doesn't throw an exception.
+                try (ResultSet rs = s.executeQuery("select count(*) from sys.sysschemas a, sys.systables b --splice-properties joinStrategy=NESTEDLOOP\n" +
+                "where a.SCHEMAID > b.SCHEMAID")) {
+                    while (rs.next());
+                    rs.close();
+                }
+                try (ResultSet rs = s.executeQuery("select count(*) from sys.sysschemas a, sys.systables b --splice-properties joinStrategy=NESTEDLOOP, useSpark=true\n" +
+                "where a.SCHEMAID > b.SCHEMAID")) {
+                    while (rs.next());
+                    rs.close();
+                }
             }
 
             // test SpliceGroupUserVTI
