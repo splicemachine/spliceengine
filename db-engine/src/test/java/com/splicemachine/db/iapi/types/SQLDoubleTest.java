@@ -36,7 +36,7 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -83,7 +83,7 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
         @Test
         public void serdeValueData() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLDouble value = new SQLDouble(100.0d);
                 SQLDouble valueA = new SQLDouble();
                 writer.reset();
@@ -96,7 +96,7 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
         @Test
         public void serdeNullValueData() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLDouble value = new SQLDouble();
                 SQLDouble valueA = new SQLDouble();
                 value.write(writer, 0);
@@ -137,7 +137,7 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
         @Test
         public void testArray() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLArray value = new SQLArray();
                 value.setType(new SQLDouble());
                 value.setValue(new DataValueDescriptor[] {new SQLDouble(23),new SQLDouble(48), new SQLDouble(10), new SQLDouble()});

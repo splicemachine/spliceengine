@@ -38,7 +38,7 @@ import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.quantiles.ItemsUnion;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.joda.time.DateTime;
 import org.junit.Assert;
@@ -58,7 +58,7 @@ public class SQLTimestampTest extends SQLDataValueDescriptorTest {
         @Test
         public void serdeValueData() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 SQLTimestamp value = new SQLTimestamp(timestamp);
                 SQLTimestamp valueA = new SQLTimestamp();
@@ -71,7 +71,7 @@ public class SQLTimestampTest extends SQLDataValueDescriptorTest {
         @Test
         public void serdeNullValueData() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLTimestamp value = new SQLTimestamp();
                 SQLTimestamp valueA = new SQLTimestamp();
                 value.write(writer, 0);
@@ -122,7 +122,7 @@ public class SQLTimestampTest extends SQLDataValueDescriptorTest {
         @Test
         public void testArray() throws Exception {
                 UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLArray value = new SQLArray();
                 value.setType(new SQLTimestamp());
                 value.setValue(new DataValueDescriptor[] {new SQLTimestamp(new Timestamp(System.currentTimeMillis())),new SQLTimestamp(new Timestamp(System.currentTimeMillis())),

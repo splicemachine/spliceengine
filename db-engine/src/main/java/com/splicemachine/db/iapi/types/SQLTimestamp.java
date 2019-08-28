@@ -47,7 +47,7 @@ import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
+import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
@@ -1620,13 +1620,14 @@ public final class SQLTimestamp extends DataType
 	        if (isNull())
 		            unsafeRowWriter.setNullAt(ordinal);
 	        else {
-				BufferHolder holder = unsafeRowWriter.holder();
+				//BufferHolder holder = unsafeRowWriter.holder();
+				UnsafeRowWriter holder = new UnsafeRowWriter(unsafeRowWriter.cursor());
 				holder.grow(12);
-				Platform.putInt(holder.buffer, holder.cursor, encodedDate);
-		        Platform.putInt(holder.buffer, holder.cursor + 4, encodedTime);
-		        Platform.putInt(holder.buffer, holder.cursor + 8, nanos);
-		        unsafeRowWriter.setOffsetAndSize(ordinal, 12);
-				holder.cursor += 12;
+				Platform.putInt(holder.getBuffer(), holder.cursor(), encodedDate);
+		        Platform.putInt(holder.getBuffer(), holder.cursor() + 4, encodedTime);
+		        Platform.putInt(holder.getBuffer(), holder.cursor() + 8, nanos);
+		        unsafeRowWriter.write(ordinal, 12);
+				holder.increaseCursor(12);
 			}
 	    }
 
