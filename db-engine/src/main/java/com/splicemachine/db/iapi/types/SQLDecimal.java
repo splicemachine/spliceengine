@@ -93,6 +93,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		be set to null.
 
 	 */
+	private static final long serialVersionUID = -2786635811493604211L;
 	private BigDecimal	value;
 
 	public int precision = -1;
