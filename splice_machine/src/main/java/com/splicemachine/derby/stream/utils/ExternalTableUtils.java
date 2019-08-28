@@ -35,6 +35,7 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -234,17 +235,18 @@ public class ExternalTableUtils {
 
     public static boolean isEmptyDirectory(String location) throws Exception {
         String[] files = ImportUtils.getFileSystem(location).getExistingFiles(location, "*");
-        if ((files.length == 0) || (files.length == 1 && files[0].equals("_SUCCESS")))
-            return true;
-        else
-            return false;
+        return ((files.length == 0) || (files.length == 1 && "_SUCCESS".equals(truncateFileNameFromFullPath(files[0]))));
+
     }
 
     public static boolean isExisting(String location) throws Exception {
         FileInfo fileInfo = ImportUtils.getFileSystem(location).getInfo(location);
-        if (fileInfo.exists())
-            return true;
-        else
-            return false;
+        return  fileInfo.exists();
+
+    }
+
+    public static String truncateFileNameFromFullPath(String file)
+    {
+        return file.substring(file.lastIndexOf(File.separator) + 1);
     }
 }
