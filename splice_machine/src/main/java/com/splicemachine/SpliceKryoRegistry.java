@@ -78,6 +78,7 @@ import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.spark_project.guava.base.Optional;
@@ -115,6 +116,15 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
     private static volatile KryoPool spliceKryoPool;
 
+    public static Class<?> getClassFromString(String className) {
+        Class<?> foundClass = null;
+        try {
+            foundClass = Class.forName(className);
+        } catch ( final Exception e ) {
+            throw new RuntimeException( e );
+        }
+        return foundClass;
+    }
 
     public static KryoPool getInstance(){
         KryoPool kp = spliceKryoPool;
@@ -936,5 +946,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ResultSet.class, 309);
         instance.register(ResultSet[].class, 310);
         instance.register(DataValueDescriptor.class, 311);
+        instance.register(getClassFromString("java.util.Arrays$ArrayList"),
+                          new ArraysAsListSerializer(), 312);
     }
 }
