@@ -51,7 +51,9 @@ import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
 import com.splicemachine.db.impl.sql.calcite.CalciteSqlPlanner;
 import com.splicemachine.db.impl.sql.calcite.SpliceContext;
+import com.splicemachine.db.impl.sql.compile.DMLStatementNode;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
+import com.splicemachine.db.impl.sql.compile.SelectNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
@@ -88,6 +90,7 @@ public class GenericStatement implements Statement{
     private String sessionPropertyValues = "null";
     private final String statementTextTrimed;
     private String rewriteStmt;
+    private CalciteSqlPlanner planner;
 
     /**
      * Constructor for a Statement given the text of the statement in a String
@@ -622,15 +625,19 @@ public class GenericStatement implements Statement{
         long startTime = System.nanoTime();
         try {
 
-            if (statementText.toLowerCase().startsWith("values")) {
+
+            if (statementText.toLowerCase().startsWith("call")) {
                 rewriteStmt = statementText;
             } else
             if (cc.getUseCalciteOptimizer()) {
-                SpliceContext spliceContext = new SpliceContext(lcc);
-                CalciteSqlPlanner planner = new CalciteSqlPlanner(spliceContext);
-                rewriteStmt = planner.parse(statementText).replaceAll("`", "");
+                if (planner == null) {
+                    SpliceContext spliceContext = new SpliceContext(lcc);
+                    planner = new CalciteSqlPlanner(spliceContext);
+                }
+                rewriteStmt = planner.parse(statementText);
             } else
                 rewriteStmt = statementText;
+
 
             StatementNode qt = parse(lcc, paramDefaults, timestamps, cc);
 
@@ -642,7 +649,7 @@ public class GenericStatement implements Statement{
 
             DataDictionary dataDictionary = lcc.getDataDictionary();
 
-            bindAndOptimize(lcc, timestamps, foundInCache, qt, dataDictionary);
+            bindAndOptimize(lcc, timestamps, foundInCache, qt, cc);
 
             /* we need to move the commit of nested sub-transaction
              * after we mark PS valid, during compilation, we might need
@@ -699,7 +706,7 @@ public class GenericStatement implements Statement{
                                  long[] timestamps,
                                  boolean foundInCache,
                                  StatementNode qt,
-                                 DataDictionary dataDictionary) throws StandardException{
+                                 CompilerContext cc) throws StandardException{
 
         try{
             // start a nested transaction -- all locks acquired by bind
@@ -759,6 +766,15 @@ public class GenericStatement implements Statement{
             if(foundInCache && qt instanceof ExplainNode){
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
             }
+
+            if (cc.getUseCalciteOptimizer() && !rewriteStmt.toLowerCase().startsWith("call")) {
+                if (planner == null) {
+                    SpliceContext spliceContext = new SpliceContext(lcc);
+                    CalciteSqlPlanner planner = new CalciteSqlPlanner(spliceContext);
+                }
+                String relStr = planner.derby2Rel(rewriteStmt, (SelectNode)((DMLStatementNode)qt).getResultSetNode());
+            }
+
             qt.optimizeStatement();
             dumpOptimizedTree(lcc,qt,false);
             timestamps[3]=getCurrentTimeMillis(lcc);

@@ -10,8 +10,11 @@ import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
+import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.*;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
@@ -91,7 +94,9 @@ public class SpliceTable extends AbstractQueryableTable implements TranslatableT
     }
 
     public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-        return null;
+        final RelOptCluster cluster = context.getCluster();
+        final TableScan scan = LogicalTableScan.create(cluster, relOptTable);
+        return scan;
     }
 
     public <T> Queryable<T> asQueryable(QueryProvider queryProvider,
