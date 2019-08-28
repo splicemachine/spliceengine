@@ -454,14 +454,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 					.ownerClass(SYSTEM_PROCEDURES)
 					.build()
 			,
-			Procedure.newBuilder().name("SYSCS_UPDATE_SYSTEM_PROCEDURE")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.catalog("schemaName")
-					.catalog("procName")
-					.build()
-			,
 				/*
                  * PLEASE NOTE:
                  * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
@@ -488,12 +480,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 //                .catalog("procName")
 //                .build()
 //                ,
-			Procedure.newBuilder().name("SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.build()
-			,
 			Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE")
 					.numOutputParams(0).numResultSets(0).modifiesSql()
 					.returnType(null).isDeterministic(false)
