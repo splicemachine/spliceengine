@@ -877,6 +877,39 @@
         </profile>
 
         <profile>
+            <id>cdh6.3.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh6.3.0</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>6.3.0</cdh.parcel.version>
+                <envClassifier>6.3.0</envClassifier>
+                <envHbase>hbase2.1.4</envHbase>
+                <hadoop.version>3.0.0-cdh6.3.0</hadoop.version>
+                <hbase.version>2.1.4-cdh6.3.0</hbase.version>
+                <hive.version>2.1.1-cdh6.3.0</hive.version>
+                <spark.major.version>spark2.4</spark.major.version>
+                <zookeeper.version>3.4.5-cdh6.3.0</zookeeper.version>
+                <spark.version>2.4.0-cdh6.3.0</spark.version>
+                <kafka.version>2.2.1-cdh6.3.0</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+                <parquet.version>parquet-cloudera</parquet.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>platform_it</module>
+                <module>splice_spark</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+
+        <profile>
             <id>dbaas</id>
             <activation>
                 <property>
