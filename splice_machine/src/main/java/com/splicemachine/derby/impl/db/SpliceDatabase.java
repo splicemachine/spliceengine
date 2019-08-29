@@ -406,9 +406,6 @@ public class SpliceDatabase extends BasicDatabase{
                         break;
                     case SET_DATABASE_PROPERTY:
                         DDLUtils.preSetDatabaseProperty(change, dataDictionary, dependencyManager);
-                        break;
-                    case UPDATE_SYSTEM_PROCEDURES:
-                        DDLUtils.preUpdateSystemProcedures(change, dataDictionary);
                 }
                 final List<DDLAction> ddlActions = new ArrayList<>();
                 ddlActions.add(new AddIndexToPipeline());
