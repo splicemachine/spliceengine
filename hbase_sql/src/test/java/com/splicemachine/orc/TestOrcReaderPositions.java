@@ -24,8 +24,10 @@ import io.airlift.units.DataSize;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
-import org.apache.hadoop.hive.ql.io.orc.*;
-import org.apache.hadoop.hive.ql.io.orc.OrcFile.WriterOptions;
+import org.apache.hadoop.hive.ql.io.orc.OrcFile;
+import org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat;
+import org.apache.hadoop.hive.ql.io.orc.OrcSerde;
+import org.apache.hadoop.hive.ql.io.orc.Writer;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.Serializer;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
@@ -43,8 +45,8 @@ import java.util.Map;
 import static com.splicemachine.orc.OrcTester.Format.ORC_12;
 import static com.splicemachine.orc.OrcTester.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.hadoop.hive.ql.io.orc.CompressionKind.SNAPPY;
 import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory.javaLongObjectInspector;
+import static org.apache.orc.CompressionKind.SNAPPY;
 import static org.junit.Assert.assertEquals;
 
 public class TestOrcReaderPositions
