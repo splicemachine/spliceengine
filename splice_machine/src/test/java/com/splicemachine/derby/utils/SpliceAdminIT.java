@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
+import java.io.File;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -22,11 +23,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.db.client.am.Connection;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import org.apache.commons.dbutils.DbUtils;
+import org.apache.commons.io.FileUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -63,6 +66,12 @@ public class SpliceAdminIT extends SpliceUnitTest{
     @Before
     public void initTableDAO() throws Exception {
         tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+    }
+
+    @AfterClass
+    public static void cleanup() throws Exception {
+        spliceClassWatcher.execute("call SYSCS_UTIL.SYSCS_DROP_USER('testuser1')");
+        spliceClassWatcher.execute("call SYSCS_UTIL.SYSCS_DROP_USER('testuser2')");
     }
 
     private static final String SQL = "\tsum(l_extendedprice* (1 - l_discount)) as revenue\n" +
@@ -474,5 +483,47 @@ public class SpliceAdminIT extends SpliceUnitTest{
         } finally {
             conn.rollback();
         }
+    }
+
+    @Test
+    public void testUpdateALLSystemProcedures() throws Exception {
+        TestConnection connection = methodWatcher.createConnection();
+        connection.execute("call syscs_util.invalidate_global_dictionary_cache()");
+
+        //Create a user and grant execute privilege
+        connection.execute("call SYSCS_UTIL.SYSCS_CREATE_USER('testuser1','testuser1')");
+        connection.execute("grant execute on procedure syscs_util.syscs_get_running_operations_local to testuser1");
+        connection.execute("grant execute on procedure syscs_util.syscs_get_running_operations to testuser1");
+
+        // User execute routine to populate cache
+        TestConnection userConnection = methodWatcher.createConnection("testuser1", "testuser1");
+        userConnection.execute("call syscs_util.syscs_get_running_operations()");
+
+        // Update system procedures
+        connection.execute("call SYSCS_UTIL.SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES()");
+
+        // The user should be able to execute again
+        userConnection.execute("call syscs_util.syscs_get_running_operations()");
+    }
+
+    @Test
+    public void testUpdateSystemProcedure() throws Exception {
+        TestConnection connection = methodWatcher.createConnection();
+        connection.execute("call syscs_util.invalidate_global_dictionary_cache()");
+        //Create a user and grant execute privilege
+        connection.execute("call SYSCS_UTIL.SYSCS_CREATE_USER('testuser2','testuser2')");
+        connection.execute("grant execute on procedure syscs_util.syscs_get_running_operations_local to testuser2");
+        connection.execute("grant execute on procedure syscs_util.syscs_get_running_operations to testuser2");
+
+        // User execute routine to populate cache
+        TestConnection userConnection = methodWatcher.createConnection("testuser2", "testuser2");
+        userConnection.execute("call syscs_util.syscs_get_running_operations()");
+
+        // Update system procedures
+        connection.execute("call SYSCS_UTIL.SYSCS_UPDATE_SYSTEM_PROCEDURE('SYSCS_UTIL', 'SYSCS_GET_RUNNING_OPERATIONS')");
+        connection.execute("call SYSCS_UTIL.SYSCS_UPDATE_SYSTEM_PROCEDURE('SYSCS_UTIL', 'SYSCS_GET_RUNNING_OPERATIONS_LOCAL')");
+
+        // The user should be able to execute again
+        userConnection.execute("call syscs_util.syscs_get_running_operations()");
     }
 }
