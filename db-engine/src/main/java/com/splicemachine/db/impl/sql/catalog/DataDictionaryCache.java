@@ -317,9 +317,6 @@ public class DataDictionaryCache {
         spsNameCache.put(tableKey, sps);
     }
 
-    public void clearSpsNameCache() throws StandardException {
-        spsNameCache.invalidateAll();
-    }
     public void storedPreparedStatementCacheAdd(SPSDescriptor desc) throws StandardException {
         if (!dd.canWriteCache(null))
             return;
@@ -336,9 +333,6 @@ public class DataDictionaryCache {
         return storedPreparedStatementCache.getIfPresent(uuid);
     }
 
-    public void clearStoredPreparedStatementCache() {
-        storedPreparedStatementCache.invalidateAll();
-    }
 
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
         if (!dd.canReadCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER)
@@ -479,10 +473,6 @@ public class DataDictionaryCache {
         defaultRoleCache.invalidateAll();
         roleGrantCache.invalidateAll();
         tokenCache.invalidateAll();
-    }
-
-    public void clearAliasCache() {
-        aliasDescriptorCache.invalidateAll();
     }
 
     public void clearSchemaCache(){

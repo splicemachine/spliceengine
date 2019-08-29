@@ -26,7 +26,6 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.ddl.DDLMessage;
@@ -1119,34 +1118,6 @@ public class DDLUtils {
             prepared = transactionResource.marshallTransaction(txn);
             //remove corresponding defaultRole entry
             dd.getDataDictionaryCache().propertyCacheRemove(change.getSetDatabaseProperty().getPropertyName());
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        } finally {
-            if (prepared) {
-                transactionResource.close();
-            }
-        }
-
-    }
-
-    public static void preUpdateSystemProcedures(DDLMessage.DDLChange change, DataDictionary dd) throws StandardException {
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"preUpdateSystemProcedures with change=%s",change);
-        SpliceTransactionResourceImpl transactionResource = null;
-        boolean prepared = false;
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            transactionResource = new SpliceTransactionResourceImpl();
-            prepared = transactionResource.marshallTransaction(txn);
-            //clear alias cache
-            DataDictionaryCache dc = dd.getDataDictionaryCache();
-            dc.clearAliasCache();
-            dc.clearStatementCache();
-            dc.clearPermissionCache();
-            dc.clearSpsNameCache();
-            dc.clearStoredPreparedStatementCache();
 
         } catch (Exception e) {
             e.printStackTrace();

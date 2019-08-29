@@ -68,8 +68,6 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,7,0, 1849), new UpgradeScriptToRemoveFKDependencyOnPrivileges(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,7,0, 1851), new UpgradeScriptToAddUseExtrapolationInSysColumns(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,7,0, 1901), new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
-        // Two system procedures are moved, so we need to run base script to update all system procedures
-        scripts.put(new Splice_DD_Version(sdd,2,7,0, 1928), new UpgradeScriptBase(sdd,tc));
     }
 
     public void run() throws StandardException{
