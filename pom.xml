@@ -886,7 +886,7 @@
             </activation>
             <properties>
                 <cdh.parcel.version>6.3.0</cdh.parcel.version>
-                <envClassifier>6.3.0</envClassifier>
+                <envClassifier>cdh6.3.0</envClassifier>
                 <envHbase>hbase2.1.4</envHbase>
                 <hadoop.version>3.0.0-cdh6.3.0</hadoop.version>
                 <hbase.version>2.1.0-cdh6.3.0</hbase.version>
