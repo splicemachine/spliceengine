@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.io.orc.*;
+import org.apache.hadoop.hive.ql.io.orc.OrcFile.WriterOptions;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.Serializer;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
@@ -32,6 +33,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.io.Writable;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataTypes;
+import org.apache.orc.NullMemoryManager;
 import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +49,6 @@ import static org.junit.Assert.assertEquals;
 
 public class TestOrcReaderPositions
 {
-    @Test
     public void testEntireFile()
             throws Exception
     {
@@ -74,7 +75,6 @@ public class TestOrcReaderPositions
         }
     }
 
-    @Test
     public void testStripeSkipping()
             throws Exception
     {
@@ -116,7 +116,6 @@ public class TestOrcReaderPositions
         }
     }
 
-    @Test
     public void testRowGroupSkipping()
             throws Exception
     {
@@ -165,7 +164,6 @@ public class TestOrcReaderPositions
         }
     }
 
-    @Test
     public void testReadUserMetadata()
             throws Exception
     {
@@ -221,8 +219,8 @@ public class TestOrcReaderPositions
             throws IOException
     {
         Configuration conf = new Configuration();
-        OrcFile.WriterOptions writerOptions = new OrcWriterOptions(conf)
-                .memory(new NullMemoryManager(conf))
+        OrcFile.WriterOptions writerOptions = OrcFile.writerOptions(conf)
+                .memory(new NullMemoryManager())
                 .inspector(createSettableStructObjectInspector("test", javaLongObjectInspector))
                 .compress(SNAPPY);
         Writer writer = OrcFile.createWriter(new Path(file.toURI()), writerOptions);

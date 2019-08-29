@@ -21,7 +21,6 @@ import org.junit.Test;
  */
 public class OrcReaderIT {
 
-    @Test
     public void foo() {
 
     }

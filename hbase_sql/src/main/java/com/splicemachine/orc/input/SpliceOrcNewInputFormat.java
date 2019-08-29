@@ -60,7 +60,7 @@ public class SpliceOrcNewInputFormat extends InputFormat<NullWritable,Row>
         Configuration configuration = jobContext.getConfiguration();
 
         // Filter Based On Partition Logic
-        List<InputSplit> inputSplits = SpliceOrcUtils.getSplits(jobContext);
+        List<InputSplit> inputSplits = getSplits(jobContext);
         final List<Integer> partitions = getReadColumnIDs(SPLICE_PARTITIONS,jobContext.getConfiguration());
         final List<Integer> columns = getReadColumnIDs(SPLICE_COLUMNS,jobContext.getConfiguration());
         final StructType structType = getRowStruct(configuration);
