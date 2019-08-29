@@ -59,7 +59,7 @@ public class SpliceTestPlatformWait {
         int port = Integer.valueOf(arguments[1]);
 
 
-        if (!wait(hostname, port, 180L)) {
+        if (!wait(hostname, port, 360L)) {
             System.exit(-1);
         }
 
