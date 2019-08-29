@@ -35,8 +35,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.io.Writable;
 import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataTypes;
-import org.apache.orc.NullMemoryManager;
-import org.junit.Test;
+import org.apache.orc.impl.NullMemoryManager;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -222,7 +222,7 @@ public class TestOrcReaderPositions
     {
         Configuration conf = new Configuration();
         OrcFile.WriterOptions writerOptions = OrcFile.writerOptions(conf)
-                .memory(new NullMemoryManager())
+                // .memory(new NullMemoryManager(new Configuration()))
                 .inspector(createSettableStructObjectInspector("test", javaLongObjectInspector))
                 .compress(SNAPPY);
         Writer writer = OrcFile.createWriter(new Path(file.toURI()), writerOptions);

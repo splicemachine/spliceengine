@@ -1,4 +1,4 @@
-package org.apache.orc;
+package org.apache.orc.impl;
 
 
 /*
@@ -15,10 +15,14 @@ package org.apache.orc;
  * limitations under the License.
  */
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
-public class NullMemoryManager implements MemoryManager
-{
+public class NullMemoryManager extends MemoryManager {
+    public NullMemoryManager(Configuration conf) {
+        super(conf);
+    }
+
     @Override
     public void addWriter(Path path, long requestedAllocation, Callback callback) {}
 
