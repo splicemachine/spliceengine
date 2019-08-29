@@ -571,14 +571,6 @@ public class ProtoUtil {
         return DDLChange.newBuilder().setDdlChangeType(DDLChangeType.REVOKE_PRIVILEGE)
                 .setTxnId(txnId).setRevokePrivilege(revokePrivilege).build();
     }
-
-    public static DDLChange createUpdateSystemProcedure(long txnId) {
-        return DDLChange.newBuilder()
-                .setDdlChangeType(DDLChangeType.UPDATE_SYSTEM_PROCEDURES)
-                .setTxnId(txnId)
-                .setUpdateSystemProcedures(UpdateSystemProcedures.newBuilder())
-                .build();
-    }
 }
 
 
