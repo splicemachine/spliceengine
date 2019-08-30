@@ -129,7 +129,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
                               table.getTableDescriptor(),
                               connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getRegionInfo(),
                               scan,
-                              connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getHostnamePort())){
+                              connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getHostnamePort(),false)){
                 List results=new ArrayList();
                 while(clientSideRegionScanner.nextRaw(results)){
                     i++;
@@ -161,7 +161,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
                              table.getTableDescriptor(),
                              connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getRegionInfo(),
                              scan,
-                             connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getHostnamePort())) {
+                             connection.getRegionLocator(tableName).getRegionLocation(scan.getStartRow()).getHostnamePort(),false)) {
                 List results = new ArrayList();
                 while (clientSideRegionScanner.nextRaw(results)) {
                     i++;

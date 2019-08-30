@@ -43,10 +43,10 @@ public class HBase10ClientSideRegionScanner extends SkeletonClientSideRegionScan
                                           Path rootDir,
                                           HTableDescriptor htd,
                                           HRegionInfo hri,
-                                          Scan scan, String hostAndPort) throws IOException{
+                                          Scan scan, String hostAndPort, boolean refresh) throws IOException{
         super(jobConfig,fs,rootDir,htd,hri,scan,hostAndPort);
         this.table = table;
-        updateScanner();
+        updateScanner(refresh);
     }
 
     @Override

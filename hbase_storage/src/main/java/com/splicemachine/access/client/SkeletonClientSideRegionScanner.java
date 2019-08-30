@@ -18,9 +18,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.CachedReferenceCountedPartition;
+import com.splicemachine.storage.RegionPartition;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -38,6 +44,10 @@ import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
+import org.spark_project.guava.cache.RemovalListener;
+import org.spark_project.guava.cache.RemovalNotification;
 
 /**
  * 
@@ -46,7 +56,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
     private boolean isClosed = false;
     private static final Logger LOG = Logger.getLogger(SkeletonClientSideRegionScanner.class);
-	private HRegion region;
+	private CachedReferenceCountedPartition region;
 	private RegionScanner scanner;
 	private Configuration conf;
 	private FileSystem fs;
@@ -147,7 +157,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 	 * refresh underlying RegionScanner we call this when new store file gets
 	 * created by MemStore flushes or current scanner fails due to compaction
 	 */
-	public void updateScanner() throws IOException {
+	public void updateScanner(boolean refresh) throws IOException {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG,
                         "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",
@@ -164,8 +174,9 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                 }
             }
             memScannerList.add(getMemStoreScanner());
-            this.region = openHRegion();
-            RegionScanner regionScanner = new CountingRegionScanner(BaseHRegionUtil.getScanner(region, scan, memScannerList), region, scan);
+            this.region = openHRegion(refresh);
+            HRegion hRegion = ((RegionPartition)region.unwrapDelegate()).unwrapDelegate();
+            RegionScanner regionScanner = new CountingRegionScanner(BaseHRegionUtil.getScanner(hRegion, scan, memScannerList), hRegion, scan);
             if (flushed) {
                 if (scanner != null)
                     scanner.close();
@@ -173,7 +184,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             scanner = regionScanner;
 	}
 
-    public HRegion getRegion(){
+    public CachedReferenceCountedPartition getRegion(){
         return region;
     }
 
@@ -186,7 +197,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"received flush message " + results.get(0));
             flushed = true;
-            updateScanner();
+            updateScanner(false);
             flushed = false;
             results.clear();
             return nextRaw(results);
@@ -219,13 +230,58 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                 result.clear();
                 return nextMerged(result);
             }
-        }
+    }
         return res;
     }
 
-    private HRegion openHRegion() throws IOException {
+    private CachedReferenceCountedPartition openHRegion(boolean refresh) throws IOException {
+        Cache<Long, Cache<String, CachedReferenceCountedPartition>> regionCache = SIDriver.driver().getRegionCache();
+        TxnOperationFactory operationFactory=SIDriver.driver().getOperationFactory();
+        byte[] txnData = scan.getAttribute(SIConstants.SI_TRANSACTION_ID_KEY);
+        if (txnData == null) {
+            return openHRegionWithNoCaching();
+        }
+        TxnView txn = operationFactory.fromWrites(txnData,0,txnData.length);
+        Long txnId = txn.getTxnId();
+        Cache<String, CachedReferenceCountedPartition> cache = null;
+
         try {
-            return HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
+            cache = regionCache.getIfPresent(txnId);
+            if (cache == null) {
+                RemovalListener<String, CachedReferenceCountedPartition> listener=
+                        new RemovalListener<String, CachedReferenceCountedPartition>() {
+                            @Override
+                            public void onRemoval(RemovalNotification<String, CachedReferenceCountedPartition> n) {
+                                n.getValue().markAsEvicted();
+                            }
+                        };
+                cache = CacheBuilder.newBuilder()
+                        .expireAfterAccess(20, TimeUnit.SECONDS)
+                        .removalListener(listener)
+                        .build();
+                regionCache.put(txnId, cache);
+            }
+
+            CachedReferenceCountedPartition partition = cache.getIfPresent(hri.getEncodedName());
+            if (!refresh && partition != null && partition.retain()) {
+                // increment reference count by 1. The increment will be cleared when the region closes.
+                return partition;
+            }
+
+            // invalidate cached HRegion and re-create another one if region flushed, compacted ot splitted
+            if (refresh && partition != null) {
+                cache.invalidate(hri.getEncodedName());
+            }
+
+            HRegion hRegion =  HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
+            // Create a cached instance of HRegion with reference count 1. The count will be cleared when the instance
+            // is evicted from cache
+            partition = new CachedReferenceCountedPartition(new RegionPartition(hRegion));
+            // Increment reference count by 1. The increment will be cleared when the region closes
+            partition.retain();
+            cache.put(hri.getEncodedName(), partition);
+            SpliceLogUtils.error(LOG, "Create HRegion for %s", hri.getEncodedName());
+            return partition;
         } catch (AccessControlException e) {
             // Our user doesn't have direct HBase access in HDFS, let's try to get proxy access through SpliceMachine
             if (fs instanceof DistributedFileSystem) {
@@ -233,7 +289,35 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                 if (connectionURL != null) {
                     customFilesystem = new ProxiedFilesystem((DistributedFileSystem) fs, connectionURL);
                     customFilesystem.initialize(fs.getUri(), fs.getConf());
-                    return HRegion.openHRegion(conf, customFilesystem, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
+                    HRegion hRegion = HRegion.openHRegion(conf, customFilesystem, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
+                    CachedReferenceCountedPartition partition = new CachedReferenceCountedPartition(new RegionPartition(hRegion));
+                    partition.retain();
+                    cache.put(hri.getEncodedName(), partition);
+                    return partition;
+                }
+            }
+            throw e;
+        }
+    }
+
+    private CachedReferenceCountedPartition openHRegionWithNoCaching() throws IOException {
+        try {
+            HRegion hRegion = HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
+            // Create a cached instance of HRegion with reference count 1. The count will be cleared when the instance
+            // is evicted from cache
+            CachedReferenceCountedPartition partition = new CachedReferenceCountedPartition(new RegionPartition(hRegion));
+            return partition;
+
+        } catch (AccessControlException e) {
+            // Our user doesn't have direct HBase access in HDFS, let's try to get proxy access through SpliceMachine
+            if (fs instanceof DistributedFileSystem) {
+                String connectionURL = conf.get(MRConstants.SPLICE_CONNECTION_STRING);
+                if (connectionURL != null) {
+                    customFilesystem = new ProxiedFilesystem((DistributedFileSystem) fs, connectionURL);
+                    customFilesystem.initialize(fs.getUri(), fs.getConf());
+                    HRegion hRegion = HRegion.openHRegion(conf, customFilesystem, rootDir, hri, new ReadOnlyTableDescriptor(htd), null, null, null);
+                    CachedReferenceCountedPartition partition = new CachedReferenceCountedPartition(new RegionPartition(hRegion));
+                    return partition;
                 }
             }
             throw e;
@@ -263,7 +347,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     @Override
     public String toString() {
-        return String.format("SkeletonClienSideregionScanner[scan=%s,region=%s,numberOfRows=%d",scan,region.getRegionInfo(),numberOfRows);
+        HRegion hRegion = ((RegionPartition)region.unwrapDelegate()).unwrapDelegate();
+        return String.format("SkeletonClienSideregionScanner[scan=%s,region=%s,numberOfRows=%d",scan,hRegion,numberOfRows);
     }
 
     public Cell getTopCell() {
