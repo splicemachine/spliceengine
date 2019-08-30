@@ -29,6 +29,7 @@ import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.CachedReferenceCountedPartition;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.SplitRegionScanner;
@@ -55,6 +56,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
     protected static final Logger LOG = Logger.getLogger(SMRecordReaderImpl.class);
 	protected Table htable;
 	protected HRegion hregion;
+	protected CachedReferenceCountedPartition cachedReferenceCountedPartition;
 	protected Configuration config;
 	protected RegionScanner mrs;
 	protected SITableScanner siTableScanner;
@@ -214,7 +216,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 		addCloseable(htable);
 	}
 	
-	public void restart(byte[] firstRow) throws IOException {		
+	public void restart(byte[] firstRow) throws IOException {
 		Scan newscan = scan;
 		newscan.setStartRow(firstRow);
         setScan(newscan);
@@ -243,7 +245,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 					driver.getConfiguration(),
 					config
 			);
-			this.hregion = srs.getRegion();
+            cachedReferenceCountedPartition = srs.getRegion();
+            this.hregion = ((RegionPartition)cachedReferenceCountedPartition.unwrapDelegate()).unwrapDelegate();
 			this.mrs = srs;
 			ExecRow template = getExecRow();
             assert this.hregion !=null:"Returned null HRegion for htable "+htable.getName();

@@ -31,6 +31,7 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.impl.CachedReferenceCountedPartition;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.SplitRegionScanner;
@@ -73,15 +74,17 @@ public class HregionDataSetProcessor extends ControlDataSetProcessor {
                             table,
                             clock,
                             partition, driver.getConfiguration(), table.getConfiguration());
-                    final HRegion hregion = srs.getRegion();
+                    final CachedReferenceCountedPartition cachedReferenceCountedPartition = srs.getRegion();
+                    cachedReferenceCountedPartition.retain();
                     ExecRow template = getTemplate();
                     spliceOperation.registerCloseable(new AutoCloseable() {
                         @Override
                         public void close() throws Exception {
-                            hregion.close();
+                            cachedReferenceCountedPartition.close();
                         }
                     });
 
+                    HRegion hregion = ((RegionPartition)cachedReferenceCountedPartition.unwrapDelegate()).unwrapDelegate();
                     String tableName = hregion.getTableDescriptor().getTableName().getQualifierAsString();
                     long conglomId = Long.parseLong(tableName);
                     TransactionalRegion region=SIDriver.driver().transactionalPartition(conglomId,new RegionPartition(hregion));

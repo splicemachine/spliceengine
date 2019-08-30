@@ -134,7 +134,7 @@ public class RegionPartition implements Partition{
 
     @Override
     public void close() throws IOException{
-        //no-op for regions
+        region.close();
     }
 
     /*Single row access*/

@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.pipeline.utils.PipelineUtils;
+import com.splicemachine.si.impl.CachedReferenceCountedPartition;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.spark_project.guava.base.Throwables;
@@ -33,7 +34,6 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
@@ -51,7 +51,7 @@ public class SplitRegionScanner implements RegionScanner {
     private final int maxRetries;
     protected List<RegionScanner> regionScanners = new ArrayList<>(2);
     protected RegionScanner currentScanner;
-    protected HRegion region;
+    protected CachedReferenceCountedPartition region;
     protected int scannerPosition;
     protected int scannerCount;
     protected int reInitCount;
@@ -190,7 +190,6 @@ public class SplitRegionScanner implements RegionScanner {
         regionScanners.clear();
         clientPartition.close();
         currentScanner = null;
-
     }
 
     @Override
@@ -208,7 +207,7 @@ public class SplitRegionScanner implements RegionScanner {
         return currentScanner.getMvccReadPoint();
     }
 
-    public HRegion getRegion() {
+    public CachedReferenceCountedPartition getRegion() {
         return region;
     }
 
