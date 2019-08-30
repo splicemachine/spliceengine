@@ -14,6 +14,11 @@
 
 package com.splicemachine.si.impl.driver;
 
+import com.splicemachine.si.impl.CachedReferenceCountedPartition;
+import org.spark_project.guava.cache.Cache;
+import org.spark_project.guava.cache.CacheBuilder;
+import org.spark_project.guava.cache.RemovalListener;
+import org.spark_project.guava.cache.RemovalNotification;
 import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FilesystemAdmin;
@@ -106,6 +111,7 @@ public class SIDriver {
     private final ManagedThreadPool rejectingThreadPool;
     private final NonRejectingExecutor threadPool;
     private boolean engineStarted = false;
+    private Cache<String, CachedReferenceCountedPartition> regionCache;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -149,6 +155,7 @@ public class SIDriver {
         tpe.prestartAllCoreThreads();
         this.rejectingThreadPool = new ManagedThreadPool(tpe);
         this.threadPool = new NonRejectingExecutor(rejectingThreadPool);
+        this.regionCache = createRegionCache();
     }
 
 
@@ -298,5 +305,26 @@ public class SIDriver {
 
     public void engineStarted() {
         engineStarted = true;
+    }
+
+    public Cache<String, CachedReferenceCountedPartition> getRegionCache() {
+        return regionCache;
+    }
+
+    private Cache<String, CachedReferenceCountedPartition> createRegionCache() {
+        RemovalListener<String, CachedReferenceCountedPartition> listener=
+                new RemovalListener<String, CachedReferenceCountedPartition>() {
+                    @Override
+                    public void onRemoval(RemovalNotification<String, CachedReferenceCountedPartition> n) {
+                        n.getValue().markAsEvicted();
+                    }
+                };
+
+        Cache<String, CachedReferenceCountedPartition> cache = CacheBuilder.newBuilder()
+                .expireAfterAccess(20, TimeUnit.SECONDS)
+                .removalListener(listener)
+                .build();
+
+        return cache;
     }
 }
