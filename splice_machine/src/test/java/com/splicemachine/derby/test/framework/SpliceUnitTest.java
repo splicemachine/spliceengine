@@ -559,8 +559,14 @@ public class SpliceUnitTest {
     }
 
     public static SpliceUnitTest.TestFileGenerator generateFullRow(File directory, String fileName, int size,
-                                                                    List<int[]> fileData,
-                                                                    boolean duplicateLast) throws IOException {
+                                                                        List<int[]> fileData,
+                                                                        boolean duplicateLast) throws IOException {
+        return generateFullRow(directory,fileName,size,fileData,duplicateLast,false);
+    }
+
+    public static SpliceUnitTest.TestFileGenerator generateFullRow(File directory, String fileName, int size,
+                                                                   List<int[]> fileData,
+                                                                   boolean duplicateLast, boolean emptyLast) throws IOException {
         SpliceUnitTest.TestFileGenerator generator = new SpliceUnitTest.TestFileGenerator(directory, fileName);
         try {
             for (int i = 0; i < size; i++) {
@@ -572,6 +578,9 @@ public class SpliceUnitTest {
                 int[] row = {size - 1, 2 * (size - 1)};
                 fileData.add(row);
                 generator.row(row);
+            }
+            if (emptyLast) {
+                generator.row(new String[]{""});
             }
         } finally {
             generator.close();

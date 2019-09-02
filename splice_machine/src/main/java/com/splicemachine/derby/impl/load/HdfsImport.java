@@ -611,6 +611,10 @@ public class HdfsImport {
             if (timeFormat == null)
                 timeFormat = "HH:mm:ss";
 
+            // Remove trailing back slash
+            if (badRecordDirectory != null)
+                badRecordDirectory = badRecordDirectory.replaceAll("/$", "");
+
             String importVTI = "new " + "com.splicemachine.derby.vti.SpliceFileVTI" +
                 "(" +
                 quoteStringArgument(fileName) +
@@ -630,6 +634,10 @@ public class HdfsImport {
                 quoteStringArgument((oneLineRecords == null ? "TRUE" : oneLineRecords.toLowerCase())) +
                 "," +
                 quoteStringArgument(charset) +
+                "," +
+                quoteStringArgument(badRecordDirectory) +
+                "," +
+                badRecordsAllowed +
                 " )";
             String entityName = IdUtil.mkQualifiedName(schemaName, tableName);
             List<String> insertColumnList = null;
@@ -638,9 +646,7 @@ public class HdfsImport {
                 ! insertColumnListString.toLowerCase().equals("null")) {
                 insertColumnList = normalizeIdentifierList(insertColumnListString);
             }
-            // Remove trailing back slash
-            if (badRecordDirectory != null)
-                badRecordDirectory = badRecordDirectory.replaceAll("/$", "");
+
 
             if (samplingOnly == null)
                 samplingOnly ="false";
@@ -698,7 +704,7 @@ public class HdfsImport {
                     String setColumnList = generateColumnList(lcc, schemaName, tableName, insertColumnListExcludingPK, false, null);
                     String subqSelect = generateColumnList(lcc, schemaName, tableName, insertColumnListExcludingPK, true, "importVTI");
 
-                    String updateSql = "UPDATE " + entityName +
+                    String updateSql = "UPDATE " + entityName + "--splice-properties useSpark=true" +
                             "\n set (" + setColumnList + ") = \n" +
                             "(SELECT " + subqSelect + " from " + vtiTable + " " +
                             pkConditions + ")";
