@@ -84,6 +84,7 @@ public class UpportIT extends SpliceUnitTest {
     private static SpliceUnitTest.TestFileGenerator partialTestFile;
     private static List<int[]> correctPartialData;
     private static SpliceUnitTest.TestFileGenerator fullTestFileWithDuplicates;
+    private static SpliceUnitTest.TestFileGenerator fullTestFileWithEmptyLine;
 
 
     @BeforeClass
@@ -100,6 +101,9 @@ public class UpportIT extends SpliceUnitTest {
 
         List<int[]> correctFullDataWithDuplicates = Lists.newArrayListWithExpectedSize(size); //thrown away
         fullTestFileWithDuplicates = generateFullRow(IMPORTDIR, "fullWithDuplicates", size, correctFullDataWithDuplicates, true);
+
+        List<int[]> correctFullDataWithEmptyLine = Lists.newArrayListWithExpectedSize(size); //thrown away
+        fullTestFileWithEmptyLine = generateFullRow(IMPORTDIR, "fullWithEmptyLine", size, correctFullDataWithEmptyLine, false, true);
 
         correctPartialData = Lists.newArrayListWithExpectedSize(size);
         partialTestFile = generatePartialRow(IMPORTDIR, "partial", size, correctPartialData);
@@ -827,6 +831,34 @@ public class UpportIT extends SpliceUnitTest {
 //        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
 //        rs.close();
     }
+
+    @Test
+    public void testMergeIntoTableWithErrorFormatData() throws Exception {
+        PreparedStatement ps = conn.prepareStatement("insert into " + occupiedTable + "(a,b) values (?,?)");
+        List<int[]> newCorrect = Lists.newArrayList(correctFullData);
+        for(int[] correctRow:newCorrect){
+            //add a row that's different
+            ps.setInt(1,correctRow[0]); ps.setInt(2,correctRow[1]/2); ps.executeUpdate();
+        }
+        //add one extra row so that we know that we don't overwrite the entire table
+        ps.setInt(1,size+1); ps.setInt(2,size+1); ps.executeUpdate();
+        newCorrect.add(new int[]{size + 1, size + 1});
+
+        // set to a schema different from the one where the table is located
+        conn.setSchema("SPLICE");
+        CallableStatement statement =
+                conn.prepareCall("call SYSCS_UTIL.MERGE_DATA_FROM_FILE(?,?,null,?,null,null,null,null,null,-1,?,null,null)");
+        statement.setString(1,schema.schemaName);
+        statement.setString(2,occupiedTable.tableName);
+        statement.setString(3,fullTestFileWithEmptyLine.getFilePath());
+        statement.setString(4,BADDIR.getCanonicalPath());
+
+        ResultSet resultSet = statement.executeQuery();
+        //make sure that the bad records list is good
+        //all 5 rows are updated, no extra row inserted
+        validateMergeResults(resultSet,5,0,1);
+    }
+
 
     @Test
     public void testUpsertIndexCorrectness() throws Exception {
