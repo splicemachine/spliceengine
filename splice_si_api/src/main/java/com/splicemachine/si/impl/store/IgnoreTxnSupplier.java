@@ -48,8 +48,6 @@ public class IgnoreTxnSupplier {
 
         boolean ignore = false;
 
-        init();
-        
         if (!cache.isEmpty()) {
             for (Pair<Long, Long> range : cache) {
                 if (txnId > range.getFirst() && txnId < range.getSecond()) {
@@ -94,7 +92,7 @@ public class IgnoreTxnSupplier {
         return table.openResultScanner(scan);
     }
 
-    private void init() throws IOException {
+    public void init() throws IOException {
         if (!initialized) {
             synchronized (this) {
                 if (!initialized) {

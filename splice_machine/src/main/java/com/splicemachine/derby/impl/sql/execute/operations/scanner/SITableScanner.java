@@ -90,6 +90,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private DataValueDescriptor optionalProbeValue;
     private ExecRow defaultRow;
     private FormatableBitSet defaultValueMap;
+    private boolean isTraceEnabled;
 
     protected SITableScanner(DataScanner scanner,
                              final TransactionalRegion region,
@@ -135,6 +136,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             this.filterFactory = filterFactory;
         this.defaultRow = defaultRow;
         this.defaultValueMap = defaultValueMap;
+        this.isTraceEnabled = LOG.isTraceEnabled();
     }
 
     protected SITableScanner(DataScanner scanner,
@@ -217,7 +219,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                     filterCounter.increment();
                     continue;
                 } else {
-                    if (LOG.isTraceEnabled())
+                    if (isTraceEnabled)
                         SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
                 }
                 //fill the unpopulated non-null columns with default values

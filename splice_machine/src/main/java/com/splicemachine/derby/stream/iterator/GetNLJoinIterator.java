@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.iterator;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.function.NLJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.utils.Pair;
 
 import java.util.Iterator;
@@ -27,6 +28,8 @@ import java.util.function.Supplier;
  * Created by jyuan on 10/10/16.
  */
 public abstract class GetNLJoinIterator implements Callable<Pair<OperationContext, Iterator<ExecRow>>> {
+
+    protected boolean isTraceEnabled = StreamLogUtils.isTraceEnabled();
 
     protected ExecRow locatedRow;
     protected Supplier<OperationContext> operationContext;
