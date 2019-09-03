@@ -61,5 +61,6 @@ public class TempSortController implements SortCostController{
         double parallelCost = (baseCost.localCost()+baseCost.remoteCost())/baseCost.partitionCount();
 //        baseCost.setBase(baseCost.cloneMe());
         baseCost.setLocalCost(baseCost.localCost()+parallelCost);
+        baseCost.setLocalCostPerPartition(baseCost.localCost(), baseCost.partitionCount());
     }
 }
