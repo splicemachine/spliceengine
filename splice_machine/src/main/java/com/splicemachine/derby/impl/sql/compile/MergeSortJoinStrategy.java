@@ -166,10 +166,10 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
 
         double outerShuffleCost = outerCost.getLocalCostPerPartition()
-                +outerCost.getRemoteCostPerPartition()*outerCost.partitionCount()
+                +outerCost.getRemoteCostPerPartition()
                 +outerCost.getOpenCost()+outerCost.getCloseCost();
         double innerShuffleCost = innerCost.getLocalCostPerPartition()
-                +innerCost.getRemoteCostPerPartition()*innerCost.partitionCount()
+                +innerCost.getRemoteCostPerPartition()
                 +innerCost.getOpenCost()+innerCost.getCloseCost();
         double outerReadCost = outerLocalCost/outerCost.partitionCount();
         double innerReadCost = innerLocalCost/outerCost.partitionCount();
