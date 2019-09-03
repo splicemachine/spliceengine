@@ -66,14 +66,16 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         //we can't work if the outer table isn't sorted, regardless of what else happens
         if(outerCost==null) return false;
         RowOrdering outerRowOrdering=outerCost.getRowOrdering();
-        if(outerRowOrdering==null) return false;
+        if(outerRowOrdering==null)
+            return false;
 
         /* Currently MergeJoin does not work with a right side IndexRowToBaseRowOperation */
         if(JoinStrategyUtil.isNonCoveringIndex(innerTable)){
             return false;
         }
         boolean hashFeasible=super.feasible(innerTable, predList, optimizer, outerCost, wasHinted, skipKeyCheck);
-        if(!hashFeasible) return false;
+        if(!hashFeasible)
+            return false;
 
         /*
          * MergeJoin is only feasible if the inner and outer tables are both
@@ -135,7 +137,9 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalOutputRows));
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
@@ -158,12 +162,17 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
+
+        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerCost.partitionCount();
         if (outerTableEmpty) {
-            return (outerCost.localCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
+            return (outerCost.getLocalCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
         else
-            return outerCost.localCostPerPartition()+innerCost.localCostPerPartition()+innerCost.remoteCost()/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost()
-                    + joiningRowCost/outerCost.partitionCount();
+            return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition()+
+                innerRemoteCost/outerCost.partitionCount() +
+                innerCost.getOpenCost()+innerCost.getCloseCost()
+                        + joiningRowCost/outerCost.partitionCount();
     }
 
     /* ****************************************************************************************************************/
@@ -288,11 +297,13 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                 }
             }
         }
-        if(innerColumns.cardinality()<=0) return false; //we have no matching join predicates, so we can't work
+        if(innerColumns.cardinality()<=0)
+            return false; //we have no matching join predicates, so we can't work
         //compute the and to look for the mismatch position
         outerColumns.and(innerColumns);
         int misMatchPos = outerColumns.nextClearBit(0);
-        if(misMatchPos==0) return false; //we are missing the first key, so that won't work
+        if(misMatchPos==0)
+            return false; //we are missing the first key, so that won't work
 
         /*
          * We need to determine that the join predicates are on matched columns--i.e. that
@@ -304,13 +315,16 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         for(int i=0;i<innerToOuterJoinColumnMap.length;i++){
             int outerCol = innerToOuterJoinColumnMap[i];
             if(outerCol==-1) continue;
-            if(outerCol<lastOuterCol) return false; //we have a join out of order
+            if(outerCol<lastOuterCol)
+                return false; //we have a join out of order
             for (int j = lastOuterCol+1; j < outerCol; ++j) {
-                if (!outerColumns.get(j)) return false;
+                if (!outerColumns.get(j))
+                    return false;
             }
 
             for (int j = lastInnerCol+1; j < i; ++j) {
-                if (!innerColumns.get(j)) return false;
+                if (!innerColumns.get(j))
+                    return false;
             }
             lastOuterCol = outerCol;
             lastInnerCol = i;

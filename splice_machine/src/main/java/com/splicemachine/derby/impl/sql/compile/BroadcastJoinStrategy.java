@@ -143,7 +143,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
             innerCost.setLocalCost(joinCost);
             innerCost.setLocalCostPerPartition(joinCost);
-            innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalOutputRows));
+            double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+            innerCost.setRemoteCost(remoteCostPerPartition);
+            innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
             innerCost.setRowOrdering(outerCost.getRowOrdering());
             innerCost.setRowCount(totalOutputRows);
             innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
@@ -152,6 +154,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             // Set cost to max to rule out broadcast join
             innerCost.setLocalCost(Double.MAX_VALUE);
             innerCost.setRemoteCost(Double.MAX_VALUE);
+            innerCost.setLocalCostPerPartition(Double.MAX_VALUE);
+            innerCost.setRemoteCostPerPartition(Double.MAX_VALUE);
         }
     }
 
@@ -169,7 +173,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
-        return (outerCost.localCostPerPartition())+innerCost.localCost()+innerCost.remoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
+        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
+        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        return (outerCost.getLocalCostPerPartition())+((innerCost.getLocalCostPerPartition()+innerCost.getRemoteCostPerPartition()) * innerCost.partitionCount())+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
                + joiningRowCost/outerCost.partitionCount();
     }
 

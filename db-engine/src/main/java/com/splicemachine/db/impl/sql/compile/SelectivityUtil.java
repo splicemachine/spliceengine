@@ -247,18 +247,27 @@ public class SelectivityUtil {
                         (outerHeapSize/(outerRowCount<1.0d?1.0d:outerRowCount)));
     }
 
-    public static double getTotalRemoteCost(CostEstimate innerCostEstimate,
-                                            CostEstimate outerCostEstimate,
-                                            double totalOutputRows){
-        return getTotalRemoteCost(outerCostEstimate.remoteCost(),innerCostEstimate.remoteCost(),
-                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows);
+    public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
+                                                        CostEstimate outerCostEstimate,
+                                                        double totalOutputRows){
+
+        // Join costing is done on a per-partition basis, so remote costs
+        // for a JoinOperation are calculated this way too, to make the units consistent.
+        // The operation is initiated from the outer table, so it determines the
+        // number of partitions.
+        int numpartitions = outerCostEstimate.partitionCount();
+        if (numpartitions <= 0)
+            numpartitions = 1;
+        return getTotalRemoteCost(outerCostEstimate.remoteCost(),
+                                  innerCostEstimate.remoteCost(),
+                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows)/numpartitions;
     }
 
-    public static double getTotalRemoteCost(double outerRemoteCost,
-                                        double innerRemoteCost,
-                                        double outerRowCount,
-                                        double innerRowCount,
-                                        double totalOutputRows){
+    private static double getTotalRemoteCost(double outerRemoteCost,
+                                             double innerRemoteCost,
+                                             double outerRowCount,
+                                             double innerRowCount,
+                                             double totalOutputRows){
         return totalOutputRows*(
                 (innerRemoteCost/(innerRowCount<1.0d?1.0d:innerRowCount)) +
                         (outerRemoteCost/(outerRowCount<1.0d?1.0d:outerRowCount)));

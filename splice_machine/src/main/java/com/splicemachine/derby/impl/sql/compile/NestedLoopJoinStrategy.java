@@ -262,6 +262,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                 outerCost.setRowOrdering(ro); //force a cloning
             return;
         }
+        boolean usesSpark =
+         (innerTable.isAboveSparkThreshold(outerCost) || innerTable.isAboveSparkThreshold(innerCost));
+
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
         double totalRowCount = outerCost.rowCount()*innerCost.rowCount();
@@ -270,8 +273,10 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setRowCount(totalRowCount);
-        innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalRowCount));
-        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalRowCount);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
+        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, usesSpark);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
@@ -288,12 +293,50 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
      * @return
      */
 
-    public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double numOfJoinedRows) {
+    public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost,
+                                                         double numOfJoinedRows, boolean useSparkCostFormula) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
-        return outerCost.localCostPerPartition() + (outerCost.rowCount()/outerCost.partitionCount())*(innerCost.localCost()+innerCost.getRemoteCost())
-                + joiningRowCost/outerCost.partitionCount();
+
+        // Using nested loop join on spark is bad in general because we may incur thousands
+        // or millions of RPC calls to HBase, depending on the number of rows accessed
+        // in the outer table, which may saturate the network.
+
+        // If we divide inner table probe costs by outerCost.partitionCount(), as the number
+        // of partitions goes up, the cost of the join, according to the cost formula,
+        // goes down, making nested loop join appear cheap on spark.
+        // But is it really that cheap?
+        // We have multiple spark tasks simultaneously sending RPC requests
+        // in parallel (not just between tasks, but also in multiple threads within a task).
+        // Saying that as partition count goes up, the costs go down implies that we have
+        // infinite network bandwidth, which is not the case.
+        // We therefore adopt a cost model which assumes all RPC requests go through the
+        // same network pipeline, and remove the division of the inner table row lookup cost by the
+        // number of partitions.
+
+        // This change only applies to the spark path (for now) to avoid any possible
+        // performance regression in OLTP query plans.
+        // Perhaps this can be made the new formula for both spark and control
+        // after more testing to validate it.
+
+        // A possible better join strategy for OLAP queries, which still makes use of
+        // the primary key or index on the inner table, could be to sort the outer
+        // table on the join key and then perform a merge join with the inner table.
+
+        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.partitionCount();
+        if (useSparkCostFormula)
+            return outerCost.getLocalCostPerPartition() +
+                   ((outerCost.rowCount()/outerCost.partitionCount())
+                    * innerLocalCost) +
+            ((outerCost.rowCount())*(innerRemoteCost))
+                    + joiningRowCost/outerCost.partitionCount();
+        else
+            return outerCost.getLocalCostPerPartition() +
+                   (outerCost.rowCount()/outerCost.partitionCount())
+                    * (innerCost.localCost()+innerCost.getRemoteCost()) +
+                   joiningRowCost/outerCost.partitionCount();
     }
 
     /**
