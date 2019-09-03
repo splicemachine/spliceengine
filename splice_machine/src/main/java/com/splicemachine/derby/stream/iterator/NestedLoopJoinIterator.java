@@ -33,6 +33,7 @@ public class NestedLoopJoinIterator<Op extends SpliceOperation> implements Itera
     private boolean populated;
     protected ExecRow populatedRow;
     protected IterableJoinFunction iterableJoinFunction;
+    private boolean isTraceEnabled = StreamLogUtils.isTraceEnabled();
 
     public NestedLoopJoinIterator(IterableJoinFunction iterableJoinFunction) throws StandardException, IOException {
         this.iterableJoinFunction = iterableJoinFunction;
@@ -51,13 +52,18 @@ public class NestedLoopJoinIterator<Op extends SpliceOperation> implements Itera
                         ,populatedRow);
                 populated = true;
             }
-            StreamLogUtils.logOperationRecordWithMessage(iterableJoinFunction.getLeftLocatedRow(), iterableJoinFunction.getOperationContext(), "exhausted");
+            if (isTraceEnabled) {
+                StreamLogUtils.logOperationRecordWithMessage(iterableJoinFunction.getLeftLocatedRow(),
+                        iterableJoinFunction.getOperationContext(), "exhausted");
+            }
             return populated;
     }
 
     @Override
     public ExecRow next() {
-        StreamLogUtils.logOperationRecord(populatedRow, iterableJoinFunction.getOperationContext());
+        if (isTraceEnabled) {
+            StreamLogUtils.logOperationRecord(populatedRow, iterableJoinFunction.getOperationContext());
+        }
         populated=false;
         iterableJoinFunction.setCurrentLocatedRow(populatedRow);
         return populatedRow;

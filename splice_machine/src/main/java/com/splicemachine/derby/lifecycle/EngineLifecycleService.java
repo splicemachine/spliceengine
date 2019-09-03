@@ -104,7 +104,7 @@ public class EngineLifecycleService implements DatabaseLifecycleService{
         }
         startup.markBootFinished();
         isCreate.remove();
-
+        SIDriver.driver().getIgnoreTxnSupplier().init();
         ContextFactoryDriver cfDriver = new ReferenceCountingFactoryDriver(){
             @Override
             protected ContextFactoryLoader newDelegate(long conglomerateId){

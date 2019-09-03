@@ -48,6 +48,7 @@ public class SimpleTxnFilter implements TxnFilter{
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
     private final String tableName;
+    private IgnoreTxnSupplier ignoreTxnSupplier;
     /*
      * The most common case for databases is insert-only--that is, that there
      * are few updates and deletes relative to the number of inserts. As a result,
@@ -77,6 +78,10 @@ public class SimpleTxnFilter implements TxnFilter{
         this.myTxn=myTxn;
         this.readResolver=readResolver;
         this.ignoreNewerTransactions = ignoreNewerTransactions;
+        SIDriver driver = SIDriver.driver();
+        if (driver != null) {
+            ignoreTxnSupplier = driver.getIgnoreTxnSupplier();
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -209,11 +214,6 @@ public class SimpleTxnFilter implements TxnFilter{
 		 * it matches, then we can see it.
 		 */
         long timestamp=data.version();//dataStore.getOpFactory().getTimestamp(data);
-        SIDriver driver = SIDriver.driver();
-        IgnoreTxnSupplier ignoreTxnSupplier = null;
-        if (driver != null) {
-            ignoreTxnSupplier = driver.getIgnoreTxnSupplier();
-        }
         if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(timestamp))
             return DataFilter.ReturnCode.SKIP;
         if(tombstonedTxnRow != null && timestamp<= tombstonedTxnRow)

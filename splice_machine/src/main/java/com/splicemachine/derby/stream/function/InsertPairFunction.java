@@ -26,6 +26,8 @@ import scala.Tuple2;
  */
 public class InsertPairFunction extends SplicePairFunction<SpliceOperation,ExecRow,RowLocation,ExecRow> {
     private int counter = 0;
+    private boolean isTraceEnabled = StreamLogUtils.isTraceEnabled();
+
     public InsertPairFunction() {
         super();
     }
@@ -47,7 +49,9 @@ public class InsertPairFunction extends SplicePairFunction<SpliceOperation,ExecR
 
     @Override
     public ExecRow genValue(ExecRow locatedRow) {
-        StreamLogUtils.logOperationRecordWithMessage(locatedRow, operationContext, "indexed for insert");
+        if (isTraceEnabled) {
+            StreamLogUtils.logOperationRecordWithMessage(locatedRow, operationContext, "indexed for insert");
+        }
         return locatedRow;
     }
 }

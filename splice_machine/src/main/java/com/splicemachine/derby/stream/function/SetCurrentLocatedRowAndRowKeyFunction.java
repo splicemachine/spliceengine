@@ -26,6 +26,8 @@ import com.splicemachine.derby.stream.utils.StreamLogUtils;
  */
 public class SetCurrentLocatedRowAndRowKeyFunction<Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,ExecRow> {
 
+    private boolean isTraceEnabled = StreamLogUtils.isTraceEnabled();
+
     public SetCurrentLocatedRowAndRowKeyFunction() {
         super();
     }
@@ -38,7 +40,9 @@ public class SetCurrentLocatedRowAndRowKeyFunction<Op extends SpliceOperation> e
     public ExecRow call(ExecRow locatedRow) throws Exception {
         getOperation().setCurrentRow(locatedRow);
         getOperation().setCurrentRowLocation(new HBaseRowLocation(locatedRow.getKey()));
-        StreamLogUtils.logOperationRecord(locatedRow, operationContext);
+        if (isTraceEnabled) {
+            StreamLogUtils.logOperationRecord(locatedRow, operationContext);
+        }
         return locatedRow;
     }
 
