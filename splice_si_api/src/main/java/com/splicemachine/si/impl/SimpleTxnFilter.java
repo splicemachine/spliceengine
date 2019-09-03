@@ -30,6 +30,8 @@ import com.splicemachine.storage.DataFilter;
 import com.splicemachine.utils.ByteSlice;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Transaction filter which performs basic transactional filtering (i.e. row visibility, tombstones,
@@ -40,6 +42,7 @@ import java.io.IOException;
  */
 public class SimpleTxnFilter implements TxnFilter{
     private final TxnSupplier transactionStore;
+    private final Set<Long> visibleTransactions;
     private final TxnView myTxn;
     private final ReadResolver readResolver;
     //per row fields
@@ -77,6 +80,7 @@ public class SimpleTxnFilter implements TxnFilter{
         this.myTxn=myTxn;
         this.readResolver=readResolver;
         this.ignoreNewerTransactions = ignoreNewerTransactions;
+        this.visibleTransactions = new HashSet<>();
     }
 
     @SuppressWarnings("unchecked")
@@ -235,8 +239,21 @@ public class SimpleTxnFilter implements TxnFilter{
         // If the database is restored from a backup, it may contain data that were written by a transaction which
         // is not present in SPLICE_TXN table, because SPLICE_TXN table is copied before the transaction begins.
         // However, the table written by the txn was copied
-        return toCompare != null ? myTxn.canSee(toCompare) : false;
+        if (toCompare != null) {
+            if (visibleTransactions.contains(toCompare.getTxnId())) {
+                return true;
+            }
+            else {
+                boolean visible = myTxn.canSee(toCompare);
+                if (visible) {
+                    visibleTransactions.add(toCompare.getTxnId());
+                }
+                return visible;
+            }
+        }
+        return false;
     }
+
 
     private TxnView fetchTransaction(long txnId) throws IOException{
         TxnView toCompare=currentTxn;
