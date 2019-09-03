@@ -49,4 +49,8 @@ public class StreamLogUtils {
         }
     }
 
+    public static boolean isTraceEnabled() {
+        return LOG.isTraceEnabled();
+    }
+
 }
