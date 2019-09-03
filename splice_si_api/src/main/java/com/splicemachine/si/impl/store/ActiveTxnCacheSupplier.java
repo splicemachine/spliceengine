@@ -59,8 +59,7 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
         txn = delegate.getTransaction(txnId, getDestinationTables);
         if (txn == null) return null;
 
-        if (txn.getEffectiveState() == Txn.State.ACTIVE)
-            this.cache.put(txnId, txn);
+        this.cache.put(txnId, txn);
         return txn;
     }
 
@@ -71,10 +70,11 @@ public class ActiveTxnCacheSupplier implements TxnSupplier {
 
     @Override
     public void cache(TxnView toCache) {
-        if (toCache.getState() == Txn.State.ACTIVE)
-            cache.put(toCache.getTxnId(), toCache);
-        else
+
+        cache.put(toCache.getTxnId(), toCache);
+        if (toCache.getState() == Txn.State.COMMITTED) {
             delegate.cache(toCache);
+        }
     }
 
     @Override
