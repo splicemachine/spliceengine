@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
@@ -47,7 +48,6 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
         // consruct operator for the final projection
         convertResultColumnList(selectContext);
 
-        selectContext.relRoot = build();
         return selectContext.relRoot;
     }
 
@@ -82,7 +82,6 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
 
         selectContext.setStartColPos(startColPos);
         selectContext.relRoot = root;
-        push(root);
         return root;
     }
 
@@ -112,26 +111,25 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
     public RelNode convertWhere(ConvertSelectContext selectContext) throws StandardException {
         ValueNode whereClause = selectContext.root.getWhereClause();
 
-        RexNode convertedCondition = convertCondition(whereClause, selectContext);
-        selectContext.relRoot = filter(convertedCondition).build();
-        push(selectContext.relRoot);
+        if (whereClause != null) {
+            push(selectContext.relRoot);
+            RexNode convertedCondition = convertCondition(whereClause, selectContext);
+
+            selectContext.relRoot = filter(convertedCondition).build();
+        }
         return selectContext.relRoot;
     }
 
-    public void convertResultColumnList(ConvertSelectContext selectContext) {
+    public void convertResultColumnList(ConvertSelectContext selectContext) throws StandardException {
+        push(selectContext.relRoot);
         final ImmutableList.Builder<RexNode> fields = ImmutableList.builder();
         ResultColumnList rcl = selectContext.root.getResultColumns();
         for (int i=0; i<rcl.size(); i++) {
             ResultColumn rc = rcl.elementAt(i);
-            assert rc.getExpression() instanceof ColumnReference : "Expect column reference as source of ResultColumn.";
-            ColumnReference cr = (ColumnReference)rc.getExpression();
-            // column number is 1-based, but calcite column pos is 0-based
-            int fieldPos = selectContext.startColPos.get(cr.getTableNumber()) + cr.getColumnNumber()-1;
-            fields.add(field(1, 0, fieldPos));
+            fields.add(convertExpression(rc.getExpression(), selectContext));
         }
 
         selectContext.relRoot = project(fields.build()).build();
-        push(selectContext.relRoot);
         return;
     }
 
@@ -140,11 +138,8 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
         return null;
     }
 
-    public RexNode convertCondition(ValueNode node,
-                                    ConvertSelectContext selectContext) throws StandardException {
-        if (node == null)
-            return null;
-
+    public RexNode convertExpression(ValueNode node,
+                                     ConvertSelectContext selectContext) throws StandardException {
         if (node instanceof ColumnReference) {
             ColumnReference cr = (ColumnReference)node;
             // column number is 1-based, but calcite column pos is 0-based
@@ -157,12 +152,50 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
             return literal(constantObject);
         }
 
+        if (node instanceof BinaryArithmeticOperatorNode) {
+            BinaryArithmeticOperatorNode binaryOp = (BinaryArithmeticOperatorNode)node;
+            String operator = binaryOp.getOperatorString();
+            SqlOperator sqlOperator = null;
+            switch (operator) {
+                case TypeCompiler.PLUS_OP:
+                    sqlOperator = SqlStdOperatorTable.PLUS;
+                    break;
+                case TypeCompiler.DIVIDE_OP:
+                    sqlOperator = SqlStdOperatorTable.DIVIDE;
+                    break;
+                case TypeCompiler.MINUS_OP:
+                    sqlOperator = SqlStdOperatorTable.MINUS;
+                    break;
+                case TypeCompiler.TIMES_OP:
+                    sqlOperator = SqlStdOperatorTable.MULTIPLY;
+                    break;
+                default:
+                    throw StandardException.newException(SQLState.LANG_INVADLID_CONVERSION, operator);
+            }
+
+            RexNode leftOperand = convertExpression(binaryOp.getLeftOperand(), selectContext);
+            RexNode rightOperand = convertExpression(binaryOp.getRightOperand(), selectContext);
+            return call(sqlOperator, leftOperand, rightOperand);
+        }
+
+        if (node instanceof TruncateOperatorNode) {
+
+        }
+        assert false: "TODO convert more expressions";
+        return null;
+    }
+
+    public RexNode convertCondition(ValueNode node,
+                                    ConvertSelectContext selectContext) throws StandardException {
+        if (node == null)
+            return null;
+
         if (node instanceof BinaryRelationalOperatorNode) {
             BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)node;
             int operator = bron.getOperator();
             SqlOperator sqlOperator = mapRelationalOperatorToCalciteSqlOperator(operator);
-            RexNode leftOperand = convertCondition(bron.getLeftOperand(), selectContext);
-            RexNode rightOperand = convertCondition(bron.getRightOperand(), selectContext);
+            RexNode leftOperand = convertExpression(bron.getLeftOperand(), selectContext);
+            RexNode rightOperand = convertExpression(bron.getRightOperand(), selectContext);
             return call(sqlOperator, leftOperand, rightOperand);
         }
 
@@ -183,7 +216,7 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
             return call(SqlStdOperatorTable.NOT, leftOperand);
         }
 
-        assert false: "TODO conversions";
+        assert false: "TODO convert more conditions";
         return null;
     }
 
@@ -210,24 +243,6 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
         }
     }
 
-    private SqlOperator mapToCalciteSqlOperator(int operator) throws StandardException {
-        switch (operator) {
-            case BinaryOperatorNode.LIKE:
-                return SqlStdOperatorTable.LIKE;
-            case BinaryOperatorNode.PLUS:
-                return SqlStdOperatorTable.PLUS;
-            case BinaryOperatorNode.DIVIDE:
-                return SqlStdOperatorTable.DIVIDE;
-            case BinaryOperatorNode.MINUS:
-                return SqlStdOperatorTable.MINUS;
-            case BinaryOperatorNode.TIMES:
-                return SqlStdOperatorTable.MULTIPLY;
-            case BinaryOperatorNode.CONCATENATE:
-                return SqlStdOperatorTable.CONCAT;
-            default:
-                throw StandardException.newException(SQLState.LANG_INVADLID_CONVERSION, operator);
-        }
-    }
     protected class ConvertSelectContext {
         public SelectNode root;
         public RelNode relRoot;

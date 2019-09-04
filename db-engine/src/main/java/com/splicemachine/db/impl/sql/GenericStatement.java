@@ -51,17 +51,11 @@ import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
 import com.splicemachine.db.impl.sql.calcite.CalciteSqlPlanner;
 import com.splicemachine.db.impl.sql.calcite.SpliceContext;
-import com.splicemachine.db.impl.sql.compile.DMLStatementNode;
-import com.splicemachine.db.impl.sql.compile.ExplainNode;
-import com.splicemachine.db.impl.sql.compile.SelectNode;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.tools.RelConversionException;
-import org.apache.calcite.tools.ValidationException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -625,7 +619,7 @@ public class GenericStatement implements Statement{
         long startTime = System.nanoTime();
         try {
 
-
+/*
             if (statementText.toLowerCase().startsWith("call")) {
                 rewriteStmt = statementText;
             } else
@@ -636,6 +630,7 @@ public class GenericStatement implements Statement{
                 }
                 rewriteStmt = planner.parse(statementText);
             } else
+*/
                 rewriteStmt = statementText;
 
 
@@ -665,13 +660,13 @@ public class GenericStatement implements Statement{
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
             lcc.logEndCompiling(getSource(), System.nanoTime() - startTime);
-        } catch (ValidationException ve) {
+        } /*catch (ValidationException ve) {
 
         } catch (RelConversionException rce) {
 
         } catch (SqlParseException sqlpe) {
 
-        }
+        } */
         catch (StandardException e) {
             lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
             throw e;
@@ -770,9 +765,20 @@ public class GenericStatement implements Statement{
             if (cc.getUseCalciteOptimizer() && !rewriteStmt.toLowerCase().startsWith("call")) {
                 if (planner == null) {
                     SpliceContext spliceContext = new SpliceContext(lcc);
-                    CalciteSqlPlanner planner = new CalciteSqlPlanner(spliceContext);
+                    planner = new CalciteSqlPlanner(spliceContext);
                 }
-                String relStr = planner.derby2Rel(rewriteStmt, (SelectNode)((DMLStatementNode)qt).getResultSetNode());
+                SelectNode selectNode = null;
+                StatementNode stmtNode = qt;
+                while (stmtNode instanceof StatementNode){
+                    if (stmtNode instanceof ExplainNode)
+                        stmtNode = ((ExplainNode) stmtNode).getPlanRoot();
+                    else if (stmtNode instanceof CursorNode) {
+                        selectNode = (SelectNode)((DMLStatementNode)stmtNode).getResultSetNode();
+                        break;
+                    }
+                }
+
+                String relStr = planner.derby2Rel(rewriteStmt, selectNode);
             }
 
             qt.optimizeStatement();
