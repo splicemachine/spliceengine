@@ -665,7 +665,9 @@
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
                                 <argument>-XX:MaxHeapFreeRatio=50</argument>
                                 <argument>-XX:+CMSClassUnloadingEnabled</argument>
+                                <!-- Uncomment this to enable debugging of zookeeper on standalone via port 4002
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4002</argument>
+                                  -->
                                 <argument>org.apache.zookeeper.server.ZooKeeperServerMain</argument>
                                 <argument>2181</argument>
                                 <argument>${project.build.directory}/zookeeper</argument>
