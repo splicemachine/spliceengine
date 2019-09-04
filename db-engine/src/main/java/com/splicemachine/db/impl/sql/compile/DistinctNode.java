@@ -199,6 +199,8 @@ public class DistinctNode extends SingleChildResultSetNode
         costEstimate.setLocalCost(totalLocalCost);
         costEstimate.setRemoteCost(totalRemoteCost);
         costEstimate.setNumPartitions(1);
+        costEstimate.setLocalCostPerPartition(totalLocalCost);
+        costEstimate.setRemoteCostPerPartition(totalRemoteCost);
         costEstimate.setRowCount(tableCardinality);
         costEstimate.setEstimatedHeapSize((long)outputHeapSize);
 

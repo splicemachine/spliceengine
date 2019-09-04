@@ -433,4 +433,20 @@ public interface Optimizable {
 	 * get the current optimizable's memory usage if its best join plan is a broadcast join
 	 */
 	double getMemoryUsage4BroadcastJoin();
+
+	/**
+	 * Does this cost estimate indicate more rows are being accessed
+	 * than the spark threshold.
+	 *
+	 * @param costEstimate The cost estimate to test.
+	 */
+        boolean isAboveSparkThreshold(CostEstimate costEstimate);
+
+	/**
+	 * Does this access path indicate more rows are being accessed
+	 * than the spark threshold.
+	 *
+	 * @param accessPath The access path to test.
+	 */
+        boolean isAboveSparkThreshold(AccessPath accessPath);
 }
