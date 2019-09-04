@@ -94,13 +94,13 @@ public class ActiveTxnCacheTest{
         TxnView fromStore=store.getTransaction(txn.getTxnId());
         assertTxnsMatch("Transaction from store is not correct!",txn,fromStore);
 
-        Assert.assertFalse("Cache thinks it is present!",store.transactionCached(txn.getTxnId()));
+        Assert.assertTrue("Cache thinks it is not present!",store.transactionCached(txn.getTxnId()));
 
         TxnView fromCache=store.getTransaction(txn.getTxnId());
         assertTxnsMatch("Transaction from store is not correct!",txn,fromCache);
 
         //make sure that the access count is 2
-        Assert.assertEquals("Did not access data from cache",2,accessCount.get());
+        Assert.assertEquals("Did not access data from cache",1,accessCount.get());
     }
 
     /*****************************************************************************************************************/
