@@ -5,6 +5,8 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceRelNode;
+import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceTableScan;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -14,7 +16,6 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.*;
 import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.Schema;
@@ -95,7 +96,7 @@ public class SpliceTable extends AbstractQueryableTable implements TranslatableT
 
     public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
         final RelOptCluster cluster = context.getCluster();
-        final TableScan scan = LogicalTableScan.create(cluster, relOptTable);
+        final TableScan scan = new SpliceTableScan(cluster, cluster.traitSetOf(SpliceRelNode.CONVENTION), relOptTable);
         return scan;
     }
 

@@ -56,6 +56,7 @@ import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
+import org.apache.calcite.rel.RelNode;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -778,7 +779,8 @@ public class GenericStatement implements Statement{
                     }
                 }
 
-                String relStr = planner.derby2Rel(rewriteStmt, selectNode);
+                RelNode root = planner.derby2Rel(rewriteStmt, selectNode);
+                String plan = planner.optimize(rewriteStmt, root);
             }
 
             qt.optimizeStatement();

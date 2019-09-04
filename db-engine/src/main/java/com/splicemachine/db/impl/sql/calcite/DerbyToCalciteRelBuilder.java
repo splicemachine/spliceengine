@@ -155,7 +155,7 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
         if (node instanceof BinaryArithmeticOperatorNode) {
             BinaryArithmeticOperatorNode binaryOp = (BinaryArithmeticOperatorNode)node;
             String operator = binaryOp.getOperatorString();
-            SqlOperator sqlOperator = null;
+            SqlOperator sqlOperator;
             switch (operator) {
                 case TypeCompiler.PLUS_OP:
                     sqlOperator = SqlStdOperatorTable.PLUS;
@@ -189,6 +189,10 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
                                     ConvertSelectContext selectContext) throws StandardException {
         if (node == null)
             return null;
+
+        if (node instanceof BooleanConstantNode) {
+            return literal(((BooleanConstantNode)node).getValue().getBoolean());
+        }
 
         if (node instanceof BinaryRelationalOperatorNode) {
             BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)node;

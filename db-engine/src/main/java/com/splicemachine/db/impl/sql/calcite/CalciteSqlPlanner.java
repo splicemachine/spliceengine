@@ -4,15 +4,15 @@ package com.splicemachine.db.impl.sql.calcite;
  * Created by yxia on 8/16/19.
  */
 
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceRelNode;
+import com.splicemachine.db.impl.sql.calcite.rules.SpliceConverterRule;
 import com.splicemachine.db.impl.sql.compile.SelectNode;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
-import org.apache.calcite.plan.ConventionTraitDef;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.*;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
@@ -80,22 +80,52 @@ public class CalciteSqlPlanner {
 
         // convert to RelOptTree
        // RelNode tree = planner.rel(validate).rel;
-       // String plan = RelOptUtil.toString(tree); //explain(tree, SqlExplainLevel.ALL_ATTRIBUTES);
+       // String plan = RelOptUtil.toString(tree);
        // return plan;
 
     }
 
-    public String derby2Rel(String sql, SelectNode selectNode) throws StandardException {
-        /*
-        RelNode node = relBuilder.scan("SPLICE", "T1")
-                .project(relBuilder.field("C1"), relBuilder.field("B1")).build();
-        */
-
+    public RelNode derby2Rel(String sql, SelectNode selectNode) throws StandardException {
         RelNode root = relBuilder.convertSelect(selectNode);
         String plan =  RelOptUtil.toString(root);
         if (LOG.isDebugEnabled()){
-            LOG.info(String.format("Plan for query <<\n\t%s\n>>\n%s\n",
+            LOG.debug(String.format("Plan for query <<\n\t%s\n>>\n%s\n",
                     sql,plan));
+        }
+        return root;
+    }
+
+    public String optimize(String sql, RelNode root) {
+        final Program program = Programs.standard();
+        RelTraitSet desiredTraits = root.getTraitSet()
+                .replace(SpliceRelNode.CONVENTION);
+        RelOptPlanner optPlanner = root.getCluster().getPlanner();
+        for (RelOptRule rule : SpliceConverterRule.RULES) {
+            optPlanner.addRule(rule);
+        }
+
+        /* add rules related to Splice conventions */
+        /*
+        final RelVisitor visitor = new RelVisitor() {
+            @Override public void visit(RelNode node, int ordinal, RelNode parent) {
+                if (node instanceof TableScan) {
+                    final RelOptCluster cluster = node.getCluster();
+                    final RelOptTable.ToRelContext context =
+                            ViewExpanders.simpleContext(cluster);
+                    final RelNode r = node.getTable().toRel(context);
+                    optPlanner.registerClass(r);
+                }
+                super.visit(node, ordinal, parent);
+            }
+        };
+        visitor.go(root);
+        */
+        final RelNode rootRel4 = program.run(optPlanner,
+                root, desiredTraits, ImmutableList.of(), ImmutableList.of());
+        String plan = RelOptUtil.toString(rootRel4 /*, SqlExplainLevel.ALL_ATTRIBUTES */);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Plan after optimization for query <<\n\t%s\n>>\n%s\n",
+                    sql, plan));
         }
         return plan;
     }
