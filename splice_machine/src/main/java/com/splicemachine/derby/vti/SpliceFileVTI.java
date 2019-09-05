@@ -56,6 +56,8 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
     private OperationContext operationContext;
     private boolean oneLineRecords;
     private String charset;
+    private String statusDirectory = null;
+    private int badRecordsAllowed = 0;
 
     public SpliceFileVTI() {}
 
@@ -99,6 +101,12 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             throw StandardException.newException(SQLState.UNSUPPORTED_ENCODING_EXCEPTION,charset);
     }
 
+    public SpliceFileVTI(String fileName,String characterDelimiter, String columnDelimiter, int[] columnIndex, String timeFormat, String dateTimeFormat, String timestampFormat, String oneLineRecords, String charset, String statusDirectory, int badRecordsAllowed) throws StandardException {
+        this(fileName, characterDelimiter, columnDelimiter,columnIndex,timeFormat,dateTimeFormat,timestampFormat,oneLineRecords,charset);
+        this.statusDirectory = statusDirectory;
+        this.badRecordsAllowed = badRecordsAllowed;
+    }
+
     public static DatasetProvider getSpliceFileVTI(String fileName) {
         return new SpliceFileVTI(fileName);
     }
@@ -116,6 +124,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         return new SpliceFileVTI(fileName,characterDelimiter,columnDelimiter, columnIndex,timeFormat,dateTimeFormat,timestampFormat);
     }
 
+
     @Override
     public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
         if (op != null)
@@ -124,6 +133,8 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             operationContext = dsp.createOperationContext((Activation)null);
         try {
             ImportUtils.validateReadable(fileName, false);
+            if (statusDirectory != null)
+                operationContext.setPermissive(statusDirectory, fileName, badRecordsAllowed);
             if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
