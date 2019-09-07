@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.db.PropertyInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -686,13 +687,26 @@ public class SpliceAdmin extends BaseAdminProcedures{
      *                   than one table, if the table has an index, for instance.
      * @throws SQLException
      */
-    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException{
+    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException {
+        LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        DataDictionary dd = lcc.getDataDictionary();
         // sys query for table conglomerate for in schema
-        PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
-        for(long conglomID : getConglomNumbers(getDefaultConn(),schemaName,tableName)){
-            try(Partition partition=tableFactory.getTable(Long.toString(conglomID))){
+        PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
+        for (long conglomID : getConglomNumbers(getDefaultConn(), schemaName, tableName)) {
+            try {
+                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomID);
+                if (cd != null) {
+                    TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
+                    // External tables can't be compacted.
+                    if (td != null && td.isExternal())
+                        continue;
+                }
+            } catch (StandardException e) {
+                throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+            }
+            try (Partition partition = tableFactory.getTable(Long.toString(conglomID))) {
                 partition.compact(true);
-            }catch(IOException e){
+            } catch (IOException e) {
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
         }
