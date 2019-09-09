@@ -1367,6 +1367,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public void updateSystemSchemasView(TransactionController tc) throws StandardException {
+        boolean toUpgrade = Boolean.TRUE.equals(EngineLifecycleService.toUpgrade.get());
+        // Only master can upgrade
+        if (!toUpgrade) {
+            return;
+        }
+
+        tc.commit();
+
         SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
         tc.elevate("dictionary");
 
@@ -1398,6 +1406,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         // we need to re-generate the metadataSPS due to the definition change of sysschemasview
         updateMetadataSPSes(tc);
 
+        tc.commit();
         SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + metadataRestrictionEnabled);
     }
 
