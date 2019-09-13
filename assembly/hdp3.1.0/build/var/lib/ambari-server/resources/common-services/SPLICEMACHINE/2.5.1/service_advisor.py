@@ -235,6 +235,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.timestamp_server.clientWaitTime" : "120000",
         "splice.txn.activeTxns.cacheSize" : "10240",
         "splice.txn.completedTxns.concurrency" : "128",
-        "splice.txn.concurrencyLevel" : "4096"
+        "splice.txn.concurrencyLevel" : "4096",
+        "hbase.regionserver.replication.handler.count" : "100"
     }
     return hbase_site_desired_values
