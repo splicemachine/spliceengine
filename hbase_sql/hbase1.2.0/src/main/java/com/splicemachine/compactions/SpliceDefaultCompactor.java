@@ -17,98 +17,49 @@ package com.splicemachine.compactions;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.SpliceCompactionUtils;
 import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.fs.HFileSystem;
 import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.io.crypto.Cipher;
-import org.apache.hadoop.hbase.io.crypto.Encryption;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
-import org.apache.hadoop.hbase.io.hfile.HFile;
 import org.apache.hadoop.hbase.io.hfile.HFileContext;
-import org.apache.hadoop.hbase.io.hfile.HFileContextBuilder;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionProgress;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionThroughputController;
-import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
 import org.apache.hadoop.hbase.regionserver.compactions.NoLimitCompactionThroughputController;
-import org.apache.hadoop.hbase.security.EncryptionUtil;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.net.InetSocketAddress;
-import java.security.Key;
-import java.security.KeyException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 /**
  *
  * Splicemachine Compactor with added code for locality.
  *
  */
-public class SpliceDefaultCompactor extends DefaultCompactor {
-    private static final boolean allowSpark = true;
-    private static final Logger LOG = Logger.getLogger(SpliceDefaultCompactor.class);
-    private long smallestReadPoint;
-    private String conglomId;
-    private String tableDisplayName;
-    private String indexDisplayName;
-    private static String hostName;
-
-
-    private static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
-    private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
-
+public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
     public SpliceDefaultCompactor(final Configuration conf, final Store store) {
         super(conf, store);
-        conglomId = this.store.getTableName().getQualifierAsString();
-        tableDisplayName = ((HStore)this.store).getHRegion().getTableDesc().getValue(TABLE_DISPLAY_NAME_ATTR);
-        indexDisplayName = ((HStore)this.store).getHRegion().getTableDesc().getValue(INDEX_DISPLAY_NAME_ATTR);
-
-        if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", ((HStore)this.store).getHRegion());
-        }
     }
 
     public SpliceDefaultCompactor(final Configuration conf, final Store store, long smallestReadPoint) {
-        this(conf, store);
-        this.smallestReadPoint = smallestReadPoint;
+        super(conf, store, smallestReadPoint);
     }
 
     @Override
@@ -193,82 +144,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return paths;
     }
 
-    private SparkCompactionFunction getCompactionFunction(boolean isMajor, InetSocketAddress[] favoredNodes) {
-        return new SparkCompactionFunction(
-                smallestReadPoint,
-                store.getTableName().getNamespace(),
-                store.getTableName().getQualifier(),
-                store.getRegionInfo(),
-                store.getFamily().getName(),
-                isMajor,
-                favoredNodes);
-    }
-
-    private String getScope(CompactionRequest request) {
-        return String.format("%s Compaction: %s",
-            getMajorMinorLabel(request),
-            getTableInfoLabel(", "));
-    }
-
-    private String getJobDescription(CompactionRequest request) {
-        int size = request.getFiles().size();
-        String jobDescription = String.format("%s Compaction: %s, %d %s, Total File Size=%s",
-                getMajorMinorLabel(request),
-                getTableInfoLabel(", "),
-                size,
-                (size > 1 ? "Files" : "File"),
-                FileUtils.byteCountToDisplaySize(request.getSize()));
-
-        if (size == 1 && !request.isMajor()) {
-            Collection<StoreFile> files = request.getFiles();
-            for (StoreFile file : files) {
-                if(file.isReference()) {
-                    return String.join(", ",jobDescription, "StoreFile is a Reference");
-                }
-            }
-        }
-        return jobDescription;
-    }
-
-    private String getMajorMinorLabel(CompactionRequest request) {
-        return request.isMajor() ? "Major" : "Minor";
-    }
-
-    private String getTableInfoLabel(String delim) {
-        StringBuilder sb = new StringBuilder();
-        if (indexDisplayName != null) {
-            sb.append(String.format("Index=%s", indexDisplayName));
-            sb.append(delim);
-        } else if (tableDisplayName != null) {
-            sb.append(String.format("Table=%s", tableDisplayName));
-            sb.append(delim);
-        }
-        sb.append(String.format("Conglomerate=%s", conglomId));
-        sb.append(delim);
-        sb.append(String.format("Region Encoded Name=%s, RegionId=%d",this.store.getRegionInfo().getEncodedName(), this.store.getRegionInfo().getRegionId()));
-        return sb.toString();
-    }
-
-    private String getJobGroup(CompactionRequest request,String regionLocation) {
-        return regionLocation+":"+Long.toString(request.getSelectionTime());
-    }
-
-    private String jobDetails = null;
-    private String getJobDetails(CompactionRequest request) {
-        if (jobDetails == null) {
-            String delim=",\n";
-            jobDetails =getTableInfoLabel(delim) +delim
-                    +String.format("File Count=%d",request.getFiles().size()) +delim
-                    +String.format("Total File Size=%s",FileUtils.byteCountToDisplaySize(request.getSize())) +delim
-                    +String.format("Type=%s",getMajorMinorLabel(request));
-        }
-        return jobDetails;
-    }
-
-    private String getPoolName() {
-        return "compaction";
-    }
-
     public List<Path> sparkCompact(CompactionRequest request, CompactionContext context, InetSocketAddress[] favoredNodes) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "sparkCompact(): CompactionRequest=%s", request);
@@ -318,7 +193,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    boolean purgeDeletedRows = request.isMajor() && shouldPurge();
+                    boolean purgeDeletedRows = request.isMajor() && SpliceCompactionUtils.shouldPurge(store);
 
                     SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
                     siScanner.start();
@@ -379,56 +254,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return newFiles;
     }
 
-    private boolean needsSI(TableName tableName) {
-        TableType type = EnvUtils.getTableType(HConfiguration.getConfiguration(), tableName);
-        switch (type) {
-            case TRANSACTION_TABLE:
-            case ROOT_TABLE:
-            case META_TABLE:
-            case HBASE_TABLE:
-                return false;
-            case DERBY_SYS_TABLE:
-            case USER_TABLE:
-                return true;
-            default:
-                throw new RuntimeException("Unknow table type " + type);
-        }
-    }
-
-    @Override
-    public List<Path> compactForTesting(Collection<StoreFile> filesToCompact, boolean isMajor) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"compactForTesting");
-        return super.compactForTesting(filesToCompact, isMajor);
-    }
-
-    @Override
-    public CompactionProgress getProgress() {
-        return super.getProgress();
-    }
-
-    @Override
-    protected FileDetails getFileDetails(Collection<StoreFile> filesToCompact, boolean allFiles) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getFileDetails");
-        return super.getFileDetails(filesToCompact, allFiles);
-    }
-
-    @Override
-    protected long getSmallestReadPoint() {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getSmallestReadPoint");
-        return this.smallestReadPoint;
-    }
-
-    @Override
-    protected InternalScanner preCreateCoprocScanner(CompactionRequest request, ScanType scanType, long earliestPutTs, List<StoreFileScanner> scanners) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"preCreateCoprocScanner");
-        return super.preCreateCoprocScanner(request, scanType, earliestPutTs, scanners);
-    }
-
-    @Override
     protected boolean performCompaction(FileDetails fd, InternalScanner scanner, CellSink writer,
                                         long smallestReadPoint, boolean cleanSeqId,
                                         CompactionThroughputController throughputController, boolean major) throws IOException {
@@ -494,62 +319,26 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return true;
     }
 
-    @Override
-    protected InternalScanner createScanner(Store store, List<StoreFileScanner> scanners, ScanType scanType, long smallestReadPoint, long earliestPutTs) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createScanner");
-        Scan scan = new Scan();
-        scan.setMaxVersions(store.getFamily().getMaxVersions());
-        return new StoreScanner(store, store.getScanInfo(), scan, scanners,
-                scanType, smallestReadPoint, earliestPutTs);
-    }
+    /**
+     * Creates a writer for a new file in a temporary directory.  This is pulled forward from DefaultCompactor
+     * to handle some scoping issues.
+     *
+     * @param fd The file details.
+     * @return Writer for a new StoreFile in the tmp dir.
+     * @throws IOException
+     */
+    protected StoreFile.Writer createTmpWriter(FileDetails fd, boolean shouldDropBehind, InetSocketAddress[] favoredNodes)
+            throws IOException {
 
-    @Override
-    protected InternalScanner createScanner(Store store, List<StoreFileScanner> scanners, long smallestReadPoint, long earliestPutTs, byte[] dropDeletesFromRow, byte[] dropDeletesToRow) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"createScanner");
-        return super.createScanner(store, scanners, smallestReadPoint, earliestPutTs, dropDeletesFromRow, dropDeletesToRow);
-    }
+        // When all MVCC readpoints are 0, don't write them.
+        // See HBASE-8166, HBASE-12600, and HBASE-13389.
 
-    private boolean shouldPurge() throws IOException {
-
-        boolean prepared = false;
-        SpliceTransactionResourceImpl transactionResource = null;
-        Txn txn = null;
-        try {
-            txn = SIDriver.driver().lifecycleManager()
-                    .beginTransaction();
-            transactionResource = new SpliceTransactionResourceImpl();
-            prepared=transactionResource.marshallTransaction(txn);
-            LanguageConnectionContext lcc = transactionResource.getLcc();
-            DataDictionary dd = lcc.getDataDictionary();
-            String fullTableName = store.getTableName().getNameAsString();
-            String[] tableNames = fullTableName.split(":");
-            if (tableNames.length == 2 && tableNames[0].compareTo("splice") == 0) {
-                long conglomerateId = Long.parseLong(tableNames[1]);
-                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
-                if (cd != null) {
-                    UUID tableID = cd.getTableID();
-                    TableDescriptor td = dd.getTableDescriptor(tableID);
-                    if (td != null)
-                        return td.purgeDeletedRows();
-                }
-            }
-        }
-        catch (NumberFormatException e) {
-            return false;
-        }
-        catch (Exception e) {
-            throw new IOException(e);
-        }
-        finally{
-            if(prepared)
-                transactionResource.close();
-            if (txn != null)
-               txn.commit();
-        }
-
-        return false;
+        return createWriterInTmp(fd.maxKeyCount, this.compactionCompression,
+                /* isCompaction = */ true,
+                /* includeMVCCReadpoint = */ fd.maxMVCCReadpoint > 0,
+                /* includesTags = */ fd.maxTagsLength > 0,
+                /* shouldDropBehind = */ shouldDropBehind,
+                favoredNodes);
     }
 
     /**
@@ -572,7 +361,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             throws IOException {
         final CacheConfig writerCacheConf;
         if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG,"createWriterInTmp with favoredNodes=%s",favoredNodes==null?"null":Arrays.toString(favoredNodes));
+            SpliceLogUtils.debug(LOG,"createWriterInTmp with favoredNodes=%s",favoredNodes==null?"null": Arrays.toString(favoredNodes));
 
         }
         if (isCompaction) {
@@ -598,161 +387,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 .withShouldDropCacheBehind(shouldDropBehind)
                 .build();
         return w;
-    }
-
-
-    /**
-     *
-     * This is borrowed from DefaultCompactor.
-     *
-     * @param compression
-     * @param includeMVCCReadpoint
-     * @param includesTag
-     * @param cryptoContext
-     * @return
-     */
-    private HFileContext createFileContext(Compression.Algorithm compression,
-                                           boolean includeMVCCReadpoint, boolean includesTag, Encryption.Context cryptoContext) {
-        if (compression == null) {
-            compression = HFile.DEFAULT_COMPRESSION_ALGORITHM;
-        }
-        HFileContext hFileContext = new HFileContextBuilder()
-                .withIncludesMvcc(includeMVCCReadpoint)
-                .withIncludesTags(includesTag)
-                .withCompression(compression)
-                .withCompressTags(store.getFamily().isCompressTags())
-                .withChecksumType(HStore.getChecksumType(conf))
-                .withBytesPerCheckSum(HStore.getBytesPerChecksum(conf))
-                .withBlockSize(store.getFamily().getBlocksize())
-                .withHBaseCheckSum(true)
-                .withDataBlockEncoding(store.getFamily().getDataBlockEncoding())
-                .withEncryptionContext(cryptoContext)
-                .withCreateTime(EnvironmentEdgeManager.currentTime())
-                .build();
-        return hFileContext;
-    }
-
-    /**
-     *
-     * Retrieve the Crypto Context.  This is borrowed from the DefaultCompactor logic.
-     *
-     * @return
-     * @throws IOException
-     */
-    public Encryption.Context getCryptoContext() throws IOException {
-        // Crypto context for new store files
-        String cipherName = store.getFamily().getEncryptionType();
-        if (cipherName != null) {
-            Cipher cipher;
-            Key key;
-            byte[] keyBytes = store.getFamily().getEncryptionKey();
-            if (keyBytes != null) {
-                // Family provides specific key material
-                String masterKeyName = conf.get(HConstants.CRYPTO_MASTERKEY_NAME_CONF_KEY,
-                        User.getCurrent().getShortName());
-                try {
-                    // First try the master key
-                    key = EncryptionUtil.unwrapKey(conf, masterKeyName, keyBytes);
-                } catch (KeyException e) {
-                    // If the current master key fails to unwrap, try the alternate, if
-                    // one is configured
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Unable to unwrap key with current master key '" + masterKeyName + "'");
-                    }
-                    String alternateKeyName =
-                            conf.get(HConstants.CRYPTO_MASTERKEY_ALTERNATE_NAME_CONF_KEY);
-                    if (alternateKeyName != null) {
-                        try {
-                            key = EncryptionUtil.unwrapKey(conf, alternateKeyName, keyBytes);
-                        } catch (KeyException ex) {
-                            throw new IOException(ex);
-                        }
-                    } else {
-                        throw new IOException(e);
-                    }
-                }
-                // Use the algorithm the key wants
-                cipher = Encryption.getCipher(conf, key.getAlgorithm());
-                if (cipher == null) {
-                    throw new RuntimeException("Cipher '" + key.getAlgorithm() + "' is not available");
-                }
-                // Fail if misconfigured
-                // We use the encryption type specified in the column schema as a sanity check on
-                // what the wrapped key is telling us
-                if (!cipher.getName().equalsIgnoreCase(cipherName)) {
-                    throw new RuntimeException("Encryption for family '" + store.getFamily().getNameAsString() +
-                            "' configured with type '" + cipherName +
-                            "' but key specifies algorithm '" + cipher.getName() + "'");
-                }
-            } else {
-                // Family does not provide key material, create a random key
-                cipher = Encryption.getCipher(conf, cipherName);
-                if (cipher == null) {
-                    throw new RuntimeException("Cipher '" + cipherName + "' is not available");
-                }
-                key = cipher.getRandomKey();
-            }
-            Encryption.Context cryptoContext = Encryption.newContext(conf);
-            cryptoContext.setCipher(cipher);
-            cryptoContext.setKey(key);
-            return cryptoContext;
-        } else
-            return Encryption.Context.NONE;
-    }
-
-    /**
-     * Creates a writer for a new file in a temporary directory.  This is pulled forward from DefaultCompactor
-     * to handle some scoping issues.
-     *
-     * @param fd The file details.
-     * @return Writer for a new StoreFile in the tmp dir.
-     * @throws IOException
-     */
-    protected StoreFile.Writer createTmpWriter(FileDetails fd, boolean shouldDropBehind, InetSocketAddress[] favoredNodes)
-            throws IOException {
-
-        // When all MVCC readpoints are 0, don't write them.
-        // See HBASE-8166, HBASE-12600, and HBASE-13389.
-
-        return createWriterInTmp(fd.maxKeyCount, this.compactionCompression,
-            /* isCompaction = */ true,
-            /* includeMVCCReadpoint = */ fd.maxMVCCReadpoint > 0,
-            /* includesTags = */ fd.maxTagsLength > 0,
-            /* shouldDropBehind = */ shouldDropBehind,
-                favoredNodes);
-    }
-
-    /**
-     *
-     * This only overwrites favored nodes when there are none supplied.  I believe in later versions the favoredNodes are
-     * populated for region groups.  When this happens, we will pass those favored nodes along.  Until then, we attempt to put the local
-     * node in the favored nodes since sometimes Spark Tasks will run compactions remotely.
-     *
-     * @return
-     * @throws IOException
-     */
-    protected InetSocketAddress[] getFavoredNodes() throws IOException {
-        try {
-            RegionServerServices rsServices = (RegionServerServices)FieldUtils.readField(((HStore) store).getHRegion(), "rsServices", true);
-            InetSocketAddress[] returnAddresses = (InetSocketAddress[]) MethodUtils.invokeMethod(rsServices,"getFavoredNodesForRegion",store.getRegionInfo().getEncodedName());
-            if ( (returnAddresses == null || returnAddresses.length == 0)
-                    && store.getFileSystem() instanceof HFileSystem
-                    && ((HFileSystem)store.getFileSystem()).getBackingFs() instanceof DistributedFileSystem) {
-                String[] txvr = conf.get("dfs.datanode.address").split(":"); // hack
-                if (txvr.length == 2) {
-                    returnAddresses = new InetSocketAddress[1];
-                    returnAddresses[0] = new InetSocketAddress(hostName, Integer.parseInt(txvr[1]));
-                }
-                else {
-                    SpliceLogUtils.warn(LOG,"dfs.datanode.address is expected to have form hostname:port but is %s",txvr);
-                }
-            }
-            return returnAddresses;
-        } catch (Exception e) {
-            SpliceLogUtils.error(LOG,e);
-            throw new IOException(e);
-        }
-
     }
 
     public List<StoreFileScanner> createFileScanners(
