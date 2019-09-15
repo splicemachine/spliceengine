@@ -57,6 +57,7 @@ public class OrNode extends BinaryLogicalOperatorNode {
 	{
 		super.init(leftOperand, rightOperand, "or");
 		this.shortCircuitValue = true;
+		this.operatorType = OR;
 	}
 
 	/**
