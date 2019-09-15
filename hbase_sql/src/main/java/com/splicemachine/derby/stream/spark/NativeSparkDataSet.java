@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -37,6 +38,7 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.spark.splicemachine.ScalaUtils;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
@@ -58,6 +60,7 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.*;
 import static org.apache.spark.sql.functions.*;
 
+import org.apache.spark.sql.catalyst.parser.ParserInterface;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.storage.StorageLevel;
 import scala.collection.JavaConversions;
@@ -910,10 +913,18 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             int[] rightJoinKeys = ((JoinOperation)context.getOperation()).getRightHashKeys();
             int[] leftJoinKeys = ((JoinOperation)context.getOperation()).getLeftHashKeys();
             assert rightJoinKeys!=null && leftJoinKeys!=null && rightJoinKeys.length == leftJoinKeys.length:"Join Keys Have Issues";
-            for (int i = 0; i< rightJoinKeys.length;i++) {
-                Column joinEquality = (leftDF.col(ValueRow.getNamedColumn(leftJoinKeys[i]))
-                        .equalTo(rightDF.col(ValueRow.getNamedColumn(rightJoinKeys[i]))));
-                expr = i!=0?expr.and(joinEquality):joinEquality;
+
+            SparkExpressionNode sparkJoinPred = op.getSparkJoinPredicate();
+            if (sparkJoinPred != null) {
+                ParserInterface parser = ScalaUtils.getParser();
+                expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, parser);
+            }
+            else {
+                for (int i = 0; i < rightJoinKeys.length; i++) {
+                    Column joinEquality = (leftDF.col(ValueRow.getNamedColumn(leftJoinKeys[i]))
+                    .equalTo(rightDF.col(ValueRow.getNamedColumn(rightJoinKeys[i]))));
+                    expr = i != 0 ? expr.and(joinEquality) : joinEquality;
+                }
             }
             DataSet joinedSet;
 
