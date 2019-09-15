@@ -6,9 +6,11 @@ package com.splicemachine.db.impl.sql.calcite;
 
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceImplementor;
 import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceRelNode;
 import com.splicemachine.db.impl.sql.calcite.rules.SpliceConverterRule;
-import com.splicemachine.db.impl.sql.compile.SelectNode;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
+import com.splicemachine.db.impl.sql.compile.ResultSetNode;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -32,8 +34,10 @@ public class CalciteSqlPlanner {
     public static Logger LOG = Logger.getLogger(CalciteSqlPlanner.class);
     private Planner planner;
     private DerbyToCalciteRelBuilder relBuilder;
+    private SpliceContext sc;
 
     public CalciteSqlPlanner(SpliceContext spliceContext) {
+        this.sc = spliceContext;
         SpliceSchema spliceSchema = new SpliceSchema(spliceContext.getLcc(), "", null, true);
         SchemaPlus defaultSchema = CalciteSchema.createRootSchema(false, false, spliceSchema.getName(), spliceSchema).plus();
         FrameworkConfig config = Frameworks.newConfigBuilder()
@@ -85,8 +89,8 @@ public class CalciteSqlPlanner {
 
     }
 
-    public RelNode derby2Rel(String sql, SelectNode selectNode) throws StandardException {
-        RelNode root = relBuilder.convertSelect(selectNode);
+    public RelNode derby2Rel(String sql, ResultSetNode resultSetNode) throws StandardException {
+        RelNode root = relBuilder.convertResultSet(resultSetNode);
         String plan =  RelOptUtil.toString(root);
         if (LOG.isDebugEnabled()){
             LOG.debug(String.format("Plan for query <<\n\t%s\n>>\n%s\n",
@@ -95,7 +99,7 @@ public class CalciteSqlPlanner {
         return root;
     }
 
-    public String optimize(String sql, RelNode root) {
+    public RelNode optimize(String sql, RelNode root) {
         final Program program = Programs.standard();
         RelTraitSet desiredTraits = root.getTraitSet()
                 .replace(SpliceRelNode.CONVENTION);
@@ -127,6 +131,12 @@ public class CalciteSqlPlanner {
             LOG.debug(String.format("Plan after optimization for query <<\n\t%s\n>>\n%s\n",
                     sql, plan));
         }
-        return plan;
+        return rootRel4;
+    }
+
+    public QueryTreeNode implement(RelNode root) throws StandardException {
+        SpliceImplementor implementor = new SpliceImplementor(sc);
+        QueryTreeNode result = implementor.visitChild(0, root);
+        return result;
     }
 }

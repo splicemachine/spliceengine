@@ -3488,4 +3488,13 @@ public class FromBaseTable extends FromTable {
     public FormatableBitSet getReferencedCols() {
         return referencedCols;
     }
+
+    public void setReferencedCols() throws StandardException {
+        boolean isSysstatements=tableName.equals("SYS","SYSSTATEMENTS");
+			/* Template must reflect full row.
+			 * Compact RCL down to partial row.
+			 */
+        referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,isSysstatements,false,false);
+        resultColumns=resultColumns.compactColumns(cursorTargetTable,isSysstatements);
+    }
 }

@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceRelNode;
 import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceTableScan;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -35,6 +36,8 @@ public class SpliceTable extends AbstractQueryableTable implements TranslatableT
     public final Schema.TableType tableType;
     private LanguageConnectionContext lcc;
     private TableDescriptor tableDescriptor;
+    private int tableNumber;
+    private FromBaseTable fromBaseTable;
 
 
     SpliceTable(SpliceSchema spliceSchema,
@@ -107,5 +110,21 @@ public class SpliceTable extends AbstractQueryableTable implements TranslatableT
 
     public Enumerable<Object[]> scan(DataContext root) {
         return null;
+    }
+
+    public void setTableNumber(int tableNumber) {
+        this.tableNumber = tableNumber;
+    }
+
+    public int getTableNumber() {
+        return tableNumber;
+    }
+
+    public void setFromBaseTableNode(FromBaseTable fromBaseTable) {
+        this.fromBaseTable = fromBaseTable;
+    }
+
+    public FromBaseTable getFromBaseTableNode() {
+        return fromBaseTable;
     }
 }

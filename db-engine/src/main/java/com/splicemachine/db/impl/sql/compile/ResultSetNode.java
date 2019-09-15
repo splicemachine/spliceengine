@@ -1752,4 +1752,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
         return containsSelfReference;
     }
 
+    public void fillInCostEstimate(CostEstimate value) {
+        costEstimate = value;
+        finalCostEstimate = costEstimate;
+    }
 }

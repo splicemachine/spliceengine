@@ -626,7 +626,7 @@ public class GenericStatement implements Statement{
             } else
             if (cc.getUseCalciteOptimizer()) {
                 if (planner == null) {
-                    SpliceContext spliceContext = new SpliceContext(lcc);
+                    SpliceContext spliceContext = new SpliceContext(lcc, cc);
                     planner = new CalciteSqlPlanner(spliceContext);
                 }
                 rewriteStmt = planner.parse(statementText);
@@ -765,25 +765,30 @@ public class GenericStatement implements Statement{
 
             if (cc.getUseCalciteOptimizer() && !rewriteStmt.toLowerCase().startsWith("call")) {
                 if (planner == null) {
-                    SpliceContext spliceContext = new SpliceContext(lcc);
+                    SpliceContext spliceContext = new SpliceContext(lcc, cc);
                     planner = new CalciteSqlPlanner(spliceContext);
                 }
-                SelectNode selectNode = null;
+                ResultSetNode resultSetNode = null;
                 StatementNode stmtNode = qt;
+                QueryTreeNode parent = qt;
                 while (stmtNode instanceof StatementNode){
-                    if (stmtNode instanceof ExplainNode)
+                    if (stmtNode instanceof ExplainNode) {
+                        parent = stmtNode;
                         stmtNode = ((ExplainNode) stmtNode).getPlanRoot();
-                    else if (stmtNode instanceof CursorNode) {
-                        selectNode = (SelectNode)((DMLStatementNode)stmtNode).getResultSetNode();
+                    } else if (stmtNode instanceof CursorNode) {
+                        parent = stmtNode;
+                        resultSetNode = ((DMLStatementNode)stmtNode).getResultSetNode();
                         break;
                     }
                 }
 
-                RelNode root = planner.derby2Rel(rewriteStmt, selectNode);
-                String plan = planner.optimize(rewriteStmt, root);
-            }
-
-            qt.optimizeStatement();
+                RelNode root = planner.derby2Rel(rewriteStmt, resultSetNode);
+                RelNode newRoot = planner.optimize(rewriteStmt, root);
+                QueryTreeNode convertedTree = planner.implement(newRoot);
+                assert parent instanceof CursorNode: "expect CursorNode";
+                parent.init(convertedTree);
+            } else
+                qt.optimizeStatement();
             dumpOptimizedTree(lcc,qt,false);
             timestamps[3]=getCurrentTimeMillis(lcc);
 

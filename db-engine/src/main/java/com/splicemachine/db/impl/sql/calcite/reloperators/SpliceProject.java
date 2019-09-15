@@ -1,5 +1,7 @@
 package com.splicemachine.db.impl.sql.calcite.reloperators;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.compile.ResultSetNode;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
@@ -25,7 +27,7 @@ public class SpliceProject extends Project implements SpliceRelNode {
     }
 
     @Override
-    public void implement(SpliceRelNode.Implementor implementor) {
-
+    public ResultSetNode implement(SpliceImplementor implementor) throws StandardException {
+        return null;
     }
 }

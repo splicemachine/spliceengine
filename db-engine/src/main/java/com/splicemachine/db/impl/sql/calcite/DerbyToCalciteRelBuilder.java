@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.utils.Pair;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.plan.RelOptTable;
@@ -32,9 +33,19 @@ import static org.apache.calcite.util.Static.RESOURCE;
  * Created by yxia on 8/27/19.
  */
 public class DerbyToCalciteRelBuilder extends RelBuilder {
+    SpliceContext sc;
 
     public DerbyToCalciteRelBuilder(SpliceContext spliceContext, RelOptCluster cluster, RelOptSchema relOptSchema) {
         super(spliceContext, cluster, relOptSchema);
+        this.sc = spliceContext;
+    }
+
+    public RelNode convertResultSet(ResultSetNode resultSetNode) throws StandardException {
+        if (resultSetNode instanceof SelectNode)
+            return convertSelect((SelectNode)resultSetNode);
+        else if (resultSetNode instanceof RowResultSetNode)
+            return convertRowResultSet((RowResultSetNode)resultSetNode);
+        return null;
     }
 
     public RelNode convertSelect(SelectNode selectNode) throws StandardException {
@@ -51,6 +62,18 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
         return selectContext.relRoot;
     }
 
+    private void saveBaseColumns(FromBaseTable fromBaseTable) {
+        ResultColumnList rcl = fromBaseTable.getResultColumns();
+        int tableNumber = fromBaseTable.getTableNumber();
+        for (int i=0; i < rcl.size(); i++) {
+            ResultColumn rc = rcl.elementAt(i);
+            if (rc.getExpression() instanceof BaseColumnNode) {
+                int columnPosition = rc.getColumnPosition();
+                sc.addBaseColumn(Pair.newPair(tableNumber, columnPosition), rc);
+            }
+        }
+    }
+
     public RelNode convertFromList(ConvertSelectContext selectContext) {
         Map<Integer, Integer> startColPos = new HashMap<>();
         SelectNode selectNode = selectContext.root;
@@ -64,6 +87,9 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
                 oneTable = convertFromBaseTable((FromBaseTable)fromTable);
                 startColPos.put(fromTable.getTableNumber(), totalCols);
                 totalCols += oneTable.getRowType().getFieldCount();
+
+                // save the result columns corresponding to base column in SpliceContext
+                saveBaseColumns((FromBaseTable)fromTable);
             }
             if (root == null)
                 root = oneTable;
@@ -94,6 +120,10 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
         if (relOptTable == null) {
             throw RESOURCE.tableNotFound(String.join(".", names)).ex();
         }
+
+        SpliceTable spliceTable = relOptTable.unwrap(SpliceTable.class);
+        spliceTable.setFromBaseTableNode(fromBaseTable);
+        spliceTable.setTableNumber(fromBaseTable.getTableNumber());
         final RelNode scan = LogicalTableScan.create(cluster, relOptTable);
 
         return scan;
@@ -259,5 +289,24 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
         void setStartColPos(Map<Integer, Integer> map) {
             startColPos = map;
         }
+    }
+
+    public RelNode convertRowResultSet(RowResultSetNode rowResultSetNode) throws StandardException {
+        ResultColumnList rcl = rowResultSetNode.getResultColumns();
+        Object[] values = new Object[rcl.size()];
+        String[] names = new String[rcl.size()];
+        for (int i=0; i<rcl.size(); i++) {
+            ResultColumn rc = rcl.elementAt(i);
+            ValueNode valueNode = rc.getExpression();
+
+            // TODO: how to handle expresion
+            assert valueNode instanceof ConstantNode: "does not support non-constant expression yet";
+            Object constantObject = ((ConstantNode) valueNode).getValue().getObject();
+            values[i] = constantObject;
+            names[i] = rc.getName();
+        }
+
+        RelNode relNode = values(names, values).build();
+        return relNode;
     }
 }
