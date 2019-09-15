@@ -49,10 +49,12 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 						boolean rightFromSSQ,
 						double optimizerEstimatedRowCount,
 						double optimizerEstimatedCost,
-						String userSuppliedOptimizerOverrides) throws StandardException {
+						String userSuppliedOptimizerOverrides,
+						String sparkExpressionTreeAsString) throws StandardException {
 				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
-								activation, restriction, resultSetNumber,oneRowRightSide, notExistsRightSide, rightFromSSQ,
-								optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
+					activation, restriction, resultSetNumber,oneRowRightSide, notExistsRightSide, rightFromSSQ,
+					optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
+					sparkExpressionTreeAsString);
 				SpliceLogUtils.trace(LOG, "instantiate");
 				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
