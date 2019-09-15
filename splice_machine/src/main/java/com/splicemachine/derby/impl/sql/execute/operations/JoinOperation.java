@@ -21,11 +21,15 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLReal;
+import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Strings;
 
@@ -106,6 +110,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         public boolean wasRightOuterJoin = false;
         public boolean isOuterJoin = false;
 		private Restriction mergeRestriction;
+		protected SparkExpressionNode sparkJoinPredicate;
 
     public JoinOperation() {
 				super();
@@ -123,7 +128,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 							                     boolean rightFromSSQ,
 												 double optimizerEstimatedRowCount,
 												 double optimizerEstimatedCost,
-												 String userSuppliedOptimizerOverrides) throws StandardException {
+												 String userSuppliedOptimizerOverrides,
+				                                                                 String sparkExpressionTreeAsString) throws StandardException {
 				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.leftNumCols = leftNumCols;
 				this.rightNumCols = rightNumCols;
@@ -135,6 +141,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				this.leftResultSet = leftResultSet;
 				this.leftResultSetNumber = leftResultSet.resultSetNumber();
 				this.rightResultSet = rightResultSet;
+				this.sparkJoinPredicate =
+				(sparkExpressionTreeAsString == null ||
+				 sparkExpressionTreeAsString.length() == 0) ? null :
+				   (SparkExpressionNode) SerializationUtils.
+				      deserialize(Base64.decodeBase64(sparkExpressionTreeAsString));
 		}
 
 		@Override
@@ -166,6 +177,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						rightRow = (ExecRow)in.readObject();
                         mergedRowTemplate = (ExecRow)in.readObject();
 				}
+				if (in.readBoolean()) {
+					sparkJoinPredicate = (SparkExpressionNode) in.readObject();
+				}
 		}
 
 		@Override
@@ -194,6 +208,10 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						out.writeObject(rightRow);
                         out.writeObject(mergedRowTemplate);
 				}
+				boolean sparkExpressionPresent = (sparkJoinPredicate != null);
+				out.writeBoolean(sparkExpressionPresent);
+				if (sparkExpressionPresent)
+					out.writeObject(sparkJoinPredicate);
 		}
 		@Override
 		public List<SpliceOperation> getSubOperations() {
@@ -391,5 +409,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	public ExecRow getLeftRow() { return leftRow; }
 	public ExecRow getRightRow() { return rightRow; }
+
+	public SparkExpressionNode getSparkJoinPredicate() { return sparkJoinPredicate; }
 
 }
