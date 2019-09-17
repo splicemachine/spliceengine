@@ -363,4 +363,23 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ") ;", rs.getString(1));
 
     }
+    @Test
+    public void testTextDefaultUserRole() throws Exception
+    {
+        String DDL = "CREATE TABLE \"SHOWCREATETABLEIT\".\"T17\"\n" +
+                "(\n" +
+                "\"I\" VARCHAR(20) DEFAULT CURRENT_USER\n" +
+                ",\"J\" VARCHAR(20) DEFAULT CURRENT_ROLE\n" +
+                ",\"K\" VARCHAR(20) DEFAULT 'CURRENT_ROLE'\n" +
+                ")";
+        methodWatcher.executeUpdate(DDL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T17')");
+        rs.next();
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T17\" (\n" +
+                "\"I\" VARCHAR(20) DEFAULT CURRENT_USER\n" +
+                ",\"J\" VARCHAR(20) DEFAULT CURRENT_ROLE\n" +
+                ",\"K\" VARCHAR(20) DEFAULT 'CURRENT_ROLE'\n" +
+                ") ;", rs.getString(1));
+
+    }
 }
