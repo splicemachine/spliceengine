@@ -186,9 +186,12 @@ final class ScalarEncoding{
      * @param reservedBits the number of bits in the header which are "reserved"--i.e. used by something else.
      * @return a long[] holding the elements {@code (x,length(x))}
      */
-    public static long[] readLong(byte[] data,int byteOffset,int reservedBits){
+    public static long[] readLong(byte[] data, int byteOffset, boolean desc, int reservedBits){
         assert data.length>0; //need at least one byte
         byte headerByte=data[byteOffset];
+        if (desc) {
+            headerByte ^= 0xff;
+        }
         headerByte<<=reservedBits;
 
         int sign=(headerByte&LONG_SIGN_BIT)!=0?0:Byte.MIN_VALUE;
@@ -218,7 +221,7 @@ final class ScalarEncoding{
         else
             x|=(((long)d&0xff)<<(length-1)*8);
 
-        x=decodeBody(data,byteOffset,false,sign,length,x);
+        x=decodeBody(data,byteOffset,desc,sign,length,x);
         return new long[]{x,length};
     }
 

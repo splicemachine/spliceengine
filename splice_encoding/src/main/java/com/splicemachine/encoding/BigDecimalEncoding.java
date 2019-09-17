@@ -185,71 +185,51 @@ class BigDecimalEncoding {
     }
 
     public static BigDecimal toBigDecimal(byte[] data, int dataOffset, int dataLength, boolean desc) {
-        byte[] dataCopy = Arrays.copyOfRange(data, dataOffset, dataOffset + dataLength);
-        if (desc) {
-            for (int i = 0; i < dataCopy.length; i++) {
-                dataCopy[i] ^= ORDER_FLIP_MASK;
-            }
-        }
-        return toBigDecimal(dataCopy, 0, dataLength - 1);
-    }
-
-    private static BigDecimal toBigDecimal(byte[] data, int dataOffset, int dataLength) {
-        int h = data[dataOffset];
-        h &= 0xff;
-        h >>>= Byte.SIZE - HEADER_SIZE_BITS;
+        int mask = desc ? ORDER_FLIP_MASK : 0;
+        int h = ((data[dataOffset] ^ mask) & 0xff) >>> (Byte.SIZE - HEADER_SIZE_BITS);
         if (h == HEADER_NULL) return null;
         if (h == HEADER_ZERO) return BigDecimal.ZERO;
 
-        byte sign = (byte) (h == HEADER_NEG ? -1 : 0);
+        dataLength -= 1;    // skip trailing 1
 
-        if (sign < 0) {
-            for (int z = 0; z < data.length; z++) {
-                if (z == 0) {
-                    data[z] ^= ORDER_FLIP_EXCLUDE_HEADER_MASK;
-                } else {
-                    data[z] ^= ORDER_FLIP_MASK;
-                }
-            }
-        }
+        boolean negative = (h == HEADER_NEG);
+        mask = desc ^ negative ? ORDER_FLIP_MASK : 0;
 
-        long[] expOffset = ScalarEncoding.readLong(data,dataOffset,HEADER_SIZE_BITS);
+        long[] expOffset = ScalarEncoding.readLong(data, dataOffset, desc ^ negative, HEADER_SIZE_BITS);
         long exp = expOffset[0];
-        int offset = (int) (expOffset[1]);
+        int offset = (int) expOffset[1];
 
-        int length = ((dataLength - offset) * 2);
-        byte last;
-        if (dataOffset + dataLength >= data.length)
-            last = data[data.length - 1];
-        else
-            last = data[dataOffset + dataLength - 1];
-        if ((last & 0xf) == 0)
+        int length = (dataLength - offset) * 2;
+        if (((data[dataOffset + dataLength - 1] ^ mask) & 0xf) == 0) {
             length -= 1;
-
-        //deserialize the digits
-        char[] chars = new char[length];
-        int pos = 0;
-        for (int i = 0; i < dataLength && pos < chars.length; i++) {
-            byte next = data[dataOffset + offset + i];
-            byte f = (byte) ((next >>> 4) & 0xf);
-            if (f == 0)
-                break; //no more character
-            else {
-                chars[pos] = (char) ('0' + f - 1);
-                pos++;
-            }
-            f = (byte) (next & 0xf);
-            if (f == 0)
-                break;
-            else {
-                chars[pos] = (char) ('0' + f - 1);
-                pos++;
-            }
         }
 
         int scale = (int) (exp - length + 1);
-        String unscaledString = new String(chars);
-        BigInteger unscaled = new BigInteger(sign == 0 ? unscaledString : '-' + unscaledString);
-        return new BigDecimal(unscaled, -scale);
+
+        // Deserialize the digits into long
+        long longValue = 0;
+        final long maxVal = (Long.MAX_VALUE - 9) / 10;
+        boolean done = true;
+        for (int i = 0, shift = 4; i < length; ++i, shift = 4 - shift) {
+            if (longValue > maxVal) {     // overflow
+                done = false;
+                break;
+            }
+            int digit = ((data[dataOffset + offset + i/2] ^ mask) >>> shift) & 0xf;
+            longValue = longValue * 10 + digit - 1;
+        }
+        if (done) {
+            return new BigDecimal(negative ? -longValue : longValue).scaleByPowerOfTen(scale);
+        }
+
+        // Deserialize the digits into char[]
+        char[] chars = new char[length + 1];
+        int pos = 0;
+        chars[pos++] = negative ? '-' : '+';
+        for (int i = 0, shift = 4; i < length; ++i, shift = 4 - shift) {
+            int digit = ((data[dataOffset + offset + i/2] ^ mask) >>> shift) & 0xf;
+            chars[pos++] = (char) ('0' + digit - 1);
+        }
+        return new BigDecimal(chars).scaleByPowerOfTen(scale);
     }
 }
