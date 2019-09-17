@@ -2283,12 +2283,15 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 }
                 else {
                     colDef.append(" DEFAULT ");
-                    if (colType.indexOf("CHAR") > -1 || colType.indexOf("VARCHAR") > -1
-                            || colType.indexOf("LONG VARCHAR") > -1 || colType.indexOf("CLOB") > -1 ) {
-                        defaultText = "'" + defaultText + "'";
-                    }
-                    else if (colType.indexOf("DATE") > -1 || colType.indexOf("TIME") > -1 || colType.indexOf("TIMESTAMP") > -1){
-                        if ((defaultText = defaultText.toUpperCase()).indexOf("CURRENT") == -1 )
+                    if (colType.indexOf("CHAR") > -1
+                            || colType.indexOf("VARCHAR") > -1
+                            || colType.indexOf("LONG VARCHAR") > -1
+                            || colType.indexOf("CLOB") > -1
+                            || colType.indexOf("DATE") > -1
+                            || colType.indexOf("TIME") > -1
+                            || colType.indexOf("TIMESTAMP") > -1
+                    ) {
+                        if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
                             defaultText = "'" + defaultText + "'";
                     }
                 }
