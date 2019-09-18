@@ -362,6 +362,8 @@ public interface SConfiguration {
     
     Map<String, String> getOlapServerYarnQueues();
 
+    boolean getOlapServerIsolatedCompaction();
+
     int getMaxCheckTableErrors();
 
     int getRecursiveQueryIterationLimit();

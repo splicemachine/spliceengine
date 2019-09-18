@@ -112,4 +112,5 @@ public class SIConstants {
 
     public static final String OLAP_DEFAULT_QUEUE_NAME = "default";
     public static final String YARN_DEFAULT_QUEUE_NAME = "default";
+    public static final String OLAP_COMPACTION_QUEUE_NAME = "compaction";
 }

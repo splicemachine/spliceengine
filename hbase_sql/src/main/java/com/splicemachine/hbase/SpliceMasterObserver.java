@@ -185,6 +185,9 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
                         serverSubmitters = new ArrayList<>();
                         Set<String> names = new HashSet<>(queues);
                         names.add(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
+                        if (HConfiguration.getConfiguration().getOlapServerIsolatedCompaction()) {
+                            names.add(SIConstants.OLAP_COMPACTION_QUEUE_NAME);
+                        }
 
                         for (String queue : names) {
                             OlapServerSubmitter oss = new OlapServerSubmitter(serverName, queue);
