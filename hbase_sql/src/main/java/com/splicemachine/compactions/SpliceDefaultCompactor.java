@@ -161,7 +161,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 hostName,
                 config.getOlapCompactionMaximumWait());
         CompactionResult result = null;
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest);
+        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
         while(result == null) {
             try {
                 result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
@@ -216,6 +216,13 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 store.getColumnFamilyDescriptor().getName(),
                 isMajor,
                 favoredNodes);
+    }
+
+    private String getCompactionQueue() {
+        SConfiguration config = HConfiguration.getConfiguration();
+        return config.getOlapServerIsolatedCompaction() ?
+                SIConstants.OLAP_COMPACTION_QUEUE_NAME :
+                SIConstants.OLAP_DEFAULT_QUEUE_NAME;
     }
 
     private String getScope(CompactionRequest request) {
