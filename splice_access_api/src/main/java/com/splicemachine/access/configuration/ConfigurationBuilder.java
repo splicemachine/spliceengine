@@ -203,6 +203,7 @@ public class ConfigurationBuilder {
     public String olapLog4jConfig;
     public Map<String,String> olapServerIsolatedRoles;
     public Map<String,String> olapServerYarnQueues;
+    public boolean olapServerIsolatedCompaction;
 
 
     /**
