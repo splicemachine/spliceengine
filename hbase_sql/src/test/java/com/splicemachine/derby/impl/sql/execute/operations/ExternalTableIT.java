@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -2974,6 +2975,14 @@ public class ExternalTableIT extends SpliceUnitTest{
         }
     }
 
+    @Test
+    public void testCompactionIgnoresExternalTables() throws Exception {
+        try {
+            methodWatcher.executeUpdate(String.format("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_SCHEMA('%s')",SCHEMA_NAME));
+        } catch (SQLException | StandardException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static class ExtThread extends Thread{
         private TestConnection conn;
