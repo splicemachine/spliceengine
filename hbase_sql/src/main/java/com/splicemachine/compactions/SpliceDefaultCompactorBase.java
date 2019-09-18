@@ -15,6 +15,7 @@
 package com.splicemachine.compactions;
 
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.si.constants.SIConstants;
@@ -94,6 +95,13 @@ public class SpliceDefaultCompactorBase extends DefaultCompactor {
                 store.getFamily().getName(),
                 isMajor,
                 favoredNodes);
+    }
+
+    String getCompactionQueue() {
+        SConfiguration config = HConfiguration.getConfiguration();
+        return config.getOlapServerIsolatedCompaction() ?
+               SIConstants.OLAP_COMPACTION_QUEUE_NAME :
+               SIConstants.OLAP_DEFAULT_QUEUE_NAME;
     }
 
     String getScope(CompactionRequest request) {
