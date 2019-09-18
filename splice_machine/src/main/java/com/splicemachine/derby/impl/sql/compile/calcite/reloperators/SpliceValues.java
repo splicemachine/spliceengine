@@ -1,4 +1,4 @@
-package com.splicemachine.db.impl.sql.calcite.reloperators;
+package com.splicemachine.derby.impl.sql.compile.calcite.reloperators;
 
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -7,7 +7,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.util.JBitSet;
-import com.splicemachine.db.impl.sql.calcite.SpliceContext;
+import com.splicemachine.derby.impl.sql.compile.calcite.SpliceContext;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;

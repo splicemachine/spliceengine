@@ -1,12 +1,12 @@
-package com.splicemachine.db.impl.sql.calcite;
+package com.splicemachine.derby.impl.sql.compile.calcite;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceRelNode;
-import com.splicemachine.db.impl.sql.calcite.reloperators.SpliceTableScan;
+import com.splicemachine.derby.impl.sql.compile.calcite.reloperators.SpliceRelNode;
+import com.splicemachine.derby.impl.sql.compile.calcite.reloperators.SpliceTableScan;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;

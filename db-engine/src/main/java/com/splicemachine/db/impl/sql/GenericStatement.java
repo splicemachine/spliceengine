@@ -49,14 +49,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
-import com.splicemachine.db.impl.sql.calcite.CalciteSqlPlanner;
-import com.splicemachine.db.impl.sql.calcite.SpliceContext;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
-import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.plan.Context;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -85,7 +83,7 @@ public class GenericStatement implements Statement{
     private String sessionPropertyValues = "null";
     private final String statementTextTrimed;
     private String rewriteStmt;
-    private CalciteSqlPlanner planner;
+    private SqlPlanner planner;
 
     /**
      * Constructor for a Statement given the text of the statement in a String
@@ -765,8 +763,8 @@ public class GenericStatement implements Statement{
 
             if (cc.getUseCalciteOptimizer() && !rewriteStmt.toLowerCase().startsWith("call")) {
                 if (planner == null) {
-                    SpliceContext spliceContext = new SpliceContext(lcc, cc);
-                    planner = new CalciteSqlPlanner(spliceContext);
+                    Context spliceContext = lcc.getSqlPlannerFactory().newContext(lcc, cc);
+                    planner = lcc.getSqlPlannerFactory().getSqlPlanner(spliceContext);
                 }
                 ResultSetNode resultSetNode = null;
                 StatementNode stmtNode = qt;
@@ -782,9 +780,7 @@ public class GenericStatement implements Statement{
                     }
                 }
 
-                RelNode root = planner.derby2Rel(rewriteStmt, resultSetNode);
-                RelNode newRoot = planner.optimize(rewriteStmt, root);
-                QueryTreeNode convertedTree = planner.implement(newRoot);
+                QueryTreeNode convertedTree = planner.optimize(resultSetNode, rewriteStmt);
                 assert parent instanceof CursorNode: "expect CursorNode";
                 parent.init(convertedTree);
             } else

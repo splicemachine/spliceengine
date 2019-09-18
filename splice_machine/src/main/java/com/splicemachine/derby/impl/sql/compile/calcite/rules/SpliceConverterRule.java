@@ -1,6 +1,6 @@
-package com.splicemachine.db.impl.sql.calcite.rules;
+package com.splicemachine.derby.impl.sql.compile.calcite.rules;
 
-import com.splicemachine.db.impl.sql.calcite.reloperators.*;
+import com.splicemachine.derby.impl.sql.compile.calcite.reloperators.*;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTrait;

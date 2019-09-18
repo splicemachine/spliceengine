@@ -48,10 +48,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.*;
-import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -199,6 +196,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     protected TypeCompilerFactory tcf;
     protected OptimizerFactory of;
     protected LanguageConnectionFactory connFactory;
+    protected SqlPlannerFactory sqlPlannerFactory;
 
     /* 
      * A statement context is "pushed" and "popped" at the beginning and
@@ -372,6 +370,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         of=lcf.getOptimizerFactory();
         langFactory=lf;
         connFactory=lcf;
+        sqlPlannerFactory = lcf.getSqlPlannerFactory();
         this.db=db;
         this.userName=userName;
         this.groupuserlist=groupuserlist;
@@ -3882,5 +3881,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public void setClientSupportsDecimal38(boolean newVal) {
         clientSupportsDecimal38 = newVal;
+    }
+
+    public SqlPlannerFactory getSqlPlannerFactory() {
+        return sqlPlannerFactory;
     }
 }

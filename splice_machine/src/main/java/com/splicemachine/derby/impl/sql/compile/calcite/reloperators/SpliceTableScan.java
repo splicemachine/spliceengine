@@ -1,13 +1,13 @@
-package com.splicemachine.db.impl.sql.calcite.reloperators;
+package com.splicemachine.derby.impl.sql.compile.calcite.reloperators;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.impl.sql.calcite.SpliceContext;
-import com.splicemachine.db.impl.sql.calcite.SpliceTable;
-import com.splicemachine.db.impl.sql.calcite.rules.SpliceConverterRule;
+import com.splicemachine.derby.impl.sql.compile.calcite.SpliceContext;
+import com.splicemachine.derby.impl.sql.compile.calcite.SpliceTable;
+import com.splicemachine.derby.impl.sql.compile.calcite.rules.SpliceConverterRule;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.ResultColumn;
 import com.splicemachine.db.impl.sql.compile.ResultColumnList;

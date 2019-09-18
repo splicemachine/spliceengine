@@ -1,4 +1,4 @@
-package com.splicemachine.db.impl.sql.calcite.reloperators;
+package com.splicemachine.derby.impl.sql.compile.calcite.reloperators;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.compile.ResultSetNode;

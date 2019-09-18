@@ -1,4 +1,4 @@
-package com.splicemachine.db.impl.sql.calcite;
+package com.splicemachine.derby.impl.sql.compile.calcite;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;

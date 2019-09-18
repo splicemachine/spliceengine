@@ -1,4 +1,4 @@
-package com.splicemachine.db.impl.sql.calcite;
+package com.splicemachine.derby.impl.sql.compile.calcite;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -29,6 +29,7 @@ public class SpliceContext implements Context {
     public LanguageConnectionContext getLcc() {
         return lcc;
     }
+
     public <T> T unwrap(Class<T> clazz) {
         if (clazz.isInstance(this)) {
             return clazz.cast(this);
