@@ -279,7 +279,6 @@ public interface JoinStrategy {
 							int lockMode,
 							boolean tableLocked,
 							int isolationLevel,
-							int maxMemoryPerTable,
 							boolean genInListVals,
                             String tableVersion,
 							boolean pin,

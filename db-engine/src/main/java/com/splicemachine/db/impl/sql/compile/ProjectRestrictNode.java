@@ -1278,7 +1278,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         // build up the tree.
 
 		/* Put the predicates back into the tree */
-        if(restrictionList!=null){
+		/* for tree converted from Calcite, it is already changed to AND/OR tree, so no need to do the conversion here */
+        if(!getCompilerContext().getUseCalciteOptimizer() && restrictionList!=null){
             constantRestriction=restrictionList.restoreConstantPredicates();
             // Remove any redundant predicates before restoring
             restrictionList.removeRedundantPredicates();
@@ -1758,9 +1759,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         } else
             sb.append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
 
-        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
-        if(qualifiers!=null && !qualifiers.isEmpty()) //add
-            sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
+        if (!getCompilerContext().getUseCalciteOptimizer()) {
+            List<String> qualifiers = Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
+            if (qualifiers != null && !qualifiers.isEmpty()) //add
+                sb.append(attrDelim).append("preds=[").append(Joiner.on(",").skipNulls().join(qualifiers)).append("]");
+        } else if (restriction != null) {
+            String conditionString = com.splicemachine.db.impl.sql.compile.OperatorToString.opToString(restriction);
+            sb.append(attrDelim).append("preds=[").append(conditionString).append("]");
+        }
         sb.append(")");
         return sb.toString();
     }

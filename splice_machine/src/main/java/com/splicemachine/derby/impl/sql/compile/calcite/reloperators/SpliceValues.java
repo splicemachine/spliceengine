@@ -7,8 +7,8 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.util.JBitSet;
-import com.splicemachine.derby.impl.sql.compile.calcite.SpliceContext;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.derby.impl.sql.compile.calcite.SpliceContext;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -18,6 +18,7 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.List;
 
@@ -63,7 +64,7 @@ public class SpliceValues extends Values implements SpliceRelNode {
             implementor.setNameAndType(field, rc);
             ValueNode sourceValue;
             if (tuple != null) {
-                sourceValue = implementor.literalToValueNode(tuple.get(field.getIndex()));
+                sourceValue = implementor.convertExpression((RexNode)tuple.get(field.getIndex()), null);
             } else {
                 sourceValue = rc.getNullNode(rc.getTypeServices());
             }
@@ -75,7 +76,7 @@ public class SpliceValues extends Values implements SpliceRelNode {
         RowResultSetNode resultSetNode = (RowResultSetNode)nodeFactory.getNode(C_NodeTypes.ROW_RESULT_SET_NODE, rcl, null, contextManager);
         resultSetNode.setLevel(0);
         resultSetNode.setTableNumber(0);
-                /* Allocate a dummy referenced table map */
+        /* Allocate a dummy referenced table map */
         int numTables = sc.getCompilerContext().getMaximalPossibleTableCount();
         JBitSet tableMap = new JBitSet(numTables);
         tableMap.set(0);
