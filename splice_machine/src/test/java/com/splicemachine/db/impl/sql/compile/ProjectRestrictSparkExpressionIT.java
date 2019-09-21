@@ -71,36 +71,66 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
     @Test
     public void testLike() throws Exception {
         String expected =
-            "A |\n" +
-            "----\n" +
-            "a_ |";
+        "A |\n" +
+        "----\n" +
+        "a_ |";
 
         String query = format("select * from t1_like --SPLICE-PROPERTIES useSpark=%s\n" +
-            "where a LIKE 'a=_' ESCAPE '='", useSpark);
+        "where a LIKE 'a=_' ESCAPE '='", useSpark);
 
         testQuery(query, expected, methodWatcher);
 
         query = format("select * from t1_like --SPLICE-PROPERTIES useSpark=%s\n" +
-            "where a LIKE 'a%%' ", useSpark);
+        "where a LIKE 'a%%' ", useSpark);
 
         expected =
-            "A |\n" +
-            "----\n" +
-            " a |\n" +
-            " a |\n" +
-            "a_ |";
+        "A |\n" +
+        "----\n" +
+        " a |\n" +
+        " a |\n" +
+        "a_ |";
 
         testQuery(query, expected, methodWatcher);
 
         query = format("select * from t2_like --SPLICE-PROPERTIES useSpark=%s\n" +
-            "WHERE REGEXP_LIKE(a, '^Ste.*') ", useSpark);
+        "WHERE REGEXP_LIKE(a, '^Ste.*') ", useSpark);
 
         expected =
-            "A        |\n" +
-            "-----------------\n" +
-            "Stephen Tuvesco |\n" +
-            " Steve Mossely  |\n" +
-            " Steve Raster   |";
+        "A        |\n" +
+        "-----------------\n" +
+        "Stephen Tuvesco |\n" +
+        " Steve Mossely  |\n" +
+        " Steve Raster   |";
+
+        testQuery(query, expected, methodWatcher);
+
+    }
+
+    @Test
+    public void testBetween() throws Exception {
+        String expected =
+        "1                |\n" +
+        "----------------------------------\n" +
+        "0.024691357802469135780246913578 |\n" +
+        "2.000000000000000000000000000000 |";
+
+        String query = format("select tab1.a+tab2.a from t1 tab1, t1 tab2 --SPLICE-PROPERTIES useSpark=%s, joinStrategy=SORTMERGE\n" +
+        "where tab1.c=tab2.c and tab1.a+tab2.a between 0 and 1000", useSpark);
+
+        testQuery(query, expected, methodWatcher);
+
+    }
+
+    @Test
+    public void testIn() throws Exception {
+        String expected =
+        "1                |\n" +
+        "----------------------------------\n" +
+        "0.024691357802469135780246913578 |\n" +
+        "2.000000000000000000000000000000 |";
+
+        String query = format("select tab1.a+tab2.a from t1 tab1, t1 tab2 --SPLICE-PROPERTIES useSpark=%s, joinStrategy=SORTMERGE\n" +
+        "where tab1.c=tab2.c and tab1.a+tab2.a IN (0.024691357802469135780246913578, 2.0)", useSpark);
 
         testQuery(query, expected, methodWatcher);
 
