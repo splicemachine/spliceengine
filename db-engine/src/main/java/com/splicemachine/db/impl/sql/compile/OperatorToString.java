@@ -323,8 +323,10 @@ public class OperatorToString {
             }
         }else if(operand instanceof BinaryListOperatorNode){
             vars.relationalOpDepth.increment();
+            boolean isBetween = operand instanceof BetweenOperatorNode;
             BinaryListOperatorNode blon = (BinaryListOperatorNode)operand;
-            StringBuilder inList = new StringBuilder("(");
+            StringBuilder inList = isBetween ? new StringBuilder() :
+                                               new StringBuilder("(");
             if (!blon.isSingleLeftOperand()) {
                 ValueNodeList vnl = blon.leftOperandList;
                 inList.append("(");
@@ -338,15 +340,22 @@ public class OperatorToString {
             }
             else
                 inList.append(opToString2(blon.getLeftOperand(), vars));
-            inList.append(" ").append(blon.getOperator()).append(" (");
+            inList.append(" ").append(blon.getOperator());
+            String appendString = isBetween ? " " : " (";
+            inList.append(appendString);
             ValueNodeList rightOperandList=blon.getRightOperandList();
             boolean isFirst = true;
             for(Object qtn: rightOperandList){
                 if(isFirst) isFirst = false;
-                else inList = inList.append(",");
+                else if (isBetween)
+                    inList = inList.append(" and ");
+                else
+                    inList = inList.append(",");
                 inList = inList.append(opToString2((ValueNode)qtn, vars));
             }
-            String retval = inList.append("))").toString();
+            if (!isBetween)
+                inList.append("))");
+            String retval = inList.toString();
             vars.relationalOpDepth.decrement();
             return retval;
         }else if (operand instanceof BinaryOperatorNode) {
