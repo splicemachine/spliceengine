@@ -511,6 +511,16 @@ public class SparkDataSet<V> implements DataSet<V> {
         return new SparkExportDataSetWriter.Builder(rdd);
     }
 
+    @Override
+    public KafkaDataSetWriterBuilder writeToKafka() {
+        return new KafkaDataSetWriterBuilder() {
+            @Override
+            public DataSetWriter build() {
+                return new SparkKafkaDataSetWriter<>(rdd, topicName);
+            }
+        };
+    }
+
     public static class EOutputFormat extends FileOutputFormat<Void, ExecRow> {
 
         /**

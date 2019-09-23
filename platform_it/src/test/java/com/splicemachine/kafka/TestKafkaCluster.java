@@ -43,16 +43,4 @@ public class TestKafkaCluster {
         return new KafkaConfig(props);
     }
 
-    public String getKafkaBrokerString() {
-        return String.format("localhost:%d",
-                kafkaServer.serverConfig().port());
-    }
-
-    public int getKafkaPort() {
-        return kafkaServer.serverConfig().port();
-    }
-
-    public void stop() throws IOException {
-        kafkaServer.shutdown();
-    }
 }
