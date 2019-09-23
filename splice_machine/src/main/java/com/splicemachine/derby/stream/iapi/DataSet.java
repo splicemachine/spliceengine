@@ -261,6 +261,8 @@ public interface DataSet<V> extends //Iterable<V>,
 
     ExportDataSetWriterBuilder<String> saveAsTextFile(OperationContext operationContext);
 
+    KafkaDataSetWriterBuilder writeToKafka();
+
     void persist();
 
     void setAttribute(String name, String value);

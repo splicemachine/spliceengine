@@ -277,9 +277,10 @@ int CREATE_INDEX_NODE = 146;
 	int GROUP_USER_NODE = 266;
 	int SELF_REFERENCE_NODE = 267;
 	int DIGITS_OPERATOR_NODE = 268;
+	int KAFKA_EXPORT_NODE = 269;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = DIGITS_OPERATOR_NODE;
+	int FINAL_VALUE = KAFKA_EXPORT_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
