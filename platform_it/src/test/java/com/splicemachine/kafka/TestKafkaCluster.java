@@ -39,20 +39,9 @@ public class TestKafkaCluster {
         Properties props = new Properties();
         assert props.containsKey("zookeeper.connect");
         props.put("zookeeper.connect", zkConnectString);
+        props.put("broker.id","0");
         props.put("port","9092");
         return new KafkaConfig(props);
     }
 
-    public String getKafkaBrokerString() {
-        return String.format("localhost:%d",
-                kafkaServer.serverConfig().port());
-    }
-
-    public int getKafkaPort() {
-        return kafkaServer.serverConfig().port();
-    }
-
-    public void stop() throws IOException {
-        kafkaServer.shutdown();
-    }
 }

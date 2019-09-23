@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -283,9 +283,10 @@ int CREATE_INDEX_NODE = 146;
 	int EMPTY_DEFAULT_CONSTANT_NODE = 272;
 
     int STRING_AGGREGATE_NODE = 273;
+	int KAFKA_EXPORT_NODE = 274;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = STRING_AGGREGATE_NODE;
+	int FINAL_VALUE = KAFKA_EXPORT_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

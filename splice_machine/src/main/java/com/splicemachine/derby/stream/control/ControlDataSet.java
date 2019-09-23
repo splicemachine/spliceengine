@@ -415,6 +415,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public KafkaDataSetWriterBuilder writeToKafka() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void saveAsTextFile(String path) {
         OutputStream fileOut = null;
         try {

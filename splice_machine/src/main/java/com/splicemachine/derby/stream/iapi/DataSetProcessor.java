@@ -265,4 +265,6 @@ public interface DataSetProcessor {
     Boolean isCached(long conglomerateId) throws StandardException;
 
     TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet, KeyHashDecoder decoder, ExecRow key);
+
+    <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext op) throws StandardException;
 }

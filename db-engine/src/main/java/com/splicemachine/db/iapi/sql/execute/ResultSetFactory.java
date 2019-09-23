@@ -2108,12 +2108,20 @@ public interface ResultSetFactory {
 	 * Binary Export
 	 */
 	NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
-									  Activation activation,
-									  int resultSetNumber,
-									  String exportPath,
-									  String compression,
-									  String format,
-									  int srcResultDescriptionSavedObjectNum) throws StandardException;
+											Activation activation,
+											int resultSetNumber,
+											String exportPath,
+											String compression,
+											String format,
+											int srcResultDescriptionSavedObjectNum) throws StandardException;
+	/**
+	 * Binary Export
+	 */
+	NoPutResultSet getKafkaExportResultSet(NoPutResultSet source,
+											Activation activation,
+											int resultSetNumber,
+											String topicName,
+											int srcResultDescriptionSavedObjectNum) throws StandardException;
     /**
      * Batch Once
      */
