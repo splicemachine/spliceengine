@@ -95,4 +95,19 @@ public class StringUtils{
             return new String(buf);
         }
     }
+
+    public static String logSpliceAuditEvent(String userid, String event, boolean status, String addr, String statement, String reason)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.setLength(0);
+        sb.append("userid=").append(userid).append("\t");
+        sb.append("event=").append(event).append("\t");
+        sb.append("status=").append(status ? "SUCCEED" : "FAILED").append("\t");
+        sb.append("ip=").append(addr).append("\t");
+        if (statement != null)
+            sb.append("statement=").append(statement).append("\t");
+        if (!status)
+            sb.append("reason=").append(reason);
+        return sb.toString();
+    }
 }
