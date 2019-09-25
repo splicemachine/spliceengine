@@ -239,7 +239,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "hbase.replication.source.service" : "com.splicemachine.replication.SpliceReplication",
         "hbase.replication.sink.service" : "com.splicemachine.replication.SpliceReplication",
         "hbase.bucketcache.ioengine" : "",
-        "hbase.regionserver.replication.handler.count":"20"
+        "hbase.regionserver.replication.handler.count":"40"
     }
     return hbase_site_desired_values
 
