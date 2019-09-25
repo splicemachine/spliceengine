@@ -39,7 +39,8 @@ public class SpliceValues extends Values implements SpliceRelNode {
     }
 
     @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return super.computeSelfCost(planner, mq);
+        // add dummy cost
+        return planner.getCostFactory().makeCost(1, 1, 1);
     }
 
     @Override

@@ -12,9 +12,12 @@ import com.splicemachine.db.impl.sql.compile.ResultSetNode;
 import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.derby.impl.sql.compile.calcite.SpliceContext;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 
 /**
@@ -77,5 +80,10 @@ public class SpliceFilter extends Filter implements SpliceRelNode {
         prn.fillInCostEstimate(costEstimate);
 
         return prn;
+    }
+
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+        // add dummy cost
+        return planner.getCostFactory().makeCost(2, 2, 2);
     }
 }

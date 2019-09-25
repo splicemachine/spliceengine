@@ -15,6 +15,7 @@ import com.splicemachine.derby.impl.sql.compile.calcite.rules.SpliceConverterRul
 import com.splicemachine.utils.Pair;
 import org.apache.calcite.plan.*;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
 
 /**
@@ -114,5 +115,10 @@ public class SpliceTableScan extends TableScan implements SpliceRelNode {
         for (RelOptRule rule : SpliceConverterRule.RULES) {
             planner.addRule(rule);
         }
+    }
+
+    @Override public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+        // add dummy cost
+        return planner.getCostFactory().makeCost(2, 2, 2);
     }
 }

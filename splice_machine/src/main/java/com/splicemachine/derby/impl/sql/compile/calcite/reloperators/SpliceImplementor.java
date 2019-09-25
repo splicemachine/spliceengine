@@ -190,34 +190,56 @@ public class SpliceImplementor {
     private ValueNode convertBinaryOperator(RexCall rexCall, ResultSetNode source) throws StandardException {
         ValueNode leftOperand = convertCondition(rexCall.getOperands().get(0), source);
         ValueNode rightOperand = convertCondition(rexCall.getOperands().get(1), source);
-        ValueNode opNode = null;
-        boolean nullableResult = false;
+        ValueNode opNode;
+        boolean nullableResult;
         switch (rexCall.getOperator().getKind()) {
+            /* relational operator */
             case EQUALS:
                 opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
+                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
                 break;
             case NOT_EQUALS:
                 opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
+                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
                 break;
             case GREATER_THAN:
                 opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
+                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
                 break;
             case GREATER_THAN_OR_EQUAL:
                 opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
+                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
                 break;
             case LESS_THAN:
                 opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
+                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
                 break;
             case LESS_THAN_OR_EQUAL:
                 opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
+                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
+                break;
+            /* arithematic operator */
+            case PLUS:
+                opNode = (BinaryArithmeticOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_PLUS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
+                // simplify the type setting to go with left for now
+                nullableResult = leftOperand.getTypeServices().isNullable() ||
+                        rightOperand.getTypeServices().isNullable();
+                opNode.setType(leftOperand.getTypeServices());
+                opNode.setNullability(nullableResult);
                 break;
             default:
                 throw StandardException.newException(SQLState.LANG_INVADLID_CONVERSION, rexCall.getOperator().getKind());
         }
-        nullableResult = leftOperand.getTypeServices().isNullable() ||
+
+        return opNode;
+    }
+
+    private void setBinaryRelationalOperatorNullabilityAndType(ValueNode opNode,
+                                                               ValueNode leftOperand,
+                                                               ValueNode rightOperand) throws StandardException {
+        boolean nullableResult = leftOperand.getTypeServices().isNullable() ||
                 rightOperand.getTypeServices().isNullable();
         opNode.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
-        return opNode;
     }
 
     private ResultSetNode addScrollInsensitiveNode(ResultSetNode resultSet) throws StandardException {

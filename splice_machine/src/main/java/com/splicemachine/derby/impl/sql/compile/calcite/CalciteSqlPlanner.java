@@ -16,12 +16,20 @@ import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.*;
+import org.apache.calcite.plan.hep.HepProgram;
+import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
+import org.apache.calcite.rel.metadata.RelMetadataProvider;
+import org.apache.calcite.rel.rules.ReduceExpressionsRule;
+import org.apache.calcite.rel.rules.ValuesReduceRule;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.DerbySqlDialect;
@@ -30,6 +38,8 @@ import org.apache.calcite.tools.*;
 import org.apache.log4j.Logger;
 
 import java.util.Collections;
+
+import static org.apache.calcite.tools.Programs.sequence;
 
 public class CalciteSqlPlanner implements SqlPlanner {
     public static Logger LOG = Logger.getLogger(CalciteSqlPlanner.class);
@@ -55,7 +65,9 @@ public class CalciteSqlPlanner implements SqlPlanner {
         RelOptUtil.registerDefaultRules(planner,
                 false,
                 false);
-        planner.setExecutor(config.getExecutor());
+        final RexExecutorImpl executor = new RexExecutorImpl(Schemas.createDataContext(null, defaultSchema));
+        planner.setExecutor(executor);
+        //planner.setExecutor(config.getExecutor());
         planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
         final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
 
@@ -109,13 +121,19 @@ public class CalciteSqlPlanner implements SqlPlanner {
     }
 
     private RelNode optimize(RelNode root, String sqlStmt) {
-        final Program program = Programs.standard();
+        /* experiment with constant folding rule */
+        Program constantFoldingProgram = constantFolding(DefaultRelMetadataProvider.INSTANCE);
+        Program standardProgram = Programs.standard();
+        Program program = sequence(constantFoldingProgram, standardProgram);
+
         RelTraitSet desiredTraits = root.getTraitSet()
                 .replace(SpliceRelNode.CONVENTION);
         RelOptPlanner optPlanner = root.getCluster().getPlanner();
         for (RelOptRule rule : SpliceConverterRule.RULES) {
             optPlanner.addRule(rule);
         }
+
+      //  optPlanner.addRule(SpliceFilterToProjectRule.INSTANCE);
 
         /* add rules related to Splice conventions */
         /*
@@ -147,5 +165,17 @@ public class CalciteSqlPlanner implements SqlPlanner {
         SpliceImplementor implementor = new SpliceImplementor(sc);
         QueryTreeNode result = implementor.visitChild(0, root);
         return result;
+    }
+
+    private Program constantFolding(RelMetadataProvider metadataProvider) {
+        final HepProgramBuilder builder = HepProgram.builder();
+        builder.addRuleCollection(ImmutableList.of(
+                ValuesReduceRule.FILTER_INSTANCE,
+                ValuesReduceRule.PROJECT_FILTER_INSTANCE,
+                ValuesReduceRule.PROJECT_INSTANCE,
+          //      ReduceExpressionsRule.PROJECT_INSTANCE,
+                ReduceExpressionsRule.FILTER_INSTANCE
+                ));
+        return Programs.of(builder.build(), true, metadataProvider);
     }
 }
