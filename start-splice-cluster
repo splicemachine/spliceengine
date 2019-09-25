@@ -61,7 +61,6 @@ MEMBERS=2
 DEBUG_PATH=""
 
 MVN='mvn -B'
-MVNDBG='mvnDebug -B'
 
 usage() {
     # $1 is an error, if any
