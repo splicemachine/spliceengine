@@ -138,7 +138,7 @@ public class OlapConfigurations implements ConfigurationDefault {
 
     // Whether we use a dedicated compaction queue
     public static final String OLAP_SERVER_ISOLATED_COMPACTION = "splice.olap_server.isolated.compaction";
-    public static final boolean DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION = true;
+    public static final boolean DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION = false;
 
     /* Map of Splice queues to YARN queues
 
