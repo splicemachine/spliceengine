@@ -854,6 +854,7 @@
                                 <argument>${project.build.directory}/classes</argument>
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
+                                <argument>-Dlog4j.configurationFile=${log4j.config.uri}</argument>
                             </arguments>
                         </configuration>
                     </plugin>

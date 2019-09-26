@@ -21,7 +21,7 @@ import java.util.List;
  */
 public class SpliceOrcUtils {
 
-    public List<InputSplit> getSplits(JobContext jobContext)
+    public static List<InputSplit> getSplits(JobContext jobContext)
             throws IOException, InterruptedException {
         Configuration conf = ShimLoader.getHadoopShims().getConfiguration(jobContext);
         List<OrcSplit> splits = OrcInputFormat.generateSplitsInfo(conf, createContext(conf, -1));
@@ -33,7 +33,7 @@ public class SpliceOrcUtils {
     }
 
     // Nearly C/P from OrcInputFormat; there are too many statics everywhere to sort this out.
-    private Context createContext(Configuration conf, int numSplits) throws IOException {
+    private static Context createContext(Configuration conf, int numSplits) throws IOException {
         // Use threads to resolve directories into splits.
         if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_ORC_MS_FOOTER_CACHE_ENABLED)) {
             // Create HiveConf once, since this is expensive.
