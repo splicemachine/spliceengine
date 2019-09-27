@@ -117,10 +117,12 @@ public interface OptimizablePredicateList {
 	 *					the predicates in this list.
 	 * @param cd	The ConglomerateDescriptor for which to classify
 	 *				the predicates in this list.
+	 * @param considerJoinPredicateAsKey For nestedloop join, it should be set to true, as join predicate can
+	 *              serve as key for the scan of the right table, for hashable join, it should be set to false
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void classify(Optimizable optTable, ConglomerateDescriptor cd) throws StandardException;
+	void classify(Optimizable optTable, ConglomerateDescriptor cd, boolean considerJoinPredicateAsKey) throws StandardException;
 
 	/**
 	 * Mark all of the predicates as Qualifiers and set the numberOfQualifiers

@@ -69,7 +69,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
         if(predList!=null && basePredicates!=null){
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath().getConglomerateDescriptor());
+            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath().getConglomerateDescriptor(), true);
         }
 
         return basePredicates;
