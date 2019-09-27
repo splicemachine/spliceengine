@@ -326,4 +326,46 @@ public class CostEstimationIT extends SpliceUnitTest {
         Assert.assertTrue(format("Index scannedRows is expected to be a small number, actual number is %f, and the plan is %s",
                 scannedRow, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs)), scannedRow < 10);
     }
+
+    @Test
+    public void testHashableJoinWithJoinColumnOfInnerTableOnIndexColumn() throws Exception {
+        /* the plan should look like the following :
+        Plan
+        ------------------------------------------------------------------------
+        Cursor(n=5,rows=40,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=4,totalCost=179.46,outputRows=40,outputHeapSize=640 B,partitions=1)
+            ->  BroadcastJoin(n=3,totalCost=15.054,outputRows=40,outputHeapSize=640 B,partitions=1,preds=[(B1[4:2] = A3[4:3])])
+              ->  TableScan[T3(2464)](n=2,totalCost=6.97,scannedRows=2560,outputRows=1,outputHeapSize=640 B,partitions=1,preds=[(C3[2:3] = 200)])
+              ->  TableScan[T1(2432)](n=1,totalCost=4.045,scannedRows=40,outputRows=40,outputHeapSize=640 B,partitions=1)
+        5 rows selected
+         */
+        String sqlText = "explain select a1, b1, a3, b3, c3 from --splice-properties joinOrder=fixed\n" +
+                "t1 inner join t3 --splice-properties joinStrategy=broadcast\n" +
+                "on b1=a3\n" +
+                "where c3=200";
+
+        rowContainsQuery(new int[]{4,5}, sqlText, methodWatcher,
+                new String[] {"TableScan[T3", "scannedRows=2560,outputRows=1"},
+                new String[] {"TableScan[T1", "scannedRows=40,outputRows=40"});
+    }
+
+    @Test
+    public void testDB8715ExplainBug() throws Exception {
+        /* the plan should look like the following:
+        Plan
+        ---------------------------------------------------
+        Cursor(n=6,rows=1,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=5,totalCost=15.83,outputRows=1,outputHeapSize=2 B,partitions=1)
+            ->  ProjectRestrict(n=4,totalCost=12.041,outputRows=1,outputHeapSize=2 B,partitions=1)
+              ->  BroadcastJoin(n=3,totalCost=12.041,outputRows=1,outputHeapSize=2 B,partitions=1,preds=[(B1[4:2] = B3[4:5])])
+                ->  TableScan[T3(2464)](n=2,totalCost=4,scannedRows=1,outputRows=1,outputHeapSize=2 B,partitions=1,preds=[(A3[2:1] = 200)])
+                ->  TableScan[T11(2544)](n=1,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=60 B,partitions=1)
+        6 rows selected
+         */
+        String sqlText = "explain select * from t3 inner join t11 on b1=b3 where a3=200";
+
+        rowContainsQuery(new int[]{5,6}, sqlText, methodWatcher,
+                new String[] {"TableScan[T3", "scannedRows=1,outputRows=1"},
+                new String[] {"TableScan[T11", "scannedRows=20,outputRows=20"});
+    }
 }

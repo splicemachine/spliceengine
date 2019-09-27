@@ -112,6 +112,8 @@ public class SimpleCostEstimate implements CostEstimate{
         CostEstimate base=other.getBase();
         if(base!=null && base != other)
             this.baseCost = (SimpleCostEstimate) base.cloneMe();
+        else
+            this.baseCost = null;
         this.isRealCost = other.isRealCost();
         this.estimatedHeapSize = other.getEstimatedHeapSize();
         this.openCost = other.getOpenCost();
