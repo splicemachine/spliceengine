@@ -235,7 +235,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
         if (predList != null) {
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath().getConglomerateDescriptor());
+            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath().getConglomerateDescriptor(), false);
         }
 
         /*
