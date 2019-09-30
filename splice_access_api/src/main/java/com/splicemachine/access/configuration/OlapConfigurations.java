@@ -140,6 +140,10 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_ISOLATED_COMPACTION = "splice.olap_server.isolated.compaction";
     public static final boolean DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION = false;
 
+    // Specify name for dedicated compaction queue, if applicable
+    public static final String OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME = "splice.olap_server.isolated.compaction.queue_name";
+    public static final String DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME = "compaction";
+
     /* Map of Splice queues to YARN queues
 
     Examples:
@@ -188,5 +192,6 @@ public class OlapConfigurations implements ConfigurationDefault {
         }
         builder.olapServerYarnQueues = queues;
         builder.olapServerIsolatedCompaction = configurationSource.getBoolean(OLAP_SERVER_ISOLATED_COMPACTION, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION);
+        builder.olapServerIsolatedCompactionQueueName = configurationSource.getString(OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME);
     }
 }

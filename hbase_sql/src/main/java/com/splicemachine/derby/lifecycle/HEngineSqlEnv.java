@@ -180,7 +180,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         Stream.Builder<String> queuesBuilder = Stream.builder();
         queuesBuilder.accept(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
         if (config.getOlapServerIsolatedCompaction()) {
-            queuesBuilder.accept(SIConstants.OLAP_COMPACTION_QUEUE_NAME);
+            queuesBuilder.accept(config.getOlapServerIsolatedCompactionQueueName());
         }
         Stream<String> queues = Stream.concat(config.getOlapServerIsolatedRoles().values().stream(),
                                               queuesBuilder.build());
