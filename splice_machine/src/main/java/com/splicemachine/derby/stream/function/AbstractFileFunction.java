@@ -67,7 +67,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     private String timestampFormat;
     private int[] columnIndex;
 
-    private transient Calendar calendar;
+    private transient Calendar calendar = new GregorianCalendar();
 
     @SuppressWarnings("WeakerAccess") //weaker access isn't allowed because we have to be serializable
     public AbstractFileFunction() { }
@@ -221,24 +221,18 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
                 columnValue = value;
                 switch(type){
                     case StoredFormatIds.SQL_TIME_ID:
-                        if(calendar==null)
-                            calendar = new GregorianCalendar();
                         if (timeFormat == null || value==null){
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
                         }else
                             dvd.setValue(SpliceDateFunctions.TO_TIME(value, timeFormat, timeFormatter), calendar);
                         break;
                     case StoredFormatIds.SQL_DATE_ID:
-                        if(calendar==null)
-                            calendar = new GregorianCalendar();
                         if (dateTimeFormat == null || value == null)
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
                         else
                             dvd.setValue(TO_DATE(value, dateTimeFormat, dateFormatter),calendar);
                         break;
                     case StoredFormatIds.SQL_TIMESTAMP_ID:
-                        if(calendar==null)
-                            calendar = new GregorianCalendar();
                         if (timestampFormat == null || value==null)
                             ((DateTimeDataValue)dvd).setValue(value,calendar);
                         else {
