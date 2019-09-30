@@ -186,7 +186,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
                         Set<String> names = new HashSet<>(queues);
                         names.add(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
                         if (HConfiguration.getConfiguration().getOlapServerIsolatedCompaction()) {
-                            names.add(SIConstants.OLAP_COMPACTION_QUEUE_NAME);
+                            names.add(HConfiguration.getConfiguration().getOlapServerIsolatedCompactionQueueName());
                         }
 
                         for (String queue : names) {

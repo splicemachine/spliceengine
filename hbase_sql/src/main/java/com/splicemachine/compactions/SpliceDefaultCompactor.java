@@ -221,7 +221,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private String getCompactionQueue() {
         SConfiguration config = HConfiguration.getConfiguration();
         return config.getOlapServerIsolatedCompaction() ?
-                SIConstants.OLAP_COMPACTION_QUEUE_NAME :
+                config.getOlapServerIsolatedCompactionQueueName() :
                 SIConstants.OLAP_DEFAULT_QUEUE_NAME;
     }
 

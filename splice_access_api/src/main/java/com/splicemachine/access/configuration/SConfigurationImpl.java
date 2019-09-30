@@ -158,6 +158,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final Map<String, String> olapServerIsolatedRoles;
     private final Map<String, String> olapServerYarnQueues;
     private final boolean olapServerIsolatedCompaction;
+    private final String olapServerIsolatedCompactionQueueName;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -982,6 +983,7 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerIsolatedRoles = builder.olapServerIsolatedRoles;
         olapServerYarnQueues = builder.olapServerYarnQueues;
         olapServerIsolatedCompaction = builder.olapServerIsolatedCompaction;
+        olapServerIsolatedCompactionQueueName = builder.olapServerIsolatedCompactionQueueName;
         resolutionOnFlushes = builder.resolutionOnFlushes;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;
@@ -1085,6 +1087,11 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public boolean getOlapServerIsolatedCompaction() {
         return olapServerIsolatedCompaction;
+    }
+
+    @Override
+    public String getOlapServerIsolatedCompactionQueueName() {
+        return olapServerIsolatedCompactionQueueName;
     }
 
     @Override
