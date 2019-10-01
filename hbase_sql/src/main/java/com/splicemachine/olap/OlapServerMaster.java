@@ -96,11 +96,6 @@ public class OlapServerMaster implements Watcher {
         // Initialize clients to ResourceManager and NodeManagers
         Configuration conf = HConfiguration.unwrapDelegate();
 
-        UserGroupInformation.isSecurityEnabled();
-        AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = getClient(conf);
-
-        LOG.info("Registered with Resource Manager");
-
         String principal = System.getProperty("splice.spark.yarn.principal");
         String keytab = System.getProperty("splice.spark.yarn.keytab");
 
@@ -117,6 +112,12 @@ public class OlapServerMaster implements Watcher {
             LOG.info("Login with user");
             ugi = UserGroupInformation.createRemoteUser(user);
         }
+
+
+        UserGroupInformation.isSecurityEnabled();
+        AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = getClient(conf);
+
+        LOG.info("Registered with Resource Manager");
 
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
@@ -261,7 +262,12 @@ public class OlapServerMaster implements Watcher {
                 }
             });
         } else {
-            return initClient(conf);
+            return ugi.doAs(new PrivilegedExceptionAction<AMRMClientAsync<AMRMClient.ContainerRequest>>() {
+                @Override
+                public AMRMClientAsync<AMRMClient.ContainerRequest> run() throws Exception {
+                    return initClient(conf);
+                }
+            });
         }
     }
 
