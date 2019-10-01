@@ -30,6 +30,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.security.token.Token;
+import org.apache.hadoop.security.token.TokenIdentifier;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
@@ -37,6 +39,7 @@ import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.log4j.Logger;
 import org.apache.spark.deploy.SparkHadoopUtil;
 import org.apache.spark.util.Utils;
@@ -50,6 +53,7 @@ import java.io.IOException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Collection;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -111,6 +115,14 @@ public class OlapServerMaster implements Watcher {
             String user = System.getProperty("splice.spark.yarn.user", "hbase");
             LOG.info("Login with user");
             ugi = UserGroupInformation.createRemoteUser(user);
+            Collection<Token<? extends TokenIdentifier>> tokens = UserGroupInformation.getCurrentUser().getCredentials().getAllTokens();
+            for (Token<? extends TokenIdentifier> token : tokens) {
+                LOG.debug("Token kind is " + token.getKind().toString()
+                        + " and the token's service name is " + token.getService());
+                if (AMRMTokenIdentifier.KIND_NAME.equals(token.getKind())) {
+                    ugi.addToken(token);
+                }
+            }
         }
 
 
