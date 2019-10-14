@@ -993,8 +993,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public List<String> getNativeSparkExplain() {
-        numLeadingSpaces.put(explainStrings.getFirst().getIndentationLevel(), 0);
-        spacesMap.put(explainStrings.getFirst().getIndentationLevel(), "");
+        int indentationLevel = 0;
+
+        finalizeTempOperationStrings();
+        for (List<IndentedString> indentedStrings:spliceOperationStrings)
+            explainStrings.addAll(indentedStrings);
+
+        if (!explainStrings.isEmpty())
+            indentationLevel = explainStrings.getFirst().getIndentationLevel();
+
+        numLeadingSpaces.put(indentationLevel, 0);
+        spacesMap.put(indentationLevel, "");
 
         int previousIndentationLevel = -1;
         int maxIndentationLevel = -1;
