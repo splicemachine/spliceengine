@@ -144,10 +144,10 @@ public class CachedOperation extends SpliceBaseOperation {
         }
         else {
             dsp.incrementOpDepth();
-            ds = source.getDataSet(dsp);
+            DataSet dataSet = source.getDataSet(dsp);
             dsp.decrementOpDepth();
             dsp.prependSpliceExplainString(this.explainPlan);
-            return ds;
+            return dataSet;
         }
     }
 
