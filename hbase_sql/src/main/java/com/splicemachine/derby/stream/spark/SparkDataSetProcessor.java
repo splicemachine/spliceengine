@@ -927,7 +927,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         for (String string:sparkExplain.getTextLines()) {
             newTextLines.add(string);
             int matchIndex =
-               StringUtils.indexOfAny(string, new String[]{"Scan ExistingRDD", "LogicalRDD"});
+               StringUtils.indexOfAny(string, new String[]{"Scan ExistingRDD", "FileScan", "LogicalRDD"});
             if (!spliceOperationStrings.isEmpty() && matchIndex != -1) {
                 List<IndentedString> list = spliceOperationStrings.removeLast();
                 int baseIndentationLevel = list.get(0).getIndentationLevel();
@@ -997,7 +997,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
         finalizeTempOperationStrings();
         for (List<IndentedString> indentedStrings:spliceOperationStrings)
-            explainStrings.addAll(indentedStrings);
+            explainStrings.addAll(0, indentedStrings);  
 
         if (!explainStrings.isEmpty())
             indentationLevel = explainStrings.getFirst().getIndentationLevel();

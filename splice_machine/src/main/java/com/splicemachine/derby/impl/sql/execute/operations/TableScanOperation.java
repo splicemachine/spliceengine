@@ -311,8 +311,14 @@ public class TableScanOperation extends ScanOperation{
             throw new IllegalStateException("Operation is not open");
 
         assert currentTemplate!=null:"Current Template Cannot Be Null";
+
+        DataSet<ExecRow> ds = getTableScannerBuilder(dsp);
+        if (ds.isNativeSpark())
+            dsp.incrementOpDepth();
         dsp.prependSpliceExplainString(this.explainPlan);
-        return getTableScannerBuilder(dsp);
+        if (ds.isNativeSpark())
+            dsp.decrementOpDepth();
+        return ds;
     }
 
     /**
