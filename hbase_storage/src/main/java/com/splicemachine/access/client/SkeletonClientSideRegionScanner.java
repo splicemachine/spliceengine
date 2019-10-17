@@ -242,6 +242,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     private KeyValueScanner getMemStoreScanner() throws IOException {
         Scan memScan = new Scan(scan);
+        memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.TRUE_BYTES);
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_BEGIN_KEY, hri.getStartKey());
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_PARTITION_END_KEY, hri.getEndKey());
