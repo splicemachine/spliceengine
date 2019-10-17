@@ -84,7 +84,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             StreamListenerServer server = getServer();
             server.register(streamListener);
             HostAndPort hostAndPort = server.getHostAndPort();
-            String host = hostAndPort.getHostText();
+            String host = hostAndPort.getHost();
             int port = hostAndPort.getPort();
             UUID uuid = streamListener.getUuid();
 

@@ -93,7 +93,7 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             HostAndPort hap = hostProvider.olapServerHost(queue);
             LOG.info("Connecting to " + hap);
 
-            InetSocketAddress socketAddr = new InetSocketAddress(hap.getHostText(), hap.getPort());
+            InetSocketAddress socketAddr = new InetSocketAddress(hap.getHost(), hap.getPort());
             Bootstrap bootstrap = new Bootstrap();
             NioEventLoopGroup group = new NioEventLoopGroup(5,
                     new ThreadFactoryBuilder().setNameFormat("olapClientWorker-%d").setDaemon(true)
