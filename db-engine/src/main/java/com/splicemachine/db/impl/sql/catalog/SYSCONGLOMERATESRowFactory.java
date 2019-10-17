@@ -404,16 +404,19 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 		    new ColumnDescriptor[]{
 				new ColumnDescriptor("CONGLOMERATENUMBER",1,1,DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("SCHEMANAME"               ,2,2,
+				new ColumnDescriptor("CONGLOMERATENAME",2,2,
+							DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, true, 128),
+							null,null,view,viewId,0,0,0),
+				new ColumnDescriptor("SCHEMANAME"               ,3,3,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("TABLENAME"               ,3,3,
+				new ColumnDescriptor("TABLENAME"               ,4,4,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("ISINDEX"               ,4,4,
+				new ColumnDescriptor("ISINDEX"               ,5,5,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
 						null,null,view,viewId,0,0,0),
-				new ColumnDescriptor("ISCONSTRAINT"               ,5,5,
+				new ColumnDescriptor("ISCONSTRAINT"               ,6,6,
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
 						null,null,view,viewId,0,0,0)
 
@@ -421,7 +424,7 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 		return cdsl;
 	}
 	public static String SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL = "create view SYSCONGLOMERATEINSCHEMAS as \n" +
-			"SELECT C.CONGLOMERATENUMBER, S.SCHEMANAME, T.TABLENAME, C.ISINDEX, C.ISCONSTRAINT FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+
+			"SELECT C.CONGLOMERATENUMBER, C.CONGLOMERATENAME, S.SCHEMANAME, T.TABLENAME, C.ISINDEX, C.ISCONSTRAINT FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+
 			"WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID";
 
 }
