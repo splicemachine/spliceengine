@@ -31,6 +31,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.catalyst.parser.ParserInterface;
 import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
@@ -110,7 +112,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         public boolean wasRightOuterJoin = false;
         public boolean isOuterJoin = false;
 		private Restriction mergeRestriction;
-		protected SparkExpressionNode sparkJoinPredicate;
+		protected SparkExpressionNode sparkJoinPredicate = null;
+		protected String sparkExpressionTreeAsString = null;
 
     public JoinOperation() {
 				super();
@@ -141,11 +144,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				this.leftResultSet = leftResultSet;
 				this.leftResultSetNumber = leftResultSet.resultSetNumber();
 				this.rightResultSet = rightResultSet;
-				this.sparkJoinPredicate =
-				(sparkExpressionTreeAsString == null ||
-				 sparkExpressionTreeAsString.length() == 0) ? null :
-				   (SparkExpressionNode) SerializationUtils.
-				      deserialize(Base64.decodeBase64(sparkExpressionTreeAsString));
+				this.sparkExpressionTreeAsString = sparkExpressionTreeAsString;
 		}
 
 		@Override
@@ -208,10 +207,17 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						out.writeObject(rightRow);
                         out.writeObject(mergedRowTemplate);
 				}
-				boolean sparkExpressionPresent = (sparkJoinPredicate != null);
+				boolean sparkExpressionPresent = (sparkExpressionTreeAsString != null &&
+				                                  sparkExpressionTreeAsString.length() != 0);
+
 				out.writeBoolean(sparkExpressionPresent);
-				if (sparkExpressionPresent)
-					out.writeObject(sparkJoinPredicate);
+				if (sparkExpressionPresent) {
+				    if (sparkJoinPredicate == null)
+				    	sparkJoinPredicate =
+					 (SparkExpressionNode) SerializationUtils.
+		                          deserialize(Base64.decodeBase64(sparkExpressionTreeAsString));
+				    out.writeObject(sparkJoinPredicate);
+				}
 		}
 		@Override
 		public List<SpliceOperation> getSubOperations() {
