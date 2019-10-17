@@ -3,6 +3,7 @@ package com.splicemachine.derby.security;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -123,6 +124,7 @@ public class MetaDataAccessControlIT {
         adminConn.execute(format("grant usage on DERBY AGGREGATE SYSFUN.STATS_MERGE to %s", USER2));
         adminConn.execute(format("grant execute on procedure syscs_util.SHOW_CREATE_TABLE to %s", USER1));
         adminConn.execute(format("grant execute on procedure syscs_util.SHOW_CREATE_TABLE to %s", USER2));
+        adminConn.execute(format("grant execute on procedure syscs_util.syscs_split_table_or_index_at_points to %s", USER1));
 
         // create sequence to test usage perm
         adminConn.execute(format("CREATE SEQUENCE %s.s1 START WITH 100", SCHEMA_A));
@@ -387,15 +389,16 @@ public class MetaDataAccessControlIT {
     @Test
     public void testSysRoutinePermsView() throws Exception {
         ResultSet rs = user1Conn.query("select grantee, grantor, alias, schemaname from sysvw.sysroutinepermsview");
-        String expected = "GRANTEE           | GRANTOR |             ALIAS              |SCHEMANAME |\n" +
-                "------------------------------------------------------------------------------------\n" +
-                "METADATAACCESSCONTROLIT_TOM | SPLICE  |   COLLECT_TABLE_STATISTICS     |SYSCS_UTIL |\n" +
-                "METADATAACCESSCONTROLIT_TOM | SPLICE  |       SHOW_CREATE_TABLE        |SYSCS_UTIL |\n" +
-                "METADATAACCESSCONTROLIT_TOM | SPLICE  |     SYSCS_GET_SCHEMA_INFO      |SYSCS_UTIL |\n" +
-                "          PUBLIC            | SPLICE  |   SYSCS_KILL_DRDA_OPERATION    |SYSCS_UTIL |\n" +
-                "          PUBLIC            | SPLICE  |SYSCS_KILL_DRDA_OPERATION_LOCAL |SYSCS_UTIL |\n" +
-                "          PUBLIC            | SPLICE  |     SYSCS_MODIFY_PASSWORD      |SYSCS_UTIL |\n" +
-                "          PUBLIC            | SPLICE  |     SYSCS_SAVE_SOURCECODE      |SYSCS_UTIL |";
+        String expected = "GRANTEE           | GRANTOR |                ALIAS                |SCHEMANAME |\n" +
+                "-----------------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_TOM | SPLICE  |      COLLECT_TABLE_STATISTICS       |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_TOM | SPLICE  |          SHOW_CREATE_TABLE          |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_TOM | SPLICE  |        SYSCS_GET_SCHEMA_INFO        |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_TOM | SPLICE  |SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS |SYSCS_UTIL |\n" +
+                "          PUBLIC            | SPLICE  |      SYSCS_KILL_DRDA_OPERATION      |SYSCS_UTIL |\n" +
+                "          PUBLIC            | SPLICE  |   SYSCS_KILL_DRDA_OPERATION_LOCAL   |SYSCS_UTIL |\n" +
+                "          PUBLIC            | SPLICE  |        SYSCS_MODIFY_PASSWORD        |SYSCS_UTIL |\n" +
+                "          PUBLIC            | SPLICE  |        SYSCS_SAVE_SOURCECODE        |SYSCS_UTIL |";
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
 
@@ -413,14 +416,15 @@ public class MetaDataAccessControlIT {
         rs.close();
 
         rs = adminConn.query("select grantee, grantor, alias, schemaname from sysvw.sysroutinepermsview where grantee like '%METADATAACCESSCONTROLIT%'");
-        expected = "GRANTEE            | GRANTOR |          ALIAS          |SCHEMANAME |\n" +
-                "-------------------------------------------------------------------------------\n" +
-                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |COLLECT_TABLE_STATISTICS |SYSCS_UTIL |\n" +
-                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |    SHOW_CREATE_TABLE    |SYSCS_UTIL |\n" +
-                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |  SYSCS_GET_SCHEMA_INFO  |SYSCS_UTIL |\n" +
-                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |COLLECT_TABLE_STATISTICS |SYSCS_UTIL |\n" +
-                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |    SHOW_CREATE_TABLE    |SYSCS_UTIL |\n" +
-                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |  SYSCS_GET_SCHEMA_INFO  |SYSCS_UTIL |";
+        expected = "GRANTEE            | GRANTOR |                ALIAS                |SCHEMANAME |\n" +
+                "-------------------------------------------------------------------------------------------\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |      COLLECT_TABLE_STATISTICS       |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |          SHOW_CREATE_TABLE          |SYSCS_UTIL |\n" +
+                "METADATAACCESSCONTROLIT_JERRY | SPLICE  |        SYSCS_GET_SCHEMA_INFO        |SYSCS_UTIL |\n" +
+                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |      COLLECT_TABLE_STATISTICS       |SYSCS_UTIL |\n" +
+                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |          SHOW_CREATE_TABLE          |SYSCS_UTIL |\n" +
+                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |        SYSCS_GET_SCHEMA_INFO        |SYSCS_UTIL |\n" +
+                " METADATAACCESSCONTROLIT_TOM  | SPLICE  |SYSCS_SPLIT_TABLE_OR_INDEX_AT_POINTS |SYSCS_UTIL |";
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
@@ -450,5 +454,21 @@ public class MetaDataAccessControlIT {
                 "   SEQUENCE     |   USAGE   |METADATAACCESSCONTROLIT_ROLE_F | SPLICE  |    S1      |METADATAACCESSCONTROLITSCHEMA_A |";
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    @Category(HBaseTest.class)
+    public void testSplitTableSystemProcedure() throws Exception {
+        try {
+            user1Conn.execute(format("call syscs_util.syscs_split_table_or_index_at_points('%s', '%s', null, '\\x94')", SCHEMA_A, TABLE1));
+        } catch (Exception e) {
+            Assert.fail("Split table should not fail, but fail with exception "+ e.getMessage());
+        }
+
+        try {
+            user1Conn.execute(format("call syscs_util.syscs_split_table_or_index_at_points('%s', '%s', 'IDX_T1', '\\x94')", SCHEMA_A, TABLE1));
+        } catch (Exception e) {
+            Assert.fail("Split table should not fail, but fail with exception "+ e.getMessage());
+        }
     }
 }
