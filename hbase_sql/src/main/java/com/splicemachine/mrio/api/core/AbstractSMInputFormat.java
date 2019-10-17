@@ -169,6 +169,11 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         return oneSplitPerRegion != null && oneSplitPerRegion.compareToIgnoreCase("TRUE") == 0;
     }
 
+    public static Double sampling( Configuration configuration) {
+        String sampling = configuration.get(MRConstants.SPLICE_SAMPLING);
+        return sampling != null ? Double.parseDouble(sampling) : null;
+    }
+
     /**
      * Allows subclasses to get the {@link HTable}.
      */
