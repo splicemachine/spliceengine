@@ -31,11 +31,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -53,14 +49,69 @@ public class SICompactionState {
     private final CompactionContext context;
     private final ExecutorService executorService;
     private ConcurrentHashMap<Long, Future<TxnView>> futuresCache;
-    private SortedSet<Cell> dataToReturn;
+    private LinkedList<Cell> dataToReturn;
+    private List<Cell> newCommits;
 
     public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context, ExecutorService executorService) {
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize,true);
-        this.dataToReturn  =new TreeSet<>(KeyValue.COMPARATOR);
+        this.dataToReturn = new LinkedList<>();
+        this.newCommits = new ArrayList<>();
         this.context = context;
         this.futuresCache = new ConcurrentHashMap<>(1<<19, 0.75f, 64);
         this.executorService = executorService;
+    }
+
+    public static boolean isSorted(List<Cell> cells) {
+        if (cells.isEmpty() || cells.size() == 1) {
+            return true;
+        }
+
+        Iterator<Cell> iter = cells.iterator();
+        Cell current, previous = iter.next();
+        while (iter.hasNext()) {
+            current = iter.next();
+            if (KeyValue.COMPARATOR.compare(previous, current) > 0) {
+                return false;
+            }
+            previous = current;
+        }
+        return true;
+    }
+
+    public static boolean lastTwoElementsAreSorted(List<Cell> cells) {
+        if (cells.isEmpty() || cells.size() == 1)
+            return true;
+
+        Iterator<Cell> iter = ((LinkedList<Cell>)cells).descendingIterator();
+        Cell last = iter.next();
+        Cell penultimate = iter.next();
+        if (! (KeyValue.COMPARATOR.compare(penultimate, last) <= 0)) {
+            System.out.println(penultimate);
+            System.out.println(last);
+            return false;
+        }
+        return true;
+    }
+
+    private void mergeNewCommitsInDataToReturn() {
+        int expectedSize = dataToReturn.size() + newCommits.size();
+        Iterator<Cell> newCommitsIter = newCommits.iterator();
+        Cell newCommit = newCommitsIter.next();
+        for (ListIterator<Cell> iter = dataToReturn.listIterator(); iter.hasNext(); ) {
+            Cell element = iter.next();
+            if (KeyValue.COMPARATOR.compare(newCommit, element) <= 0) {
+                iter.previous();
+                iter.add(newCommit);
+                newCommit = newCommitsIter.next();
+            }
+        }
+        for (; newCommitsIter.hasNext(); newCommit = newCommitsIter.next()) {
+            dataToReturn.add(newCommit);
+        }
+
+        if (dataToReturn.size() != expectedSize) {
+            throw new InternalError("Size inconsistency during the merge");
+        }
     }
 
     /**
@@ -70,7 +121,11 @@ public class SICompactionState {
      * @param results - the output key values
      */
     public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean purgeDeletedRows) throws IOException {
+        if (!isSorted(rawList)) {
+            throw new InternalError("Argument rawList is not sorted");
+        }
         dataToReturn.clear();
+        newCommits.clear();
         long maxTombstone = 0;
         Iterator<TxnView> it = txns.iterator();
         for (Cell aRawList : rawList) {
@@ -80,15 +135,20 @@ public class SICompactionState {
                 maxTombstone = t;
             }
         }
+        mergeNewCommitsInDataToReturn();
+
         if (purgeDeletedRows && maxTombstone > 0) {
             removeTombStone(maxTombstone);
         }
         results.addAll(dataToReturn);
+        if (!isSorted(results)) {
+            throw new InternalError("results are not sorted");
+        }
     }
 
     private void removeTombStone(long maxTombstone) {
-        SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
-        for (Cell element : cp) {
+        for (Iterator<Cell> iter = dataToReturn.iterator(); iter.hasNext();) {
+            Cell element = iter.next();
             long timestamp = element.getTimestamp();
             if (timestamp <= maxTombstone) {
                 dataToReturn.remove(element);
@@ -96,25 +156,23 @@ public class SICompactionState {
         }
     }
     /**
-     * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
+     * Apply SI mutation logic to an individual key-value. Add the "new" key-value to dataToReturn.
+     * @return timestamp if cell is tombstone, else 0
      */
     private long mutate(Cell element, TxnView txn) throws IOException {
         final CellType cellType= CellUtils.getKeyValueType(element);
         long timestamp = element.getTimestamp();
-        switch (cellType) {
-            case COMMIT_TIMESTAMP:
-                dataToReturn.add(element);
-                return 0;
-            default:
-                if(mutateCommitTimestamp(element,txn))
-                    dataToReturn.add(element);
-                if (cellType == CellType.TOMBSTONE) {
-                    return timestamp;
-                }
-                else {
-                    return 0;
-                }
+        if (cellType == CellType.COMMIT_TIMESTAMP) {
+            dataToReturn.add(element);
+            return 0;
         }
+        if (mutateCommitTimestamp(element,txn)) {
+            dataToReturn.add(element);
+        }
+        if (cellType == CellType.TOMBSTONE) {
+            return timestamp;
+        }
+        return 0;
     }
 
     private void ensureTransactionCached(long timestamp,Cell element) {
@@ -147,7 +205,7 @@ public class SICompactionState {
              * commit timestamp can be placed on it.
              */
             long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
-            dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
+            newCommits.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
         }
         // Committed or active, return the original data too
         return true;
