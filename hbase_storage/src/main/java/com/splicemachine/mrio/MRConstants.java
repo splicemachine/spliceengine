@@ -26,6 +26,7 @@ public class MRConstants {
 	final public static String SPLICE_WRITE_BUFFER_SIZE = "splice.write.buffer.size";
 	final public static String SPLICE_JDBC_STR = "splice.jdbc";
     final public static String ONE_SPLIT_PER_REGION = "one.split.per.region";
+    final public static String SPLICE_SAMPLING = "splice.sampling";
     final public static String SPLICE_SPLITS_PER_TABLE = "splice.splits.per.table";
     final public static String SPLICE_SCAN_INFO = "splice.scan.info";
     final public static String SPLICE_CONNECTION_STRING = "splice.connection.string";
