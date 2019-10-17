@@ -14,8 +14,30 @@
 
 package com.splicemachine.derby.impl.storage;
 
-import java.io.*;
-import java.net.URI;
+import com.splicemachine.access.api.DistributedFileSystem;
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.Util;
+import com.splicemachine.db.jdbc.InternalDriver;
+import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Splitter;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.StandardOpenOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,31 +45,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.pipeline.ErrorState;
-import com.splicemachine.primitives.Bytes;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Splitter;
-
-import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.impl.jdbc.Util;
-import com.splicemachine.db.jdbc.InternalDriver;
-import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Utility to split a table.
@@ -334,17 +331,13 @@ public class TableSplit{
         String sql =  "select " +
                 "conglomeratenumber " +
                 "from " +
-                "sys.sysconglomerates c," +
-                "sys.systables t," +
-                "sys.sysschemas s " +
+                "sysvw.sysconglomerateinschemas c " +
                 "where " +
-                "t.tableid = c.tableid " +
-                "and t.schemaid = s.schemaid " +
-                "and s.schemaname = ? " +
-                "and t.tablename = ? ";
+                "schemaname = ? " +
+                "and tablename = ? ";
 
         if (indexName != null)
-            sql += "and c.conglomeratename = ?";
+            sql += "and conglomeratename = ?";
         sql += " order by 1";
         
         try(PreparedStatement ps = conn.prepareStatement(sql)){
