@@ -113,6 +113,9 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         if (oneSplitPerRegion) {
             conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         }
+        if (useSample) {
+            conf.set(MRConstants.SPLICE_SAMPLING, Double.toString(sampleFraction));
+        }
         if (op != null) {
             ScanOperation sop = (ScanOperation) op;
             int splitsPerTableMin = HConfiguration.getConfiguration().getSplitsPerTableMin();
@@ -137,7 +140,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         SparkSpliceFunctionWrapper pred = new SparkSpliceFunctionWrapper(new TableScanPredicateFunction<>(operationContext,this.optionalProbeValue));
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
-            return new SparkDataSet<>(useSample?rawRDD.map(f).filter(pred).sample(false, sampleFraction):rawRDD.map(f).filter(pred),
+            return new SparkDataSet<>(rawRDD.map(f).filter(pred),
                                       op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
         } finally {
             SpliceSpark.popScope();
