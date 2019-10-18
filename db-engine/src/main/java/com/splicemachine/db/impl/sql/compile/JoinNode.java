@@ -1208,7 +1208,16 @@ public class JoinNode extends TableOperatorNode{
 
         sparkExpressionTree = null;
         SparkExpressionNode tmpTree = null;
-        if (joinPredicates != null) {
+        JoinStrategy joinStrategy =
+         ((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
+                                                 getJoinStrategy();
+        JoinStrategy.JoinStrategyType joinStrategyType =
+                                      joinStrategy.getJoinStrategyType();
+        boolean eligibleForNativeSpark =
+         (joinStrategyType == JoinStrategy.JoinStrategyType.MERGE_SORT ||
+          joinStrategyType == JoinStrategy.JoinStrategyType.BROADCAST);
+
+        if (joinPredicates != null && eligibleForNativeSpark) {
             for (int i = 0; i < joinPredicates.size(); i++) {
                 tmpTree =
                   OperatorToString.
