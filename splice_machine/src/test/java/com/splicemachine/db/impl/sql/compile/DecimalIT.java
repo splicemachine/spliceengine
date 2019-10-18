@@ -128,6 +128,9 @@ public class DecimalIT  extends SpliceUnitTest {
                         row(new BigDecimal(".00000001234567890123456789012345678901"), 15)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table preparedDecimal (a dec(38,5))")
+                .create();
     }
 
     @BeforeClass
@@ -608,5 +611,30 @@ public class DecimalIT  extends SpliceUnitTest {
                 "1234567.8901234567890123456789012345678 | 1 |";
 
         testQueryUnsorted(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testPreparedStatementRetainsFractionalDigits() throws Exception {
+
+        PreparedStatement statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
+        statement.executeUpdate();
+	statement.close();
+
+        statement = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)", CLASS_NAME, "preparedDecimal"));
+        BigDecimal bd = new BigDecimal("14.51");
+        statement.setObject(1, bd, Types.DECIMAL);
+        statement.executeUpdate();
+	statement.close();
+
+        String
+        sqlText = format("select a from preparedDecimal --splice-properties useSpark=%s", useSpark);
+
+        String
+        expected =
+                "A    |\n" +
+                "----------\n" +
+                "14.51000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
     }
 }
