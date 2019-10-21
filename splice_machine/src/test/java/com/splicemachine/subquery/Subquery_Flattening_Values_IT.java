@@ -55,20 +55,20 @@ public class Subquery_Flattening_Values_IT {
 
     @Test
     public void values() throws Exception {
-        assertUnorderedResult(conn(), "select * from A where a1 = (values 1)", ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(conn(), "select * from A where a1 = (values 1)", ONE_SUBQUERY_NODE, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 1 |10 |10 |");
-        assertUnorderedResult(conn(), "select * from A where a1 > (values 1)", ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(conn(), "select * from A where a1 > (values 1)", ONE_SUBQUERY_NODE, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 2 |20 |20 |\n" +
                 " 3 |30 |30 |");
-        assertUnorderedResult(conn(), "select * from A where a1 < (values 1)", ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(conn(), "select * from A where a1 < (values 1)", ONE_SUBQUERY_NODE, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |");
-        assertUnorderedResult(conn(), "select * from A where a1 != (values 1)", ZERO_SUBQUERY_NODES, "" +
+        assertUnorderedResult(conn(), "select * from A where a1 != (values 1)", ONE_SUBQUERY_NODE, "" +
                 "A1 |A2 |A3 |\n" +
                 "------------\n" +
                 " 0 | 0 | 0 |\n" +
