@@ -1769,7 +1769,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         if (!nopProjectRestrict()) {
             setDepth(depth);
             tree.add(this);
-            // look for subqueries in restrictions, print if any
+            // look for subqueries in projection and restrictions, print if any
             for (SubqueryNode sub: RSUtils.collectExpressionNodes(this, SubqueryNode.class))
                 sub.buildTree(tree,depth+1);
 
