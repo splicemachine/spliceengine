@@ -57,15 +57,19 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.ast.CollectingVisitorBuilder;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import org.spark_project.guava.base.Joiner;
+import org.spark_project.guava.base.Predicates;
 import org.spark_project.guava.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
+
+import static com.splicemachine.db.impl.ast.RSUtils.isRSN;
 
 // Temporary until user override for disposable stats has been removed.
 
@@ -2709,14 +2713,18 @@ public class FromBaseTable extends FromTable {
         ConglomerateDescriptor[] cds=tableDescriptor.getConglomerateDescriptors();
 
 		/* Cycle through the ConglomerateDescriptors */
+        IndexDescriptor id;
         for(ConglomerateDescriptor cd : cds){
-            if(!cd.isIndex()){
-                continue;
-            }
-            IndexDescriptor id=cd.getIndexDescriptor();
-
-            if(!id.isUnique()){
-                continue;
+            if(!cd.isIndex()) {
+                if (!cd.isPrimaryKey())
+                    continue;
+                else
+                    id = cd.getIndexDescriptor().getIndexDescriptor();
+            } else {
+                id=cd.getIndexDescriptor();
+                if(!id.isUnique()){
+                    continue;
+                }
             }
 
             int[] keyColumns=id.baseColumnPositions();
@@ -2753,14 +2761,18 @@ public class FromBaseTable extends FromTable {
         ConglomerateDescriptor[] cds=tableDescriptor.getConglomerateDescriptors();
 
 		/* Cycle through the ConglomerateDescriptors */
+        IndexDescriptor id;
         for(ConglomerateDescriptor cd : cds){
-            if(!cd.isIndex()){
-                continue;
-            }
-            IndexDescriptor id=cd.getIndexDescriptor();
-
-            if(!id.isUnique()){
-                continue;
+            if(!cd.isIndex()) {
+                if (!cd.isPrimaryKey())
+                    continue;
+                else
+                    id = cd.getIndexDescriptor().getIndexDescriptor();
+            } else {
+                id=cd.getIndexDescriptor();
+                if(!id.isUnique()){
+                    continue;
+                }
             }
 
             int[] keyColumns=id.baseColumnPositions();
@@ -3404,7 +3416,17 @@ public class FromBaseTable extends FromTable {
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
-        for (SubqueryNode sub: RSUtils.collectExpressionNodes(this, SubqueryNode.class))
+        /* predicates in restrictionList after post-opt stage should be redundant, as all the predicates
+           should have been either in storeRestrictionList or nonStoreRestrictionList.
+           When searching the current FromBaseTable node for subqueries, we may get duplicate SubqueryNodes.
+           So collect the subqueries directly from ResultColumns, storeRestrictionList and nonStoreRestrictionList.
+        */
+        org.spark_project.guava.base.Predicate<Object> onAxis = Predicates.not(isRSN);
+        CollectingVisitorBuilder<SubqueryNode> builder = CollectingVisitorBuilder.forClass(SubqueryNode.class).onAxis(onAxis);
+        builder.collect(resultColumns);
+        builder.collect(nonStoreRestrictionList);
+        List<SubqueryNode> subqueryNodeList = builder.collect(storeRestrictionList);
+        for (SubqueryNode sub: subqueryNodeList)
             sub.buildTree(tree,depth+1);
     }
 
