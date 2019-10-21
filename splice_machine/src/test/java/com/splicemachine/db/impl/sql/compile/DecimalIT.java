@@ -627,7 +627,7 @@ public class DecimalIT  extends SpliceUnitTest {
         BigDecimal bd = new BigDecimal("14.51");
         statement.setObject(1, bd, Types.DECIMAL);
         statement.executeUpdate();
-	statement.close();
+        statement.close();
 
         String
         sqlText = format("select a from preparedDecimal --splice-properties useSpark=%s", useSpark);
@@ -638,6 +638,43 @@ public class DecimalIT  extends SpliceUnitTest {
                 "----------\n" +
                 "14.51000 |";
 
+        testQuery(sqlText, expected, methodWatcher);
+        statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
+        statement.executeUpdate();
+	statement.close();
+
+
+        // The following should input "14" because a Double doesn't
+        // have a set scale, so an implicit scale of 0 is used
+        // inside setObject.
+        statement = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)", CLASS_NAME, "preparedDecimal"));
+        Double db = new Double("14.51");
+        statement.setObject(1, db, Types.DECIMAL);
+        statement.executeUpdate();
+        statement.close();
+
+        expected =
+                "A    |\n" +
+                "----------\n" +
+                "14.00000 |";
+        testQuery(sqlText, expected, methodWatcher);
+
+        statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
+        statement.executeUpdate();
+	statement.close();
+
+        // Using the version of setObject which allows scale to be passed in
+        // allows the decimal digits to be retained.
+        statement = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)", CLASS_NAME, "preparedDecimal"));
+        db = new Double("14.51");
+        statement.setObject(1, db, Types.DECIMAL, 2);
+        statement.executeUpdate();
+        statement.close();
+
+        expected =
+                "A    |\n" +
+                "----------\n" +
+                "14.51000 |";
         testQuery(sqlText, expected, methodWatcher);
     }
 }
