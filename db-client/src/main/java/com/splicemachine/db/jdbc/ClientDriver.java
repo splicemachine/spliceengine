@@ -209,8 +209,13 @@ public class ClientDriver implements java.sql.Driver {
 
         // If there are no properties set already,
         // then create a dummy properties just to make the calls go thru.
-        if (properties == null) {
-            properties = new java.util.Properties();
+        try {
+            if (properties == null) {
+                properties = tokenizeURLProperties(url, properties);
+            }
+
+        } catch (SqlException e) {
+            throw e.getSQLException();
         }
 
         driverPropertyInfo[0] =
