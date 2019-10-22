@@ -1410,6 +1410,32 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "SYSVW.SYSSCHEMAVIEW updated to " + metadataRestrictionEnabled);
     }
 
+    public void updateSystemViewForSysConglomerates(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+        SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
+
+        // check sysconglomerateinschemas view
+        TableDescriptor td = getTableDescriptor("SYSCONGLOMERATEINSCHEMAS", sysVWSchema, tc);
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+            boolean needUpdate = !vd.getViewText().equals(SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
+
+            // view definition matches the setting, no update needed
+            if (!needUpdate) return;
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysVWSchema, tc);
+
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONGLOMERATES_CATALOG_NUM, "SYSCONGLOMERATEINSCHEMAS", 0, sysVWSchema, SYSCONGLOMERATESRowFactory.SYSCONGLOMERATE_IN_SCHEMAS_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "SYSVW.SYSCONGLOMERATEINSCHEMAS is updated!");
+    }
+
     public void createPermissionTableSystemViews(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSVW schema if it does not exists
@@ -1418,7 +1444,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             return;
         }
 
-        //create AllRoles view
         SchemaDescriptor sysVWSchema=sysViewSchemaDesc;
 
         // create systablepermsView
