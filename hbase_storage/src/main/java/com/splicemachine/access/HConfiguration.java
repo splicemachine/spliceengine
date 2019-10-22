@@ -47,13 +47,13 @@ public class HConfiguration extends HBaseConfiguration {
     private static final Logger LOG = Logger.getLogger("splice.config");
 
     private static final String DEFAULT_COMPRESSION = "none";
+    private static final String TRANSACTION_LOCK_STRIPES = "splice.transaction.lock.stripes";
 
     // Splice Default Table Definitions
     public static final Boolean DEFAULT_IN_MEMORY = HColumnDescriptor.DEFAULT_IN_MEMORY;
     public static final Boolean DEFAULT_BLOCKCACHE=HColumnDescriptor.DEFAULT_BLOCKCACHE;
     public static final int DEFAULT_TTL = HColumnDescriptor.DEFAULT_TTL;
     public static final String DEFAULT_BLOOMFILTER = HColumnDescriptor.DEFAULT_BLOOMFILTER;
-    public static final String REGION_SERVER_HANDLER_COUNT = HConstants.REGION_SERVER_HANDLER_COUNT;
 
 //    private static final String DEFAULT_MAX_RESERVED_TIMESTAMP_PATH = "/transactions/maxReservedTimestamp";
 
@@ -102,9 +102,8 @@ public class HConfiguration extends HBaseConfiguration {
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         super.setDefaults(builder, configurationSource);
         // set subsystem specific config params
-        builder.regionServerHandlerCount = configurationSource.getInt(REGION_SERVER_HANDLER_COUNT, HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT);
-        // TODO: JC - this looks strange (transactionLockStripes = REGION_SERVER_HANDLER_COUNT) but is as I found it, typo?
-        builder.transactionLockStripes = configurationSource.getInt(REGION_SERVER_HANDLER_COUNT, HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT);
+        builder.regionServerHandlerCount = configurationSource.getInt(HConstants.REGION_SERVER_HANDLER_COUNT, HConstants.DEFAULT_REGION_SERVER_HANDLER_COUNT);
+        builder.transactionLockStripes = configurationSource.getInt(TRANSACTION_LOCK_STRIPES, builder.regionServerHandlerCount * 8);
 
         builder.regionMaxFileSize = configurationSource.getLong(REGION_MAX_FILE_SIZE, HConstants.DEFAULT_MAX_FILE_SIZE);
 
