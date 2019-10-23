@@ -117,8 +117,12 @@ public class ConfigurationBuilder {
     public long backupMaxBandwidthMB;
     public boolean backupUseDistcp;
     public int backupIOBufferSize;
+    public boolean replicationEnabled;
     public int replicationSnapshotInterval;
     public int replicationProgressUpdateInterval;
+    public String replicationMonitorQuorum;
+    public String replicationMonitorPath;
+    public int replicationMonitorInterval;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
