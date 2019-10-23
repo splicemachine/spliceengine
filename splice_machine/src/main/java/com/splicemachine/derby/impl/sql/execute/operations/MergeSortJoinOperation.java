@@ -208,7 +208,7 @@ public class MergeSortJoinOperation extends JoinOperation {
                 rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<ExecRow> joined;
         if (dsp.getType().equals(DataSetProcessor.Type.SPARK)   &&
-            (restriction == null || sparkJoinPredicate != null) &&
+            (restriction == null || hasSparkJoinPredicate()) &&
             !rightFromSSQ && !containsUnsafeSQLRealComparison()){
             if (isOuterJoin)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);

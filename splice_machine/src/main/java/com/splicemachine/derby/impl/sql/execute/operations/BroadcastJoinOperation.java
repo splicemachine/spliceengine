@@ -222,7 +222,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         DataSet<ExecRow> result;
         boolean usesNativeSparkDataSet =
            (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
-             ((restriction == null || sparkJoinPredicate != null) || (!isOuterJoin && !notExistsRightSide && !isOneRowRightSide())) &&
+             ((restriction == null || hasSparkJoinPredicate()) || (!isOuterJoin && !notExistsRightSide && !isOneRowRightSide())) &&
               !containsUnsafeSQLRealComparison());
         if (usesNativeSparkDataSet)
         {
