@@ -23,7 +23,9 @@ import java.sql.SQLWarning;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.Lists;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -46,6 +48,7 @@ import org.apache.hadoop.hbase.security.access.AccessControlClient;
 import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.UserPermission;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.ReplicationProtos;
 import org.apache.hadoop.hbase.util.HBaseFsckRepair;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
@@ -536,6 +539,17 @@ public class HBasePartitionAdmin implements PartitionAdmin{
                 admin.enableTable(tn);
             }
         }
+    }
+
+    @Override
+    public List<ReplicationPeerDescription> getReplicationPeers() throws IOException {
+        List<org.apache.hadoop.hbase.replication.ReplicationPeerDescription> peers = admin.listReplicationPeers();
+        List<ReplicationPeerDescription> replicationPeers = Lists.newArrayList();
+        for (org.apache.hadoop.hbase.replication.ReplicationPeerDescription peer : peers) {
+            replicationPeers.add(new SpliceReplicationPeerDescription(peer.getPeerId(), peer.getPeerConfig().getClusterKey(),
+                    peer.isEnabled()));
+        }
+        return replicationPeers;
     }
 
     private boolean grantCreatePrivilege(String tableName, String userName) throws Throwable{

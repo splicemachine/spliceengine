@@ -14,8 +14,11 @@
 
 package com.splicemachine.derby.impl.sql;
 
+import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.replication.ReplicationManager;
+
+import java.util.List;
 
 /**
  * Created by jyuan on 2/6/19.
@@ -30,7 +33,7 @@ public class NoOpReplicationManager implements ReplicationManager {
     private NoOpReplicationManager(){ }
 
     @Override
-    public void addPeer(short peerId, String clusterKey) throws StandardException {
+    public void addPeer(short peerId, String clusterKey, long peerTs) throws StandardException {
 
     }
 
@@ -67,5 +70,15 @@ public class NoOpReplicationManager implements ReplicationManager {
     @Override
     public String getReplicationRole() throws StandardException {
         return null;
+    }
+
+    @Override
+    public List<ReplicationPeerDescription> getReplicationPeers() throws StandardException {
+        return null;
+    }
+
+    @Override
+    public void monitorReplication(String masterClusterKey, String slaveClusterKey) throws StandardException {
+
     }
 }

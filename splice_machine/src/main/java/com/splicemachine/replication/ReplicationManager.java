@@ -14,13 +14,16 @@
 
 package com.splicemachine.replication;
 
+import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.db.iapi.error.StandardException;
+
+import java.util.List;
 
 /**
  * Created by jyuan on 2/6/19.
  */
 public interface ReplicationManager {
-    void addPeer(short peerId, String clusterKey) throws StandardException;
+    void addPeer(short peerId, String clusterKey, long peerTs) throws StandardException;
     void removePeer(short peerId) throws StandardException;
     void enablePeer(short peerId) throws StandardException;
     void disablePeer(short peerId) throws StandardException;
@@ -28,4 +31,6 @@ public interface ReplicationManager {
     void disableTableReplication(String tableName) throws StandardException;
     void setReplicationRole(String role) throws StandardException;
     String getReplicationRole() throws StandardException;
+    List<ReplicationPeerDescription> getReplicationPeers() throws StandardException;
+    void monitorReplication(String masterClusterKey, String slaveClusterKey) throws StandardException;
 }
