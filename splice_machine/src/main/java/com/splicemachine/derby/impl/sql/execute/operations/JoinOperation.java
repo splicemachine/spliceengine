@@ -177,8 +177,10 @@ public abstract class JoinOperation extends SpliceBaseOperation {
                         mergedRowTemplate = (ExecRow)in.readObject();
 				}
 				if (in.readBoolean()) {
-					sparkJoinPredicate = (SparkExpressionNode) in.readObject();
+					sparkExpressionTreeAsString = in.readUTF();
 				}
+				else
+					sparkExpressionTreeAsString = null;
 		}
 
 		@Override
@@ -211,13 +213,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				                                  sparkExpressionTreeAsString.length() != 0);
 
 				out.writeBoolean(sparkExpressionPresent);
-				if (sparkExpressionPresent) {
-				    if (sparkJoinPredicate == null)
-				    	sparkJoinPredicate =
-					 (SparkExpressionNode) SerializationUtils.
-		                          deserialize(Base64.decodeBase64(sparkExpressionTreeAsString));
-				    out.writeObject(sparkJoinPredicate);
-				}
+				if (sparkExpressionPresent)
+				    out.writeUTF(sparkExpressionTreeAsString);
 		}
 		@Override
 		public List<SpliceOperation> getSubOperations() {
@@ -416,6 +413,21 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 	public ExecRow getLeftRow() { return leftRow; }
 	public ExecRow getRightRow() { return rightRow; }
 
-	public SparkExpressionNode getSparkJoinPredicate() { return sparkJoinPredicate; }
+	public boolean hasSparkJoinPredicate() {
+    	    return (sparkJoinPredicate != null ||
+	            (sparkExpressionTreeAsString != null &&
+	             sparkExpressionTreeAsString.length() > 0));
+	}
+	public SparkExpressionNode getSparkJoinPredicate() {
+    	    if (sparkJoinPredicate != null)
+    	        return sparkJoinPredicate;
+    	    else {
+    	    	if (hasSparkJoinPredicate())
+		    sparkJoinPredicate =
+		       (SparkExpressionNode) SerializationUtils.
+		                          deserialize(Base64.decodeBase64(sparkExpressionTreeAsString));
+		return sparkJoinPredicate;
+	    }
+        }
 
 }
