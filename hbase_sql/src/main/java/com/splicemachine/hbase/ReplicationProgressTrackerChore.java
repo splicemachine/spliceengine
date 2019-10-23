@@ -15,19 +15,13 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.configuration.*;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
@@ -64,6 +58,10 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
     @Override
     protected void chore() {
         try {
+            boolean replicationEnabled = HConfiguration.getConfiguration().replicationEnabled();
+            if (!replicationEnabled)
+                return;
+
             Admin admin = connection.getAdmin();
             if (!admin.tableExists(replicationProgressTable))
                 return;
@@ -173,34 +171,10 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
                 //if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.info(LOG, "Deleted snapshot %d.", timestamp);
                 //}
-                setTimestamp(timestamp);
+                ReplicationUtils.setTimestamp(timestamp);
             }
         }finally {
             replicationProgress.clear();
-        }
-    }
-
-    private void setTimestamp(long timestamp) throws IOException, KeeperException, InterruptedException {
-        TimestampSource timestampSource = SIDriver.driver().getTimestampSource();
-        long currentTimestamp = timestampSource.currentTimestamp();
-        if (currentTimestamp < timestamp) {
-            RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
-            HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), rzk);
-            ConfigurationSource configurationSource = env.configuration().getConfigSource();
-            String rootNode = configurationSource.getString(HConfiguration.SPLICE_ROOT_PATH, HConfiguration.DEFAULT_ROOT_PATH);
-            String node = rootNode + HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
-            //if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.info(LOG, "bump up timestamp to %d", timestamp);
-            //}
-            byte[] data = Bytes.toBytes(timestamp);
-            rzk.setData(node, data, -1 /* version */);
-            timestampSource.refresh();
-        }
-        else {
-            //if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.info(LOG, "current timestamp = %d. Applied changes from master until timestamp %d",
-                        currentTimestamp, timestamp);
-            //}
         }
     }
 }

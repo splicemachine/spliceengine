@@ -16,13 +16,32 @@ package com.splicemachine.replication;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.ReplicationPeerDescription;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.ConfigurationSource;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBoolean;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.drda.RemoteUser;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.procedures.ProcedureUtils;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 import java.sql.*;
 import java.util.List;
@@ -36,11 +55,65 @@ public class ReplicationSystemProcedure {
 
     private static Logger LOG = Logger.getLogger(ReplicationSystemProcedure.class);
 
-    public static void ADD_PEER(short peerId, String clusterKey, ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void LIST_PEERS(ResultSet[] resultSets) throws StandardException, SQLException {
+
+        ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+        List<ReplicationPeerDescription> replicationPeers = replicationManager.getReplicationPeers();
+
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        ResultColumnDescriptor[] rcds = {
+                new GenericColumnDescriptor("PeerId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+                new GenericColumnDescriptor("clusterKey", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
+                new GenericColumnDescriptor("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN))
+        };
+        List<ExecRow> rows = Lists.newArrayList();
+        for (ReplicationPeerDescription replicationPeer : replicationPeers) {
+            ExecRow template = new ValueRow(3);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar(), new SQLBoolean()});
+            template.getColumn(1).setValue(replicationPeer.getId());
+            template.getColumn(2).setValue(replicationPeer.getClusterKey());
+            template.getColumn(3).setValue(replicationPeer.isEnabled());
+            rows.add(template);
+        }
+        IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+        inprs.openCore();
+        resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+    }
+
+    public static void GET_CLUSTER_KEY(ResultSet[] resultSets) throws StandardException, SQLException {
+
+        String clusterKey = getClusterKey();
+        resultSets[0] = ProcedureUtils.generateResult("Success", clusterKey);
+    }
+
+    public static void ADD_PEER(short peerId, String hostAndPort, ResultSet[] resultSets) throws StandardException, SQLException {
         try {
-            ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
-            replicationManager.addPeer(peerId, clusterKey);
-            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("Added %s as peer %d", clusterKey, peerId));
+            long peerTs = -1;
+            String peerClusterKey = null;
+            try (Connection connection = RemoteUser.getConnection(hostAndPort)) {
+                // Get peer's cluster key
+                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.GET_CLUSTER_KEY()")) {
+                    rs.next();
+                    peerClusterKey = rs.getString(1);
+                }
+
+                // Get peer's timestamp
+                try (ResultSet rs = connection.createStatement().executeQuery("call syscs_util.SYSCS_GET_CURRENT_TRANSACTION()")) {
+                    rs.next();
+                    peerTs = rs.getLong(1);
+                }
+
+                ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+                connection.createStatement().execute("call SYSCS_UTIL.SET_REPLICATION_ROLE('SLAVE')");
+                replicationManager.setReplicationRole("MASTER");
+                replicationManager.addPeer(peerId, peerClusterKey, peerTs);
+                String replicationMonitorQuorum = SIDriver.driver().getConfiguration().getReplicationMonitorQuorum();
+                if (replicationMonitorQuorum != null) {
+                    replicationManager.monitorReplication(getClusterKey(), peerClusterKey);
+                }
+            }
+            resultSets[0] = ProcedureUtils.generateResult("Success", String.format("Added %s as peer %d", peerClusterKey, peerId));
         } catch (Exception e) {
             resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
         }
@@ -167,7 +240,7 @@ public class ReplicationSystemProcedure {
             }
             enableReplicationForSpliceSystemTables();
             resultSets[0] = ProcedureUtils.generateResult(
-                    "Success", String.format("Disabled replication for database"));
+                    "Success", String.format("Enabled replication for database"));
         } catch (Exception e) {
             resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
         }
@@ -291,5 +364,17 @@ public class ReplicationSystemProcedure {
             replicationManager.disableTableReplication(Long.toString(conglomerate));
             return null;
         }
+    }
+
+    public static String getClusterKey() {
+        ConfigurationSource conf = SIDriver.driver().getConfiguration().getConfigSource();
+        String zq = conf.getString("hbase.zookeeper.quorum", null);
+        String zp = conf.getString("zookeeper.znode.parent", null);
+        int port = conf.getInt("hbase.zookeeper.property.clientPort", -1);
+        if (!zq.contains(":")) {
+            zq = zq + ":" + port;
+        }
+        String clusterKey = zq + ":" + zp;
+        return clusterKey;
     }
 }

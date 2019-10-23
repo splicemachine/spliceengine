@@ -1324,7 +1324,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(1)
                             .smallint("peerId")
-                            .varchar("clusterKey", 32672)
+                            .varchar("hostAndPort", 32672)
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(addPeer);
@@ -1434,6 +1434,19 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(disableDatabaseReplication);
 
+                    Procedure getClusterKey = Procedure.newBuilder().name("GET_CLUSTER_KEY")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getClusterKey);
+
+                    Procedure getPeers = Procedure.newBuilder().name("LIST_PEERS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getPeers);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
