@@ -31,6 +31,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import java.io.InputStream;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1537,7 +1538,10 @@ public class PreparedStatement extends Statement
                     agent_.logWriter_.traceEntry(this, "setObject", parameterIndex, x, targetJdbcType);
                 }
                 checkForClosedStatement();
-                setObjectX(parameterIndex, x, targetJdbcType, 0);
+                int scale = 0;
+                if (x instanceof BigDecimal)
+                    scale = ((BigDecimal)x).scale();
+                setObjectX(parameterIndex, x, targetJdbcType, scale);
             }
         }
         catch ( SqlException se )
