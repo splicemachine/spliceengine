@@ -155,11 +155,22 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SPLICE_BACKUP_IO_BUFFER_SIZE = "splice.backup.io.buffer.size";
     public static final int DEFAULT_SPLICE_BACKUP_IO_BUFFER_SIZE = 64*1024;
 
+    public static final String SPLICE_REPLICATION_ENABLED = "splice.replication.enabled";
+    public static final boolean DEFAULT_SPLICE_REPLICATION_ENABLED = false;
+
     public static final String SPLICE_REPLICATION_SNAPSHOT_INTERVAL = "splice.replication.snapshot.interval";
     public static final int DEFAULT_SPLICE_REPLICATION_SNAPSHOT_INTERVAL = 1000;
 
     public static final String SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL = "splice.replication.progress.update.interval";
     public static final int DEFAULT_SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL = 200;
+
+    public static final String SPLICE_REPLICATION_MONITOR_QUORUM = "splice.replication.monitor.quorum";
+
+    public static final String SPLICE_REPLICATION_MONITOR_PATH = "splice.replication.monitor.path";
+    public static final String DEFAULT_SPLICE_REPLICATION_MONITOR_PATH = "/splice/replication";
+
+    public static final String SPLICE_REPLICATION_MONITOR_INTERVAL = "splice.replication.monitor.interval";
+    public static final int DEFAULT_SPLICE_REPLICATION_MONITOR_INTERVAL = 1000;
 
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
@@ -235,5 +246,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.backupIOBufferSize = configurationSource.getInt(SPLICE_BACKUP_IO_BUFFER_SIZE, DEFAULT_SPLICE_BACKUP_IO_BUFFER_SIZE);
         builder.replicationSnapshotInterval = configurationSource.getInt(SPLICE_REPLICATION_SNAPSHOT_INTERVAL, DEFAULT_SPLICE_REPLICATION_SNAPSHOT_INTERVAL);
         builder.replicationProgressUpdateInterval = configurationSource.getInt(SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL, DEFAULT_SPLICE_REPLICATION_PROGRESS_UPDATE_INTERVAL);
+        builder.replicationMonitorPath =  configurationSource.getString(SPLICE_REPLICATION_MONITOR_PATH, DEFAULT_SPLICE_REPLICATION_MONITOR_PATH);
+        builder.replicationMonitorQuorum = configurationSource.getString(SPLICE_REPLICATION_MONITOR_QUORUM, null);
+        builder.replicationEnabled = configurationSource.getBoolean(SPLICE_REPLICATION_ENABLED, DEFAULT_SPLICE_REPLICATION_ENABLED);
+        builder.replicationMonitorInterval = configurationSource.getInt(SPLICE_REPLICATION_MONITOR_INTERVAL, DEFAULT_SPLICE_REPLICATION_MONITOR_INTERVAL);
     }
 }

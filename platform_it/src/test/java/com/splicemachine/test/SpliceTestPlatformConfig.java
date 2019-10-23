@@ -304,6 +304,8 @@ class SpliceTestPlatformConfig {
         config.setBoolean("splice.authentication.impersonation.enabled", true);
         config.set("splice.authentication.ldap.mapGroupAttr", "jy=splice,dgf=splice");
         config.setInt("splice.txn.completedTxns.cacheSize", 4096);
+        config.set("splice.replication.monitor.quorum", "srv091:2181");
+
         // below two parameters are needed to test ranger authorization on standalone system
         // config.set("splice.authorization.scheme", "RANGER");
         // config.set("splice.metadataRestrictionEnabled", "RANGER");
@@ -330,6 +332,7 @@ class SpliceTestPlatformConfig {
         config.set("hbase.replication.source.service", "com.splicemachine.replication.SpliceReplication");
         config.set("hbase.replication.sink.service", "com.splicemachine.replication.SpliceReplication");
         config.setBoolean("replication.source.eof.autorecovery", true);
+        config.setBoolean("splice.replication.enabled", true);
 //        config.setLong("replication.source.sleepforretrie", 10);
 //        config.setInt("replication.source.maxretriesmultiplier", 100);
         //config.setBoolean("hbase.replication", true);

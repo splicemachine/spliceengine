@@ -113,9 +113,17 @@ public interface SConfiguration {
 
     int getBackupIOBufferSize();
 
+    boolean replicationEnabled();
+
     int getReplicationSnapshotInterval();
 
     int getReplicationProgressUpdateInterval();
+
+    String getReplicationMonitorQuorum();
+
+    String getReplicationMonitorPath();
+
+    int getReplicationMonitorInterval();
 
     String getCompressionAlgorithm();
 

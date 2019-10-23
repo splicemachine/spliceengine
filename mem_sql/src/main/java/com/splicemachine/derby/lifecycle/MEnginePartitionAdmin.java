@@ -16,6 +16,7 @@ package com.splicemachine.derby.lifecycle;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
+import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.access.api.TableDescriptor;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.Partition;
@@ -156,11 +157,16 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
 
     @Override
     public void enableTableReplication(String tableName) throws IOException {
-
+        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
 
     @Override
     public void disableTableReplication(String tableName) throws IOException {
+        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
 
+    @Override
+    public List<ReplicationPeerDescription> getReplicationPeers() throws IOException {
+        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
 }

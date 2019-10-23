@@ -194,7 +194,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "hbase.balancer.period" : "60000",
         "hbase.client.ipc.pool.size" : "10",
         "hbase.client.max.perregion.tasks" : "100",
-        "hbase.coprocessor.regionserver.classes" : "com.splicemachine.hbase.RegionServerLifecycleObserver",
+        "hbase.coprocessor.regionserver.classes" : "com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.hbase.SpliceRSRpcServices",
         "hbase.hstore.compaction.min.size" : "136314880",
         "hbase.hstore.compaction.min" : "3",
         "hbase.hstore.defaultengine.compactionpolicy.class" : "com.splicemachine.compactions.SpliceDefaultCompactionPolicy",
@@ -236,6 +236,9 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.txn.activeTxns.cacheSize" : "10240",
         "splice.txn.completedTxns.concurrency" : "128",
         "splice.txn.concurrencyLevel" : "4096",
-        "hbase.regionserver.replication.handler.count" : "100"
+        "hbase.regionserver.replication.handler.count" : "100",
+        "hbase.bucketcache.ioengine" : "",
+        "replication.replicationsource.implementation":"com.splicemachine.replication.SpliceReplicationSource",
+        "hbase.replication.sink.service" : "com.splicemachine.replication.SpliceReplication"
     }
     return hbase_site_desired_values

@@ -220,11 +220,18 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public void enableTableReplication(String tableName) throws IOException {
-
+            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
         }
 
         @Override
         public void disableTableReplication(String tableName) throws IOException {
+            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+
+        }
+
+        @Override
+        public List<ReplicationPeerDescription> getReplicationPeers() throws IOException{
+            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
 
         }
     }

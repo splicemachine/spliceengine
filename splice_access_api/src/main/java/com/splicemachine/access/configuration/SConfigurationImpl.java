@@ -97,8 +97,12 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long backupMaxBandwidthMB;
     private final  boolean backupUseDistcp;
     private final  int backupIOBufferSize;
+    private final  boolean replicationEnabled;
     private final  int replicationSnapshotInterval;
-    private final int replicationProgressUpdateInterval;
+    private final  int replicationProgressUpdateInterval;
+    private final  String replicationMonitorQuorum;
+    private final  String replicationMonitorPath;
+    private final  int replicationMonitorInterval;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -383,6 +387,11 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getBackupIOBufferSize() {
         return backupIOBufferSize;
     }
+
+    @Override
+    public boolean replicationEnabled() {
+        return replicationEnabled;
+    }
     @Override
     public int getReplicationSnapshotInterval() {
         return replicationSnapshotInterval;
@@ -390,6 +399,19 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getReplicationProgressUpdateInterval() {
         return replicationProgressUpdateInterval;
+    }
+    @Override
+    public String getReplicationMonitorQuorum() {
+        return replicationMonitorQuorum;
+    }
+
+    @Override
+    public String getReplicationMonitorPath() {
+        return replicationMonitorPath;
+    }
+    @Override
+    public int getReplicationMonitorInterval() {
+        return replicationMonitorInterval;
     }
     @Override
     public String getCompressionAlgorithm() {
@@ -907,8 +929,12 @@ public final class SConfigurationImpl implements SConfiguration {
         backupMaxBandwidthMB = builder.backupMaxBandwidthMB;
         backupUseDistcp = builder.backupUseDistcp;
         backupIOBufferSize = builder.backupIOBufferSize;
+        replicationEnabled = builder.replicationEnabled;
         replicationSnapshotInterval = builder.replicationSnapshotInterval;
         replicationProgressUpdateInterval = builder.replicationProgressUpdateInterval;
+        replicationMonitorPath = builder.replicationMonitorPath;
+        replicationMonitorQuorum = builder.replicationMonitorQuorum;
+        replicationMonitorInterval = builder.replicationMonitorInterval;
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;

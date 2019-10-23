@@ -148,16 +148,27 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
     public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
         try {
             boot(ctx.getEnvironment().getServerName());
-            this.choreService = new ChoreService("Splice Master ChoreService");
-            ReplicationSnapshotChore replicationSnapshotChore =
-                    new ReplicationSnapshotChore("ReplicationSnapshotChore", this,
-                            HConfiguration.getConfiguration().getReplicationSnapshotInterval());
-            choreService.scheduleChore(replicationSnapshotChore);
+            boolean replicationEnabled = HConfiguration.getConfiguration().replicationEnabled();
+            if (replicationEnabled) {
+                this.choreService = new ChoreService("Splice Master ChoreService");
+                ReplicationSnapshotChore replicationSnapshotChore =
+                        new ReplicationSnapshotChore("ReplicationSnapshotChore", this,
+                                HConfiguration.getConfiguration().getReplicationSnapshotInterval());
+                choreService.scheduleChore(replicationSnapshotChore);
 
-            ReplicationProgressTrackerChore replicationProgressTrackerChore =
-                    new ReplicationProgressTrackerChore(" ReplicationProgressTrackerChore", this,
-                            HConfiguration.getConfiguration().getReplicationProgressUpdateInterval());
-            choreService.scheduleChore(replicationProgressTrackerChore);
+                ReplicationProgressTrackerChore replicationProgressTrackerChore =
+                        new ReplicationProgressTrackerChore("ReplicationProgressTrackerChore", this,
+                                HConfiguration.getConfiguration().getReplicationProgressUpdateInterval());
+                choreService.scheduleChore(replicationProgressTrackerChore);
+
+                String replicationMonitorQuorum = HConfiguration.getConfiguration().getReplicationMonitorQuorum();
+                if (replicationMonitorQuorum != null) {
+                    ReplicationMonitorChore replicationMonitorChore =
+                            new ReplicationMonitorChore("ReplicationMonitorCore", this,
+                                    HConfiguration.getConfiguration().getReplicationMonitorInterval());
+                    choreService.scheduleChore(replicationMonitorChore);
+                }
+            }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
