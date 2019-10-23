@@ -2719,7 +2719,7 @@ public class FromBaseTable extends FromTable {
                 if (!cd.isPrimaryKey())
                     continue;
                 else
-                    id = cd.getIndexDescriptor().getIndexDescriptor();
+                    id = cd.getIndexDescriptor();
             } else {
                 id=cd.getIndexDescriptor();
                 if(!id.isUnique()){
@@ -2767,7 +2767,7 @@ public class FromBaseTable extends FromTable {
                 if (!cd.isPrimaryKey())
                     continue;
                 else
-                    id = cd.getIndexDescriptor().getIndexDescriptor();
+                    id = cd.getIndexDescriptor();
             } else {
                 id=cd.getIndexDescriptor();
                 if(!id.isUnique()){
