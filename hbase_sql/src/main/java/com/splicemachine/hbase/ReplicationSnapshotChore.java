@@ -49,6 +49,10 @@ public class ReplicationSnapshotChore extends ScheduledChore {
     @Override
     protected void chore() {
         try {
+            boolean replicationEnabled = HConfiguration.getConfiguration().replicationEnabled();
+            if (!replicationEnabled)
+                return;
+
             List<ReplicationPeerDescription> peers = admin.listReplicationPeers();
             if (peers.size() == 0) {
                 return;

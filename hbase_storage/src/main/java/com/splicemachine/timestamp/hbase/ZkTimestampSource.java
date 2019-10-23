@@ -102,6 +102,7 @@ public class ZkTimestampSource implements TimestampSource {
 
     @Override
     public long nextTimestamp() {
+
 		TimestampClient client = getTimestampClient();
 				
 		long nextTimestamp;
