@@ -48,6 +48,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
     public void init(Object leftOperand,Object rightOperand){
         super.init(leftOperand,rightOperand,"and");
         this.shortCircuitValue=false;
+        this.operatorType = AND;
     }
 
     /**
