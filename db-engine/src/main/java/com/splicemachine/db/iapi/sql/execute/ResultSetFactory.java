@@ -1202,8 +1202,7 @@ public interface ResultSetFactory {
 											  double optimizerEstimatedRowCount,
 											  double optimizerEstimatedCost,
 											  String userSuppliedOptimizerOverrides,
-											  String explainPlan,
-											  String sparkExpressionTreeAsString)
+											  String explainPlan)
 			throws StandardException;
 
 	NoPutResultSet getCrossJoinResultSet(NoPutResultSet leftResultSet,
@@ -1220,8 +1219,7 @@ public interface ResultSetFactory {
 											  double optimizerEstimatedRowCount,
 											  double optimizerEstimatedCost,
 											  String userSuppliedOptimizerOverrides,
-											  String explainPlan,
-											  String sparkExpressionTreeAsString)
+											  String explainPlan)
 			throws StandardException;
 
 	NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
@@ -1238,8 +1236,7 @@ public interface ResultSetFactory {
 											 double optimizerEstimatedRowCount,
 											 double optimizerEstimatedCost,
 											 String userSuppliedOptimizerOverrides,
-											 String explainPlan,
-											 String sparkExpressionTreeAsString)
+											 String explainPlan)
 			throws StandardException;
 
 	NoPutResultSet getHalfMergeSortJoinResultSet(NoPutResultSet leftResultSet,
@@ -1256,8 +1253,7 @@ public interface ResultSetFactory {
 												 double optimizerEstimatedRowCount,
 												 double optimizerEstimatedCost,
 												 String userSuppliedOptimizerOverrides,
-												 String explainPlan,
-												 String sparkExpressionTreeAsString)
+												 String explainPlan)
 			throws StandardException;
 
     NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
@@ -1276,8 +1272,7 @@ public interface ResultSetFactory {
 										 double optimizerEstimatedRowCount,
 										 double optimizerEstimatedCost,
 										 String userSuppliedOptimizerOverrides,
-										 String explainPlan,
-										 String sparkExpressionTreeAsString)
+										 String explainPlan)
 					   throws StandardException;
 
     NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
@@ -1294,8 +1289,7 @@ public interface ResultSetFactory {
 											 double optimizerEstimatedRowCount,
 											 double optimizerEstimatedCost,
 											 String userSuppliedOptimizerOverrides,
-											 String explainPlan,
-					                                                 String sparkExpressionTreeAsString)
+											 String explainPlan)
 			           throws StandardException;
 
 	/**
@@ -1349,8 +1343,7 @@ public interface ResultSetFactory {
 													   double optimizerEstimatedRowCount,
 													   double optimizerEstimatedCost,
 													   String userSuppliedOptimizerOverrides,
-													   String explainPlan,
-													   String sparkExpressionTreeAsString)
+													   String explainPlan)
 			throws StandardException;
 
 	/**
@@ -1399,8 +1392,7 @@ public interface ResultSetFactory {
 												 double optimizerEstimatedRowCount,
 												 double optimizerEstimatedCost,
 												 String userSuppliedOptimizerOverrides,
-												 String explainPlan,
-												 String sparkExpressionTreeAsString)
+												 String explainPlan)
 			throws StandardException;
 
 	/**
@@ -1495,8 +1487,7 @@ public interface ResultSetFactory {
 													  double optimizerEstimatedRowCount,
 													  double optimizerEstimatedCost,
 													  String userSuppliedOptimizerOverrides,
-													  String explainPlan,
-													  String sparkExpressionTreeAsString)
+													  String explainPlan)
 			throws StandardException;
 
 	NoPutResultSet getHalfMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
@@ -1515,178 +1506,7 @@ public interface ResultSetFactory {
 														  double optimizerEstimatedRowCount,
 														  double optimizerEstimatedCost,
 														  String userSuppliedOptimizerOverrides,
-														  String explainPlan,
-														  String sparkExpressionTreeAsString)
-			throws StandardException;
-
-	NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-												  int leftNumCols,
-												  NoPutResultSet rightResultSet,
-												  int rightNumCols,
-												  int leftHashKeyItem,
-												  int rightHashKeyItem,
-												  int rightHashKeyToBaseTableMapItem,
-												  int rightHashKeySortOrderItem,
-												  GeneratedMethod joinClause,
-												  int resultSetNUmber,
-												  GeneratedMethod emptyRowFun,
-												  boolean wasRightOuterJoin,
-												  boolean oneRowRightSide,
-												  boolean noExistsRightSide,
-												  boolean rightFromSSQ,
-												  double optimizerEstimatedRowCount,
-												  double optimizerEstimatedCost,
-												  String userSuppliedOptimizerOverrides,
-												  String explainPlan,
-												  String sparkExpressionTreeAsString)
-	throws StandardException;
-
-	NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-													  int leftNumCols,
-													  NoPutResultSet rightResultSet,
-													  int rightNumCols,
-													  int leftHashKeyItem,
-													  int rightHashKeyItem,
-													  GeneratedMethod joinClause,
-													  int resultSetNUmber,
-													  GeneratedMethod emptyRowFun,
-													  boolean wasRightOuterJoin,
-													  boolean oneRowRightSide,
-													  boolean noExistsRightSide,
-													  boolean rightFromSSQ,
-													  double optimizerEstimatedRowCount,
-													  double optimizerEstimatedCost,
-													  String userSuppliedOptimizerOverrides,
-													  String explainPlan,
-													  String sparkExpressionTreeAsString)
-	throws StandardException;
-
-	/**
-          Support old versions of getXXXJoinResultSet, so SHOW SCHEMAS and other statements
-	  which store these serialized objects on disk won't break upon upgrade.
-	 */
-
-	NoPutResultSet getNestedLoopJoinResultSet(NoPutResultSet leftResultSet,
-											  int leftNumCols,
-											  NoPutResultSet rightResultSet,
-											  int rightNumCols,
-											  GeneratedMethod joinClause,
-											  int resultSetNumber,
-											  boolean oneRowRightSide,
-											  boolean notExistsRightSide,
-											  boolean rightFromSSQ,
-											  double optimizerEstimatedRowCount,
-											  double optimizerEstimatedCost,
-											  String userSuppliedOptimizerOverrides,
-											  String explainPlan)
-			throws StandardException;
-
-	NoPutResultSet getCrossJoinResultSet(NoPutResultSet leftResultSet,
-											  int leftNumCols,
-											  NoPutResultSet rightResultSet,
-											  int rightNumCols,
-                                              int leftHashKeyItem,
-                                              int rightHashKeyItem,
-											  GeneratedMethod joinClause,
-											  int resultSetNumber,
-											  boolean oneRowRightSide,
-											  boolean notExistsRightSide,
-											  boolean rightFromSSQ,
-											  double optimizerEstimatedRowCount,
-											  double optimizerEstimatedCost,
-											  String userSuppliedOptimizerOverrides,
-											  String explainPlan)
-			throws StandardException;
-
-	NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
-											 int leftNumCols,
-											 NoPutResultSet rightResultSet,
-											 int rightNumCols,
-											 int leftHashKeyItem,
-											 int rightHashKeyItem,
-											 GeneratedMethod joinClause,
-											 int resultSetNumber,
-											 boolean oneRowRightSide,
-											 boolean notExistsRightSide,
-											 boolean rightFromSSQ,
-											 double optimizerEstimatedRowCount,
-											 double optimizerEstimatedCost,
-											 String userSuppliedOptimizerOverrides,
-											 String explainPlan)
-			throws StandardException;
-
-
-    NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
-										 int leftNumCols,
-										 NoPutResultSet rightResultSet,
-										 int rightNumCols,
-										 int leftHashKeyItem,
-										 int rightHashKeyItem,
-										 int rightHashKeyToBaseTableMapItem,
-										 int rightHashKeySortOrderItem,
-										 GeneratedMethod joinClause,
-										 int resultSetNumber,
-										 boolean oneRowRightSide,
-										 boolean notExistsRightSide,
-										 boolean rightFromSSQ,
-										 double optimizerEstimatedRowCount,
-										 double optimizerEstimatedCost,
-										 String userSuppliedOptimizerOverrides,
-										 String explainPlan)
-					   throws StandardException;
-
-    NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
-											 int leftNumCols,
-											 NoPutResultSet rightResultSet,
-											 int rightNumCols,
-											 int leftHashKeyItem,
-											 int rightHashKeyItem,
-											 GeneratedMethod joinClause,
-											 int resultSetNumber,
-											 boolean oneRowRightSide,
-											 boolean notExistsRightSide,
-											 boolean rightFromSSQ,
-											 double optimizerEstimatedRowCount,
-											 double optimizerEstimatedCost,
-											 String userSuppliedOptimizerOverrides,
-											 String explainPlan)
-			           throws StandardException;
-
-
-	NoPutResultSet getNestedLoopLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-													   int leftNumCols,
-													   NoPutResultSet rightResultSet,
-													   int rightNumCols,
-													   GeneratedMethod joinClause,
-													   int resultSetNumber,
-													   GeneratedMethod emptyRowFun,
-													   boolean wasRightOuterJoin,
-													   boolean oneRowRightSide,
-													   boolean notExistsRightSide,
-													   boolean rightFromSSQ,
-													   double optimizerEstimatedRowCount,
-													   double optimizerEstimatedCost,
-													   String userSuppliedOptimizerOverrides,
-													   String explainPlan)
-			throws StandardException;
-
-	NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-													  int leftNumCols,
-													  NoPutResultSet rightResultSet,
-													  int rightNumCols,
-													  int leftHashKeyItem,
-													  int rightHashKeyItem,
-													  GeneratedMethod joinClause,
-													  int resultSetNUmber,
-													  GeneratedMethod emptyRowFun,
-													  boolean wasRightOuterJoin,
-													  boolean oneRowRightSide,
-													  boolean noExistsRightSide,
-													  boolean rightFromSSQ,
-													  double optimizerEstimatedRowCount,
-													  double optimizerEstimatedCost,
-													  String userSuppliedOptimizerOverrides,
-													  String explainPlan)
+														  String explainPlan)
 			throws StandardException;
 
 	NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
@@ -1708,7 +1528,7 @@ public interface ResultSetFactory {
 												  double optimizerEstimatedCost,
 												  String userSuppliedOptimizerOverrides,
 												  String explainPlan)
-			throws StandardException;
+	throws StandardException;
 
 	NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 													  int leftNumCols,

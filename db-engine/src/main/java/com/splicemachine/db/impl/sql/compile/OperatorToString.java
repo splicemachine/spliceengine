@@ -36,15 +36,18 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
 import org.apache.commons.lang3.mutable.MutableInt;
+
+import java.security.acl.Group;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 import static com.splicemachine.db.iapi.services.io.StoredFormatIds.*;
 import static java.lang.String.format;
-import static com.splicemachine.db.impl.sql.compile.SparkConstantExpression.SpecialValue;
+
 /**
  * Utility to get the string representation of a given operator.
  * <p/>
@@ -55,25 +58,14 @@ public class OperatorToString {
     public boolean      sparkExpression;
     public SparkVersion sparkVersion;
     public MutableInt   relationalOpDepth;
-    public SparkExpressionNode sparkExpressionTree;
-    public boolean buildExpressionTree;
-    public int leftResultSetNumber;
-    public int rightResultSetNumber;
 
     private static final SparkVersion spark_2_3_0 = new SimpleSparkVersion("2.3.0");
 
     OperatorToString(boolean    sparkExpression,
-                     MutableInt relationalOpDepth,
-                     boolean    buildExpressionTree,
-                     int        leftResultSetNumber,
-                     int        rightResultSetNumber) {
+                     MutableInt relationalOpDepth) {
         this.sparkExpression   = sparkExpression;
         this.sparkVersion      = getSparkVersion();
         this.relationalOpDepth = relationalOpDepth;
-        this.sparkExpressionTree = null;
-        this.buildExpressionTree = buildExpressionTree;
-        this.leftResultSetNumber = leftResultSetNumber;
-        this.rightResultSetNumber = rightResultSetNumber;
     }
 
     /**
@@ -137,8 +129,7 @@ public class OperatorToString {
         try {
             OperatorToString vars =
                 new OperatorToString(false,
-                                     new MutableInt(0),
-                                     false, 0, 0);
+                                     new MutableInt(0));
             return opToString2(operand, vars);
         }
         catch(StandardException e) {
@@ -160,42 +151,8 @@ public class OperatorToString {
         try {
             OperatorToString vars =
                 new OperatorToString(true,
-                                     new MutableInt(0),
-                                     false, 0, 0);
+                                     new MutableInt(0));
             retval = opToString2(operand, vars);
-
-        }
-        catch (StandardException e) {
-            if (e.getSQLState() != SQLState.LANG_DOES_NOT_IMPLEMENT)
-                throw e;
-        }
-        return retval;
-    }
-
-    /**
-     * Return a tree representation of a spark SQL expression given a Derby SQL expression,
-     * with column references indicating column names in the source DataFrame, and whether
-     * the source DataFrame is the left operation or the right operation (e.g. of a join).
-     */
-    public static SparkExpressionNode
-    opToSparkExpressionTree(ValueNode operand,
-                            int leftResultSetNumber,
-                            int rightResultSetNumber) throws StandardException {
-        SparkExpressionNode retval = null;
-
-        // Do not throw any errors encountered.  An error condition
-        // just means we can't generate a valid spark representation
-        // of the SQL expression to apply to a native spark Dataset,
-        // so should not be considered a fatal error.
-        try {
-            OperatorToString vars =
-                new OperatorToString(true,
-                                     new MutableInt(0),
-                                     true,
-                                     leftResultSetNumber,
-                                     rightResultSetNumber);
-            opToString2(operand, vars);
-            retval = vars.sparkExpressionTree;
 
         }
         catch (StandardException e) {
@@ -282,14 +239,9 @@ public class OperatorToString {
                                       OperatorToString vars) throws StandardException {
         if(operand==null){
             return "";
-        } else if (operand instanceof UntypedNullConstantNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
+        } else if (operand instanceof UntypedNullConstantNode)
             return " null ";
-        }
         else if(operand instanceof UnaryOperatorNode){
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             UnaryOperatorNode uop=(UnaryOperatorNode)operand;
             String operatorString = uop.getOperatorString();
             if (vars.sparkExpression) {
@@ -354,28 +306,13 @@ public class OperatorToString {
             vars.relationalOpDepth.increment();
             BinaryRelationalOperatorNode bron=(BinaryRelationalOperatorNode)operand;
             try {
-                SparkExpressionNode leftExpr, rightExpr, resultExpr = null;
                 InListOperatorNode inListOp = bron.getInListOp();
-
-                if (inListOp != null) {
-                    if (vars.buildExpressionTree)
-                        throwNotImplementedError();
-                    return opToString2(inListOp, vars);
-                }
-                String leftOperandString = opToString2(bron.getLeftOperand(), vars);
-                leftExpr = vars.sparkExpressionTree;
-                String rightOperandString = opToString2(bron.getRightOperand(), vars);
-                rightExpr = vars.sparkExpressionTree;
+                if (inListOp != null) return opToString2(inListOp, vars);
+    
                 String opString =
-                        format("(%s %s %s)", leftOperandString,
-                               bron.getOperatorString(), rightOperandString);
+                        format("(%s %s %s)", opToString2(bron.getLeftOperand(), vars),
+                               bron.getOperatorString(), opToString2(bron.getRightOperand(), vars));
                 vars.relationalOpDepth.decrement();
-                if (vars.buildExpressionTree) {
-                    resultExpr =
-                        new SparkRelationalOperator(bron.getOperator(),
-                                                    leftExpr, rightExpr);
-                    vars.sparkExpressionTree = resultExpr;
-                }
                 return opString;
             }
             catch (StandardException e) {
@@ -385,8 +322,6 @@ public class OperatorToString {
                     return "PARSE_ERROR_WHILE_CONVERTING_OPERATOR";
             }
         }else if(operand instanceof BinaryListOperatorNode){
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             vars.relationalOpDepth.increment();
             boolean isBetween = operand instanceof BetweenOperatorNode;
             BinaryListOperatorNode blon = (BinaryListOperatorNode)operand;
@@ -424,29 +359,17 @@ public class OperatorToString {
             vars.relationalOpDepth.decrement();
             return retval;
         }else if (operand instanceof BinaryOperatorNode) {
-
             BinaryOperatorNode bop = (BinaryOperatorNode) operand;
             ValueNode leftOperand = bop.getLeftOperand();
             ValueNode rightOperand = bop.getRightOperand();
-            SparkExpressionNode leftExpr = null, rightExpr = null, resultExpr = null;
             String leftOperandString = opToString2(leftOperand, vars);
-            if (vars.buildExpressionTree)
-                leftExpr = vars.sparkExpressionTree;
             String rightOperandString = opToString2(rightOperand, vars);
-            if (vars.buildExpressionTree)
-                rightExpr = vars.sparkExpressionTree;
 
             if (vars.sparkExpression) {
-
-                if (operand instanceof ConcatenationOperatorNode) {
-                    if (vars.buildExpressionTree)
-                        throwNotImplementedError();
+                if (operand instanceof ConcatenationOperatorNode)
                     return format("concat(%s, %s) ", opToString2(leftOperand, vars),
-                                                     opToString2(rightOperand, vars));
-                }
+                                                    opToString2(rightOperand, vars));
                 else if (operand instanceof TruncateOperatorNode) {
-                    if (vars.buildExpressionTree)
-                        throwNotImplementedError();
                     if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID) {
                         return format("trunc(%s, %s) ", opToString2(leftOperand, vars),
                                                        opToString2(rightOperand, vars));
@@ -490,26 +413,14 @@ public class OperatorToString {
                     }
                     if (doCast) {
                         if (leftOperand.getTypeServices().getTypeId().typePrecedence() >
-                            rightOperand.getTypeServices().getTypeId().typePrecedence()) {
+                            rightOperand.getTypeServices().getTypeId().typePrecedence())
                             leftOperandString = format("CAST(%s as %s) ",
-                                                       leftOperandString,
-                                                       targetType);
-                            if (vars.buildExpressionTree)
-                                leftExpr = new SparkCastNode(leftExpr, targetType);
-                        }
-                        else {
+                                                        leftOperandString,
+                                                        targetType);
+                        else
                             rightOperandString = format("CAST(%s as %s) ",
                                                          rightOperandString,
                                                          targetType);
-                            if (vars.buildExpressionTree)
-                                rightExpr = new SparkCastNode(rightExpr, targetType);
-                        }
-                    }
-                    if (vars.buildExpressionTree) {
-                        resultExpr =
-                           new SparkArithmeticOperator
-                                (bao.getOperatorString(), leftExpr, rightExpr);
-                        vars.sparkExpressionTree = resultExpr;
                     }
 
                     // Though documented as supported by spark, mod
@@ -524,29 +435,17 @@ public class OperatorToString {
                               getAllowOverflowSensitiveNativeSparkExpressions())
                         throwNotImplementedError();
                     else if (bao.getOperatorString() == "+") {
-                        if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID) {
-                            if (vars.buildExpressionTree)
-                                throwNotImplementedError();
+                        if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)
                             return format("date_add(%s, %s) ", opToString2(leftOperand, vars),
                             opToString2(rightOperand, vars));
-                        }
-                        else if (leftOperand.getTypeId().getTypeFormatId() == TIMESTAMP_TYPE_ID)
-                            throwNotImplementedError();
                     }
                     else if (bao.getOperatorString() == "-") {
-                        if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID) {
-                            if (vars.buildExpressionTree)
-                                throwNotImplementedError();
+                        if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)
                             return format("date_sub(%s, %s) ", opToString2(leftOperand, vars),
                             opToString2(rightOperand, vars));
-                        }
-                        else if (leftOperand.getTypeId().getTypeFormatId() == TIMESTAMP_TYPE_ID)
-                            throwNotImplementedError();
                     }
                 }
                 else if (operand.getClass() == BinaryOperatorNode.class) {
-                    if (vars.buildExpressionTree)
-                        throwNotImplementedError();
                     if (((BinaryOperatorNode) operand).isRepeat()) {
                         return format("%s(%s, %s) ", bop.getOperatorString(),
                           opToString2(bop.getLeftOperand(), vars), opToString2(bop.getRightOperand(), vars));
@@ -554,15 +453,6 @@ public class OperatorToString {
                 }
                 else if (operand instanceof TimestampOperatorNode ||
                          operand instanceof SimpleLocaleStringOperatorNode)
-                    throwNotImplementedError();
-                else if (vars.buildExpressionTree && operand instanceof BinaryLogicalOperatorNode) {
-                    BinaryLogicalOperatorNode blon = (BinaryLogicalOperatorNode) operand;
-                    resultExpr =
-                        SparkLogicalOperator.getNewSparkLogicalOperator
-                            (blon.getOperatorType(), leftExpr, rightExpr);
-                    vars.sparkExpressionTree = resultExpr;
-                }
-                else if (vars.buildExpressionTree)
                     throwNotImplementedError();
             }
 
@@ -582,27 +472,18 @@ public class OperatorToString {
                 // which could hide the overflow.
                 if (!operand.getCompilerContext().getAllowOverflowSensitiveNativeSparkExpressions())
                     throwNotImplementedError();
-
                 expressionString = format("CAST(%s as %s) ",
                                            expressionString,
                                            operand.getTypeServices().toSparkString());
-                if (vars.buildExpressionTree)
-                    vars.sparkExpressionTree =
-                        new SparkCastNode(vars.sparkExpressionTree,
-                                          operand.getTypeServices().toSparkString());
             }
             return expressionString;
         } else if (operand instanceof ArrayOperatorNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             if (vars.sparkExpression)
                 throwNotImplementedError();
             ArrayOperatorNode array = (ArrayOperatorNode) operand;
             ValueNode op = array.operand;
             return format("%s[%d]", op == null ? "" : opToString2(op, vars), array.extractField);
         } else if (operand instanceof TernaryOperatorNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             TernaryOperatorNode top = (TernaryOperatorNode) operand;
             ValueNode rightOp = top.getRightOperand();
             if (vars.sparkExpression) {
@@ -660,8 +541,6 @@ public class OperatorToString {
                           opToString2(top.getLeftOperand(), vars), rightOp == null ? "" : ", " + opToString2(rightOp, vars));
         }
         else if (operand instanceof ArrayConstantNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             vars.relationalOpDepth.increment();
             if (vars.sparkExpression)
                 throwNotImplementedError();;
@@ -679,8 +558,6 @@ public class OperatorToString {
             vars.relationalOpDepth.decrement();
             return builder.toString();
         } else if (operand instanceof ListValueNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             vars.relationalOpDepth.increment();
             if (vars.sparkExpression)
                 throwNotImplementedError();;
@@ -710,20 +587,7 @@ public class OperatorToString {
                 if (!sparkSupportedType(cr.getTypeId().getTypeFormatId(), operand))
                     throwNotImplementedError();
 
-                String columnString = format("c%d", source.getVirtualColumnId()-1);
-                if (vars.buildExpressionTree) {
-                    boolean leftDataFrame;
-                    int rsn =  source.getResultSetNumber();
-                    if (rsn != vars.leftResultSetNumber &&
-                        rsn != vars.rightResultSetNumber)
-                        opToString2(source.getExpression(), vars);
-                    else {
-                        leftDataFrame = (rsn == vars.leftResultSetNumber);
-                        vars.sparkExpressionTree =
-                        new SparkColumnReference(columnString, leftDataFrame);
-                    }
-                }
-                return columnString;
+                return format("c%d ", source.getVirtualColumnId()-1);
             }
         } else if (operand instanceof VirtualColumnNode) {
             VirtualColumnNode vcn = (VirtualColumnNode) operand;
@@ -738,24 +602,9 @@ public class OperatorToString {
                 if (!sparkSupportedType(operand.getTypeId().getTypeFormatId(), operand))
                     throwNotImplementedError();
 
-                String columnString = format("c%d", source.getVirtualColumnId()-1);
-                if (vars.buildExpressionTree) {
-                    boolean leftDataFrame;
-                    int rsn =  source.getResultSetNumber();
-                    if (rsn != vars.leftResultSetNumber &&
-                        rsn != vars.rightResultSetNumber)
-                        opToString2(source.getExpression(), vars);
-                    else {
-                        leftDataFrame = (rsn == vars.leftResultSetNumber);
-                        vars.sparkExpressionTree =
-                        new SparkColumnReference(columnString, leftDataFrame);
-                    }
-                }
-                return columnString;
+                return format("c%d ", source.getVirtualColumnId()-1);
             }
         } else if (operand instanceof SubqueryNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             if (vars.sparkExpression)
                 throwNotImplementedError();
             SubqueryNode subq = (SubqueryNode) operand;
@@ -798,23 +647,6 @@ public class OperatorToString {
                 }
                 else
                     str = cn.getValue().getString();
-
-                if (vars.buildExpressionTree) {
-                    SpecialValue sv = SpecialValue.NONE;
-                    if (dvd == null)
-                        sv = SpecialValue.NULL;
-                    else if (cn instanceof BooleanConstantNode) {
-                        BooleanConstantNode bcn = (BooleanConstantNode) cn;
-                        if (bcn.isBooleanTrue())
-                            sv = SpecialValue.TRUE;
-                        else
-                            sv = SpecialValue.FALSE;
-                    }
-                    vars.sparkExpressionTree =
-                        new SparkConstantExpression(str, sv,
-                                                    cn.getTypeServices().
-                                                       toSparkString());
-                }
                 return str;
             } catch (StandardException se) {
                 if (vars.sparkExpression)
@@ -833,11 +665,8 @@ public class OperatorToString {
                     throwNotImplementedError();
 
                 sb.append(format("CAST(%s ", opToString2(castOperand, vars)));
-                SparkExpressionNode childExpression = vars.sparkExpressionTree;
-                String dataTypeString = null;
-
                 if (typeFormatId == LONGVARCHAR_TYPE_ID)
-                    dataTypeString = "varchar(32670)";
+                    sb.append("AS varchar(32670)) ");
                 else if (isNumericTypeFormatID(typeFormatId) &&
                          typeFormatId != DOUBLE_TYPE_ID      &&
                          !operand.getCompilerContext().
@@ -856,16 +685,7 @@ public class OperatorToString {
                     throwNotImplementedError();
                 }
                 else
-                    dataTypeString = cn.getTypeServices().toSparkString();
-
-                if (vars.buildExpressionTree) {
-                    // Spark doesn't handle casting char to numeric very well.
-                    if (isNumericTypeFormatID(typeFormatId) &&
-                        !isNumericTypeFormatID(castOperand.getTypeId().getTypeFormatId()))
-                        throwNotImplementedError();
-                    vars.sparkExpressionTree = new SparkCastNode(childExpression, dataTypeString);
-                }
-                sb.append(format("AS %s) ", dataTypeString));
+                    sb.append(format("AS %s) ", cn.getTypeServices().toSparkString()));
                 castString = sb.toString();
             }
             else
@@ -874,8 +694,6 @@ public class OperatorToString {
             return castString;
         }
         else if (operand instanceof CoalesceFunctionNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             vars.relationalOpDepth.increment();
             StringBuilder sb = new StringBuilder();
             sb.append("coalesce(");
@@ -892,8 +710,6 @@ public class OperatorToString {
             return sb.toString();
         }
         else if (operand instanceof CurrentDatetimeOperatorNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             CurrentDatetimeOperatorNode cdtOp = (CurrentDatetimeOperatorNode)operand;
             StringBuilder sb = new StringBuilder();
             if (cdtOp.isCurrentDate())
@@ -913,8 +729,6 @@ public class OperatorToString {
             return sb.toString();
         }
         else if (operand instanceof ConditionalNode) {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             vars.relationalOpDepth.increment();
             ConditionalNode cn = (ConditionalNode)operand;
             StringBuilder sb = new StringBuilder();
@@ -933,8 +747,6 @@ public class OperatorToString {
             return sb.toString();
         }
         else {
-            if (vars.buildExpressionTree)
-                throwNotImplementedError();
             if (vars.sparkExpression) {
                 if (operand instanceof JavaToSQLValueNode &&
                 ((JavaToSQLValueNode) operand).isSystemFunction()) {

@@ -126,12 +126,10 @@ public class MergeSortJoinOperation extends JoinOperation {
                                   boolean rightFromSSQ,
                                   double optimizerEstimatedRowCount,
                                   double optimizerEstimatedCost,
-                                  String userSuppliedOptimizerOverrides,
-                                  String sparkExpressionTreeAsString) throws StandardException {
+                                  String userSuppliedOptimizerOverrides) throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
                 activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
-                optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides,
-                sparkExpressionTreeAsString);
+                optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
         SpliceLogUtils.trace(LOG, "instantiate");
         this.leftHashKeyItem = leftHashKeyItem;
         this.rightHashKeyItem = rightHashKeyItem;
@@ -207,9 +205,8 @@ public class MergeSortJoinOperation extends JoinOperation {
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
                 rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<ExecRow> joined;
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK)   &&
-            (restriction == null || hasSparkJoinPredicate()) &&
-            !rightFromSSQ && !containsUnsafeSQLRealComparison()){
+        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) && restriction == null && !rightFromSSQ &&
+            !containsUnsafeSQLRealComparison()){
             if (isOuterJoin)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
             else if (notExistsRightSide)
