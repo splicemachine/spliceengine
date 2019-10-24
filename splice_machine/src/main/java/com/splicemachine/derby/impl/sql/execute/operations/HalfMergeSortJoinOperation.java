@@ -68,13 +68,11 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
                                       boolean rightFromSSQ,
                                       double optimizerEstimatedRowCount,
                                       double optimizerEstimatedCost,
-                                      String userSuppliedOptimizerOverrides,
-                                      String sparkExpressionTreeAsString)
+                                      String userSuppliedOptimizerOverrides)
             throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
                 -1, -1, activation, restriction,
-                resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
-                optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides);
     }
 
     @Override

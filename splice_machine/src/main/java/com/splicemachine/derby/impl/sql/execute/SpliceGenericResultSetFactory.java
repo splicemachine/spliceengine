@@ -280,44 +280,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-        return
-        getNestedLoopLeftOuterJoinResultSet(
-            leftResultSet,
-            leftNumCols,
-            rightResultSet,
-            rightNumCols,
-            joinClause,
-            resultSetNumber,
-            emptyRowFun,
-            wasRightOuterJoin,
-            oneRowRightSide,
-            notExistsRightSide,
-            rightFromSSQ,
-            optimizerEstimatedRowCount,
-            optimizerEstimatedCost,
-            userSuppliedOptimizerOverrides,
-            explainPlan,
-            null);
-    }
-
-    @Override
-    public NoPutResultSet getNestedLoopLeftOuterJoinResultSet(
-            NoPutResultSet leftResultSet,
-            int leftNumCols,
-            NoPutResultSet rightResultSet,
-            int rightNumCols,
-            GeneratedMethod joinClause,
-            int resultSetNumber,
-            GeneratedMethod emptyRowFun,
-            boolean wasRightOuterJoin,
-            boolean oneRowRightSide,
-            boolean notExistsRightSide,
-            boolean rightFromSSQ,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         try{
             SpliceLogUtils.trace(LOG, "getNestedLoopLeftOuterJoinResultSet");
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -333,8 +295,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    userSuppliedOptimizerOverrides,
-                    sparkExpressionTreeAsString);
+                    userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -467,8 +428,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
+            String explainPlan) throws StandardException {
         throw new UnsupportedOperationException("HashLeftOuterJoin operation shouldn't be called");
     }
 
@@ -988,33 +948,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-        return getMergeSortLeftOuterJoinResultSet(
-             leftResultSet, leftNumCols,
-             rightResultSet, rightNumCols,
-             leftHashKeyItem, rightHashKeyItem,
-             joinClause, resultSetNumber,
-             emptyRowFun, wasRightOuterJoin,
-             oneRowRightSide, notExistsRightSide,
-             rightFromSSQ,
-             optimizerEstimatedRowCount,  optimizerEstimatedCost,
-             userSuppliedOptimizerOverrides,
-             explainPlan,
-             null);
-    }
-
-    @Override
-    public NoPutResultSet getMergeSortLeftOuterJoinResultSet(
-            NoPutResultSet leftResultSet, int leftNumCols,
-            NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
-            GeneratedMethod joinClause, int resultSetNumber,
-            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
-            boolean rightFromSSQ,
-            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1030,8 +963,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    userSuppliedOptimizerOverrides,
-                    sparkExpressionTreeAsString);
+                    userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1050,8 +982,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             boolean rightFromSSQ,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
+            String explainPlan) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1067,8 +998,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    userSuppliedOptimizerOverrides,
-                    sparkExpressionTreeAsString);
+                    userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1090,38 +1020,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-
-        return getMergeLeftOuterJoinResultSet(
-             leftResultSet,  leftNumCols,
-             rightResultSet,  rightNumCols,
-             leftHashKeyItem,  rightHashKeyItem,
-             rightHashKeyToBaseTableMapItem,
-             rightHashKeySortOrderItem,
-             joinClause,  resultSetNumber,
-             emptyRowFun,  wasRightOuterJoin,
-             oneRowRightSide,  notExistsRightSide,
-             rightFromSSQ,
-             optimizerEstimatedRowCount,  optimizerEstimatedCost,
-             userSuppliedOptimizerOverrides,
-             explainPlan,
-             null);
-    }
-
-    @Override
-    public NoPutResultSet getMergeLeftOuterJoinResultSet(
-            NoPutResultSet leftResultSet, int leftNumCols,
-            NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
-            int rightHashKeyToBaseTableMapItem,
-            int rightHashKeySortOrderItem,
-            GeneratedMethod joinClause, int resultSetNumber,
-            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
-            boolean rightFromSSQ,
-            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1139,8 +1037,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    userSuppliedOptimizerOverrides,
-                    sparkExpressionTreeAsString);
+                    userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1160,34 +1057,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-
-        return getBroadcastLeftOuterJoinResultSet(
-             leftResultSet,  leftNumCols,
-             rightResultSet,  rightNumCols,
-             leftHashKeyItem,  rightHashKeyItem,
-             joinClause,  resultSetNumber,
-             emptyRowFun,  wasRightOuterJoin,
-             oneRowRightSide,  notExistsRightSide,
-             rightFromSSQ,
-             optimizerEstimatedRowCount,  optimizerEstimatedCost,
-             userSuppliedOptimizerOverrides,
-             explainPlan,
-             null);
-    }
-
-    @Override
-    public NoPutResultSet getBroadcastLeftOuterJoinResultSet(
-            NoPutResultSet leftResultSet, int leftNumCols,
-            NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
-            GeneratedMethod joinClause, int resultSetNumber,
-            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
-            boolean oneRowRightSide, boolean notExistsRightSide,
-            boolean rightFromSSQ,
-            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1203,8 +1072,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     rightFromSSQ,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
-                    userSuppliedOptimizerOverrides,
-                    sparkExpressionTreeAsString);
+                    userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1222,29 +1090,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-        return getNestedLoopJoinResultSet(
-             leftResultSet,  leftNumCols,
-             rightResultSet,  rightNumCols,
-             joinClause,  resultSetNumber,
-             oneRowRightSide,  notExistsRightSide,
-             rightFromSSQ,
-             optimizerEstimatedRowCount,  optimizerEstimatedCost,
-             userSuppliedOptimizerOverrides,
-             explainPlan,
-             null);
-    }
-
-    @Override
-    public NoPutResultSet getNestedLoopJoinResultSet(
-            NoPutResultSet leftResultSet, int leftNumCols,
-            NoPutResultSet rightResultSet, int rightNumCols,
-            GeneratedMethod joinClause, int resultSetNumber,
-            boolean oneRowRightSide, boolean notExistsRightSide,
-            boolean rightFromSSQ,
-            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         SpliceLogUtils.trace(LOG, "getNestedLoopJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1252,7 +1097,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             JoinOperation op = new NestedLoopJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1271,31 +1116,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-        return getCrossJoinResultSet(
-             leftResultSet,  leftNumCols,
-             rightResultSet,  rightNumCols,
-             leftHashKeyItem,  rightHashKeyItem,
-             joinClause,  resultSetNumber,
-             oneRowRightSide,  notExistsRightSide,
-             rightFromSSQ,
-             optimizerEstimatedRowCount,  optimizerEstimatedCost,
-             userSuppliedOptimizerOverrides,
-             explainPlan,
-             null);
-    }
-
-    @Override
-    public NoPutResultSet getCrossJoinResultSet(
-            NoPutResultSet leftResultSet, int leftNumCols,
-            NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
-            GeneratedMethod joinClause, int resultSetNumber,
-            boolean oneRowRightSide, boolean notExistsRightSide,
-            boolean rightFromSSQ,
-            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         SpliceLogUtils.trace(LOG, "getCrossJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1305,13 +1125,14 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     leftResultSet.getActivation(),
                     joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
     }
+
 
     @Override
     public NoPutResultSet getMergeSortJoinResultSet(
@@ -1323,29 +1144,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-        return getMergeSortJoinResultSet(
-             leftResultSet,  leftNumCols,
-             rightResultSet,  rightNumCols,
-             leftHashKeyItem,  rightHashKeyItem,  joinClause,
-             resultSetNumber,  oneRowRightSide,
-             notExistsRightSide,  rightFromSSQ,  optimizerEstimatedRowCount,
-             optimizerEstimatedCost,
-             userSuppliedOptimizerOverrides,
-             explainPlan,
-             null);
-    }
-
-    @Override
-    public NoPutResultSet getMergeSortJoinResultSet(
-            NoPutResultSet leftResultSet, int leftNumCols,
-            NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
-            int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1353,7 +1151,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             JoinOperation op = new MergeSortJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1370,8 +1168,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
+            String explainPlan) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1379,7 +1176,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             JoinOperation op = new HalfMergeSortJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1400,35 +1197,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-        return getMergeJoinResultSet(
-             leftResultSet,  leftNumCols,
-             rightResultSet,  rightNumCols,
-             leftHashKeyItem,  rightHashKeyItem,
-             rightHashKeyToBaseTableMapItem,
-             rightHashKeySortOrderItem,
-             joinClause,
-             resultSetNumber,  oneRowRightSide,
-             notExistsRightSide,  rightFromSSQ,  optimizerEstimatedRowCount,
-             optimizerEstimatedCost,
-             userSuppliedOptimizerOverrides,
-             explainPlan,
-             null);
-    }
-
-    @Override
-    public NoPutResultSet getMergeJoinResultSet(
-            NoPutResultSet leftResultSet, int leftNumCols,
-            NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem,
-            int rightHashKeyToBaseTableMapItem,
-            int rightHashKeySortOrderItem,
-            GeneratedMethod joinClause,
-            int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1437,7 +1205,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
                     rightHashKeyToBaseTableMapItem, rightHashKeySortOrderItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1455,30 +1223,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException {
-
-        return getBroadcastJoinResultSet(
-             leftResultSet,  leftNumCols,
-             rightResultSet,  rightNumCols,
-             leftHashKeyItem,  rightHashKeyItem,  joinClause,
-             resultSetNumber,  oneRowRightSide,
-             notExistsRightSide,  rightFromSSQ,  optimizerEstimatedRowCount,
-             optimizerEstimatedCost,
-             userSuppliedOptimizerOverrides,
-             explainPlan,
-             null);
-    }
-
-    @Override
-    public NoPutResultSet getBroadcastJoinResultSet(
-            NoPutResultSet leftResultSet, int leftNumCols,
-            NoPutResultSet rightResultSet, int rightNumCols,
-            int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
-            int resultSetNumber, boolean oneRowRightSide,
-            boolean notExistsRightSide, boolean rightFromSSQ, double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String userSuppliedOptimizerOverrides,
-            String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
         SpliceLogUtils.trace(LOG, "getBroadcastJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1486,7 +1230,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             JoinOperation op = new BroadcastJoinOperation(left.getOperation(), leftNumCols,
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){

@@ -80,7 +80,6 @@ public class BinaryOperatorNode extends OperatorNode
 	public final static int AND	= 12;
 	public final static int OR	= 13;
 	public final static int LIKE	= 14;
-	public final static int MOD	= 15;
 
 	ValueNode	leftOperand;
 	ValueNode	rightOperand;
@@ -1060,7 +1059,5 @@ public class BinaryOperatorNode extends OperatorNode
 	}
 
 	public boolean isRepeat () { return this.operatorType == REPEAT; }
-
-	public int getOperatorType() { return operatorType; }
 }
 

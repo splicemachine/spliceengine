@@ -134,12 +134,11 @@ public class BroadcastJoinOperation extends JoinOperation{
                                   boolean rightFromSSQ,
                                   double optimizerEstimatedRowCount,
                                   double optimizerEstimatedCost,
-                                  String userSuppliedOptimizerOverrides,
-                                  String sparkExpressionTreeAsString) throws
+                                  String userSuppliedOptimizerOverrides) throws
             StandardException{
         super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,
                 activation,restriction,resultSetNumber,oneRowRightSide,notExistsRightSide, rightFromSSQ,
-                optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides);
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
         this.sequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
@@ -222,7 +221,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         DataSet<ExecRow> result;
         boolean usesNativeSparkDataSet =
            (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
-             ((restriction == null || hasSparkJoinPredicate()) || (!isOuterJoin && !notExistsRightSide && !isOneRowRightSide())) &&
+             (restriction ==null || (!isOuterJoin && !notExistsRightSide && !isOneRowRightSide())) &&
               !containsUnsafeSQLRealComparison());
         if (usesNativeSparkDataSet)
         {
@@ -241,7 +240,7 @@ public class BroadcastJoinOperation extends JoinOperation{
                 }
                 // Adding a filter in this manner disables native spark execution,
                 // so only do it if required.
-                if (restriction != null && sparkJoinPredicate == null) {
+                if (restriction != null) {
                     result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
                     usesNativeSparkDataSet = false;
                 }
