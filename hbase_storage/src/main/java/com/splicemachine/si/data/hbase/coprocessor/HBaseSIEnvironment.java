@@ -18,8 +18,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import com.splicemachine.access.api.FilesystemAdmin;
-import com.splicemachine.access.api.SnowflakeFactory;
+import com.splicemachine.access.api.*;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HFilesystemAdmin;
 import com.splicemachine.access.hbase.HSnowflakeFactory;
@@ -34,9 +33,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.data.OperationFactory;
@@ -74,6 +70,7 @@ public class HBaseSIEnvironment implements SIEnvironment{
 
     private final TimestampSource timestampSource;
     private final PartitionFactory<TableName> partitionFactory;
+    private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnSupplier ignoreTxnSupplier;
@@ -111,21 +108,22 @@ public class HBaseSIEnvironment implements SIEnvironment{
     public HBaseSIEnvironment(TimestampSource timeSource,Clock clock) throws IOException{
         ByteComparisons.setComparator(HBaseComparator.INSTANCE);
         this.config=HConfiguration.getConfiguration();
-        this.timestampSource =timeSource;
+        this.timestampSource = timeSource;
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
-        this.partitionFactory =TableFactoryService.loadTableFactory(clock,this.config,partitionCache);
+        this.partitionFactory = TableFactoryService.loadTableFactory(clock,this.config,partitionCache);
+        this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
         int completedTxnCacheSize = config.getCompletedTxnCacheSize();
         int completedTxnConcurrency = config.getCompletedTxnConcurrency();
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
-        this.opFactory =HOperationFactory.INSTANCE;
+        this.opFactory = HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.ignoreTxnSupplier = new IgnoreTxnSupplier(partitionFactory, txnOpFactory);
         this.clock = clock;
         this.snowflakeFactory = new HSnowflakeFactory();
-        this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
+        this.fileSystem = new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
 
         this.filesystemAdmin = new HFilesystemAdmin(HBaseConnectionFactory.getInstance(config).getConnection().getAdmin());
         this.keepAlive = new QueuedKeepAliveScheduler(config.getTransactionKeepAliveInterval(),
@@ -143,19 +141,20 @@ public class HBaseSIEnvironment implements SIEnvironment{
         ByteComparisons.setComparator(HBaseComparator.INSTANCE);
         this.config=HConfiguration.getConfiguration();
 
-        this.timestampSource =new ZkTimestampSource(config,rzk);
+        this.timestampSource = new ZkTimestampSource(config,rzk);
         this.partitionCache = PartitionCacheService.loadPartitionCache(config);
-        this.partitionFactory =TableFactoryService.loadTableFactory(clock, this.config,partitionCache);
+        this.partitionFactory = TableFactoryService.loadTableFactory(clock, this.config,partitionCache);
+        this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
         int completedTxnCacheSize = config.getCompletedTxnCacheSize();
         int completedTxnConcurrency = config.getCompletedTxnConcurrency();
         this.txnSupplier = new CompletedTxnCacheSupplier(txnStore,completedTxnCacheSize,completedTxnConcurrency);
         this.txnStore.setCache(txnSupplier);
-        this.opFactory =HOperationFactory.INSTANCE;
+        this.opFactory = HOperationFactory.INSTANCE;
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory(),opFactory);
         this.clock = clock;
-        this.fileSystem =new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
+        this.fileSystem = new HNIOFileSystem(FileSystem.get((Configuration) config.getConfigSource().unwrapDelegate()), exceptionFactory());
         this.snowflakeFactory = new HSnowflakeFactory();
         this.clusterHealthFactory = new HClusterHealthFactory(rzk);
         this.ignoreTxnSupplier = new IgnoreTxnSupplier(partitionFactory, txnOpFactory);
@@ -176,6 +175,11 @@ public class HBaseSIEnvironment implements SIEnvironment{
     @Override
     public ExceptionFactory exceptionFactory(){
         return HExceptionFactory.INSTANCE;
+    }
+
+    @Override
+    public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
+        return oldestActiveTransactionTaskFactory;
     }
 
     @Override
