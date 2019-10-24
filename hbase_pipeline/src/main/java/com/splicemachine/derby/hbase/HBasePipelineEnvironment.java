@@ -17,11 +17,7 @@ package com.splicemachine.derby.hbase;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
-import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.FilesystemAdmin;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.SnowflakeFactory;
+import com.splicemachine.access.api.*;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.hbase.ZkUtils;
@@ -49,6 +45,7 @@ import com.splicemachine.si.api.txn.KeepAliveScheduler;
 import com.splicemachine.si.api.txn.TxnStore;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
+import com.splicemachine.si.data.hbase.coprocessor.HOldestActiveTransactionTaskFactory;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
@@ -66,6 +63,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
 
     private final SIEnvironment delegate;
     private final PipelineExceptionFactory pipelineExceptionFactory;
+    private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final ContextFactoryDriver contextFactoryLoader;
     private final SConfiguration pipelineConfiguration;
     private final PipelineCompressor compressor;
@@ -94,6 +92,7 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
                                      PipelineExceptionFactory pef){
         this.delegate = env;
         this.pipelineExceptionFactory = pef;
+        this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
         this.contextFactoryLoader = ctxFactoryLoader;
         this.pipelineConfiguration = env.configuration();
         this.pipelineFactory = new AvailablePipelineFactory();
@@ -119,6 +118,11 @@ public class HBasePipelineEnvironment implements PipelineEnvironment{
 
     @Override public PartitionFactory tableFactory(){ return delegate.tableFactory(); }
     @Override public ExceptionFactory exceptionFactory(){ return delegate.exceptionFactory(); }
+
+    @Override
+    public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
+        return oldestActiveTransactionTaskFactory;
+    }
 
     @Override public TxnStore txnStore(){ return delegate.txnStore(); }
     @Override public OperationStatusFactory statusFactory(){ return delegate.statusFactory(); }
