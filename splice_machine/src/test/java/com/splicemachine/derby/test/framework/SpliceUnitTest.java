@@ -377,8 +377,10 @@ public class SpliceUnitTest {
         }
         catch (Exception e) {
             boolean found = expectedErrors.contains(e.getMessage());
-            if (!found)
+            if (!found) {
+                e.printStackTrace();
                 fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
+            }
         }
     }
 
