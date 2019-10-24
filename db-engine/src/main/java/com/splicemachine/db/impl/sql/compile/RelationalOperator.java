@@ -56,6 +56,7 @@ public interface RelationalOperator
 	int LESS_EQUALS_RELOP = 6;
 	int IS_NULL_RELOP = 7;
 	int IS_NOT_NULL_RELOP = 8;
+	int ILLEGAL_UNDEFINED_RELOP = 9;
 
 	/**
 	 * Check whether this RelationalOperator is a comparison of the given
