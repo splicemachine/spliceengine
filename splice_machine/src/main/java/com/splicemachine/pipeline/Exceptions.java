@@ -17,6 +17,7 @@ package com.splicemachine.pipeline;
 import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkException;
 import org.spark_project.guava.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -25,6 +26,8 @@ import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Scott Fines
@@ -33,6 +36,8 @@ import java.sql.SQLException;
 public class Exceptions {
 
     private static final Logger LOG = Logger.getLogger(Exceptions.class);
+    private static Pattern sparkExceptionPattern =
+            Pattern.compile("\nCaused by: ERROR ([0-9|a-z|A-Z]+): (.*)\n");
 
     private Exceptions(){} //can't make me
 
@@ -61,6 +66,20 @@ public class Exceptions {
                 return StandardException.newPreLocalizedException(state, next, messageID);
             } else if (rootCause instanceof SQLException) {
                 return StandardException.plainWrapException(rootCause);
+            } else if (rootCause instanceof SparkException) {
+                SparkException sparkException = (SparkException) rootCause;
+                String message = sparkException.getMessage();
+                Matcher matcher = sparkExceptionPattern.matcher(message);
+                try {
+                    String sqlState = matcher.group(0);
+                    String errorMsg = matcher.group(1);
+                    StandardException exception = new StandardException();
+                    exception.setSqlState(sqlState);
+                    exception.setTextMessage(errorMsg);
+                    exception.initCause(rootCause);
+                    return exception;
+                } catch (IllegalStateException ignored) {
+                }
             }
             if (pef != null) {
                 e = pef.processPipelineException(rootCause);
