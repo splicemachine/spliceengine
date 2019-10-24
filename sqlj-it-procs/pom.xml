@@ -49,7 +49,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>spliceengine-parent</artifactId>
-        <version>3.0.0.1933</version>
+        <version>3.0.0.1934-SNAPSHOT</version>
     </parent>
     <build>
         <plugins>
