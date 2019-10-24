@@ -88,6 +88,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH_RUNNING_OPERATION;
@@ -752,27 +755,27 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(e);
         }
     }
-    
-    public static void VACUUM() throws SQLException{
-        List<HostAndPort> servers;
-        try {
-            servers = EngineDriver.driver().getServiceDiscovery().listServers();
-        } catch (IOException e) {
-            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
-        }
 
+    public static void VACUUM() throws SQLException{
         long oldestActiveTransaction = Long.MAX_VALUE;
-        List<ExecRow> rows = new ArrayList<>();
-        for (HostAndPort server : servers) {
-            try (Connection connection = RemoteUser.getConnection(server.toString())) {
-                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_OLDEST_ACTIVE_TRANSACTION()")) {
-                    if (rs.next()) {
-                        long localOldestActive = rs.getLong(1);
-                        if (!rs.wasNull() && localOldestActive < oldestActiveTransaction)
-                            oldestActiveTransaction = localOldestActive;
-                    }
-                }
+        try {
+            PartitionAdmin pa = SIDriver.driver().getTableFactory().getAdmin();
+            ExecutorService executorService = SIDriver.driver().getExecutorService();
+            Collection<PartitionServer> servers = pa.allServers();
+
+            List<Future<Long>> futures = Lists.newArrayList();
+            for (PartitionServer server : servers) {
+                GetOldestActiveTransactionTask task = SIDriver.driver().getOldestActiveTransactionTaskFactory().get(
+                        server.getHostname(), server.getPort(), server.getStartupTimestamp());
+                futures.add(executorService.submit(task));
             }
+            for (Future<Long> future : futures) {
+                long localOldestActive = future.get();
+                if (localOldestActive < oldestActiveTransaction)
+                    oldestActiveTransaction = localOldestActive;
+            }
+        } catch (IOException | InterruptedException | ExecutionException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
 
         Vacuum vacuum=new Vacuum(getDefaultConn());

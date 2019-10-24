@@ -35,6 +35,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.hbase.*;
+import com.splicemachine.si.data.hbase.coprocessor.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HConstants;
@@ -57,7 +58,8 @@ class SpliceTestPlatformConfig {
 
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
             RegionServerLifecycleObserver.class,
-            BlockingProbeEndpoint.class
+            BlockingProbeEndpoint.class,
+            RegionServerEndpoint.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
@@ -67,7 +69,7 @@ class SpliceTestPlatformConfig {
             RegionSizeEndpoint.class,
             TxnLifecycleEndpoint.class,
             SIObserver.class,
-            BackupEndpointObserver.class ,
+            BackupEndpointObserver.class,
             TokenProvider.class
     );
 

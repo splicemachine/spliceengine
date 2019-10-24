@@ -45,9 +45,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Created by jyuan on 2/18/16.
- */
 public class BackupEndpointObserver extends BackupBaseRegionObserver implements CoprocessorService,Coprocessor {
     private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
 
