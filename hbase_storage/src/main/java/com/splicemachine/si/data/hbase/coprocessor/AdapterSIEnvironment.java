@@ -16,11 +16,7 @@
 package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.FilesystemAdmin;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.SnowflakeFactory;
+import com.splicemachine.access.api.*;
 import com.splicemachine.access.hbase.AdapterTableFactory;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HFilesystemAdmin;
@@ -77,6 +73,7 @@ public class AdapterSIEnvironment implements SIEnvironment{
 
     private final TimestampSource timestampSource;
     private final PartitionFactory<TableName> partitionFactory;
+    private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final TxnStore txnStore;
     private final TxnSupplier txnSupplier;
     private final IgnoreTxnSupplier ignoreTxnSupplier;
@@ -118,6 +115,7 @@ public class AdapterSIEnvironment implements SIEnvironment{
         this.partitionFactory = new AdapterTableFactory(connectionPool);
         this.partitionFactory.initialize(clock, this.config, partitionCache);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
+        this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
         int completedTxnCacheSize = config.getCompletedTxnCacheSize();
         int completedTxnConcurrency = config.getCompletedTxnConcurrency();
@@ -149,6 +147,7 @@ public class AdapterSIEnvironment implements SIEnvironment{
         this.partitionFactory = new AdapterTableFactory(connectionPool);
         this.partitionFactory.initialize(clock, this.config, partitionCache);
         TxnNetworkLayerFactory txnNetworkLayerFactory= TableFactoryService.loadTxnNetworkLayer(this.config);
+        this.oldestActiveTransactionTaskFactory = new HOldestActiveTransactionTaskFactory();
         this.txnStore = new CoprocessorTxnStore(txnNetworkLayerFactory,timestampSource,null);
         int completedTxnCacheSize = config.getCompletedTxnCacheSize();
         int completedTxnConcurrency = config.getCompletedTxnConcurrency();
@@ -176,6 +175,11 @@ public class AdapterSIEnvironment implements SIEnvironment{
     @Override
     public ExceptionFactory exceptionFactory(){
         return HExceptionFactory.INSTANCE;
+    }
+
+    @Override
+    public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
+        return oldestActiveTransactionTaskFactory;
     }
 
     @Override

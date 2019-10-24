@@ -18,11 +18,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.FileSystems;
 
-import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.FilesystemAdmin;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.SnowflakeFactory;
+import com.splicemachine.access.api.*;
 import com.splicemachine.access.configuration.ConfigurationBuilder;
 import com.splicemachine.access.configuration.HConfigurationDefaultsList;
 import com.splicemachine.concurrent.Clock;
@@ -59,6 +55,7 @@ public class MemSIEnvironment implements SIEnvironment{
     private final TimestampSource tsSource = new MemTimestampSource();
     private final TxnStore txnStore;
     private final PartitionFactory tableFactory;
+    private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final DataFilterFactory filterFactory = MFilterFactory.INSTANCE;
     private final SnowflakeFactory snowflakeFactory = MSnowflakeFactory.INSTANCE;
     private final OperationStatusFactory operationStatusFactory =MOpStatusFactory.INSTANCE;
@@ -80,6 +77,12 @@ public class MemSIEnvironment implements SIEnvironment{
         this.txnOpFactory = new SimpleTxnOperationFactory(exceptionFactory,opFactory);
         this.kaScheduler = new ManualKeepAliveScheduler(txnStore);
         this.clock = clock;
+        this.oldestActiveTransactionTaskFactory = new OldestActiveTransactionTaskFactory() {
+            @Override
+            public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
+                throw new UnsupportedOperationException("Operation not supported in Mem profile");
+            }
+        };
     }
 
     @Override
@@ -130,6 +133,11 @@ public class MemSIEnvironment implements SIEnvironment{
     @Override
     public TxnOperationFactory operationFactory(){
         return txnOpFactory;
+    }
+
+    @Override
+    public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
+        return oldestActiveTransactionTaskFactory;
     }
 
     @Override
