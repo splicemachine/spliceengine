@@ -21,12 +21,18 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLReal;
+import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.catalyst.parser.ParserInterface;
 import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
@@ -106,6 +112,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         public boolean wasRightOuterJoin = false;
         public boolean isOuterJoin = false;
 		private Restriction mergeRestriction;
+		protected SparkExpressionNode sparkJoinPredicate = null;
+		protected String sparkExpressionTreeAsString = null;
 
     public JoinOperation() {
 				super();
@@ -123,7 +131,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 							                     boolean rightFromSSQ,
 												 double optimizerEstimatedRowCount,
 												 double optimizerEstimatedCost,
-												 String userSuppliedOptimizerOverrides) throws StandardException {
+												 String userSuppliedOptimizerOverrides,
+				                                                                 String sparkExpressionTreeAsString) throws StandardException {
 				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.leftNumCols = leftNumCols;
 				this.rightNumCols = rightNumCols;
@@ -135,6 +144,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				this.leftResultSet = leftResultSet;
 				this.leftResultSetNumber = leftResultSet.resultSetNumber();
 				this.rightResultSet = rightResultSet;
+				this.sparkExpressionTreeAsString = sparkExpressionTreeAsString;
 		}
 
 		@Override
@@ -166,6 +176,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						rightRow = (ExecRow)in.readObject();
                         mergedRowTemplate = (ExecRow)in.readObject();
 				}
+				if (in.readBoolean()) {
+					sparkExpressionTreeAsString = in.readUTF();
+				}
+				else
+					sparkExpressionTreeAsString = null;
 		}
 
 		@Override
@@ -194,6 +209,12 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						out.writeObject(rightRow);
                         out.writeObject(mergedRowTemplate);
 				}
+				boolean sparkExpressionPresent = (sparkExpressionTreeAsString != null &&
+				                                  sparkExpressionTreeAsString.length() != 0);
+
+				out.writeBoolean(sparkExpressionPresent);
+				if (sparkExpressionPresent)
+				    out.writeUTF(sparkExpressionTreeAsString);
 		}
 		@Override
 		public List<SpliceOperation> getSubOperations() {
@@ -391,5 +412,22 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 	public ExecRow getLeftRow() { return leftRow; }
 	public ExecRow getRightRow() { return rightRow; }
+
+	public boolean hasSparkJoinPredicate() {
+    	    return (sparkJoinPredicate != null ||
+	            (sparkExpressionTreeAsString != null &&
+	             sparkExpressionTreeAsString.length() > 0));
+	}
+	public SparkExpressionNode getSparkJoinPredicate() {
+    	    if (sparkJoinPredicate != null)
+    	        return sparkJoinPredicate;
+    	    else {
+    	    	if (hasSparkJoinPredicate())
+		    sparkJoinPredicate =
+		       (SparkExpressionNode) SerializationUtils.
+		                          deserialize(Base64.decodeBase64(sparkExpressionTreeAsString));
+		return sparkJoinPredicate;
+	    }
+        }
 
 }
