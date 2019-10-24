@@ -239,8 +239,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
             Partition clientPartition;
             if (SpliceClient.isClient() && validToken()) {
             	scan.setAttribute(SIConstants.TOKEN_ACL_NAME, token);
-				ClientPartition delegate = new ClientPartition(instance.getConnection(), htable.getName(), htable, clock, driver.getPartitionInfoCache());
-				clientPartition = new AdapterPartition(delegate, instance.getConnection(), SpliceClient.getConnectionPool(debugConnections, maxConnections),htable.getName(), driver.getPartitionInfoCache());
+		ClientPartition delegate = new ClientPartition(instance.getConnection(), htable.getName(), htable, clock, driver.getPartitionInfoCache());
+		clientPartition = new AdapterPartition(delegate, instance.getConnection(), SpliceClient.getConnectionPool(debugConnections, maxConnections),htable.getName(), driver.getPartitionInfoCache());
 			} else {
             	clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
 			}
