@@ -595,6 +595,31 @@ public class SubqueryNode extends ValueNode{
             }
         }
 
+        if ((isEXISTS() || isNOT_EXISTS()) && !hasCorrelatedCRs()) {
+            doNotFlatten = true;
+
+            // add limit 1 clause or overwrite the original fetchFirst with limit 1
+            if (!(resultSet instanceof RowResultSetNode)) {
+                ValueNode fetchFirst = (NumericConstantNode) getNodeFactory().getNode(
+                        C_NodeTypes.INT_CONSTANT_NODE,
+                        new Integer(1),
+                        getContextManager());
+                this.fetchFirst = fetchFirst;
+            }
+
+            // convert to an expression subquery and generate isNull/isNotNull predicate
+            topNode = genIsNullTree();
+            if (isEXISTS())
+                topNode = ((IsNullNode)topNode).getNegation(topNode);
+            subqueryType=EXPRESSION_SUBQUERY;
+
+            //reset orderby as it is not useful
+            orderByList = null;
+            resultSet.pushOffsetFetchFirst(offset,fetchFirst,hasJDBClimitClause);
+            isInvariant();
+            return topNode;
+        }
+
 		/* NOTE: Flattening occurs before the pushing of
 		 * the predicate, since the pushing will add a node
 		 * above the SubqueryNode.
