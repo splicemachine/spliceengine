@@ -44,6 +44,7 @@ import com.splicemachine.db.shared.common.reference.AuditEventType;
 import com.splicemachine.utils.StringUtils;
 import org.apache.log4j.Logger;
 
+import java.sql.CallableStatement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -242,14 +243,11 @@ public abstract class StatementPermission {
 							(SQLState.AUTH_INTERNAL_BAD_UUID, getObjectType());
 				}
 
-
 				SchemaDescriptor sd = pso.getSchemaDescriptor();
-
 				if (sd == null) {
 					throw StandardException.newException(
 							SQLState.AUTH_INTERNAL_BAD_UUID, "SCHEMA");
 				}
-
 
 				throw StandardException.newException(
 						(forGrant
@@ -262,16 +260,22 @@ public abstract class StatementPermission {
 						pso.getName());
 			}
 			catch(StandardException se){
-				if (AUDITLOG.isInfoEnabled() && privilegeType.equalsIgnoreCase("EXECUTE")){
-					se.toString();
+				if (AUDITLOG.isInfoEnabled()
+						&& privilegeType.equalsIgnoreCase("EXECUTE")
+						&& (!se.getMessageId().equals(SQLState.AUTH_INTERNAL_BAD_UUID))){
+
 					String userid = lcc.getCurrentUserId(activation);
 					boolean status = false;
 					String ip = lcc.getClientIPAddress();
 					String statement = lcc.getStatementContext().getStatementText();
+					String procedure = pso.getName();
+					String schema = pso.getSchemaDescriptor().getSchemaName();
 
 					// Check whether the procedure in the audit procedure list
-					for (AuditEventType t : AuditEventType.values()) {
-						if (statement.toUpperCase().indexOf(t.getProcedure())>=0) {
+					for (AuditEventType t : AuditEventType.values())
+					{
+						String[] p = t.getProcedure().split("\\.");
+						if (p.length == 2 && schema.equals(p[0]) && procedure.equals(p[1])) {
 							AUDITLOG.info(StringUtils.logSpliceAuditEvent(userid,t.name(),status,ip,statement,se.getMessage()));
 							break;
 						}

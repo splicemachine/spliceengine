@@ -60,11 +60,13 @@ import com.splicemachine.db.iapi.services.context.ContextImpl;
 
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.utils.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Pattern;
 
 /**
  * GenericStatementContext is pushed/popped around a statement prepare and execute
@@ -789,8 +791,8 @@ final class GenericStatementContext
 		if (sb != null) {
 
 			sb.append("Failed Statement is: ");
-
-			sb.append(getStatementText());
+			sb.append(StringUtils.maskMessage(getStatementText(), Pattern.compile(StringUtils.maskPasswordPatternStr,Pattern.CASE_INSENSITIVE),
+					StringUtils.maskString));
 
 			if ((pvs != null) && pvs.getParameterCount() > 0)
 			{
