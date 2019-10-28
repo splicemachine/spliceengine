@@ -15,11 +15,14 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
+import com.google.protobuf.RpcController;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.ipc.PayloadCarryingRpcController;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -109,7 +112,8 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public TxnMessage.Txn getTxn(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-        ServerRpcController controller=new ServerRpcController();
+        SpliceRpcControl controller = new SpliceRpcControl();
+        controller.setPriority(HConstants.HIGH_QOS);
         BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
         service.getTransaction(controller,request,done);
         dealWithError(controller);
@@ -136,9 +140,25 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
 
     /* ***************************************************************************************************************/
     /*private helper methods*/
-    private void dealWithError(ServerRpcController controller) throws IOException{
+    private void dealWithError(RpcController controller) throws IOException{
         if(!controller.failed()) return; //nothing to worry about
-        SpliceLogUtils.error(LOG,controller.getFailedOn());
-        throw controller.getFailedOn();
+        IOException ex;
+        if (controller instanceof ServerRpcController) {
+            ex = ((ServerRpcController)controller).getFailedOn();
+        }
+        else {
+            ex = new IOException(controller.errorText());
+        }
+        SpliceLogUtils.error(LOG, ex);
+        throw ex;
+    }
+
+    class SpliceRpcControl extends PayloadCarryingRpcController {
+        // Prevent resetting PRC priority by super class
+        public void setPriority(final TableName tn) {
+            if (getPriority() == HConstants.NORMAL_QOS) {
+                super.setPriority(tn);
+            }
+        }
     }
 }
