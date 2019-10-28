@@ -72,7 +72,7 @@ public class SimpleTxnFilter implements TxnFilter{
                            TxnSupplier baseSupplier,
                            boolean ignoreNewerTransactions) {
         assert readResolver!=null;
-        this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier,1024); //TODO -sf- configure
+        this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier, 100); //TODO -sf- configure
         this.tableName=tableName;
         this.myTxn=myTxn;
         this.readResolver=readResolver;
