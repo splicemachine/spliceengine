@@ -25,8 +25,7 @@ import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import com.splicemachine.hbase.*;
-import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
-import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
+import com.splicemachine.si.data.hbase.coprocessor.*;
 import com.splicemachine.utils.BlockingProbeEndpoint;
 import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -66,7 +65,8 @@ class SpliceTestPlatformConfig {
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
             RegionServerLifecycleObserver.class,
             BlockingProbeEndpoint.class,
-            SpliceReplicationService.class
+            SpliceReplicationService.class,
+            RegionServerEndpoint.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(

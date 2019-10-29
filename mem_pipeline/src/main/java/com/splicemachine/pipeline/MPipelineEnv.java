@@ -14,11 +14,7 @@
 
 package com.splicemachine.pipeline;
 
-import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.FilesystemAdmin;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.SnowflakeFactory;
+import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.pipeline.api.BulkWriterFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -58,6 +54,7 @@ public class MPipelineEnv  implements PipelineEnvironment{
     private SIEnvironment siEnv;
     private BulkWriterFactory writerFactory;
     private ContextFactoryDriver ctxFactoryDriver;
+    private OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final WritePipelineFactory pipelineFactory= new MappedPipelineFactory();
 
     public MPipelineEnv(SIEnvironment siEnv) throws IOException{
@@ -67,6 +64,12 @@ public class MPipelineEnv  implements PipelineEnvironment{
                 new AtomicSpliceWriteControl(Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE,Integer.MAX_VALUE),
                 pipelineExceptionFactory(),pipelineMeter());
         this.ctxFactoryDriver = ContextFactoryDriverService.loadDriver();
+        this.oldestActiveTransactionTaskFactory = new OldestActiveTransactionTaskFactory() {
+            @Override
+            public GetOldestActiveTransactionTask get(String hostName, int port, long startupTimestamp) throws IOException {
+                throw new UnsupportedOperationException("Operation not supported in Mem profile");
+            }
+        };
     }
 
     @Override
@@ -82,6 +85,11 @@ public class MPipelineEnv  implements PipelineEnvironment{
     @Override
     public ExceptionFactory exceptionFactory(){
         return siEnv.exceptionFactory();
+    }
+
+    @Override
+    public OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory(){
+        return oldestActiveTransactionTaskFactory;
     }
 
     @Override
