@@ -38,6 +38,8 @@ public interface BackupManager{
 
     void validateBackup(String directory,long backupId)throws StandardException;
 
+    void validateSchemaBackup(String schemaName, String directory,long backupId)throws StandardException;
+
     void validateTableBackup(String schemaName, String tableName, String directory,long backupId)throws StandardException;
 
     void fullBackupTable(String schemaName, String tableName, String backupDirectory) throws StandardException;
