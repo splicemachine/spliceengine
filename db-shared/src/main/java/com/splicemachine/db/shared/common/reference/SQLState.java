@@ -1948,12 +1948,14 @@ public interface SQLState {
     String REPLICATION_SLAVE_SHUTDOWN_OK                           = "XRE42.C";
     String REPLICATION_STOPSLAVE_NOT_INITIATED                     = "XRE43";
 
-	//general SPlice errors
-	String LANG_CANCELLATION_EXCEPTION							   = "SE008";
-	String LANG_INVALID_DAY										   = "SE022";
-	String ERROR_PARSING_EXCEPTION								   = "SE023";
-	String PARAMETER_CANNOT_BE_NULL								   = "SE024";
-	String PARAMETER_IS_NOT_HEXADECIMAL							   = "SE025";
+    //general SPlice errors
+    String LANG_CANCELLATION_EXCEPTION                             = "SE008";
+    String LANG_INVALID_DAY                                        = "SE022";
+    String ERROR_PARSING_EXCEPTION                                 = "SE023";
+    String PARAMETER_CANNOT_BE_NULL                                = "SE024";
+    String PARAMETER_IS_NOT_HEXADECIMAL                            = "SE025";
+    String MISSING_COPROCESSOR_SERVICE                             = "SE030";
+
 	/*
      * Backup and restore
      */
