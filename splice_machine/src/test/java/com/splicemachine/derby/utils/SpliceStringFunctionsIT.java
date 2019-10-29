@@ -640,4 +640,41 @@ public class SpliceStringFunctionsIT {
         rs.close();
     }
 
+    @Test
+    public void testHEX() throws Exception {
+        String sqlText = "values hex('B')";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "42", rs.getString(1) );
+
+        sqlText = "values hex('000020')";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "303030303230", rs.getString(1) );
+
+        sqlText = "values hex(concat('a','b'))";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", "6162", rs.getString(1) );
+
+        sqlText = "values hex(null)";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value", null, rs.getString(1) );
+
+        sqlText = "values hex('')";
+        rs = methodWatcher.executeQuery(sqlText);
+        rs.next();
+        Assert.assertEquals("Wrong result value","", rs.getString(1) );
+
+        try {
+            sqlText = "values hex(1.2)";
+            methodWatcher.executeQuery(sqlText);
+            Assert.fail("Cannot convert types 'DECIMAL' to 'VARCHAR'");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals("42846", e.getSQLState());
+        }
+
+        rs.close();
+    }
 }
