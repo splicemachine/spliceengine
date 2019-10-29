@@ -29,6 +29,7 @@ public class StringUtils{
     public static final String maskPasswordPatternStr = "CALL\\s+SYSCS_UTIL\\s*.\\s*(?:(?:SYSCS_CREATE_USER\\s*\\('\\s*(?:[^']*)'\\s*,\\s*'([^']*)'\\s*\\))" +
             "|(?:SYSCS_RESET_PASSWORD\\s*\\(\\s*'(?:[^']*)'\\s*,\\s*'([^']*)'\\s*\\))" +
             "|(?:SYSCS_MODIFY_PASSWORD\\s*\\(\\s*'([^']*)'\\s*\\)))";
+    public static final Pattern maskPasswordPattern = Pattern.compile(maskPasswordPatternStr,Pattern.CASE_INSENSITIVE);
     public static final String maskString = "********";
 
     public static String trimTrailingSpaces(String str){
@@ -144,9 +145,6 @@ public class StringUtils{
     public static String logSpliceAuditEvent(String userid, String event, boolean status, String addr, String statement, String reason)
     {
 
-        Pattern maskPattern = Pattern.compile(maskPasswordPatternStr,Pattern.CASE_INSENSITIVE);
-
-
         StringBuilder sb = new StringBuilder();
         sb.setLength(0);
         sb.append("userid=").append(userid).append("\t");
@@ -154,7 +152,7 @@ public class StringUtils{
         sb.append("status=").append(status ? "SUCCEED" : "FAILED").append("\t");
         sb.append("ip=").append(addr).append("\t");
         if (statement != null)
-            sb.append("statement=").append(maskMessage(statement,maskPattern,maskString)).append("\t");
+            sb.append("statement=").append(maskMessage(statement, maskPasswordPattern,maskString)).append("\t");
         if (!status)
             sb.append("reason=").append(reason);
         return sb.toString();

@@ -77,7 +77,6 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.regex.Pattern;
 
 import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
 
@@ -3857,7 +3856,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
                 subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
             }
-            subStatement = StringUtils.maskMessage(subStatement, Pattern.compile(StringUtils.maskPasswordPatternStr,Pattern.CASE_INSENSITIVE),StringUtils.maskString);
+            subStatement = StringUtils.maskMessage(subStatement, StringUtils.maskPasswordPattern,StringUtils.maskString);
             //In case the masked log is longer than max length
             if (maxStatementLogLen >= 0 && maxStatementLogLen < subStatement.length()) {
                 subStatement = subStatement.substring(0, maxStatementLogLen) + " ... ";

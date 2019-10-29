@@ -66,7 +66,6 @@ import org.apache.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.regex.Pattern;
 
 /**
  * GenericStatementContext is pushed/popped around a statement prepare and execute
@@ -791,8 +790,7 @@ final class GenericStatementContext
 		if (sb != null) {
 
 			sb.append("Failed Statement is: ");
-			sb.append(StringUtils.maskMessage(getStatementText(), Pattern.compile(StringUtils.maskPasswordPatternStr,Pattern.CASE_INSENSITIVE),
-					StringUtils.maskString));
+			sb.append(StringUtils.maskMessage(getStatementText(), StringUtils.maskPasswordPattern, StringUtils.maskString));
 
 			if ((pvs != null) && pvs.getParameterCount() > 0)
 			{
