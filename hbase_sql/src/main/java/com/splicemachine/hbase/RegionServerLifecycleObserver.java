@@ -76,6 +76,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
         try {
             lifecycleManager.shutdown();
             HBaseRegionLoads.INSTANCE.stopWatching();
+            TransactionsWatcher.INSTANCE.stopWatching();
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -98,6 +99,7 @@ public class RegionServerLifecycleObserver extends BaseRegionServerObserver{
 
         DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
         HBaseRegionLoads.INSTANCE.startWatching();
+        TransactionsWatcher.INSTANCE.startWatching();
         //register the engine boot service
         try{
             ManagerLoader.load().getEncryptionManager();
