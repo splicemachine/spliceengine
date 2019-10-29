@@ -92,8 +92,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INVALID_FUNCTION_ARGUMENT;
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_NO_SUCH_RUNNING_OPERATION;
+import static com.splicemachine.db.shared.common.reference.SQLState.*;
 
 /**
  * @author Jeff Cunningham
@@ -774,11 +773,17 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 if (localOldestActive < oldestActiveTransaction)
                     oldestActiveTransaction = localOldestActive;
             }
-        } catch (IOException | InterruptedException | ExecutionException e) {
+        } catch (IOException | InterruptedException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (ExecutionException e) {
+            LOG.error("Could not fetch oldestActiveTransaction", e);
+            throw PublicAPI.wrapStandardException(StandardException.newException(
+                    MISSING_COPROCESSOR_SERVICE,
+                    "com.splicemachine.si.data.hbase.coprocessor.RegionServerEndpoint",
+                    "hbase.coprocessor.regionserver.classes"));
         }
 
-        Vacuum vacuum=new Vacuum(getDefaultConn());
+        Vacuum vacuum = new Vacuum(getDefaultConn());
         try{
             vacuum.vacuumDatabase(oldestActiveTransaction);
         }finally{
