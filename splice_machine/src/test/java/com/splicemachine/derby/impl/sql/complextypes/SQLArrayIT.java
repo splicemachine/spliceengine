@@ -73,12 +73,12 @@ public class SQLArrayIT extends SpliceUnitTest {
     @Test
     public void testInsertSelectValues() throws Exception {
         methodWatcher.executeUpdate("insert into ARRAY_ONE values ([1,1,1]),(null),([2,1])");
-        ResultSet rs = methodWatcher.executeQuery("select col1, col1[0], col1[1], col1[2] from ARRAY_ONE");
-        assertEquals("COL1    |  2  |  3  |  4  |\n" +
+        ResultSet rs = methodWatcher.executeQuery("select cast(col1  as varchar(30)), col1[0], col1[1], col1[2] from ARRAY_ONE");
+        assertEquals("1     |  2  |  3  |  4  |\n" +
                 "-----------------------------\n" +
-                "  NULL    |  2  |  1  |NULL |\n" +
                 "  NULL    |NULL |NULL |NULL |\n" +
-                "[1, 1, 1] |  1  |  1  |  1  |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+                "[1, 1, 1] |  1  |  1  |  1  |\n" +
+                " [2, 1]   |  2  |  1  |NULL |", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
