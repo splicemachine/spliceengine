@@ -155,7 +155,7 @@ public class SIConfigurations implements ConfigurationDefault {
 
     // Threads processing first queue
     public static final String ROLLFORWARD_FIRST_THREADS = "splice.txn.rollforward.firstQueueThreads";
-    public static final int DEFAULT_ROLLFORWARD_FIRST_THREADS = 10;
+    public static final int DEFAULT_ROLLFORWARD_FIRST_THREADS = 25;
 
     // Threads processing second queue
     public static final String ROLLFORWARD_SECOND_THREADS = "splice.txn.rollforward.secondQueueThreads";
