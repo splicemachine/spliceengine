@@ -51,10 +51,12 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 						boolean rightFromSSQ,
 						double optimizerEstimatedRowCount,
 						double optimizerEstimatedCost,
-						String userSuppliedOptimizerOverrides) throws StandardException {
+						String userSuppliedOptimizerOverrides,
+						String sparkExpressionTreeAsString) throws StandardException {
 				super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
 								activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
-								optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides);
+								optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
+								sparkExpressionTreeAsString);
 				SpliceLogUtils.trace(LOG, "instantiate");
 				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;

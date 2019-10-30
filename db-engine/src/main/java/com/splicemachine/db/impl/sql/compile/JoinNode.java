@@ -49,11 +49,15 @@ import com.splicemachine.db.iapi.util.PropertyUtil;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.base.Predicates;
 import org.spark_project.guava.collect.Lists;
 
 import java.util.*;
+
+import static com.splicemachine.db.impl.sql.compile.BinaryOperatorNode.AND;
 
 /**
  * A JoinNode represents a join result set for either of the basic DML
@@ -73,6 +77,7 @@ public class JoinNode extends TableOperatorNode{
     public static final int FULLOUTERJOIN=5;
     public static final int UNIONJOIN=6;
     public PredicateList joinPredicates;
+    public SparkExpressionNode sparkExpressionTree = null;
     // Splice Additions
     public int[] leftHashKeys;
     public int[] rightHashKeys;
@@ -1200,10 +1205,41 @@ public class JoinNode extends TableOperatorNode{
                                 MethodBuilder mb,
                                 int joinType,
                                 ValueNode joinClause) throws StandardException{
-		
-		
-		/* Put the predicates back into the tree */
 
+        sparkExpressionTree = null;
+        SparkExpressionNode tmpTree = null;
+        JoinStrategy joinStrategy =
+         ((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
+                                                 getJoinStrategy();
+        JoinStrategy.JoinStrategyType joinStrategyType =
+                                      joinStrategy.getJoinStrategyType();
+        boolean eligibleForNativeSpark =
+         (joinStrategyType == JoinStrategy.JoinStrategyType.MERGE_SORT ||
+          joinStrategyType == JoinStrategy.JoinStrategyType.BROADCAST);
+
+        if (joinPredicates != null && eligibleForNativeSpark) {
+            for (int i = 0; i < joinPredicates.size(); i++) {
+                tmpTree =
+                  OperatorToString.
+                    opToSparkExpressionTree(joinPredicates.elementAt(i).getAndNode(),
+                                            leftResultSet.getResultSetNumber(),
+                                            rightResultSet.getResultSetNumber());
+                if (tmpTree == null) {
+                    sparkExpressionTree = null;
+                    break;
+                }
+                if (i == 0)
+                    sparkExpressionTree = tmpTree;
+                else
+                    sparkExpressionTree =
+                       SparkLogicalOperator.
+                         getNewSparkLogicalOperator(AND, sparkExpressionTree, tmpTree);
+            }
+        }
+        else
+            sparkExpressionTree = null;
+
+        /* Put the predicates back into the tree */
         if(joinPredicates!=null){
             // Pulling the equality predicate normal case from the restriction generation.
             if (rightHashKeys ==null || rightHashKeys.length != joinPredicates.size())
@@ -1234,6 +1270,7 @@ public class JoinNode extends TableOperatorNode{
 
         acb.pushGetResultSetFactoryExpression(mb);
         int nargs=getJoinArguments(acb,mb,joinClause);
+
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,joinResultSetString,ClassName.NoPutResultSet,nargs);
     }
 
@@ -1247,7 +1284,7 @@ public class JoinNode extends TableOperatorNode{
      * be overridden for other types of joins (for example, outer joins).
      */
     protected int getNumJoinArguments(){
-        return 13;
+        return 14;
     }
 
     /**
@@ -1924,6 +1961,14 @@ public class JoinNode extends TableOperatorNode{
             mb.pushNull("java.lang.String");
 
         mb.push(printExplainInformationForActivation());
+
+        if (sparkExpressionTree != null) {
+            String sparkExpressionTreeAsString =
+                    Base64.encodeBase64String(SerializationUtils.serialize(sparkExpressionTree));
+            mb.push(sparkExpressionTreeAsString);
+        }
+        else
+            mb.pushNull("java.lang.String");
 
         return numArgs;
     }
