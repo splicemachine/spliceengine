@@ -519,7 +519,7 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(String.format("insert into %s.%s values 6,7,8,9,10,11", SCHEMA_NAME,A_TABLE_NAME));
 
         // query base table directly
-        String sqlText = String.format("select * from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME, "NULL");
+        String sqlText = String.format("select * from %s.%s --SPLICE-PROPERTIES index=%s\n order by 1",SCHEMA_NAME,A_TABLE_NAME, "NULL");
         rs = methodWatcher.executeQuery(sqlText);
         String expected =
             "I |\n" +
