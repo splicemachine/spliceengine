@@ -607,7 +607,7 @@ public class Subquery_Flattening_Exists_IT {
         int deleteCount = methodWatcher.executeUpdate("delete from YY where exists (select 1 from ZZ where y1=z1)");
         assertEquals(5, deleteCount);
         // verify that only expected rows remain in target table
-        assertEquals("[1, 3, 5, 7, 9]", methodWatcher.queryList("select y1 from YY").toString());
+        assertEquals("[1, 3, 5, 7, 9]", methodWatcher.queryList("select y1 from YY order by 1").toString());
     }
 
 

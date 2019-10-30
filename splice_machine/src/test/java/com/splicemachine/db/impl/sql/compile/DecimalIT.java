@@ -381,7 +381,7 @@ public class DecimalIT  extends SpliceUnitTest {
         "-0.12345678901234567890123456789012345678 |\n" +
         "                 -1E-38                   |";
 
-        testQueryUnsorted(sqlText, expected, methodWatcher);
+        testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("values 12345678901234567890123456789012345678, -0.12345678901234567890123456789012345678, -.00000000000000000000000000000000000001", useSpark);
 
