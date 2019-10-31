@@ -57,7 +57,7 @@ extends Externalizable
 
     // Convert the SparkExpressionNode tree into a Spark
     // Column expression (e.g. representing a join condition).
-    Column getColumnExpression(Dataset<Row> leftDF, Dataset<Row> rightDF, Function<String, DataType> f) throws UnsupportedOperationException;
+    Column getColumnExpression(Dataset<Row> leftDF, Dataset<Row> rightDF, Function<String, DataType> convertStringToDataTypeFunction) throws UnsupportedOperationException;
 
     // Is this a constant TRUE node?
     boolean isTrue();

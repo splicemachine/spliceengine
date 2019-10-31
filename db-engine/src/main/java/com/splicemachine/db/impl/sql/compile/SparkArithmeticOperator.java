@@ -78,9 +78,9 @@ public class SparkArithmeticOperator extends AbstractSparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      Function<String, DataType> f) throws UnsupportedOperationException {
-        Column leftExpr  = getLeftChild().getColumnExpression(leftDF, rightDF, f);
-        Column rightExpr = getRightChild().getColumnExpression(leftDF, rightDF, f);
+                                      Function<String, DataType> convertStringToDataTypeFunction) throws UnsupportedOperationException {
+        Column leftExpr  = getLeftChild().getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
+        Column rightExpr = getRightChild().getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
 
         if (opKind == PLUS)
             return leftExpr.plus(rightExpr);

@@ -69,11 +69,11 @@ public class SparkCastNode extends AbstractSparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      Function<String, DataType> f) throws UnsupportedOperationException {
+                                      Function<String, DataType> convertStringToDataTypeFunction) throws UnsupportedOperationException {
         if (dataType == null)
-            dataType = f.apply(dataTypeAsString);
+            dataType = convertStringToDataTypeFunction.apply(dataTypeAsString);
         Column childColumnExpression =
-            getLeftChild().getColumnExpression(leftDF, rightDF, f);
+            getLeftChild().getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
         return childColumnExpression.cast(dataType);
     }
 
