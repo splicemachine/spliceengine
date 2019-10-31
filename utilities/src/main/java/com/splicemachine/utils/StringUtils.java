@@ -14,11 +14,23 @@
 
 package com.splicemachine.utils;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * @author Scott Fines
  *         Date: 7/7/15
  */
 public class StringUtils{
+
+    //Match the password part in the call statement
+    public static final String maskPasswordPatternStr = "CALL\\s+SYSCS_UTIL\\s*.\\s*(?:(?:SYSCS_CREATE_USER\\s*\\('\\s*(?:[^']*)'\\s*,\\s*'([^']*)'\\s*\\))" +
+            "|(?:SYSCS_RESET_PASSWORD\\s*\\(\\s*'(?:[^']*)'\\s*,\\s*'([^']*)'\\s*\\))" +
+            "|(?:SYSCS_MODIFY_PASSWORD\\s*\\(\\s*'([^']*)'\\s*\\)))";
+    public static final Pattern maskPasswordPattern = Pattern.compile(maskPasswordPatternStr,Pattern.CASE_INSENSITIVE);
+    public static final String maskString = "********";
 
     public static String trimTrailingSpaces(String str){
         if (str == null) {
@@ -94,5 +106,60 @@ public class StringUtils{
 
             return new String(buf);
         }
+    }
+
+    public static String maskMessage(String message, Pattern maskPattern, String maskString) {
+        if (message == null)
+            return null;
+        if (maskString == null)
+            maskString = "";
+
+        Matcher matcher = maskPattern.matcher(message);
+
+        List<Pair<Integer, Integer>> groups = new ArrayList<>();
+        while (matcher.find()) {
+            for (int i = 1; i <= matcher.groupCount(); i++) {
+                if (matcher.group(i) != null)
+                    groups.add(new Pair<>(matcher.start(i), matcher.end(i)));
+            }
+        }
+        if (groups.size() == 0) {
+            return message;
+        }
+        StringBuilder maskedMessage = new StringBuilder("");
+        for (int i = 0; i <= groups.size(); i++) {
+            int start;
+            int end;
+            if (i == 0) {
+                start = 0;
+            } else {
+                start = groups.get(i-1).getSecond();
+                maskedMessage.append(maskString);
+            }
+            if (i == groups.size()) {
+                end = message.length() - 1;
+            } else {
+                end = groups.get(i).getFirst() - 1;
+            }
+            maskedMessage.append(message, start, end+1);
+        }
+        return String.valueOf(maskedMessage);
+    }
+
+
+    public static String logSpliceAuditEvent(String userid, String event, boolean status, String addr, String statement, String reason)
+    {
+
+        StringBuilder sb = new StringBuilder();
+        sb.setLength(0);
+        sb.append("userid=").append(userid).append("\t");
+        sb.append("event=").append(event).append("\t");
+        sb.append("status=").append(status ? "SUCCEED" : "FAILED").append("\t");
+        sb.append("ip=").append(addr).append("\t");
+        if (statement != null)
+            sb.append("statement=").append(maskMessage(statement, maskPasswordPattern,maskString)).append("\t");
+        if (!status)
+            sb.append("reason=").append(reason);
+        return sb.toString();
     }
 }
