@@ -67,7 +67,7 @@ public class SparkColumnReference extends AbstractSparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      Function<String, DataType> f) throws UnsupportedOperationException {
+                                      Function<String, DataType> convertStringToDataTypeFunction) throws UnsupportedOperationException {
         Dataset<Row> df = leftDataFrame ? leftDF : rightDF;
         return df.col(columnName);
     }

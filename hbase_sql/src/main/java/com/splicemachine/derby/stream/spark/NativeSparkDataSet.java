@@ -914,9 +914,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
             SparkExpressionNode sparkJoinPred = op.getSparkJoinPredicate();
             if (sparkJoinPred != null) {
-                java.util.function.Function<String, DataType> f =
+                java.util.function.Function<String, DataType> convertStringToDataTypeFunction =
                      (String s) -> { return ParserUtils.getDataTypeFromString(s); };
-                expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, f);
+                expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
             }
             else {
                 for (int i = 0; i < rightJoinKeys.length; i++) {

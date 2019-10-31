@@ -78,9 +78,9 @@ public class SparkConstantExpression extends AbstractSparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      Function<String, DataType> f) throws UnsupportedOperationException {
+                                      Function<String, DataType> convertStringToDataTypeFunction) throws UnsupportedOperationException {
         if (dataType == null)
-            dataType = f.apply(dataTypeAsString);
+            dataType = convertStringToDataTypeFunction.apply(dataTypeAsString);
         if (specialValue == SpecialValue.NULL)
             return lit(null).cast(dataType);
         else
