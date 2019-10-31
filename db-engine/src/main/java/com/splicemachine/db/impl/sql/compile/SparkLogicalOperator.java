@@ -36,10 +36,12 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.parser.ParserInterface;
+import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.function.Function;
 
 import static com.splicemachine.db.impl.sql.compile.BinaryOperatorNode.AND;
 import static com.splicemachine.db.impl.sql.compile.BinaryOperatorNode.OR;
@@ -102,9 +104,9 @@ public class SparkLogicalOperator extends AbstractSparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      ParserInterface parser) throws UnsupportedOperationException {
-        Column leftExpr  = getLeftChild().getColumnExpression(leftDF, rightDF, parser);
-        Column rightExpr = getRightChild().getColumnExpression(leftDF, rightDF, parser);
+                                      Function<String, DataType> f) throws UnsupportedOperationException {
+        Column leftExpr  = getLeftChild().getColumnExpression(leftDF, rightDF, f);
+        Column rightExpr = getRightChild().getColumnExpression(leftDF, rightDF, f);
 
         if (logicalOpKind == AND)
             return leftExpr.and(rightExpr);
