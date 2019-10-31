@@ -26,6 +26,7 @@ import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.region.SamplingFilter;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SplitRegionScanner;
@@ -63,6 +64,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
     protected static SpliceTableWatcher spliceTableWatcherH = new SpliceTableWatcher("H",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherI = new SpliceTableWatcher("I",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherJ = new SpliceTableWatcher("J",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
+    protected static SpliceTableWatcher spliceTableWatcherK = new SpliceTableWatcher("K",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
 
     protected static final long ITERATIONS = 20000;
     protected static SIDriver driver;
@@ -99,6 +101,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
             .around(spliceTableWatcherH)
             .around(spliceTableWatcherI)
             .around(spliceTableWatcherJ)
+            .around(spliceTableWatcherK)
 
 		.around(new SpliceDataWatcher(){
 			@Override
@@ -128,11 +131,8 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
                             ,SCHEMA + ".I",SCHEMA + ".A"));
                     spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
                             ,SCHEMA + ".J",SCHEMA + ".A"));
-
-
-
-
-
+                    spliceClassWatcher.executeUpdate(String.format("insert into %s select * from %s"
+                            ,SCHEMA + ".K",SCHEMA + ".A"));
                 } catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -429,42 +429,37 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
         }
         Assert.assertEquals("Did not return all rows ", ITERATIONS, i);
     }
-/*
+
     @Test
-    public void moveRegionDuringScanMoveBack() throws SQLException, IOException, InterruptedException {
-        String tableNameStr = sqlUtil.getConglomID(spliceTableWatcherI.toString());
-        Partition partition = driver.getTableFactory().getTable(tableNameStr);
+    public void sampledScanWithConcurrentFlushAndSplitTest() throws Exception {
+
+        String tableName = sqlUtil.getConglomID(spliceTableWatcherK.toString());
+        Partition partition = driver.getTableFactory()
+                .getTable(tableName);
         Table htable = ((ClientPartition) partition).unwrapDelegate();
-
+        List<Partition> partitions = partition.subPartitions();
         int i = 0;
-        try (HBaseAdmin admin = getHBaseAdmin()) {
-            HRegionLocation regionLocation = getRegionLocation(tableNameStr, admin);
-            ServerName oldServer = regionLocation.getServerName();
-            ServerName newServer = getNotIn(getAllServers(admin), oldServer);
-
-            List<Cell> newCells = new ArrayList<>();
-            Scan scan = new Scan();
-            SplitRegionScanner srs = new SplitRegionScanner(scan, htable, clock, partition);
+        List<Cell> newCells = new ArrayList<>();
+        for (Partition subPartition: partitions){
+            Scan scan = new Scan(subPartition.getStartKey(),subPartition.getEndKey());
+            scan.setFilter(new SamplingFilter(0.2)); // enable sampling for this scan
+            SplitRegionScanner srs = new SplitRegionScanner(scan,
+                    htable,
+                    clock,subPartition, driver.getConfiguration(), htable.getConfiguration());
             while (srs.next(newCells)) {
-                if (i++ == (int)ITERATIONS / 6) {
-                    admin.move(regionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(newServer.getServerName()));
-                    // give it a little time for the metadata to be refreshed
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        // do nothing
-                    }
-                }
-                if (i == (int)ITERATIONS / 3) {
-                    HRegionLocation newRegionLocation = getRegionLocation(tableNameStr, admin);
-                    admin.move(newRegionLocation.getRegionInfo().getEncodedNameAsBytes(), Bytes.toBytes(oldServer.getServerName()));
+                i++;
+                if (i==(ITERATIONS*0.2)/2) {
+                    partition.flush();
+                    driver.getTableFactory().getAdmin().splitTable(tableName);
                 }
                 newCells.clear();
             }
             srs.close();
-            htable.close();
         }
-        Assert.assertEquals("Did not return all rows ", ITERATIONS, i);
+        htable.close();
+
+        Assert.assertTrue("Returned more rows than expected: " + i, i < (ITERATIONS * 0.35));
+        Assert.assertTrue("Returned less rows than expected: " + i, i > (ITERATIONS * 0.05));
     }
-*/
+
 }

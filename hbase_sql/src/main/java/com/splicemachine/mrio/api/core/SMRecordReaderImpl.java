@@ -30,6 +30,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.region.SamplingFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -62,6 +63,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	protected RowLocation rowLocation;
 	private List<AutoCloseable> closeables = new ArrayList<>();
     private boolean statisticsRun = false;
+    private boolean sampling = false;
+    private double samplingRate = 0;
 	private Txn localTxn;
 	private volatile boolean closed = false;
 	private String closeExceptionString;
@@ -120,6 +123,11 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 			setScan(((HScan) scan).unwrapDelegate());
 			// TODO (wjk): this seems weird (added with DB-4483)
 			this.statisticsRun = AbstractSMInputFormat.oneSplitPerRegion(config);
+			Double sampling = AbstractSMInputFormat.sampling(config);
+			if (sampling != null) {
+				this.sampling = true;
+				this.samplingRate = sampling;
+			}
 			restart(scan.getStartKey());
 		} catch (IOException ioe) {
 			LOG.error(String.format("Received exception with scan %s, original start key %s, original stop key %s, split %s",
@@ -233,6 +241,9 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 		clientPartition = new AdapterPartition(delegate, instance.getConnection(), SpliceClient.getConnectionPool(debugConnections, maxConnections),htable.getName(), driver.getPartitionInfoCache());
 			} else {
             	clientPartition = new ClientPartition(instance.getConnection(),htable.getName(),htable,clock,driver.getPartitionInfoCache());
+			}
+			if (sampling) {
+            	scan.setFilter(new SamplingFilter(samplingRate));
 			}
 			SplitRegionScanner srs = new SplitRegionScanner(scan,
 					htable,
