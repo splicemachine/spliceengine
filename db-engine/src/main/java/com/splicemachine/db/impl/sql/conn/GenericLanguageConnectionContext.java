@@ -68,6 +68,7 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import com.splicemachine.utils.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -3831,6 +3832,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String subStatement = statement;
             if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
                 subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
+            }
+            subStatement = StringUtils.maskMessage(subStatement, StringUtils.maskPasswordPattern,StringUtils.maskString);
+            //In case the masked log is longer than max length
+            if (maxStatementLogLen >= 0 && maxStatementLogLen < subStatement.length()) {
+                subStatement = subStatement.substring(0, maxStatementLogLen) + " ... ";
             }
             String result = String.format("sqlHash=%s, statement=[ %s ]", hash, subStatement);
             lastLogStmt = statement;

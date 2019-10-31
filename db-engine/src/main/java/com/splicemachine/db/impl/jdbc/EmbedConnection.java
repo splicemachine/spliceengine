@@ -100,7 +100,6 @@ import java.sql.ResultSet;
  */
 public abstract class EmbedConnection implements EngineConnection
 {
-
 	protected static final StandardException exceptionClose = StandardException.closeException();
     public static final String INTERNAL_CONNECTION = "SPLICE_INTERNAL_CONNECTION";
     
@@ -704,8 +703,7 @@ public abstract class EmbedConnection implements EngineConnection
 		// and one at the system level.
 		//
 		AuthenticationService authenticationService = null;
-
-        try {
+		try {
             // Retrieve appropriate authentication service handle
             if (dbname == null)
                 authenticationService =
@@ -754,7 +752,6 @@ public abstract class EmbedConnection implements EngineConnection
             {
                 throw newSQLException( SQLState.AUTH_EMPTY_CREDENTIALS );
             }
-            
             return;
         }
 
@@ -785,8 +782,8 @@ public abstract class EmbedConnection implements EngineConnection
             addWarning( warnings );
         }
 		if ( !authenticationSucceeded )
-        {
-            throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED,
+		{
+ 				throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED,
                      MessageService.getTextMessage(MessageId.AUTH_INVALID));
         }
 

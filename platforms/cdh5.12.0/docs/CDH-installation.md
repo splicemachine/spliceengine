@@ -621,6 +621,23 @@ parcel. It default to write logs to `/var/log/hadoop-yarn`.
 If you want to change the log behavior of OLAP server, config `splice.olap.log4j.configuration` in `hbase-site.xml`.
 It specifies the log4j.properties file you want to use. This file needs to be available on HBase master server.
 
+#### Security Audit log
+
+Splice Machine records security related actions (e.g. CREATE / DROP USER, MODIFY PASSWORD, LOGIN) in audit log. You can modify where Splice
+Machine stores audit log by adding the following snippet to your *RegionServer Logging
+Advanced Configuration Snippet (Safety Valve)* section of your HBase
+Configuration:
+
+   ```
+    log4j.appender.spliceAudit=org.apache.log4j.FileAppender
+    log4j.appender.spliceAudit.File=${hbase.log.dir}/splice-audit.log
+    log4j.appender.spliceAudit.layout=org.apache.log4j.PatternLayout
+    log4j.appender.spliceAudit.layout.ConversionPattern=%d{ISO8601} %m%n
+    
+    log4j.logger.splice-audit=INFO, spliceAudit
+    log4j.additivity.splice-audit=false
+   ```
+
 ## Deploy the Client Configuration
 
 Now that you've updated your configuration information, you need to
