@@ -51,7 +51,7 @@ public class Subquery_Flattening_ExistsBetween_IT {
     @Test
     public void testBetweenFlattenAndNode() throws Exception {
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                "select * from A where a1 between 1 and 10 and exists (select a1 from A ai where ai.a2 > 20)", ZERO_SUBQUERY_NODES, "" +
+                "select * from A where a1 between 1 and 10 and exists (select a1 from A ai where ai.a2 > 20)", ONE_SUBQUERY_NODE, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
                         " 1 |10 |\n" +
@@ -80,7 +80,7 @@ public class Subquery_Flattening_ExistsBetween_IT {
     @Test
     public void testLikeFlattenAndNode() throws Exception {
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                "select * from C where surname like 'S%' and exists (select surname from C where name = 'Jon')", ZERO_SUBQUERY_NODES, "" +
+                "select * from C where surname like 'S%' and exists (select surname from C where name = 'Jon')", ONE_SUBQUERY_NODE, "" +
                         "NAME  | SURNAME |\n" +
                         "------------------\n" +
                         "Eddard |  Stark  |\n" +
@@ -105,7 +105,7 @@ public class Subquery_Flattening_ExistsBetween_IT {
     @Test
     public void testSimplePredicateFlattenAndNode() throws Exception {
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                "select * from A where a1 > 0 and a1 <= 10 and exists (select a1 from A ai where ai.a2 > 20)", ZERO_SUBQUERY_NODES, "" +
+                "select * from A where a1 > 0 and a1 <= 10 and exists (select a1 from A ai where ai.a2 > 20)", ONE_SUBQUERY_NODE, "" +
                         "A1 |A2 |\n" +
                         "--------\n" +
                         " 1 |10 |\n" +
