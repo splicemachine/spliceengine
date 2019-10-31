@@ -789,7 +789,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             LOG.error("Could not fetch oldestActiveTransaction", e);
             throw PublicAPI.wrapStandardException(StandardException.newException(
                     MISSING_COPROCESSOR_SERVICE,
-                    "com.splicemachine.si.data.hbase.coprocessor.RegionServerEndpoint",
+                    "com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices",
                     "hbase.coprocessor.regionserver.classes"));
         }
 
