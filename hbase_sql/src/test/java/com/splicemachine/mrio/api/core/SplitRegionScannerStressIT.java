@@ -24,6 +24,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.region.SamplingFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.test.HBaseTestUtils;
 import com.splicemachine.test.SerialTest;
@@ -102,11 +103,26 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
         new TableCreator(conn)
                 .withCreate("create table e (c1 int, c2 varchar(56), primary key(c1))")
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table f (c1 int, c2 varchar(56), primary key(c1))")
+                .create();
     }
 
     @BeforeClass
     public static void createDataSet() throws Exception {
         createData(spliceClassWatcher.getOrCreateConnection());
+    }
+
+    private static void asyncFlush(Partition partition) {
+        new Thread( () -> {
+            try {
+                Thread.sleep(1000);
+                partition.flush();
+            } catch (Exception e) {
+                LOG.error(e);
+            }
+        } ).start();
     }
 
     @Test
@@ -122,7 +138,7 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
             @Override
             public void call(PartitionAdmin partitionAdmin, Partition partition, String tableName, int i) throws Exception {
                 if (i%2==0)
-                    partition.flush();
+                    asyncFlush(partition);
                 verifyTableCount(partition, nrows + i * batchSize);
             }
         });
@@ -131,8 +147,36 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
             @Override
             public void call(PartitionAdmin partitionAdmin, Partition partition, String tableName, int i) throws Exception {
                 if (i % 2 == 0)
-                    partition.flush();
+                    asyncFlush(partition);
                 verifyTableCount(partition, 2 * nrows + i * batchSize);
+            }
+        });
+    }
+
+    @Test
+    public void testSampledFlush() throws Throwable {
+        loadData("F", new Callback() {
+            @Override
+            public void call(PartitionAdmin partitionAdmin, Partition partition, String tableName, int i) throws Exception {
+                verifyTableSample(partition, i * batchSize);
+            }
+        });
+
+        loadDataWithNonoverlappingKeys("F", new Callback() {
+            @Override
+            public void call(PartitionAdmin partitionAdmin, Partition partition, String tableName, int i) throws Exception {
+                if (i%2==0)
+                    asyncFlush(partition);
+                verifyTableSample(partition, nrows + i * batchSize);
+            }
+        });
+
+        loadDataWithOverlappingKeys("F", new Callback() {
+            @Override
+            public void call(PartitionAdmin partitionAdmin, Partition partition, String tableName, int i) throws Exception {
+                if (i % 2 == 0)
+                    asyncFlush(partition);
+                verifyTableSample(partition, 2 * nrows + i * batchSize);
             }
         });
     }
@@ -313,6 +357,26 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
         srs.close();
         htable.close();
         Assert.assertEquals("Did not return all rows ", count, i);
+    }
+
+    private void verifyTableSample(Partition partition, int count) throws Exception {
+        Table htable = ((ClientPartition) partition).unwrapDelegate();
+        int i = 0;
+        List<Cell> newCells = new ArrayList<>();
+        Scan scan = new Scan();
+        scan.setFilter(new SamplingFilter(0.2));
+        SplitRegionScanner srs = new SplitRegionScanner(scan,
+                htable,
+                clock,partition, driver.getConfiguration(), htable.getConfiguration());
+        while (srs.next(newCells)) {
+            i++;
+            newCells.clear();
+        }
+        srs.close();
+        htable.close();
+
+        Assert.assertTrue("Returned more rows than expected: " + i, i < (count * 0.35));
+        Assert.assertTrue("Returned less rows than expected: " + i, i > (count * 0.05));
     }
 
     private void loadData(String tableName, Callback callback) throws Throwable {
