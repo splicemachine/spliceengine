@@ -89,6 +89,15 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
 
         if (taskContext.attemptNumber() > 0) {
             // TODO handle retries
+
+            int entriesInKafka = 0;
+            // open connection to partition in Kafka
+            // get number of entries there
+
+            // TODO
+            for (int i = 0; i < entriesInKafka; ++i) {
+                locatedRowIterator.next();
+            }
         }
 
         Properties props = new Properties();

@@ -12,13 +12,12 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  */
-package com.splicemachine.spark.splicemachine
+package com.splicemachine.spark2.splicemachine
 
 import java.math.BigDecimal
 import java.sql.{Time, Timestamp}
 import java.util.Date
 
-import com.splicemachine.derby.impl.SpliceSpark
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}

@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  */
-package com.splicemachine.spark.splicemachine
+package com.splicemachine.spark2.splicemachine
 
 import org.apache.spark.sql._
 import org.junit.runner.RunWith
@@ -41,8 +41,6 @@ class NativeTransformationsTest extends FunSuite with TestContext with BeforeAnd
       splicemachineContext.dropTable(schema+"."+"T2")
     }
     insertInternalRows(rowCount)
-    splicemachineContext.getConnection().commit()
-    sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
   }
 
   test("join over join") {

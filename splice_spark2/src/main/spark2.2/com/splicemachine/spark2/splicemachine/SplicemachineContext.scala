@@ -13,6 +13,7 @@
  */
 package com.splicemachine.spark2.splicemachine
 
+import java.beans.PropertyVetoException
 import java.security.{PrivilegedExceptionAction, SecureRandom}
 import java.sql.Connection
 
@@ -27,9 +28,16 @@ import java.util.Properties
 
 import com.splicemachine.primitives.Bytes
 import com.splicemachine.spark.splicemachine.ShuffleUtils
+import javax.sql.DataSource
+import kafka.utils.ZkUtils
+import org.I0Itec.zkclient.ZkClient
 import org.apache.log4j.Logger
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
+
+import kafka.admin.AdminUtils
+import kafka.admin.RackAwareMode
+import org.I0Itec.zkclient.ZkConnection
 
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
@@ -297,21 +305,40 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     */
   def df(sql: String): Dataset[Row] = {
 
-    val configuration = HConfiguration.getConfiguration
-
-    val connection = SpliceClient.getConnectionPool(
-      configuration.getAuthenticationTokenDebugConnections, configuration.getAuthenticationTokenMaxConnections).getConnection
+    val spliceOptions = Map(
+      JDBCOptions.JDBC_URL -> url)
+    val jdbcOptions = new JDBCOptions(spliceOptions)
+    val conn = JdbcUtils.createConnectionFactory(jdbcOptions)()
     try {
       val id = getRandomName()
 
-      val schema = resolveQuery(connection, sql, false)
+      // TODO create Kafka topic
+      // hbase has read/write permission on the topic
 
-      connection.prepareStatement(s"EXPORT_KAFKA('$id') " + sql).execute()
+      val zookeeperConnect = "zkserver1:2181,zkserver2:2181"
+      val sessionTimeoutMs = 10 * 1000
+      val connectionTimeoutMs = 8 * 1000
+
+      val zkClient = ZkUtils.createZkClient(
+        zookeeperConnect,
+        sessionTimeoutMs,
+        connectionTimeoutMs)
+
+      val topicConfig = new Properties()
+
+      val zkUtils = new ZkUtils(zkClient, new ZkConnection(zookeeperConnect), false)
+      AdminUtils.createTopic(zkUtils, id, 200, 2, topicConfig)
+      zkClient.close()
+
+      val schema = resolveQuery(conn, sql, false)
+
+      conn.prepareStatement(s"EXPORT_KAFKA('$id') " + sql).execute()
+
       // TODO consume Kafka stream
       val df = null
       df
     } finally {
-      connection.close()
+      conn.close()
     }
   }
 
@@ -351,7 +378,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def insert(dataFrame: DataFrame, schemaTableName: String): Unit = {
 
     val id = getRandomName()
-    ShuffleUtils.shuffle(dataFrame).rdd.mapPartitions(new KafkaStreamer(id))
+
+    //TODO setup kafka topic name
+    // hbase has permission to read the data
+
+//    ShuffleUtils.shuffle(dataFrame).rdd.mapPartitions(new KafkaStreamer(id))
 
     val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
     val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)

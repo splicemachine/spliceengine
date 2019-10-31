@@ -11,13 +11,12 @@
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
  */
-package com.splicemachine.spark.splicemachine
+package com.splicemachine.spark2.splicemachine
 
 import java.math.BigDecimal
 import java.sql.{Time, Timestamp}
 import java.util.Date
 
-import com.splicemachine.derby.impl.SpliceSpark
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
@@ -117,7 +116,6 @@ trait TestContext extends BeforeAndAfterAll { self: Suite =>
 
   override def beforeAll() {
     sc = new SparkContext(conf)
-    SpliceSpark.setContext(sc)
     splicemachineContext = new SplicemachineContext(defaultJDBCURL)
   }
 

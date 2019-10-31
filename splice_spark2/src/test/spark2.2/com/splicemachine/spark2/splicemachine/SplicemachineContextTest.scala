@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.splicemachine.spark.splicemachine
+package com.splicemachine.spark2.splicemachine
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
 import org.apache.spark.sql.SQLContext

@@ -15,8 +15,7 @@
 
 package com.splice.custom.reader;
 
-import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.spark.splicemachine.SplicemachineContext;
+import com.splicemachine.spark2.splicemachine.SplicemachineContext;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
@@ -51,11 +50,10 @@ public class ReaderWriterExample {
         SparkConf conf = new SparkConf();
 
         JavaStreamingContext ssc = new JavaStreamingContext(conf, new Duration(500));
-        SpliceSpark.setContext(ssc.sparkContext());
-
-        SparkSession spark = SpliceSpark.getSessionUnsafe();
 
         JavaReceiverInputDStream<String> stream = ssc.socketTextStream(hostname, Integer.parseInt(port));
+
+        SparkSession spark = SparkSession.builder().getOrCreate();
 
         // Create a SplicemachineContext based on the provided DB connection
         SplicemachineContext splicemachineContext = new SplicemachineContext(dbUrl);
