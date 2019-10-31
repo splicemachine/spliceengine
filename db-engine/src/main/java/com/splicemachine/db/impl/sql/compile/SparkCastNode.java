@@ -39,6 +39,7 @@ import org.apache.spark.sql.catalyst.parser.ParseException;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.function.Function;
 
 import static java.lang.String.format;
 import static org.apache.spark.sql.functions.lit;
@@ -68,17 +69,11 @@ public class SparkCastNode extends AbstractSparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      ParserInterface parser) throws UnsupportedOperationException {
-        if (dataType == null) {
-            try {
-                dataType = parser.parseDataType(dataTypeAsString);
-            }
-            catch (ParseException e) {
-                throw new UnsupportedOperationException();
-            }
-        }
+                                      Function<String, DataType> f) throws UnsupportedOperationException {
+        if (dataType == null)
+            dataType = f.apply(dataTypeAsString);
         Column childColumnExpression =
-            getLeftChild().getColumnExpression(leftDF, rightDF, parser);
+            getLeftChild().getColumnExpression(leftDF, rightDF, f);
         return childColumnExpression.cast(dataType);
     }
 

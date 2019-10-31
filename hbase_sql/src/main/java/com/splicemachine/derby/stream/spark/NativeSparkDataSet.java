@@ -38,8 +38,8 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.spark.splicemachine.ScalaUtils;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
+import com.splicemachine.sparksql.ParserUtils;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.codec.binary.Base64;
@@ -60,11 +60,9 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.*;
 import static org.apache.spark.sql.functions.*;
 
-import org.apache.spark.sql.catalyst.parser.ParserInterface;
+
 import org.apache.spark.sql.types.*;
 import org.apache.spark.storage.StorageLevel;
-import scala.collection.JavaConversions;
-import scala.collection.mutable.Buffer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -916,8 +914,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
             SparkExpressionNode sparkJoinPred = op.getSparkJoinPredicate();
             if (sparkJoinPred != null) {
-                ParserInterface parser = ScalaUtils.getParser();
-                expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, parser);
+                java.util.function.Function<String, DataType> f =
+                     (String s) -> { return ParserUtils.getDataTypeFromString(s); };
+                expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, f);
             }
             else {
                 for (int i = 0; i < rightJoinKeys.length; i++) {

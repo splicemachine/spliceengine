@@ -35,8 +35,10 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.parser.ParserInterface;
+import org.apache.spark.sql.types.DataType;
 
 import java.io.Externalizable;
+import java.util.function.Function;
 
 /**
   Interface for building an externalizable SQL expression tree,
@@ -55,7 +57,7 @@ extends Externalizable
 
     // Convert the SparkExpressionNode tree into a Spark
     // Column expression (e.g. representing a join condition).
-    Column getColumnExpression(Dataset<Row> leftDF, Dataset<Row> rightDF, ParserInterface parser) throws UnsupportedOperationException;
+    Column getColumnExpression(Dataset<Row> leftDF, Dataset<Row> rightDF, Function<String, DataType> f) throws UnsupportedOperationException;
 
     // Is this a constant TRUE node?
     boolean isTrue();

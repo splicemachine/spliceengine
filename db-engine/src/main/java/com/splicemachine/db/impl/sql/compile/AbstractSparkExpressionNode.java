@@ -36,10 +36,12 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.parser.ParserInterface;
+import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.function.Function;
 
 public abstract class AbstractSparkExpressionNode implements SparkExpressionNode
 {
@@ -74,7 +76,7 @@ public abstract class AbstractSparkExpressionNode implements SparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      ParserInterface parser) throws UnsupportedOperationException{
+                                      Function<String, DataType> f) throws UnsupportedOperationException{
         throw new UnsupportedOperationException();
     }
 
