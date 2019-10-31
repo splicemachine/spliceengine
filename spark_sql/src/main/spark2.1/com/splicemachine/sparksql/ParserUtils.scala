@@ -13,19 +13,19 @@
  *
  */
 
-package com.splicemachine.spark.splicemachine
+package com.splicemachine.sparksql
 
 
 import org.apache.spark.sql.execution.SparkSqlParser
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.parser.ParserInterface
+import org.apache.spark.sql.catalyst.parser.ParseException
+import org.apache.spark.sql.types.{DataType, StringType}
 
-object ScalaUtils {
+object ParserUtils {
 
-  def getParser: ParserInterface = {
-    SparkSession.getActiveSession.map(_.sessionState.sqlParser).getOrElse {
-      new SparkSqlParser(new SQLConf)
-    }
+  def getDataTypeFromString(dataTypeAsString: String): DataType = {
+    throw new UnsupportedOperationException("Only available with Spark 2.2 and higher")
   }
+
 }

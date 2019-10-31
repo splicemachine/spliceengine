@@ -60,6 +60,7 @@ public class OperatorToString {
     public int leftResultSetNumber;
     public int rightResultSetNumber;
 
+    private static final SparkVersion spark_2_2_0 = new SimpleSparkVersion("2.2.0");
     private static final SparkVersion spark_2_3_0 = new SimpleSparkVersion("2.3.0");
 
     OperatorToString(boolean    sparkExpression,
@@ -194,6 +195,8 @@ public class OperatorToString {
                                      true,
                                      leftResultSetNumber,
                                      rightResultSetNumber);
+            if (vars.sparkVersion.lessThan(spark_2_2_0))
+                return null;
             opToString2(operand, vars);
             retval = vars.sparkExpressionTree;
 
