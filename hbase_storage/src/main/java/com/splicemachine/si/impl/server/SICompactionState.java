@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.server;
 
+import com.splicemachine.hbase.TransactionsWatcher;
 import org.spark_project.guava.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
@@ -31,11 +32,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -53,11 +50,9 @@ public class SICompactionState {
     private final CompactionContext context;
     private final ExecutorService executorService;
     private ConcurrentHashMap<Long, Future<TxnView>> futuresCache;
-    private SortedSet<Cell> dataToReturn;
 
     public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context, ExecutorService executorService) {
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize,true);
-        this.dataToReturn  =new TreeSet<>(KeyValue.COMPARATOR);
         this.context = context;
         this.futuresCache = new ConcurrentHashMap<>(1<<19, 0.75f, 64);
         this.executorService = executorService;
@@ -69,8 +64,8 @@ public class SICompactionState {
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean purgeDeletedRows) throws IOException {
-        SICompactionStateMutate impl = new SICompactionStateMutate(purgeDeletedRows);
+    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, EnumSet<PurgeConfig> purgeConfig) throws IOException {
+        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig, TransactionsWatcher.getLowWatermarkTransaction());
         impl.mutate(rawList, txns, results);
     }
 

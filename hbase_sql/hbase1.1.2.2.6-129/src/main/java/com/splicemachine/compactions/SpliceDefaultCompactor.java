@@ -23,6 +23,7 @@ import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.CompactionContext;
+import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -183,9 +184,15 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                     boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    boolean purgeDeletedRows = request.isMajor() ? SpliceCompactionUtils.shouldPurge(store) : false;
+                    EnumSet<PurgeConfig> purgeConfig;
+                    if (request.isMajor())
+                        purgeConfig = EnumSet.of(PurgeConfig.PURGE);
+                    else
+                        purgeConfig = EnumSet.of(PurgeConfig.PURGE, PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+                    if (SpliceCompactionUtils.shouldPurge(store))
+                        purgeConfig = EnumSet.of(PurgeConfig.FORCE_PURGE);
 
-                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
+                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }
