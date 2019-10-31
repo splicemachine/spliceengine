@@ -554,6 +554,9 @@ public final class TransactionResourceImpl
 		return (driver.isActive() && ((database == null) || database.isActive()));
 	}
 
+	public String getIpAddress() {
+		return ipAddress;
+	}
 }
 
 

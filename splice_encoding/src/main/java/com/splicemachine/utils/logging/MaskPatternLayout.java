@@ -1,13 +1,24 @@
+/*
+ * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.splicemachine.utils.logging;
 
-import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
+import com.splicemachine.utils.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MaskPatternLayout extends PatternLayout {
@@ -38,35 +49,7 @@ public class MaskPatternLayout extends PatternLayout {
     }
 
     public static String maskMessage(String message, Pattern maskPattern, String maskString) {
-        Matcher matcher = maskPattern.matcher(message);
-
-        List<Pair<Integer, Integer>> groups = new ArrayList<>();
-        while (matcher.find()) {
-            for (int i = 1; i <= matcher.groupCount(); i++) {
-                groups.add(new Pair<>(matcher.start(i), matcher.end(i)));
-            }
-        }
-        if (groups.size() == 0) {
-            return message;
-        }
-        StringBuilder maskedMessage = new StringBuilder("");
-        for (int i = 0; i <= groups.size(); i++) {
-            int start;
-            int end;
-            if (i == 0) {
-                start = 0;
-            } else {
-                start = groups.get(i-1).getSecond();
-                maskedMessage.append(maskString);
-            }
-            if (i == groups.size()) {
-                end = message.length() - 1;
-            } else {
-                end = groups.get(i).getFirst() - 1;
-            }
-            maskedMessage.append(message.substring(start, end+1));
-        }
-        return String.valueOf(maskedMessage);
+        return StringUtils.maskMessage(message,maskPattern,maskString);
     }
 
     @Override
