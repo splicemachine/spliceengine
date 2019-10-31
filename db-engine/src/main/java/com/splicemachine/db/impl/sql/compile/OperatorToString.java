@@ -778,8 +778,12 @@ public class OperatorToString {
                     if (dvd instanceof SQLChar ||
                         dvd instanceof SQLVarchar ||
                         dvd instanceof SQLLongvarchar ||
-                        dvd instanceof SQLClob)
-                        str = format("\'%s\' ", cn.getValue().getString());
+                        dvd instanceof SQLClob) {
+                        if (vars.buildExpressionTree)
+                            str = format("%s", cn.getValue().getString());
+                        else
+                            str = format("\'%s\' ", cn.getValue().getString());                 
+                    }
                     else if (dvd instanceof SQLDate)
                         str = format("date(\'%s\') ", cn.getValue().getString());
                     else if (dvd instanceof SQLTimestamp)
