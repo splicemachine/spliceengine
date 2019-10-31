@@ -562,9 +562,6 @@ public final class TransactionResourceImpl
 		if (lcc != null)
 			lcc.setClientSupportsDecimal38(newVal);
     	}
-	public String getIpAddress() {
-		return ipAddress;
-	}
 }
 
 
