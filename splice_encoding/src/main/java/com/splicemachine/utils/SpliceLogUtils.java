@@ -57,7 +57,7 @@ public class SpliceLogUtils {
 	public static void error(Logger logger, Throwable error){
 		logger.error(error);
 	}
-	
+
 	public static void error(Logger logger, String message, Throwable error){
 		logger.error(message,error);
 	}
