@@ -160,19 +160,6 @@ message SpliceRegionSizeResponse {
     required int64 sizeInBytes = 2;
 }
 
-service SpliceRegionServerCoprocessorService {
-	rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
-		returns (SpliceOldestActiveTransactionResponse);
-}
-
-message SpliceOldestActiveTransactionRequest {
-
-}
-
-message SpliceOldestActiveTransactionResponse {
-    required int64 oldestActiveTransaction = 1;
-}
-
 service BackupCoprocessorService {
   rpc prepareBackup(PrepareBackupRequest)
   returns (PrepareBackupResponse);
@@ -229,10 +216,21 @@ message GetRegionServerLSNReponse {
     repeated Result result = 2;
 }
 
+message SpliceOldestActiveTransactionRequest {
+
+}
+
+message SpliceOldestActiveTransactionResponse {
+    required int64 oldestActiveTransaction = 1;
+}
+
 message TestResponse {
     optional uint64 count = 1;
 }
 
 service SpliceRSRpcServices {
-    rpc getRegionServerLSN(GetRegionServerLSNRequest) returns (GetRegionServerLSNReponse);
+    rpc getRegionServerLSN(GetRegionServerLSNRequest)
+        returns (GetRegionServerLSNReponse);
+    rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
+        returns (SpliceOldestActiveTransactionResponse);
 }
