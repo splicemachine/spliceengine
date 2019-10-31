@@ -50,9 +50,6 @@ import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.load.Import;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
-import com.splicemachine.db.shared.common.reference.AuditEventType;
-import org.apache.log4j.Logger;
-import com.splicemachine.utils.StringUtils;
 
 import java.security.AccessController;
 import java.security.Policy;
@@ -79,8 +76,6 @@ public class SystemProcedures{
     private final static int SQL_ROWVER=2;
     private final static String DRIVER_TYPE_OPTION="DATATYPE";
     private final static String ODBC_DRIVER_OPTION="'ODBC'";
-
-    private static final Logger AUDITLOG =Logger.getLogger("splice-audit");
 
     // This token delimiter value is used to separate the tokens for multiple 
     // error messages.  This is used in DRDAConnThread
@@ -1690,11 +1685,6 @@ public class SystemProcedures{
         LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
         TransactionController tc=lcc.getTransactionExecute();
 
-        String currentUser=lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
-        String ip = lcc.getClientIPAddress();
-        boolean status = false;
-        String reason = null;
-
         // the first credentials must be those of the DBO and only the DBO
         // can add them
         try{
@@ -1707,6 +1697,8 @@ public class SystemProcedures{
                 }
             }else    // we are trying to create credentials for the DBO
             {
+                String currentUser=lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
+
                 if(!dbo.equals(currentUser)){
                     throw StandardException.newException(SQLState.DBO_ONLY);
                 }
@@ -1718,19 +1710,13 @@ public class SystemProcedures{
             // If there is already a schema then we will let the admin decide what he want to do
             // like granting privileges to that schema manually. Look at SPLICE-1030
             addSchema(userName, userName, lcc);
-            status = true;
 
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
-        }catch (SQLException sqle){
-            status = false;
-            reason = sqle.getMessage();
-            throw sqle;
         }
-        finally {
-            if (AUDITLOG.isInfoEnabled())
-                AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser,AuditEventType.CREATE_USER.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
-        }
+
+
+
 
     }
 
@@ -1806,6 +1792,7 @@ public class SystemProcedures{
                 //    tc.setProperty
                 //        ( Property.AUTHENTICATION_PROVIDER_PARAMETER, Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL, true );
             }
+
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }
@@ -1877,23 +1864,7 @@ public class SystemProcedures{
             String password
     )
             throws SQLException{
-        boolean status = false;
-        LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-        String currentUser=lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
-        String ip = lcc.getClientIPAddress();
-        String reason = null;
-        try{
-            resetAuthorizationIDPassword(normalizeUserName(userName),password);
-            status = true;
-        }catch (SQLException sqle) {
-            status = false;
-            reason = sqle.getMessage();
-            throw sqle;
-        }finally {
-            if (AUDITLOG.isInfoEnabled())
-                AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser, AuditEventType.RESET_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
-        }
-
+        resetAuthorizationIDPassword(normalizeUserName(userName),password);
     }
 
     /**
@@ -1942,22 +1913,7 @@ public class SystemProcedures{
             throws SQLException{
         String currentUser=ConnectionUtil.getCurrentLCC().getStatementContext().getSQLSessionContext().getCurrentUser();
 
-        boolean status = false;
-        LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-        String ip = lcc.getClientIPAddress();
-        String reason = null;
-        try{
-            resetAuthorizationIDPassword(currentUser,password);
-            status = true;
-        }catch (SQLException sqle){
-            status = false;
-            reason = sqle.getMessage();
-            throw sqle;
-        }finally {
-            if (AUDITLOG.isInfoEnabled())
-                AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser,AuditEventType.MODIFY_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
-        }
-
+        resetAuthorizationIDPassword(currentUser,password);
     }
 
     /**
@@ -1969,13 +1925,9 @@ public class SystemProcedures{
     )
             throws SQLException{
         userName=normalizeUserName(userName);
-        LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
-        String currentUser=lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
-        String ip = lcc.getClientIPAddress();
 
-        boolean status = false;
-        String reason = null;
         try{
+            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
             DataDictionary dd=lcc.getDataDictionary();
             String dbo=dd.getAuthorizationDatabaseOwner();
 
@@ -1998,15 +1950,9 @@ public class SystemProcedures{
             dd.startWriting(lcc);
 
             dd.dropUser(userName,lcc.getTransactionExecute());
-            status = true;
 
         }catch(StandardException se){
-            status = false;
-            reason = se.getMessage();
             throw PublicAPI.wrapStandardException(se);
-        }finally {
-            if (AUDITLOG.isInfoEnabled())
-                AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser, AuditEventType.DROP_USER.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
         }
     }
 
