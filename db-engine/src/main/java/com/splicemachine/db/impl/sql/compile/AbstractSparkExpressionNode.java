@@ -76,7 +76,7 @@ public abstract class AbstractSparkExpressionNode implements SparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      Function<String, DataType> f) throws UnsupportedOperationException{
+                                      Function<String, DataType> convertStringToDataTypeFunction) throws UnsupportedOperationException{
         throw new UnsupportedOperationException();
     }
 
