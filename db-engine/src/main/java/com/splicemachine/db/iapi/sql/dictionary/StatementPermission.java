@@ -40,7 +40,11 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.shared.common.reference.AuditEventType;
+import com.splicemachine.utils.StringUtils;
+import org.apache.log4j.Logger;
 
+import java.sql.CallableStatement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,6 +66,9 @@ public abstract class StatementPermission {
 	public static final int UNAUTHORIZED = 0;
 	public static final int AUTHORIZED = 1;
 	public static final int NONE = 2;
+
+	private static final Logger AUDITLOG=Logger.getLogger("splice-audit");
+
 	/**
 	 * Restrict implementations to this package to reduce
 	 * risk of external code spoofing the GRANT/REVOKE system
@@ -230,29 +237,52 @@ public abstract class StatementPermission {
         {
             PrivilegedSQLObject pso = getPrivilegedObject( dd );
 
-			if( pso == null )
-            {
-				throw StandardException.newException
-                    ( SQLState.AUTH_INTERNAL_BAD_UUID, getObjectType() );
-            }
+			try {
+				if (pso == null) {
+					throw StandardException.newException
+							(SQLState.AUTH_INTERNAL_BAD_UUID, getObjectType());
+				}
 
-			SchemaDescriptor sd = pso.getSchemaDescriptor();
+				SchemaDescriptor sd = pso.getSchemaDescriptor();
+				if (sd == null) {
+					throw StandardException.newException(
+							SQLState.AUTH_INTERNAL_BAD_UUID, "SCHEMA");
+				}
 
-			if( sd == null)
-            {
 				throw StandardException.newException(
-					SQLState.AUTH_INTERNAL_BAD_UUID, "SCHEMA");
-            }
+						(forGrant
+								? SQLState.AUTH_NO_GENERIC_PERMISSION_FOR_GRANT
+								: SQLState.AUTH_NO_GENERIC_PERMISSION),
+						lcc.getCurrentUserId(activation),
+						privilegeType,
+						getObjectType(),
+						sd.getSchemaName(),
+						pso.getName());
+			}
+			catch(StandardException se){
+				if (AUDITLOG.isInfoEnabled()
+						&& privilegeType.equalsIgnoreCase("EXECUTE")
+						&& (!se.getMessageId().equals(SQLState.AUTH_INTERNAL_BAD_UUID))){
 
-			throw StandardException.newException(
-				(forGrant
-				 ? SQLState.AUTH_NO_GENERIC_PERMISSION_FOR_GRANT
-				 : SQLState.AUTH_NO_GENERIC_PERMISSION),
-                lcc.getCurrentUserId(activation),
-                privilegeType,
-				getObjectType(),
-				sd.getSchemaName(),
-				pso.getName());
+					String userid = lcc.getCurrentUserId(activation);
+					boolean status = false;
+					String ip = lcc.getClientIPAddress();
+					String statement = lcc.getStatementContext().getStatementText();
+					String procedure = pso.getName();
+					String schema = pso.getSchemaDescriptor().getSchemaName();
+
+					// Check whether the procedure in the audit procedure list
+					for (AuditEventType t : AuditEventType.values())
+					{
+						String[] p = t.getProcedure().split("\\.");
+						if (p.length == 2 && schema.equals(p[0]) && procedure.equals(p[1])) {
+							AUDITLOG.info(StringUtils.logSpliceAuditEvent(userid,t.name(),status,ip,statement,se.getMessage()));
+							break;
+						}
+					}
+				}
+				throw se;
+			}
 		}
 
 	} // end of genericCheck
