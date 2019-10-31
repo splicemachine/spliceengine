@@ -35,7 +35,7 @@ import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
 /**
- * Test native spark broadcast join and mergesort join with inequality join conditions.
+ * Test native spark mergesort join with inequality join conditions.
  */
 @RunWith(Parameterized.class)
 public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
@@ -45,11 +45,8 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
-        params.add(new Object[]{"BROADCAST","true"});
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(1);
         params.add(new Object[]{"SORTMERGE","true"});
-        params.add(new Object[]{"BROADCAST","false"});
-        params.add(new Object[]{"SORTMERGE","false"});
         return params;
     }
 
