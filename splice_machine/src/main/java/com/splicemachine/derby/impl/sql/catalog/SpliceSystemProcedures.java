@@ -1481,6 +1481,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .returnType(DataTypeDescriptor.getCatalogType(Types.CHAR,1))
                             .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
                             .integer("I")
+                            .build(),
+                    Procedure.newBuilder().name("HEX")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.DB2_VARCHAR_MAXWIDTH))
+                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                            .varchar("S",Limits.DB2_VARCHAR_MAXWIDTH / 2)
                             .build()
             		)
             );
