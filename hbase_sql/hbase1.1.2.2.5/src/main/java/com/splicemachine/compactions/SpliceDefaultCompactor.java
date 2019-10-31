@@ -179,9 +179,9 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                     boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    boolean purgeDeletedRows = request.isMajor() ? SpliceCompactionUtils.shouldPurge(store) : false;
+                    boolean purgeDeletedRows = request.isMajor() && SpliceCompactionUtils.shouldPurge(store);
 
-                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
+                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, !request.isMajor(), resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }

@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.CellUtils;
+import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -10,21 +11,20 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 
 class SICompactionStateMutate {
     private SortedSet<Cell> dataToReturn;
-    private final boolean purgeDeletedRows;
+    private final EnumSet<PurgeConfig> purgeConfig;
     private long maxTombstoneTimestamp;
+    private long lowWatermarkTransaction;
 
-    SICompactionStateMutate(boolean purgeDeletedRows) {
-        this.purgeDeletedRows = purgeDeletedRows;
+    SICompactionStateMutate(EnumSet<PurgeConfig> purgeConfig, long lowWatermarkTransaction) {
+        this.purgeConfig = purgeConfig;
         this.dataToReturn = new TreeSet<>(KeyValue.COMPARATOR);
         this.maxTombstoneTimestamp = 0;
+        this.lowWatermarkTransaction = lowWatermarkTransaction;
     }
 
     private boolean isSorted(List<Cell> list) {
@@ -55,7 +55,8 @@ class SICompactionStateMutate {
             TxnView txn = it.next();
             mutate(aRawList, txn);
         }
-        if (purgeDeletedRows && maxTombstoneTimestamp > 0) {
+        if (purgeConfig.contains(PurgeConfig.FORCE_PURGE) ||
+                (purgeConfig.contains(PurgeConfig.PURGE) && maxTombstoneTimestamp > 0)) {
             removeTombStone(maxTombstoneTimestamp);
         }
         results.addAll(dataToReturn);
@@ -88,8 +89,12 @@ class SICompactionStateMutate {
              */
             long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
             dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
-            if (cellType == CellType.TOMBSTONE && element.getTimestamp() > maxTombstoneTimestamp) {
-                maxTombstoneTimestamp = element.getTimestamp();
+            if (cellType == CellType.TOMBSTONE) {
+                long t = element.getTimestamp();
+                if (t > maxTombstoneTimestamp &&
+                        (purgeConfig.contains(PurgeConfig.FORCE_PURGE) || t < lowWatermarkTransaction)) {
+                    maxTombstoneTimestamp = t;
+                }
             }
         }
         // Committed or active, return the original data too
@@ -100,7 +105,9 @@ class SICompactionStateMutate {
         SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
         for (Cell element : cp) {
             long timestamp = element.getTimestamp();
-            if (timestamp <= maxTombstone) {
+            if (timestamp == maxTombstone && !purgeConfig.contains(PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE))
+                dataToReturn.remove(element);
+            else if (timestamp < maxTombstoneTimestamp) {
                 dataToReturn.remove(element);
             }
         }
