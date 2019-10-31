@@ -468,7 +468,7 @@ To edit the HBase configuration, click `HBase` in the Ambari *Services* sidebar.
    splice.txn.concurrencyLevel=4096
    hbase.master.hfilecleaner.plugins=com.splicemachine.hbase.SpliceHFileCleaner,org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner   
    ````
-   
+
 5. Save Changes
 
    Click the `Save` button to save your changes. You'll be prompted to optionally add a note such as `Updated HDFS configuration for Splice Machine`. Click `Save` again.   
