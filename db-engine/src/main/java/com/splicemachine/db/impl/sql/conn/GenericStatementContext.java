@@ -60,6 +60,7 @@ import com.splicemachine.db.iapi.services.context.ContextImpl;
 
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.utils.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -789,8 +790,7 @@ final class GenericStatementContext
 		if (sb != null) {
 
 			sb.append("Failed Statement is: ");
-
-			sb.append(getStatementText());
+			sb.append(StringUtils.maskMessage(getStatementText(), StringUtils.maskPasswordPattern, StringUtils.maskString));
 
 			if ((pvs != null) && pvs.getParameterCount() > 0)
 			{
