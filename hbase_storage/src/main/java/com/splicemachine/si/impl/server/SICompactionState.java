@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.server;
 
+import com.splicemachine.hbase.TransactionsWatcher;
 import org.spark_project.guava.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
@@ -69,28 +70,30 @@ public class SICompactionState {
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean purgeDeletedRows) throws IOException {
+    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean forcePurgingDeletedRows, boolean keepTombstones) throws IOException {
         dataToReturn.clear();
+        long lowWatermarkTransaction = TransactionsWatcher.INSTANCE.getLowWatermarkTransaction();
         long maxTombstone = 0;
         Iterator<TxnView> it = txns.iterator();
         for (Cell aRawList : rawList) {
             TxnView txn = it.next();
             long t = mutate(aRawList, txn);
-            if (t > maxTombstone) {
+            if (maxTombstone < t && t < lowWatermarkTransaction)
                 maxTombstone = t;
-            }
         }
-        if (purgeDeletedRows && maxTombstone > 0) {
-            removeTombStone(maxTombstone);
+        if (forcePurgingDeletedRows || maxTombstone > 0) {
+            removeDeletedRows(maxTombstone, keepTombstones);
         }
         results.addAll(dataToReturn);
     }
 
-    private void removeTombStone(long maxTombstone) {
+    private void removeDeletedRows(long maxTombstone, boolean keepTombstones) {
         SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
         for (Cell element : cp) {
             long timestamp = element.getTimestamp();
-            if (timestamp <= maxTombstone) {
+            if (timestamp == maxTombstone && !keepTombstones)
+                dataToReturn.remove(element);
+            else if (timestamp < maxTombstone) {
                 dataToReturn.remove(element);
             }
         }

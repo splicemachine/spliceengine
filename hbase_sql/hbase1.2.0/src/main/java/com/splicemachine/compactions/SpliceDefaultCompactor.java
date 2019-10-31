@@ -195,7 +195,7 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                             driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                     boolean purgeDeletedRows = request.isMajor() && SpliceCompactionUtils.shouldPurge(store);
 
-                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
+                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, !request.isMajor(), resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }

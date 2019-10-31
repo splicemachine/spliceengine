@@ -34,8 +34,12 @@ public class SICompactionScanner extends AbstractSICompactionScanner {
 
     public SICompactionScanner(SICompactionState compactionState,
                                InternalScanner scanner,
-                               boolean purgeDeletedRows, double resolutionShare, int bufferSize, CompactionContext context) {
-        super(compactionState, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
+                               boolean purgeDeletedRows,
+                               boolean keepTombstones,
+                               double resolutionShare,
+                               int bufferSize,
+                               CompactionContext context) {
+        super(compactionState, scanner, purgeDeletedRows, keepTombstones, resolutionShare, bufferSize, context);
     }
 
 

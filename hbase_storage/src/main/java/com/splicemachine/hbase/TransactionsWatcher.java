@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class TransactionsWatcher {
     private static final Logger LOG = Logger.getLogger(TransactionsWatcher.class);
     private static final AtomicBoolean started = new AtomicBoolean(false);
-    private static AtomicLong oldestActiveTransaction = new AtomicLong(Long.MAX_VALUE);
+    private static AtomicLong lowWatermarkTransaction = new AtomicLong(Long.MAX_VALUE);
 
     public static TransactionsWatcher INSTANCE = new TransactionsWatcher();
 
@@ -42,9 +42,15 @@ public class TransactionsWatcher {
             MoreExecutors.namedSingleThreadScheduledExecutor("hbase-transactions-watcher-%d");
 
     private static final Runnable updater = () -> {
-        oldestActiveTransaction.set(fetchOldestActiveTransaction());
+        long fetchTimestamp = SIDriver.driver().getTimestampSource().nextTimestamp();
+        long oldestActiveTransaction = fetchOldestActiveTransaction();
+        if (oldestActiveTransaction == Long.MAX_VALUE) {
+            lowWatermarkTransaction.set(fetchTimestamp);
+        } else {
+            lowWatermarkTransaction.set(oldestActiveTransaction);
+        }
         if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Oldest Active transaction fetched: %d", oldestActiveTransaction.get()));
+            LOG.debug(String.format("lowWatermarkTransaction set: %d", lowWatermarkTransaction.get()));
         }
     };
 
@@ -99,7 +105,7 @@ public class TransactionsWatcher {
         return oldestActiveTransaction;
     }
 
-    private static long getOldestActiveTransaction() {
-        return oldestActiveTransaction.get();
+    public static long getLowWatermarkTransaction() {
+        return lowWatermarkTransaction.get();
     }
 }
