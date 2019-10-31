@@ -3014,7 +3014,7 @@ TOKEN [IGNORE_CASE] :
 |	<SQL_TSI_YEAR: "sql_tsi_year">
 |	<START: "start">
 |	<STATEMENT: "statement">
-|	<SYNONYM: "synonym">
+|	<SYNONYM: "synonym" | "alias">
 |	<T: "t">
 |	<THEN: "then">
 |	<TIME: "time">
