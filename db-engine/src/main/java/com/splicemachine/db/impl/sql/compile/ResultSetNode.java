@@ -1429,7 +1429,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @return Whether or not this ResultSet tree is guaranteed to return
      * at most 1 row based on heuristics.
      */
-    boolean returnsAtMostOneRow(){
+    boolean returnsAtMostOneRow() throws StandardException {
         return false;
     }
 

@@ -48,39 +48,39 @@ public class Subquery_Flattening_NotExists_Union_IT {
     public void union_unCorrelated() throws Exception {
         // union of empty tables
         String sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE union select 1 from EMPTY_TABLE)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, RESULT_ALL_OF_A);
 
         // union one non-empty first subquery
         sql = "select * from A where NOT exists(select 1 from C union select 1 from EMPTY_TABLE)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "");
 
         // union one non-empty second subquery
         sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE union select 1 from C)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "");
 
         // union, three unions
         sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE union select 1 from C union select 1 from D)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "");
 
         // non-empty tables, where subquery predicates eliminate all rows
         sql = "select * from A where NOT exists(select 1 from C where c1 > 999999 union select 1 from D where d1 < -999999)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, RESULT_ALL_OF_A);
 
         // non-empty tables, where subquery predicates eliminate all rows in ONE table
         sql = "select * from A where NOT exists(select 1 from C where c1 > 999999 union select 1 from D where d1 = 0)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "");
 
         // unions with column references
         sql = "select * from A where NOT exists(select c1,c2 from C union select d1,d2 from D)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "");
 
         // unions referencing all columns
         sql = "select * from A where NOT exists(select * from C union select * from D)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "");
 
         // union same table
         sql = "select * from A where NOT exists(select * from A union select * from A)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "");
     }
 
     @Test
@@ -169,11 +169,11 @@ public class Subquery_Flattening_NotExists_Union_IT {
     @Test
     public void unionAll_unCorrelated() throws Exception {
         String sql = "select * from A where NOT exists(select 1 from EMPTY_TABLE union ALL select 1 from EMPTY_TABLE)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, RESULT_ALL_OF_A);
 
         // non-empty tables, where subquery predicates eliminate all rows in ONE table
         sql = "select * from A where NOT exists(select 1 from C where c1 > 999999 union ALL select 1 from D where d1 = 0)";
-        assertUnorderedResult(conn(), sql, ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), sql, ONE_SUBQUERY_NODE, "");
     }
 
     @Ignore
