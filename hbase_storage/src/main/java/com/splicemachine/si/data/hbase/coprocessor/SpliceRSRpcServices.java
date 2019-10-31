@@ -31,8 +31,8 @@ import java.io.IOException;
  * @author Scott Fines
  *         Date: 1/26/16
  */
-public class RegionServerEndpoint extends SpliceMessage.SpliceRegionServerCoprocessorService implements SingletonCoprocessorService, Coprocessor {
-    private static final Logger LOG=Logger.getLogger(RegionServerEndpoint.class);
+public class SpliceRSRpcServices extends SpliceMessage.SpliceRegionServerCoprocessorService implements SingletonCoprocessorService, Coprocessor {
+    private static final Logger LOG=Logger.getLogger(SpliceRSRpcServices.class);
 
     @Override
     public void start(CoprocessorEnvironment env) throws IOException{
