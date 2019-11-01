@@ -47,7 +47,6 @@ import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
@@ -1620,14 +1619,15 @@ public final class SQLTimestamp extends DataType
 	        if (isNull())
 		            unsafeRowWriter.setNullAt(ordinal);
 	        else {
-				BufferHolder holder = unsafeRowWriter.holder();
-				holder.grow(12);
-				Platform.putInt(holder.buffer, holder.cursor, encodedDate);
-		        Platform.putInt(holder.buffer, holder.cursor + 4, encodedTime);
-		        Platform.putInt(holder.buffer, holder.cursor + 8, nanos);
-		        unsafeRowWriter.setOffsetAndSize(ordinal, 12);
-				holder.cursor += 12;
-			}
+			// Row size should be a multiple of 8.
+			unsafeRowWriter.grow(16);
+			Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor(), encodedDate);
+		        Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor() + 4, encodedTime);
+		        Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor() + 8, nanos);
+		        int previousCursor = unsafeRowWriter.cursor();
+			unsafeRowWriter.increaseCursor(16);
+			unsafeRowWriter.setOffsetAndSizeFromPreviousCursor(ordinal, previousCursor);
+		}
 	    }
 
 	/**
@@ -1670,6 +1670,11 @@ public final class SQLTimestamp extends DataType
 			nanos = Platform.getInt(data, 24);
 			isNull = false;
 		}
+	}
+
+	@Override
+	public int getUnsafeArrayElementSize() {
+	    	return 8;
 	}
 
 	/**

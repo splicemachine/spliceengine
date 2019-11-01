@@ -337,6 +337,11 @@ public class SQLRef extends DataType implements RefDataValue {
 		}
 	}
 
+	@Override
+	public int getUnsafeArrayElementSize() {
+	    	return 8;
+	}
+
 	/**
 	 *
 	 * Read into a Project Tungsten format.  This calls the Reference's

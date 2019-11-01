@@ -27,6 +27,7 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -36,12 +37,10 @@ import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
 import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.unsafe.Platform;
 import scala.util.hashing.MurmurHash3;
 
 import javax.ws.rs.NotSupportedException;
@@ -417,9 +416,15 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		if (isNull()) {
 			unsafeRowWriter.setNullAt(ordinal);
 		} else {
-			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter();
-			BufferHolder bh = new BufferHolder(new UnsafeRow(value.length));
-			unsafeArrayWriter.initialize(bh, value.length, 8); // 4 bytes for int?
+			int oldCursor = unsafeRowWriter.cursor();
+			int elementSize = 8;
+			for (int i = 0; i < value.length; i++)
+				if (value[i] != null) {
+					elementSize = value[i].getUnsafeArrayElementSize();
+					break;
+				}
+			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter(unsafeRowWriter, elementSize);
+			unsafeArrayWriter.initialize(value.length);
 			for (int i = 0; i< value.length; i++) {
 				if (value[i] == null || value[i].isNull()) {
 					unsafeArrayWriter.setNull(i);
@@ -427,10 +432,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 					value[i].writeArray(unsafeArrayWriter, i);
 				}
 			}
-			long currentOffset = unsafeRowWriter.holder().cursor;
-			unsafeRowWriter.setOffsetAndSize(ordinal, bh.cursor-16);
-			unsafeRowWriter.holder().grow(bh.cursor-16);
-			Platform.copyMemory(bh.buffer,16,unsafeRowWriter.holder().buffer,currentOffset,bh.cursor-16);
+			unsafeRowWriter.setOffsetAndSizeFromPreviousCursor(ordinal, oldCursor);
 		}
 	}
 
@@ -467,6 +469,12 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	@Override
 	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
 		throw new NotSupportedException("Nested Arrays Not Supported Currently");
+	}
+
+	@Override
+	public int getUnsafeArrayElementSize() throws StandardException {
+		throw(StandardException.newException(
+		    SQLState.HEAP_UNIMPLEMENTED_FEATURE));
 	}
 
 	@Override

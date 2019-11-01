@@ -70,6 +70,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -157,7 +159,6 @@ import org.apache.hadoop.hbase.trace.TraceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.CancelableProgressable;
 import org.apache.hadoop.hbase.util.ClassSize;
-import org.apache.hadoop.hbase.util.CollectionUtils;
 import org.apache.hadoop.hbase.util.CompressionTest;
 import org.apache.hadoop.hbase.util.EncryptionTest;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
@@ -291,7 +292,8 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
 
     // Track data size in all memstores
     private final MemStoreSizing memStoreSizing = new ThreadSafeMemStoreSizing();
-    private final RegionServicesForStores regionServicesForStores = new RegionServicesForStores(this);
+    final RegionServerServices rsServices;
+    private final RegionServicesForStores regionServicesForStores;
 
     // Debug possible data loss due to WAL off
     final LongAdder numMutationsWithoutWAL = new LongAdder();
@@ -644,7 +646,6 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
     // Last flush time for each Store. Useful when we are flushing for each column
     private final ConcurrentMap<HStore, Long> lastStoreFlushTimeMap = new ConcurrentHashMap<>();
 
-    final RegionServerServices rsServices;
     private RegionServerAccounting rsAccounting;
     private long flushCheckInterval;
     // flushPerChanges is to prevent too many changes in memstore
@@ -764,6 +765,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
             }
         }
         this.rsServices = rsServices;
+        this.regionServicesForStores = new RegionServicesForStores(this, rsServices);
         setHTableSpecificConf();
         this.scannerReadPoints = new ConcurrentHashMap<>();
 
@@ -1218,28 +1220,28 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
      * store
      */
     void incMemStoreSize(MemStoreSize mss) {
-        incMemStoreSize(mss.getDataSize(), mss.getHeapSize(), mss.getOffHeapSize());
+        incMemStoreSize(mss.getDataSize(), mss.getHeapSize(), mss.getOffHeapSize(), mss.getCellsCount());
     }
 
-    void incMemStoreSize(long dataSizeDelta, long heapSizeDelta, long offHeapSizeDelta) {
+    void incMemStoreSize(long dataSizeDelta, long heapSizeDelta, long offHeapSizeDelta, int cellsCountDelta) {
         if (this.rsAccounting != null) {
             rsAccounting.incGlobalMemStoreSize(dataSizeDelta, heapSizeDelta, offHeapSizeDelta);
         }
         long dataSize =
-                this.memStoreSizing.incMemStoreSize(dataSizeDelta, heapSizeDelta, offHeapSizeDelta);
+                this.memStoreSizing.incMemStoreSize(dataSizeDelta, heapSizeDelta, offHeapSizeDelta, cellsCountDelta);
         checkNegativeMemStoreDataSize(dataSize, dataSizeDelta);
     }
 
     void decrMemStoreSize(MemStoreSize mss) {
-        decrMemStoreSize(mss.getDataSize(), mss.getHeapSize(), mss.getOffHeapSize());
+        decrMemStoreSize(mss.getDataSize(), mss.getHeapSize(), mss.getOffHeapSize(), mss.getCellsCount());
     }
 
-    void decrMemStoreSize(long dataSizeDelta, long heapSizeDelta, long offHeapSizeDelta) {
+    void decrMemStoreSize(long dataSizeDelta, long heapSizeDelta, long offHeapSizeDelta, int cellsCountDelta) {
         if (this.rsAccounting != null) {
             rsAccounting.decGlobalMemStoreSize(dataSizeDelta, heapSizeDelta, offHeapSizeDelta);
         }
         long dataSize =
-                this.memStoreSizing.decMemStoreSize(dataSizeDelta, heapSizeDelta, offHeapSizeDelta);
+                this.memStoreSizing.decMemStoreSize(dataSizeDelta, heapSizeDelta, offHeapSizeDelta, cellsCountDelta);
         checkNegativeMemStoreDataSize(dataSize, -dataSizeDelta);
     }
 
@@ -2690,7 +2692,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
 
             // Set down the memstore size by amount of flush.
             MemStoreSize mss = prepareResult.totalFlushableSize.getMemStoreSize();
-            this.decrMemStoreSize(mss.getDataSize(), mss.getHeapSize(), mss.getOffHeapSize());
+            this.decrMemStoreSize(mss.getDataSize(), mss.getHeapSize(), mss.getOffHeapSize(), mss.getCellsCount());
 
             if (wal != null) {
                 // write flush marker to WAL. If fail, we should throw DroppedSnapshotException
@@ -3106,7 +3108,7 @@ public class HRegion implements HeapSize, PropagatingConfigurationObserver, Regi
             });
             // update memStore size
             region.incMemStoreSize(memStoreAccounting.getDataSize(), memStoreAccounting.getHeapSize(),
-                    memStoreAccounting.getOffHeapSize());
+                    memStoreAccounting.getOffHeapSize(), memStoreAccounting.getCellsCount());
         }
 
         public boolean isDone() {

@@ -37,8 +37,6 @@ import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -58,26 +56,24 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLChar value = new SQLChar("Splice Machine");
                 SQLChar valueA = new SQLChar();
                 writer.reset();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect","Splice Machine",row.getString(0));
-                valueA.read(row,0);
+                Assert.assertEquals("SerdeIncorrect","Splice Machine",writer.getRow().getString(0));
+                valueA.read(writer.getRow(),0);
                 Assert.assertEquals("SerdeIncorrect","Splice Machine",valueA.getString());
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLChar value = new SQLChar();
                 SQLChar valueA = new SQLChar();
                 value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
+                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
+                value.read(writer.getRow(), 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
 
@@ -151,8 +147,7 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(1);
                 SQLArray value = new SQLArray();
                 value.setType(new SQLChar());
                 value.setValue(new DataValueDescriptor[] {new SQLChar("23"),new SQLChar("48"),
@@ -161,7 +156,7 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
                 valueA.setType(new SQLChar());
                 writer.reset();
                 value.write(writer,0);
-                valueA.read(row,0);
+                valueA.read(writer.getRow(),0);
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
 
         }

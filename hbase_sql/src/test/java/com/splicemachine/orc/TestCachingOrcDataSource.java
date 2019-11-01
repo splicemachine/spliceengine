@@ -166,7 +166,6 @@ public class TestCachingOrcDataSource
         assertEquals(testingOrcDataSource.getLastReadRanges(), ImmutableList.of(new DiskRange(4 + 1048576 * 5, 3 * 1048576)));
     }
 
-    @Test
     public void testIntegration()
             throws IOException
     {

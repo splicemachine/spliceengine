@@ -162,6 +162,22 @@
                     <groupId>org.apache.parquet</groupId>
                     <artifactId>parquet-hadoop-bundle</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-1.2-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <!-- Kafka dependencies -->
@@ -856,6 +872,7 @@
                                 <argument>${project.build.directory}/classes</argument>
                                 <argument>${secure}</argument>
                                 <argument>${nodeCount}</argument>
+                                <argument>-Dlog4j.configurationFile=${log4j.config.uri}</argument>
                             </arguments>
                         </configuration>
                     </plugin>
@@ -953,6 +970,7 @@
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
                                 <argument>-Dsplice.spark.scheduler.mode=FAIR</argument>
+                                <argument>-Dsplice.spark.blacklist.enabled=false</argument>
                                 <argument>-Dsplice.spark.serializer=com.splicemachine.serializer.SpliceKryoSerializer
                                 </argument>
                                 <argument>-Dsplice.spark.shuffle.compress=false</argument>
@@ -1081,6 +1099,22 @@
                 <extraDependency2>splice_ranger_admin</extraDependency2>
                 <extraDependency3>splice_atlas</extraDependency3>
             </properties>
+        </profile>
+        <profile>
+            <id>cdh6.3.0</id>
+            <properties>
+                <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>com.splicemachine</groupId>
+                    <artifactId>splice_sentry</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>${envClassifier}</classifier>
+                </dependency>
+            </dependencies>
         </profile>
         <profile>
             <id>dbaas</id>
