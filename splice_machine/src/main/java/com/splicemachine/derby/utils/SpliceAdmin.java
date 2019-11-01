@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.db.PropertyInfo;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -61,6 +62,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
@@ -685,13 +687,26 @@ public class SpliceAdmin extends BaseAdminProcedures{
      *                   than one table, if the table has an index, for instance.
      * @throws SQLException
      */
-    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException{
+    public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException {
+        LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        DataDictionary dd = lcc.getDataDictionary();
         // sys query for table conglomerate for in schema
-        PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
-        for(long conglomID : getConglomNumbers(getDefaultConn(),schemaName,tableName)){
-            try(Partition partition=tableFactory.getTable(Long.toString(conglomID))){
+        PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
+        for (long conglomID : getConglomNumbers(getDefaultConn(), schemaName, tableName)) {
+            try {
+                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomID);
+                if (cd != null) {
+                    TableDescriptor td = dd.getTableDescriptor(cd.getTableID());
+                    // External tables can't be compacted.
+                    if (td != null && td.isExternal())
+                        continue;
+                }
+            } catch (StandardException e) {
+                throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+            }
+            try (Partition partition = tableFactory.getTable(Long.toString(conglomID))) {
                 partition.compact(true);
-            }catch(IOException e){
+            } catch (IOException e) {
                 throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
         }
@@ -2268,12 +2283,15 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 }
                 else {
                     colDef.append(" DEFAULT ");
-                    if (colType.indexOf("CHAR") > -1 || colType.indexOf("VARCHAR") > -1
-                            || colType.indexOf("LONG VARCHAR") > -1 || colType.indexOf("CLOB") > -1 ) {
-                        defaultText = "'" + defaultText + "'";
-                    }
-                    else if (colType.indexOf("DATE") > -1 || colType.indexOf("TIME") > -1 || colType.indexOf("TIMESTAMP") > -1){
-                        if ((defaultText = defaultText.toUpperCase()).indexOf("CURRENT") == -1 )
+                    if (colType.indexOf("CHAR") > -1
+                            || colType.indexOf("VARCHAR") > -1
+                            || colType.indexOf("LONG VARCHAR") > -1
+                            || colType.indexOf("CLOB") > -1
+                            || colType.indexOf("DATE") > -1
+                            || colType.indexOf("TIME") > -1
+                            || colType.indexOf("TIMESTAMP") > -1
+                    ) {
+                        if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
                             defaultText = "'" + defaultText + "'";
                     }
                 }
@@ -2449,4 +2467,66 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
         return false;
     }
+
+    /**
+     * Create or update all system stored procedures.  If the system stored procedure alreadys exists in the data dictionary,
+     * the stored procedure will be dropped and then created again.
+     *
+     * @throws SQLException
+     */
+    public static void SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES()
+            throws SQLException{
+        try{
+            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
+            TransactionController tc=lcc.getTransactionExecute();
+            DataDictionary dd=lcc.getDataDictionary();
+
+            dd.startWriting(lcc);
+            TxnView activeTransaction = ((SpliceTransactionManager) tc).getActiveStateTxn();
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSystemProcedure(activeTransaction.getTxnId());
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+            dd.createOrUpdateAllSystemProcedures(tc);
+
+        }catch(StandardException se){
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
+    /**
+     * Create or update a system stored procedure.  If the system stored procedure alreadys exists in the data dictionary,
+     * the stored procedure will be dropped and then created again.
+     *
+     * @param schemaName name of the system schema
+     * @param procName   name of the system stored procedure
+     * @throws SQLException
+     */
+    public static void SYSCS_UPDATE_SYSTEM_PROCEDURE(String schemaName,String procName)
+            throws SQLException{
+        try{
+            LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
+            TransactionController tc=lcc.getTransactionExecute();
+            DataDictionary dd=lcc.getDataDictionary();
+
+            /*
+            ** Inform the data dictionary that we are about to write to it.
+            ** There are several calls to data dictionary "get" methods here
+            ** that might be done in "read" mode in the data dictionary, but
+            ** it seemed safer to do this whole operation in "write" mode.
+            **
+            ** We tell the data dictionary we're done writing at the end of
+            ** the transaction.
+            */
+            dd.startWriting(lcc);
+
+            TxnView activeTransaction = ((SpliceTransactionManager) tc).getActiveStateTxn();
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSystemProcedure(activeTransaction.getTxnId());
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+            dd.createOrUpdateSystemProcedure(schemaName,procName,tc);
+        }catch(StandardException se){
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
+
 }

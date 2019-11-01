@@ -579,10 +579,22 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override
-    public void setLocalCostPerPartition(double remoteCost){ }
+    public void setLocalCostPerPartition(double remoteCost) { }
 
     @Override
-    public double localCostPerPartition(){ return 0;}
+    public void setLocalCostPerPartition(double localCost, int numPartitions) { }
+
+    @Override
+    public void setRemoteCostPerPartition(double remoteCost, int numPartitions) { }
+
+    @Override
+    public double getLocalCostPerPartition() { return 0; }
+
+    @Override
+    public double getRemoteCostPerPartition() { return 0; }
+
+    @Override
+    public void setRemoteCostPerPartition(double remoteCost) { }
 
     @Override
     public double getAccumulatedMemory() {

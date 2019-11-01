@@ -234,11 +234,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 ap.getConglomerateDescriptor(),
                 true,
                 ap.getNonMatchingIndexScan(),
-                ap.getCoveringIndexScan());
+                ap.getCoveringIndexScan(),
+                true);
     }
 
     @Override
-    public void classify(Optimizable optTable,ConglomerateDescriptor cd) throws StandardException{
+    public void classify(Optimizable optTable,ConglomerateDescriptor cd, boolean considerJoinPredicateAsKey) throws StandardException{
 		/*
 		** Don't push the predicates - at this point, we are only determining
 		** which predicates are useful.  Also, we don't know yet whether
@@ -246,7 +247,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		** this method call will help determine that.  So, let's say they're
 		** false for now.
 		*/
-        orderUsefulPredicates(optTable,cd,false,false,false);
+        orderUsefulPredicates(optTable,cd,false,false,false, considerJoinPredicateAsKey);
     }
 
     @Override
@@ -671,7 +672,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                        ConglomerateDescriptor cd,
                                        boolean pushPreds,
                                        boolean nonMatchingIndexScan,
-                                       boolean coveringIndexScan) throws StandardException{
+                                       boolean coveringIndexScan,
+                                       boolean considerJoinPredicateAsKey) throws StandardException{
         boolean primaryKey=false;
         int[] baseColumnPositions=null;
         boolean[] isAscending=null;
@@ -1153,7 +1155,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 				** We're working on a new index column for the start position.
 				** Is it just one more than the previous position?
 				*/
-                if((thisIndexPosition-currentStartPosition)> numColsInStartPred){
+                if((thisIndexPosition-currentStartPosition)> numColsInStartPred ||
+                        !considerJoinPredicateAsKey && thisPred.isJoinPredicate()){
 					/*
 					** There's a gap in the start positions.  Don't mark any
 					** more predicates as start predicates.
@@ -1195,7 +1198,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
 			/* Same as above, except for stop keys */
             if(currentStopPosition + numColsInStopPred <= thisIndexPosition || thisIndexPosition == -1){
-                if((thisIndexPosition-currentStopPosition)> numColsInStopPred){
+                if((thisIndexPosition-currentStopPosition)> numColsInStopPred ||
+                        !considerJoinPredicateAsKey && thisPred.isJoinPredicate()){
                     gapInStopPositions=true;
                 }
 
@@ -2773,7 +2777,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 ap.getConglomerateDescriptor(),
                 false,
                 ap.getNonMatchingIndexScan(),
-                ap.getCoveringIndexScan());
+                ap.getCoveringIndexScan(),
+                true);
 
         // count the start/stop positions and qualifiers
         theOtherList.countScanFlags();

@@ -315,6 +315,9 @@ public class SpliceSpark {
          */
         conf.set("spark.sql.retainGroupColumns", "true");
 
+        // Uncomment to disable WholeStageCodeGen for debugging.
+        // conf.set("spark.sql.codegen.wholeStage", "false");
+
         if (LOG.isDebugEnabled()) {
             printConfigProps(conf);
         }

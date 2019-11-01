@@ -36,6 +36,7 @@ import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
 import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
 import com.splicemachine.db.shared.common.udt.UDTBase;
@@ -78,6 +79,7 @@ import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.spark_project.guava.base.Optional;
@@ -115,6 +117,15 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
     private static volatile KryoPool spliceKryoPool;
 
+    public static Class<?> getClassFromString(String className) {
+        Class<?> foundClass = null;
+        try {
+            foundClass = Class.forName(className);
+        } catch ( final Exception e ) {
+            throw new RuntimeException( e );
+        }
+        return foundClass;
+    }
 
     public static KryoPool getInstance(){
         KryoPool kp = spliceKryoPool;
@@ -936,5 +947,13 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ResultSet.class, 309);
         instance.register(ResultSet[].class, 310);
         instance.register(DataValueDescriptor.class, 311);
+        instance.register(getClassFromString("java.util.Arrays$ArrayList"),
+                          new ArraysAsListSerializer(), 312);
+        instance.register(SparkColumnReference.class,EXTERNALIZABLE_SERIALIZER,313);
+        instance.register(SparkConstantExpression.class,EXTERNALIZABLE_SERIALIZER,314);
+        instance.register(SparkLogicalOperator.class,EXTERNALIZABLE_SERIALIZER,315);
+        instance.register(SparkRelationalOperator.class,EXTERNALIZABLE_SERIALIZER,316);
+        instance.register(SparkArithmeticOperator.class,EXTERNALIZABLE_SERIALIZER,317);
+        instance.register(SparkCastNode.class,EXTERNALIZABLE_SERIALIZER,318);
     }
 }

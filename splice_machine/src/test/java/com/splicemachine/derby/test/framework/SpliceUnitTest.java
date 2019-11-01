@@ -220,7 +220,7 @@ public class SpliceUnitTest {
         }
     }
 
-    protected void rowContainsQuery(int[] levels, String query,SpliceWatcher methodWatcher,String[]... contains) throws Exception {
+    public static void rowContainsQuery(int[] levels, String query,SpliceWatcher methodWatcher,String[]... contains) throws Exception {
         try(ResultSet resultSet = methodWatcher.executeQuery(query)){
             int i=0;
             int k=0;
@@ -421,6 +421,15 @@ public class SpliceUnitTest {
         Assert.assertEquals("Incorrect number of files reported!",1,resultSet.getInt(4));
         Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(3));
     }
+
+    protected static void validateMergeResults(ResultSet resultSet, int updated,int inserted, int bad, int file) throws SQLException {
+        Assert.assertTrue("No rows returned!",resultSet.next());
+        Assert.assertEquals("Incorrect number of rows reported!",updated,resultSet.getInt(1));
+        Assert.assertEquals("Incorrect number of rows reported!",inserted,resultSet.getInt(2));
+        Assert.assertEquals("Incorrect number of files reported!",file,resultSet.getInt(4));
+        Assert.assertEquals("Incorrect number of bad records reported!", bad, resultSet.getInt(3));
+    }
+
     public static String printMsgSQLState(String testName, SQLException e) {
         // useful for debugging import errors
         StringBuilder buf =new StringBuilder(testName);
@@ -553,8 +562,14 @@ public class SpliceUnitTest {
     }
 
     public static SpliceUnitTest.TestFileGenerator generateFullRow(File directory, String fileName, int size,
-                                                                    List<int[]> fileData,
-                                                                    boolean duplicateLast) throws IOException {
+                                                                        List<int[]> fileData,
+                                                                        boolean duplicateLast) throws IOException {
+        return generateFullRow(directory,fileName,size,fileData,duplicateLast,false);
+    }
+
+    public static SpliceUnitTest.TestFileGenerator generateFullRow(File directory, String fileName, int size,
+                                                                   List<int[]> fileData,
+                                                                   boolean duplicateLast, boolean emptyLast) throws IOException {
         SpliceUnitTest.TestFileGenerator generator = new SpliceUnitTest.TestFileGenerator(directory, fileName);
         try {
             for (int i = 0; i < size; i++) {
@@ -566,6 +581,9 @@ public class SpliceUnitTest {
                 int[] row = {size - 1, 2 * (size - 1)};
                 fileData.add(row);
                 generator.row(row);
+            }
+            if (emptyLast) {
+                generator.row(new String[]{""});
             }
         } finally {
             generator.close();

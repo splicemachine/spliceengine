@@ -790,7 +790,7 @@ public class SpliceRegionAdmin {
 
         // return the primary key or index value in ExecRow
         ExecRow dataRow = FileFunction.getRow(read, quotedColumns, null,
-                execRow, null, timeFormat, dateFormat, timestampFormat, null, null, null);
+                execRow, new GregorianCalendar(), timeFormat, dateFormat, timestampFormat, null, null, null);
 
         // Encoded row value
         DataHash dataHash = getEncoder(td, index, execRow);

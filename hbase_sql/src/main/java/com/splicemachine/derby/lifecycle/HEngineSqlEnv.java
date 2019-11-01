@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
@@ -128,10 +129,10 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     /*private helper methods*/
     private OlapClient initializeOlapClient(SConfiguration config,Clock clock) {
         int timeoutMillis = config.getOlapClientWaitTime();
-        int retries = config.getOlapClientRetries();
+        final int retries = config.getOlapClientRetries();
         int maxRetries = config.getMaxRetries();
         HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
-        OlapServerProvider osp = queue -> {
+        final OlapServerProvider osp = queue -> {
             try {
                 if (config.getOlapServerExternal()) {
                     String serverName = hbcf.getMasterServer().getServerName();
@@ -175,14 +176,20 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
                     throw new IOException(e);
             }
         };
+
+        Stream.Builder<String> queuesBuilder = Stream.builder();
+        queuesBuilder.accept(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
+        if (config.getOlapServerIsolatedCompaction()) {
+            queuesBuilder.accept(config.getOlapServerIsolatedCompactionQueueName());
+        }
+        Stream<String> queues = Stream.concat(config.getOlapServerIsolatedRoles().values().stream(),
+                                              queuesBuilder.build());
         Map<String, JobExecutor> executorMap = new HashMap<>();
-        for (String queue : config.getOlapServerIsolatedRoles().values()) {
+        queues.forEach(queue -> {
             JobExecutor onl = new AsyncOlapNIOLayer(osp, queue, retries);
             executorMap.put(queue, onl);
-        }
-        // Add default queue
-        JobExecutor onl = new AsyncOlapNIOLayer(osp, SIConstants.OLAP_DEFAULT_QUEUE_NAME, retries);
-        executorMap.put(SIConstants.OLAP_DEFAULT_QUEUE_NAME, onl);
+        });
+
         return new TimedOlapClient(executorMap,timeoutMillis);
     }
 

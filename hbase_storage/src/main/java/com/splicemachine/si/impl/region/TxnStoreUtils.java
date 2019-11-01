@@ -16,6 +16,7 @@ package com.splicemachine.si.impl.region;
 
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.Cell;
 
 /**
@@ -28,6 +29,12 @@ public class TxnStoreUtils{
                                                   Cell keepAliveCell,
                                                   Clock clock,
                                                   long keepAliveTimeoutMs){
+        if (SIDriver.driver() != null) {
+            String role = SIDriver.driver().lifecycleManager().getReplicationRole();
+            if (role != null && role.equals("SLAVE"))
+                return currentState;
+        }
+
         long lastKATime = V2TxnDecoder.decodeKeepAlive(keepAliveCell,false);
 
         if((clock.currentTimeMillis()-lastKATime)>keepAliveTimeoutMs)

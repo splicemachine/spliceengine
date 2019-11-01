@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.RSUtils;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -236,7 +237,12 @@ public class RowResultSetNode extends FromTable {
 	 */
 	@Override
 	public void bindExpressionsWithTables(FromList fromListParam) throws StandardException {
-		/* We don't have any tables, so just return */
+		// it is possible that RowResultSet contains expression subqueries,
+		// so we need to go through the bindExpression process to resolve all the subexpressions
+		// in it
+		List<SelectNode> selectNodeList = RSUtils.collectNodes(this, SelectNode.class);
+		if (!selectNodeList.isEmpty())
+			bindExpressions(fromListParam);
 	}
 
 	/**
@@ -579,6 +585,7 @@ public class RowResultSetNode extends FromTable {
         costEstimate = optimizer.newCostEstimate();
         costEstimate.setCost(1.0d, outerRows, outerRows);
         costEstimate.setLocalCost(1.0d);
+        costEstimate.setLocalCostPerPartition(1.0d);
         if (resultColumns != null)
             costEstimate.setEstimatedHeapSize(resultColumns.getTotalColumnSize());
         else

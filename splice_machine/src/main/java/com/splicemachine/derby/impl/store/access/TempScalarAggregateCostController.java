@@ -111,6 +111,8 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
         newEstimate.setNumPartitions(1);
         newEstimate.setRemoteCost(totalRemoteCost);
         newEstimate.setLocalCost(totalLocalCost);
+        newEstimate.setRemoteCostPerPartition(totalRemoteCost);
+        newEstimate.setLocalCostPerPartition(totalLocalCost);
         newEstimate.setEstimatedRowCount(1);
         newEstimate.setEstimatedHeapSize((long)heapSize);
 

@@ -52,6 +52,7 @@ public class SimpleCostEstimate implements CostEstimate{
     protected double projectionRows =-1.0d;
     protected double scannedBaseTableRows = -1.0d;
     private double localCostPerPartition;
+    private double remoteCostPerPartition;
     /* consecutive broadcast joins memory used in bytes */
     private double accumulatedMemory = 0.0d;
     private boolean singleRow = false;
@@ -68,6 +69,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.numRows=numRows>1?numRows:1;
         this.singleScanRowCount=singleScanRowCount;
         this.numPartitions=numPartitions;
+        setLocalCostPerPartition(localCost, numPartitions);
+        setLocalCostPerPartition(remoteCost, numPartitions);
     }
 
     @Override public double getOpenCost(){ return openCost; }
@@ -87,6 +90,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.numRows = rowCount > 1 ? rowCount : 1;
         this.singleScanRowCount = singleScanRowCount;
         this.numPartitions = numPartitions;
+        assert (numPartitions >= 1);
+        this.localCostPerPartition = localCost/numPartitions;
     }
 
     @Override
@@ -107,6 +112,8 @@ public class SimpleCostEstimate implements CostEstimate{
         CostEstimate base=other.getBase();
         if(base!=null && base != other)
             this.baseCost = (SimpleCostEstimate) base.cloneMe();
+        else
+            this.baseCost = null;
         this.isRealCost = other.isRealCost();
         this.estimatedHeapSize = other.getEstimatedHeapSize();
         this.openCost = other.getOpenCost();
@@ -118,7 +125,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.projectionCost = other.getProjectionCost();
         this.projectionRows = other.getProjectionRows();
         this.scannedBaseTableRows = other.getScannedBaseTableRows();
-        this.localCostPerPartition = other.localCostPerPartition();
+        this.localCostPerPartition = other.getLocalCostPerPartition();
+        this.remoteCostPerPartition = other.getRemoteCostPerPartition();
         this.accumulatedMemory = other.getAccumulatedMemory();
         this.setSingleRow(other.isSingleRow());
     }
@@ -300,6 +308,7 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setProjectionRows(projectionRows);
         clone.setScannedBaseTableRows(scannedBaseTableRows);
         clone.setLocalCostPerPartition(localCostPerPartition);
+        clone.setRemoteCostPerPartition(remoteCostPerPartition);
         clone.setSingleRow(singleRow);
         return clone;
     }
@@ -360,12 +369,14 @@ public class SimpleCostEstimate implements CostEstimate{
 
         double sumLocalCost = addend.localCost()+localCost;
         double sumRemoteCost = addend.remoteCost()+remoteCost;
+        double sumRemoteCostPerPartition = addend.getRemoteCostPerPartition()+remoteCostPerPartition;
         double rowCount = addend.rowCount()+numRows;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
         retval.setRemoteCost(sumRemoteCost);
+        retval.setRemoteCostPerPartition(sumRemoteCostPerPartition);
         retval.setCost(sumLocalCost,rowCount,singleScanRowCount,numPartitions);
         retval.setEstimatedHeapSize(estimatedHeapSize+addend.getEstimatedHeapSize());
         return retval;
@@ -386,12 +397,14 @@ public class SimpleCostEstimate implements CostEstimate{
 
         double multLocalCost = localCost*multiplicand;
         double multRemoteCost = remoteCost*multiplicand;
+        double multRemoteCostPerPartition = remoteCostPerPartition*multiplicand;
         double rowCount = numRows*multiplicand;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
         retval.setRemoteCost(multRemoteCost);
+        retval.setRemoteCostPerPartition(multRemoteCostPerPartition);
         retval.setCost(multLocalCost,rowCount,singleScanRowCount,numPartitions);
         retval.setEstimatedHeapSize((long)(estimatedHeapSize*multiplicand));
         return retval;
@@ -399,15 +412,17 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public CostEstimate divide(double divisor,CostEstimate retval){
-        double multLocalCost = localCost/divisor;
-        double multRemoteCost = remoteCost/divisor;
+        double dividedLocalCost = localCost/divisor;
+        double dividedRemoteCost = remoteCost/divisor;
+        double dividedRemoteCostPerPartition = remoteCostPerPartition/divisor;
         double rowCount = numRows/divisor;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
-        retval.setRemoteCost(multRemoteCost);
-        retval.setCost(multLocalCost,rowCount,singleScanRowCount,numPartitions);
+        retval.setRemoteCost(dividedRemoteCost);
+        retval.setRemoteCostPerPartition(dividedRemoteCostPerPartition);
+        retval.setCost(dividedLocalCost,rowCount,singleScanRowCount,numPartitions);
         retval.setEstimatedHeapSize((long)(estimatedHeapSize/divisor));
         return retval;
     }
@@ -511,13 +526,37 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public double localCostPerPartition() {
+    public double getLocalCostPerPartition() {
         return localCostPerPartition;
     }
 
     @Override
     public void setLocalCostPerPartition(double localCostPerPartition) {
         this.localCostPerPartition = localCostPerPartition;
+    }
+
+    @Override
+    public void setLocalCostPerPartition(double localCost, int numPartitions) {
+        if (numPartitions <= 0)
+            numPartitions = 1;
+        setLocalCostPerPartition(localCost / numPartitions);
+    }
+
+    @Override
+    public void setRemoteCostPerPartition(double remoteCost, int numPartitions) {
+        if (numPartitions <= 0)
+            numPartitions = 1;
+        setRemoteCostPerPartition(remoteCost / numPartitions);
+    }
+
+    @Override
+    public double getRemoteCostPerPartition() {
+        return remoteCostPerPartition;
+    }
+
+    @Override
+    public void setRemoteCostPerPartition(double remoteCostPerPartition) {
+        this.remoteCostPerPartition = remoteCostPerPartition;
     }
 
     @Override

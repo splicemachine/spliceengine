@@ -204,6 +204,8 @@ public class StoreCostControllerImpl implements StoreCostController {
         cost.setLocalCost(fallbackLocalLatency);
         cost.setEstimatedHeapSize((long) columnSizeFactor*tableStatistics.avgRowWidth());
         cost.setNumPartitions(1);
+        cost.setRemoteCostPerPartition(cost.remoteCost());
+        cost.setLocalCostPerPartition(cost.localCost());
         cost.setEstimatedRowCount(1l);
         cost.setOpenCost(openLatency);
         cost.setCloseCost(closeLatency);

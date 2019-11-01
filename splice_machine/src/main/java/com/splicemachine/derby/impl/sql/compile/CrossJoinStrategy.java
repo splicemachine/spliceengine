@@ -151,7 +151,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
 
         if (predList != null) {
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath().getConglomerateDescriptor());
+            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath().getConglomerateDescriptor(), false);
         }
 
         /*
@@ -233,12 +233,13 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         innerCost.setBase(innerCost.cloneMe());
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
-        double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
+        double totalJoinedRows = outerCost.rowCount() * innerCost.rowCount();
         double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost, outerCost, totalOutputRows));
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
         innerCost.setNumPartitions(outerCost.partitionCount());
@@ -263,10 +264,15 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
-        return outerCost.localCostPerPartition() +
-                outerCost.remoteCost() / outerCost.partitionCount() +
-                innerCost.localCost() +
-                (outerCost.rowCount()/outerCost.partitionCount())*innerCost.getRemoteCost() +
+        assert outerCost.getLocalCostPerPartition() != 0d || outerCost.localCost() == 0d;
+        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
+        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        assert outerCost.getRemoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
+        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.partitionCount();
+        return outerCost.getLocalCostPerPartition() +
+                outerCost.getRemoteCostPerPartition()  +
+                (outerCost.rowCount()/outerCost.partitionCount()) * (innerLocalCost + innerRemoteCost) +
                 joiningRowCost/outerCost.partitionCount();
     }
 

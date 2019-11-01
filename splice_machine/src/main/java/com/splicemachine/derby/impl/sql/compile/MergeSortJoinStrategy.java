@@ -93,13 +93,33 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double joinCost = mergeSortJoinStrategyLocalCost(innerCost, outerCost,totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost,outerCost,totalOutputRows);
+        innerCost.setRemoteCost(remoteCostPerPartition);
+        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setRowOrdering(null);
     }
 
+    static long log(int x, int base)
+    {
+        return (long) (Math.log(x) / Math.log(base));
+    }
+
+
+    // We haven't modelled the details of Tungsten sort, so we can't accurately
+    // cost it as an external sort algorithm.
+    // For now, instead of using zero sort costs,
+    // let's just use a naive sort cost formula which assumes
+    // the sort is done in memory with a simple nlog(n) bounding.
+    // TODO: Find the actual formula for estimating Tungsten sort costs.
+    static double getSortCost(int rowsPerPartition, double costPerComparison) {
+        double sortCost =
+            (costPerComparison *
+              (rowsPerPartition * log(rowsPerPartition, 2)));
+        return sortCost;
+    }
     /**
      *
      * Merge Sort Join Local Cost Computation
@@ -115,17 +135,47 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
      */
     public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double numOfJoinedRows) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
+
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
 
-        double outerShuffleCost = outerCost.localCostPerPartition()+outerCost.getRemoteCost()/outerCost.partitionCount()
-                +outerCost.getOpenCost()+outerCost.getCloseCost();
-        double innerShuffleCost = innerCost.localCostPerPartition()+innerCost.getRemoteCost()/innerCost.partitionCount()
-                +innerCost.getOpenCost()+innerCost.getCloseCost();
-        double outerReadCost = outerCost.localCost()/outerCost.partitionCount();
-        double innerReadCost = innerCost.localCost()/outerCost.partitionCount();
+        long outerTablePartitions = outerCost.partitionCount();
+        double innerRowCount = innerCost.rowCount() > 1? innerCost.rowCount():1;
+        int innerRowCountPerPartition =
+           (innerRowCount / outerTablePartitions) > Integer.MAX_VALUE ?
+           Integer.MAX_VALUE : (int)(innerRowCount / outerTablePartitions);
 
-        return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost
+        double factor = 1d;
+        double innerSortCost =
+            getSortCost(innerRowCountPerPartition, localLatency*factor);
+
+        double outerRowCount = outerCost.rowCount() > 1? outerCost.rowCount():1;
+        int outerRowCountPerPartition =
+           (outerRowCount / outerTablePartitions) > Integer.MAX_VALUE ?
+           Integer.MAX_VALUE : (int)(outerRowCount / outerTablePartitions);
+
+        double outerSortCost =
+            getSortCost(outerRowCountPerPartition, localLatency*factor);
+
+        assert outerCost.getLocalCostPerPartition() != 0d || outerCost.localCost() == 0d;
+        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
+        assert outerCost.getRemoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
+        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+
+        double outerLocalCost = outerCost.getLocalCostPerPartition()*outerCost.partitionCount();
+        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
+
+        double outerShuffleCost = outerCost.getLocalCostPerPartition()
+                +outerCost.getRemoteCostPerPartition()
+                +outerCost.getOpenCost()+outerCost.getCloseCost();
+        double innerShuffleCost = innerCost.getLocalCostPerPartition()
+                +innerCost.getRemoteCostPerPartition()
+                +innerCost.getOpenCost()+innerCost.getCloseCost();
+        double outerReadCost = outerLocalCost/outerCost.partitionCount();
+        double innerReadCost = innerLocalCost/outerCost.partitionCount();
+
+        return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost+
+               innerSortCost+outerSortCost+
                 +joiningRowCost/outerCost.partitionCount();
     }
 

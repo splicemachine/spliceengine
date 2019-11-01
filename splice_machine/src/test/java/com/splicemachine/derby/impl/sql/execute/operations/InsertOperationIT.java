@@ -89,6 +89,7 @@ public class InsertOperationIT {
         classWatcher.executeUpdate("insert into BB values(1,1,1,1)");
 
         classWatcher.executeUpdate("create table TT1(i int)");
+        classWatcher.executeUpdate("create table TT22(i int)");
     }
 
     @Rule
@@ -614,6 +615,21 @@ public class InsertOperationIT {
                         ") b3 ON b3.col1 = aa.c1 AND b3.col2 = aa.c2 order by aa.c1, aa.c2";
         methodWatcher.executeUpdate(sqlText);
         String sql = "select * from TT1";
+        String expected = "I |\n" +
+                "----\n" +
+                " 1 |";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testInsertWithValuesStatementWithSubquery() throws Exception {
+        String sqlText =
+                "INSERT INTO TT22\n" +
+                        "values ((select distinct c1 from AA))";
+        methodWatcher.executeUpdate(sqlText);
+        String sql = "select * from TT22";
         String expected = "I |\n" +
                 "----\n" +
                 " 1 |";

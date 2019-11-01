@@ -980,6 +980,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .varchar("directory", 32672)
                             .bigint("backupId")
                             .build());
+
+                    procedures.add(Procedure.newBuilder().name("VALIDATE_SCHEMA_BACKUP")
+                            .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .varchar("directory", 32672)
+                            .bigint("backupId")
+                            .build());
                     /*
                      * Procedure to get a database property on all region servers in the cluster.
                      */
@@ -1379,6 +1386,54 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(getReplicationRole);
 
+                    Procedure updateAllSystemProcedures = Procedure.newBuilder()
+                            .name("SYSCS_UPDATE_ALL_SYSTEM_PROCEDURES")
+                            .numOutputParams(0).numResultSets(0).modifiesSql()
+                            .returnType(null).isDeterministic(false)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(updateAllSystemProcedures);
+
+                    Procedure updateSystemProcedure = Procedure.newBuilder().name("SYSCS_UPDATE_SYSTEM_PROCEDURE")
+                            .numOutputParams(0).numResultSets(0).modifiesSql()
+                            .returnType(null).isDeterministic(false)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .catalog("procName")
+                            .build();
+                    procedures.add(updateSystemProcedure);
+
+                    Procedure enableSchemaReplication = Procedure.newBuilder().name("ENABLE_SCHEMA_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .build();
+                    procedures.add(enableSchemaReplication);
+
+
+                    Procedure disableSchemaReplication = Procedure.newBuilder().name("DISABLE_SCHEMA_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .catalog("schemaName")
+                            .build();
+                    procedures.add(disableSchemaReplication);
+
+                    Procedure enableDatabaseReplication = Procedure.newBuilder().name("ENABLE_DATABASE_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(enableDatabaseReplication);
+
+                    Procedure disableDatabaseReplication = Procedure.newBuilder().name("DISABLE_DATABASE_REPLICATION")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(disableDatabaseReplication);
+
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
@@ -1452,6 +1507,14 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .returnType(DataTypeDescriptor.getCatalogType(Types.CHAR,1))
                             .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
                             .integer("I")
+                            .build(),
+                    Procedure.newBuilder().name("HEX")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.DB2_VARCHAR_MAXWIDTH))
+                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                            .varchar("S",Limits.DB2_VARCHAR_MAXWIDTH / 2)
                             .build()
             		)
             );

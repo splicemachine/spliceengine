@@ -543,6 +543,7 @@ public class SubqueryNode extends ValueNode{
                                 FromList outerFromList,
                                 SubqueryList outerSubqueryList,
                                 PredicateList outerPredicateList) throws StandardException{
+        boolean doNotFlatten = false;
 		/* Only preprocess this node once.  We may get called multiple times
 		 * due to tree transformations.
 		 */
@@ -585,12 +586,38 @@ public class SubqueryNode extends ValueNode{
 		 *	c1 = (select min(c1) from t2)
 		 * (This actually showed up in an app that a potential customer
 		 * was porting from SQL Server.)
-		 * The transformed query can then be flattened if appropriate.
 		 */
-        if((isIN() || isANY()) && resultSet.returnsAtMostOneRow()){
+        if((isIN() || isANY() || isExpression()) && resultSet.returnsAtMostOneRow()){
             if(!hasCorrelatedCRs()){
-                changeToCorrespondingExpressionType();
+                if (!isExpression())
+                    changeToCorrespondingExpressionType();
+                doNotFlatten = true;
             }
+        }
+
+        if ((isEXISTS() || isNOT_EXISTS()) && !hasCorrelatedCRs()) {
+            doNotFlatten = true;
+
+            // add limit 1 clause or overwrite the original fetchFirst with limit 1
+            if (!(resultSet instanceof RowResultSetNode)) {
+                ValueNode fetchFirst = (NumericConstantNode) getNodeFactory().getNode(
+                        C_NodeTypes.INT_CONSTANT_NODE,
+                        new Integer(1),
+                        getContextManager());
+                this.fetchFirst = fetchFirst;
+            }
+
+            // convert to an expression subquery and generate isNull/isNotNull predicate
+            topNode = genIsNullTree();
+            if (isEXISTS())
+                topNode = ((IsNullNode)topNode).getNegation(topNode);
+            subqueryType=EXPRESSION_SUBQUERY;
+
+            //reset orderby as it is not useful
+            orderByList = null;
+            resultSet.pushOffsetFetchFirst(offset,fetchFirst,hasJDBClimitClause);
+            isInvariant();
+            return topNode;
         }
 
 		/* NOTE: Flattening occurs before the pushing of
@@ -608,7 +635,8 @@ public class SubqueryNode extends ValueNode{
 		 *              contain a WHERE clause with other subqueries in it.
 		 *          (DERBY-3301)
 		 */
-        flattenable=(resultSet instanceof RowResultSetNode) &&
+        flattenable= !doNotFlatten &&
+                (resultSet instanceof RowResultSetNode) &&
                 underTopAndNode && !havingSubquery &&
                 orderByList==null &&
                 offset==null &&
@@ -678,7 +706,8 @@ public class SubqueryNode extends ValueNode{
 		 */
         boolean flattenableNotExists=(isNOT_EXISTS() || canAllBeFlattened());
 
-        flattenable=(resultSet instanceof SelectNode) &&
+        flattenable= !doNotFlatten &&
+                (resultSet instanceof SelectNode) &&
                 !((SelectNode)resultSet).hasWindows() &&
                 orderByList==null &&
                 offset==null &&
@@ -694,34 +723,49 @@ public class SubqueryNode extends ValueNode{
             int topSelectNodeLevel =select.getNestingLevel() - 1;
             boolean nestedColumnReference = hasNestedCR(((SelectNode) resultSet).wherePredicates, topSelectNodeLevel);
             if(!nestedColumnReference){
-                ValueNode origLeftOperand=leftOperand;
+
+                // for non-correlated non-aggregate IN, ANY, if it is guaranteed that the subquery returns
+                // at most one row, we can convert the subquery to an expression subquery.
+                // such expression subquery may bring a good access path, so we do not want to flatten it
+                if ((isIN() || isANY() || isExpression()) &&
+                        !hasAggregation &&
+                        !hasCorrelatedCRs() &&
+                        select.uniqueSubquery(false)) {
+                    // convert to expression subquery
+                    if (!isExpression())
+                        changeToCorrespondingExpressionType();
+                    doNotFlatten = true;
+                }
+
+                if (!doNotFlatten) {
+                    ValueNode origLeftOperand = leftOperand;
 
 				/* Check for uniqueness condition. */
 				/* Is the column being returned by the subquery
 				 * a candidate for an = condition?
 				 */
-                boolean additionalEQ=(subqueryType==IN_SUBQUERY) || (subqueryType==EQ_ANY_SUBQUERY);
+                    boolean additionalEQ = (subqueryType == IN_SUBQUERY) || (subqueryType == EQ_ANY_SUBQUERY);
 
 
-                additionalEQ=additionalEQ &&
-                        ((leftOperand instanceof ConstantNode) ||
-                                (leftOperand instanceof ColumnReference) ||
-                                (leftOperand.requiresTypeFromContext()));
+                    additionalEQ = additionalEQ &&
+                            ((leftOperand instanceof ConstantNode) ||
+                                    (leftOperand instanceof ColumnReference) ||
+                                    (leftOperand.requiresTypeFromContext()));
 				/* If we got this far and we are an expression subquery
 				 * then we want to set leftOperand to be the left side
 				 * of the comparison in case we pull the comparison into
 				 * the flattened subquery.
 				 */
-                if(parentComparisonOperator!=null){
-                    leftOperand=parentComparisonOperator.getLeftOperand();
-                }
+                    if (parentComparisonOperator != null) {
+                        leftOperand = parentComparisonOperator.getLeftOperand();
+                    }
 				/* Never flatten to normal join for NOT EXISTS.
 				 */
 
-                if(!hasSubquery && !hasAggregation && (!flattenableNotExists) && select.uniqueSubquery(additionalEQ)){
-                    // Flatten the subquery
-                    return flattenToNormalJoin(outerFromList,outerSubqueryList,outerPredicateList);
-                }
+                    if (!hasSubquery && !hasAggregation && (!flattenableNotExists) && select.uniqueSubquery(additionalEQ)) {
+                        // Flatten the subquery
+                        return flattenToNormalJoin(outerFromList, outerSubqueryList, outerPredicateList);
+                    }
 				/* We can flatten into an EXISTS join if all of the above
 				 * conditions except for a uniqueness condition are true
 				 * and:
@@ -748,29 +792,30 @@ public class SubqueryNode extends ValueNode{
                  *    FBT, otherwise the generated join condition may be used
                  *    to restrict the left side of the join.
 				 */
-                else if((isIN() || isANY() || isEXISTS() || flattenableNotExists) &&
-                        ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), false)) &&
-                        select.getWherePredicates().allPushable()){
-                    FromBaseTable fbt=singleFromBaseTable(select.getFromList());
+                    else if ((isIN() || isANY() || isEXISTS() || flattenableNotExists) &&
+                            ((leftOperand == null) || leftOperand.categorize(new JBitSet(numTables), false)) &&
+                            select.getWherePredicates().allPushable()) {
+                        FromBaseTable fbt = singleFromBaseTable(select.getFromList());
 
-                    if(!hasSubquery && !hasAggregation && fbt!=null && (!flattenableNotExists
-                            || (select.getWherePredicates().allReference(fbt)
-                            && rightOperandFlattenableToNotExists(numTables,fbt)))){
-                        if (flattenableNotExists) {
-                            fbt.setAntiJoin(true);
+                        if (!hasSubquery && !hasAggregation && fbt != null && (!flattenableNotExists
+                                || (select.getWherePredicates().allReference(fbt)
+                                && rightOperandFlattenableToNotExists(numTables, fbt)))) {
+                            if (flattenableNotExists) {
+                                fbt.setAntiJoin(true);
+                            }
+                            return flattenToExistsJoin(
+                                    outerFromList, outerSubqueryList,
+                                    outerPredicateList, flattenableNotExists);
+                        } else {
+                            // / rewrite non-correlated IN/EXISTS subquery to FromSubquery but with indicator for inclusion-join
+                            if ((isIN() || isANY() || isEXISTS()) && !hasCorrelatedCRs())
+                                return convertWhereSubqueryToDT(numTables, outerFromList, outerSubqueryList);
                         }
-                        return flattenToExistsJoin(
-                                outerFromList,outerSubqueryList,
-                                outerPredicateList,flattenableNotExists);
-                    } else {
-                        // / rewrite non-correlated IN/EXISTS subquery to FromSubquery but with indicator for inclusion-join
-                        if ((isIN() || isANY() || isEXISTS()) && isNonCorrelatedSubquery())
-                            return convertWhereSubqueryToDT(numTables, outerFromList, outerSubqueryList);
                     }
-                }
 
-                // restore leftOperand to its original value
-                leftOperand=origLeftOperand;
+                    // restore leftOperand to its original value
+                    leftOperand = origLeftOperand;
+                }
             }
         }
 
@@ -908,9 +953,13 @@ public class SubqueryNode extends ValueNode{
             }
         }
 
-        HasCorrelatedCRsVisitor visitor=new HasCorrelatedCRsVisitor();
-        realSubquery.accept(visitor);
-        foundCorrelation=visitor.hasCorrelatedCRs();
+        if (resultSet instanceof SelectNode) {
+            foundCorrelation = !isNonCorrelatedSubquery();
+        } else {
+            HasCorrelatedCRsVisitor visitor = new HasCorrelatedCRsVisitor();
+            realSubquery.accept(visitor);
+            foundCorrelation = visitor.hasCorrelatedCRs();
+        }
 
         if(pushedNewPredicate && (oldRCL.size()>1)){
             realSubquery.setResultColumns(oldRCL);
@@ -2316,6 +2365,10 @@ public class SubqueryNode extends ValueNode{
 
     private boolean isNOT_IN(){
         return subqueryType==NOT_IN_SUBQUERY;
+    }
+
+    private boolean isExpression() {
+        return subqueryType == EXPRESSION_SUBQUERY;
     }
 
     private boolean isANY(){
