@@ -54,6 +54,50 @@ public class BackupSystemProcedures {
 
     private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
 
+    public static void VALIDATE_SCHEMA_BACKUP(String schemaName,
+                                              String directory,
+                                              long backupId,
+                                              ResultSet[] resultSets) throws StandardException, SQLException {
+
+        IteratorNoPutResultSet inprs = null;
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        Activation activation = lcc.getLastActivation();
+        schemaName = EngineUtils.validateSchema(schemaName);
+
+        try {
+            BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
+            backupManager.validateSchemaBackup(schemaName, directory, backupId);
+            ResultColumnDescriptor[] rcds = {
+                    new GenericColumnDescriptor("Results", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 1024))
+            };
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            SQLWarning warning = activation.getWarnings();
+            if (warning == null) {
+                template.getColumn(1).setValue("No corruptions found for backup.");
+                rows.add(template.getClone());
+            }
+            else {
+                while (warning != null) {
+                    String warningMessage = warning.getLocalizedMessage();
+                    template.getColumn(1).setValue(warningMessage);
+                    rows.add(template.getClone());
+                    warning = warning.getNextWarning();
+                }
+            }
+
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+        } catch (Throwable t) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", t.getLocalizedMessage());
+            SpliceLogUtils.error(LOG, "Backup validation error", t);
+            t.printStackTrace();
+        }
+    }
+
     public static void VALIDATE_TABLE_BACKUP(String schemaName,
                                              String tableName,
                                              String directory,
