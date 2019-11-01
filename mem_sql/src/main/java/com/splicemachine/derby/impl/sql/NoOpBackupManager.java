@@ -70,6 +70,10 @@ public class NoOpBackupManager implements BackupManager{
     }
 
     @Override
+    public void validateSchemaBackup(String schemaName, String directory,long backupId)throws StandardException {
+        throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
+    }
+    @Override
     public void validateTableBackup(String schemaName, String tableName, String directory,long backupId)throws StandardException {
         throw StandardException.newException(SQLState.BACKUP_OPERATIONS_DISABLED);
     }
