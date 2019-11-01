@@ -60,7 +60,12 @@
             <version>${project.version}</version>
             <classifier>shade</classifier>
         </dependency>
-
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>spark_sql</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-remote_${scala.binary.version}</artifactId>

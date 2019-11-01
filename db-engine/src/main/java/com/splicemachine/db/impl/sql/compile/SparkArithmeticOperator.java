@@ -36,10 +36,12 @@ import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.parser.ParserInterface;
+import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.function.Function;
 
 
 import static com.splicemachine.db.impl.sql.compile.BinaryOperatorNode.*;
@@ -76,9 +78,9 @@ public class SparkArithmeticOperator extends AbstractSparkExpressionNode
     @Override
     public Column getColumnExpression(Dataset<Row> leftDF,
                                       Dataset<Row> rightDF,
-                                      ParserInterface parser) throws UnsupportedOperationException {
-        Column leftExpr  = getLeftChild().getColumnExpression(leftDF, rightDF, parser);
-        Column rightExpr = getRightChild().getColumnExpression(leftDF, rightDF, parser);
+                                      Function<String, DataType> convertStringToDataTypeFunction) throws UnsupportedOperationException {
+        Column leftExpr  = getLeftChild().getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
+        Column rightExpr = getRightChild().getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
 
         if (opKind == PLUS)
             return leftExpr.plus(rightExpr);
