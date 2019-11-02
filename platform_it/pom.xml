@@ -57,14 +57,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hbase_storage</artifactId>
-            <version>${project.version}</version>
-            <classifier>${envClassifier}-tests</classifier>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>splice_machine</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
