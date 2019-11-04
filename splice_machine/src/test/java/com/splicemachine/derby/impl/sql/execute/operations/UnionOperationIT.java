@@ -380,7 +380,9 @@ public class UnionOperationIT {
 
     @Test
     public void testUnionAllReturnFirstAvailableBranchFirst() throws Exception {
-        String sqlText = "select * from (select A.name from ST_EARTH as A, ST_EARTH as B, ST_MARS as C where A.name=B.name and B.name=C.name union all values ('from_values')) dt {limit 1}";
+        String sqlText = "select * from (select A.name from ST_EARTH as A, ST_EARTH as B, ST_MARS as C " +
+                "where A.name=B.name and B.name=C.name and C.name in (select D.name from ST_MARS as D, ST_MARS as E where D.name=E.name and D.name=C.name) " +
+                "union all values ('from_values')) dt {limit 1}";
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "1      |\n" +
