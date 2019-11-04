@@ -14,6 +14,8 @@ import org.junit.rules.TestRule;
 import java.sql.Connection;
 import java.sql.ResultSet;
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -36,6 +38,8 @@ public class CreateAliasIT extends SpliceUnitTest {
         Connection conn = spliceClassWatcher.getOrCreateConnection();
         new TableCreator(conn)
                 .withCreate("create table t1 (c1 int)")
+                .withInsert("insert into t1 values(?)")
+                .withRows(rows(row(1)))
                 .create();
         conn.commit();
     }
@@ -44,13 +48,21 @@ public class CreateAliasIT extends SpliceUnitTest {
     @Test
     public void testCreateSynonym() throws  Exception {
         methodWatcher.executeUpdate("create synonym t2 for t1");
+        ResultSet rs = methodWatcher.executeQuery("select c1 from t2");
+        rs.next();
+        assertEquals(1, rs.getInt("C1"));
+        rs.close();
         methodWatcher.executeUpdate("drop synonym t2");
     }
 
     @Test
     public void testCreateAlias() throws  Exception {
-        methodWatcher.executeUpdate("create alias t2 for t1");
-        methodWatcher.executeUpdate("drop alias t2");
+        methodWatcher.executeUpdate("create alias t3 for t1");
+        ResultSet rs = methodWatcher.executeQuery("select c1 from t3");
+        rs.next();
+        assertEquals(1, rs.getInt("C1"));
+        rs.close();
+        methodWatcher.executeUpdate("drop alias t3");
 
         // SHOW ALIASES is also working but cannot test through query since it is an ij command
     }
