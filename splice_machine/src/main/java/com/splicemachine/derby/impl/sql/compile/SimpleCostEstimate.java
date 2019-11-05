@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.compile;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
 
 import java.text.DecimalFormat;
@@ -30,7 +31,7 @@ public class SimpleCostEstimate implements CostEstimate{
     /**
      * Note: if you add a field to this class, make sure you also make changes to cloneMe() and setCost()
      */
-    private boolean isOuterJoin;
+    private int joinType;
     private boolean isAntiJoin;
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
@@ -96,7 +97,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public void setCost(CostEstimate other){
-        this.isOuterJoin = other.isOuterJoin();
+        this.joinType = other.getJoinType();
         this.isAntiJoin = other.isAntiJoin();
         this.localCost = other.localCost();
         this.remoteCost = other.remoteCost();
@@ -291,7 +292,7 @@ public class SimpleCostEstimate implements CostEstimate{
         }
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
         clone.isAntiJoin = this.isAntiJoin;
-        clone.isOuterJoin = this.isOuterJoin();
+        clone.joinType = this.getJoinType();
         clone.setRowOrdering(roClone);
         clone.setPredicateList(predicateList);
         if(baseCost!=null)
@@ -436,13 +437,18 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public boolean isOuterJoin() {
-        return isOuterJoin;
+    public int getJoinType() {
+        return joinType;
     }
 
     @Override
-    public void setOuterJoin(boolean isOuterJoin) {
-        this.isOuterJoin = isOuterJoin;
+    public boolean isOuterJoin() {
+        return joinType == JoinNode.LEFTOUTERJOIN || joinType == JoinNode.FULLOUTERJOIN;
+    }
+
+    @Override
+    public void setJoinType(int joinType) {
+        this.joinType = joinType;
     }
 
     @Override

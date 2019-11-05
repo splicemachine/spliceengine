@@ -64,8 +64,13 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
     public String halfOuterJoinResultSetMethodName() {
         return "getMergeSortLeftOuterJoinResultSet";
     }
-    
-	/**
+
+    public String fullOuterJoinResultSetMethodName() {
+        return "getMergeSortFullOuterJoinResultSet";
+    }
+
+
+    /**
 	 * 
 	 * Right Side Cost + (LeftSideRows+RightSideRows)*WriteCost 
 	 * 

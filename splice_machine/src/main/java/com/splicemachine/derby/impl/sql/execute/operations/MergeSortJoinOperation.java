@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.function.*;
@@ -36,7 +37,7 @@ import java.io.ObjectOutput;
  * MergeSortJoinOperation (HashJoin: TODO JLEACH Needs to be renamed)
  *
  * There are 6 different relational processing paths determined by the different valid combinations of these boolean
- * fields (isOuterJoin, antiJoin, hasRestriction).  For more detail on these paths please check out:
+ * fields (getJoinType, antiJoin, hasRestriction).  For more detail on these paths please check out:
  *
  * @see com.splicemachine.derby.impl.sql.execute.operations.JoinOperation
  *
@@ -98,9 +99,8 @@ public class MergeSortJoinOperation extends JoinOperation {
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
-    public int emptyRightRowsReturned = 0;
-    protected SpliceMethod<ExecRow> emptyRowFun;
-    protected ExecRow emptyRow;
+    protected SpliceMethod<ExecRow> rightEmptyRowFun;
+    protected ExecRow rightEmptyRow;
     protected static final String NAME = MergeSortJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -144,7 +144,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         super.readExternal(in);
         leftHashKeyItem = in.readInt();
         rightHashKeyItem = in.readInt();
-        emptyRightRowsReturned = in.readInt();
     }
 
     @Override
@@ -153,7 +152,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         super.writeExternal(out);
         out.writeInt(leftHashKeyItem);
         out.writeInt(rightHashKeyItem);
-        out.writeInt(emptyRightRowsReturned);
     }
 
     @Override
@@ -161,7 +159,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
         SpliceLogUtils.trace(LOG, "leftHashkeyItem=%d,rightHashKeyItem=%d", leftHashKeyItem, rightHashKeyItem);
-        emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
         JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, mergedRow);
@@ -192,26 +189,30 @@ public class MergeSortJoinOperation extends JoinOperation {
        // operationContext.pushScopeForOp("Prepare Left Side");
         DataSet<ExecRow> leftDataSet2 =
             leftDataSet1.map(new CountJoinedLeftFunction(operationContext));
-        if (!isOuterJoin && !notExistsRightSide)
+        if (joinType == JoinNode.INNERJOIN && !notExistsRightSide)
             leftDataSet2 = leftDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,leftHashKeys));
 
         // Prepare Right
         DataSet<ExecRow> rightDataSet1 = rightResultSet.getDataSet(dsp).map(new CloneFunction<>(operationContext));
         DataSet<ExecRow> rightDataSet2 =
             rightDataSet1.map(new CountJoinedRightFunction(operationContext));
-//        if (!isOuterJoin) Remove all nulls from the right side...
+//        if (!getJoinType) Remove all nulls from the right side...
+        if (joinType != JoinNode.FULLOUTERJOIN)
             rightDataSet2 = rightDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
 
-        if (LOG.isDebugEnabled())
+        if (LOG.isDebugEnabled()) {
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                    isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
-                rightDataSet1.map(new CountJoinedRightFunction(operationContext));
+                    getJoinTypeString(), notExistsRightSide, restriction != null);
+        }
+        rightDataSet1.map(new CountJoinedRightFunction(operationContext));
         DataSet<ExecRow> joined;
         if (dsp.getType().equals(DataSetProcessor.Type.SPARK)   &&
             (restriction == null || hasSparkJoinPredicate()) &&
             !rightFromSSQ && !containsUnsafeSQLRealComparison()){
-            if (isOuterJoin)
+            if (joinType == JoinNode.LEFTOUTERJOIN)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTOUTER,false);
+            else if (joinType == JoinNode.FULLOUTERJOIN)
+                joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.FULLOUTER,false);
             else if (notExistsRightSide)
                 joined = leftDataSet2.join(operationContext,rightDataSet2, DataSet.JoinType.LEFTANTI,false);
             else if (isOneRowRightSide())
@@ -227,7 +228,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, rightFromSSQ=%s, hasRestriction=%s",
-                        isOuterJoin ? "outer" : "inner", notExistsRightSide, rightFromSSQ, restriction != null);
+                        getJoinTypeString(), notExistsRightSide, rightFromSSQ, restriction != null);
             joined = getJoinedDataset(operationContext, leftDataSet, rightDataSet);
         }
             return joined;
@@ -240,10 +241,14 @@ public class MergeSortJoinOperation extends JoinOperation {
         PairDataSet<ExecRow, ExecRow> leftDataSet,
         PairDataSet<ExecRow, ExecRow> rightDataSet) throws StandardException {
 
-        if (isOuterJoin) { // Outer Join
+        if (joinType == JoinNode.LEFTOUTERJOIN) { // Left Outer Join
             return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext)
-                        .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                        .flatmap(new CogroupLeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<>(operationContext));
+        } else if (joinType == JoinNode.FULLOUTERJOIN) {
+            return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext)
+                    .flatmap(new CogroupFullOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext, leftHashKeys))
+                    .map(new SetCurrentLocatedRowFunction<>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin

@@ -37,6 +37,9 @@ import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.FluentIterable;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -50,14 +53,20 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
     private JoinOperation operation;
     private Future<JoinTable> joinTable ;
     private boolean init = false;
+    protected boolean rightAsLeft;
 
     public AbstractBroadcastJoinFlatMapFunction() {
     }
 
     public AbstractBroadcastJoinFlatMapFunction(OperationContext operationContext) {
         super(operationContext);
+        this.rightAsLeft = false;
     }
 
+    public AbstractBroadcastJoinFlatMapFunction(OperationContext operationContext, boolean rightAsLeft) {
+        super(operationContext);
+        this.rightAsLeft = rightAsLeft;
+    }
     @Override
     public final Iterator<Out> call(Iterator<In> locatedRows) throws Exception {
         init();
@@ -99,9 +108,28 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
         joinTable = SIDriver.driver().getExecutorService().submit(() -> {
             operation = getOperation();
             ControlExecutionLimiter limiter = operation.getActivation().getLanguageConnectionContext().getControlExecutionLimiter();
+            SpliceOperation rightOperation, leftOperation;
+            int[] rightHashKeys, leftHashKeys;
+            long sequenceId;
+            if (rightAsLeft) {
+                // switch left and right source
+                rightOperation = operation.getLeftOperation();
+                leftOperation = operation.getRightOperation();
+                rightHashKeys = operation.getLeftHashKeys();
+                leftHashKeys = operation.getRightHashKeys();
+                sequenceId = operation.getLeftSequenceId();
+
+            } else {
+                rightOperation = operation.getRightOperation();
+                leftOperation = operation.getLeftOperation();
+                rightHashKeys = operation.getRightHashKeys();
+                leftHashKeys = operation.getLeftHashKeys();
+                sequenceId = operation.getRightSequenceId();
+            }
+
             Callable<Stream<ExecRow>> rhsLoader = () -> {
                 DataSetProcessorFactory dataSetProcessorFactory=EngineDriver.driver().processorFactory();
-                SpliceOperation rightOperation = operation.getRightOperation();
+
                 final DataSetProcessor dsp =
                         (rightOperation instanceof MultiProbeTableScanOperation &&
                          rightOperation.getEstimatedRowCount() <
@@ -113,9 +141,9 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                 return Streams.wrap(FluentIterable.from(() -> {
                     try{
                         operation.reset();
-                        DataSet<ExecRow> rightDataSet = operation.getRightOperation().getDataSet(dsp);
-                        if (operation.getRightHashKeys().length != 0)
-                            rightDataSet = rightDataSet.filter(new InnerJoinNullFilterFunction(operationContext,operation.getRightHashKeys()));
+                        DataSet<ExecRow> rightDataSet = rightOperation.getDataSet(dsp);
+                        if (rightHashKeys.length != 0)
+                            rightDataSet = rightDataSet.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
                         return rightDataSet.toLocalIterator();
                     }catch(StandardException e){
                         throw new RuntimeException(e);
@@ -131,8 +159,20 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
                     }
                 }));
             };
-            ExecRow leftTemplate = operation.getLeftOperation().getExecRowDefinition();
-            return broadcastJoinCache.get(operation.getSequenceId(), rhsLoader, operation.getRightHashKeys(), operation.getLeftHashKeys(), leftTemplate).newTable();
+            ExecRow leftTemplate = leftOperation.getExecRowDefinition();
+            return broadcastJoinCache.get(sequenceId, rhsLoader, rightHashKeys, leftHashKeys, leftTemplate).newTable();
         });
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeBoolean(rightAsLeft);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        rightAsLeft = in.readBoolean();
     }
 }
