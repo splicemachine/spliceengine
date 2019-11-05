@@ -17,7 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.client.SpliceClient;
-import com.splicemachine.db.iapi.types.SQLReal;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
@@ -37,14 +37,13 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
 
 /**
  *
  * BroadcastJoinOperation
  *
  * There are 6 different relational processing paths determined by the different valid combinations of these boolean
- * fields (isOuterJoin, antiJoin, hasRestriction).  For more detail on these paths please check out:
+ * fields (getJoinType, antiJoin, hasRestriction).  For more detail on these paths please check out:
  *
  * @see com.splicemachine.derby.impl.sql.execute.operations.JoinOperation
  *
@@ -107,8 +106,8 @@ public class BroadcastJoinOperation extends JoinOperation{
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
-    protected List<ExecRow> rights;
-    protected long sequenceId;
+    protected long rightSequenceId;
+    protected long leftSequenceId;
     protected static final String NAME = BroadcastJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -142,7 +141,8 @@ public class BroadcastJoinOperation extends JoinOperation{
                 optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
-        this.sequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
+        this.rightSequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
+        this.leftSequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
         init();
     }
 
@@ -152,19 +152,24 @@ public class BroadcastJoinOperation extends JoinOperation{
         super.readExternal(in);
         leftHashKeyItem=in.readInt();
         rightHashKeyItem=in.readInt();
-        sequenceId = in.readLong();
+        rightSequenceId = in.readLong();
+        leftSequenceId = in.readLong();
     }
 
-    public long getSequenceId() {
-        return sequenceId;
+    public long getRightSequenceId() {
+        return rightSequenceId;
     }
 
+    public long getLeftSequenceId() {
+        return leftSequenceId;
+    }
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
         out.writeInt(leftHashKeyItem);
         out.writeInt(rightHashKeyItem);
-        out.writeLong(sequenceId);
+        out.writeLong(rightSequenceId);
+        out.writeLong(leftSequenceId);
     }
 
     @Override
@@ -191,7 +196,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+                getJoinTypeString(), notExistsRightSide, restriction != null);
 
         SConfiguration configuration= EngineDriver.driver().getConfiguration();
 
@@ -222,12 +227,12 @@ public class BroadcastJoinOperation extends JoinOperation{
         DataSet<ExecRow> result;
         boolean usesNativeSparkDataSet =
            (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
-             ((restriction == null || hasSparkJoinPredicate()) || (!isOuterJoin && !notExistsRightSide && !isOneRowRightSide())) &&
+             ((restriction == null || hasSparkJoinPredicate()) || (!isOuterJoin() && !notExistsRightSide && !isOneRowRightSide())) &&
               !containsUnsafeSQLRealComparison());
         if (usesNativeSparkDataSet)
         {
             DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
-            if (isOuterJoin)
+            if (isOuterJoin())
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
             else if (notExistsRightSide)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTANTI,true);
@@ -248,9 +253,9 @@ public class BroadcastJoinOperation extends JoinOperation{
             }
         }
         else {
-            if (isOuterJoin) { // Outer Join with and without restriction
+            if (isOuterJoin()) { // Left Outer Join with and without restriction
                 result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                        .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                        .flatMap(new LeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
             } else {
                 if (this.leftHashKeys.length != 0 && !this.notExistsRightSide)

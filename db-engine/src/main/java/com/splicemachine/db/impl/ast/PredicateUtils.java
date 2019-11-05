@@ -52,14 +52,6 @@ public class PredicateUtils {
         }
     };
 
-    public static org.spark_project.guava.base.Predicate<Predicate> isJoinPred = new org.spark_project.guava.base.Predicate<Predicate>() {
-        @Override
-        public boolean apply(Predicate p) {
-            return p != null &&
-                    p.isJoinPredicate();
-        }
-    };
-
     /**
      * Return string representation of Derby Predicate
      */

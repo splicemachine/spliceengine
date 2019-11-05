@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -37,7 +38,7 @@ public class HalfMergeSortLeftOuterJoinOperation extends HalfMergeSortJoinOperat
     protected ExecRow emptyRow;
 
     {
-        isOuterJoin = true;
+        joinType = JoinNode.LEFTOUTERJOIN;
     }
 
     public HalfMergeSortLeftOuterJoinOperation() {
@@ -67,7 +68,7 @@ public class HalfMergeSortLeftOuterJoinOperation extends HalfMergeSortJoinOperat
                 optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides,
                 sparkExpressionTreeAsString);
         SpliceLogUtils.trace(LOG, "instantiate");
-        emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+        rightEmptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
         this.wasRightOuterJoin = wasRightOuterJoin;
         init();
     }
@@ -75,12 +76,12 @@ public class HalfMergeSortLeftOuterJoinOperation extends HalfMergeSortJoinOperat
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
-        emptyRowFun = (emptyRowFunMethodName == null) ? null :
-                new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
+        emptyRowFun = (rightEmptyRowFunMethodName == null) ? null :
+                new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName, activation);
     }
 
     @Override
-    public ExecRow getEmptyRow() throws StandardException {
+    public ExecRow getRightEmptyRow() throws StandardException {
         if (emptyRow == null) {
             emptyRow = emptyRowFun.invoke();
         }

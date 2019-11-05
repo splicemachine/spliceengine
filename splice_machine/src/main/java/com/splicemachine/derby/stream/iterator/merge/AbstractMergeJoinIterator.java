@@ -189,7 +189,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
 
     protected ExecRow mergeRows(ExecRow leftRow, ExecRow rightRow) {
         try {
-            ExecRow execRow = JoinUtils.getMergedRow(leftRow, rightRow == null ? mergeJoinOperation.getEmptyRow() : rightRow,
+            ExecRow execRow = JoinUtils.getMergedRow(leftRow, rightRow == null ? mergeJoinOperation.getRightEmptyRow() : rightRow,
                     mergeJoinOperation.wasRightOuterJoin,
                     mergedRow);
             mergeJoinOperation.setCurrentRow(execRow);

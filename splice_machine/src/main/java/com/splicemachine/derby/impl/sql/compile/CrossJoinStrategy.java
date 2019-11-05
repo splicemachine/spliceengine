@@ -56,7 +56,10 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
 	    throw new UnsupportedOperationException("Cross join doesn't support half outer join");
     }
 
-
+    @Override
+    public String fullOuterJoinResultSetMethodName() {
+        throw new UnsupportedOperationException("Cross full join not supported currently");
+    }
 
     @Override
     public int getScanArgs(

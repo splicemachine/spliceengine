@@ -292,10 +292,10 @@ public interface Optimizer{
      *
      * Set on the outer information to mark as an outer join for cost estimates.
      *
-     * @param isOuterJoin
+     * @param joinType
      */
 
-    void setIsOuterJoin(boolean isOuterJoin);
+    void setJoinType(int joinType);
 
     /**
      * Get the number of join strategies supported by this optimizer.

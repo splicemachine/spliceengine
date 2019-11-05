@@ -35,7 +35,7 @@ public class AntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinFunc
     public ExecRow call(ExecRow inputRow) throws Exception {
         checkInit();
         ExecRow lr = JoinUtils.getMergedRow(inputRow,
-                op.getEmptyRow(), op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
+                op.getRightEmptyRow(), op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
         op.setCurrentRow(lr);
         return lr;
     }

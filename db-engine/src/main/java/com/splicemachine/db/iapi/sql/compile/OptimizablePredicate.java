@@ -174,4 +174,8 @@ public interface OptimizablePredicate
 	int getIndexPosition();
 
     boolean isRowId();
+
+	void markFullJoinPredicate(boolean isForFullJoin);
+
+	boolean isFullJoinPredicate();
 }
