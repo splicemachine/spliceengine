@@ -157,7 +157,7 @@ public class HalfOuterJoinNode extends JoinNode{
 			/* Verify that a user specifed right outer join is transformed into
 			 * a left outer join exactly once.
 			 */
-            assert !transformed: "Attempting to transform a right outer join multiple tiems";
+            assert !transformed: "Attempting to transform a right outer join multiple times";
 
             ResultSetNode tmp=leftResultSet;
 
