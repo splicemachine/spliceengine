@@ -52,7 +52,7 @@ public class SelectivityUtil {
 
 
     public enum SelectivityJoinType {
-        OUTER, INNER, ANTIJOIN
+        LEFTOUTER, INNER, ANTIJOIN, FULLOUTER
     }
 
     public enum JoinPredicateType {
@@ -66,8 +66,10 @@ public class SelectivityUtil {
                             long innerRowCount,long outerRowCount,
                             CostEstimate outerCost,
                             JoinPredicateType predicateType) throws StandardException {
-        if (outerCost.isOuterJoin())
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.OUTER, predicateType);
+        if (outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN)
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.LEFTOUTER, predicateType);
+        else if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.FULLOUTER, predicateType);
         else if (outerCost.isAntiJoin())
             return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.ANTIJOIN, predicateType);
         else
@@ -116,7 +118,8 @@ public class SelectivityUtil {
 
         if (isOneRowResultSet(innerTable, innerCD, predList)) {
             switch (selectivityJoinType) {
-                case OUTER:
+                case LEFTOUTER:
+                case FULLOUTER:
                 case INNER:
                     return 1d/innerRowCount;
                 case ANTIJOIN:
@@ -134,11 +137,14 @@ public class SelectivityUtil {
             }
         }
 
-        //Outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
+        //Left outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
         // the left table's row count,
 
-        if (selectivityJoinType == selectivityJoinType.OUTER) {
+        if (selectivityJoinType == selectivityJoinType.LEFTOUTER) {
             selectivity = Math.max(selectivity,1d / innerRowCount);
+        } else if (selectivityJoinType == selectivityJoinType.FULLOUTER) {
+            // Full outer join output row count should be no less than outerRowCount + innerRowCount
+            selectivity = Math.max(selectivity, (double)(innerRowCount + outerRowCount)/(innerRowCount*outerRowCount));
         }
         return selectivity;
     }
@@ -204,7 +210,7 @@ public class SelectivityUtil {
             // Look for equality predicate that is not a join predicate
             boolean existsNonjoinPredicate = false;
             for (Predicate predicate : optimizableEqualityPredicateList) {
-                if (!predicate.isJoinPredicate()) {
+                if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
                     existsNonjoinPredicate = true;
                     break;
                 }
@@ -217,18 +223,7 @@ public class SelectivityUtil {
         return true;
     }
 
-    public static double existsFraction(ConglomerateDescriptor cd, OptimizablePredicateList predList) {
-        double fraction = 1.0d;
-        if (predList != null) {
-            for (int i = 0; i < predList.size(); i++) {
-                Predicate p = (Predicate) predList.getOptPredicate(i);
-                if (!p.isJoinPredicate()) {
-                }
 
-            }
-        }
-        return fraction;
-    }
 
     public static double getTotalHeapSize(CostEstimate innerCostEstimate,
                                           CostEstimate outerCostEstimate,

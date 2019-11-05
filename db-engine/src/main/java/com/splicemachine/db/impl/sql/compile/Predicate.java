@@ -65,6 +65,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     protected boolean stopKey;
     protected boolean rowId;
     protected boolean isQualifier;
+    // Whether this is full outer join predicate
+    protected boolean  forFullJoin;
     private boolean pulled;
 
     /* Hashtable used for tracking the search clause types that have been
@@ -744,6 +746,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         if(!isJoinPredicate())
             return false;
 
+        if (isFullJoinPredicate())
+            return false;
+
         // Make sure both column references ultimately point to base
         // tables.  If, for example, either column reference points to a
         // a literal or an aggregate, then we do not push the predicate.
@@ -806,6 +811,19 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         // If both sides are column references AND they point to different
         // tables, then this is a join pred.
         return (isColumnReferenceOnLeft && isColumnReferenceOnRight && leftTableNumber!=rightTableNumber);
+    }
+
+    public void markFullJoinPredicate(boolean isForFullJoin) {
+        forFullJoin = isForFullJoin;
+    }
+
+    /* For full join, full join predicate is a superset of isJoinPredicate(), as a single table condition
+       can also appear on the ON clause of a full outer join. For example:
+       select 1 from t1 full join t2 on a1=a2 and a2=1;
+       a2=1 cannot be applied as a single table condition but a join condition.
+     */
+    public boolean isFullJoinPredicate() {
+        return forFullJoin;
     }
 
     /**

@@ -102,7 +102,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
         operationContext.pushScope();
         try {
-            if (isOuterJoin)
+            if (isOuterJoin())
                 return left.mapPartitions(new NLJOuterJoinFunction(operationContext), true);
             else {
                 if (notExistsRightSide)

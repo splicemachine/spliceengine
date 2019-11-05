@@ -122,6 +122,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         return visit((JoinNode)j);
     }
 
+    @Override
+    public JoinNode visit(FullOuterJoinNode j) throws StandardException {
+        return visit((JoinNode)j);
+    }
+
     // Machinery for pulling up predicates (for hash-based joins)
 
     private JoinNode pullUpPreds(JoinNode j, AccessPath ap) throws StandardException {
@@ -133,6 +138,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                 RSUtils.rsnHasPreds);
 
         org.spark_project.guava.base.Predicate<Predicate> joinScoped = evalableAtNode(j);
+        org.spark_project.guava.base.Predicate<Predicate> isFullJoinPredicate = pred -> pred.isFullJoinPredicate();
 
         ResultSetNode parent = null;
         for (ResultSetNode rsn: rightsUntilBinary) {
@@ -140,7 +146,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
             // Encode whether to pull up predicate to join:
             //  when can't evaluate on node but can evaluate at join
             org.spark_project.guava.base.Predicate<Predicate> shouldPull =
-                    Predicates.and(Predicates.not(evalableAtNode(rsn)), joinScoped);
+                    Predicates.and(Predicates.or(Predicates.not(evalableAtNode(rsn)), isFullJoinPredicate), joinScoped);
             if(rsn instanceof ProjectRestrictNode)
                 c = pullPredsFromPR((ProjectRestrictNode)rsn,shouldPull);
             else if(rsn instanceof FromBaseTable){

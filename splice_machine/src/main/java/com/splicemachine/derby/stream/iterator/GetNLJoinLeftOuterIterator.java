@@ -48,7 +48,7 @@ public class GetNLJoinLeftOuterIterator extends GetNLJoinIterator {
         boolean hasNext = rightSideNLJIterator.hasNext();
         if (!hasNext) {
             // For left outer join, if there is no match, return an empty row from right side
-            ExecRow lr = op.getEmptyRow();
+            ExecRow lr = op.getRightEmptyRow();
             StreamLogUtils.logOperationRecordWithMessage(lr,operationContext,"outer - right side no rows");
             op.setCurrentRow(lr);
             rightSideNLJIterator = new SingletonIterator(lr);
