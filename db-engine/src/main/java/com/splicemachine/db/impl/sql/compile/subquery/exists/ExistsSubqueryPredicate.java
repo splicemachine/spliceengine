@@ -32,10 +32,10 @@
 package com.splicemachine.db.impl.sql.compile.subquery.exists;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.FlatteningUtils;
 import org.apache.log4j.Logger;
+
 import java.util.List;
 
 /**
@@ -102,8 +102,8 @@ class ExistsSubqueryPredicate implements org.spark_project.guava.base.Predicate<
         }
 
         /* If uncorrelated then we are finished */
-        if (!ColumnUtils.isSubtreeCorrelated(subqueryNode)) {
-            return true;
+        if (subqueryNode.isNonCorrelatedSubquery()) {
+            return false;
         }
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

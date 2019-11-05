@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
+import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
 import org.spark_project.guava.base.Predicates;
 
 import java.util.*;
@@ -2206,8 +2207,9 @@ public class SelectNode extends ResultSetNode{
      * at most 1 row based on heuristics.
      */
     @Override
-    boolean returnsAtMostOneRow(){
-        return groupByList==null && selectAggregates!=null && !selectAggregates.isEmpty();
+    boolean returnsAtMostOneRow() throws StandardException {
+        return groupByList==null && selectAggregates!=null && !selectAggregates.isEmpty() ||
+                LimitOffsetVisitor.fetchNumericValue(fetchFirst) == 1;
     }
 
     /**

@@ -66,7 +66,7 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         return super.visit(node);
     }
 
-    private long fetchNumericValue(ValueNode valueNode) throws StandardException {
+    public static long fetchNumericValue(ValueNode valueNode) throws StandardException {
         if (valueNode != null && valueNode instanceof NumericConstantNode)
             return ((NumericConstantNode)valueNode).getValue().getLong();
         return -1L;
