@@ -1089,6 +1089,115 @@ public class Subquery_Table_IT extends SpliceUnitTest {
         rs.close();
     }
 
+
+    @Test
+    public void testDoNotFlattenHintForInSubquery() throws Exception {
+        String sqlText = "select * from tab3, tab1 where a1 not in (select a2 from tab2) --splice-properties doNotFlatten=true";
+
+        String expected =
+                "A3 |B3 |A1 |B1 |\n" +
+                        "----------------\n" +
+                        " 1 | 1 | 3 | 3 |\n" +
+                        " 2 | 2 | 3 | 3 |\n" +
+                        " 4 | 4 | 3 | 3 |";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        sqlText = "select * from tab3, tab1 where a1 not in (select a2 from tab2) --splice-properties doNotFlatten=false";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
+    public void testDoNotFlattenHintForSubqueryWithQualifier() throws Exception {
+        String sqlText = "select * from tab1 where a1 = ANY (select a2 from tab2 where b1=b2) --splice-properties doNotFlatten=true";
+
+        String expected =
+                "A1 |B1 |\n" +
+                        "--------\n" +
+                        " 1 | 1 |\n" +
+                        " 2 | 2 |";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        sqlText = "select * from tab1 where a1 = ANY (select a2 from tab2 where b1=b2) --splice-properties doNotFlatten=false";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
+    public void testDoNotFlattenHintForExistsSubquery() throws Exception {
+        String sqlText = "select * from tab3, tab1 where not exists (select 1 from tab2 where a1=a2) --splice-properties doNotFlatten=true";
+
+        String expected =
+                "A3 |B3 |A1 |B1 |\n" +
+                        "----------------\n" +
+                        " 1 | 1 | 3 | 3 |\n" +
+                        " 2 | 2 | 3 | 3 |\n" +
+                        " 4 | 4 | 3 | 3 |";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        sqlText = "select * from tab3, tab1 where not exists (select 1 from tab2 where a1=a2) --splice-properties doNotFlatten=false";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
+    public void testDoNotFlattenHintForAggregateSubquery() throws Exception {
+        String sqlText = "select * from tt1 where a1 in (select count(*) from tt3 group by a3) --splice-properties doNotFlatten=true";
+
+        String expected =
+                "A1 |B1 |C1 |\n" +
+                        "------------\n" +
+                        " 2 | 2 | 2 |";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        sqlText = "select * from tt1 where a1 in (select count(*) from tt3 group by a3) --splice-properties doNotFlatten=false";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
+    public void testDoNotFlattenHintForSelectScalarSubquery() throws Exception {
+        /* scalar subquery in predicate is not flattened */
+        String sqlText = "select (select distinct a2 from tab2 where b1=b2) --splice-properties doNotFlatten=true\n " +
+                "as X from tab1";
+
+        String expected =
+                "X  |\n" +
+                        "------\n" +
+                        "  1  |\n" +
+                        "  2  |\n" +
+                        "NULL |";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        sqlText = "select (select distinct a2 from tab2 where b1=b2) --splice-properties doNotFlatten=false\n " +
+                "as X from tab1";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ZERO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
+    public void testDoNotFlattenHintForWhereScalarSubquery() throws Exception {
+        /* scalar subquery in predicate is not flattened */
+        String sqlText = "select * from tab1 where (select max(a2) from tab2 where b1=b2) --splice-properties doNotFlatten=true\n is not null";
+
+        String expected =
+                "A1 |B1 |\n" +
+                        "--------\n" +
+                        " 1 | 1 |\n" +
+                        " 2 | 2 |";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+
+        sqlText = "select * from tab1 where (select max(a2) from tab2 where b1=b2) --splice-properties doNotFlatten=false\n is not null";
+
+        SubqueryITUtil.assertUnorderedResult(conn(), sqlText, SubqueryITUtil.ONE_SUBQUERY_NODE, expected);
+    }
+
     @Test
     public void testSemiJoinWithNonCorrelatedExistsSubquery() throws Exception {
         String sqlText = "select * from tab1, tab3 --splice-properties useDefaultRowCount=300\n" +
