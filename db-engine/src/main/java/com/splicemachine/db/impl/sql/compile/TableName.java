@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.util.IdUtil;
 
 /**
  * A TableName represents a qualified name, externally represented as a schema name
@@ -144,6 +145,14 @@ public class TableName extends QueryTreeNode
 			return schemaName + "." + tableName;
 		else
 			return tableName;
+	}
+
+	/**
+	* Get the full SQL name of this object, properly quoted and escaped.
+	*/
+	public  String  getFullSQLName()
+	{
+	    return IdUtil.mkQualifiedName( schemaName, tableName );
 	}
 
 	/**

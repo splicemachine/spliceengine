@@ -76,7 +76,7 @@ public class StatementTriggerExecutor extends GenericTriggerExecutor {
         tec.setTriggeringResultSet(rs);
 
         try {
-            executeSPS(getAction());
+            executeWhenClauseAndAction();
         } finally {
             clearSPS();
             tec.clearTrigger();
