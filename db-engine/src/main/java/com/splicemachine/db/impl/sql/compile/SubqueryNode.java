@@ -241,7 +241,7 @@ public class SubqueryNode extends ValueNode{
                     break;
                 default:
                     // No other "legal" values at this time
-                    throw StandardException.newException(SQLState.LANG_INVALID_SUBQUYERY_PROPERTY,key, "doNotFlatten");
+                    throw StandardException.newException(SQLState.LANG_INVALID_SUBQUERY_PROPERTY,key, "doNotFlatten");
             }
         }
 
