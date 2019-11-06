@@ -215,7 +215,7 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
      *
      * @exception  StandardException  Standard exception policy.
      **/
-	/* package */ void conglomCacheRemoveEntry(long conglomid)
+    public void conglomCacheRemoveEntry(long conglomid)
             throws StandardException {
         database.getDataDictionary().getDataDictionaryCache().conglomerateCacheRemove(conglomid);
         database.getDataDictionary().getDataDictionaryCache().conglomerateDescriptorCacheRemove(conglomid);

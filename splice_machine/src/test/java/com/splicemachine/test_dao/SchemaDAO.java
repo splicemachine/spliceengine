@@ -17,6 +17,7 @@ package com.splicemachine.test_dao;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -32,6 +33,88 @@ public class SchemaDAO {
         this.tableDAO = new TableDAO(connection);
     }
 
+    public void cleanSchemaObjects(String schemaName,
+                                   Connection connection,
+                                   DatabaseMetaData metaData) throws SQLException {
+        if (connection == null)
+            connection = jdbcTemplate.getConnection();
+        if (metaData == null)
+            metaData=connection.getMetaData();
+
+        String uSchema=schemaName.toUpperCase();
+        //
+        // Delete views
+        //
+        try(ResultSet resultSet = metaData.getTables(null,uSchema,null,new String[]{"VIEW"})){
+            while(resultSet.next()){
+                tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"),true);
+            }
+        }
+
+        //
+        // Deletes tables
+        //
+        try(ResultSet resultSet = metaData.getTables(null,uSchema,null,null)){
+            while(resultSet.next()){
+                tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"),false);
+            }
+        }
+
+        //
+        // Delete procedures
+        //
+        try(ResultSet resultSet = metaData.getProcedures(null,uSchema,null)){
+            while(resultSet.next()){
+                jdbcTemplate.executeUpdate(String.format("drop procedure %s.%s",uSchema,resultSet.getString("PROCEDURE_NAME")));
+            }
+        }
+
+        //
+        // Delete functions
+        //
+        try(ResultSet resultSet = metaData.getFunctions(null,uSchema,null)){
+            while(resultSet.next()){
+                jdbcTemplate.executeUpdate(String.format("drop function %s.%s",uSchema,resultSet.getString("FUNCTION_NAME")));
+            }
+        }
+
+        // Delete Sequences
+
+        try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select sequencename from sys.syssequences seq, sys.sysschemas sch where " +
+                "seq.schemaid = sch.schemaid and SCHEMANAME = '%s'",uSchema)).executeQuery()) {
+            while(resultSet.next()){
+                jdbcTemplate.executeUpdate(String.format("drop sequence %s.%s restrict",uSchema,resultSet.getString(1)));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // Delete Triggers
+
+        try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select triggername from sys.systriggers, sys.sysschemas where " +
+                "sys.systriggers.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema)).executeQuery()) {
+            while(resultSet.next()){
+                jdbcTemplate.executeUpdate(String.format("drop trigger %s.%s",uSchema,resultSet.getString(1)));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // Delete Alias
+        // TODO JL
+
+        // Delete Files
+
+        try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select FILENAME from sys.SYSFILES, sys.sysschemas where " +
+                "sys.SYSFILES.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema)).executeQuery()) {
+            while(resultSet.next()){
+                jdbcTemplate.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)",uSchema+"."+resultSet.getString(1)));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * Drop the given schema after dropping all dependent objects.
      */
@@ -40,69 +123,7 @@ public class SchemaDAO {
         try {
             DatabaseMetaData metaData=connection.getMetaData();
             String uSchema=schemaName.toUpperCase();
-            //
-            // Delete views
-            //
-            try(ResultSet resultSet = metaData.getTables(null,uSchema,null,new String[]{"VIEW"})){
-                while(resultSet.next()){
-                    tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"),true);
-                }
-            }
-
-            //
-            // Deletes tables
-            //
-            try(ResultSet resultSet = metaData.getTables(null,uSchema,null,null)){
-                while(resultSet.next()){
-                    tableDAO.drop(schemaName,resultSet.getString("TABLE_NAME"),false);
-                }
-            }
-
-            //
-            // Delete procedures
-            //
-            try(ResultSet resultSet = metaData.getProcedures(null,uSchema,null)){
-                while(resultSet.next()){
-                    jdbcTemplate.executeUpdate(String.format("drop procedure %s.%s",uSchema,resultSet.getString("PROCEDURE_NAME")));
-                }
-            }
-
-            // Delete Sequences
-
-            try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select sequencename from sys.syssequences seq, sys.sysschemas sch where " +
-                    "seq.schemaid = sch.schemaid and SCHEMANAME = '%s'",uSchema)).executeQuery()) {
-                while(resultSet.next()){
-                    jdbcTemplate.executeUpdate(String.format("drop sequence %s.%s restrict",uSchema,resultSet.getString(1)));
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            // Delete Triggers
-
-            try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select triggername from sys.systriggers, sys.sysschemas where " +
-                    "sys.systriggers.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema)).executeQuery()) {
-                while(resultSet.next()){
-                    jdbcTemplate.executeUpdate(String.format("drop trigger %s.%s",uSchema,resultSet.getString(1)));
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-            // Delete Alias
-            // TODO JL
-
-            // Delete Files
-
-            try(ResultSet resultSet = jdbcTemplate.getConnection().prepareStatement(String.format("select FILENAME from sys.SYSFILES, sys.sysschemas where " +
-                    "sys.SYSFILES.schemaid = sys.sysschemas.schemaid and sys.sysschemas.schemaname = '%s'",uSchema)).executeQuery()) {
-                while(resultSet.next()){
-                    jdbcTemplate.executeUpdate(String.format("CALL SQLJ.REMOVE_JAR('%s', 0)",uSchema+"."+resultSet.getString(1)));
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
+            cleanSchemaObjects(schemaName, connection, metaData);
 
             //
             // Drop schema

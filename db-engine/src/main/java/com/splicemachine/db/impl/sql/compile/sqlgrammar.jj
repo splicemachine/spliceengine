@@ -48,6 +48,7 @@ PARSER_BEGIN(SQLParser)
 
 package com.splicemachine.db.impl.sql.compile;
 
+import org.apache.commons.lang3.mutable.MutableInt;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StatementType;
 
@@ -2901,6 +2902,7 @@ TOKEN [IGNORE_CASE] :
 |   <ACCESS: "access">
 |	<ACTION: "action">
 |	<ALWAYS: "always">
+|   <ATOMIC: "atomic">
 |   <AUTO: "auto">
 |	<B: "b">
 |	<BLOB: "blob">
@@ -3513,8 +3515,32 @@ Statement( String statementSQLText, Object[] paramDefaults) throws StandardExcep
 {
 	statementNode = StatementPart(null) <EOF>
 	{
+        statementNode.setBeginOffset(0);
+        statementNode.setEndOffset(statementSQLText.length() - 1);
 		return statementNode;
 	}
+}
+
+/**
+ * Parse a search condition.
+ *
+ * @param sqlFragment a fragment of an SQL statement, representing a
+ *                    search condition
+ * @return a {@code ValueNode} representing the search condition
+ */
+ValueNode
+SearchCondition(String sqlFragment) throws StandardException :
+{
+    ValueNode valueNode;
+    initStatement(sqlFragment, null);
+}
+{
+    valueNode = valueExpression() <EOF>
+    {
+        valueNode.setBeginOffset(0);
+        valueNode.setEndOffset(sqlFragment.length() - 1);
+        return valueNode;
+    }
 }
 
 StatementNode
@@ -13221,6 +13247,28 @@ viewColumnList() throws StandardException :
 	}
 }
 
+
+QueryTreeNode
+triggerActions(Token[] tokenHolder, MutableInt endOffset) throws StandardException :
+{
+    QueryTreeNode actionNode = null;
+    Token endPosition;
+}
+{
+	<BEGIN> <ATOMIC> actionNode = proceduralStatement(tokenHolder)
+	endPosition = <SEMICOLON>
+	<END>
+	{
+	    endOffset.setValue(endPosition.beginOffset - 1);
+		return actionNode;
+	}
+|
+	actionNode = proceduralStatement(tokenHolder)
+	{
+		return actionNode;
+	}
+}
+
 StatementNode
 triggerDefinition() throws StandardException :
 {
@@ -13236,10 +13284,16 @@ triggerDefinition() throws StandardException :
 	int					actionEnd;
 	TriggerEventDML		triggerEvent;
 	QueryTreeNode		actionNode;
+	ValueNode           whenClause = null;
+    Token               whenOpen = null;
+    Token               whenClose = null;
+    int                 whenOffset = 0;
+    int                 whenEnd = 0;
 	ResultColumnList	triggerColumns = (ResultColumnList) nodeFactory.getNode(
 											C_NodeTypes.RESULT_COLUMN_LIST,
 											getContextManager());
 	Vector				refClause = null;
+	MutableInt	        endOffset = new MutableInt(-1);
 }
 {
 	<TRIGGER> triggerName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
@@ -13249,12 +13303,15 @@ triggerDefinition() throws StandardException :
 		[ refClause = triggerReferencingClause() ]		// REFERENCING OLD/NEW AS
 		[ <FOR> <EACH> isRow = rowOrStatement() ]
 		[ <MODE> <DB2SQL> ]
+        [ <WHEN> whenOpen = <LEFT_PAREN> whenClause = valueExpression() whenClose = <RIGHT_PAREN> ]
 		//we are not top level statement
-		actionNode = proceduralStatement(tokenHolder)
+		actionNode = triggerActions(tokenHolder, endOffset)
 		// the trigger body
 	{
-		actionEnd = getToken(0).endOffset;
+		actionEnd = endOffset.intValue() != -1 ? endOffset.intValue() : getToken(0).endOffset;
 		actionBegin = tokenHolder[0].beginOffset;
+        actionNode.setBeginOffset(actionBegin);
+        actionNode.setEndOffset(actionEnd);
 
 		// No DML in action node for BEFORE triggers.
 		if (isBefore.booleanValue() && (actionNode instanceof DMLModStatementNode)) {
@@ -13267,10 +13324,26 @@ triggerDefinition() throws StandardException :
 		// no params in trigger action
  		HasNodeVisitor visitor = new HasNodeVisitor(ParameterNode.class);
 		actionNode.accept(visitor);
+        if (whenClause != null) {
+            whenClause.accept(visitor);
+        }
 		if (visitor.hasNode())
 		{
 			throw StandardException.newException(SQLState.LANG_NO_PARAMS_IN_TRIGGER_ACTION);
 		}
+
+        String actionText = StringUtil.slice(
+                statementSQLText, actionBegin, actionEnd, false);
+
+        String whenText = null;
+        if (whenClause != null) {
+            whenOffset = whenOpen.endOffset + 1;
+            whenEnd = whenClose.beginOffset - 1;
+            whenClause.setBeginOffset(whenOffset);
+            whenClause.setEndOffset(whenEnd);
+            whenText = StringUtil.slice(statementSQLText,
+                                        whenOffset, whenEnd, false);
+        }
 
 		return (StatementNode) nodeFactory.getNode(
 								C_NodeTypes.CREATE_TRIGGER_NODE,
@@ -13282,14 +13355,11 @@ triggerDefinition() throws StandardException :
 								isRow,
 								Boolean.TRUE, 				// enabled
 								refClause,			// referencing clause
-								null,// when clause node
-								null, 		// when clause text
-								ReuseFactory.getInteger(0),
-											// when clause begin offset
+                                whenClause,  // when clause node
+                                whenText,    // when clause text
+								ReuseFactory.getInteger(whenOffset),  // when clause begin offset
 								actionNode,
-								StringUtil.slice(statementSQLText,
-									actionBegin,
-									actionEnd,false),
+								actionText,
 								ReuseFactory.getInteger(actionBegin),
 								getContextManager());
 	}
@@ -13325,6 +13395,11 @@ beforeOrAfter() :
 {}
 {
 	<BEFORE>
+	{
+		return Boolean.TRUE;
+	}
+|
+	<NO> <CASCADE> <BEFORE>
 	{
 		return Boolean.TRUE;
 	}
@@ -17043,6 +17118,7 @@ nonReservedKeyword()  :
 	|	tok = <AFTER>
 	|	tok = <AGGREGATE>
 	|	tok = <ALWAYS>
+    |	tok = <ATOMIC>
 	|   tok = <AUTO>
 	|   tok = <B>
 	|	tok = <BEFORE>
