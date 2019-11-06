@@ -104,20 +104,16 @@ public class SICompactionState {
     private long mutate(Cell element, TxnView txn) throws IOException {
         final CellType cellType= CellUtils.getKeyValueType(element);
         long timestamp = element.getTimestamp();
-        switch (cellType) {
-            case COMMIT_TIMESTAMP:
-                dataToReturn.add(element);
-                return 0;
-            default:
-                if(mutateCommitTimestamp(element,txn))
-                    dataToReturn.add(element);
-                if (cellType == CellType.TOMBSTONE) {
-                    return timestamp;
-                }
-                else {
-                    return 0;
-                }
+        if (cellType == CellType.COMMIT_TIMESTAMP) {
+            dataToReturn.add(element);
+        } else if(mutateCommitTimestamp(element,txn)) {
+            // Txn was *not* rolled back
+            dataToReturn.add(element);
+            if (cellType == CellType.TOMBSTONE) {
+                return timestamp;
+            }
         }
+        return 0;
     }
 
     private void ensureTransactionCached(long timestamp,Cell element) {
