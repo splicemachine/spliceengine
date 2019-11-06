@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -1119,6 +1120,50 @@ public class StatisticsAdminIT{
         resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
         assertEquals("UseExtrapolation properties of columns do not match expected result.", expected1, resultString);
         rs.close();
+    }
+
+    @Category(HBaseTest.class)
+    @Test
+    public void testCollectStatsWithNoStaleRegionInfo() throws Exception {
+        /* step 1 create and populate the table */
+        methodWatcher4.execute("create table TAB_TO_SPLIT(a1 int, b1 int, c1 int, primary key (a1))");
+        methodWatcher4.execute("insert into TAB_TO_SPLIT values (1,1,1), (2,2,2), (3,3,3), (4,4,4), (5,5,5), (6,6,6), (7,7,7), (8,8,8), (9,9,9), (10,10,10)");
+        /* step 2: run a query against the table TAB_TO_SPLIT to populate the region info cache with the initial info.
+           At this point, we should have only one region.
+         */
+        methodWatcher4.executeQuery("select * from TAB_TO_SPLIT --splice-properties useSpark=true");
+
+        /* step 3: run analyze, the result should indicate only one partition */
+        ResultSet rs = methodWatcher4.executeQuery("analyze table TAB_TO_SPLIT");
+        if (rs.next()) {
+            // get the number of regions/partitions
+            long numOfRegions = rs.getLong(6);
+            assertEquals("Region number does not match, expected: 1, actual: "+numOfRegions, 1, numOfRegions);
+        } else {
+            Assert.fail("Expected to have one row returned!");
+        }
+        rs.close();
+
+        /* step 4: split the region into 2, making the info in the region info cache stale */
+        String dir = SpliceUnitTest.getResourceDirectory();
+        methodWatcher4.execute(format("call syscs_util.syscs_split_table_or_index_at_points('%s','TAB_TO_SPLIT',null,'\\x85')", SCHEMA4));
+
+        /* wait for a second */
+        Thread.sleep(1000);
+
+        /* step 5: do analyze again, we should see get 2 regions returend from stats collection */
+        rs = methodWatcher4.executeQuery("analyze table TAB_TO_SPLIT");
+        if (rs.next()) {
+            // get the number of regions/partitions
+            long numOfRegions = rs.getLong(6);
+            assertEquals("Region number does not match, expected: 2, actual: "+numOfRegions, 2, numOfRegions);
+        } else {
+            Assert.fail("Expected to have one row returned!");
+        }
+        rs.close();
+
+        /* step 6: clean up */
+        methodWatcher4.execute("drop table TAB_TO_SPLIT");
     }
 
     /* ****************************************************************************************************************/
