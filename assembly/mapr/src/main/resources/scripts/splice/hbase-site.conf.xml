@@ -91,7 +91,7 @@
 
   <property>
     <name>hbase.coprocessor.regionserver.classes</name>
-    <value>com.splicemachine.hbase.RegionServerLifecycleObserver</value>
+    <value>com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices</value>
   </property>
 
   <property><name>hbase.balancer.period</name><value>60000</value></property>

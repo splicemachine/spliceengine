@@ -91,7 +91,7 @@
 
   <property>
     <name>hbase.coprocessor.regionserver.classes</name>
-    <value>org.apache.hadoop.hbase.security.token.TokenProvider,org.apache.hadoop.hbase.security.access.AccessController,com.splicemachine.hbase.RegionServerLifecycleObserver</value>
+    <value>org.apache.hadoop.hbase.security.token.TokenProvider,org.apache.hadoop.hbase.security.access.AccessController,com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices</value>
   </property>
 
   <property><name>hbase.balancer.period</name><value>60000</value></property>

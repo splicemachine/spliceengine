@@ -31,7 +31,7 @@
 <property><name>fs.mapr.threads</name><value>64</value></property>
 <property><name>hbase.coprocessor.region.classes</name><value>com.splicemachine.derby.hbase.SpliceOperationRegionObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceDerbyCoprocessor,com.splicemachine.derby.hbase.SpliceIndexManagementEndpoint,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler,com.splicemachine.si.coprocessors.SIObserver,com.splicemachine.si.coprocessors.TxnLifecycleEndpoint</value><description>These are the coprocessors used to run the Splice Machine.</description></property>
 <property><name>hbase.coprocessor.master.classes</name><value>com.splicemachine.derby.hbase.SpliceMasterObserver,com.splicemachine.si.coprocessors.TimestampMasterObserver</value><description>Master coprocessors for the Splice Machine.</description></property>
-<property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.derby.hbase.ShutdownRegionServerObserver</value></property>
+<property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.derby.hbase.ShutdownRegionServerObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices</value></property>
 <property><name>dfs.client.read.shortcircuit.buffer.size</name><value>131072</value></property>
 <property><name>hbase.balancer.period</name><value>60000</value></property>
 <property><name>hbase.client.retries.number</name><value>40</value></property>

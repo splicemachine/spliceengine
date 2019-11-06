@@ -160,6 +160,19 @@ message SpliceRegionSizeResponse {
     required int64 sizeInBytes = 2;
 }
 
+service SpliceRegionServerCoprocessorService {
+	rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
+		returns (SpliceOldestActiveTransactionResponse);
+}
+
+message SpliceOldestActiveTransactionRequest {
+
+}
+
+message SpliceOldestActiveTransactionResponse {
+    required int64 oldestActiveTransaction = 1;
+}
+
 service BackupCoprocessorService {
   rpc prepareBackup(PrepareBackupRequest)
   returns (PrepareBackupResponse);

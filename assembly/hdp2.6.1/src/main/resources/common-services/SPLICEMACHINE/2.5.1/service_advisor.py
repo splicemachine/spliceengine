@@ -193,7 +193,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "hbase.balancer.period" : "60000",
         "hbase.client.ipc.pool.size" : "10",
         "hbase.client.max.perregion.tasks" : "100",
-        "hbase.coprocessor.regionserver.classes" : "com.splicemachine.hbase.RegionServerLifecycleObserver",
+        "hbase.coprocessor.regionserver.classes" : "com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices",
         "hbase.hstore.compaction.min.size" : "136314880",
         "hbase.hstore.compaction.min" : "3",
         "hbase.hstore.defaultengine.compactionpolicy.class" : "com.splicemachine.compactions.SpliceDefaultCompactionPolicy",
