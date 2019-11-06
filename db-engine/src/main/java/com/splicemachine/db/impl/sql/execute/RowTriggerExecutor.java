@@ -79,7 +79,7 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
                 tec.updateAICounters();
             }
 
-            executeSPS(getAction());
+            executeWhenClauseAndAction();
 
                 /*
                   For BEFORE ROW triggers, update the ai values after the SPS

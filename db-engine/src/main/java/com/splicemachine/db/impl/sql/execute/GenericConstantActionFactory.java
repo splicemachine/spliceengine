@@ -821,6 +821,7 @@ public abstract class GenericConstantActionFactory {
 	 * @param referencedColsInTriggerAction	what columns does the trigger 
 	 *						action reference through old/new transition variables
 	 *						(may be null)
+         * @param originalWhenText The original user text of the WHEN clause (may be null)
 	 * @param originalActionText The original user text of the trigger action
 	 * @param referencingOld whether or not OLD appears in REFERENCING clause
 	 * @param referencingNew whether or not NEW appears in REFERENCING clause
@@ -843,6 +844,7 @@ public abstract class GenericConstantActionFactory {
 		Timestamp			creationTimestamp,
 		int[]				referencedCols,
 		int[]				referencedColsInTriggerAction,
+		String				originalWhenText,
 		String				originalActionText,
 		boolean				referencingOld,
 		boolean				referencingNew,

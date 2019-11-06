@@ -459,14 +459,17 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
             TableDescriptor triggerTable,UUID whenSPSId,String whenText,
             UUID actionSPSId,String actionText,UUID spsCompSchemaId,
             Timestamp creationTimestamp,int[] referencedCols,
-            int[] referencedColsInTriggerAction,String originalActionText,
+            int[] referencedColsInTriggerAction,
+            String originalWhenText,
+            String originalActionText,
             boolean referencingOld,boolean referencingNew,
             String oldReferencingName,String newReferencingName){
         SpliceLogUtils.trace(LOG,"getCreateTriggerConstantAction for trigger {%s.%s}",triggerSchemaName,triggerName);
         return new CreateTriggerConstantOperation(triggerSchemaName,triggerName,
                 eventMask,isBefore,isRow,isEnabled,triggerTable,whenSPSId,
                 whenText,actionSPSId,actionText,spsCompSchemaId,creationTimestamp,
-                referencedCols,referencedColsInTriggerAction,originalActionText,
+                referencedCols,referencedColsInTriggerAction,
+                originalWhenText, originalActionText,
                 referencingOld,referencingNew,oldReferencingName,newReferencingName);
     }
 
