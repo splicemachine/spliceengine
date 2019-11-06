@@ -99,13 +99,14 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         boolean eachRegionOneSplit = oneSplitPerRegion(conf);
         long tableSize = 0;
         while (true) {
-            List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
-
             if (eachRegionOneSplit)
             {
+                /* unconditionally refresh the region info cache for stats collection */
+                List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
                 List<InputSplit> regionSplits = toSMSplits(splits);
                 return regionSplits;
             }
+            List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
             boolean getTableSize = this.splits > 0 && table.getName().getNameAsString().startsWith("splice:");
             if (getTableSize) {
                 String tableName = table.getName().getNameAsString().split(":")[1];
