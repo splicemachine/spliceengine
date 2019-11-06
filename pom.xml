@@ -48,7 +48,11 @@
          <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
-	</repository>
+	    </repository>
+        <repository>
+            <id>ICM</id>
+            <url>http://maven.icm.edu.pl/artifactory/repo/</url>
+        </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
@@ -865,7 +869,7 @@
                 <hive.version>1.1.0</hive.version>
                 <zookeeper.version>3.4.6</zookeeper.version>
                 <spark.version>2.2.0</spark.version>
-                <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
+                <kafka.version>0.10.0-kafka-2.1.2</kafka.version>
                 <hadoop.tools.version>1.2.1</hadoop.tools.version>
                 <parquet.version>parquet-spark2</parquet.version>
             </properties>
@@ -1311,7 +1315,7 @@
                 <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
-                <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <kafka.version>0.10.0-kafka-2.1.2</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
