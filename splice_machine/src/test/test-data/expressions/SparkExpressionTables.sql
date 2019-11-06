@@ -45,10 +45,10 @@ insert into ts_int values
 create index ix_int on ts_int(l, i);
 
 create table ts_decimal (a dec(11,1), b int);
-insert into ts_decimal values
+insert into ts_decimal select * from (values
                         (9999999999.7, 1),
                         (9999999999.9, 1),
-                        (9999999999.9, 1);
+                        (9999999999.9, 1)) dt order by 1;
 
 create table ts_double (a double, b double, c int);
 insert into ts_double values (1.79769E+308, 1.49769E+308, 1);

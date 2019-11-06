@@ -38,8 +38,8 @@ import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.spark.splicemachine.ScalaUtils;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
+import com.splicemachine.sparksql.ParserUtils;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.codec.binary.Base64;
@@ -60,11 +60,9 @@ import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.*;
 import static org.apache.spark.sql.functions.*;
 
-import org.apache.spark.sql.catalyst.parser.ParserInterface;
+
 import org.apache.spark.sql.types.*;
 import org.apache.spark.storage.StorageLevel;
-import scala.collection.JavaConversions;
-import scala.collection.mutable.Buffer;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -73,8 +71,6 @@ import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
-import static org.apache.spark.sql.functions.broadcast;
-import static org.apache.spark.sql.functions.col;
 
 /**
  *
@@ -432,6 +428,19 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         } finally {
             if (pushScope) SpliceSpark.popScope();
         }
+    }
+
+    @Override
+    public DataSet<V> union(List<DataSet<V>> dataSetList, OperationContext operationContext) {
+        DataSet<V> toReturn = null;
+        for (DataSet<V> aSet: dataSetList) {
+            if (toReturn == null)
+                toReturn = aSet;
+            else
+                toReturn = aSet.union(aSet, operationContext, RDDName.UNION.displayName(), false, null);
+        }
+
+        return toReturn;
     }
 
     @Override
@@ -916,8 +925,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
             SparkExpressionNode sparkJoinPred = op.getSparkJoinPredicate();
             if (sparkJoinPred != null) {
-                ParserInterface parser = ScalaUtils.getParser();
-                expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, parser);
+                java.util.function.Function<String, DataType> convertStringToDataTypeFunction =
+                     (String s) -> { return ParserUtils.getDataTypeFromString(s); };
+                expr = sparkJoinPred.getColumnExpression(leftDF, rightDF, convertStringToDataTypeFunction);
             }
             else {
                 for (int i = 0; i < rightJoinKeys.length; i++) {

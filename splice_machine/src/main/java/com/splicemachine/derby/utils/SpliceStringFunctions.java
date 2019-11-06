@@ -17,6 +17,7 @@ package com.splicemachine.derby.utils;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
+import com.splicemachine.db.iapi.util.StringUtil;
 import org.apache.commons.lang3.text.WordUtils;
 
 import org.spark_project.guava.cache.CacheBuilder;
@@ -124,6 +125,21 @@ public class SpliceStringFunctions {
             return String.valueOf((char)(i % 256));
         else
             return String.valueOf((char)i.intValue());
+    }
+
+    /**
+     * Implements logic for the SQL function HEX.
+     *
+     * @param s An expression that returns a value with a maximum length of 16 336 bytes.
+     * @return Returns a hexadecimal representation of a value as a character string
+     */
+    public static String HEX(String s)
+    {
+        if (s == null)
+            return null;
+        else
+            return StringUtil.toHexString(s.getBytes(),0,s.length()).toUpperCase();
+
     }
 
 
