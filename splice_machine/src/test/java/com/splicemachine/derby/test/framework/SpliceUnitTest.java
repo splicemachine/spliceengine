@@ -334,6 +334,31 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void testQuery(String sqlText, String expected, Statement s) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = s.executeQuery(sqlText);
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
+    protected void testQueryContains(String sqlText, String containedString, Statement s) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = s.executeQuery(sqlText);
+            if (!TestUtils.FormattedResult.ResultFactory.toString(rs).contains(containedString))
+                fail("ResultSet does not contain string: " + containedString);
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
     protected void testQueryUnsorted(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
         ResultSet rs = null;
         try {
@@ -368,7 +393,7 @@ public class SpliceUnitTest {
 
     protected void testUpdateFail(String sqlText,
                                   List<String> expectedErrors,
-                                  SpliceWatcher methodWatcher) throws Exception {
+                                  SpliceWatcher methodWatcher) throws AssertionError {
 
         try {
             methodWatcher.executeUpdate(sqlText);
@@ -380,6 +405,61 @@ public class SpliceUnitTest {
             if (!found)
                 fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
         }
+    }
+
+    protected void testFail(String expectedErrorCode,
+                            String sqlText,
+                            Statement s) throws AssertionError {
+
+        try {
+            s.execute(sqlText);
+            String failMsg = format("SQL not expected to succeed.\n%s", sqlText);
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = false;
+            String extraText = "";
+            if (e instanceof SQLException) {
+                found = ((SQLException) e).getSQLState().equals(expectedErrorCode);
+                if (!found)
+                    extraText = format("found error code: %s", ((SQLException) e).getSQLState());
+            }
+            if (!found) {
+                fail(format("\n + Expected error code: %s, ", expectedErrorCode) + extraText);
+            }
+        }
+    }
+
+    protected void assertStatementError(String expectedErrorCode,
+                                        Statement s,
+                                        String sqlText) throws AssertionError {
+        testFail(expectedErrorCode, sqlText, s);
+    }
+
+    /**
+     * Assert that the number of rows in a table is an expected value.
+     * Query uses a SELECT COUNT(*) FROM table.
+     *
+     * @param table Name of table in current schema, will be quoted
+     * @param rowCount Number of rows expected in the table
+     * @throws SQLException Error accessing the database.
+     */
+    public void assertTableRowCount(String table, int rowCount, Statement s)
+       throws SQLException, AssertionError
+    {
+        ResultSet rs = s.executeQuery(
+                "SELECT COUNT(*) FROM " + table);
+        rs.next();
+        assertEquals(table + " row count:",
+            rowCount, rs.getInt(1));
+        rs.close();
+    }
+
+    public static void assertUpdateCount(Statement st,
+        int expectedRC, String sql) throws SQLException, AssertionError
+    {
+        assertEquals("Update count does not match:",
+            expectedRC, st.executeUpdate(sql));
     }
 
     public static class Contains {

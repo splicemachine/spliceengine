@@ -373,6 +373,7 @@ public class DataDescriptorGenerator
 	 * @param referencingNew whether or not NEW appears in REFERENCING clause
 	 * @param oldReferencingName old referencing table name, if any, that appears in REFERCING clause
 	 * @param newReferencingName new referencing table name, if any, that appears in REFERCING clause
+	 * @param whenClauseText the SQL text of the WHEN clause (may be null)
 	 *
 	 * @exception StandardException on error
 	 */
@@ -395,7 +396,8 @@ public class DataDescriptorGenerator
 		boolean				referencingOld,
 		boolean				referencingNew,
 		String				oldReferencingName,
-		String				newReferencingName
+		String				newReferencingName,
+                String                          whenClauseText
 	) throws StandardException
 	{
 		return new TriggerDescriptor(
@@ -417,7 +419,8 @@ public class DataDescriptorGenerator
 					referencingOld,
 					referencingNew,
 					oldReferencingName,
-					newReferencingName
+					newReferencingName,
+                                        whenClauseText
 					);
 	}
 		
