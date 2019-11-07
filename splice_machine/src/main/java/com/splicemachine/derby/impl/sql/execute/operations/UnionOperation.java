@@ -14,20 +14,21 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.spark_project.guava.base.Strings;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -154,13 +155,47 @@ public class UnionOperation extends SpliceBaseOperation {
 			throw new IllegalStateException("Operation is not open");
 
 		OperationContext operationContext = dsp.createOperationContext(this);
-		DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
-		DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);
-		operationContext.pushScope();
-		DataSet<ExecRow> result = left
-		    .union(right, operationContext)
-		    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
-		operationContext.popScope();
+		boolean useSpark = dsp.getType().equals(DataSetProcessor.Type.SPARK);
+
+		DataSet<ExecRow> result;
+		if (!useSpark) {
+			ArrayList<DataSet<ExecRow>> datasetList = new ArrayList<>();
+			collectUnionAllBranches(this, datasetList, dsp);
+			DataSet<ExecRow> dataSet = dsp.getEmpty();
+			operationContext.pushScope();
+			result = dataSet
+					.union(datasetList, operationContext)
+					.map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
+			operationContext.popScope();
+			return result;
+		} else {
+			DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
+			DataSet<ExecRow> right = rightResultSet.getDataSet(dsp);
+			operationContext.pushScope();
+			result = left
+					.union(right, operationContext)
+					.map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext), true);
+			operationContext.popScope();
+		}
 		return result;
     }
+
+    /* flatten the nested union-all branches */
+    public void collectUnionAllBranches(UnionOperation unionOperation,
+									 ArrayList<DataSet<ExecRow>> datasetList,
+									 DataSetProcessor dsp) throws StandardException {
+		SpliceOperation left = unionOperation.getLeftOperation();
+		if (left instanceof UnionOperation && !(left instanceof RecursiveUnionOperation))
+			collectUnionAllBranches((UnionOperation)left, datasetList, dsp);
+		else
+			datasetList.add(left.getDataSet(dsp));
+
+		SpliceOperation right = unionOperation.getRightOperation();
+		if (right instanceof UnionOperation && !(right instanceof RecursiveUnionOperation))
+			collectUnionAllBranches((UnionOperation)right, datasetList, dsp);
+		else
+			datasetList.add(right.getDataSet(dsp));
+
+		return;
+	}
 }

@@ -129,7 +129,7 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
                 "union all\n" +
                 "select a2, level+1 as level\n" +
                 "from dt where level<10)\n" +
-                "select * from dt order by a2", this.useSparkString);
+                "select * from dt order by a2, level", this.useSparkString);
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
 
@@ -553,7 +553,7 @@ public class RecursiveWithStatementIT extends SpliceUnitTest {
                     "union all\n" +
                     "select a2, level+1 as level\n" +
                     "from dt where level<%d)\n" +
-                    "select * from dt order by a2";
+                    "select * from dt order by a2, level";
             String sqlText = format(sqlTemplate, this.useSparkString, 15);
 
             try {

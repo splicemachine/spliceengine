@@ -15,8 +15,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.derby.test.framework.*;
-
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -27,12 +30,10 @@ import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLDataException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 
 /**
@@ -302,19 +303,15 @@ public class TernaryOperationIT {
         String sql = "select right(name, cut) from ta";
         rs = methodWatcher.executeQuery(sql);
 
+        String expected_result = "1    |\n" +
+                "----------\n" +
+                "  NULL   |\n" +
+                "  NULL   |\n" +
+                "hey dude |\n" +
+                "  world  |";
+        assertEquals(expected_result, TestUtils.FormattedResult.ResultFactory.toString(rs));
+
         methodWatcher.execute("drop table ta");
-
-        List<String> expected = new ArrayList<>(2);
-        expected.add("world");
-        expected.add("hey dude");
-        expected.add(null);
-        expected.add(null);
-
-        for (String s: expected) {
-            Assert.assertTrue(rs.next());
-            Assert.assertEquals(s, rs.getString(1));
-        }
-        Assert.assertFalse(rs.next());
     }
 
     @Test
@@ -330,19 +327,14 @@ public class TernaryOperationIT {
         String sql = "select left(name, cut) from ta";
         rs = methodWatcher.executeQuery(sql);
 
+        String expected_result = "1    |\n" +
+                "----------\n" +
+                "  NULL   |\n" +
+                "  NULL   |\n" +
+                "  hello  |\n" +
+                "hey dude |";
+        assertEquals(expected_result, TestUtils.FormattedResult.ResultFactory.toString(rs));
         methodWatcher.execute("drop table ta");
-
-        List<String> expected = new ArrayList<>(2);
-        expected.add("hello");
-        expected.add("hey dude");
-        expected.add(null);
-        expected.add(null);
-
-        for (String s: expected) {
-            Assert.assertTrue(rs.next());
-            Assert.assertEquals(s, rs.getString(1));
-        }
-        Assert.assertFalse(rs.next());
     }
 
     @Test

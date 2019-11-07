@@ -216,6 +216,8 @@ public interface DataSet<V> extends //Iterable<V>,
 
     DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext);
 
+    DataSet<V> union(List<DataSet<V>> dataSetList, OperationContext operationContext);
+
     DataSet<V> orderBy(OperationContext operationContext, int[] keyColumns, boolean[] descColumns, boolean[] nullsOrderedLow);
 
     DataSet<V> parallelProbe(List<ScanSetBuilder<ExecRow>> dataSets, OperationContext<MultiProbeTableScanOperation> operationContext) throws StandardException;
