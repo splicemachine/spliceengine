@@ -55,6 +55,9 @@ class AggregateSubqueryPredicate implements org.spark_project.guava.base.Predica
     }
 
     private boolean doWeHandle(SubqueryNode subqueryNode) throws StandardException {
+        if (subqueryNode.isHintNotFlatten())
+            return false;
+
         ResultSetNode subqueryResultSet = subqueryNode.getResultSet();
 
         /* subquery cannot contain a union */

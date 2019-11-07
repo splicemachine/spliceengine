@@ -67,6 +67,9 @@ public class ScalarSubqueryPredicate implements org.spark_project.guava.base.Pre
     }
 
     private boolean doWeHandle(SubqueryNode subqueryNode) throws StandardException {
+        if (subqueryNode.isHintNotFlatten())
+            return false;
+
         /* subquery cannot contain limit n/top n except for top 1 without order by*/
         if (subqueryNode.getFetchFirst() != null) {
             ValueNode fetchFirstNode = subqueryNode.getFetchFirst();
