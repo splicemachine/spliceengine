@@ -99,19 +99,35 @@ public class SICompactionState {
         }
     }
     /**
-     * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
+     * Apply SI mutation logic. Returns the timestamp of the tombstone, if element
+     * is a tombstone that is eligible for purging, else 0
      */
     private long mutate(Cell element, TxnView txn) throws IOException {
         final CellType cellType= CellUtils.getKeyValueType(element);
         long timestamp = element.getTimestamp();
         if (cellType == CellType.COMMIT_TIMESTAMP) {
             dataToReturn.add(element);
-        } else if(mutateCommitTimestamp(element,txn)) {
-            // Txn was *not* rolled back
+            return 0;
+        }
+        if (txn == null) {
+            // No transactional data, we keep the data as is
             dataToReturn.add(element);
-            if (cellType == CellType.TOMBSTONE) {
-                return timestamp;
-            }
+            return 0;
+        }
+        if (txn.getState() == Txn.State.ROLLEDBACK) {
+            // Transaction was rolled back, we do not keep the element
+            return 0;
+        }
+        if (committed(txn)) {
+            // This element has been committed all the way to the user level, so a
+            // commit timestamp can be placed on it.
+            long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
+            dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
+        }
+        // Committed or not, we keep the current element
+        dataToReturn.add(element);
+        if (cellType == CellType.TOMBSTONE) {
+            return timestamp;
         }
         return 0;
     }
@@ -128,28 +144,6 @@ public class SICompactionState {
                 transactionStore.cache(new CommittedTxn(timestamp,commitTs));
             }
         }
-    }
-
-    /**
-     * Replace unknown commit timestamps with actual commit times.
-     */
-    private boolean mutateCommitTimestamp(Cell element, TxnView txn) throws IOException {
-        if (txn == null) {
-            // we don't have transactional information, just return the data as is
-            return true;
-        } else if (txn.getState() == Txn.State.ROLLEDBACK) {
-            // rolled back data, remove it from the compacted data
-            return false;
-        } else if (committed(txn)) {
-            /*
-             * This element has been committed all the way to the user level, so a
-             * commit timestamp can be placed on it.
-             */
-            long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
-            dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
-        }
-        // Committed or active, return the original data too
-        return true;
     }
 
     private boolean committed(TxnView txn) {
