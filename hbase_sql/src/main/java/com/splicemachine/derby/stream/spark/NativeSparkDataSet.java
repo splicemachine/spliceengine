@@ -71,8 +71,6 @@ import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
-import static org.apache.spark.sql.functions.broadcast;
-import static org.apache.spark.sql.functions.col;
 
 /**
  *
@@ -430,6 +428,19 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         } finally {
             if (pushScope) SpliceSpark.popScope();
         }
+    }
+
+    @Override
+    public DataSet<V> union(List<DataSet<V>> dataSetList, OperationContext operationContext) {
+        DataSet<V> toReturn = null;
+        for (DataSet<V> aSet: dataSetList) {
+            if (toReturn == null)
+                toReturn = aSet;
+            else
+                toReturn = aSet.union(aSet, operationContext, RDDName.UNION.displayName(), false, null);
+        }
+
+        return toReturn;
     }
 
     @Override

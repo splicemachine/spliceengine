@@ -714,7 +714,7 @@ public class Subquery_Flattening_NotExists_IT {
         int deleteCount = methodWatcher.executeUpdate("delete from YY where not exists (select 1 from ZZ where y1=z1)");
         assertEquals(5, deleteCount);
         // verify that only expected rows remain in target table
-        assertEquals("[2, 4, 6, 8, 10]", methodWatcher.queryList("select y1 from YY").toString());
+        assertEquals("[2, 4, 6, 8, 10]", methodWatcher.queryList("select y1 from YY order by 1").toString());
     }
 
 
