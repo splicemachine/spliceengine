@@ -342,4 +342,12 @@ public class TableConstantOperationIT extends SpliceUnitTest {
         Assert.assertEquals("type conversion did not work","CLOB",rs.getString("TYPE_NAME"));
     }
 
+    @Test
+    public void createTableWithTextColumn() throws Exception {
+        methodWatcher.execute(format("create table %s.%s (text text)",CLASS_NAME,"ZOO"));
+        methodWatcher.execute(format("insert into %s.%s values ('text column')",CLASS_NAME,"ZOO"));
+        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", CLASS_NAME, "ZOO"));
+        rs.next();
+        Assert.assertEquals("text column", rs.getString(1));
+    }
 }

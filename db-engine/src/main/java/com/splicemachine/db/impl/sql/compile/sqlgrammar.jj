@@ -17214,6 +17214,7 @@ nonReservedKeyword()  :
 	|	tok = <SYNONYM>
 	|	tok = <STYLE>
 	|	tok = <T>
+	|	tok = <TEXT>
 	|	tok = <THEN>
 	|	tok = <TIME>
 	|   tok = <TIMEFORMAT>
