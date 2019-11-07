@@ -3201,7 +3201,7 @@ TOKEN :
 
 TOKEN :
 {	/* Identifiers */
-	<IDENTIFIER: ( <LETTER> ) (<LETTER> | "_" | <DIGIT>)* >
+	<IDENTIFIER: ( <LETTER> ) (<LETTER> | "_" | <DIGIT> | "@" | "$" | "#")* >
 }
 
 TOKEN: {	<K: "K" >	 }
