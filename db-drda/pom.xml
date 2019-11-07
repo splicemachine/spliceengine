@@ -50,6 +50,16 @@
         </dependency>
     </dependencies>
     <build>
+	<resources>
+		<resource>
+			<directory>${project.build.directory}/generated-resources/metadata/</directory>
+			<filtering>false</filtering>
+		</resource>
+		<resource>
+			<directory>src/main/resources</directory>
+			<filtering>false</filtering>
+		</resource>
+	</resources>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -76,7 +86,7 @@
                             <arguments>
                                 <argument>${basedir}/src/main/properties/metadata.properties</argument>
                                 <argument>
-                                    ${project.build.outputDirectory}/com/splicemachine/db/impl/jdbc/metadata.properties
+					${project.build.directory}/generated-resources/metadata/com/splicemachine/db/impl/jdbc/metadata.properties
                                 </argument>
                             </arguments>
                         </configuration>
@@ -94,7 +104,7 @@
                             <mainClass>com.splicemachine.derbyBuild.MessageVetter</mainClass>
                             <includePluginDependencies>true</includePluginDependencies>
                             <arguments>
-                                <argument>${project.build.outputDirectory}/com/splicemachine/db/loc/drda</argument>
+				    <argument>${basedir}/src/main/resources/com/splicemachine/db/loc/drda</argument>
                             </arguments>
                         </configuration>
                     </execution>
