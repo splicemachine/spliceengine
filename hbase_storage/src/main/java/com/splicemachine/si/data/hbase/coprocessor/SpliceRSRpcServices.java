@@ -13,12 +13,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.splicemachine.hbase;
+package com.splicemachine.si.data.hbase.coprocessor;
 
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.IsolationLevel;
@@ -29,8 +30,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Region;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 
-import org.apache.hadoop.hbase.shaded.protobuf.ResponseConverter;
-import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
 
@@ -92,5 +91,19 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
         }
         SpliceMessage.GetRegionServerLSNReponse response = responseBuilder.build();
         done.run(response);
+    }
+
+
+    @Override
+    public void getOldestActiveTransaction(RpcController controller,
+                                           SpliceMessage.SpliceOldestActiveTransactionRequest request,
+                                           RpcCallback<SpliceMessage.SpliceOldestActiveTransactionResponse> callback) {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "getOldestActiveTransaction");
+        SpliceMessage.SpliceOldestActiveTransactionResponse.Builder writeResponse = SpliceMessage.SpliceOldestActiveTransactionResponse.newBuilder();
+
+        long oldestActiveTransaction = SIDriver.driver().getTxnStore().oldestActiveTransaction();
+        writeResponse.setOldestActiveTransaction(oldestActiveTransaction);
+        callback.run(writeResponse.build());
     }
 }

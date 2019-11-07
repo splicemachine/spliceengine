@@ -18,6 +18,7 @@ import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.api.OldestActiveTransactionTaskFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.SnowflakeFactory;
 import com.splicemachine.concurrent.Clock;
@@ -85,6 +86,7 @@ public class SIDriver {
     private final SITransactionReadController readController;
     private final PartitionFactory tableFactory;
     private final ExceptionFactory exceptionFactory;
+    private final OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory;
     private final SConfiguration config;
     private final TxnStore txnStore;
     private final OperationStatusFactory operationStatusFactory;
@@ -110,6 +112,7 @@ public class SIDriver {
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
         this.exceptionFactory = env.exceptionFactory();
+        this.oldestActiveTransactionTaskFactory = env.oldestActiveTransactionTaskFactory();
         this.config = env.configuration();
         this.txnStore = env.txnStore();
         this.operationStatusFactory = env.statusFactory();
@@ -162,6 +165,10 @@ public class SIDriver {
 
     public ExceptionFactory getExceptionFactory(){
         return exceptionFactory;
+    }
+
+    public OldestActiveTransactionTaskFactory getOldestActiveTransactionTaskFactory() {
+        return oldestActiveTransactionTaskFactory;
     }
 
     public SnowflakeFactory getSnowflakeFactory() {
