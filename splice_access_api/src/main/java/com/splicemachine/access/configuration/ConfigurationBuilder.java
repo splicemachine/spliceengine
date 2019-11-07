@@ -103,6 +103,7 @@ public class ConfigurationBuilder {
     public int regionServerHandlerCount;
     public int timestampBlockSize;
     public long regionLoadUpdateInterval;
+    public long transactionsWatcherUpdateInterval;
     public String backupPath;
     public String compressionAlgorithm;
     public String namespace;

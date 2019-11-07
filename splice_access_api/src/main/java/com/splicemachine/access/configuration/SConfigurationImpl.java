@@ -85,6 +85,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int regionServerHandlerCount;
     private final  int timestampBlockSize;
     private final  long regionLoadUpdateInterval;
+    private final  long transactionsWatcherUpdateInterval;
     private final  String backupPath;
     private final  String compressionAlgorithm;
     private final  String namespace;
@@ -356,6 +357,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public long getRegionLoadUpdateInterval() {
         return regionLoadUpdateInterval;
+    }
+    @Override
+    public long getTransactionsWatcherUpdateInterval() {
+        return transactionsWatcherUpdateInterval;
     }
     @Override
     public String getBackupPath() {
@@ -902,6 +907,7 @@ public final class SConfigurationImpl implements SConfiguration {
         regionServerHandlerCount = builder.regionServerHandlerCount;
         timestampBlockSize = builder.timestampBlockSize;
         regionLoadUpdateInterval = builder.regionLoadUpdateInterval;
+        transactionsWatcherUpdateInterval = builder.transactionsWatcherUpdateInterval;
         backupPath = builder.backupPath;
         backupParallelism = builder.backupParallelism;
         backupKeepAliveInterval = builder.backupKeepAliveInterval;
