@@ -3014,7 +3014,7 @@ TOKEN [IGNORE_CASE] :
 |	<SQL_TSI_YEAR: "sql_tsi_year">
 |	<START: "start">
 |	<STATEMENT: "statement">
-|	<SYNONYM: "synonym">
+|	<SYNONYM: "synonym" | "alias">
 |	<T: "t">
 |	<THEN: "then">
 |	<TIME: "time">
@@ -17214,6 +17214,7 @@ nonReservedKeyword()  :
 	|	tok = <SYNONYM>
 	|	tok = <STYLE>
 	|	tok = <T>
+	|	tok = <TEXT>
 	|	tok = <THEN>
 	|	tok = <TIME>
 	|   tok = <TIMEFORMAT>
