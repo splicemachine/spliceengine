@@ -77,6 +77,7 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
         try {
             lifecycleManager.shutdown();
             HBaseRegionLoads.INSTANCE.stopWatching();
+            TransactionsWatcher.INSTANCE.stopWatching();
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -99,6 +100,7 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
 
         DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
         HBaseRegionLoads.INSTANCE.startWatching();
+        TransactionsWatcher.INSTANCE.startWatching();
         //register the engine boot service
         try{
             ManagerLoader.load().getEncryptionManager();
