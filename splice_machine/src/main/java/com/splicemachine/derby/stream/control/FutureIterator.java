@@ -15,12 +15,9 @@
 package com.splicemachine.derby.stream.control;
 
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
 

@@ -66,7 +66,7 @@ class SpliceTestPlatformConfig {
             RegionServerLifecycleObserver.class,
             BlockingProbeEndpoint.class,
             SpliceReplicationService.class,
-            RegionServerEndpoint.class
+            SpliceRSRpcServices.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(

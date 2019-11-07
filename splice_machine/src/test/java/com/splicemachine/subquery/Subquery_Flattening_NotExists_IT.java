@@ -15,10 +15,13 @@
 package com.splicemachine.subquery;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
+
+import java.sql.ResultSet;
 
 import static com.splicemachine.subquery.SubqueryITUtil.*;
 import static org.junit.Assert.assertEquals;
@@ -45,64 +48,64 @@ public class Subquery_Flattening_NotExists_IT {
     public void uncorrelated_oneSubqueryTable() throws Exception {
 
         // subquery reads same table
-        assertUnorderedResult(conn(), "select * from A where NOT exists (select a1 from A ai where ai.a2 > 20)", ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), "select * from A where NOT exists (select a1 from A ai where ai.a2 > 20)", ONE_SUBQUERY_NODE, "");
 
         // subquery reads different table
-        assertUnorderedResult(conn(), "select * from A where NOT exists (select b1 from B where b2 > 20)", ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), "select * from A where NOT exists (select b1 from B where b2 > 20)", ONE_SUBQUERY_NODE, "");
 
         // empty table
-        assertUnorderedResult(conn(), "select * from A where NOT exists (select 1 from EMPTY_TABLE)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+        assertUnorderedResult(conn(), "select * from A where NOT exists (select 1 from EMPTY_TABLE)", ONE_SUBQUERY_NODE, RESULT_ALL_OF_A);
 
         // two exists
         assertUnorderedResult(conn(),
                 "select * from A where " +
                         "NOT exists (select b1 from B where b2 > 20)" +
                         " and " +
-                        "NOT exists (select b1 from B where b1 > 3)", ZERO_SUBQUERY_NODES, "");
+                        "NOT exists (select b1 from B where b1 > 3)", TWO_SUBQUERY_NODES, "");
 
         // two exists, different rows
         assertUnorderedResult(conn(),
                 "select * from A where " +
                         "NOT exists (select b1 from B where b2 < 0)" +
                         " and " +
-                        "NOT exists (select b1 from B where b1 < 0)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+                        "NOT exists (select b1 from B where b1 < 0)", TWO_SUBQUERY_NODES, RESULT_ALL_OF_A);
     }
 
 
     @Test
     public void uncorrelated_twoSubqueryTables() throws Exception {
         // subquery reads same table
-        assertUnorderedResult(conn(), "select * from A where NOT exists (select a1 from A ai join D on a1=d1 where ai.a2 > 20)", ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), "select * from A where NOT exists (select a1 from A ai join D on a1=d1 where ai.a2 > 20)", ONE_SUBQUERY_NODE, "");
 
         // subquery reads different table
-        assertUnorderedResult(conn(), "select * from A where NOT exists (select b1 from B join D on b1=d1 where b2 > 20)", ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), "select * from A where NOT exists (select b1 from B join D on b1=d1 where b2 > 20)", ONE_SUBQUERY_NODE, "");
 
         // two NOT-exists, both return rows
         assertUnorderedResult(conn(),
                 "select * from A where " +
                         "NOT exists (select b1 from B join D on b1=d1 where b2 > 20)" +
                         " and " +
-                        "NOT exists (select b1 from B join D on b1=d1 where b1 > 3)", ZERO_SUBQUERY_NODES, "");
+                        "NOT exists (select b1 from B join D on b1=d1 where b1 > 3)", TWO_SUBQUERY_NODES, "");
 
         // two NOT-exists, one of which excludes all rows
         assertUnorderedResult(conn(),
                 "select * from A where " +
                         "NOT exists (select b1 from B join D on b1=d1 where b2 > 20)" +
                         " and " +
-                        "NOT exists (select b1 from B join D on b1=d1 where b1 < 0)", ZERO_SUBQUERY_NODES, "");
+                        "NOT exists (select b1 from B join D on b1=d1 where b1 < 0)", TWO_SUBQUERY_NODES, "");
 
         // two NOT-exists, both of which excludes all rows
         assertUnorderedResult(conn(),
                 "select * from A where " +
                         "NOT exists (select b1 from B join D on b1=d1 where b2 < 0)" +
                         " and " +
-                        "NOT exists (select b1 from B join D on b1=d1 where b1 < 0)", ZERO_SUBQUERY_NODES, RESULT_ALL_OF_A);
+                        "NOT exists (select b1 from B join D on b1=d1 where b1 < 0)", TWO_SUBQUERY_NODES, RESULT_ALL_OF_A);
     }
 
     @Test
     public void uncorrelated_threeSubqueryTables() throws Exception {
         assertUnorderedResult(conn(),
-                "select A.* from A where NOT exists (select 1 from A ai join B on ai.a1=b1 join C on b1=c1 join D on c1=d1)", ZERO_SUBQUERY_NODES, "");
+                "select A.* from A where NOT exists (select 1 from A ai join B on ai.a1=b1 join C on b1=c1 join D on c1=d1)", ONE_SUBQUERY_NODE, "");
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -594,7 +597,7 @@ public class Subquery_Flattening_NotExists_IT {
         /* correlated */
         assertUnorderedResult(conn(), "select a1 from AA where NOT exists(select 1 from BB join CC on b2=c1 where b1=a1)", ZERO_SUBQUERY_NODES, "");
         /* uncorrelated */
-        assertUnorderedResult(conn(), "select a1 from AA where NOT exists(select 1 from BB join CC on b2=c1)", ZERO_SUBQUERY_NODES, "");
+        assertUnorderedResult(conn(), "select a1 from AA where NOT exists(select 1 from BB join CC on b2=c1)", ONE_SUBQUERY_NODE, "");
     }
 
     @Test
@@ -711,7 +714,7 @@ public class Subquery_Flattening_NotExists_IT {
         int deleteCount = methodWatcher.executeUpdate("delete from YY where not exists (select 1 from ZZ where y1=z1)");
         assertEquals(5, deleteCount);
         // verify that only expected rows remain in target table
-        assertEquals("[2, 4, 6, 8, 10]", methodWatcher.queryList("select y1 from YY").toString());
+        assertEquals("[2, 4, 6, 8, 10]", methodWatcher.queryList("select y1 from YY order by 1").toString());
     }
 
 
@@ -905,6 +908,139 @@ public class Subquery_Flattening_NotExists_IT {
         assertUnorderedResult(conn(), "select * from A where exists (select 1 from D {limit 1})", ONE_SUBQUERY_NODE, RESULT_ALL_OF_A);
     }
 
+    @Test
+    public void testNonCorrelatedExistsPlan() throws Exception {
+        /* predicate where expression on columns is not pushed down */
+        String sqlText = "select * from A where not exists (select * from B where 1=0) and a1 < 2";
+
+        /* plan should look like the following:
+        Plan
+        ----
+        Cursor(n=8,rows=2,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=7,totalCost=8.059,outputRows=2,outputHeapSize=3 B,partitions=1)
+            ->  ProjectRestrict(n=6,totalCost=4.04,outputRows=2,outputHeapSize=3 B,partitions=1,preds=[is null(subq=4)])
+              ->  Subquery(n=5,totalCost=0.002,outputRows=1,outputHeapSize=0 B,partitions=1,correlated=false,expression=true,invariant=true)
+                ->  Limit(n=4,totalCost=0.002,outputRows=1,outputHeapSize=0 B,partitions=1,fetchFirst=1)
+                  ->  ProjectRestrict(n=3,totalCost=0.002,outputRows=1,outputHeapSize=0 B,partitions=1)
+                    ->  Values(n=2,totalCost=0.002,outputRows=1,outputHeapSize=0 B,partitions=1)
+              ->  TableScan[A(2160)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=3 B,partitions=1,preds=[(A1[0:1] < 2)])
+
+        8 rows selected
+         */
+        SpliceUnitTest.rowContainsQuery(new int[]{3,4,5,7}, "explain " + sqlText, methodWatcher,
+                new String[]{"ProjectRestrict", "preds=[is null(subq=4)])"},
+                new String[]{"Subquery", "correlated=false,expression=true,invariant=true"},
+                new String[]{"Limit", "fetchFirst=1"},
+                new String[]{"Values"});
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 0 | 0 |\n" +
+                        " 1 |10 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNonCorrelatedExistsPlanWithSetOperation() throws Exception {
+        /* predicate where expression on columns is not pushed down */
+        String sqlText = "select * from A where not exists (select b1 from B union all select c1 from C) and a1 < 2";
+
+        /* plan should look like the following:
+        Plan
+        ----
+        Cursor(n=10,rows=2,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=9,totalCost=8.059,outputRows=2,outputHeapSize=3 B,partitions=1)
+            ->  ProjectRestrict(n=8,totalCost=4.04,outputRows=2,outputHeapSize=3 B,partitions=1,preds=[is null(subq=9)])
+              ->  Subquery(n=7,totalCost=37.292,outputRows=1,outputHeapSize=40 B,partitions=1,correlated=false,expression=true,invariant=true)
+                ->  Limit(n=6,totalCost=37.24,outputRows=1,outputHeapSize=40 B,partitions=1,fetchFirst=1)
+                  ->  ProjectRestrict(n=5,totalCost=37.24,outputRows=1,outputHeapSize=40 B,partitions=1)
+                    ->  Union(n=4,totalCost=37.24,outputRows=1,outputHeapSize=40 B,partitions=1)
+                      ->  TableScan[C(2192)](n=3,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=40 B,partitions=1)
+                      ->  TableScan[B(2176)](n=2,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=40 B,partitions=1)
+              ->  TableScan[A(2160)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=3 B,partitions=1,preds=[(A1[0:1] < 2)])
+        10 rows selected
+         */
+        SpliceUnitTest.rowContainsQuery(new int[]{3, 4, 5, 7}, "explain " + sqlText, methodWatcher,
+                new String[]{"ProjectRestrict", "preds=[is null(subq=9)]"},
+                new String[]{"Subquery", "correlated=false,expression=true,invariant=true"},
+                new String[]{"Limit", "fetchFirst=1"},
+                new String[] {"Union"});
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNonCorrelatedExistsPlanWithValuesStatement() throws Exception {
+        /* predicate where expression on columns is not pushed down */
+        String sqlText = "select * from A where not exists (values 2) and a1 < 2";
+
+        /* plan should look like the following:
+        Plan
+        ----
+        Cursor(n=6,rows=2,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=5,totalCost=8.059,outputRows=2,outputHeapSize=3 B,partitions=1)
+            ->  ProjectRestrict(n=4,totalCost=4.04,outputRows=2,outputHeapSize=3 B,partitions=1,preds=[is null(subq=1)])
+              ->  Subquery(n=3,totalCost=0.001,outputRows=2,outputHeapSize=1 B,partitions=1,correlated=false,expression=true,invariant=true)
+                ->  Values(n=2,totalCost=0.001,outputRows=2,outputHeapSize=1 B,partitions=1)
+              ->  TableScan[A(2160)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=3 B,partitions=1,preds=[(A1[0:1] < 2)])
+        6 rows selected
+
+         */
+        SpliceUnitTest.rowContainsQuery(new int[]{3, 4, 5}, "explain " + sqlText, methodWatcher,
+                new String[]{"ProjectRestrict", "preds=[is null(subq=1)]"},
+                new String[]{"Subquery", "correlated=false,expression=true,invariant=true"},
+                new String[] {"Values"});
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testNonCorrelatedExistsPlanWithOffset() throws Exception {
+        /* predicate where expression on columns is not pushed down */
+        String sqlText = "select * from A where not exists (select * from B order by b2 offset 20 rows fetch next 10 rows ONLY) and a1 < 2";
+
+        /* plan should look like the following:
+        Plan
+        ----
+        Cursor(n=8,rows=2,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=7,totalCost=8.059,outputRows=2,outputHeapSize=3 B,partitions=1)
+            ->  ProjectRestrict(n=6,totalCost=4.04,outputRows=2,outputHeapSize=3 B,partitions=1,preds=[is null(subq=4)])
+              ->  Subquery(n=5,totalCost=0.521,outputRows=1,outputHeapSize=1 B,partitions=1,correlated=false,expression=true,invariant=true)
+                ->  Limit(n=4,totalCost=0.416,outputRows=1,outputHeapSize=1 B,partitions=1,offset=20,fetchFirst=1)
+                  ->  ProjectRestrict(n=3,totalCost=0.416,outputRows=1,outputHeapSize=1 B,partitions=1)
+                    ->  TableScan[B(2176)](n=2,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=1 B,partitions=1)
+              ->  TableScan[A(2160)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=3 B,partitions=1,preds=[(A1[0:1] < 2)])
+        8 rows selected
+         */
+        SpliceUnitTest.rowContainsQuery(new int[]{3, 4, 5}, "explain " + sqlText, methodWatcher,
+                new String[]{"ProjectRestrict", "preds=[is null(subq=4)]"},
+                new String[]{"Subquery", "correlated=false,expression=true,invariant=true"},
+                new String[]{"Limit", "offset=20,fetchFirst=1"});
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 0 | 0 |\n" +
+                        " 1 |10 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 
     private TestConnection conn() {
         return methodWatcher.getOrCreateConnection();

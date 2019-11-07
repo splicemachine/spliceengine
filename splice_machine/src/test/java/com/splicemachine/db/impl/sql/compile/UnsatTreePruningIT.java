@@ -364,7 +364,7 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
 
         /* case 4 */
         /* where subquery, non-correlated, with negation (NOT EXISTS) 2 */
-        /* for this case, pruning should not be triggered as not exists is not flattened, and anti-join is used */
+        /* for this case, pruning should be triggered as not exists is not flattened */
         sqlText = "select a1 from t1,t3 where a1=a3 and not exists (select a2 from t2 where 1=0) order by 1";
 
         expected =
@@ -374,7 +374,7 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
                         " 2 |";
 
 
-        assertPruneResult(sqlText, expected, false);
+        assertPruneResult(sqlText, expected, true);
 
         /* case 5 */
         /* where subquery, correlated, in subquery without aggregate */
@@ -424,8 +424,10 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
 
         /* case 9 */
         /* where subquery, not exists with correlation */
-        /* correlated exists with a single table is no longer rewritten to a DT, instead it will be flattened as a FromBaseTable node,
-           as a result, Unsat tree pruning does not kick in
+        /* with SPLICE-2285, the unsat condition "a1=a2 and 1=0" in the subquery will be evaluted to false, eliminating
+           the correlation, so it is no longer a correlated subquery
+         */
+        /* noncorrelated exists is no longer flattened, so Unsat tree pruning can kick in
          */
         sqlText = "select a1 from t1 where not exists (select a2 from t2 where a1=a2 and 1=0) order by 1";
 
@@ -452,7 +454,7 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
 
         /* case 10 */
         /* where subquery, not exists with correlation */
-        /* pruning should not be triggered as this is not exists subquery without flattening */
+        /* pruning should be triggered as this is not exists subquery without flattening */
         sqlText = "select a1 from t1,t3 where a1=a3 and not exists (select a2 from t2 where a1=a2 and 1=0) order by 1";
 
         expected =
@@ -462,7 +464,7 @@ public class UnsatTreePruningIT extends SpliceUnitTest {
                         " 2 |";
 
 
-        assertPruneResult(sqlText, expected, false);
+        assertPruneResult(sqlText, expected, true);
 
         /* case 11 */
         /* unsat subquery in Select clause */

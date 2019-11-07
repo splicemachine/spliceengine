@@ -17,8 +17,10 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -37,6 +39,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Test decimal precision extension from 31 digits to 38 digits.
  */
+@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
 public class DecimalIT  extends SpliceUnitTest {
     
@@ -128,6 +131,9 @@ public class DecimalIT  extends SpliceUnitTest {
                         row(new BigDecimal(".00000001234567890123456789012345678901"), 15)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table preparedDecimal (a dec(38,5))")
+                .create();
     }
 
     @BeforeClass
@@ -375,7 +381,7 @@ public class DecimalIT  extends SpliceUnitTest {
         "-0.12345678901234567890123456789012345678 |\n" +
         "                 -1E-38                   |";
 
-        testQueryUnsorted(sqlText, expected, methodWatcher);
+        testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("values 12345678901234567890123456789012345678, -0.12345678901234567890123456789012345678, -.00000000000000000000000000000000000001", useSpark);
 
@@ -608,5 +614,67 @@ public class DecimalIT  extends SpliceUnitTest {
                 "1234567.8901234567890123456789012345678 | 1 |";
 
         testQueryUnsorted(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testPreparedStatementRetainsFractionalDigits() throws Exception {
+
+        PreparedStatement statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
+        statement.executeUpdate();
+	statement.close();
+
+        statement = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)", CLASS_NAME, "preparedDecimal"));
+        BigDecimal bd = new BigDecimal("14.51");
+        statement.setObject(1, bd, Types.DECIMAL);
+        statement.executeUpdate();
+        statement.close();
+
+        String
+        sqlText = format("select a from preparedDecimal --splice-properties useSpark=%s", useSpark);
+
+        String
+        expected =
+                "A    |\n" +
+                "----------\n" +
+                "14.51000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+        statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
+        statement.executeUpdate();
+	statement.close();
+
+
+        // The following should input "14" because a Double doesn't
+        // have a set scale, so an implicit scale of 0 is used
+        // inside setObject.
+        statement = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)", CLASS_NAME, "preparedDecimal"));
+        Double db = new Double("14.51");
+        statement.setObject(1, db, Types.DECIMAL);
+        statement.executeUpdate();
+        statement.close();
+
+        expected =
+                "A    |\n" +
+                "----------\n" +
+                "14.00000 |";
+        testQuery(sqlText, expected, methodWatcher);
+
+        statement = spliceClassWatcher.prepareStatement(String.format("delete from %s.%s", CLASS_NAME, "preparedDecimal"));
+        statement.executeUpdate();
+	statement.close();
+
+        // Using the version of setObject which allows scale to be passed in
+        // allows the decimal digits to be retained.
+        statement = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s values (?)", CLASS_NAME, "preparedDecimal"));
+        db = new Double("14.51");
+        statement.setObject(1, db, Types.DECIMAL, 2);
+        statement.executeUpdate();
+        statement.close();
+
+        expected =
+                "A    |\n" +
+                "----------\n" +
+                "14.51000 |";
+        testQuery(sqlText, expected, methodWatcher);
     }
 }

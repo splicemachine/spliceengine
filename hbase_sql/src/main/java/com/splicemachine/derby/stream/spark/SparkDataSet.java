@@ -30,6 +30,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COM
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
+import com.splicemachine.derby.stream.control.ControlDataSet;
+import com.splicemachine.derby.stream.control.FutureIterator;
 import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
 import com.splicemachine.derby.stream.function.CountWriteFunction;
 import com.splicemachine.derby.stream.function.ExportFunction;
@@ -51,6 +53,7 @@ import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
@@ -80,6 +83,8 @@ import org.apache.spark.storage.StorageLevel;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
@@ -325,6 +330,20 @@ public class SparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext) {
         return union(dataSet, operationContext, RDDName.UNION.displayName(), false, null);
+    }
+
+
+    @Override
+    public DataSet<V> union(List<DataSet<V>> dataSetList, OperationContext operationContext) {
+        DataSet<V> toReturn = null;
+        for (DataSet<V> aSet: dataSetList) {
+            if (toReturn == null)
+                toReturn = aSet;
+            else
+                toReturn = aSet.union(aSet, operationContext, RDDName.UNION.displayName(), false, null);
+        }
+
+        return toReturn;
     }
 
     @Override
