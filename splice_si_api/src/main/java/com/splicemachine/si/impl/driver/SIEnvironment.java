@@ -14,11 +14,7 @@
 
 package com.splicemachine.si.impl.driver;
 
-import com.splicemachine.access.api.DistributedFileSystem;
-import com.splicemachine.access.api.FilesystemAdmin;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.api.PartitionFactory;
-import com.splicemachine.access.api.SnowflakeFactory;
+import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.data.*;
 import com.splicemachine.si.api.readresolve.KeyedReadResolver;
@@ -90,4 +86,6 @@ public interface SIEnvironment{
     ClusterHealth clusterHealthFactory();
 
     FilesystemAdmin filesystemAdmin();
+
+    OldestActiveTransactionTaskFactory oldestActiveTransactionTaskFactory();
 }
