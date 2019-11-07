@@ -384,9 +384,27 @@ public class OuterJoinOrderByEliminationIT extends SpliceUnitTest {
                 " 1 | 2 | 1 | 1 |\n" +
                 " 2 | 2 | 2 | 2 |\n" +
                 " 9 | 9 | 9 | 9 |";
+        // With DB-8132, the order between the union-all branch is not preserved, so we have an alternative
+        // exepcted result
+        String expected1 = "1 | 2 | 3 | 4 |\n" +
+                "----------------\n" +
+                " 9 | 9 | 9 | 9 |\n" +
+                " 1 | 1 | 1 | 1 |\n" +
+                " 1 | 1 | 1 | 1 |\n" +
+                " 1 | 1 | 1 | 1 |\n" +
+                " 1 | 1 | 1 | 1 |\n" +
+                " 1 | 2 | 1 | 1 |\n" +
+                " 1 | 2 | 1 | 1 |\n" +
+                " 1 | 2 | 1 | 1 |\n" +
+                " 1 | 2 | 1 | 1 |\n" +
+                " 2 | 2 | 2 | 2 |";
+
 
         rs = methodWatcher.executeQuery(sqlText);
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        String actual = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertTrue("result mismatch, actual is: "+actual,
+                actual != null && (expected.equals(actual) || expected1.equals(actual)));
+
         rs.close();
         if (!joinStrategy.equals("SORTMERGE"))
             queryDoesNotContainString("explain " + sqlText, "OrderBy", methodWatcher);

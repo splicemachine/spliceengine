@@ -15,11 +15,8 @@
 package com.splicemachine.derby.stream.control;
 
 import java.util.Iterator;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Future;
-
-import static java.util.Arrays.asList;
 
 /**
  *
@@ -27,24 +24,16 @@ import static java.util.Arrays.asList;
  *
  *
  */
-public class FutureIterator<T> implements Iterator<T> {
+public class NonOrderPreservingFutureIterator<T> implements Iterator<T> {
 
-    private BlockingQueue<Future<Iterator<T>>> futureIterators;
+    private int numOfFutures;
+    private ExecutorCompletionService<Iterator<T>> completionService;
     private volatile Iterator<T> current;
 
 
-    public FutureIterator(int size) {
-        this.futureIterators = new ArrayBlockingQueue<>(size);
-    }
-
-    @SafeVarargs
-    public FutureIterator(Future<Iterator<T>>... futureIterators) {
-        this.futureIterators = new ArrayBlockingQueue<>(futureIterators.length);
-        this.futureIterators.addAll(asList(futureIterators));
-    }
-
-    public void appendFutureIterator(Future<Iterator<T>> iteratorFuture) {
-        this.futureIterators.add(iteratorFuture);
+    public NonOrderPreservingFutureIterator(ExecutorCompletionService<Iterator<T>> cs, int numOfFutures) {
+        this.completionService = cs;
+        this.numOfFutures = numOfFutures;
     }
 
     @Override
@@ -52,11 +41,14 @@ public class FutureIterator<T> implements Iterator<T> {
         try {
             while (true) {
                 if (current == null) {
-                    Future<Iterator<T>> future = futureIterators.poll();
+                    if (numOfFutures == 0)
+                        return false;
+                    Future<Iterator<T>> future = completionService.take();
                     if (future == null)
                         return false;
                     else
                         current = future.get();
+                    numOfFutures --;
                 } else {
                     if (current.hasNext())
                         return true;
@@ -72,17 +64,6 @@ public class FutureIterator<T> implements Iterator<T> {
     @Override
     public T next() {
         return current.next();
-    }
-
-    @Override
-    public void remove() {
-        if (current == null) throw new IllegalStateException();
-        current.remove();
-    }
-
-    @SafeVarargs
-    public static <T> Iterator<T> concat(Future<Iterator<T>>... futureIterators) {
-        return new FutureIterator<>(futureIterators);
     }
 
 }

@@ -88,6 +88,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -296,11 +297,25 @@ public class ControlDataSet<V> implements DataSet<V> {
     public DataSet<V> union(DataSet<V> dataSet, OperationContext operationContext) {
         try {
             ExecutorService es = SIDriver.driver().getExecutorService();
-            FutureIterator<V> futureIterator = new FutureIterator<>(2);
-            Future<Iterator<V>> leftSideFuture = es.submit(new NonLazy(iterator));
-            Future<Iterator<V>> rightSideFuture = es.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
-            futureIterator.appendFutureIterator(leftSideFuture);
-            futureIterator.appendFutureIterator(rightSideFuture);
+            ExecutorCompletionService<Iterator<V>> completionService = new ExecutorCompletionService<>(es);
+            NonOrderPreservingFutureIterator<V> futureIterator = new NonOrderPreservingFutureIterator<>(completionService, 2);
+            completionService.submit(new NonLazy(iterator));
+            completionService.submit(new NonLazy(((ControlDataSet<V>) dataSet).iterator));
+            return new ControlDataSet<>(futureIterator);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public DataSet<V> union(List<DataSet<V>> dataSetList, OperationContext operationContext) {
+        try {
+            ExecutorService es = SIDriver.driver().getExecutorService();
+            ExecutorCompletionService<Iterator<V>> completionService = new ExecutorCompletionService<>(es);
+            NonOrderPreservingFutureIterator<V> futureIterator = new NonOrderPreservingFutureIterator<>(completionService, dataSetList.size());
+            for (DataSet<V> aSet: dataSetList) {
+                completionService.submit(new NonLazy(((ControlDataSet<V>)aSet).iterator));
+            }
             return new ControlDataSet<>(futureIterator);
         } catch (Exception e) {
             throw new RuntimeException(e);
