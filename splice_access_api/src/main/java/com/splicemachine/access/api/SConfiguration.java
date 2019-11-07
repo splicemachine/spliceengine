@@ -99,6 +99,8 @@ public interface SConfiguration {
 
     long getRegionLoadUpdateInterval();
 
+    long getTransactionsWatcherUpdateInterval();
+
     String getBackupPath();
 
     int getBackupParallelism();

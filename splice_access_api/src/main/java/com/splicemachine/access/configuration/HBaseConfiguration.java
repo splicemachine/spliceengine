@@ -135,6 +135,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String REGION_LOAD_UPDATE_INTERVAL = "splice.statistics.regionLoadUpdateInterval";
     public static final long DEFAULT_REGION_LOAD_UPDATE_INTERVAL = 900;
 
+    public static final String TRANSACTIONS_WATCHER_UPDATE_INTERVAL = "splice.txn.watcherUpdateInterval";
+    public static final long DEFAULT_TRANSACTIONS_WATCHER_UPDATE_INTERVAL = 30;
+
     protected static final String REGION_MAX_FILE_SIZE = StorageConfiguration.REGION_MAX_FILE_SIZE;
     protected static final String TRANSACTION_LOCK_STRIPES = SIConfigurations.TRANSACTION_LOCK_STRIPES;
 
@@ -218,6 +221,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.timestampBlockSize = configurationSource.getInt(TIMESTAMP_BLOCK_SIZE, DEFAULT_TIMESTAMP_BLOCK_SIZE);
 
         builder.regionLoadUpdateInterval = configurationSource.getLong(REGION_LOAD_UPDATE_INTERVAL, DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
+        builder.transactionsWatcherUpdateInterval = configurationSource.getLong(TRANSACTIONS_WATCHER_UPDATE_INTERVAL, DEFAULT_TRANSACTIONS_WATCHER_UPDATE_INTERVAL);
 
         builder.spliceRootPath = configurationSource.getString(SPLICE_ROOT_PATH, DEFAULT_ROOT_PATH);
         builder.namespace = configurationSource.getString(NAMESPACE, DEFAULT_NAMESPACE);
