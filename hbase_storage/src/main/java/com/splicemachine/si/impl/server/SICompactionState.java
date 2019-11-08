@@ -88,6 +88,10 @@ public class SICompactionState {
     }
 
     private void removeDeletedRows(long maxTombstone, boolean keepTombstones) {
+        if (keepTombstones) {
+            // We disable purging in minor compactions for now
+            return;
+        }
         SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
         for (Cell element : cp) {
             long timestamp = element.getTimestamp();
