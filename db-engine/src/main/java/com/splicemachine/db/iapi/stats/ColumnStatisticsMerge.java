@@ -62,6 +62,10 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
     protected com.yahoo.sketches.frequencies.ItemsSketch<DataValueDescriptor> frequenciesSketch;
     protected long nullCount = 0L;
     protected DataValueDescriptor dvd;
+    protected long totalCount = 0L;
+    protected long cardinality = 0L;
+    protected ItemStatistics.Type columnStatsType = ItemStatistics.Type.COLUMN;
+
 
     public ColumnStatisticsMerge() {
 
@@ -88,20 +92,41 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
      */
     @Override
     public void accumulate(ColumnStatisticsImpl value) throws StandardException {
-        ColumnStatisticsImpl columnStatistics = (ColumnStatisticsImpl) value;
         if (!initialized) {
-            dvd = columnStatistics.getColumnDescriptor();
+            if (value instanceof FakeColumnStatisticsImpl) {
+                columnStatsType = ItemStatistics.Type.FAKE;
+                FakeColumnStatisticsImpl fakeColumnStatistics = (FakeColumnStatisticsImpl) value;
+                nullCount += fakeColumnStatistics.nullCount();
+                totalCount += fakeColumnStatistics.totalCount();
+                cardinality = fakeColumnStatistics.cardinality();
+                initialized = true;
+                return;
+            }
+
+            dvd = value.getColumnDescriptor();
             assert dvd!=null:"dvd should not be null";
             thetaSketchUnion = Sketches.setOperationBuilder().buildUnion();
-            quantilesSketchUnion = ItemsUnion.getInstance(value.getQuantilesSketch().getK(), ((ColumnStatisticsImpl)value).getColumnDescriptor());
+            quantilesSketchUnion = ItemsUnion.getInstance(value.getQuantilesSketch().getK(), value.getColumnDescriptor());
             frequenciesSketch =  dvd.getFrequenciesSketch();
             initialized = true;
         }
-        assert columnStatistics.quantilesSketch !=null && columnStatistics.frequenciesSketch !=null && columnStatistics.thetaSketch !=null && value!=null:"Sketches should not be null";
-        quantilesSketchUnion.update(columnStatistics.quantilesSketch);
-        frequenciesSketch.merge(columnStatistics.frequenciesSketch);
-        thetaSketchUnion.update(columnStatistics.thetaSketch);
-        nullCount =+ columnStatistics.nullCount();
+
+        if (!value.getType().equals(columnStatsType))
+            throw new RuntimeException("Multiple column stats type co-exists!");
+
+        if (value instanceof FakeColumnStatisticsImpl) {
+            FakeColumnStatisticsImpl fakeColumnStatistics = (FakeColumnStatisticsImpl) value;
+            nullCount += fakeColumnStatistics.nullCount();
+            totalCount += fakeColumnStatistics.totalCount();
+            if (cardinality < fakeColumnStatistics.cardinality())
+                cardinality = fakeColumnStatistics.cardinality();
+        }
+
+        assert value.quantilesSketch !=null && value.frequenciesSketch !=null && value.thetaSketch !=null && value!=null:"Sketches should not be null";
+        quantilesSketchUnion.update(value.quantilesSketch);
+        frequenciesSketch.merge(value.frequenciesSketch);
+        thetaSketchUnion.update(value.thetaSketch);
+        nullCount =+ value.nullCount();
     }
 
     /**
@@ -111,7 +136,18 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
      */
     @Override
     public void merge(ColumnStatisticsMerge otherAggregator) {
-        ColumnStatisticsMerge columnStatisticsMerge = (ColumnStatisticsMerge) otherAggregator;
+        if (!columnStatsType.equals(otherAggregator.columnStatsType))
+            throw new RuntimeException("Multiple column stats type co-exists!");
+
+        if (columnStatsType == ItemStatistics.Type.FAKE) {
+            nullCount += otherAggregator.nullCount;
+            totalCount += otherAggregator.totalCount;
+            if (cardinality  < otherAggregator.cardinality)
+                cardinality = otherAggregator.cardinality;
+            return;
+        }
+
+        ColumnStatisticsMerge columnStatisticsMerge = otherAggregator;
         quantilesSketchUnion.update(columnStatisticsMerge.quantilesSketchUnion.getResult());
         frequenciesSketch.merge(columnStatisticsMerge.frequenciesSketch);
         thetaSketchUnion.update(columnStatisticsMerge.thetaSketchUnion.getResult());
@@ -126,6 +162,10 @@ public class ColumnStatisticsMerge implements Aggregator<ColumnStatisticsImpl, C
      */
     @Override
     public ColumnStatisticsImpl terminate() {
+        if (columnStatsType == ItemStatistics.Type.FAKE) {
+            return new FakeColumnStatisticsImpl(dvd, nullCount, totalCount, cardinality);
+        }
+
         return new ColumnStatisticsImpl(dvd,quantilesSketchUnion.getResult(),frequenciesSketch,thetaSketchUnion.getResult(),nullCount);
     }
 

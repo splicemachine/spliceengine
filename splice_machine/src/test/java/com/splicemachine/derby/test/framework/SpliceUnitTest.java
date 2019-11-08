@@ -237,6 +237,8 @@ public class SpliceUnitTest {
                     }
                 }
             }
+            if (k < contains.length)
+                fail("fail to match the given strings");
         }
     }
 

@@ -307,7 +307,7 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{6, 9, 11}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{6, 9, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"MultiProbeTableScan", "preds=[(A3[9:1] IN (A         ,B         ,C         ))]"},
                 new String[]{"MultiProbeTableScan", "preds=[(A2[3:1] IN (A         ,B         ,C         ))]"},
                 new String[]{"MultiProbeTableScan", "preds=[(A1[0:1] IN (A         ,B         ,C         ))]"});
