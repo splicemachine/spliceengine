@@ -47,7 +47,7 @@ public interface ItemStatistics<T extends Comparator<T>> extends Serializable, E
      * @return
      */
     enum Type {
-        COLUMN,NONUNIQUEKEY,UNIQUEKEY,PRIMARYKEY
+        COLUMN,NONUNIQUEKEY,UNIQUEKEY,PRIMARYKEY,FAKE
     }
 
     /**
