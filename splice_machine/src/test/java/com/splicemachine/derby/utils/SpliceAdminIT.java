@@ -267,10 +267,15 @@ public class SpliceAdminIT extends SpliceUnitTest{
         CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_GET_CACHE_INFO()");
         ResultSet rs = cs.executeQuery();
         while(rs.next()){
+            String name = rs.getString("name");
             double hitRate = rs.getDouble("HitRate");
             double missRate = rs.getDouble("MissRate");
-            assertTrue((hitRate >= 0.0) && (hitRate <= 1.0));
-            assertTrue(missRate <= 1-hitRate + .0001 && missRate >= 1-hitRate - .0001);
+            assertTrue(String.format("Cache %s: hitRate (%f) >= 0.0", name, hitRate),hitRate >= 0.0);
+            assertTrue(String.format("Cache %s: hitRate (%f) <= 0.0", name, hitRate),hitRate <= 1.0);
+            assertTrue(String.format("Cache %s: missRate (%f) <= 1-hitRate (%f) + .0001", name, missRate, hitRate),
+                    missRate <= 1-hitRate + .0001);
+            assertTrue(String.format("Cache %s: missRate (%f) >= 1-hitRate (%f) - .0001", name, missRate, hitRate),
+                    missRate >= 1-hitRate - .0001);
         }
         DbUtils.closeQuietly(rs);
     }
