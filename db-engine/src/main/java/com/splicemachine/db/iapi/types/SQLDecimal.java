@@ -1313,11 +1313,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() {
-        return precision <= org.apache.spark.sql.types.Decimal.MAX_LONG_DIGITS() ? 8 : 16;
-    }
-
 	private int getValuePrecision() {
 		if (value == null)
 			return 0;
@@ -1330,5 +1325,4 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 
 		return value.precision();
 	}
-
 }

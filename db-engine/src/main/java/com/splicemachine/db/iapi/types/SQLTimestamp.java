@@ -1672,11 +1672,6 @@ public final class SQLTimestamp extends DataType
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() {
-	    	return 8;
-	}
-
 	/**
 	 *
 	 * Read from Project Tungsten format (UnsafeRow).  Timestamp is

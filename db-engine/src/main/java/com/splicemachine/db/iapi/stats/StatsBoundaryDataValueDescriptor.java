@@ -530,12 +530,6 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
-    public int getUnsafeArrayElementSize() throws StandardException {
-        return dvd.getUnsafeArrayElementSize();
-    }
-
-
-    @Override
     public void setSparkObject(Object sparkObject) throws StandardException {
         dvd.setSparkObject(sparkObject);
     }

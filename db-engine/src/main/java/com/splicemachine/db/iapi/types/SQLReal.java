@@ -950,11 +950,6 @@ public final class SQLReal
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() {
-	    	return 4;
-	}
-
 	/**
 	 *
 	 * Read from a Project Tungsten Format (UnsafeRow)

@@ -801,11 +801,6 @@ public final class SQLSmallint
 			unsafeArrayWriter.write(ordinal,value);
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() {
-	    	return 2;
-	}
-
 	/**
 	 *
 	 * Read value from Array Position
