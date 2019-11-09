@@ -808,11 +808,6 @@ public final class SQLTinyint
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() {
-	    	return 1;
-	}
-
 	/**
 	 *
 	 * Read from Project Tungsten Format (UnsafeRow)

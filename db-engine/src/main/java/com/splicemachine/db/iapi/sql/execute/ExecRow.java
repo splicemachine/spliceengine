@@ -133,6 +133,4 @@ public interface ExecRow extends Row, KeyableRow, org.apache.spark.sql.Row, Comp
 
 	void setKey(byte[] key);
 
-	@Override boolean equals(Object obj);
-
 }

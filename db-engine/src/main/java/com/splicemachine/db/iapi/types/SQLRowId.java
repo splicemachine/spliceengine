@@ -309,11 +309,6 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
         }
     }
 
-    @Override
-        public int getUnsafeArrayElementSize() {
-                return 8;
-    }
-
     /**
      *
      * Read from a project tungsten format (UnsafeRow)

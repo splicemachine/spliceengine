@@ -964,11 +964,6 @@ public final class SQLDouble extends NumberDataType
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() {
-	    	return 8;
-	}
-
 	/**
 	 *
 	 * Read from a Project Tungsten Format.

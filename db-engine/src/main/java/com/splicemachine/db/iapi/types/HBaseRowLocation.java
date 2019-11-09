@@ -16,7 +16,6 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.access.util.ByteComparisons;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -303,9 +302,4 @@ public class HBaseRowLocation extends DataType implements RowLocation {
         return slice.getByteCopy();
     }
 
-    @Override
-    public int getUnsafeArrayElementSize() throws StandardException {
-        throw(StandardException.newException(
-	    SQLState.HEAP_UNIMPLEMENTED_FEATURE));
-    }
 }

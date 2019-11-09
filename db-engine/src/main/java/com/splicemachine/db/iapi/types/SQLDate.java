@@ -1371,11 +1371,6 @@ public final class SQLDate extends DataType
 		}
 	}
 
-    @Override
-        public int getUnsafeArrayElementSize() {
-                return 4;
-    }
-
 	/**
 	 *
 	 * Reads from a Project Tungsten UnsafeRow format.  The data is read as an int.
