@@ -236,10 +236,4 @@ public abstract class GenericConglomerate
         }
         return false;
     }
-
-    @Override
-    public int getUnsafeArrayElementSize() throws StandardException {
-        throw(StandardException.newException(
-	    SQLState.HEAP_UNIMPLEMENTED_FEATURE));
-    }
 }

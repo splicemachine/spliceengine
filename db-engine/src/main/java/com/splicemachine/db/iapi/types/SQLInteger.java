@@ -774,11 +774,6 @@ public final class SQLInteger
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() {
-	    	return 4;
-	}
-
 	/**
 	 *
 	 * Read from a Project Tungsten Format (UnsafeRow)

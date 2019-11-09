@@ -27,7 +27,6 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -420,7 +419,7 @@ public class SQLArray extends DataType implements ArrayDataValue {
 			int elementSize = 8;
 			for (int i = 0; i < value.length; i++)
 				if (value[i] != null) {
-					elementSize = value[i].getUnsafeArrayElementSize();
+					elementSize = getUnsafeArrayElementSize(value[i]);
 					break;
 				}
 			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter(unsafeRowWriter, elementSize);
@@ -436,6 +435,62 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		}
 	}
 
+	private int getUnsafeArrayElementSize (DataValueDescriptor dvd) {
+
+        if (dvd instanceof SQLBinary) {
+            return 8;
+        }
+        else if (dvd instanceof SQLBoolean) {
+            return 1;
+        }
+        else if (dvd instanceof SQLChar) {
+            return 8;
+        }
+        else if (dvd instanceof SQLDate) {
+            return 4;
+        }
+        else if (dvd instanceof SQLDecimal) {
+            return ((SQLDecimal) dvd).getPrecision() <= org.apache.spark.sql.types.Decimal.MAX_LONG_DIGITS() ? 8 : 16;
+        }
+        else if (dvd instanceof SQLDouble) {
+            return 8;
+        }
+        else if (dvd instanceof SQLInteger) {
+            return 4;
+        }
+        else if (dvd instanceof SQLLongint) {
+            return 8;
+        }
+        else if (dvd instanceof SQLReal) {
+            return 4;
+        }
+        else if (dvd instanceof SQLRef) {
+            return 8;
+        }
+        else if (dvd instanceof SQLRowId) {
+            return 8;
+        }
+        else if (dvd instanceof SQLSmallint) {
+            return 2;
+        }
+        else if (dvd instanceof SQLTime) {
+            return 8;
+        }
+        else if (dvd instanceof SQLTimestamp) {
+            return 8;
+        }
+        else if (dvd instanceof SQLTinyint) {
+            return 1;
+        }
+        else if (dvd instanceof UserType) {
+            return 8;
+        }
+        else if (dvd instanceof XML) {
+            return 8;
+        }
+
+        throw new RuntimeException("Unknown UnsafeArrayElementSize!");
+	}
 	/**
 	 *
 	 * Read into a Project Tungsten format.  This calls the Reference's
@@ -469,12 +524,6 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	@Override
 	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
 		throw new NotSupportedException("Nested Arrays Not Supported Currently");
-	}
-
-	@Override
-	public int getUnsafeArrayElementSize() throws StandardException {
-		throw(StandardException.newException(
-		    SQLState.HEAP_UNIMPLEMENTED_FEATURE));
 	}
 
 	@Override

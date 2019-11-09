@@ -1372,11 +1372,6 @@ abstract class SQLBinary
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() throws StandardException {
-	    	return 8;
-	}
-
 	/**
 	 *
 	 * Write Array Data

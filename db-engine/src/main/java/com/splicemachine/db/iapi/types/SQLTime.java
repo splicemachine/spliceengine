@@ -1185,11 +1185,6 @@ public final class SQLTime extends DataType
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() {
-	    	return 8;
-	}
-
 	/**
 	 *
 	 * Read data into a Project Tungsten Format (UnsafeRow).  We read

@@ -959,11 +959,6 @@ public final class SQLLongint extends NumberDataType {
 	}
 
 	@Override
-	public int getUnsafeArrayElementSize() {
-	    	return 8;
-	}
-
-	@Override
 	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
 		if (unsafeRow.isNullAt(ordinal))
 				setToNull();

@@ -1112,9 +1112,6 @@ public final class SQLBoolean
 		}
 	}
 
-	@Override
-	public int getUnsafeArrayElementSize() { return 1; }
-
 	/**
 	 *
 	 * Read from a Project Tungsten UnsafeRow Format.
