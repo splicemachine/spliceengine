@@ -95,8 +95,10 @@ public class SICompactionState {
         SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
         for (Cell element : cp) {
             long timestamp = element.getTimestamp();
-            if (timestamp == maxTombstone && !keepTombstones)
+            if (timestamp == maxTombstone && !keepTombstones) {
+                assert CellUtils.getKeyValueType(element) == CellType.TOMBSTONE;
                 dataToReturn.remove(element);
+            }
             else if (timestamp < maxTombstone) {
                 dataToReturn.remove(element);
             }
