@@ -257,10 +257,10 @@ public class SIObserver extends BaseRegionObserver{
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            SICompactionScanner siScanner = new SICompactionScanner(state,scanner, false, false, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            SICompactionScanner siScanner = new SICompactionScanner(state, scanner, false, false, region.getTableName(), conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
-        }else {
+        } else {
             return super.preFlush(e, store, scanner);
         }
     }
@@ -276,7 +276,7 @@ public class SIObserver extends BaseRegionObserver{
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                SICompactionScanner siScanner = new SICompactionScanner(state,scanner, false, false, conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+                SICompactionScanner siScanner = new SICompactionScanner(state,scanner, false, false, region.getTableName(), conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
             }else{

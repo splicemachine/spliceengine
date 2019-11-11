@@ -169,7 +169,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
         CompactionRequest compactionRequest = new CompactionRequest(readersToClose);
         compactionRequest.setIsMajor(isMajor, isMajor);
-        List<Path> paths = sdc.sparkCompact(compactionRequest, context, favoredNodes);
+        List<Path> paths = sdc.sparkCompact(compactionRequest, context, favoredNodes, new String(tableName));
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);

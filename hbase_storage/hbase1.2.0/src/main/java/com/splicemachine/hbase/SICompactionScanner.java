@@ -36,10 +36,11 @@ public class SICompactionScanner extends AbstractSICompactionScanner {
                                InternalScanner scanner,
                                boolean purgeDeletedRows,
                                boolean keepTombstones,
+                               String tableName,
                                double resolutionShare,
                                int bufferSize,
                                CompactionContext context) {
-        super(compactionState, scanner, purgeDeletedRows, keepTombstones, resolutionShare, bufferSize, context);
+        super(compactionState, scanner, purgeDeletedRows, keepTombstones, tableName, resolutionShare, bufferSize, context);
     }
 
 

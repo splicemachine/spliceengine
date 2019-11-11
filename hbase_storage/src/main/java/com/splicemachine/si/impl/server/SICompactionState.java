@@ -70,7 +70,7 @@ public class SICompactionState {
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean forcePurgingDeletedRows, boolean keepTombstones) throws IOException {
+    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean forcePurgingDeletedRows, boolean keepTombstones, String tableName) throws IOException {
         dataToReturn.clear();
         long lowWatermarkTransaction = TransactionsWatcher.INSTANCE.getLowWatermarkTransaction();
         long maxTombstone = 0;
@@ -82,21 +82,24 @@ public class SICompactionState {
                 maxTombstone = t;
         }
         if (forcePurgingDeletedRows || maxTombstone > 0) {
-            removeDeletedRows(maxTombstone, keepTombstones);
+            removeDeletedRows(maxTombstone, keepTombstones, tableName);
         }
         results.addAll(dataToReturn);
     }
 
-    private void removeDeletedRows(long maxTombstone, boolean keepTombstones) {
+    private void removeDeletedRows(long maxTombstone, boolean keepTombstones, String tableName) {
         if (keepTombstones) {
             // We disable purging in minor compactions for now
             return;
         }
+        LOG.warn(String.format("remove deleted rows from table %s", tableName));
         SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
         for (Cell element : cp) {
             long timestamp = element.getTimestamp();
             if (timestamp == maxTombstone && !keepTombstones) {
-                assert CellUtils.getKeyValueType(element) == CellType.TOMBSTONE;
+                if (CellUtils.getKeyValueType(element) != CellType.TOMBSTONE) {
+                    throw new RuntimeException("Tombstone had the same timestamp as" + CellUtils.getKeyValueType(element));
+                }
                 dataToReturn.remove(element);
             }
             else if (timestamp < maxTombstone) {

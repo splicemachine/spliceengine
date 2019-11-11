@@ -144,7 +144,7 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
         return paths;
     }
 
-    public List<Path> sparkCompact(CompactionRequest request, CompactionContext context, InetSocketAddress[] favoredNodes) throws IOException {
+    public List<Path> sparkCompact(CompactionRequest request, CompactionContext context, InetSocketAddress[] favoredNodes, String tableName) throws IOException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "sparkCompact(): CompactionRequest=%s", request);
 
@@ -195,7 +195,7 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                             driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                     boolean purgeDeletedRows = request.isMajor() && SpliceCompactionUtils.shouldPurge(store);
 
-                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, !request.isMajor(), resolutionShare, bufferSize, context);
+                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, !request.isMajor(), tableName, resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }

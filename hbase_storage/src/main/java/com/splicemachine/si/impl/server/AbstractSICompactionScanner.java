@@ -48,6 +48,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private final CompactionContext context;
     private boolean purgeDeletedRows;
     private boolean keepTombstones;
+    private String tableName;
     private AtomicReference<IOException> failure = new AtomicReference<>();
     private AtomicLong remainingTime;
 
@@ -55,6 +56,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
                                        InternalScanner scanner,
                                        boolean purgeDeletedRows,
                                        boolean keepTombstones,
+                                       String tableName,
                                        double resolutionShare,
                                        int bufferSize,
                                        CompactionContext context) {
@@ -62,6 +64,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         this.delegate = scanner;
         this.purgeDeletedRows = purgeDeletedRows;
         this.keepTombstones = keepTombstones;
+        this.tableName = tableName;
         this.queue = new ArrayBlockingQueue(bufferSize);
         this.timer = new Timer("Compaction-resolution-throttle", true);
         this.timeDelta = (int) (60000 * resolutionShare);
@@ -83,7 +86,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             entry = queue.take();
             final boolean more = entry.more;
             List<TxnView> txns = waitFor(entry.txns);
-            compactionState.mutate(entry.cells, txns, list, purgeDeletedRows, keepTombstones);
+            compactionState.mutate(entry.cells, txns, list, purgeDeletedRows, keepTombstones, tableName);
             if (!more) {
                 timer.cancel();
                     context.close();
