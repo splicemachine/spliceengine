@@ -97,7 +97,7 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
             for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
                 count++;
             }
-            Assert.assertTrue(count == 2);
+            Assert.assertEquals(2, count);
         }
     }
 }
