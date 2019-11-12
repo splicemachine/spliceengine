@@ -62,6 +62,6 @@ public interface SortCostController{
      * @param baseCost
      * @throws StandardException
      */
-    void estimateSortCost(CostEstimate baseCost) throws StandardException;
+    void estimateSortCost(CostEstimate baseCost, CostEstimate sortCost) throws StandardException;
 
 }

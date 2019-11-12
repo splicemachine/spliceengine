@@ -104,7 +104,7 @@ public interface RequiredRowOrdering
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void estimateCost(Optimizer optimizer, RowOrdering rowOrdering, CostEstimate baseCost) throws StandardException;
+	void estimateCost(Optimizer optimizer, RowOrdering rowOrdering, CostEstimate baseCost, CostEstimate sortCost) throws StandardException;
 
 	/**
 	 * Indicate that a sort is necessary to fulfill this required ordering.
