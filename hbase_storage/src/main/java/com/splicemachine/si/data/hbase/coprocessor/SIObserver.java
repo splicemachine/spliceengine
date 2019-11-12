@@ -275,7 +275,8 @@ public class SIObserver extends BaseRegionObserver{
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig = EnumSet.of(PurgeDeletedRowsConfig.PURGE);
+                EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig = PurgeDeletedRowsConfig.NO_PURGE;
+                //EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig = EnumSet.of(PurgeDeletedRowsConfig.PURGE);
                 if (!compactionRequest.isMajor())
                     purgeDeletedRowsConfig.add(PurgeDeletedRowsConfig.KEEP_TOMBSTONES);
                 SICompactionScanner siScanner = new SICompactionScanner(

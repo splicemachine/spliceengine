@@ -196,7 +196,7 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                             driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                     EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig;
                     if (!request.isMajor())
-                        purgeDeletedRowsConfig = EnumSet.of(PurgeDeletedRowsConfig.PURGE, PurgeDeletedRowsConfig.KEEP_TOMBSTONES);
+                        purgeDeletedRowsConfig = PurgeDeletedRowsConfig.NO_PURGE; //purgeDeletedRowsConfig = EnumSet.of(PurgeDeletedRowsConfig.PURGE, PurgeDeletedRowsConfig.KEEP_TOMBSTONES);
                     else if (SpliceCompactionUtils.shouldPurge(store))
                         purgeDeletedRowsConfig = EnumSet.of(PurgeDeletedRowsConfig.FORCE_PURGE);
                     else
