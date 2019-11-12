@@ -79,8 +79,8 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
             long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");
             TableName hTableName = TableName.valueOf("splice:" + Long.toString(conglomId[0]));
-            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('PHYSICALDELETIONIT','A')");
             methodWatcher.execute("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('PHYSICALDELETIONIT','A',true)");
+            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('PHYSICALDELETIONIT','A')");
             methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
 
             Table table = connection.getTable(hTableName);

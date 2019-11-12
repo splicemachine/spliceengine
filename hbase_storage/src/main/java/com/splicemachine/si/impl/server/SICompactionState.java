@@ -41,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.stream.Stream;
 
 /**
  * Captures the SI logic to perform when a data table is compacted (without explicit HBase dependencies). Provides the
@@ -93,9 +94,7 @@ public class SICompactionState {
         for (Cell element : cp) {
             long timestamp = element.getTimestamp();
             if (timestamp == maxTombstone && !keepTombstones) {
-                if (CellUtils.getKeyValueType(element) != CellType.TOMBSTONE) {
-                    throw new RuntimeException("Tombstone had the same timestamp as" + CellUtils.getKeyValueType(element));
-                }
+                assert Stream.of(CellType.TOMBSTONE, CellType.COMMIT_TIMESTAMP).anyMatch(CellUtils.getKeyValueType(element)::equals);
                 dataToReturn.remove(element);
             }
             else if (timestamp < maxTombstone) {
@@ -108,7 +107,7 @@ public class SICompactionState {
      * is a tombstone that is eligible for purging, else 0
      */
     private long mutate(Cell element, TxnView txn) throws IOException {
-        final CellType cellType= CellUtils.getKeyValueType(element);
+        final CellType cellType = CellUtils.getKeyValueType(element);
         long timestamp = element.getTimestamp();
         if (cellType == CellType.COMMIT_TIMESTAMP) {
             dataToReturn.add(element);
