@@ -926,6 +926,10 @@ public class OptimizerImpl implements Optimizer{
 					/* Only get the sort cost once */
                     if(sortCost==null){
                         sortCost=newCostEstimate();
+                    } else {
+                        //reset the sort cost
+                        sortCost.setLocalCost(Double.MAX_VALUE);
+                        sortCost.setLocalCostPerPartition(Double.MAX_VALUE);
                     }
 					/* requiredRowOrdering records if the bestCost so far is
 					 * sort-needed or not, as done in rememberBestCost.  If
@@ -944,8 +948,8 @@ public class OptimizerImpl implements Optimizer{
 					 * sometimes is quite dramatic, eg. from 17 sec to 0.5 sec,
 					 * see beetle 4353.
 					 */
-                    if(requiredRowOrdering.getSortNeeded()){
-                        requiredRowOrdering.estimateCost(this,bestRowOrdering,currentCost);
+                    if(!curOpt.considerSortAvoidancePath()){
+                        requiredRowOrdering.estimateCost(this,bestRowOrdering,currentCost, sortCost);
                     }
 
                     tracer.trace(OptimizerFlag.COST_OF_SORTING,0,0,0.0);
@@ -1802,11 +1806,11 @@ public class OptimizerImpl implements Optimizer{
             if(sortAvoidance){
                 recoveredCost+= optimizableList.getOptimizable(proposedJoinOrder[i])
                                 .getBestSortAvoidancePath().getCostEstimate()
-                                .getEstimatedCost();
+                                .localCost();
             }else{
                 recoveredCost+= optimizableList.getOptimizable(proposedJoinOrder[i])
                                 .getBestAccessPath().getCostEstimate()
-                                .getEstimatedCost();
+                                .localCost();
             }
         }
 
@@ -1843,15 +1847,18 @@ public class OptimizerImpl implements Optimizer{
 		*/
         double prevRowCount;
         double prevSingleScanRowCount;
+        double prevRemoteCost;
         int prevPosition=0;
         if(joinPosition==0){
             prevRowCount=outermostCostEstimate.rowCount();
             prevSingleScanRowCount=outermostCostEstimate.singleScanRowCount();
+            prevRemoteCost = outermostCostEstimate.remoteCost();
         }else{
             prevPosition=proposedJoinOrder[joinPosition-1];
             CostEstimate localCE= optimizableList.getOptimizable(prevPosition).getBestAccessPath().getCostEstimate();
             prevRowCount=localCE.rowCount();
             prevSingleScanRowCount=localCE.singleScanRowCount();
+            prevRemoteCost = localCE.remoteCost();
         }
 
 		/*
@@ -1862,16 +1869,18 @@ public class OptimizerImpl implements Optimizer{
 		** cost.
 		*/
         double newLocalCost=currentCost.localCost();
-        double newRemoteCost=currentCost.remoteCost();
         double pullLocalCost;
-        double pullRemoteCost;
         CostEstimate pullCostEstimate= pullMe.getBestAccessPath().getCostEstimate();
         if(pullCostEstimate!=null){
             pullLocalCost=pullCostEstimate.localCost();
-            pullRemoteCost=pullCostEstimate.remoteCost();
 
-            newRemoteCost-=pullRemoteCost;
             newLocalCost-=pullLocalCost;
+            // For a complete join order, we may add sort cost to the plan,
+            // so we we need to deduct it if any
+            if (joinPosition == numOptimizables-1) {
+                if (sortCost != null && sortCost.getLocalCost() != Double.MAX_VALUE)
+                    newLocalCost-= sortCost.getLocalCost();
+            }
 
 			/*
 			** It's possible for newCost to go negative here due to
@@ -1888,13 +1897,6 @@ public class OptimizerImpl implements Optimizer{
 			** here,try to make some sense of things by adding up costs
 			** as they existed prior to pullMe...
 			*/
-            if(newRemoteCost<=0.0){
-                if(joinPosition==0)
-                    newRemoteCost=0.0;
-                else
-                    newRemoteCost=recoverCostFromProposedJoinOrder(false);
-            }
-
             if(newLocalCost<=0.0){
                 if(joinPosition==0)
                     newLocalCost=0.0;
@@ -1902,6 +1904,9 @@ public class OptimizerImpl implements Optimizer{
                     newLocalCost=recoverCostFromProposedJoinOrder(false);
             }
         }
+        //new remote cost should be the previous optimal's remote cost, see
+        // logi in addCost()
+        double newRemoteCost = prevRemoteCost;
 
 		/* If we are choosing a new outer table, then
 		 * we rest the starting cost to the outermostCost.
@@ -1941,7 +1946,6 @@ public class OptimizerImpl implements Optimizer{
             if(pullMe.considerSortAvoidancePath()){
                 AccessPath ap=pullMe.getBestSortAvoidancePath();
                 double prevLocalCost;
-                double prevRemoteCost;
                 double prevLocalCostPerPartition;
                 double prevRemoteCostPerPartition;
 
@@ -1972,34 +1976,20 @@ public class OptimizerImpl implements Optimizer{
                             .getBestSortAvoidancePath().getCostEstimate();
                     prevRowCount = localCE.rowCount();
                     prevSingleScanRowCount = localCE.singleScanRowCount();
-                    prevRemoteCost = currentSortAvoidanceCost.remoteCost() -
-		                         ap.getCostEstimate().remoteCost();
+                    prevRemoteCost = localCE.remoteCost();
                     prevLocalCost = currentSortAvoidanceCost.localCost() -
-		                        ap.getCostEstimate().localCost();
+                            ap.getCostEstimate().localCost();
                     prevLocalCostPerPartition = currentSortAvoidanceCost.getLocalCostPerPartition() -
-		                                    ap.getCostEstimate().getLocalCostPerPartition();
-                    prevRemoteCostPerPartition = currentSortAvoidanceCost.getRemoteCostPerPartition() -
-		                                     ap.getCostEstimate().getRemoteCostPerPartition();
+                            ap.getCostEstimate().getLocalCostPerPartition();
+                    prevRemoteCostPerPartition = localCE.getRemoteCostPerPartition();
                 }
 
                 // See discussion above for "newCost"; same applies here.
-                if(prevRemoteCost<=0.0){
-                    if(joinPosition==0) {
-			prevRemoteCost = 0.0;
-			prevRemoteCostPerPartition = 0.0;
-		    }
-                    else{
-                        prevRemoteCost= recoverCostFromProposedJoinOrder(true);
-                        // Join planning stores cost per partition in remoteCost and localCost.
-                        prevRemoteCostPerPartition = prevRemoteCost;
-                    }
-                }
-
                 if(prevLocalCost<=0.0){
                     if(joinPosition==0) {
-	   	        prevLocalCost = 0.0;
-		        prevLocalCostPerPartition = 0.0;
-		    }
+                        prevLocalCost = 0.0;
+                        prevLocalCostPerPartition = 0.0;
+                    }
                     else{
                         prevLocalCost= recoverCostFromProposedJoinOrder(true);
                         // Join planning stores cost per partition in remoteCost and localCost.
