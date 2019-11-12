@@ -16,6 +16,7 @@ package com.splicemachine.hbase;
 
 import com.splicemachine.si.impl.server.AbstractSICompactionScanner;
 import com.splicemachine.si.impl.server.CompactionContext;
+import com.splicemachine.si.impl.server.PurgeDeletedRowsConfig;
 import com.splicemachine.si.impl.server.SICompactionState;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -23,6 +24,7 @@ import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -34,13 +36,12 @@ public class SICompactionScanner extends AbstractSICompactionScanner {
 
     public SICompactionScanner(SICompactionState compactionState,
                                InternalScanner scanner,
-                               boolean purgeDeletedRows,
-                               boolean keepTombstones,
+                               EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig,
                                String tableName,
                                double resolutionShare,
                                int bufferSize,
                                CompactionContext context) {
-        super(compactionState, scanner, purgeDeletedRows, keepTombstones, tableName, resolutionShare, bufferSize, context);
+        super(compactionState, scanner, purgeDeletedRowsConfig, tableName, resolutionShare, bufferSize, context);
     }
 
 

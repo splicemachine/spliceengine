@@ -32,11 +32,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -71,9 +67,9 @@ public class SICompactionState {
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean forcePurgingDeletedRows, boolean keepTombstones, String tableName) throws IOException {
+    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, EnumSet<PurgeDeletedRowsConfig> purgeConfig, String tableName) throws IOException {
         dataToReturn.clear();
-        long lowWatermarkTransaction = TransactionsWatcher.INSTANCE.getLowWatermarkTransaction();
+        long lowWatermarkTransaction = TransactionsWatcher.getLowWatermarkTransaction();
         long maxTombstone = 0;
         Iterator<TxnView> it = txns.iterator();
         for (Cell aRawList : rawList) {
@@ -82,8 +78,9 @@ public class SICompactionState {
             if (maxTombstone < t && t < lowWatermarkTransaction)
                 maxTombstone = t;
         }
-        if (forcePurgingDeletedRows || maxTombstone > 0) {
-            removeDeletedRows(maxTombstone, keepTombstones, tableName);
+        if (purgeConfig.contains(PurgeDeletedRowsConfig.FORCE_PURGE) ||
+                (purgeConfig.contains(PurgeDeletedRowsConfig.PURGE) && maxTombstone > 0)) {
+            removeDeletedRows(maxTombstone, purgeConfig.contains(PurgeDeletedRowsConfig.KEEP_TOMBSTONES), tableName);
         }
         results.addAll(dataToReturn);
     }

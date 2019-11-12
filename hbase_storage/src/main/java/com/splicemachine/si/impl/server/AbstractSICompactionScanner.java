@@ -21,10 +21,7 @@ import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -46,24 +43,21 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private final Timer timer;
     private final int timeDelta;
     private final CompactionContext context;
-    private boolean purgeDeletedRows;
-    private boolean keepTombstones;
+    private final EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig;
     private String tableName;
     private AtomicReference<IOException> failure = new AtomicReference<>();
     private AtomicLong remainingTime;
 
     public AbstractSICompactionScanner(SICompactionState compactionState,
                                        InternalScanner scanner,
-                                       boolean purgeDeletedRows,
-                                       boolean keepTombstones,
+                                       EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig,
                                        String tableName,
                                        double resolutionShare,
                                        int bufferSize,
                                        CompactionContext context) {
         this.compactionState = compactionState;
         this.delegate = scanner;
-        this.purgeDeletedRows = purgeDeletedRows;
-        this.keepTombstones = keepTombstones;
+        this.purgeDeletedRowsConfig = purgeDeletedRowsConfig;
         this.tableName = tableName;
         this.queue = new ArrayBlockingQueue(bufferSize);
         this.timer = new Timer("Compaction-resolution-throttle", true);
@@ -86,7 +80,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             entry = queue.take();
             final boolean more = entry.more;
             List<TxnView> txns = waitFor(entry.txns);
-            compactionState.mutate(entry.cells, txns, list, purgeDeletedRows, keepTombstones, tableName);
+            compactionState.mutate(entry.cells, txns, list, purgeDeletedRowsConfig, tableName);
             if (!more) {
                 timer.cancel();
                     context.close();

@@ -18,16 +18,14 @@ import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.pipeline.AclCheckerService;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
+import com.splicemachine.si.impl.server.PurgeDeletedRowsConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -257,7 +255,8 @@ public class SIObserver extends BaseRegionObserver{
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            SICompactionScanner siScanner = new SICompactionScanner(state, scanner, false, true, region.getTableName(), conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig = EnumSet.of(PurgeDeletedRowsConfig.PURGE, PurgeDeletedRowsConfig.KEEP_TOMBSTONES);
+            SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRowsConfig, region.getTableName(), conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
         } else {
@@ -276,8 +275,11 @@ public class SIObserver extends BaseRegionObserver{
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
+                EnumSet<PurgeDeletedRowsConfig> purgeDeletedRowsConfig = EnumSet.of(PurgeDeletedRowsConfig.PURGE);
+                if (!compactionRequest.isMajor())
+                    purgeDeletedRowsConfig.add(PurgeDeletedRowsConfig.KEEP_TOMBSTONES);
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, false, !compactionRequest.isMajor(), region.getTableName(),
+                        state, scanner, purgeDeletedRowsConfig, region.getTableName(),
                         conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
