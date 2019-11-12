@@ -123,7 +123,7 @@ public class OrderByNode extends SingleChildResultSetNode {
     public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
         if(costEstimate==null) {
             costEstimate = childResult.getFinalCostEstimate(true).cloneMe();
-            orderByList.estimateCost(optimizer, null, costEstimate);
+            orderByList.estimateCost(optimizer, null, costEstimate, null);
         }
         return costEstimate;
     }
