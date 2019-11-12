@@ -327,7 +327,8 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
     @Override
     public void estimateCost(Optimizer optimizer,
                              RowOrdering rowOrdering,
-                             CostEstimate baseCost) throws StandardException{
+                             CostEstimate baseCost,
+                             CostEstimate sortCost) throws StandardException{
 		/*
 		** Do a bunch of set-up the first time: get the SortCostController,
 		** the template row, the ColumnOrdering array, and the estimated
@@ -338,14 +339,21 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
             if (optimizer == null) {
                 double parallelCost = (baseCost.localCost()+baseCost.remoteCost())/baseCost.partitionCount();
                 baseCost.setLocalCost(baseCost.localCost()+parallelCost);
-                baseCost.setLocalCostPerPartition(baseCost.localCost(), baseCost.partitionCount());
-                baseCost.setRemoteCostPerPartition(baseCost.remoteCost(), baseCost.partitionCount());
+                baseCost.setLocalCostPerPartition(baseCost.localCost());
+                /* only local cost is changed, remote cost is not changed as sort does not change
+                   the rowcount, so no need to change the remote cost nor remoteCostPerPartition
+                 */
+                // set sortCost
+                if (sortCost != null) {
+                    sortCost.setLocalCost(parallelCost);
+                    sortCost.setLocalCostPerPartition(parallelCost);
+                }
                 return;
             } else {
                 scc = optimizer.newSortCostController(this);
             }
         }
-        scc.estimateSortCost(baseCost);
+        scc.estimateSortCost(baseCost, sortCost);
     }
 
     @Override
