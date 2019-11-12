@@ -94,6 +94,42 @@ public class JoinOrderIT extends SpliceUnitTest {
                 .withCreate("create table t7 (a7 int, b7 int, c7 int)")
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table t11 (a1 int, b1 int, c1 int, primary key (a1))")
+                .withInsert("insert into t11 values(?,?,?)")
+                .withRows(rows(
+                        row(1, 1, 1),
+                        row(2, 2, 2),
+                        row(3, 3, 3),
+                        row(4, 4, 4),
+                        row(5, 5, 5),
+                        row(6, 6, 6),
+                        row(7, 7, 7),
+                        row(8, 8, 8),
+                        row(9, 9, 9),
+                        row(10, 10, 10)))
+                .create();
+
+        int increment = 10;
+        for (int i = 0; i < 10; i++) {
+            spliceClassWatcher.executeUpdate(format("insert into t11 select a1+%1$d, b1+%1$d, c1+%1$d from t11", increment));
+            increment *= 2;
+        }
+        new TableCreator(conn)
+                .withCreate("create table t22 (a2 int, b2 int, c2 int, primary key(a2))")
+                .create();
+        new TableCreator(conn)
+                .withCreate("create table t33 (a3 int, b3 int, c3 int, primary key(a3))")
+                .create();
+        new TableCreator(conn)
+                .withCreate("create table t44 (a4 int, b4 int, c4 int, primary key(a4))")
+                .withIndex("create index idx_t44 on t44(c4)")
+                .create();
+
+        spliceClassWatcher.executeUpdate("insert into t22 select * from t11");
+        spliceClassWatcher.executeUpdate("insert into t33 select * from t11");
+        spliceClassWatcher.executeUpdate("insert into t44 select * from t11");
+
         spliceClassWatcher.executeQuery(format("analyze schema %s", CLASS_NAME));
         conn.commit();
     }
@@ -202,5 +238,41 @@ public class JoinOrderIT extends SpliceUnitTest {
         rs.close();
 
         Assert.assertTrue("T4 is expected to appear in the first join", found);
+    }
+
+    @Test
+    public void testJoinOrderOfMultipleTablesWithOrderBy() throws Exception {
+        String sqlText = "explain select * from t11, t22, t33, t44\n" +
+                "where c4=10 and b4=a3 and b3=a2 and b2=a1\n" +
+                "order by a1";
+
+        /* expected join order should be T44, T33, T22, T11 as follows:
+            Plan
+            ----
+            Cursor(n=12,rows=1,updateMode=READ_ONLY (1),engine=control)
+              ->  ScrollInsensitive(n=11,totalCost=136.193,outputRows=1,outputHeapSize=36 B,partitions=1)
+                ->  OrderBy(n=10,totalCost=120.163,outputRows=1,outputHeapSize=36 B,partitions=1)
+                  ->  ProjectRestrict(n=9,totalCost=52.066,outputRows=1,outputHeapSize=36 B,partitions=1)
+                    ->  NestedLoopJoin(n=8,totalCost=52.066,outputRows=1,outputHeapSize=36 B,partitions=1)
+                      ->  TableScan[T11(2272)](n=7,totalCost=4.001,scannedRows=1,outputRows=1,outputHeapSize=36 B,partitions=1,preds=[(B2[10:8] = A1[11:1])])
+                      ->  NestedLoopJoin(n=6,totalCost=32.034,outputRows=1,outputHeapSize=24 B,partitions=1)
+                        ->  TableScan[T22(2288)](n=5,totalCost=4.001,scannedRows=1,outputRows=1,outputHeapSize=24 B,partitions=1,preds=[(B3[6:5] = A2[7:1])])
+                        ->  NestedLoopJoin(n=4,totalCost=16.012,outputRows=1,outputHeapSize=12 B,partitions=1)
+                          ->  TableScan[T33(2304)](n=3,totalCost=4.001,scannedRows=1,outputRows=1,outputHeapSize=12 B,partitions=1,preds=[(B4[2:2] = A3[3:1])])
+                          ->  IndexLookup(n=2,totalCost=4,outputRows=1,outputHeapSize=0 B,partitions=1)
+                            ->  IndexScan[IDX_T44(2337)](n=1,totalCost=4,scannedRows=1,outputRows=1,outputHeapSize=0 B,partitions=1,baseTable=T44(2320),preds=[(C4[1:3] = 10)])
+
+            12 rows selected
+        */
+
+        rowContainsQuery(new int[]{5,6,7,8,9,10,11,12}, sqlText, methodWatcher,
+                new String[] {"NestedLoopJoin"},
+                new String[] {"TableScan[T11", "scannedRows=1,outputRows=1"},
+                new String[] {"NestedLoopJoin"},
+                new String[] {"TableScan[T22", "scannedRows=1,outputRows=1"},
+                new String[] {"NestedLoopJoin"},
+                new String[] {"TableScan[T33", "scannedRows=1,outputRows=1"},
+                new String[] {"IndexLookup", "outputRows=1"},
+                new String[] {"IndexScan[IDX_T44", "scannedRows=1,outputRows=1", "preds=[(C4[1:3] = 10)]"});
     }
 }
