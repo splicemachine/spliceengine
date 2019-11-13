@@ -31,21 +31,13 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.lang.Math;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
-import java.sql.*;
-
+import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
@@ -57,6 +49,16 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Decimal;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 
 /**
  * SQLDecimal satisfies the DataValueDescriptor
@@ -1072,6 +1074,12 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		}
 		rawData = null;
 		setValue(value.setScale(desiredScale, BigDecimal.ROUND_HALF_UP));
+		// for decimal 0, it is possible that precision is less than scale
+		// after the call of setScale, e.g., cast(0 as decimal(14,4)). The BigDecimal 0 starts with
+		// precision 1 and scale 0, and ends with precision 1 and scale 4,
+		// so adjust the precision accordingly
+		if (value.signum() == 0)
+			setPrecision(value.scale() + 1);
 	}
 
 	/**
