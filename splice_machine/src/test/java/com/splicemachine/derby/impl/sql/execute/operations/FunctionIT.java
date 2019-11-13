@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -28,6 +29,9 @@ import org.junit.runner.Description;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Scott Fines
@@ -45,21 +49,29 @@ public class FunctionIT extends SpliceUnitTest {
 	protected static SpliceFunctionWatcher spliceFunctionWatcher = new SpliceFunctionWatcher("SIN",FunctionIT.class.getSimpleName(),"( data double) returns double external name 'java.lang.Math.sin' language java parameter style java");
 	protected static double [] roundVals = {1.2, 2.53, 3.225, 4.1352, 5.23412, 53.2315093704, 205.130295341296824,
 			13.21958329568391029385, 12.132435242330192856728391029584, 1.9082847283940982746172849098273647589099};
-
+	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("B",FunctionIT.class.getSimpleName(),"(col decimal(14,4))");
 
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
 		.around(spliceSchemaWatcher)
 		.around(spliceUserWatcher1)
 		.around(spliceTableWatcher)
+		.around(spliceTableWatcher1)
 		.around(spliceFunctionWatcher)
 		.around(new SpliceDataWatcher(){
 			@Override
 			protected void starting(Description description) {
 				try {
-		        PreparedStatement ps = spliceClassWatcher.prepareStatement("insert into "+ FunctionIT.class.getSimpleName() + ".A (data) values (?)");
-		        ps.setDouble(1,1.23d);
-		        ps.executeUpdate();
+					PreparedStatement ps = spliceClassWatcher.prepareStatement("insert into "+ FunctionIT.class.getSimpleName() + ".A (data) values (?)");
+					ps.setDouble(1,1.23d);
+					ps.executeUpdate();
+					ps.close();
+					ps = spliceClassWatcher.prepareStatement("insert into "+ FunctionIT.class.getSimpleName() + ".B (col) values (?)");
+					ps.setInt(1,2);
+					ps.executeUpdate();
+					ps.setNull(1, Types.DECIMAL);
+					ps.executeUpdate();
+					ps.close();
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -193,6 +205,19 @@ public class FunctionIT extends SpliceUnitTest {
 		rs.close();
 
 	}
+
+	@Test
+	public void testNvlWithDecimalZero() throws Exception {
+		String sqlText = format("select sum(val_no_null)\n" +
+				"from (select nvl(col, 0) as val_no_null from %1$s.B) dt, %1$s.A --splice-properties useSpark=true", FunctionIT.class.getSimpleName());
+
+		String expected = "1   |\n" +
+				"--------\n" +
+				"2.0000 |";
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+		assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+	}
+
 		private void vetThreeArgCoalesce(String sql) throws Exception {
 		// First three values in each row are arguments to COALESCE. The
 				// last value is the expected return value.
