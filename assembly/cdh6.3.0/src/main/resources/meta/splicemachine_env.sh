@@ -17,12 +17,22 @@ MYLIBDIR=${PARCELS_ROOT}/${PARCEL_DIRNAME}/lib
 }
 
 
-PREPENDSTRING=`echo ${MYLIBDIR}/*.jar ${PARCELS_ROOT}/CDH/lib/spark/jars/*.jar | sed 's/ /:/g'`
+#PREPENDSTRING=`echo ${MYLIBDIR}/*.jar ${PARCELS_ROOT}/CDH/lib/spark/jars/*.jar | sed 's/ /:/g'`
+PREPENDSTRING=`echo ${MYLIBDIR}/*.jar | sed 's/ /:/g'`
+APPENDSTRING=`echo ${PARCELS_ROOT}/CDH/lib/spark/jars/*.jar | sed 's/ /:/g'`
+
 echo "prepending $PREPENDSTRING to HBASE_CLASSPATH_PREFIX"
 if [ -z $HBASE_CLASSPATH_PREFIX ] ; then
     export HBASE_CLASSPATH_PREFIX="${PREPENDSTRING}"
 else
     export HBASE_CLASSPATH_PREFIX="${PREPENDSTRING}:${HBASE_CLASSPATH_PREFIX}"
+fi
+
+echo "appending $APPENDSTRING to HBASE_CLASSPATH"
+if [ -z $HBASE_CLASSPATH ] ; then
+    export HBASE_CLASSPATH="${APPENDSTRING}"
+else
+    export HBASE_CLASSPATH="${HBASE_CLASSPATH}:${APPENDSTRING}"
 fi
 
 echo "Copying yarn-site.xml to hbase directory"
