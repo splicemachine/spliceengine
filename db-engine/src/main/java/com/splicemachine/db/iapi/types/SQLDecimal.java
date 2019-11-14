@@ -716,7 +716,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	{
 		value = theValue;
 		if (value !=null) {
-			precision = value.precision();
+			precision = getValuePrecision();
 			scale = value.scale();
 		}
 		rawData = null;
@@ -726,7 +726,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	private void setCoreValue(double theValue) {
 		value = new BigDecimal(Double.toString(theValue));
 		if (value !=null) {
-			precision = value.precision();
+			precision = getValuePrecision();
 			scale = value.scale();
 		}
 		rawData = null;
@@ -1066,12 +1066,6 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		}
 		rawData = null;
 		setValue(value.setScale(desiredScale, BigDecimal.ROUND_DOWN));
-		// for decimal 0, it is possible that precision is less than scale
-		// after the call of setScale, e.g., cast(0 as decimal(14,4)). The BigDecimal 0 starts with
-		// precision 1 and scale 0, and ends with precision 1 and scale 4,
-		// so adjust the precision accordingly
-		if (value.signum() == 0)
-			setPrecision(value.scale() + 1);
 	}
 
 	/**
@@ -1180,8 +1174,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		if (isNull())
 				unsafeRowWriter.setNullAt(ordinal);
 		else {
-			Decimal foobar = Decimal.apply(value,value.precision(),value.scale());
-			unsafeRowWriter.write(ordinal, Decimal.apply(value,value.precision(),value.scale()), value.precision(), value.scale());
+			unsafeRowWriter.write(ordinal, Decimal.apply(value,getValuePrecision(),value.scale()), getValuePrecision(), value.scale());
 		}
 	}
 
@@ -1198,8 +1191,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		if (isNull())
 			unsafeArrayWriter.setNull(ordinal);
 		else {
-			Decimal foobar = Decimal.apply(value,value.precision(),value.scale());
-			unsafeArrayWriter.write(ordinal, Decimal.apply(value,value.precision(),value.scale()), value.precision(), value.scale());
+			unsafeArrayWriter.write(ordinal, Decimal.apply(value,getValuePrecision(),value.scale()), getValuePrecision(), value.scale());
 		}
 	}
 
@@ -1311,6 +1303,20 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 			value = (BigDecimal) sparkObject; //
 			setIsNull(false);
 		}
+	}
+
+
+	private int getValuePrecision() {
+		if (value == null)
+			return 0;
+		// for decimal 0, it is possible that precision is less than scale
+		// after the call of BigDecimal.setScale(), e.g., cast(0 as decimal(14,4)).
+		// In that case, the BigDecimal 0 starts with precision 1 and scale 0,
+		// and ends with precision 1 and scale 4, so adjust the precision accordingly
+		if (value.signum() == 0)
+			return value.scale() + 1;
+
+		return value.precision();
 	}
 
 }
