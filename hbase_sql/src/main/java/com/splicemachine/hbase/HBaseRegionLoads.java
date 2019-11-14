@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
@@ -105,8 +104,7 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
 
             SConfiguration configuration=SIDriver.driver().getConfiguration();
             long updateInterval = configuration.getRegionLoadUpdateInterval();
-            long initialDelay = new Random().nextInt((int) updateInterval); // avoid refreshes from all RSs at once
-            updateService.scheduleWithFixedDelay(updater,initialDelay,updateInterval,TimeUnit.SECONDS);
+            updateService.scheduleAtFixedRate(updater,0l,updateInterval,TimeUnit.SECONDS);
         }
     }
 
