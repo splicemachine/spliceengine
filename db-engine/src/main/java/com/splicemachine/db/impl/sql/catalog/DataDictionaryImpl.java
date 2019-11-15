@@ -6275,8 +6275,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 clearNoncoreTable(noncoreCtr);
             }catch(Exception e){
                 e.printStackTrace();
-                System.out.println("Dictionary Table Failure - exiting");
-                System.exit(1);
+                SanityManager.THROWASSERT("Dictionary Table Failure - exiting");
             }
         }
     }
@@ -7183,8 +7182,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             rowLocations.add((RowLocation) indexRow1.getColumn(
                     indexRow1.nColumns()).cloneValue(true));
         }
-        heapCC.batchFetch(rowLocations,outRows,null);
-        if (outRows.size() != i) {
+        if (!heapCC.batchFetch(rowLocations,outRows,null)) {
             if(SanityManager.DEBUG){
                 // it can not be possible for heap row to disappear while
                 // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
@@ -7194,11 +7192,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                             .append(" from index ").append(ti.getIndexName(indexId)).append(", conglom number ")
                             .append(ti.getIndexConglomerate(indexId));
                     debugGenerateInfo(strbuf,tc,heapCC,ti,indexId);
-                    // RESOLVE: for now, we are going to kill the VM
-                    // to help debug this problem.
-                    System.exit(1);
-                    // RESOLVE: not currently reached
-                    //SanityManager.THROWASSERT(strbuf.toString());
+                    SanityManager.THROWASSERT(strbuf.toString());
                 }
             }
         }
@@ -10297,8 +10291,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ti.setHeapConglomerate(conglomerate);
             }catch(Exception e){
                 e.printStackTrace();
-                System.out.println("Dictionary Table Failure - exiting "+coreCtr);
-                System.exit(1);
+                StringBuilder strbuf = new StringBuilder("Dictionary Table Failure - exiting ");
+                strbuf.append(coreCtr);
+                SanityManager.THROWASSERT(strbuf.toString());
             }
         }
     }
