@@ -266,6 +266,9 @@ class SpliceTestPlatformConfig {
         config.set("splice.authentication.impersonation.users", "dgf=splice;splice=*");
         config.setBoolean("splice.authentication.impersonation.enabled", true);
         config.set("splice.authentication.ldap.mapGroupAttr", "jy=splice,dgf=splice");
+        // below two parameters are needed to test ranger authorization on standalone system
+        // config.set("splice.authorization.scheme", "RANGER");
+        // config.set("splice.ranger.usersync.username.caseconversion", "LOWER");
 
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing
