@@ -240,6 +240,10 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String METADATA_RESTRICTION_NATIVE = "NATIVE";
     public static final String METADATA_RESTRICTION_RANGER = "RANGER";
     public static final String DEFAULT_METADATA_RESTRICTION_ENABLED = METADATA_RESTRICTION_NATIVE;
+    public static final String RANGER_USERSYNC_CASECONVERSION = "splice.ranger.usersync.username.caseconversion";
+    public static final String RANGER_USERSYNC_CASECONVERSION_NONE = "NONE";
+    public static final String RANGER_USERSYNC_CASECONVERSION_LOWER = "LOWER";
+    public static final String RANGER_USERSYNC_CASECONVERSION_UPPER = "UPPER";
 
     /**
      * Specify whether aggregation uses unsafe row native spark execution.
@@ -292,6 +296,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.broadcastDatasetCostThreshold = configurationSource.getLong(BROADCAST_DATASET_COST_THRESHOLD, DEFAULT_BROADCAST_DATASET_COST_THRESHOLD);
         builder.recursiveQueryIterationLimit = configurationSource.getInt(RECURSIVE_QUERY_ITERATION_LIMIT, DEFAULT_RECURSIVE_QUERY_ITERATION_LIMIT);
         builder.metadataRestrictionEnabled = configurationSource.getString(METADATA_RESTRICTION_ENABLED, DEFAULT_METADATA_RESTRICTION_ENABLED);
+        builder.rangerUserSyncCaseConversion = configurationSource.getString(RANGER_USERSYNC_CASECONVERSION, RANGER_USERSYNC_CASECONVERSION_NONE);
 
         //always disable debug statements by default
         builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);
