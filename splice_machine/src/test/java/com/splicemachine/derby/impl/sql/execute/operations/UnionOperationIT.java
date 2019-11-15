@@ -15,8 +15,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.HBaseTest;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Ordering;
 import org.spark_project.guava.collect.Sets;
@@ -378,6 +380,7 @@ public class UnionOperationIT {
     }
 
 
+    @Category(HBaseTest.class)
     @Test
     public void testUnionAllReturnFirstAvailableBranchFirst() throws Exception {
         String sqlText = "select * from (select A.name from ST_EARTH as A, ST_EARTH as B, ST_MARS as C " +

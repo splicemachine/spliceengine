@@ -3201,7 +3201,7 @@ TOKEN :
 
 TOKEN :
 {	/* Identifiers */
-	<IDENTIFIER: ( <LETTER> ) (<LETTER> | "_" | <DIGIT>)* >
+	<IDENTIFIER: ( <LETTER> ) (<LETTER> | "_" | <DIGIT> | "@" | "$" | "#")* >
 }
 
 TOKEN: {	<K: "K" >	 }
@@ -6433,6 +6433,7 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 	ValueNode	likePattern;
 	ValueNode	betweenLeft;
 	ValueNode	betweenRight;
+	Properties  properties = null;
 }
 {
 	operator = compOp()
@@ -6445,7 +6446,11 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 			operator = quantifier(operator)
 			<LEFT_PAREN>
 			leftOperand = tableSubquery(operator, leftOperand)
-			<RIGHT_PAREN>
+			<RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
+			{
+	            if (leftOperand instanceof SubqueryNode)
+	                ((SubqueryNode)leftOperand).setProperties(properties);
+			}
 		)
 		|
 		(
@@ -7767,6 +7772,7 @@ valueExpressionPrimary() throws StandardException :
 {
 	ValueNode	value;
 	int			tokKind;
+	Properties  properties = null;
 }
 {
 	/* This LOOKAHEAD is required to distinguish
@@ -7867,8 +7873,11 @@ valueExpressionPrimary() throws StandardException :
 
 		value = valueExpression()
 	)
-	<RIGHT_PAREN>
+	<RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
 	{
+        if (value instanceof SubqueryNode)
+            ((SubqueryNode)value).setProperties(properties);
+
 		return value;
 	}
 |
@@ -10186,6 +10195,7 @@ inPredicateValue(ValueNode leftOperand) throws StandardException :
 {
 	ValueNode		retval;
 	int				tokKind;
+	Properties      properties = null;
 }
 {
 	<LEFT_PAREN>
@@ -10200,8 +10210,10 @@ inPredicateValue(ValueNode leftOperand) throws StandardException :
 	|
 		retval = inValueList(leftOperand)
 	)
-	<RIGHT_PAREN>
+	<RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
 	{
+	    if (retval instanceof SubqueryNode)
+	        ((SubqueryNode)retval).setProperties(properties);
 		return retval;
 	}
 }
@@ -10345,12 +10357,16 @@ SubqueryNode
 existsExpression() throws StandardException :
 {
 	SubqueryNode	subqueryNode;
+	Properties  properties=null;
 }
 {
 	<EXISTS> <LEFT_PAREN>
 	subqueryNode = tableSubquery(SubqueryNode.EXISTS_SUBQUERY, null)
-	<RIGHT_PAREN>
+	<RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
 	{
+        if (subqueryNode instanceof SubqueryNode)
+        	((SubqueryNode)subqueryNode).setProperties(properties);
+
 		return subqueryNode;
 	}
 }
