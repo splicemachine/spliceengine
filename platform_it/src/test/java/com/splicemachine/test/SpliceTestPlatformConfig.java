@@ -298,6 +298,7 @@ class SpliceTestPlatformConfig {
         // below two parameters are needed to test ranger authorization on standalone system
         // config.set("splice.authorization.scheme", "RANGER");
         // config.set("splice.metadataRestrictionEnabled", "RANGER");
+        // config.set("splice.ranger.usersync.username.caseconversion", "LOWER");
 
         // Get more test coverage of the broadcast join Dataset path, as this is the
         // future of splice OLAP query execution.
