@@ -150,7 +150,7 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 double initialValue = 10d;
                 double val;
                 for (int i = 1; i <= 38; i++) {
-                        val = java.lang.Math.pow(initialValue, i);
+                        val = Math.pow(initialValue, i);
                         execRow.setRowArray(new DataValueDescriptor[]{new SQLDecimal(new BigDecimal(val))});
                         Row row = execRow.getSparkRow();
                         Assert.assertEquals(new BigDecimal(val), row.getDecimal(0));
@@ -192,7 +192,7 @@ public class SQLDecimalTest extends SQLDataValueDescriptorTest {
                 double initialValue = 10d;
                 double val;
                 for (int i = 1; i <= 38; i++) {
-                        val = java.lang.Math.pow(initialValue, i);
+                        val = Math.pow(initialValue, i);
                         SQLDecimal value = new SQLDecimal(new BigDecimal(val));
                         SQLDecimal valueA = new SQLDecimal(null, value.precision, value.getScale());
                         ByteArrayOutputStream outputStream = new ByteArrayOutputStream(8192);

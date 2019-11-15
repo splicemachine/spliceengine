@@ -1619,15 +1619,8 @@ public final class SQLTimestamp extends DataType
 	        if (isNull())
 		            unsafeRowWriter.setNullAt(ordinal);
 	        else {
-			// Row size should be a multiple of 8.
-			unsafeRowWriter.grow(16);
-			Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor(), encodedDate);
-		        Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor() + 4, encodedTime);
-		        Platform.putInt(unsafeRowWriter.getBuffer(), unsafeRowWriter.cursor() + 8, nanos);
-		        int previousCursor = unsafeRowWriter.cursor();
-			unsafeRowWriter.increaseCursor(16);
-			unsafeRowWriter.setOffsetAndSizeFromPreviousCursor(ordinal, previousCursor);
-		}
+				PlatformUtils.writeTimestamp(unsafeRowWriter, ordinal, encodedDate, encodedTime, nanos);
+			}
 	    }
 
 	/**

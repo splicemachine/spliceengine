@@ -415,82 +415,11 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		if (isNull()) {
 			unsafeRowWriter.setNullAt(ordinal);
 		} else {
-			int oldCursor = unsafeRowWriter.cursor();
-			int elementSize = 8;
-			for (int i = 0; i < value.length; i++)
-				if (value[i] != null) {
-					elementSize = getUnsafeArrayElementSize(value[i]);
-					break;
-				}
-			UnsafeArrayWriter unsafeArrayWriter = new UnsafeArrayWriter(unsafeRowWriter, elementSize);
-			unsafeArrayWriter.initialize(value.length);
-			for (int i = 0; i< value.length; i++) {
-				if (value[i] == null || value[i].isNull()) {
-					unsafeArrayWriter.setNull(i);
-				} else {
-					value[i].writeArray(unsafeArrayWriter, i);
-				}
-			}
-			unsafeRowWriter.setOffsetAndSizeFromPreviousCursor(ordinal, oldCursor);
+			PlatformUtils.writeSQLArray(unsafeRowWriter, ordinal, value);
 		}
 	}
 
-	private int getUnsafeArrayElementSize (DataValueDescriptor dvd) {
 
-        if (dvd instanceof SQLBinary) {
-            return 8;
-        }
-        else if (dvd instanceof SQLBoolean) {
-            return 1;
-        }
-        else if (dvd instanceof SQLChar) {
-            return 8;
-        }
-        else if (dvd instanceof SQLDate) {
-            return 4;
-        }
-        else if (dvd instanceof SQLDecimal) {
-            return ((SQLDecimal) dvd).getPrecision() <= org.apache.spark.sql.types.Decimal.MAX_LONG_DIGITS() ? 8 : 16;
-        }
-        else if (dvd instanceof SQLDouble) {
-            return 8;
-        }
-        else if (dvd instanceof SQLInteger) {
-            return 4;
-        }
-        else if (dvd instanceof SQLLongint) {
-            return 8;
-        }
-        else if (dvd instanceof SQLReal) {
-            return 4;
-        }
-        else if (dvd instanceof SQLRef) {
-            return 8;
-        }
-        else if (dvd instanceof SQLRowId) {
-            return 8;
-        }
-        else if (dvd instanceof SQLSmallint) {
-            return 2;
-        }
-        else if (dvd instanceof SQLTime) {
-            return 8;
-        }
-        else if (dvd instanceof SQLTimestamp) {
-            return 8;
-        }
-        else if (dvd instanceof SQLTinyint) {
-            return 1;
-        }
-        else if (dvd instanceof UserType) {
-            return 8;
-        }
-        else if (dvd instanceof XML) {
-            return 8;
-        }
-
-        throw new RuntimeException("Unknown UnsafeArrayElementSize!");
-	}
 	/**
 	 *
 	 * Read into a Project Tungsten format.  This calls the Reference's
