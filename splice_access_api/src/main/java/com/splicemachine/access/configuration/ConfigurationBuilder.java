@@ -17,7 +17,6 @@ package com.splicemachine.access.configuration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -79,6 +78,7 @@ public class ConfigurationBuilder {
     public String rangerServiceName;
     public int sentryPollingInterval;
     public String metadataRestrictionEnabled;
+    public String rangerUserSyncCaseConversion;
 
     // StatsConfiguration
     public double fallbackNullFraction;
