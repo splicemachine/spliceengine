@@ -228,6 +228,11 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String MAX_CHECK_TABLE_ERRORS="splice.max.checktable.error";
     private static final int DEFAULT_MAX_CHECK_TABLE_ERRORS = 1000;
 
+    public static final String RANGER_USERSYNC_CASECONVERSION = "splice.ranger.usersync.username.caseconversion";
+    public static final String RANGER_USERSYNC_CASECONVERSION_NONE = "NONE";
+    public static final String RANGER_USERSYNC_CASECONVERSION_LOWER = "LOWER";
+    public static final String RANGER_USERSYNC_CASECONVERSION_UPPER = "UPPER";
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
@@ -258,6 +263,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.broadcastRegionMbThreshold = configurationSource.getLong(BROADCAST_REGION_MB_THRESHOLD, DEFAULT_BROADCAST_REGION_MB_THRESHOLD);
         builder.broadcastRegionRowThreshold = configurationSource.getLong(BROADCAST_REGION_ROW_THRESHOLD, DEFAULT_BROADCAST_REGION_ROW_THRESHOLD);
         builder.broadcastDatasetCostThreshold = configurationSource.getLong(BROADCAST_DATASET_COST_THRESHOLD, DEFAULT_BROADCAST_DATASET_COST_THRESHOLD);
+        builder.rangerUserSyncCaseConversion = configurationSource.getString(RANGER_USERSYNC_CASECONVERSION, RANGER_USERSYNC_CASECONVERSION_NONE);
 
         //always disable debug statements by default
         builder.debugLogStatementContext = configurationSource.getBoolean(DEBUG_LOG_STATEMENT_CONTEXT, DEFAULT_LOG_STATEMENT_CONTEXT);
