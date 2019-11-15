@@ -31,129 +31,132 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLArray;
+import com.splicemachine.db.iapi.types.SQLSmallint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
 
 /**
  *
- * Test Class for SQLDouble
+ * Test Class for SQLSmallint
  *
  */
-public class SQLDoubleTest extends SQLDataValueDescriptorTest {
+public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
 
         @Test
         public void addTwo() throws StandardException {
-            SQLDouble double1 = new SQLDouble(100.0d);
-            SQLDouble double2 = new SQLDouble(100.0d);
-            Assert.assertEquals("Integer Add Fails", 200.0d, double1.plus(double1, double2, null).getDouble(),0.0d);
+            SQLSmallint integer1 = new SQLSmallint(100);
+            SQLSmallint integer2 = new SQLSmallint(100);
+            Assert.assertEquals("Integer Add Fails", 200, integer1.plus(integer1, integer2, null).getInt(),0);
         }
     
         @Test
         public void subtractTwo() throws StandardException {
-            SQLDouble double1 = new SQLDouble(200.0d);
-            SQLDouble double2 = new SQLDouble(100.0d);
-            Assert.assertEquals("Integer subtract Fails",100.0d,double1.minus(double1, double2, null).getDouble(),0.0d);
+                SQLSmallint integer1 = new SQLSmallint(200);
+                SQLSmallint integer2 = new SQLSmallint(100);
+            Assert.assertEquals("Integer subtract Fails",100,integer1.minus(integer1, integer2, null).getInt(),0);
         }
-        @Ignore
         @Test(expected = StandardException.class)
         public void testPositiveOverFlow() throws StandardException {
-            SQLDouble double1 = new SQLDouble(Double.MAX_VALUE);
-            SQLDouble double2 = new SQLDouble(1.0d);
-            double1.plus(double1,double2,null).getDouble();
+            SQLSmallint integer1 = new SQLSmallint(Integer.MAX_VALUE);
+            SQLSmallint integer2 = new SQLSmallint(1);
+            integer1.plus(integer1,integer2,null);
         }
 
-        @Ignore
         @Test(expected = StandardException.class)
         public void testNegativeOverFlow() throws StandardException {
-                SQLDouble double1 = new SQLDouble(Double.MIN_VALUE);
-                SQLDouble double2 = new SQLDouble(1.0d);
-                double1.minus(double1, double2, null).getDouble();
+                SQLSmallint integer1 = new SQLSmallint(Integer.MIN_VALUE);
+                SQLSmallint integer2 = new SQLSmallint(1);
+                integer1.minus(integer1, integer2, null);
         }
     
         @Test
         public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLDouble value = new SQLDouble(100.0d);
-                SQLDouble valueA = new SQLDouble();
-                writer.reset();
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLSmallint value = new SQLSmallint(100);
+                SQLSmallint valueA = new SQLSmallint();
                 value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",100.0d,writer.getRow().getDouble(0),0.0d);
-                valueA.read(writer.getRow(),0);
-                Assert.assertEquals("SerdeIncorrect",100,valueA.getDouble(),0.0d);
+                Assert.assertEquals("SerdeIncorrect",100,row.getInt(0),0);
+                valueA.read(row,0);
+                Assert.assertEquals("SerdeIncorrect",100,valueA.getInt(),0);
             }
 
         @Test
         public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLDouble value = new SQLDouble();
-                SQLDouble valueA = new SQLDouble();
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
+                SQLSmallint value = new SQLSmallint();
+                SQLSmallint valueA = new SQLSmallint();
                 value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
-                value.read(writer.getRow(), 0);
+                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
+                value.read(row, 0);
                 Assert.assertTrue("SerdeIncorrect", valueA.isNull());
             }
 
         @Test
         public void testColumnStatistics() throws Exception {
-                SQLDouble value1 = new SQLDouble();
+                SQLSmallint value1 = new SQLSmallint();
                 ItemStatistics stats = new ColumnStatisticsImpl(value1);
-                SQLDouble sqlDouble;
+                SQLSmallint SQLSmallint;
                 for (int i = 1; i<= 10000; i++) {
                         if (i>=5000 && i < 6000)
-                                sqlDouble = new SQLDouble();
+                                SQLSmallint = new SQLSmallint();
                         else if (i>=1000 && i< 2000)
-                                sqlDouble = new SQLDouble(1000+i%20);
+                                SQLSmallint = new SQLSmallint(1000+i%20);
                         else
-                                sqlDouble = new SQLDouble(i);
-                        stats.update(sqlDouble);
+                                SQLSmallint = new SQLSmallint(i);
+                        stats.update(SQLSmallint);
                 }
                 stats = serde(stats);
                 Assert.assertEquals(1000,stats.nullCount());
                 Assert.assertEquals(9000,stats.notNullCount());
                 Assert.assertEquals(10000,stats.totalCount());
-                Assert.assertEquals(new SQLDouble(10000),stats.maxValue());
-                Assert.assertEquals(new SQLDouble(1),stats.minValue());
+                Assert.assertEquals(new SQLSmallint(10000),stats.maxValue());
+                Assert.assertEquals(new SQLSmallint(1),stats.minValue());
                 Assert.assertEquals(1000,stats.selectivity(null));
-                Assert.assertEquals(1000,stats.selectivity(new SQLDouble()));
-                Assert.assertEquals(55,stats.selectivity(new SQLDouble(1010)));
-                Assert.assertEquals(1,stats.selectivity(new SQLDouble(9000)));
-                Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLDouble(1000),new SQLDouble(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
-                Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLDouble(),new SQLDouble(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
-                Assert.assertEquals(4008.0d,(double) stats.rangeSelectivity(new SQLDouble(5000),new SQLDouble(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(1000,stats.selectivity(new SQLSmallint()));
+                Assert.assertEquals(55,stats.selectivity(new SQLSmallint(1010)));
+                Assert.assertEquals(1,stats.selectivity(new SQLSmallint(9000)));
+                Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLSmallint(1000),new SQLSmallint(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLSmallint(),new SQLSmallint(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
+                Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLSmallint(5000),new SQLSmallint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
         }
 
         @Test
         public void testArray() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
+                UnsafeRow row = new UnsafeRow(1);
+                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
                 SQLArray value = new SQLArray();
-                value.setType(new SQLDouble());
-                value.setValue(new DataValueDescriptor[] {new SQLDouble(23),new SQLDouble(48), new SQLDouble(10), new SQLDouble()});
+                value.setType(new SQLSmallint());
+                value.setValue(new DataValueDescriptor[] {new SQLSmallint(23),new SQLSmallint(48), new SQLSmallint(10), new SQLSmallint()});
                 SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLDouble());
+                valueA.setType(new SQLSmallint());
                 writer.reset();
                 value.write(writer,0);
-                valueA.read(writer.getRow(),0);
+                valueA.read(row,0);
                 Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
 
         }
 
-
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {
                 ValueRow execRow = new ValueRow(1);
-                execRow.setRowArray(new DataValueDescriptor[]{new SQLDouble(1234)});
+                execRow.setRowArray(new DataValueDescriptor[]{new SQLSmallint(1)});
                 Row row = execRow.getSparkRow();
-                Assert.assertEquals(1234,row.getDouble(0),0.0);
+                Assert.assertEquals(1,row.getShort(0));
                 ValueRow execRow2 = new ValueRow(1);
-                execRow2.setRowArray(new DataValueDescriptor[]{new SQLDouble()});
+                execRow2.setRowArray(new DataValueDescriptor[]{new SQLSmallint()});
                 execRow2.getColumn(1).setSparkObject(row.get(0));
                 Assert.assertEquals("ExecRow Mismatch",execRow,execRow2);
         }
@@ -161,25 +164,25 @@ public class SQLDoubleTest extends SQLDataValueDescriptorTest {
         @Test
         public void testSelectivityWithParameter() throws Exception {
                 /* let only the first 3 rows take different values, all remaining rows use a default value */
-                SQLDouble value1 = new SQLDouble();
+                SQLSmallint value1 = new SQLSmallint();
                 ItemStatistics stats = new ColumnStatisticsImpl(value1);
-                SQLDouble sqlDouble;
-                sqlDouble = new SQLDouble(1.0d);
-                stats.update(sqlDouble);
-                sqlDouble = new SQLDouble(2.0d);
-                stats.update(sqlDouble);
-                sqlDouble = new SQLDouble(3.0d);
-                stats.update(sqlDouble);
+                SQLSmallint sqlSmallint;
+                sqlSmallint = new SQLSmallint(1);
+                stats.update(sqlSmallint);
+                sqlSmallint = new SQLSmallint(2);
+                stats.update(sqlSmallint);
+                sqlSmallint = new SQLSmallint(3);
+                stats.update(sqlSmallint);
                 for (int i = 3; i < 81920; i++) {
-                        sqlDouble = new SQLDouble(-1.0d);
-                        stats.update(sqlDouble);
+                        sqlSmallint = new SQLSmallint(-1);
+                        stats.update(sqlSmallint);
                 }
                 stats = serde(stats);
 
                 /* selectivityExcludingValueIfSkewed() is the function used to compute the electivity of equality
                    predicate with parameterized value
                  */
-                double range = stats.selectivityExcludingValueIfSkewed(sqlDouble);
+                double range = stats.selectivityExcludingValueIfSkewed(sqlSmallint);
                 Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
         }
 }
