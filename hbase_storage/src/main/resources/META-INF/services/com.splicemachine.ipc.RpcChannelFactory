@@ -12,4 +12,4 @@
 # If not, see <http://www.gnu.org/licenses/>.
 #
 
-com.splicemachine.pipeline.client.HBaseRpcChannelFactory
+com.splicemachine.ipc.HBaseRpcChannelFactory

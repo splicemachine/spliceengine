@@ -20,6 +20,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import com.splicemachine.ipc.SpliceRpcController;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Arrays;
@@ -109,7 +110,8 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     @Override
     public TxnMessage.Txn getTxn(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
-        ServerRpcController controller=new ServerRpcController();
+        SpliceRpcController controller = new SpliceRpcController();
+        controller.setPriority(HConstants.HIGH_QOS);
         BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
         service.getTransaction(controller,request,done);
         dealWithError(controller);
@@ -138,7 +140,8 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     /*private helper methods*/
     private void dealWithError(ServerRpcController controller) throws IOException{
         if(!controller.failed()) return; //nothing to worry about
-        SpliceLogUtils.error(LOG,controller.getFailedOn());
-        throw controller.getFailedOn();
+        IOException ex = controller.getFailedOn();
+        SpliceLogUtils.error(LOG, ex);
+        throw ex;
     }
 }

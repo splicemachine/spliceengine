@@ -33,21 +33,23 @@ import java.io.IOException;
 public class HBaseTxnNetworkLayerFactory implements TxnNetworkLayerFactory{
     private TableName txnTable;
     private Connection connection;
+    private SConfiguration config;
 
     public HBaseTxnNetworkLayerFactory(){ }
 
     @Override
     public void configure(SConfiguration config) throws IOException{
-        this.connection=HBaseConnectionFactory.getInstance(config).getConnection();
+        this.config = config;
+        this.connection = HBaseConnectionFactory.getInstance(config).getConnection();
         String namespace = config.getNamespace();
         String txnTable = HConfiguration.TRANSACTION_TABLE;
-        this.txnTable= TableName.valueOf(namespace,txnTable);
+        this.txnTable = TableName.valueOf(namespace,txnTable);
 
     }
 
     @Override
     public TxnNetworkLayer accessTxnNetwork() throws IOException{
-        Table table=connection.getTable(txnTable);
-        return new HBaseTxnNetworkLayer(table);
+        Table table = connection.getTable(txnTable);
+        return new HBaseTxnNetworkLayer(config, connection, table);
     }
 }

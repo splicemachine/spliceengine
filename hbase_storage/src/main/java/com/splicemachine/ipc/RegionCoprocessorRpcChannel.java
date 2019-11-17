@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.pipeline.client;
+package com.splicemachine.ipc;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
@@ -56,7 +56,11 @@ class RegionCoprocessorRpcChannel extends SyncCoprocessorRpcChannel {
         if(this.row == null) {
             throw new NullPointerException("Can\'t be null!");
         } else {
-            ClientServiceCallable callable = new ClientServiceCallable(this.conn, this.table, this.row, this.conn.getRpcControllerFactory().newController(), -1) {
+            int priority = -1;
+            if (controller instanceof SpliceRpcController) {
+                priority = ((SpliceRpcController)controller).getPriority();
+            }
+            ClientServiceCallable callable = new ClientServiceCallable(this.conn, this.table, this.row, this.conn.getRpcControllerFactory().newController(), priority) {
                 protected ClientProtos.CoprocessorServiceResponse rpcCall() throws Exception {
                     byte[] regionName = this.getLocation().getRegionInfo().getRegionName();
                     ClientProtos.CoprocessorServiceRequest csr = CoprocessorRpcUtils.getCoprocessorServiceRequest(method, request, RegionCoprocessorRpcChannel.this.row, regionName);
