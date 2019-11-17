@@ -106,6 +106,14 @@ public class HBaseRegionLoads implements PartitionLoadWatcher{
             SConfiguration configuration=SIDriver.driver().getConfiguration();
             long updateInterval = configuration.getRegionLoadUpdateInterval();
             long initialDelay = new Random().nextInt((int) updateInterval); // avoid refreshes from all RSs at once
+
+            // initialize an empty cache
+            cache.set(new HashMap<>());
+
+            // schedule first update right away
+            updateService.execute(updater);
+
+            // schedule remaining updates staggered
             updateService.scheduleWithFixedDelay(updater,initialDelay,updateInterval,TimeUnit.SECONDS);
         }
     }
