@@ -375,13 +375,18 @@ public class RowResultSetNode extends FromTable {
 
 	public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException {
 
+		SubqueryList subqueryList =
+		  (SubqueryList) getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
+		PredicateList predicateList = (PredicateList) getNodeFactory().getNode( C_NodeTypes.PREDICATE_LIST, getContextManager());
+                FromList localFromList = fromList == null ?
+		    (FromList) getNodeFactory().getNode( C_NodeTypes.FROM_LIST,
+							 getNodeFactory().doJoinOrderOptimization(),
+							 getContextManager()) : fromList;
+
+		resultColumns.preprocess(numTables, localFromList, subqueryList, predicateList);
+
 		if (!subquerys.isEmpty()) {
-			subquerys.preprocess(numTables,
-					(FromList) getNodeFactory().getNode( C_NodeTypes.FROM_LIST,
-							getNodeFactory().doJoinOrderOptimization(),
-							getContextManager()),
-					(SubqueryList) getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager()),
-					(PredicateList) getNodeFactory().getNode( C_NodeTypes.PREDICATE_LIST, getContextManager()));
+			subquerys.preprocess(numTables, localFromList, subqueryList, predicateList);
 		}
 
 		/* Allocate a dummy referenced table map */ 
@@ -877,7 +882,17 @@ public class RowResultSetNode extends FromTable {
 	}
 
 
+    @Override
+    public void assignResultSetNumber() throws StandardException{
+        super.assignResultSetNumber();
 
+	/* Set the point of attachment in all subqueries attached
+	 * to this node.
+	 */
+        if(subquerys!=null && !subquerys.isEmpty()){
+            subquerys.setPointOfAttachment(resultSetNumber);
+        }
+    }
 
     @Override
     public String printExplainInformation(String attrDelim, int order) throws StandardException {

@@ -649,6 +649,12 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 			case C_NodeTypes.DIGITS_OPERATOR_NODE:
 				return C_NodeNames.UNARY_OPERATOR_NODE_NAME;
 
+			case C_NodeTypes.SIGNAL_NODE:
+				return C_NodeNames.SIGNAL_NAME;
+
+			case C_NodeTypes.SET_NODE:
+				return C_NodeNames.SET_NAME;
+
 			// WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
 		  // THEM TO tools/jar/DBMSnodes.properties
 

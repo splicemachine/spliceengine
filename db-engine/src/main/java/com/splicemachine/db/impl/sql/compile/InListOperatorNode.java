@@ -656,7 +656,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 
 	// It is expected that a DVD to move into the array has been pushed to the stack
 	// before this method is called.
-	protected void setDVDItemInArray(MethodBuilder mb, LocalField arrayField, int index,
+	public static void setDVDItemInArray(MethodBuilder mb, LocalField arrayField, int index,
 								     int constIdx, int numValsInSet) throws StandardException {
 		if (mb != null) {
 			if (numValsInSet > 1) {

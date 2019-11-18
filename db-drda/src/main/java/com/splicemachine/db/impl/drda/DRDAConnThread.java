@@ -6502,6 +6502,25 @@ class DRDAConnThread extends Thread {
 		do {
 			if ( se instanceof EmbedSQLException)
 			{
+				StringBuilder sb = new StringBuilder();
+				Throwable t = se.getCause();
+				Throwable last = t;
+				while (t != null && t != t.getCause()) {
+					last = t;
+					t = t.getCause();
+				}
+				if (last instanceof StandardException) {
+					StandardException e = (StandardException) last;
+					if (e.isSignal()) {
+						sb.append(e.getLocalizedMessage());
+						// Can't have a zero-length message.
+						if (sb.toString().length() == 0)
+							sb.append(" ");
+						sqlerrmc += sb.toString();
+						se = null;
+						continue;
+					}
+				}
 				String messageId = ((EmbedSQLException)se).getMessageId();
 				// arguments are variable part of a message
 				Object[] args = ((EmbedSQLException)se).getArguments();

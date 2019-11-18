@@ -108,7 +108,6 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
 
     protected void createInt_Proc() throws Exception {
         Connection c = conn;
-        //Connection c = classWatcher.createConnection();
         try(Statement s = c.createStatement()) {
             s.execute("create function f(x varchar(50)) returns boolean "
             + "language java parameter style java external name "
@@ -118,15 +117,14 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
             + "parameter style java external name "
             + "'org.splicetest.sqlj.SqlJTestProcs.intProcedure' no sql");
             // If running tests in IntelliJ, use one of the commented-out versions of STORED_PROCS_JAR_FILE.
-            String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
-            //String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/../platform_it/target/sql-it/sql-it.jar";
+            //String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
+            String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/../platform_it/target/sql-it/sql-it.jar";
             //String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/../mem_sql/target/sql-it/sql-it.jar";
             String JAR_FILE_SQL_NAME = CLASS_NAME + "." + "SQLJ_IT_PROCS_JAR";
             s.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
             s.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
             c.commit();
         }
-        //c.close();
     }
 
     /* Each test starts with same table state */
@@ -1381,35 +1379,197 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
             testQuery(query, expected, s);
         }
     }
-    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    //
-    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    private void assertRecordCount(Statement s,String tag,long expectedCount) throws Exception {
-        long actualCount = StatementUtils.onlyLong(s, "select count(*) from RECORD where txt='" + tag + "'");
-        assertEquals("Didn't find expected number of rows:", expectedCount, actualCount);
-    }
+    @Test
+    public void testSignal() throws Exception {
+        try (Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b char(11))");
+            s.execute("create table t2 (a int, b int)");
+            s.execute("insert into t1 values(1,1)");
+            s.execute("insert into t2 values(1,1)");
+            s.execute("INSERT INTO t1 values(2,'hello')");
+
+            Savepoint sp = conn.setSavepoint();
+
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   AFTER UPDATE OF a,b\n" +
+            "   ON t1\n" +
+            "   REFERENCING OLD AS OLD NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "   WHEN (OLD.a = NEW.a)\n" +
+            "BEGIN ATOMIC\n" +
+            "SIGNAL SQLSTATE '87101' SET MESSAGE_TEXT = NEW.b CONCAT NEW.b;\n" +
+            "END");
 
 
-    private void assertQueryFails(Statement s, String query, String expectedError) {
-        try {
-            s.executeUpdate(query);
-            fail("expected to fail with message = " + expectedError);
-        } catch (Exception e) {
-            assertTrue(e.getMessage().contains(expectedError));
+            List<String> expectedErrors =
+            Arrays.asList("Application raised error or warning with diagnostic text: \"hello      hello      \"");
+
+            testFail("UPDATE t1 SET a=2", expectedErrors, s);
+
+            String query = "select * from t1";
+            String expected = "A |  B   |\n" +
+            "-----------\n" +
+            " 1 |  1   |\n" +
+            " 2 |hello |";
+            testQuery(query, expected, s);
+
+            conn.rollback(sp);
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   BEFORE UPDATE OF a,b\n" +
+            "   ON t1\n" +
+            "   REFERENCING OLD AS OLD NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "   WHEN (OLD.a = NEW.a)\n" +
+            "BEGIN ATOMIC\n" +
+            "SIGNAL SQLSTATE '87101' (OLD.a);\n" +
+            "END");
+
+            expectedErrors =
+            Arrays.asList("Application raised error or warning with diagnostic text: \"2\"");
+
+            testFail("UPDATE t1 SET a=2", expectedErrors, s);
+
+            conn.rollback(sp);
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   BEFORE INSERT \n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "   WHEN (NEW.a > 0)\n" +
+            "BEGIN ATOMIC\n" +
+            "SIGNAL SQLSTATE '87101' ('You shall not pass!');\n" +
+            "END");
+
+            expectedErrors =
+            Arrays.asList("Application raised error or warning with diagnostic text: \"You shall not pass!\"");
+
+            testFail("insert into t1 values (1,1)", expectedErrors, s);
+
+            conn.rollback(sp);
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   AFTER UPDATE OF a,b\n" +
+            "   ON t1\n" +
+            "   REFERENCING OLD AS OLD NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "   WHEN (EXISTS (SELECT 1 from t2 where t2.a = OLD.a and t2.b = OLD.b))\n" +
+            "BEGIN ATOMIC\n" +
+            "SIGNAL SQLSTATE '47584746' ;\n" +
+            "END");
+
+            expectedErrors =
+            Arrays.asList("Application raised error or warning with diagnostic text: \"\"");
+            testFail("UPDATE t1 SET a=2", expectedErrors, s);
+
+            conn.rollback(sp);
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   AFTER INSERT \n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "   WHEN (EXISTS (SELECT 1 from t2 where t2.a = NEW.a and t2.b = NEW.b))\n" +
+            "BEGIN ATOMIC\n" +
+            "SIGNAL SQLSTATE '4' ;\n" +
+            "END");
+
+            testFail("    4", "INSERT INTO t1 values (1,1)", s);
+
+            conn.rollback(sp);
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   AFTER INSERT \n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "   WHEN (EXISTS (SELECT 1 from t2 where t2.a = NEW.a and t2.b = NEW.b))\n" +
+            "BEGIN ATOMIC\n" +
+            "SIGNAL SQLSTATE '492378654823' ;\n" +
+            "END");
+
+            testFail("49237", "INSERT INTO t1 values (1,1)", s);
+
+            conn.rollback(sp);
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   AFTER INSERT \n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "   WHEN (EXISTS (SELECT 1 from t2 where t2.a = NEW.a and t2.b = NEW.b))\n" +
+            "BEGIN ATOMIC\n" +
+            "SIGNAL SQLSTATE 'ABC' ;\n" +
+            "END");
+
+            testFail("  ABC", "INSERT INTO t1 values (1,1)", s);
         }
     }
 
-    private void assertNonZero(long... values) {
-        for (long i : values) {
-            assertTrue(i > 0);
+    @Test
+    public void testSet() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b varchar(100))");
+            s.execute("create table t2 (a int, b int)");
+            s.execute("insert into t1 values(1,1)");
+            s.execute("insert into t2 values(1,1)");
+            s.execute("INSERT INTO t1 values(1,'hello')");
+
+            Savepoint sp = conn.setSavepoint();
+
+            List<String> expectedErrors =
+            Arrays.asList("'SET' statements are not allowed in 'AFTER' triggers.");
+
+            testFail("CREATE TRIGGER mytrig\n" +
+            "   AFTER UPDATE OF a,b\n" +
+            "   ON t1\n" +
+            "   REFERENCING OLD AS O NEW AS N\n" +
+            "   FOR EACH ROW\n" +
+            " WHEN (O.b = 'hello')" +
+            "BEGIN ATOMIC\n" +
+            "SET N.b = 'goodbye' ;" +
+            "END", expectedErrors, s);
+
+            expectedErrors =
+            Arrays.asList("SET triggers may only reference NEW transition variables/tables.");
+
+            testFail("CREATE TRIGGER mytrig\n" +
+            "   AFTER UPDATE OF a,b\n" +
+            "   ON t1\n" +
+            "   REFERENCING OLD AS O NEW AS N\n" +
+            "   FOR EACH ROW\n" +
+            " WHEN (O.b = 'hello')" +
+            "BEGIN ATOMIC\n" +
+            "SET O.b = 'goodbye' ;" +
+            "END", expectedErrors, s);
+
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   BEFORE UPDATE OF a,b\n" +
+            "   ON t1\n" +
+            "   REFERENCING OLD AS O NEW AS N\n" +
+            "   FOR EACH ROW\n" +
+            " WHEN (O.b LIKE 'hello%')" +
+            "BEGIN ATOMIC\n" +
+            "SET N.b = 'goodbye' ;" +
+            "END");
+
+            s.execute("UPDATE t1 SET a=2");
+
+            String query = "select * from t1";
+            String expected = "A |   B    |\n" +
+            "-------------\n" +
+            " 2 |   1    |\n" +
+            " 2 |goodbye |";
+            testQuery(query, expected, s);
+
+            expectedErrors =
+            Arrays.asList("DELETE triggers may only reference OLD transition variables/tables.");
+
+            testFail("CREATE TRIGGER mytrig\n" +
+            "   AFTER DELETE\n" +
+            "   ON t1\n" +
+            "   REFERENCING OLD AS O NEW AS N\n" +
+            "   FOR EACH ROW\n" +
+            " WHEN (O.b = 'hello')" +
+            "BEGIN ATOMIC\n" +
+            "SET N.b = 'goodbye' ;" +
+            "END", expectedErrors, s);
         }
     }
-
-    private void createTrigger(TriggerBuilder tb) throws Exception {
-        try(Statement s = conn.createStatement()){
-            s.executeUpdate(tb.build());
-        }
-    }
-
 }

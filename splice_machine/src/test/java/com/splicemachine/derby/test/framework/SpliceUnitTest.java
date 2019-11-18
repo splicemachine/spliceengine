@@ -407,6 +407,21 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void testFail(String sqlText,
+                            List<String> expectedErrors,
+                            Statement s) throws Exception {
+        try {
+            s.execute(sqlText);
+            String failMsg = format("Query not expected to succeed.\n%s", sqlText);
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = expectedErrors.contains(e.getMessage());
+            if (!found)
+                fail(format("\n + Unexpected error message: %s + \n", e.getMessage()));
+        }
+    }
+
     protected void testFail(String expectedErrorCode,
                             String sqlText,
                             Statement s) throws AssertionError {

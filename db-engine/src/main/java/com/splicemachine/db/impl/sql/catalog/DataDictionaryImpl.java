@@ -31,7 +31,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.impl.sql.compile.*;
 import org.spark_project.guava.base.Optional;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
@@ -63,9 +64,6 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.LOBStoredProcedure;
 import com.splicemachine.db.impl.services.locks.Timeout;
-import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
-import com.splicemachine.db.impl.sql.compile.ColumnReference;
-import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -3997,7 +3995,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             newText.append(genColumnReferenceSQL(triggerTableDescriptor, colName,
                            tableName.getTableName(),
                            tableName.getTableName().equals(oldReferencingName),
-                           colPositionInRuntimeResultSet));
+                           colPositionInRuntimeResultSet,
+                           actionStmt instanceof SetNode));
 
             start = ref.getEndOffset() + 1 - actionOffset;
 
@@ -4141,7 +4140,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                          String colName,
                                          String tabName,
                                          boolean isOldTable,
-                                         int colPositionInRuntimeResultSet) throws StandardException{
+                                         int colPositionInRuntimeResultSet,
+                                         boolean isSetStatement) throws StandardException{
         ColumnDescriptor colDesc;
         if((colDesc=td.getColumnDescriptor(colName))==null){
             throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND,tabName+"."+colName);
@@ -4175,20 +4175,28 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(!typeId.isXMLTypeId()){
 
             @SuppressWarnings("StringBufferReplaceableByString") StringBuilder methodCall=new StringBuilder();
-            methodCall.append("CAST (com.splicemachine.db.iapi.db.Factory::getTriggerExecutionContext().");
-            methodCall.append(isOldTable?"getOldRow()":"getNewRow()");
-            methodCall.append(".cloneColumn(");
-            methodCall.append(colPositionInRuntimeResultSet);
-            methodCall.append(").getObject() AS ");
+            if (isSetStatement) {
+                methodCall.append("com.splicemachine.db.iapi.db.Factory::getTriggerExecutionContext().");
+                methodCall.append(isOldTable?"getOldRow()":"getNewRow()");
+                methodCall.append(".getColumn(");
+                methodCall.append(colPositionInRuntimeResultSet);
+                methodCall.append(") ");
+            }
+            else {
+                methodCall.append("CAST (com.splicemachine.db.iapi.db.Factory::getTriggerExecutionContext().");
+                methodCall.append(isOldTable ? "getOldRow()" : "getNewRow()");
+                methodCall.append(".cloneColumn(");
+                methodCall.append(colPositionInRuntimeResultSet);
+                methodCall.append(").getObject() AS ");
+                /*
+                 ** getSQLString() returns <typeName>
+                 ** for user types, so call getSQLTypeName in that
+                 ** case.
+                 */
+                methodCall.append((typeId.userType() ? typeId.getSQLTypeName() : dts.getSQLstring()));
 
-	        /*
-	        ** getSQLString() returns <typeName> 
-	        ** for user types, so call getSQLTypeName in that
-	        ** case.
-	        */
-            methodCall.append((typeId.userType()?typeId.getSQLTypeName():dts.getSQLstring()));
-
-            methodCall.append(") ");
+                methodCall.append(") ");
+            }
 
             return methodCall.toString();
         }else{

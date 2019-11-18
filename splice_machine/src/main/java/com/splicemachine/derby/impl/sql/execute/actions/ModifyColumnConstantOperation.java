@@ -1233,7 +1233,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 // The WHEN clause is not a full SQL statement, just a search
                 // condition, so we need to turn it into a statement in order
                 // to create an SPS.
-                newText = "VALUES " + newText;
+                newText = "VALUES ( " + newText + " )";
             }
 
             sps.setText(newText);

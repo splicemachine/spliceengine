@@ -323,7 +323,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         if (whenText != null) {
             // The WHEN clause is just a search condition and not a full
             // SQL statement. Turn in into a VALUES statement.
-            String whenValuesStmt = "VALUES " + whenText;
+            String whenValuesStmt = "VALUES ( " + whenText + " )";
             whenspsd = createSPS(lcc, ddg, dd, tc, tmpTriggerId, triggerSd,
                     whenSPSId, spsCompSchemaId, whenValuesStmt, true, triggerTable);
         }
