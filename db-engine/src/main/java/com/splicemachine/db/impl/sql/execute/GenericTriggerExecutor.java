@@ -212,7 +212,7 @@ public abstract class GenericTriggerExecutor {
                 ** statement context(SC) and the trigger execution context
                 ** (TEC) in language connection context(LCC) properly (e.g.:  
                 ** "Maximum depth triggers exceeded" exception); otherwise, 
-             boolean   ** this will leave old TECs lingering and may result in
+                ** this will leave old TECs lingering and may result in
                 ** subsequent statements within the same connection to throw 
                 ** the same exception again prematurely.  
                 **    

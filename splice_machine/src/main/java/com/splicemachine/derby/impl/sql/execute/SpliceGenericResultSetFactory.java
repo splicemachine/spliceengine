@@ -1876,6 +1876,36 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
+    public NoPutResultSet getSignalResultSet(Activation activation,
+                                             String sqlState,
+                                             GeneratedMethod errorTextGenerator) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getSignalResultSet");
+        try {
+            SignalOperation top =
+                new SignalOperation(activation, sqlState, errorTextGenerator);
+            top.markAsTopResultSet();
+            return top;
+        } catch(Exception e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public NoPutResultSet getSetResultSet(Activation activation,
+                                          String getColumnDVDsMethodNames,
+                                          GeneratedMethod getNewDVDsMethod) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getSignalResultSet");
+        try {
+            SetOperation top =
+                new SetOperation(activation, getColumnDVDsMethodNames, getNewDVDsMethod);
+            top.markAsTopResultSet();
+            return top;
+        } catch(Exception e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
     public ResultSet getInsertVTIResultSet(NoPutResultSet source, NoPutResultSet vtiRS, double optimizerEstimatedRowCount, double optimizerEstimatedCost) throws StandardException {
         throw new RuntimeException("Not Implemented");
     }
