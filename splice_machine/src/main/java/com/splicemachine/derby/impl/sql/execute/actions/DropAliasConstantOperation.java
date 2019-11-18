@@ -23,14 +23,14 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.TableKey;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.utils.SpliceLogUtils;
 
 import javax.annotation.Nonnull;
 
@@ -152,6 +152,11 @@ public class DropAliasConstantOperation extends DDLConstantOperation {
         }
 
         dm.invalidateFor(ad, invalidationType, lcc);
+        if (ad.getAliasType() == AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR) {
+            // invalidate nameTdCache
+            TableKey key = new TableKey(ad.getSchemaUUID(), ad.getName());
+            lcc.getDataDictionary().getDataDictionaryCache().nameTdCacheRemove(key);
+        }
     }
 
     public String getScopeName() {
