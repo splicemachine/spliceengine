@@ -74,7 +74,7 @@ public class SpliceCatalogUpgradeScripts{
         // Two system procedures are moved, so we need to run base script to update all system procedures
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1928), new UpgradeScriptBase(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1933), new UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1937), new UpgradeScriptForTriggerWhenClause(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1938), new UpgradeScriptForTriggerWhenClause(sdd,tc));
     }
 
     public void run() throws StandardException{
