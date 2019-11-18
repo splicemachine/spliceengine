@@ -778,8 +778,13 @@ public class ResultColumn extends ValueNode
 			fromList.isJoinColumnForRightOuterJoin(this);
 		}
 
-		setExpression( expression.bindExpression(fromList, subqueryList,
-				aggregateVector) );
+		ValueNode newExpression =
+		    expression.bindExpression(fromList, subqueryList, aggregateVector);
+
+		if (newExpression instanceof BinaryLogicalOperatorNode ||
+		    newExpression instanceof UnaryLogicalOperatorNode)
+		    newExpression = SelectNode.normExpressions(newExpression);
+		setExpression( newExpression );
 
 		if (expression instanceof ColumnReference)
 		{
@@ -1716,6 +1721,8 @@ public class ResultColumn extends ValueNode
 		if (expression != null) {
 			setExpression( (ValueNode)expression.accept(v, this));
 		}
+		if (v instanceof OffsetOrderVisitor && reference != null)
+			reference = (ColumnReference)reference.accept(v, this);
 	}
 
 	/**

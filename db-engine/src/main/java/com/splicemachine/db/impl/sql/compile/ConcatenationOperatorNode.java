@@ -53,6 +53,8 @@ import java.sql.Types;
 
 import java.util.List;
 
+import static com.splicemachine.db.iapi.reference.Limits.DB2_VARCHAR_MAXWIDTH;
+
 /**
  * This node represents a concatenation comparison operator
  * 
@@ -241,9 +243,10 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 		TypeCompiler tc = leftOperand.getTypeCompiler();
 		if (!(leftOperand.getTypeId().isStringTypeId() || leftOperand
 				.getTypeId().isBitTypeId())) {
+			int leftWidth = (tc instanceof UserDefinedTypeCompiler) ? DB2_VARCHAR_MAXWIDTH :
+			                 tc.getCastToCharWidth(leftOperand.getTypeServices());
 			DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-					Types.VARCHAR, true, tc
-					.getCastToCharWidth(leftOperand							.getTypeServices()));	
+					Types.VARCHAR, true, leftWidth);
 
 			leftOperand = (ValueNode) getNodeFactory().getNode(
 					C_NodeTypes.CAST_NODE,
@@ -260,10 +263,10 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 		tc = rightOperand.getTypeCompiler();
 		if (!(rightOperand.getTypeId().isStringTypeId() || rightOperand
 				.getTypeId().isBitTypeId())) {
+			int rightWidth = (tc instanceof UserDefinedTypeCompiler) ? DB2_VARCHAR_MAXWIDTH :
+			                 tc.getCastToCharWidth(rightOperand.getTypeServices());
 			DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-					Types.VARCHAR, true, tc
-							.getCastToCharWidth(rightOperand
-									.getTypeServices()));
+					Types.VARCHAR, true, rightWidth);
 
 			rightOperand = (ValueNode) getNodeFactory().getNode(
 					C_NodeTypes.CAST_NODE,
