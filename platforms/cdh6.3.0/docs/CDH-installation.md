@@ -505,7 +505,6 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>hbase.regionserver.global.memstore.size</name><value>0.25</value></property>
    <property><name>hbase.regionserver.maxlogs</name><value>48</value></property>
    <property><name>hbase.regionserver.wal.enablecompression</name><value>true</value></property>
-   <property><name>hbase.rowlock.wait.duration</name><value>0</value></property>
    <property><name>hbase.status.multicast.port</name><value>16100</value></property>
    <property><name>hbase.wal.disruptor.batch</name><value>true</value></property>
    <property><name>hbase.wal.provider</name><value>multiwal</value></property>
