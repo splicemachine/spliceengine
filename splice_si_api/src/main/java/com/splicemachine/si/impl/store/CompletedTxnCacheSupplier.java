@@ -14,6 +14,8 @@
 
 package com.splicemachine.si.impl.store;
 
+import com.splicemachine.hash.Hash32;
+import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
@@ -33,16 +35,16 @@ import java.io.IOException;
 public class CompletedTxnCacheSupplier implements TxnSupplier{
     private TxnView[] cache;
     private final TxnSupplier delegate;
+    private Hash32 hashFunction;
 
     public CompletedTxnCacheSupplier(TxnSupplier delegate, int maxSize, int concurrencyLevel) {
         cache = new TxnView[Integer.highestOneBit(maxSize)];    // ensure power of 2
         this.delegate = delegate;
+        hashFunction = HashFunctions.utilHash();
     }
 
     private int idx(long val) {
-        int hashCode = Long.hashCode(val);
-        hashCode ^= (hashCode >>> 20) ^ (hashCode >>> 12);
-        return (hashCode ^ (hashCode >>> 7) ^ (hashCode >>> 4)) & (cache.length - 1);
+        return hashFunction.hash(val) & (cache.length - 1);
     }
 
     private int idx2(long val, int idx) {
