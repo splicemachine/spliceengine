@@ -17,6 +17,7 @@ package com.splicemachine.ipc;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.RpcController;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.ClientServiceCallable;
 import org.apache.hadoop.hbase.client.ClusterConnection;
@@ -56,7 +57,7 @@ class RegionCoprocessorRpcChannel extends SyncCoprocessorRpcChannel {
         if(this.row == null) {
             throw new NullPointerException("Can\'t be null!");
         } else {
-            int priority = -1;
+            int priority = HConstants.PRIORITY_UNSET;
             if (controller instanceof SpliceRpcController) {
                 priority = ((SpliceRpcController)controller).getPriority();
             }

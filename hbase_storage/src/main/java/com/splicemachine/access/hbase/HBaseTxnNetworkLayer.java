@@ -14,13 +14,9 @@
 
 package com.splicemachine.access.hbase;
 
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.ipc.ChannelFactoryService;
 import com.splicemachine.ipc.RpcChannelFactory;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.SkeletonTxnNetworkLayer;
-import org.apache.hadoop.hbase.client.ClusterConnection;
-import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
@@ -36,12 +32,10 @@ import java.util.Map;
 public class HBaseTxnNetworkLayer extends SkeletonTxnNetworkLayer{
     private RpcChannelFactory channelFactory;
     private final Table table;
-    private Connection connection;
 
-    public HBaseTxnNetworkLayer(SConfiguration config, Connection connection, Table table) {
-        this.connection = connection;
+    public HBaseTxnNetworkLayer(RpcChannelFactory channelFactory, Table table) {
+        this.channelFactory = channelFactory;
         this.table = table;
-        channelFactory = ChannelFactoryService.loadChannelFactory(config);
     }
 
     @Override
