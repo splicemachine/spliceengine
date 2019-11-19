@@ -51,7 +51,7 @@ public class KafkaExportNode extends DMLStatementNode {
 
     @Override
     public String statementToString() {
-        return "BinaryExport";
+        return "KafkaExport";
     }
 
     @Override

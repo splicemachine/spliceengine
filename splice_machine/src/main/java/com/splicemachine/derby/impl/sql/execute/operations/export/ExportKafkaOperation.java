@@ -43,7 +43,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Export the results of an arbitrary SELECT query to HDFS.
+ * Export the results of an arbitrary SELECT query to Kafka.
  */
 public class ExportKafkaOperation extends SpliceBaseOperation {
 

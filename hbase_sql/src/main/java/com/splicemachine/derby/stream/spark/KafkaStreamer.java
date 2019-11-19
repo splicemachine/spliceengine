@@ -15,7 +15,6 @@
 
 package com.splicemachine.derby.stream.spark;
 
-
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.ActivationHolder;
@@ -29,6 +28,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -94,7 +94,7 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
             // open connection to partition in Kafka
             // get number of entries there
 
-            // TODO
+            // TODO failed task retry
             for (int i = 0; i < entriesInKafka; ++i) {
                 locatedRowIterator.next();
             }
@@ -107,7 +107,6 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         // TODO use kryo
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ExternalizableSerializer.class.getName());
         KafkaProducer<Integer, Externalizable> producer = new KafkaProducer<>(props);
-
         while (locatedRowIterator.hasNext()) {
             T lr = locatedRowIterator.next();
 
@@ -116,7 +115,6 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
             producer.send(record);
         }
         producer.close();
-
         // TODO Clean up
         return Arrays.asList("OK").iterator();
     }

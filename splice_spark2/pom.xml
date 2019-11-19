@@ -25,7 +25,7 @@
         <!--Skip server startup-->
         <server.skip.start>skipServerStart</server.skip.start>
         <!--Ant task to run shell scripts-->
-	<skipTests>${maven.skip.tests}</skipTests>
+	    <skipTests>${maven.skip.tests}</skipTests>
         <shell.command>/bin/bash</shell.command>
         <start.script>${project.basedir}/../platform_it/src/test/bin/start-splice-its</start.script>
         <stop.script>${project.basedir}/../platform_it/src/test/bin/stop-splice-its</stop.script>

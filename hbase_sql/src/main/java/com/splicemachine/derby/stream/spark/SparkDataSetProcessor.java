@@ -56,6 +56,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.kafka.clients.consumer.CommitFailedException;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -66,6 +71,7 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
+import java.io.Externalizable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -833,5 +839,85 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table, KeyHashDecoder tableKeyDecoder, ExecRow tableKey) {
         return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey);
+    }
+
+    @Override
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, SpliceOperation op) throws StandardException {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", "localhost" + ":" + 9092);
+        props.put("enable.auto.commit", false);
+        props.put("auto.commit.interval.ms", "1000");
+        props.put("session.timeout.ms", "30000");
+        props.put("auto.offset.reset", "latest");
+        props.put("key.deserializer", IntegerSerializer.class.getName());
+//        props.put("value.deserializer", ExternalizableDeserializer.class.getName());
+
+        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
+        consumer.subscribe(Arrays.asList(topicName));
+
+        //Assign patitions to consumer
+//        List<PartitionInfo> partitionInfos = consumer.partitionsFor("topic");
+//        Collection<TopicPartition> partitions = null;
+//        if (partitionInfos != null) {
+//            for (PartitionInfo partition : partitionInfos) {
+//                partitions.add(new TopicPartition(partition.topic(), partition.partition()));
+//            }
+//            consumer.assign(partitions);
+//        }
+
+//        Dataset<ExecRow> dataset = new Dataset<Row>();
+
+        try {
+            String displayString = "";
+            if (op != null)
+                displayString = op.getScopeName() + ": " + OperationContext.Scope.READ_KAFKA_TOPIC.displayName();
+
+            SpliceSpark.pushScope(displayString);
+            ConsumerRecords<Integer, Externalizable> msgList = consumer.poll(1000);
+            for (ConsumerRecord<Integer, Externalizable> record : msgList) {
+                if (LOG.isInfoEnabled())
+                    LOG.info("KAFKA==receive: key = " + record.key() + ", value = " + record.value() + " offset===" + record.offset());
+            }
+
+            PairDataSet<Integer, InputStream> streamSet;
+
+            consumer.commitAsync();
+
+            Dataset<Row> table = null;
+//            SparkUtils.toSparkRowsIterable();
+//            return new SparkDataSet(stream, OperationContext.Scope.READ_KAFKA_TOPIC.displayName());
+            return new SparkDataSet<>(null);
+        } catch (CommitFailedException e){
+            throw new StandardException();
+        }
+        finally {
+            try {
+                consumer.commitSync();
+            }finally {
+                consumer.close();
+            }
+            SpliceSpark.popScope();
+        }
+
+//
+//            JavaPairRDD<LongWritable, Text> pairRdd = SpliceSpark.getContext().newAPIHadoopFile(
+//                    path,
+//                    SMTextInputFormat.class,
+//                    LongWritable.class,
+//                    Text.class,
+//                    new Configuration(HConfiguration.unwrapDelegate()));
+//
+//            JavaRDD rdd = pairRdd.values()
+//                    .map(new Function<Text, String>() {
+//                        @Override
+//                        public String call(Text o) throws Exception {
+//                            return o.toString();
+//                        }
+//                    });
+//            SparkUtils.setAncestorRDDNames(rdd, 1, new String[]{fileInfo.toSummary()}, null);
+//            SparkUtils.toExecRowsIterator();
+
+
+
     }
 }

@@ -21,6 +21,9 @@
         <groupId>com.splicemachine</groupId>
         <version>3.1.0.1928-SNAPSHOT</version>
     </parent>
+    <properties>
+        <kafka.version>0.10.0-kafka-2.1.2</kafka.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -147,6 +150,21 @@
             <groupId>org.apache.derby</groupId>
             <artifactId>derbyclient</artifactId>
             <version>10.9.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_${scala.binary.version}</artifactId>
+            <version>${kafka.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.jpountz.lz4</groupId>
+                    <artifactId>lz4</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
     <build>

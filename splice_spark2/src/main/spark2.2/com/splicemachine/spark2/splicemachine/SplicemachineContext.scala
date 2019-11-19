@@ -26,6 +26,9 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import java.util.Properties
 
+//import com.splicemachine.derby.vti.SpliceDatasetVTI
+//import com.splicemachine.derby.vti.SpliceRDDVTI
+
 import com.splicemachine.primitives.Bytes
 import com.splicemachine.spark.splicemachine.ShuffleUtils
 import javax.sql.DataSource
@@ -336,12 +339,16 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
       // TODO consume Kafka stream
       val df = null
+
       df
     } finally {
       conn.close()
     }
   }
 
+  def internalDf(sql: String): Dataset[Row] = {
+    df(sql)
+  }
   /**
     *
     * Table with projections in Splice mapped to an RDD.
@@ -390,7 +397,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       "new com.splicemachine.derby.vti.KafkaVTI("+id+") " +
       "as SpliceDatasetVTI (" + schemaString + ")"
 
-    
     executeUpdate(sqlText)
   }
 
@@ -413,22 +419,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //      sampleFraction + "\n select " + columnList + " from " +
 //      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
 //      "as SpliceDatasetVTI (" + schemaString + ")"
-//    internalConnection.createStatement().executeUpdate(sqlText)
-//  }
-//  /**
-//    * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
-//    *
-//    * @param rdd input data
-//    * @param schema
-//    * @param schemaTableName
-//    */
-//  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
-//    SpliceRDDVTI.datasetThreadLocal.set(ShuffleUtils.shuffle(rdd))
-//    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
-//    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
-//    val sqlText = "insert into " + schemaTableName + " (" + columnList + ") select " + columnList + " from " +
-//      "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
-//      "as SpliceRDDVTI (" + schemaString + ")"
 //    internalConnection.createStatement().executeUpdate(sqlText)
 //  }
 //
@@ -690,7 +680,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //      "as SpliceRDDVTI (" + schemaString + ")"
 //    internalConnection.createStatement().executeUpdate(sqlText)
 //  }
-//
+
   /**
     * Return a table's schema via JDBC.
     *

@@ -96,7 +96,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     
     public NativeSparkDataSet(Dataset<Row> dataset, OperationContext context) {
         int cols = dataset.columns().length;
+
         String[] colNames = new String[cols];
+//        colNames = dataset.columns();
         for (int i = 0; i<cols; i++) {
             colNames[i] = "c"+i;
         }
@@ -109,6 +111,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         if (assignNewColumnNames) {
             int cols = dataset.columns().length;
             String[] colNames = new String[cols];
+            //        colNames = dataset.columns();
             for (int i = 0; i < cols; i++) {
                 colNames[i] = "c" + i;
             }

@@ -31,10 +31,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 
-/**
- * @author Scott Fines
- *         Date: 1/8/16
- */
+
 public class SparkKafkaDataSetWriter<V> implements DataSetWriter{
     private String topicName;
     private JavaRDD<V> rdd;
@@ -64,7 +61,7 @@ public class SparkKafkaDataSetWriter<V> implements DataSetWriter{
         long start = System.currentTimeMillis();
 
         CountFunction countFunction = new CountFunction<>();
-        JavaRDD streamed = rdd.map(countFunction).mapPartitionsWithIndex(new KafkaStreamer("localhost", 8080, rdd.getNumPartitions(), topicName), true);
+        JavaRDD streamed = rdd.map(countFunction).mapPartitionsWithIndex(new KafkaStreamer("localhost", 9092, rdd.getNumPartitions(), topicName), true);
         streamed.collect();
 
         long end = System.currentTimeMillis();
@@ -101,6 +98,7 @@ public class SparkKafkaDataSetWriter<V> implements DataSetWriter{
 
     public static class CountFunction<V> implements org.apache.spark.api.java.function.Function<V, V>{
         private LongAccumulator count = SpliceSpark.getContext().sc().longAccumulator("exported rows");
+
 
         public CountFunction(){
 
