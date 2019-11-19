@@ -285,12 +285,13 @@ public class ReplicationSystemProcedure {
 
         String sql = "select schemaname from sys.sysschemas";
         Connection conn = SpliceAdmin.getDefaultConn();
-        PreparedStatement ps = conn.prepareStatement(sql);
-        ResultSet rs = ps.executeQuery();
-        while (rs.next()) {
-            schemas.add(rs.getString(1));
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                schemas.add(rs.getString(1));
+            }
+            return schemas;
         }
-        return schemas;
     }
 
     private static List<String> getTablesFromSchema(String schemaName) throws SQLException{
@@ -300,14 +301,15 @@ public class ReplicationSystemProcedure {
         String sql = "select tablename from sys.systables t, sys.sysschemas s " +
                 "where t.schemaid=s.schemaid and s.schemaname=?";
         Connection conn = SpliceAdmin.getDefaultConn();
-        PreparedStatement ps = conn.prepareStatement(sql);
-        ps.setString(1, schemaName);
-        ResultSet rs = ps.executeQuery();
-        while (rs.next()) {
-            tables.add(rs.getString(1));
+        try(PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, schemaName);
+            try(ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    tables.add(rs.getString(1));
+                }
+                return tables;
+            }
         }
-
-        return tables;
     }
 
     private static void enableReplicationForSpliceSystemTables() throws StandardException {

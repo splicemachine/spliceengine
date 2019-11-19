@@ -552,6 +552,19 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         return replicationPeers;
     }
 
+    @Override
+    public boolean replicationEnabled(String tableName) throws IOException {
+        TableName tn = tableInfoFactory.getTableInfo(tableName);
+        org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
+        ColumnFamilyDescriptor[] cds = td.getColumnFamilies();
+        for (ColumnFamilyDescriptor cd : cds) {
+            if (HConstants.REPLICATION_SCOPE_GLOBAL == cd.getScope()){
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean grantCreatePrivilege(String tableName, String userName) throws Throwable{
 
         if (hasCreatePrivilege(tableName, userName)){

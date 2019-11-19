@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -819,6 +820,12 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
                     getColumnOrderings(indexRowGenerator.baseColumnPositions()), indexRowGenerator.getColumnCollationIds(
                             td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
+
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            // Enable replication for index if that's enables for base table
+            if (admin.replicationEnabled(Long.toString(td.getHeapConglomerateId()))) {
+                admin.enableTableReplication(Long.toString(conglomId));
+            }
 
             ConglomerateController indexController = tc.openConglomerate(conglomId, false, 0, TransactionController.MODE_TABLE,TransactionController.ISOLATION_SERIALIZABLE);
 
