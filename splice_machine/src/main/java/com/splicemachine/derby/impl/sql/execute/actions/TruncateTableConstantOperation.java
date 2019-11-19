@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.ddl.DDLMessage;
@@ -37,7 +38,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 
+import java.io.IOException;
 import java.util.Properties;
 
 /**
@@ -204,13 +207,14 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         }
 
         // truncate  all indexes
+        long[] newIndexCongloms = new long[numIndexes];
         if(numIndexes > 0) {
-            long[] newIndexCongloms = new long[numIndexes];
             for (int index = 0; index < numIndexes; index++) {
                 updateIndex(newHeapConglom, activation, tc, td, index, newIndexCongloms);
             }
         }
 
+        enableReplicationIfNecessary(td, newHeapConglom, newIndexCongloms);
         // If the table has foreign key, create a new foreign key write handler
         for(int i = 0; i < constraintDescriptors.size(); ++i) {
             ConstraintDescriptor conDesc = constraintDescriptors.get(i);
@@ -233,6 +237,21 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         // we should invalidate all statements that use the old conglomerates
         dd.getDependencyManager().invalidateFor(td, DependencyManager.TRUNCATE_TABLE, lcc);
 
+    }
+
+    private void enableReplicationIfNecessary(TableDescriptor td, long newHeapConglom, long[] newIndexCongloms) throws StandardException {
+        long conglomId = td.getHeapConglomerateId();
+        try {
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            if (admin.replicationEnabled(Long.toString(conglomId))) {
+                admin.enableTableReplication(Long.toString(newHeapConglom));
+                for (long newIndexConglom : newIndexCongloms) {
+                    admin.enableTableReplication(Long.toString(newIndexConglom));
+                }
+            }
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
     }
 
     @Override

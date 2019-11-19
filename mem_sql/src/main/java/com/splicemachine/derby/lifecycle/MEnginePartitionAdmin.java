@@ -169,4 +169,8 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public List<ReplicationPeerDescription> getReplicationPeers() throws IOException {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
+    @Override
+    public boolean replicationEnabled(String tableName) throws IOException {
+        return false;
+    }
 }

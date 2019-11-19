@@ -77,4 +77,6 @@ public interface PartitionAdmin extends AutoCloseable{
     void disableTableReplication(String tableName) throws IOException;
 
     List<ReplicationPeerDescription> getReplicationPeers() throws IOException;
+
+    boolean replicationEnabled(String tableName) throws IOException;
 }
