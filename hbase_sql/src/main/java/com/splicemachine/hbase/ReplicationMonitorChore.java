@@ -34,7 +34,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by jyuan on 9/30/19.
@@ -59,6 +61,8 @@ public class ReplicationMonitorChore extends ScheduledChore {
     private Configuration conf;
     private List<String> regionServers;
     public static final String DB_URL_LOCAL = "jdbc:splice://%s/splicedb;user=splice;password=admin";
+
+    private Map<String, Connection> connectionPool = new HashMap<>();
 
     // This constructor is for chore services
     public ReplicationMonitorChore(final String name,
@@ -134,8 +138,17 @@ public class ReplicationMonitorChore extends ScheduledChore {
      * @throws SQLException
      */
     private Connection connect(String hostAndPort) throws SQLException{
+        if (connectionPool.containsKey(hostAndPort)) {
+            Connection connection = connectionPool.get(hostAndPort);
+            if (!connection.isClosed()) {
+                return connection;
+            }
+        }
         String url = String.format(DB_URL_LOCAL, hostAndPort);
-        return ReplicationUtils.connect(url);
+        Connection connection = ReplicationUtils.connect(url);
+        connectionPool.put(hostAndPort, connection);
+        return connection;
+
     }
 
     private void healthCheckMasterCluster() throws SQLException, KeeperException, InterruptedException {
@@ -193,7 +206,20 @@ public class ReplicationMonitorChore extends ScheduledChore {
                     return;
             }
 
-            masterCluster = getMasterCluster();
+            String mc = getMasterCluster();
+            if (masterCluster != null && masterCluster !=mc) {
+                // master cluster has changed, close all connections from the pool
+                for (Map.Entry<String, Connection> entry : connectionPool.entrySet()) {
+                    Connection connection = entry.getValue();
+                    if (!connection.isClosed()) {
+                        connection.close();
+                    }
+                }
+            }
+
+            if (masterCluster == null || masterCluster != mc) {
+                masterCluster = mc;
+            }
             if (masterCluster != null) {
                 // Get a list of region servers to test healthness of master cluster
                 isMaster = masterCluster.equals(thisCluster);
