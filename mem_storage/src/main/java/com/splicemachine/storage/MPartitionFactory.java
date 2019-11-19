@@ -234,5 +234,10 @@ public class MPartitionFactory implements PartitionFactory<Object>{
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
 
         }
+        
+        @Override
+        public boolean replicationEnabled(String tableName) throws IOException {
+            return false;
+        }
     }
 }
