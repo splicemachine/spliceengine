@@ -14,27 +14,29 @@
 
 package org.apache.hadoop.hbase.regionserver;
 
-import java.io.IOException;
-
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.nio.ByteBuff;
-
-import java.util.*;
-import java.util.concurrent.atomic.LongAdder;
-import java.util.concurrent.locks.Lock;
-
-import com.splicemachine.primitives.Bytes;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.io.hfile.*;
-import org.apache.hadoop.hbase.util.BloomFilter;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.RegionInfo;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.io.hfile.HFile;
+import org.apache.hadoop.hbase.io.hfile.SpliceHFileUtil;
+import org.apache.hadoop.hbase.nio.ByteBuff;
+import org.apache.hadoop.hbase.util.BloomFilter;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Class for accessing protected methods in HBase.
@@ -147,7 +149,7 @@ public class HRegionUtil {
         cutPoints.add(store.getRegionInfo().getEndKey());
 
         if (LOG.isDebugEnabled()) {
-            HRegionInfo regionInfo = (HRegionInfo) store.getRegionInfo();
+            RegionInfo regionInfo = store.getRegionInfo();
             String startKey = "\"" + CellUtils.toHex(regionInfo.getStartKey()) + "\"";
             String endKey = "\"" + CellUtils.toHex(regionInfo.getEndKey()) + "\"";
             LOG.debug("Cutpoints for " + regionInfo.getRegionNameAsString() + " [" + startKey + "," + endKey + "]: ");
