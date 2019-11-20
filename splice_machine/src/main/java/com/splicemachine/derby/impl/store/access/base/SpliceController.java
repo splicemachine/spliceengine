@@ -168,15 +168,13 @@ public abstract class SpliceController implements ConglomerateController{
         return batchFetch(locations,destRows,validColumns,false);
     }
     @Override
-    public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows, FormatableBitSet validColumns, boolean waitForLock) throws StandardException{
-        if (locations.size() != destRows.size())
-            return false;
+    public boolean batchFetch(List<RowLocation> locations, List<ExecRow> destRows,FormatableBitSet validColumns,boolean waitForLock) throws StandardException{
         if (locations.isEmpty())
-            return true;
+            return false;
         Partition htable = getTable();
         KeyHashDecoder rowDecoder = null;
         try{
-            DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(), locations.get(0).getBytes(),null);
+            DataGet baseGet=opFactory.newDataGet(trans.getTxnInformation(),locations.get(0).getBytes(),null);
             baseGet.returnAllVersions();
             DataGet get = createGet(baseGet,destRows.get(0).getRowArray(),validColumns);//loc,destRow,validColumns,trans.getTxnInformation());
             Iterator<DataResult> results = htable.batchGet(get, Lists.transform(locations, ROWLOCATION_TO_BYTES));
@@ -187,19 +185,18 @@ public abstract class SpliceController implements ConglomerateController{
             while (results.hasNext()) {
                 DataResult result = results.next();
                 DataValueDescriptor[] destRow = destRows.get(i).getRowArray();
-                if (serializers == null) {
+                if (serializers ==null) {
                     serializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(destRow);
-                    rowDecoder = new EntryDataDecoder(cols,null, serializers);
+                    rowDecoder=new EntryDataDecoder(cols,null,serializers);
                 }
-                ExecRow row = new ValueRow(destRow.length);
+                ExecRow row=new ValueRow(destRow.length);
                 row.setRowArray(destRow);
                 row.resetRowArray();
-                DataCell keyValue = result.userData();
-                rowDecoder.set(keyValue.valueArray(), keyValue.valueOffset(), keyValue.valueLength());
+                DataCell keyValue=result.userData();
+                rowDecoder.set(keyValue.valueArray(),keyValue.valueOffset(),keyValue.valueLength());
                 rowDecoder.decode(row);
                 i++;
             }
-            assert i == locations.size();
             return true;
         }catch(Exception e){
             throw Exceptions.parseException(e);
