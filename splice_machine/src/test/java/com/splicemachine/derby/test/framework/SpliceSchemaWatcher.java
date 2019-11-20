@@ -23,7 +23,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Instant;
 import java.util.concurrent.Semaphore;
 
 public class SpliceSchemaWatcher extends TestWatcher {
@@ -83,10 +82,6 @@ public class SpliceSchemaWatcher extends TestWatcher {
     private static void runVacuum(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.execute("call syscs_util.vacuum()");
-            Instant instant = Instant.now();
-            long timeStampMillis = instant.toEpochMilli();
-            String tmpFile = "/tmp/check_table/" + timeStampMillis;
-            statement.execute("call SYSCS_UTIL.CHECK_TABLE('sys', 'sysstatements', null, 2, '" + tmpFile + "')");
         }
     }
 

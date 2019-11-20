@@ -87,7 +87,6 @@ public class SICompactionState {
 
     private void removeDeletedRows(long maxTombstone, boolean keepTombstones, String tableName) {
         LOG.warn(String.format("remove deleted rows from table %s. Max tombstone: %d. KeepTombstones: %b", tableName, maxTombstone, keepTombstones));
-        LOG.warn("List before purging" + dataToReturn);
         SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
         for (Cell element : cp) {
             long timestamp = element.getTimestamp();
@@ -99,7 +98,6 @@ public class SICompactionState {
                 dataToReturn.remove(element);
             }
         }
-        LOG.warn("List after purging" + dataToReturn);
     }
     /**
      * Apply SI mutation logic. Returns the timestamp of the tombstone, if element
