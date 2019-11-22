@@ -406,7 +406,7 @@ class DefaultSourceTest extends FunSuite with TestContext with BeforeAndAfter wi
   }
 
   test("partitions shuffle") {
-    val rdd = generateRows(10, 5)
+    val rdd = generateRows(40, 20)
 
     var i = 0
 
