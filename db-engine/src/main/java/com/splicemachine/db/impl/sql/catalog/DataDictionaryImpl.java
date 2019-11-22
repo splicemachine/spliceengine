@@ -7185,7 +7185,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
         heapCC.batchFetch(rowLocations,outRows,null);
         if (outRows.size() != i) {
-            if(SanityManager.DEBUG){
+            if(true || SanityManager.DEBUG){
                 // it can not be possible for heap row to disappear while
                 // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
                 if((isolationLevel==TransactionController.ISOLATION_REPEATABLE_READ)){
