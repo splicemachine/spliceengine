@@ -15,6 +15,8 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.catalog.Statistics;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -285,22 +287,24 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             authorize(tds);
             TransactionController transactionExecute = lcc.getTransactionExecute();
             transactionExecute.elevate("statistics");
-            dropTableStatistics(tds,dd,tc);
-            ddlNotification(tc,tds);
+            dropTableStatistics(tds, dd, tc);
+            ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
 
-            // Create the Dataset.  This needs to stay in a dataset for parallel execution (very important).
-            DataSet<ExecRow> dataSet = null;
-
-            HashMap<Long,Pair<String,String>> display = new HashMap<>();
-            List<StatisticsOperation> futures = new ArrayList(tds.size());
+            HashMap<Long, Pair<String, String>> display = new HashMap<>();
+            ArrayList<StatisticsOperation> statisticsOperations = new ArrayList<>(tds.size());
+            SpliceLogUtils.warn(LOG, "Before AddFutures");
             for (TableDescriptor td : tds) {
-                display.put(td.getHeapConglomerateId(),Pair.newPair(schema,td.getName()));
-                futures.add(collectTableStatistics(td, false, 0, true, txn, conn));
+                display.put(td.getHeapConglomerateId(), Pair.newPair(schema, td.getName()));
+                statisticsOperations.add(createCollectTableStatisticsOperation(td, false, 0, true, txn, conn));
             }
+            SpliceLogUtils.warn(LOG, "Before IteratorNoPutResultSet");
+
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
-            displayTableStatistics(futures,true,dd,transactionExecute,display));
+                    displayTableStatistics(statisticsOperations,true, dd, transactionExecute, display));
+            SpliceLogUtils.warn(LOG, "After IteratorNoPutResultSet");
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
+            SpliceLogUtils.warn(LOG, "After EmbedResultSet40");
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (ExecutionException e) {
@@ -461,7 +465,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                     conn,
                     displayTableStatistics(Lists.newArrayList(
-                            collectTableStatistics(tableDesc, useSample, samplePercent/100, mergeStats, txn, conn)
+                            createCollectTableStatisticsOperation(tableDesc, useSample, samplePercent/100, mergeStats, txn, conn)
                             ),
                             mergeStats,
                             dd, tc, display));
@@ -473,22 +477,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
-    private static StatisticsOperation collectTableStatistics(TableDescriptor table,
-                                                             boolean useSample,
-                                                             double sampleFraction,
-                                                              boolean mergeStats,
-                                                             TxnView txn,
-                                                             EmbedConnection conn) throws StandardException, ExecutionException {
-
-       return collectBaseTableStatistics(table, useSample, sampleFraction, mergeStats, txn, conn);
-    }
-
-    private static StatisticsOperation collectBaseTableStatistics(TableDescriptor table,
-                                                                 boolean useSample,
-                                                                 double sampleFraction,
-                                                                  boolean mergeStats,
-                                                                 TxnView txn,
-                                                                 EmbedConnection conn) throws StandardException, ExecutionException {
+    private static StatisticsOperation createCollectTableStatisticsOperation(TableDescriptor table,
+                                                                             boolean useSample,
+                                                                             double sampleFraction,
+                                                                             boolean mergeStats,
+                                                                             TxnView txn,
+                                                                             EmbedConnection conn) throws StandardException, ExecutionException {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
@@ -509,7 +503,6 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             dtds[index++] = descriptor.getType();
         }
         StatisticsOperation op = new StatisticsOperation(scanSetBuilder,useSample,sampleFraction,mergeStats,scope,activation,dtds);
-        op.openCore();
         return op;
     }
 
@@ -837,13 +830,41 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     }
 
 
-    public static Iterable displayTableStatistics(List<StatisticsOperation> futures, boolean mergeStats, final DataDictionary dataDictionary, final TransactionController tc, final HashMap<Long,Pair<String,String>> displayPair) {
+    public static Iterable displayTableStatistics(ArrayList<StatisticsOperation> collectOps,
+                                                  boolean mergeStats,
+                                                  final DataDictionary dataDictionary,
+                                                  final TransactionController tc,
+                                                  final HashMap<Long, Pair<String, String>> displayPair) throws StandardException {
+        // Schedule the first <maximumConcurrent> jobs
+        int maximumConcurrent = EngineDriver.driver().getConfiguration().getCollectSchemaStatisticsMaximumConcurrent();
+        for (int i = 0; i < maximumConcurrent && i < collectOps.size(); ++i) {
+            collectOps.get(i).openCore();
+        }
+        // Handle the next jobs as we go: (One job returns -> one job can start), ensuring <maximumConcurrent> jobs at all time
+        Iterable<StatisticsOperation> movingExecutionWindow = () -> new Iterator<StatisticsOperation>() {
+            int i = 0;
+            @Override
+            public boolean hasNext() {
+                return i < collectOps.size();
+            }
+
+            @Override
+            public StatisticsOperation next() {
+                if ((long)i + (long)maximumConcurrent < (long)collectOps.size()) {
+                    try {
+                        collectOps.get(i + maximumConcurrent).openCore();
+                    } catch (StandardException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return collectOps.get(i++);
+            }
+        };
         if (mergeStats) {
-            return FluentIterable.from(futures).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
+            return FluentIterable.from(movingExecutionWindow).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
                 @Nullable
                 @Override
                 public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
-
                     try {
                         // We have to create a new savepoint because we already returned from the opening of the result set
                         // and derby released the prior savepoint for us. If we don't create one we'd end up inserting the
@@ -920,19 +941,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                 }
                             }
                         };
-                        return new Iterable<ExecRow>() {
-                            @Override
-                            public Iterator<ExecRow> iterator() {
-                                return iterator;
-                            }
-                        };
+                        return () -> iterator;
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 }
             });
         } else {
-            return FluentIterable.from(futures).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
+            return FluentIterable.from(movingExecutionWindow).transformAndConcat(new Function<StatisticsOperation, Iterable<ExecRow>>() {
                 @Nullable
                 @Override
                 public Iterable<ExecRow> apply(@Nullable StatisticsOperation input) {
@@ -969,12 +985,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                 }
                             }
                         };
-                        return new Iterable<ExecRow>() {
-                            @Override
-                            public Iterator<ExecRow> iterator() {
-                                return iterator;
-                            }
-                        };
+                        return () -> iterator;
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
