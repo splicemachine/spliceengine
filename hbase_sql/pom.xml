@@ -70,6 +70,7 @@
             <artifactId>spark_sql</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
@@ -227,11 +228,13 @@
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-protocol-shaded</artifactId>
             <version>${hbase.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-replication</artifactId>
             <version>${hbase.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hbase</groupId>
@@ -253,6 +256,7 @@
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-mapreduce</artifactId>
             <version>${hbase.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>

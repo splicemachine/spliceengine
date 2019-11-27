@@ -1325,6 +1325,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(1)
                             .smallint("peerId")
                             .varchar("hostAndPort", 32672)
+                            .arg("isSerial", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(addPeer);

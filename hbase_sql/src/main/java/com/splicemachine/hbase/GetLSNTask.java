@@ -29,11 +29,19 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GetLSNTask implements Callable<Void> {
-    ConcurrentHashMap<String, Long> map;
-    ServerName serverName;
+    private ConcurrentHashMap<String, Long> map;
+    private ServerName serverName;
+    private String walGroupId;
+
     public GetLSNTask(ConcurrentHashMap<String, Long> map, ServerName serverName){
         this.map = map;
         this.serverName = serverName;
+    }
+
+    public GetLSNTask(ConcurrentHashMap<String, Long> map, ServerName serverName, String walGroupId){
+        this.map = map;
+        this.serverName = serverName;
+        this.walGroupId = walGroupId;
     }
 
     @Override
@@ -43,10 +51,13 @@ public class GetLSNTask implements Callable<Void> {
         Admin admin = conn.getAdmin();
         CoprocessorRpcChannel channel = admin.coprocessorService(serverName);
         SpliceRSRpcServices.BlockingInterface service = SpliceRSRpcServices.newBlockingStub(channel);
-        SpliceMessage.GetRegionServerLSNRequest request = SpliceMessage.GetRegionServerLSNRequest.getDefaultInstance();
-        SpliceMessage.GetRegionServerLSNReponse response = service.getRegionServerLSN(null, request);
-        List<SpliceMessage.GetRegionServerLSNReponse.Result> resultList = response.getResultList();
-        for (SpliceMessage.GetRegionServerLSNReponse.Result result : resultList) {
+        SpliceMessage.GetRegionServerLSNRequest.Builder builder = SpliceMessage.GetRegionServerLSNRequest.newBuilder();
+        if (walGroupId != null) {
+            builder.setWalGroupId(walGroupId);
+        }
+        SpliceMessage.GetRegionServerLSNResponse response = service.getRegionServerLSN(null, builder.build());
+        List<SpliceMessage.GetRegionServerLSNResponse.Result> resultList = response.getResultList();
+        for (SpliceMessage.GetRegionServerLSNResponse.Result result : resultList) {
             map.put(result.getRegionName(), result.getLsn());
         }
         return null;
