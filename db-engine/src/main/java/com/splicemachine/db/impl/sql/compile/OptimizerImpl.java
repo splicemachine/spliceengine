@@ -1877,7 +1877,7 @@ public class OptimizerImpl implements Optimizer{
 
         OptimizerTrace tracer = tracer();
         if(optimizerTrace){
-            tracer.trace(OptimizerFlag.PULL_OPTIMIZAL,proposedJoinOrder[joinPosition],0,0.0, currentCost);
+            tracer.trace(OptimizerFlag.PULL_OPTIMIZABLE,proposedJoinOrder[joinPosition],0,0.0, currentCost);
         }
 		/*
 		** Subtract from the sort avoidance cost if there is a
@@ -1910,7 +1910,7 @@ public class OptimizerImpl implements Optimizer{
                 currentSortAvoidanceCost.setBase(null);
 
                 if(optimizerTrace){
-                    tracer.trace(OptimizerFlag.PULL_OPTIMIZAL,proposedJoinOrder[joinPosition],1,0.0, currentSortAvoidanceCost);
+                    tracer.trace(OptimizerFlag.PULL_OPTIMIZABLE,proposedJoinOrder[joinPosition],1,0.0, currentSortAvoidanceCost);
                 }
 
 				/*

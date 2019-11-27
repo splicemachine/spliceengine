@@ -327,7 +327,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 cdString=dumpConglomerateDescriptor(cd);
                 traceString="Skipping sparse index " + cdString + " because it is not eligible";
                 break;
-            case PULL_OPTIMIZAL:
+            case PULL_OPTIMIZABLE:
                 if (intParam1 == 0) {
                     // for regular plan
                     traceString = "Join order: Pull optimizable " + intParam1 + ", current cost after pulling: " + objectParam1;
