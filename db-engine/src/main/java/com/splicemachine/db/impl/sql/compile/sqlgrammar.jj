@@ -2243,6 +2243,14 @@ public class SQLParser
                         getContextManager());
 
             case JoinNode.FULLOUTERJOIN:
+                return (JoinNode) nodeFactory.getNode(
+                        C_NodeTypes.FULL_OUTER_JOIN_NODE,
+                        leftRSN,
+                        rightRSN,
+                        onClause,
+                        usingClause,
+                        null,
+                        getContextManager());
 
             default:
                 if (SanityManager.DEBUG)

@@ -122,6 +122,11 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
         return visit((JoinNode)j);
     }
 
+    @Override
+    public JoinNode visit(FullOuterJoinNode j) throws StandardException {
+        return visit((JoinNode)j);
+    }
+
     // Machinery for pulling up predicates (for hash-based joins)
 
     private JoinNode pullUpPreds(JoinNode j, AccessPath ap) throws StandardException {

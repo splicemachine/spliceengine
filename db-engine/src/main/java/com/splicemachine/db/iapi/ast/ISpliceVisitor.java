@@ -220,5 +220,6 @@ public interface ISpliceVisitor {
     Visitable visit(SelfReferenceNode node) throws StandardException;
     Visitable visit(SignalNode node) throws StandardException;
     Visitable visit(SetNode node) throws StandardException;
+    Visitable visit(FullOuterJoinNode node) throws StandardException;
 
 }

@@ -1211,6 +1211,69 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             throw Exceptions.parseException(e);
         }
     }
+    @Override
+    public NoPutResultSet getMergeSortFullOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException {
+        return getMergeSortFullOuterJoinResultSet(
+                leftResultSet, leftNumCols,
+                rightResultSet, rightNumCols,
+                leftHashKeyItem, rightHashKeyItem,
+                joinClause, resultSetNumber,
+                emptyRowFun, wasRightOuterJoin,
+                oneRowRightSide, notExistsRightSide,
+                rightFromSSQ,
+                optimizerEstimatedRowCount,  optimizerEstimatedCost,
+                userSuppliedOptimizerOverrides,
+                explainPlan,
+                null);
+    }
+
+    @Override
+    public NoPutResultSet getMergeSortFullOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getMergeSortFullOuterJoinResultSet");
+        try{
+            ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
+            ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+            JoinOperation op = new MergeSortFullOuterJoinOperation(left.getOperation(), leftNumCols,
+                    right.getOperation(), rightNumCols,leftHashKeyItem,rightHashKeyItem,
+                    leftResultSet.getActivation(), joinClause,
+                    resultSetNumber,
+                    emptyRowFun,
+                    wasRightOuterJoin,
+                    oneRowRightSide,
+                    notExistsRightSide,
+                    rightFromSSQ,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    userSuppliedOptimizerOverrides,
+                    sparkExpressionTreeAsString);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
 
     @Override
     public NoPutResultSet getNestedLoopJoinResultSet(

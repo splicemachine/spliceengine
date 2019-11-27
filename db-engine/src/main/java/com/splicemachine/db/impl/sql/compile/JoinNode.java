@@ -111,11 +111,11 @@ public class JoinNode extends TableOperatorNode{
             case CROSSJOIN:
                 return "CROSS JOIN";
             case LEFTOUTERJOIN:
-                return "LEFT OUTER JOIN";
+                return "LEFT LEFTOUTER JOIN";
             case RIGHTOUTERJOIN:
-                return "RIGHT OUTER JOIN";
+                return "RIGHT LEFTOUTER JOIN";
             case FULLOUTERJOIN:
-                return "FULL OUTER JOIN";
+                return "FULL LEFTOUTER JOIN";
             case UNIONJOIN:
                 return "UNION JOIN";
             default:
@@ -230,6 +230,7 @@ public class JoinNode extends TableOperatorNode{
 		 * implement full outer join.
 		 */
         // Walk joinPredicates backwards due to possible deletes
+        // TODO DB-7816 do we need to change this logic for full join?
 
 
         for(int index=joinPredicates.size()-1;index>=0;index--){
@@ -246,11 +247,11 @@ public class JoinNode extends TableOperatorNode{
         }
 
         CostEstimate lrsCE = leftResultSet.getCostEstimate();
-        lrsCE.setOuterJoin(true);
+        lrsCE.setJoinType(LEFTOUTERJOIN);
         double savedAccumulatedMemory = lrsCE.getAccumulatedMemory();
         lrsCE.setAccumulatedMemory(leftOptimizer.getAccumulatedMemory());
         rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),lrsCE);
-        lrsCE.setOuterJoin(false);
+        lrsCE.setJoinType(INNERJOIN);
         lrsCE.setAccumulatedMemory(savedAccumulatedMemory);
         costEstimate=getCostEstimate(optimizer);
 
@@ -277,7 +278,8 @@ public class JoinNode extends TableOperatorNode{
 		** Get the cost of this result set in the context of the whole plan.
 		*/
 
-        costEstimate.setOuterJoin(true);
+		// TODO DB-7816 why outerjoin flag is set here?
+        costEstimate.setJoinType(LEFTOUTERJOIN);
         getCurrentAccessPath().getJoinStrategy().estimateCost(this,
                 predList,
                 null,
@@ -285,7 +287,7 @@ public class JoinNode extends TableOperatorNode{
                 optimizer,
                 costEstimate
         );
-        costEstimate.setOuterJoin(false);
+        costEstimate.setJoinType(INNERJOIN);
 
         // propagate the sortorder from the outer table if any
         // only do this if the current node is the first resultset in the join sequence as
@@ -400,7 +402,7 @@ public class JoinNode extends TableOperatorNode{
 
 		/* Get the logical left side of the join.
 		 * This is where the join columns come from.
-		 * (For RIGHT OUTER JOIN, the left is the right
+		 * (For RIGHT LEFTOUTER JOIN, the left is the right
 		 * and the right is the left and the JOIN is the NIOJ).
 		 */
         ResultSetNode logicalLeftRS=getLogicalLeftResultSet();
@@ -472,7 +474,7 @@ public class JoinNode extends TableOperatorNode{
     @Override
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException{
 		/* Get the logical left and right sides of the join.
-		 * (For RIGHT OUTER JOIN, the left is the right
+		 * (For RIGHT LEFTOUTER JOIN, the left is the right
 		 * and the right is the left and the JOIN is the NIOJ).
 		 */
         ResultSetNode logicalLeftRS=getLogicalLeftResultSet();
@@ -500,7 +502,7 @@ public class JoinNode extends TableOperatorNode{
         }else{
             //If this column represents the join column from the
             // right table for predicate generated for USING/NATURAL
-            // of RIGHT OUTER JOIN then flag it such by setting
+            // of RIGHT LEFTOUTER JOIN then flag it such by setting
             // rightOuterJoinUsingClause to true.
             // eg
             //     select c from t1 right join t2 using (c)
@@ -1260,7 +1262,10 @@ public class JoinNode extends TableOperatorNode{
 		 */
         String joinResultSetString;
 
-        if(joinType==LEFTOUTERJOIN){
+        if (joinType==FULLOUTERJOIN) {
+            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
+                    getJoinStrategy().fullOuterJoinResultSetMethodName();
+        } else if(joinType==LEFTOUTERJOIN){
             joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
                     getJoinStrategy().halfOuterJoinResultSetMethodName();
         }else{
@@ -1376,7 +1381,7 @@ public class JoinNode extends TableOperatorNode{
     /**
      * Return the logical left result set for this qualified
      * join node.
-     * (For RIGHT OUTER JOIN, the left is the right
+     * (For RIGHT LEFTOUTER JOIN, the left is the right
      * and the right is the left and the JOIN is the NIOJ).
      */
     ResultSetNode getLogicalLeftResultSet(){
@@ -1386,7 +1391,7 @@ public class JoinNode extends TableOperatorNode{
     /**
      * Return the logical right result set for this qualified
      * join node.
-     * (For RIGHT OUTER JOIN, the left is the right
+     * (For RIGHT LEFTOUTER JOIN, the left is the right
      * and the right is the left and the JOIN is the NIOJ).
      */
     ResultSetNode getLogicalRightResultSet(){

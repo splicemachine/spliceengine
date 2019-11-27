@@ -1031,7 +1031,7 @@ public abstract class ValueNode extends QueryTreeNode
 //        assert outerRowCount != 0: "0 Rows Passed in";
         double selectivity = 0.0d;
         switch(selectivityJoinType) {
-            case OUTER:
+            case LEFTOUTER:
                 selectivity = 1.0d/innerRowCount;
                 break;
             case INNER:

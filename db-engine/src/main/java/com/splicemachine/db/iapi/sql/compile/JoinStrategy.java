@@ -238,6 +238,11 @@ public interface JoinStrategy {
 	String halfOuterJoinResultSetMethodName();
 
 	/**
+	 * Get the name of the join result set method for the full outerjoin
+	 */
+	String fullOuterJoinResultSetMethodName();
+
+	/**
 	 * Get the appropriate arguments to the scan for this type of join.
 	 *
 	 * @param tc	The TransactionController

@@ -91,7 +91,8 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
                     .keyBy(new KeyerFunction<ExecRow, JoinOperation>(operationContext, leftHashKeys));
 
             DataSet<ExecRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder()), operationContext).values(operationContext);
-            if (isOuterJoin)
+            //TODO DB-7816, implement full join
+            if (isOuterJoin())
                 return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
             else {
                 if (notExistsRightSide)

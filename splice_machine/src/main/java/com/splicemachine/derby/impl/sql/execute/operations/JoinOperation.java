@@ -21,18 +21,16 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLReal;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.SparkExpressionNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.catalyst.parser.ParserInterface;
 import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
@@ -46,7 +44,7 @@ import java.util.List;
  * There are 6 different relational processing paths for joins determined by the different valid combinations of these boolean
  * fields.
  *
- *  1.  isOuterJoin: True for outer join and false for inner join
+ *  1.  getJoinType: True for outer join and false for inner join
  *      - True (outer): select * from foo left outer join foo2 on foo.col1 = foo2.col1;
  *      - False (inner): select * from foo inner join foo2 on foo.col1 = foo2.col1;
  *
@@ -110,7 +108,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         protected ExecRow mergedRowTemplate;
         protected String emptyRowFunMethodName;
         public boolean wasRightOuterJoin = false;
-        public boolean isOuterJoin = false;
+        public int joinType = JoinNode.INNERJOIN;
 		private Restriction mergeRestriction;
 		protected SparkExpressionNode sparkJoinPredicate = null;
 		protected String sparkExpressionTreeAsString = null;
@@ -159,7 +157,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				notExistsRightSide = in.readBoolean();
 				rightFromSSQ = in.readBoolean();
                 wasRightOuterJoin = in.readBoolean();
-                isOuterJoin = in.readBoolean();
+                joinType = in.readInt();
                 emptyRowFunMethodName = readNullableString(in);
 				boolean readMerged=false;
 				if(in.readBoolean()){
@@ -195,7 +193,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				out.writeBoolean(notExistsRightSide);
 				out.writeBoolean(rightFromSSQ);
                 out.writeBoolean(wasRightOuterJoin);
-                out.writeBoolean(isOuterJoin);
+                out.writeInt(joinType);
                 writeNullableString(emptyRowFunMethodName, out);
 				out.writeBoolean(serializeLeftResultSet);
 				if(serializeLeftResultSet)
@@ -428,6 +426,26 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		                          deserialize(Base64.decodeBase64(sparkExpressionTreeAsString));
 		return sparkJoinPredicate;
 	    }
-        }
+	}
 
+	protected String getJoinTypeString() {
+		String joinTypeString = "";
+		switch (joinType) {
+			case JoinNode.INNERJOIN:
+				joinTypeString = "inner";
+				break;
+			case JoinNode.LEFTOUTERJOIN:
+				joinTypeString = "left";
+				break;
+			case JoinNode.FULLOUTERJOIN:
+				joinTypeString = "full";
+				break;
+			default:
+		}
+		return joinTypeString;
+	}
+
+	protected boolean isOuterJoin() {
+		return joinType == JoinNode.LEFTOUTERJOIN || joinType == JoinNode.FULLOUTERJOIN;
+	}
 }

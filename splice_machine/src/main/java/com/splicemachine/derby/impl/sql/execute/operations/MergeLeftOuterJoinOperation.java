@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -35,7 +36,7 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
     protected SpliceMethod<ExecRow> emptyRowFun;
     protected ExecRow emptyRow;
 
-    { isOuterJoin = true; }
+    { joinType = JoinNode.LEFTOUTERJOIN; }
 
     public MergeLeftOuterJoinOperation() { super();}
 

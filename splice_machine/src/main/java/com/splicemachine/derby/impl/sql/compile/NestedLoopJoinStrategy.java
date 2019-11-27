@@ -115,6 +115,11 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     }
 
     @Override
+    public String fullOuterJoinResultSetMethodName() {
+        return "getNestedLoopFullOuterJoinResultSet";
+    }
+
+    @Override
     public int getScanArgs(
             TransactionController tc,
             MethodBuilder mb,

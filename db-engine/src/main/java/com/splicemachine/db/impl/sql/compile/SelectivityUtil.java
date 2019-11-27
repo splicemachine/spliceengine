@@ -52,7 +52,7 @@ public class SelectivityUtil {
 
 
     public enum SelectivityJoinType {
-        OUTER, INNER, ANTIJOIN
+        LEFTOUTER, INNER, ANTIJOIN, FULLOUTER
     }
 
     public enum JoinPredicateType {
@@ -66,8 +66,10 @@ public class SelectivityUtil {
                             long innerRowCount,long outerRowCount,
                             CostEstimate outerCost,
                             JoinPredicateType predicateType) throws StandardException {
-        if (outerCost.isOuterJoin())
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.OUTER, predicateType);
+        if (outerCost.getJoinType() == JoinNode.LEFTOUTERJOIN)
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.LEFTOUTER, predicateType);
+        else if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.FULLOUTER, predicateType);
         else if (outerCost.isAntiJoin())
             return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.ANTIJOIN, predicateType);
         else
@@ -116,7 +118,9 @@ public class SelectivityUtil {
 
         if (isOneRowResultSet(innerTable, innerCD, predList)) {
             switch (selectivityJoinType) {
-                case OUTER:
+                case LEFTOUTER:
+                case FULLOUTER:
+                    // TODO DB-7816
                 case INNER:
                     return 1d/innerRowCount;
                 case ANTIJOIN:
@@ -137,7 +141,7 @@ public class SelectivityUtil {
         //Outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
         // the left table's row count,
 
-        if (selectivityJoinType == selectivityJoinType.OUTER) {
+        if (selectivityJoinType == selectivityJoinType.LEFTOUTER) {
             selectivity = Math.max(selectivity,1d / innerRowCount);
         }
         return selectivity;

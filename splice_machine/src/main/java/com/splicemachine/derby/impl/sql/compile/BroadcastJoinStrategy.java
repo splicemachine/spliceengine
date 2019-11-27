@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class BroadcastJoinStrategy extends HashableJoinStrategy {
@@ -59,6 +60,11 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
     public String halfOuterJoinResultSetMethodName() {
         return "getBroadcastLeftOuterJoinResultSet";
     }
+
+    @Override
+    public String fullOuterJoinResultSetMethodName() {
+        throw new UnsupportedOperationException("Broadcast full join not supported currently");
+    }
 	
 	/** @see JoinStrategy#multiplyBaseCostByOuterRows */
 	public boolean multiplyBaseCostByOuterRows() {
@@ -81,6 +87,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
                             boolean skipKeyCheck) throws StandardException {
         /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
         if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
+            return false;
+
+        if (outerCost != null && outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
             return false;
 
         boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost,wasHinted,true);

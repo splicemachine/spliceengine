@@ -1729,6 +1729,31 @@ public interface ResultSetFactory {
 													  String explainPlan)
 	throws StandardException;
 
+	NoPutResultSet getMergeSortFullOuterJoinResultSet(
+			NoPutResultSet leftResultSet, int leftNumCols,
+			NoPutResultSet rightResultSet, int rightNumCols,
+			int leftHashKeyItem, int rightHashKeyItem,
+			GeneratedMethod joinClause, int resultSetNumber,
+			GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+			boolean oneRowRightSide, boolean notExistsRightSide,
+			boolean rightFromSSQ,
+			double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+			String userSuppliedOptimizerOverrides,
+			String explainPlan) throws StandardException;
+
+	NoPutResultSet getMergeSortFullOuterJoinResultSet(
+			NoPutResultSet leftResultSet, int leftNumCols,
+			NoPutResultSet rightResultSet, int rightNumCols,
+			int leftHashKeyItem, int rightHashKeyItem,
+			GeneratedMethod joinClause, int resultSetNumber,
+			GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+			boolean oneRowRightSide, boolean notExistsRightSide,
+			boolean rightFromSSQ,
+			double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+			String userSuppliedOptimizerOverrides,
+			String explainPlan,
+			String sparkExpressionTreeAsString) throws StandardException;
+
 	/**
 		REMIND: needs more description...
 
