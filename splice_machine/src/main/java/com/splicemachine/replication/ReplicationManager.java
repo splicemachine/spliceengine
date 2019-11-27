@@ -23,7 +23,7 @@ import java.util.List;
  * Created by jyuan on 2/6/19.
  */
 public interface ReplicationManager {
-    void addPeer(short peerId, String clusterKey, long peerTs) throws StandardException;
+    void addPeer(short peerId, String clusterKey, long peerTs, boolean isSerial) throws StandardException;
     void removePeer(short peerId) throws StandardException;
     void enablePeer(short peerId) throws StandardException;
     void disablePeer(short peerId) throws StandardException;

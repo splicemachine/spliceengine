@@ -172,6 +172,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase-mapreduce</artifactId>
+            <version>${hbase.version}</version>
+            <scope>runtime</scope>
+        </dependency>
         <!-- Kafka dependencies -->
         <dependency>
             <groupId>org.apache.kafka</groupId>

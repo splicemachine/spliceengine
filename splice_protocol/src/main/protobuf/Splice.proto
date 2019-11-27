@@ -204,9 +204,10 @@ service BlockingProbeEndpoint {
 }
 
 message GetRegionServerLSNRequest {
+    optional string walGroupId=1;
 }
 
-message GetRegionServerLSNReponse {
+message GetRegionServerLSNResponse {
     optional bool isNew  = 1;
     message Result {
         optional uint64 lsn = 1;
@@ -230,7 +231,7 @@ message TestResponse {
 
 service SpliceRSRpcServices {
     rpc getRegionServerLSN(GetRegionServerLSNRequest)
-        returns (GetRegionServerLSNReponse);
+        returns (GetRegionServerLSNResponse);
     rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
         returns (SpliceOldestActiveTransactionResponse);
 }
