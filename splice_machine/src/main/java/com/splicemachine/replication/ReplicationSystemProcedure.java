@@ -87,7 +87,7 @@ public class ReplicationSystemProcedure {
         resultSets[0] = ProcedureUtils.generateResult("Success", clusterKey);
     }
 
-    public static void ADD_PEER(short peerId, String hostAndPort, ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void ADD_PEER(short peerId, String hostAndPort, boolean isSerial, ResultSet[] resultSets) throws StandardException, SQLException {
         try {
             long peerTs = -1;
             String peerClusterKey = null;
@@ -107,7 +107,7 @@ public class ReplicationSystemProcedure {
                 ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
                 connection.createStatement().execute("call SYSCS_UTIL.SET_REPLICATION_ROLE('SLAVE')");
                 replicationManager.setReplicationRole("MASTER");
-                replicationManager.addPeer(peerId, peerClusterKey, peerTs);
+                replicationManager.addPeer(peerId, peerClusterKey, peerTs, isSerial);
                 String replicationMonitorQuorum = SIDriver.driver().getConfiguration().getReplicationMonitorQuorum();
                 if (replicationMonitorQuorum != null) {
                     replicationManager.monitorReplication(getClusterKey(), peerClusterKey);

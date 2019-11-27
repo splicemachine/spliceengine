@@ -30,6 +30,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Region;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 
+import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
 
@@ -68,29 +69,47 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
     @Override
     public void getRegionServerLSN(RpcController controller,
                                    SpliceMessage.GetRegionServerLSNRequest request,
-                                   RpcCallback<SpliceMessage.GetRegionServerLSNReponse> done) {
+                                   RpcCallback<SpliceMessage.GetRegionServerLSNResponse> done) {
 
-        SpliceMessage.GetRegionServerLSNReponse.Builder responseBuilder =
-                SpliceMessage.GetRegionServerLSNReponse.newBuilder();
+        SpliceMessage.GetRegionServerLSNResponse.Builder responseBuilder =
+                SpliceMessage.GetRegionServerLSNResponse.newBuilder();
 
         List<? extends Region> regions = regionServerServices.getRegions();
-        for (Region region : regions) {
-            HRegion hRegion = (HRegion)region;
-            NavigableMap<byte[],java.lang.Integer> replicationScope = hRegion.getReplicationScope();
-            if (!region.isReadOnly() && !replicationScope.isEmpty()) {
-                long readPoint = ((HRegion)region).getReadPoint(IsolationLevel.READ_COMMITTED);
+        String walGroupId = request.hasWalGroupId() ? request.getWalGroupId() : null;
+        try {
+
+            for (Region region : regions) {
+                HRegion hRegion = (HRegion) region;
+                NavigableMap<byte[], java.lang.Integer> replicationScope = hRegion.getReplicationScope();
+                if (region.isReadOnly() || replicationScope.isEmpty()){
+                    // skip regions not enabled for replication
+                    continue;
+                }
+
+                if (walGroupId != null) {
+                    // skip regions for a different wal group
+                    WAL wal = regionServerServices.getWAL(region.getRegionInfo());
+                    if (wal.toString().indexOf(walGroupId) == -1) {
+                        continue;
+                    }
+                }
+
+                long readPoint = ((HRegion) region).getReadPoint(IsolationLevel.READ_COMMITTED);
                 String encodedRegionName = region.getRegionInfo().getEncodedName();
                 responseBuilder.addResult(
-                        SpliceMessage.GetRegionServerLSNReponse.Result.
+                        SpliceMessage.GetRegionServerLSNResponse.Result.
                                 newBuilder().
                                 setLsn(readPoint).
                                 setRegionName(encodedRegionName).
                                 setValid(true).build()
                 );
+
             }
+            SpliceMessage.GetRegionServerLSNResponse response = responseBuilder.build();
+            done.run(response);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        SpliceMessage.GetRegionServerLSNReponse response = responseBuilder.build();
-        done.run(response);
     }
 
 
