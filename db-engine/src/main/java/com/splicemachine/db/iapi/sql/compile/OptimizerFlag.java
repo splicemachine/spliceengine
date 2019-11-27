@@ -107,7 +107,7 @@ public enum OptimizerFlag{
     SPARSE_INDEX_NOT_ELIGIBLE(TRACE),
     HJ_NO_EQUIJOIN_COLUMNS(DEBUG),
     REWIND_JOINORDER(TRACE),
-    PULL_OPTIMIZAL(TRACE);
+    PULL_OPTIMIZABLE(TRACE);
 
 
     private final OptimizerTrace.TraceLevel level;
