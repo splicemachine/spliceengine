@@ -293,18 +293,14 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             HashMap<Long, Pair<String, String>> display = new HashMap<>();
             ArrayList<StatisticsOperation> statisticsOperations = new ArrayList<>(tds.size());
-            SpliceLogUtils.warn(LOG, "Before AddFutures");
             for (TableDescriptor td : tds) {
                 display.put(td.getHeapConglomerateId(), Pair.newPair(schema, td.getName()));
                 statisticsOperations.add(createCollectTableStatisticsOperation(td, false, 0, true, txn, conn));
             }
-            SpliceLogUtils.warn(LOG, "Before IteratorNoPutResultSet");
 
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
                     displayTableStatistics(statisticsOperations,true, dd, transactionExecute, display));
-            SpliceLogUtils.warn(LOG, "After IteratorNoPutResultSet");
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
-            SpliceLogUtils.warn(LOG, "After EmbedResultSet40");
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
         } catch (ExecutionException e) {
