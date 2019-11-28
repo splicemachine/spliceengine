@@ -1077,6 +1077,7 @@ public class SQLParser
 		  case EQUALS_OPERATOR:
 		  case NOT_EQUALS_OPERATOR:
 		  case NOT_EQUALS_OPERATOR2: // !=
+		  case NOT_EQUALS_OPERATOR3: // ^=
 		  case LESS_THAN_OPERATOR:
 		  case GREATER_THAN_OPERATOR:
 		  case LESS_THAN_OR_EQUALS_OPERATOR:
@@ -3188,6 +3189,7 @@ TOKEN :
 |	<EQUALS_OPERATOR: "=">
 |	<NOT_EQUALS_OPERATOR: "<>">
 |	<NOT_EQUALS_OPERATOR2: "!=">
+|   <NOT_EQUALS_OPERATOR3: "^=">
 |	<GREATER_THAN_OPERATOR: ">">
 |	<GREATER_THAN_OR_EQUALS_OPERATOR: ">=">
 |	<QUESTION_MARK: "?">
@@ -6536,6 +6538,11 @@ compOp() throws StandardException :
 	{
 		return BinaryOperatorNode.NE;
 	}
+|
+    <NOT_EQUALS_OPERATOR3>
+    {
+        return BinaryOperatorNode.NE;
+    }
 |
 	<LESS_THAN_OPERATOR>
 	{
