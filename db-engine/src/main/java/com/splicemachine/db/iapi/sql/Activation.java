@@ -641,4 +641,8 @@ public interface Activation extends Dependent
 	Pair<PreparedStatement, Iterator<ParameterValueSet>> getBatch();
 
     void setBatch(Iterator<ParameterValueSet> params, PreparedStatement ps);
+
+    boolean isSubStatement();
+
+    void setSubStatement(boolean newValue);
 }
