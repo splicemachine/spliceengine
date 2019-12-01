@@ -99,6 +99,9 @@ final public class GenericActivationHolder implements Activation
 	public GeneratedClass			gc;
 	DataTypeDescriptor[]	paramTypes;
 	private final LanguageConnectionContext lcc;
+
+	private boolean isSubStatement = false;
+
 	/**
 	 * Constructor for an ActivationHolder
 	 *
@@ -850,5 +853,14 @@ final public class GenericActivationHolder implements Activation
 	@Override
 	public Pair<PreparedStatement, Iterator<ParameterValueSet>> getBatch() {
 		return ac.getBatch();
+	}
+
+	@Override
+	public boolean isSubStatement() { return isSubStatement; }
+
+	@Override
+        public void setSubStatement(boolean newValue) {
+	    isSubStatement = newValue;
+	    ac.setSubStatement(newValue);
 	}
 }

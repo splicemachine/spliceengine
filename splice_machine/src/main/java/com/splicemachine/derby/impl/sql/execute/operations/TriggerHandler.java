@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -21,15 +22,20 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 import com.splicemachine.db.impl.sql.execute.TriggerEventActivator;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.derby.iapi.sql.execute.SingleRowCursorResultSet;
+import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import org.spark_project.guava.collect.Lists;
 
@@ -62,14 +68,26 @@ public class TriggerHandler {
     private final boolean hasBeforeStatement;
     private final boolean hasAfterRow;
     private final boolean hasAfterStatement;
+    private final boolean hasStatementTriggerWithReferencingClause;
     private FormatableBitSet heapList;
+    private ExecRow templateRow;
+    private String tableVersion;
+
+    private DMLWriteInfo writeInfo;
+    private Activation activation;
+    private TriggerRowHolderImpl triggerRowHolder;
+    private boolean isSpark;
+    private TxnView txn;
+    private byte[] token;
 
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
                           Activation activation,
                           TriggerEvent beforeEvent,
                           TriggerEvent afterEvent,
-                          FormatableBitSet heapList) throws StandardException {
+                          FormatableBitSet heapList,
+                          ExecRow templateRow,
+                          String tableVersion) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
         initConnectionContext(activation.getLanguageConnectionContext());
 
@@ -82,9 +100,104 @@ public class TriggerHandler {
         this.hasAfterRow = triggerInfo.hasAfterRowTrigger();
         this.hasBeforeStatement = triggerInfo.hasBeforeStatementTrigger();
         this.hasAfterStatement = triggerInfo.hasAfterStatementTrigger();
+        this.hasStatementTriggerWithReferencingClause = triggerInfo.hasStatementTriggerWithReferencingClause();
         this.heapList = heapList;
+        this.templateRow = templateRow;
+        this.tableVersion = tableVersion;
+        this.activation = activation;
+        this.writeInfo = writeInfo;
         initTriggerActivator(activation, constantAction);
     }
+
+    public Callable<Void> getTriggerTempTableflushCallback () {
+        if (triggerRowHolder != null)
+             return triggerRowHolder.getTriggerTempTableflushCallback();
+        return null;
+    }
+
+    public void setTxn(TxnView txn) {
+        this.txn = txn;
+        if (triggerRowHolder != null)
+            triggerRowHolder.setTxn(txn);
+    }
+
+    public boolean hasStatementTrigger() {
+        return hasBeforeStatement || hasAfterStatement;
+    }
+
+    public boolean hasStatementTriggerWithReferencingClause() {
+        return this.hasStatementTriggerWithReferencingClause;
+    }
+
+    public void addRowToNewTableRowHolder(ExecRow row, KVPair encode) throws StandardException {
+        if (triggerRowHolder != null)
+            triggerRowHolder.insert(row, encode);
+    }
+
+    public void setIsSpark(boolean isSpark) {
+        this.isSpark = isSpark;
+    }
+
+    public boolean isSpark() {
+        return this.isSpark;
+    }
+
+    public long getTriggerConglomID() {
+        if (triggerRowHolder != null) {
+            return triggerRowHolder.getConglomerateId();
+        }
+        return 0;
+    }
+
+    public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token, long ConglomID) throws StandardException {
+        this.isSpark = isSpark;
+        this.txn = txn;
+        this.token = token;
+        Properties properties = new Properties();
+        if (hasStatementTriggerWithReferencingClause) {
+            // Use the smaller of ControlExecutionRowLimit or 1000000 to determine when to switch to spark execution.
+            // Hard cap at 1 million despite the setting of controlExecutionRowLimit since we don't want to exhaust
+            // memory if the sysadmin cranked this setting really high.
+            int switchToSparkThreshold = EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() <= Integer.MAX_VALUE ?
+            (int) EngineDriver.driver().getConfiguration().getControlExecutionRowLimit() : Integer.MAX_VALUE;
+
+            if (switchToSparkThreshold < 0)
+                switchToSparkThreshold = 0;
+            else if (switchToSparkThreshold > 1000000)
+                switchToSparkThreshold = 1000000;
+
+
+            long doubleDetermineSparkRowThreshold = 2 * getLcc().getOptimizerFactory().getDetermineSparkRowThreshold();
+            int inMemoryLimit = switchToSparkThreshold;
+
+            // Pick the larger of switchToSparkThreshold or 2*determineSparkRowThreshold as the
+            // threshold for creating a conglomerate.  By design this will cause the trigger rows
+            // to always be held in memory when executing on control, for performance.
+            // But the interface also supports values of switchToSparkThreshold which are larger than
+            // overflowToConglomThreshold, in which case we could create a temporary conglomerate while
+            // executing in control.
+            int overflowToConglomThreshold =
+                 doubleDetermineSparkRowThreshold > inMemoryLimit ? (int)doubleDetermineSparkRowThreshold :
+                 doubleDetermineSparkRowThreshold < 0 ? 0 :
+                 inMemoryLimit;
+
+            // Spark doesn't support use of an in-memory TriggerRowHolderImpl, so we
+            // set overflowToConglomThreshold to zero and always use a conglomerate.
+            if (isSpark) {
+                switchToSparkThreshold = 0;
+                overflowToConglomThreshold = 0;
+            }
+
+            triggerRowHolder =
+                new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
+                                         overflowToConglomThreshold, switchToSparkThreshold,
+                                         templateRow, tableVersion, isSpark, txn, token, ConglomID,
+                                          this.getTriggerExecutionContext());
+        }
+
+    }
+
+    public TriggerExecutionContext getTriggerExecutionContext() { return this.triggerActivator.getTriggerExecutionContext(); }
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
         try {
@@ -124,14 +237,16 @@ public class TriggerHandler {
 
     public void cleanup() throws StandardException {
         if (triggerActivator != null) {
-            triggerActivator.cleanup();
+            triggerActivator.cleanup(false);
         }
+        if (triggerRowHolder != null)
+            triggerRowHolder.close();;
     }
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasBeforeRow) {
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
-            triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null);
+            triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
         }
     }
 
@@ -147,6 +262,8 @@ public class TriggerHandler {
          * Which is what we want. Check constraints before firing after triggers. */
         try {
             flushCallback.call();
+            if (getTriggerTempTableflushCallback() != null)
+                getTriggerTempTableflushCallback().call();
         } catch (Exception e) {
             pendingAfterRows.clear();
             throw e;
@@ -161,23 +278,25 @@ public class TriggerHandler {
     private void fireAfterRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasAfterRow) {
             SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
-            triggerActivator.notifyRowEvent(afterEvent, triggeringResultSet, null);
+            triggerActivator.notifyRowEvent(afterEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
         }
     }
 
     public void fireBeforeStatementTriggers() throws StandardException {
         if (hasBeforeStatement) {
-            triggerActivator.notifyStatementEvent(beforeEvent);
+            CursorResultSet triggeringResultSet = triggerRowHolder == null ? null : triggerRowHolder.getResultSet();
+            triggerActivator.notifyStatementEvent(beforeEvent, triggeringResultSet, hasStatementTriggerWithReferencingClause);
         }
     }
 
     public void fireAfterStatementTriggers() throws StandardException {
         if (hasAfterStatement) {
-            triggerActivator.notifyStatementEvent(afterEvent);
+            CursorResultSet triggeringResultSet = triggerRowHolder == null ? null : triggerRowHolder.getResultSet();
+            triggerActivator.notifyStatementEvent(afterEvent, triggeringResultSet, hasStatementTriggerWithReferencingClause);
         }
     }
 
-    public LanguageConnectionContext getLcc() {
+    public LanguageConnectionContext getLcc() throws StandardException {
         return triggerActivator.getLcc();
     }
 
