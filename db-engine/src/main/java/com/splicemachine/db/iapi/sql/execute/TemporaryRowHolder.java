@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
 
 /**
  * This is a class that is used to temporarily
@@ -80,4 +81,10 @@ public interface TemporaryRowHolder
 	//sets the type of the temporary row holder to unique stream
 	void setRowHolderTypeToUniqueStream();
 
+	int getLastArraySlot();
+	void decrementLastArraySlot ();
+	int getState();
+	void setState(int state);
+	Activation getActivation();
+	long getConglomerateId();
 }

@@ -40,6 +40,7 @@ import java.io.ObjectOutput;
  */
 public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateDataSetWriterBuilder{
     protected long heapConglom;
+    protected long tempConglomID;
     protected int[] formatIds;
     protected int[] columnOrdering;
     protected int[] pkCols;
@@ -138,6 +139,13 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     public UpdateDataSetWriterBuilder destConglomerate(long heapConglom) {
         assert heapConglom !=-1 :"Only Set Heap Congloms allowed!";
         this.heapConglom = heapConglom;
+        return this;
+    }
+
+    @Override
+    public UpdateDataSetWriterBuilder tempConglomerateID(long conglomID){
+        assert tempConglomID !=-1 :"Only Set Temp Congloms allowed!";
+        this.tempConglomID = conglomID;
         return this;
     }
 

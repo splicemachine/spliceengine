@@ -43,11 +43,7 @@ import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-import com.splicemachine.db.iapi.sql.execute.RowChanger;
-import com.splicemachine.db.iapi.sql.execute.TargetResultSet;
+import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -59,7 +55,7 @@ import com.splicemachine.db.iapi.types.SQLLongint;
  * A result set to scan temporary row holders.  Ultimately, this may be returned to users, hence the extra junk from
  * the ResultSet interface.
  */
-class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cloneable {
+public class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cloneable {
 
     private ExecRow[] rowArray;
     private int numRowsOut;
@@ -72,7 +68,7 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
     private long positionIndexConglomId;
     private boolean isVirtualMemHeap;
     private boolean currRowFromMem;
-    private TemporaryRowHolderImpl holder;
+    private TemporaryRowHolder holder;
 
     // the following is used by position based scan, as well as virtual memory style heap
     ConglomerateController heapCC;
@@ -89,7 +85,7 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
                                        ExecRow[] rowArray,
                                        ResultDescription resultDescription,
                                        boolean isVirtualMemHeap,
-                                       TemporaryRowHolderImpl holder) {
+                                       TemporaryRowHolder holder) {
         this(tc, rowArray, resultDescription, isVirtualMemHeap, false, 0, holder);
     }
 
@@ -109,7 +105,7 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
                                        boolean isVirtualMemHeap,
                                        boolean isAppendable,
                                        long positionIndexConglomId,
-                                       TemporaryRowHolderImpl holder) {
+                                       TemporaryRowHolder holder) {
         this.tc = tc;
         this.rowArray = rowArray;
         this.resultDescription = resultDescription;
@@ -121,11 +117,13 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(rowArray != null, "rowArray is null");
-            SanityManager.ASSERT(rowArray.length > 0, "rowArray has no elements, need at least one");
+            SanityManager.ASSERT(rowArray.length > 0 || holder.getConglomerateId() != 0,"rowArray or rowHolder must contain rows.");
         }
 
         this.holder = holder;
     }
+
+    public TemporaryRowHolder getHolder() { return holder; }
 
     /**
      * Reset the exec row array and reinitialize
@@ -396,12 +394,12 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
             return getNextAppendedRow();
         }
 
-        if (isVirtualMemHeap && holder.lastArraySlot >= 0) {
+        if (isVirtualMemHeap && holder.getLastArraySlot() >= 0) {
             numRowsOut++;
-            currentRow = rowArray[holder.lastArraySlot];
+            currentRow = rowArray[holder.getLastArraySlot()];
             currRowFromMem = true;
             return currentRow;
-        } else if (numRowsOut++ <= holder.lastArraySlot) {
+        } else if (numRowsOut++ <= holder.getLastArraySlot()) {
             currentRow = rowArray[numRowsOut - 1];
             return currentRow;
         }
@@ -427,8 +425,8 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
                             null,                                // qualifier
                             (DataValueDescriptor[]) null,        // stop key value
                             0);                                  // stop operator
-        } else if (isVirtualMemHeap && holder.state == TemporaryRowHolderImpl.STATE_INSERT) {
-            holder.state = TemporaryRowHolderImpl.STATE_DRAIN;
+        } else if (isVirtualMemHeap && holder.getState() == TemporaryRowHolderImpl.STATE_INSERT) {
+            holder.setState(TemporaryRowHolderImpl.STATE_DRAIN);
             scan.reopenScan(
                     (DataValueDescriptor[]) null,   // start key value
                     0,                              // start operator
@@ -452,9 +450,9 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
             SanityManager.ASSERT(isVirtualMemHeap, "deleteCurrentRow is not implemented");
         }
         if (currRowFromMem) {
-            if (holder.lastArraySlot > 0)                // 0 is kept for template
-                rowArray[holder.lastArraySlot] = null;  // erase reference
-            holder.lastArraySlot--;
+            if (holder.getLastArraySlot() > 0)                // 0 is kept for template
+                rowArray[holder.getLastArraySlot()] = null;  // erase reference
+            holder.decrementLastArraySlot();
         } else {
             if (baseRowLocation == null)
                 baseRowLocation = scan.newRowLocationTemplate();
@@ -1219,6 +1217,6 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
      */
     @Override
     public final Activation getActivation() {
-        return holder.activation;
+        return holder.getActivation();
     }
 }

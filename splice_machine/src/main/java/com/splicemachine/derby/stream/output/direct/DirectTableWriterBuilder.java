@@ -35,6 +35,7 @@ import java.io.ObjectOutput;
  */
 public abstract class DirectTableWriterBuilder implements Externalizable,DataSetWriterBuilder{
     protected long destConglomerate;
+    protected long tempConglomID;
     protected TxnView txn;
     protected OperationContext opCtx;
     protected boolean skipIndex;
@@ -43,6 +44,12 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
         this.destConglomerate = heapConglom;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder tempConglomerateID(long conglomID){
+        this.tempConglomID = conglomID;
         return this;
     }
 

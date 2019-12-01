@@ -29,14 +29,42 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.catalog;
+package com.splicemachine.derby.catalog;
 
 import com.splicemachine.db.iapi.db.Factory;
+import com.splicemachine.db.iapi.error.StandardException;
+import java.sql.ResultSet;
+
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderResultSet;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
+import com.splicemachine.db.vti.VTICosting;
+import com.splicemachine.db.vti.VTIEnvironment;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataScan;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.sql.*;
+
+import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.deSiify;
 
 /**
  * Provides information about about a a set of new rows created by a
@@ -50,7 +78,9 @@ import java.sql.*;
  * environment if no JDBC 2.0 calls are made against it.
  *
  */
-public final class TriggerNewTransitionRows extends com.splicemachine.db.vti.UpdatableVTITemplate
+public class TriggerNewTransitionRows
+                   extends com.splicemachine.db.vti.UpdatableVTITemplate
+                   implements DatasetProvider, VTICosting
 {
 
 	private ResultSet resultSet;
@@ -71,6 +101,69 @@ public final class TriggerNewTransitionRows extends com.splicemachine.db.vti.Upd
 		initializeResultSet();
 	}
 
+	public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
+	    try {
+                resultSet.next();
+            }
+	    catch (SQLException e) {
+	        throw StandardException.plainWrapException(e);
+            }
+	    String tableName = Long.toString(((TriggerRowHolderImpl)((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder()).getConglomerateId());
+
+	    Activation activation = ((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder().getActivation();
+	    DMLWriteOperation writeOperation = (DMLWriteOperation)(activation.getResultSet());
+	    String tableVersion = writeOperation.getTableVersion();
+	    TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+	    Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
+            TxnView txn = ((BaseSpliceTransaction)rawStoreXact).getActiveStateTxn();
+            ExecRow templateRow = writeOperation.getExecRowDefinition();
+
+            DataScan s = Scans.setupScan(
+                null,   // startKeyValues
+                ScanController.NA,   // startSearchOperator
+                null,   // stopKeyValues
+                null,   // stopPrefixValues
+                ScanController.NA,   // stopSearchOperator
+                null,   // qualifiers
+                null,   // conglomerate.getAscDescInfo(),
+                null,   // getAccessedColumns(),
+                null,   // txn : non-transactional
+                false,  // sameStartStop,
+                null,   // conglomerate.getFormat_ids(),
+                null,   // keyDecodingMap,
+                null,   // FormatableBitSetUtils.toCompactedIntArray(getAccessedColumns()),
+                activation.getDataValueFactory(),
+                tableVersion,
+                false   // rowIdKey
+                );
+
+            s.cacheRows(1000).batchCells(-1);
+            deSiify(s);
+
+            int numColumns = templateRow.nColumns();
+            int [] rowDecodingMap = new int[numColumns];
+            for (int i = 0; i < numColumns; i++)
+                rowDecodingMap[i] = i;
+
+	    return dsp.<DMLWriteOperation,ExecRow>newScanSet(writeOperation, tableName)
+                .activation(((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder().getActivation())
+                .transaction(txn)
+                .scan(s)
+                .template(templateRow)
+                .tableVersion(tableVersion)
+                .reuseRowLocation(true)
+                .ignoreRecentTransactions(false)
+                .rowDecodingMap(rowDecodingMap)
+                .buildDataSet(writeOperation);
+
+
+	    // return dsp.getEmpty();  msirek-temp
+        }
+
+        public OperationContext getOperationContext() {
+	    return null;
+        }
+
 	private ResultSet initializeResultSet() throws SQLException {
 		if (resultSet != null)
 			resultSet.close();
@@ -78,14 +171,14 @@ public final class TriggerNewTransitionRows extends com.splicemachine.db.vti.Upd
 		TriggerExecutionContext tec = Factory.getTriggerExecutionContext();
 		if (tec == null)
 		{
-			throw new SQLException("There are no active triggers", "38000");
+	            //throw new SQLException("There are no active triggers", "38000");
 		}
-        // JC - TEC no longer returns ResultSets, it returns ExecRows. This class is not used.
-//		resultSet = tec.getNewRowSet();
+                else
+                    resultSet = tec.getNewRowSet();
 
 		if (resultSet == null)
 		{
-			throw new SQLException("There is no new transition rows result set for this trigger", "38000");
+			//throw new SQLException("There is no new transition rows result set for this trigger", "38000"); msirek-temp
 		}
 		return resultSet;
 	}
@@ -192,7 +285,7 @@ public final class TriggerNewTransitionRows extends com.splicemachine.db.vti.Upd
    }
     
    public int getResultSetConcurrency() {
-        return ResultSet.CONCUR_READ_ONLY;
+        return java.sql.ResultSet.CONCUR_READ_ONLY;
    }
 
     @Override
@@ -231,6 +324,21 @@ public final class TriggerNewTransitionRows extends com.splicemachine.db.vti.Upd
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return false;
+    }
+
+    @Override
+    public double getEstimatedRowCount(VTIEnvironment vtiEnvironment) throws SQLException {
+        return 1000;
+    }
+
+    @Override
+    public double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment) throws SQLException {
+        return 1000;
+    }
+
+    @Override
+    public boolean supportsMultipleInstantiations(VTIEnvironment vtiEnvironment) throws SQLException {
         return false;
     }
 }

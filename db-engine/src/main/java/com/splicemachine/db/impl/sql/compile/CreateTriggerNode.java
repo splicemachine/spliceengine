@@ -563,10 +563,10 @@ public class CreateTriggerNode extends DDLStatementNode {
                 // Replace the transition table name with a VTI.
                 final int replacementOffset = newText.length();
 
-                newText.append("new com.splicemachine.db.catalog.TriggerNewTransitionRows() ");
+                newText.append("new com.splicemachine.derby.catalog.TriggerNewTransitionRows() ");
 //                newText.append(baseTableName.equals(oldTableName) ?
-//                                "new com.splicemachine.db.catalog.TriggerOldTransitionRows() " :
-//                                "new com.splicemachine.db.catalog.TriggerNewTransitionRows() ");
+//                                "new com.splicemachine.derby.catalog.TriggerOldTransitionRows() " :
+//                                "new com.splicemachine.derby.catalog.TriggerNewTransitionRows() ");
                 /*
                 ** If the user supplied a correlation, then just
                 ** pick it up automatically; otherwise, supply

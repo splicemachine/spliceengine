@@ -30,7 +30,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.derby.impl.sql.execute.TemporaryRowHolderImpl;
+import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderImpl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLWarning;
@@ -53,7 +53,7 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
     private long positionIndexConglomId;
     private boolean isVirtualMemHeap;
     private boolean currRowFromMem;
-    private TemporaryRowHolderImpl holder;
+    private TemporaryRowHolder holder;
 
     // the following is used by position based scan, as well as virtual memory style heap
     ConglomerateController heapCC;
@@ -72,7 +72,7 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
             ExecRow[] rowArray,
             ResultDescription resultDescription,
             boolean isVirtualMemHeap,
-            TemporaryRowHolderImpl holder
+            TemporaryRowHolder holder
     ){
         this(tc,rowArray,resultDescription,isVirtualMemHeap,false,0,holder);
     }
@@ -95,10 +95,10 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
             boolean isVirtualMemHeap,
             boolean isAppendable,
             long positionIndexConglomId,
-            TemporaryRowHolderImpl holder
+            TemporaryRowHolder holder
     ){
-        if(1!=2)
-            throw new RuntimeException("Stubbed out, please review prior to implementing...");
+//        if(1!=2)  msirek-temp
+//            throw new RuntimeException("Stubbed out, please review prior to implementing...");
         this.tc=tc;
         this.rowArray=rowArray;
         this.resultDescription=resultDescription;
@@ -110,7 +110,7 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
 
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(rowArray!=null,"rowArray is null");
-            SanityManager.ASSERT(rowArray.length>0,"rowArray has no elements, need at least one");
+            SanityManager.ASSERT(rowArray.length > 0 || holder.getConglomerateId() != 0,"rowArray or rowHolder must contain rows.");
         }
 
         this.holder=holder;
@@ -389,12 +389,12 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
             return getNextAppendedRow();
         }
 
-        if(isVirtualMemHeap && holder.lastArraySlot>=0){
+        if(isVirtualMemHeap && holder.getLastArraySlot()>=0){
             numRowsOut++;
-            currentRow=rowArray[holder.lastArraySlot];
+            currentRow=rowArray[holder.getLastArraySlot()];
             currRowFromMem=true;
             return currentRow;
-        }else if(numRowsOut++<=holder.lastArraySlot){
+        }else if(numRowsOut++<=holder.getLastArraySlot()){
             currentRow=rowArray[numRowsOut-1];
             return currentRow;
         }
@@ -420,8 +420,8 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
                             null,                    // qualifier
                             (DataValueDescriptor[])null,        // stop key value
                             0);                        // stop operator
-        }else if(isVirtualMemHeap && holder.state==TemporaryRowHolderImpl.STATE_INSERT){
-            holder.state=TemporaryRowHolderImpl.STATE_DRAIN;
+        }else if(isVirtualMemHeap && holder.getState()== TemporaryRowHolderImpl.STATE_INSERT){
+            holder.setState(TemporaryRowHolderImpl.STATE_DRAIN);
             scan.reopenScan(
                     (DataValueDescriptor[])null,        // start key value
                     0,                        // start operator
@@ -764,7 +764,7 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
      * are no more rows.
      *
      * @throws StandardException Thrown on failure
-     * @return The next row, or NULL if no more rows.
+     * @return The next row, or NULL if no more rows.state
      * @see Row
      */
     public ExecRow getNextRow() throws StandardException{
@@ -1179,7 +1179,7 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
      * @return activation
      */
     public final Activation getActivation(){
-        return holder.activation;
+        return holder.getActivation();
     }
 
     @Override

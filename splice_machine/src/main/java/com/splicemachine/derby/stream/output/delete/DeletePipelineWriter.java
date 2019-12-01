@@ -43,8 +43,8 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public int rowsDeleted = 0;
     protected DeleteOperation deleteOperation;
 
-    public DeletePipelineWriter(TxnView txn,byte[] token,long heapConglom,OperationContext operationContext) throws StandardException {
-        super(txn, token, heapConglom,operationContext);
+    public DeletePipelineWriter(TxnView txn,byte[] token,long heapConglom,long tempConglomID, OperationContext operationContext) throws StandardException {
+        super(txn, token, heapConglom, tempConglomID, operationContext);
         if (operationContext != null) {
             deleteOperation = (DeleteOperation)operationContext.getOperation();
         }
@@ -63,6 +63,8 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             writeBuffer=writeCoordinator.writeBuffer(destinationTable,txn,null, PipelineUtils.noOpFlushHook, writeConfiguration, Metrics.noOpMetricFactory());
             encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
             flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
+            triggerTempTableflushCallback=triggerHandler==null || triggerTempTableWriteBuffer == null ? null
+                                          : TriggerHandler.flushCallback(triggerTempTableWriteBuffer);
         }catch(IOException ioe){
            throw Exceptions.parseException(ioe);
         }

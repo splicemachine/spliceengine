@@ -60,13 +60,13 @@ import java.util.Properties;
  * It is used for deferred DML processing.
  *
  */
-class TemporaryRowHolderImpl implements TemporaryRowHolder
+public class TemporaryRowHolderImpl implements TemporaryRowHolder
 {
 	public static final int DEFAULT_OVERFLOWTHRESHOLD = 5;
 
-	protected static final int STATE_UNINIT = 0;
-	protected static final int STATE_INSERT = 1;
-	protected static final int STATE_DRAIN = 2;
+	public static final int STATE_UNINIT = 0;
+	public static final int STATE_INSERT = 1;
+	public static final int STATE_DRAIN = 2;
 
 
 	protected ExecRow[] 	rowArray;
@@ -189,6 +189,13 @@ class TemporaryRowHolderImpl implements TemporaryRowHolder
 		rowArray = new ExecRow[overflowToConglomThreshold];
 		lastArraySlot = -1;
 	}
+
+	public int getLastArraySlot() { return lastArraySlot; }
+	public void decrementLastArraySlot() { lastArraySlot--; }
+	public int getState() { return state; }
+	public void setState(int state) { this.state = state; }
+	public Activation getActivation() { return getActivation(); }
+	public long getConglomerateId() { return CID; }
 
     /* Avoid materializing a stream just because it goes through a temp table.
      * It is OK to have a stream in the temp table (in memory or spilled to

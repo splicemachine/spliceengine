@@ -169,6 +169,7 @@ public class ActivationHolder implements Externalizable {
         } else
             out.writeBoolean(false);
         out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getPropertyCache());
+        out.writeBoolean(initialized);
     }
 
     private void init(TxnView txn, boolean reinit){
@@ -219,6 +220,7 @@ public class ActivationHolder implements Externalizable {
         } else
             groupUsers = null;
         propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
+        initialized = in.readBoolean();
     }
 
     public void setActivation(Activation activation) {

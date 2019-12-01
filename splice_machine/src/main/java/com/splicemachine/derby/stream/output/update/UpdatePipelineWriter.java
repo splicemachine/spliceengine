@@ -73,7 +73,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public UpdatePipelineWriter(long heapConglom,int[] formatIds,int[] columnOrdering,
                                 int[] pkCols,FormatableBitSet pkColumns,String tableVersion,TxnView txn,byte[] token,
                                 ExecRow execRowDefinition,FormatableBitSet heapList,OperationContext operationContext) throws StandardException{
-        super(txn, token, heapConglom,operationContext);
+        super(txn, token, heapConglom, 0, operationContext);
         assert pkCols!=null && columnOrdering!=null:"Primary Key Information is null";
         this.formatIds=formatIds;
         this.columnOrdering=columnOrdering;
@@ -135,6 +135,8 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         writeBuffer=transformWriteBuffer(bufferToTransform);
         encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
         flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
+        triggerTempTableflushCallback = triggerHandler==null || triggerTempTableWriteBuffer == null ? null
+                                          : TriggerHandler.flushCallback(triggerTempTableWriteBuffer);
     }
 
     public KeyEncoder getKeyEncoder() throws StandardException{

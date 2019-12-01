@@ -40,16 +40,20 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected TxnView txn;
     protected byte[] token;
     protected byte[] destinationTable;
+    protected byte[] tempTriggerTable;
     protected long heapConglom;
+    protected long tempConglomID;
     protected  TriggerHandler triggerHandler;
     protected Callable<Void> flushCallback;
+    protected Callable<Void> triggerTempTableflushCallback;
     protected RecordingCallBuffer<KVPair> writeBuffer;
+    protected RecordingCallBuffer<KVPair> triggerTempTableWriteBuffer;
     protected WriteCoordinator writeCoordinator;
     protected DMLWriteOperation operation;
     protected OperationContext operationContext;
     protected boolean rollforward;
 
-    public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, OperationContext operationContext) {
+    public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID, OperationContext operationContext) {
         this.txn = txn;
         this.token = token;
         this.heapConglom = heapConglom;
@@ -58,6 +62,8 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
         if (operationContext != null) {
             this.operation = (DMLWriteOperation) operationContext.getOperation();
         }
+        this.tempConglomID = tempConglomID;
+        this.tempTriggerTable = tempConglomID == 0 ? null : Bytes.toBytes(Long.toString(tempConglomID));
     }
 
     @Override
@@ -96,7 +102,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     public void close() throws StandardException {
 
         try {
-            TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
+            TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback, triggerTempTableflushCallback);
             if (writeBuffer != null) {
                 writeBuffer.flushBuffer();
                 writeBuffer.close();

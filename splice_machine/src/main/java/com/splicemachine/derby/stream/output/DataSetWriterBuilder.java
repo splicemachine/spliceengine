@@ -29,6 +29,8 @@ public interface DataSetWriterBuilder{
 
     DataSetWriterBuilder destConglomerate(long heapConglom);
 
+    DataSetWriterBuilder tempConglomerateID(long conglomID);
+
     DataSetWriterBuilder txn(TxnView txn);
 
     DataSetWriterBuilder token(byte[] token);

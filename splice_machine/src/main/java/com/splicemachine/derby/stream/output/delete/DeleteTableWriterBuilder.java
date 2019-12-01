@@ -35,6 +35,7 @@ import java.io.ObjectOutput;
  */
 public abstract class DeleteTableWriterBuilder implements Externalizable,DataSetWriterBuilder{
     protected long heapConglom;
+    protected long tempConglomID;
     protected TxnView txn;
     protected OperationContext operationContext;
     protected byte[] token;
@@ -56,6 +57,12 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     }
 
     @Override
+    public DataSetWriterBuilder tempConglomerateID(long conglomID){
+        this.tempConglomID = conglomID;
+        return this;
+    }
+
+    @Override
     public DataSetWriterBuilder skipIndex(boolean skipIndex){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
@@ -73,7 +80,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public TableWriter buildTableWriter() throws StandardException{
         long conglom = Long.parseLong(Bytes.toString(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable()));
-        return new DeletePipelineWriter(txn,token,conglom,operationContext);
+        return new DeletePipelineWriter(txn,token,conglom, 0, operationContext);
     }
 
     @Override

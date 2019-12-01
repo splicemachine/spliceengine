@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLRef;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.IndexValueRow;
+import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import java.util.Properties;
@@ -45,7 +46,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.TemporaryRowHolderOpe
 * It is used for deferred DML processing.
 *
 */
-public class TemporaryRowHolderImpl implements TemporaryRowHolder {
+public class TriggerRowHolderImpl implements TemporaryRowHolder {
 	public static final int DEFAULT_OVERFLOWTHRESHOLD = 5;
 
 	protected static final int STATE_UNINIT = 0;
@@ -85,6 +86,8 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 	private DataValueDescriptor[]  positionIndexRow = null;
 	private RowLocation            destRowLocation; //row location in the temporary conglomerate
 	private SQLLongint             position_sqllong;
+
+	private ExecRow execRowDefinition;
 	
 
 	/**
@@ -97,7 +100,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 	 * @param resultDescription the result description.  Relevant for the getResultDescription
 	 * 		call on the result set returned by getResultSet.  May be null
 	 */
-	public TemporaryRowHolderImpl
+	public TriggerRowHolderImpl
 	(
 		Activation				activation, 
 		Properties 				properties, 
@@ -105,7 +108,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 	) 
 	{
 		this(activation, properties, resultDescription,
-			 DEFAULT_OVERFLOWTHRESHOLD, false, false);
+			 DEFAULT_OVERFLOWTHRESHOLD, false, false, null);
 	}
 	
 	/**
@@ -119,7 +122,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 	 * 		call on the result set returned by getResultSet.  May be null
 	 * @param isUniqueStream - true , if it has to be temporary row holder unique stream
 	 */
-	public TemporaryRowHolderImpl
+	public TriggerRowHolderImpl
 	(
 		Activation				activation, 
 		Properties 				properties, 
@@ -128,7 +131,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 	) 
 	{
 		this(activation, properties, resultDescription, 1, isUniqueStream,
-			 false);
+			 false, null);
 	}
 
 
@@ -144,22 +147,23 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 	 * 		this number of rows, the rows will be put
 	 *		into a temporary conglomerate.
 	 */
-	public TemporaryRowHolderImpl
+	public TriggerRowHolderImpl
 	(
 		Activation			 	activation, 
 		Properties				properties,
 		ResultDescription		resultDescription,
 		int 					overflowToConglomThreshold,
 		boolean                 isUniqueStream,
-		boolean					isVirtualMemHeap
+		boolean					isVirtualMemHeap,
+		ExecRow                                 execRowDefinition
 	)
 	{
 		if (SanityManager.DEBUG)
 		{
-			if (overflowToConglomThreshold <= 0)
+			if (overflowToConglomThreshold < 0)
 			{
 				SanityManager.THROWASSERT("It is assumed that "+
-					"the overflow threshold is > 0.  "+
+					"the overflow threshold is >= 0.  "+
 					"If you you need to change this you have to recode some of "+
 					"this class.");
 			}
@@ -170,9 +174,26 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 		this.resultDescription = resultDescription;
 		this.isUniqueStream = isUniqueStream;
 		this.isVirtualMemHeap = isVirtualMemHeap;
-		rowArray = new ExecRow[overflowToConglomThreshold];
+		rowArray = new ExecRow[overflowToConglomThreshold < 1 ? 1 : overflowToConglomThreshold];
 		lastArraySlot = -1;
+		this.execRowDefinition = execRowDefinition;
+		rowArray[0] = execRowDefinition.getClone();
+		if (overflowToConglomThreshold == 0 && execRowDefinition != null) {
+		    try {
+                        createConglomerate(execRowDefinition);
+                    }
+		    catch (StandardException e) {
+		        throw new RuntimeException(e);
+                    }
+                }
 	}
+
+	public int getLastArraySlot() { return lastArraySlot; }
+	public void decrementLastArraySlot() { lastArraySlot--; }
+	public int getState() { return state; }
+	public void setState(int state) { this.state = state; }
+	public Activation getActivation() { return activation; }
+	public long getConglomerateId() { return CID; }
 
  /* Avoid materializing a stream just because it goes through a temp table.
   * It is OK to have a stream in the temp table (in memory or spilled to
@@ -212,6 +233,73 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 			return cloned;
 	}
 
+	private void createConglomerate(ExecRow templateRow) throws StandardException{
+            if (!conglomCreated)
+            {
+                TransactionController tc = activation.getTransactionController();
+
+                // TODO-COLLATE, I think collation needs to get set always correctly
+                // but did see what to get collate id when there was no result
+                // description.  The problem comes if row holder is used to stream
+                // row to temp disk, then row is read from disk using an interface
+                // where store creates the DataValueDescriptor template itself,
+                // and subsquently the returned column is used for some sort of
+                // comparison.  Also could be a problem is reader of tempoary
+                // table uses qualifiers, that would result in comparisons internal
+                // to store.  I believe the below client is incomplete - either
+                // it should always be default, or real collate_ids should be
+                // passed in.
+
+                // null collate_ids in createConglomerate call indicates to use all
+                // default collate ids.
+                int collation_ids[] = null;
+
+                /*
+                TODO-COLLATE - if we could count on resultDescription I think the
+                following would work.
+
+                if (resultDescription != null)
+                {
+                 // init collation id info from resultDescription for create call
+                 collation_ids = new int[resultDescription.getColumnCount()];
+
+                 for (int i = 0; i < collation_ids.length; i++)
+                 {
+                     collation_ids[i] =
+                         resultDescription.getColumnDescriptor(
+                             i + 1).getType().getCollationType();
+                 }
+                }
+                */
+
+
+                /*
+                ** Create the conglomerate with the template row.
+                */
+                CID =
+                    tc.createConglomerate(false,
+                     "heap",
+                     templateRow.getRowArray(),
+                     null, //column sort order - not required for heap
+                     collation_ids,
+                     properties,
+                     TransactionController.IS_TEMPORARY |
+                     TransactionController.IS_KEPT);
+
+                conglomCreated = true;
+
+                cc = tc.openConglomerate(CID,
+                     false,
+                     TransactionController.OPENMODE_FORUPDATE,
+                     TransactionController.MODE_TABLE,
+                     TransactionController.ISOLATION_SERIALIZABLE);
+                if(isUniqueStream)
+                   destRowLocation = cc.newRowLocationTemplate();
+
+            }
+
+        }
+
 	/**
 	 * Insert a row
 	 *
@@ -250,70 +338,9 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 				return;  
          }
 		}
-			
+
 		if (!conglomCreated)
-		{
-			TransactionController tc = activation.getTransactionController();
-
-         // TODO-COLLATE, I think collation needs to get set always correctly
-         // but did see what to get collate id when there was no result
-         // description.  The problem comes if row holder is used to stream
-         // row to temp disk, then row is read from disk using an interface
-         // where store creates the DataValueDescriptor template itself, 
-         // and subsquently the returned column is used for some sort of
-         // comparison.  Also could be a problem is reader of tempoary 
-         // table uses qualifiers, that would result in comparisons internal
-         // to store.  I believe the below client is incomplete - either
-         // it should always be default, or real collate_ids should be 
-         // passed in.
-
-         // null collate_ids in createConglomerate call indicates to use all
-         // default collate ids.
-         int collation_ids[] = null;
-
-         /*
-         TODO-COLLATE - if we could count on resultDescription I think the
-         following would work.
-
-         if (resultDescription != null)
-         {
-             // init collation id info from resultDescription for create call
-             collation_ids = new int[resultDescription.getColumnCount()];
-
-             for (int i = 0; i < collation_ids.length; i++)
-             {
-                 collation_ids[i] = 
-                     resultDescription.getColumnDescriptor(
-                         i + 1).getType().getCollationType();
-             }
-         }
-         */
-
-
-			/*
-			** Create the conglomerate with the template row.
-			*/
-			CID = 
-             tc.createConglomerate(false,
-                 "heap",
-                 inputRow.getRowArray(),
-                 null, //column sort order - not required for heap
-                 collation_ids,
-                 properties,
-                 TransactionController.IS_TEMPORARY | 
-                 TransactionController.IS_KEPT);
-
-			conglomCreated = true;
-
-			cc = tc.openConglomerate(CID, 
-                             false,
-                             TransactionController.OPENMODE_FORUPDATE,
-                             TransactionController.MODE_TABLE,
-                             TransactionController.ISOLATION_SERIALIZABLE);
-			if(isUniqueStream)
-			   destRowLocation = cc.newRowLocationTemplate();
-
-		}
+		    createConglomerate(inputRow);
 
 		int status = 0;
 		if(isUniqueStream)
@@ -480,13 +507,13 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 		TransactionController tc = activation.getTransactionController();
 		if(isUniqueStream)
 		{
-			return new TemporaryRowHolderOperation(tc, rowArray,
-												   resultDescription, isVirtualMemHeap,
-												   true, positionIndexConglomId, this);
+			return new TemporaryRowHolderResultSet(tc, rowArray,
+                                                                   resultDescription, isVirtualMemHeap,
+                                                                   true, positionIndexConglomId, this);
 		}
 		else
 		{
-			return new TemporaryRowHolderOperation(tc, rowArray, resultDescription, isVirtualMemHeap, this);
+			return new TemporaryRowHolderResultSet(tc, rowArray, resultDescription, isVirtualMemHeap, this);
 
 		}
 	}
@@ -516,19 +543,9 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder {
 		numRowsIn = 0;
 	}
 
- /**
-  * Accessor to get the id of the temporary conglomerate. Temporary 
-  * conglomerates have negative ids. An id equal to zero means that no 
-  * temporary conglomerate has been created.
-  * @return Conglomerate ID of temporary conglomerate
-  */
 	public long getTemporaryConglomId()
 	{
-     if (SanityManager.DEBUG) {
-         SanityManager.ASSERT(CID == 0 && !conglomCreated || 
-                 CID < 0 && conglomCreated);
-     }
-		return CID;
+            return getConglomerateId();
 	}
 
 	public long getPositionIndexConglomId()

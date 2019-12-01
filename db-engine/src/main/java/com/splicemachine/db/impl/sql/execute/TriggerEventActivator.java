@@ -39,6 +39,7 @@ import java.util.Vector;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -57,6 +58,7 @@ public class TriggerEventActivator {
     private Map<TriggerEvent, List<GenericTriggerExecutor>> statementExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<GenericTriggerExecutor>> rowExecutorsMap = new HashMap<>();
     private Activation activation;
+    private ConnectionContext cc;
     private String statementText;
     private UUID tableId;
     private String tableName;
@@ -89,6 +91,7 @@ public class TriggerEventActivator {
             this.statementText = context.getStatementText();
         }
         this.heapList = heapList;
+        cc = (ConnectionContext)lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
 
         initTriggerExecContext(aiCounters);
         setupExecutors(triggerInfo);
@@ -97,7 +100,7 @@ public class TriggerEventActivator {
     private void initTriggerExecContext(Vector<AutoincrementCounter> aiCounters) throws StandardException {
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
-               statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
+               cc, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                 tableId, tableName, aiCounters, heapList);
     }
 
@@ -128,7 +131,8 @@ public class TriggerEventActivator {
      *
      * @param event a trigger event
      */
-    public void notifyStatementEvent(TriggerEvent event) throws StandardException {
+    public void notifyStatementEvent(TriggerEvent event,
+                                     CursorResultSet triggeringResultSet) throws StandardException {
 
         if (statementExecutorsMap.isEmpty()) {
             return;
@@ -149,7 +153,7 @@ public class TriggerEventActivator {
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
                 // Fire the statement or row trigger.
-                triggerExecutor.fireTrigger(event, null, null);
+                triggerExecutor.fireTrigger(event, triggeringResultSet, null);
             }
         } finally {
             lcc.popExecutionStmtValidator(tec);

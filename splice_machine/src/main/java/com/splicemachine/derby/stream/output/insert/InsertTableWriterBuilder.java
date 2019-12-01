@@ -50,6 +50,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     protected RowLocation[] autoIncrementRowLocationArray;
     protected SpliceSequence[] spliceSequences;
     protected long heapConglom;
+    protected long tempConglomID;
     protected TxnView txn;
     protected byte[] token;
     protected OperationContext operationContext;
@@ -120,6 +121,12 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
     }
 
     @Override
+    public DataSetWriterBuilder tempConglomerateID(long conglomID){
+        this.tempConglomID = conglomID;
+        return this;
+    }
+
+    @Override
     public DataSetWriterBuilder skipIndex(boolean skipIndex){
         throw new UnsupportedOperationException("IMPLEMENT");
     }
@@ -150,7 +157,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         return new InsertPipelineWriter(pkCols,
                 tableVersion,
                 execRowDefinition,autoIncrementRowLocationArray,spliceSequences,heapConglom,
-                txn,token,operationContext,isUpsert);
+                txn,token,operationContext,isUpsert, tempConglomID);
     }
 
     @Override
@@ -192,6 +199,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
                 out.writeObject(spliceSequences[i]);
             }
             out.writeLong(heapConglom);
+            out.writeLong(tempConglomID);
             out.writeDouble(sampleFraction);
             ArrayUtil.writeIntArray(out, updateCounts);
         } catch (Exception e) {
@@ -218,6 +226,7 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
         for (int i =0; i< spliceSequences.length; i++)
             spliceSequences[i] = (SpliceSequence) in.readObject();
         heapConglom = in.readLong();
+        tempConglomID = in.readLong();
         sampleFraction = in.readDouble();
         updateCounts = ArrayUtil.readIntArray(in);
     }

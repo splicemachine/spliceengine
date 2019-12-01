@@ -109,7 +109,8 @@ public class UpdateOperation extends DMLWriteOperation{
                     getActivation(),
                     getBeforeEvent(getClass()),
                     getAfterEvent(getClass()),
-                    getHeapList()
+                    getHeapList(),
+                    getExecRowDefinition()
             );
         }
     }

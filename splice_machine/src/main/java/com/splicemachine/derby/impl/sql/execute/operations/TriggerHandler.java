@@ -21,12 +21,14 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 import com.splicemachine.db.impl.sql.execute.TriggerEventActivator;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.derby.iapi.sql.execute.SingleRowCursorResultSet;
+import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
@@ -63,13 +65,19 @@ public class TriggerHandler {
     private final boolean hasAfterRow;
     private final boolean hasAfterStatement;
     private FormatableBitSet heapList;
+    private ExecRow templateRow;
+
+    private DMLWriteInfo writeInfo;
+    private Activation activation;
+    private TriggerRowHolderImpl newTableRowHolder;
 
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
                           Activation activation,
                           TriggerEvent beforeEvent,
                           TriggerEvent afterEvent,
-                          FormatableBitSet heapList) throws StandardException {
+                          FormatableBitSet heapList,
+                          ExecRow templateRow) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
         initConnectionContext(activation.getLanguageConnectionContext());
 
@@ -83,7 +91,23 @@ public class TriggerHandler {
         this.hasBeforeStatement = triggerInfo.hasBeforeStatementTrigger();
         this.hasAfterStatement = triggerInfo.hasAfterStatementTrigger();
         this.heapList = heapList;
+        this.templateRow = templateRow;
+        this.activation = activation;
+        this.writeInfo = writeInfo;
         initTriggerActivator(activation, constantAction);
+    }
+
+    public long getNewTableConglomerateId() {
+        if (newTableRowHolder == null)
+            return 0;
+        return newTableRowHolder.getConglomerateId();
+    }
+    public void initTriggerRowHolders() {
+        Properties properties = new Properties();
+        if (hasAfterStatement)
+            newTableRowHolder =
+                new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
+                                         0, false, false, templateRow);
     }
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
@@ -126,6 +150,8 @@ public class TriggerHandler {
         if (triggerActivator != null) {
             triggerActivator.cleanup();
         }
+        if (newTableRowHolder != null)
+            newTableRowHolder.close();;
     }
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
@@ -135,18 +161,20 @@ public class TriggerHandler {
         }
     }
 
-    public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
+    public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback, Callable<Void> triggerTempTableflushCallback) throws Exception {
         pendingAfterRows.add(row.getClone());
         if (pendingAfterRows.size() == AFTER_ROW_BUFFER_SIZE) {
-            firePendingAfterTriggers(flushCallback);
+            firePendingAfterTriggers(flushCallback, triggerTempTableflushCallback);
         }
     }
 
-    public void firePendingAfterTriggers(Callable<Void> flushCallback) throws Exception {
+    public void firePendingAfterTriggers(Callable<Void> flushCallback, Callable<Void> triggerTempTableflushCallback) throws Exception {
         /* If there are any un-flushed rows that would cause a constraint violation then this callback will throw.
          * Which is what we want. Check constraints before firing after triggers. */
         try {
             flushCallback.call();
+            if (triggerTempTableflushCallback != null)
+                triggerTempTableflushCallback.call();
         } catch (Exception e) {
             pendingAfterRows.clear();
             throw e;
@@ -167,13 +195,15 @@ public class TriggerHandler {
 
     public void fireBeforeStatementTriggers() throws StandardException {
         if (hasBeforeStatement) {
-            triggerActivator.notifyStatementEvent(beforeEvent);
+            CursorResultSet triggeringResultSet = newTableRowHolder == null ? null : newTableRowHolder.getResultSet();
+            triggerActivator.notifyStatementEvent(beforeEvent, triggeringResultSet);
         }
     }
 
     public void fireAfterStatementTriggers() throws StandardException {
         if (hasAfterStatement) {
-            triggerActivator.notifyStatementEvent(afterEvent);
+            CursorResultSet triggeringResultSet = newTableRowHolder == null ? null : newTableRowHolder.getResultSet();
+            triggerActivator.notifyStatementEvent(afterEvent, triggeringResultSet);
         }
     }
 
@@ -199,13 +229,14 @@ public class TriggerHandler {
 
     public static void fireAfterRowTriggers(TriggerHandler triggerHandler, ExecRow row, Callable<Void> flushCallback) throws Exception {
         if (triggerHandler != null) {
-            triggerHandler.fireAfterRowTriggers(row, flushCallback);
+            triggerHandler.fireAfterRowTriggers(row, flushCallback, null);
         }
     }
 
-    public static void firePendingAfterTriggers(TriggerHandler triggerHandler, Callable<Void> flushCallback) throws Exception {
+    public static void firePendingAfterTriggers(TriggerHandler triggerHandler, Callable<Void> flushCallback,
+                                                Callable<Void> triggerTempTableflushCallback) throws Exception {
         if (triggerHandler != null) {
-            triggerHandler.firePendingAfterTriggers(flushCallback);
+            triggerHandler.firePendingAfterTriggers(flushCallback, triggerTempTableflushCallback);
         }
     }
 

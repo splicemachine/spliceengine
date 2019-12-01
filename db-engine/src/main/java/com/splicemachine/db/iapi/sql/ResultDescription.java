@@ -93,7 +93,7 @@ public interface ResultDescription
 	 */
 	ResultDescription truncateColumns(int truncateFrom);
     
-    /**
+    /**isVirtualMemHeap
      * Set the JDBC ResultSetMetaData for this ResultDescription.
      * A ResultSetMetaData object can be saved in the statement
      * plan using this method. This only works while

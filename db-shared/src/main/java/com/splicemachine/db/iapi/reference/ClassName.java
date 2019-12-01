@@ -142,8 +142,8 @@ public interface ClassName
 	String LanguageFactory ="com.splicemachine.db.iapi.sql.LanguageFactory";
 	String ParameterValueSetFactory ="com.splicemachine.db.iapi.sql.ParameterValueSetFactory";
 
-	String TriggerNewTransitionRows = "com.splicemachine.db.catalog.TriggerNewTransitionRows";
-//	String TriggerOldTransitionRows = "com.splicemachine.db.catalog.TriggerOldTransitionRows";
+	String TriggerNewTransitionRows = "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
+//	String TriggerOldTransitionRows = "com.splicemachine.derby.catalog.TriggerOldTransitionRows";
 	String VTICosting = "com.splicemachine.db.vti.VTICosting";
 
 	String Authorizer = "com.splicemachine.db.iapi.sql.conn.Authorizer";

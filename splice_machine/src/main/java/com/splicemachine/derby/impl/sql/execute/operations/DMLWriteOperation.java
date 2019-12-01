@@ -120,6 +120,15 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
 
     }
 
+    public String getTableVersion() { return tableVersion; }
+
+    public long getTriggerNewTableConglomerateId() {
+        if (triggerHandler != null)
+            return triggerHandler.getNewTableConglomerateId();
+        else
+            return 0;
+    }
+
     @Override
     public void readExternal(ObjectInput in) throws IOException,
             ClassNotFoundException{
@@ -161,7 +170,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
                     getActivation(),
                     getBeforeEvent(getClass()),
                     getAfterEvent(getClass()),
-                    null
+                    null,
+                    getExecRowDefinition()
             );
         }
     }
