@@ -51,12 +51,12 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
 
     public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceOperation operation) throws StandardException {
         this.siTableBuilder = siTableBuilder;
-        this.operation = (ScanOperation) operation;
+        this.operation = (operation instanceof ScanOperation) ? (ScanOperation) operation : null;
         this.hBaseRowLocation = new HBaseRowLocation();
-        if (operation != null) {
-            this.qualifiers = ((ScanOperation) operation).getScanInformation().getScanQualifiers();
-            this.baseColumnMap = ((ScanOperation) operation).getOperationInformation().getBaseColumnMap();
-            this.rowIdKey = ((ScanOperation) operation).getRowIdKey();
+        if (this.operation != null) {
+            this.qualifiers = this.operation.getScanInformation().getScanQualifiers();
+            this.baseColumnMap = this.operation.getOperationInformation().getBaseColumnMap();
+            this.rowIdKey = this.operation.getRowIdKey();
         }
     }
 

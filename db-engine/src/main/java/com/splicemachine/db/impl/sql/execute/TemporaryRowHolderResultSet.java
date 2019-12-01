@@ -33,7 +33,6 @@ package com.splicemachine.db.impl.sql.execute;
 
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
-import java.util.Arrays;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -42,24 +41,17 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.Row;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-import com.splicemachine.db.iapi.sql.execute.RowChanger;
-import com.splicemachine.db.iapi.sql.execute.TargetResultSet;
-import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.types.SQLLongint;
 
 /**
  * A result set to scan temporary row holders.  Ultimately, this may be returned to users, hence the extra junk from
  * the ResultSet interface.
  */
-class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cloneable {
+public class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cloneable {
 
     private ExecRow[] rowArray;
     private int numRowsOut;
@@ -68,30 +60,8 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
     private boolean isOpen;
     private ExecRow currentRow;
     private ResultDescription resultDescription;
-    private boolean isAppendable;
-    private long positionIndexConglomId;
-    private boolean isVirtualMemHeap;
-    private boolean currRowFromMem;
-    private TemporaryRowHolderImpl holder;
 
-    // the following is used by position based scan, as well as virtual memory style heap
-    ConglomerateController heapCC;
-    private RowLocation baseRowLocation;
-
-    /**
-     * Constructor
-     *
-     * @param tc                the xact controller
-     * @param rowArray          the row array
-     * @param resultDescription value returned by getResultDescription()
-     */
-    public TemporaryRowHolderResultSet(TransactionController tc,
-                                       ExecRow[] rowArray,
-                                       ResultDescription resultDescription,
-                                       boolean isVirtualMemHeap,
-                                       TemporaryRowHolderImpl holder) {
-        this(tc, rowArray, resultDescription, isVirtualMemHeap, false, 0, holder);
-    }
+    private TemporaryRowHolder holder;
 
     /**
      * Constructor
@@ -99,33 +69,26 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
      * @param tc                     the xact controller
      * @param rowArray               the row array
      * @param resultDescription      value returned by getResultDescription()
-     * @param isAppendable           true,if we can insert rows after this result is created
-     * @param positionIndexConglomId conglomId of the index which has order rows
-     *                               are inserted and their row location
      */
     public TemporaryRowHolderResultSet(TransactionController tc,
                                        ExecRow[] rowArray,
                                        ResultDescription resultDescription,
-                                       boolean isVirtualMemHeap,
-                                       boolean isAppendable,
-                                       long positionIndexConglomId,
-                                       TemporaryRowHolderImpl holder) {
+                                       TemporaryRowHolder holder) {
         this.tc = tc;
         this.rowArray = rowArray;
         this.resultDescription = resultDescription;
         this.numRowsOut = 0;
         this.isOpen = false;
-        this.isVirtualMemHeap = isVirtualMemHeap;
-        this.isAppendable = isAppendable;
-        this.positionIndexConglomId = positionIndexConglomId;
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(rowArray != null, "rowArray is null");
-            SanityManager.ASSERT(rowArray.length > 0, "rowArray has no elements, need at least one");
+            SanityManager.ASSERT(rowArray.length > 0 || holder.getConglomerateId() != 0,"rowArray or rowHolder must contain rows.");
         }
 
         this.holder = holder;
     }
+
+    public TemporaryRowHolder getHolder() { return holder; }
 
     /**
      * Reset the exec row array and reinitialize
@@ -140,191 +103,6 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
             SanityManager.ASSERT(rowArray != null, "rowArray is null");
             SanityManager.ASSERT(rowArray.length > 0, "rowArray has no elements, need at least one");
         }
-    }
-
-    /**
-     * postion scan to start from after where we stopped earlier
-     */
-    public void reStartScan(long currentConglomId, long pconglomId) throws StandardException {
-        if (isAppendable) {
-            if (SanityManager.DEBUG) {
-                SanityManager.ASSERT(currentConglomId == holder.getTemporaryConglomId(),
-                        "currentConglomId(" + currentConglomId +
-                                ") == holder.getTemporaryConglomeateId (" +
-                                holder.getTemporaryConglomId() + ")");
-            }
-            positionIndexConglomId = pconglomId;
-            setupPositionBasedScan(numRowsOut);
-        } else {
-            numRowsOut--;
-        }
-    }
-
-    //Make an array which is a superset of the 2 passed column arrays.
-    //The superset will not have any duplicates
-    private static int[] supersetofAllColumns(int[] columnsArray1, int[] columnsArray2) {
-        int maxLength = columnsArray1.length + columnsArray2.length;
-        int[] maxArray = new int[maxLength];
-        for (int i = 0; i < maxLength; i++) maxArray[i] = -1;
-
-        //First simply copy the first array into superset
-        System.arraycopy(columnsArray1, 0, maxArray, 0, columnsArray1.length);
-
-        //Now copy only new values from second array into superset
-        int validColsPosition = columnsArray1.length;
-        for (int aColumnsArray2 : columnsArray2) {
-            boolean found = false;
-            for (int j = 0; j < validColsPosition; j++) {
-                if (maxArray[j] == aColumnsArray2) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                maxArray[validColsPosition] = aColumnsArray2;
-                validColsPosition++;
-            }
-        }
-        maxArray = shrinkArray(maxArray);
-        Arrays.sort(maxArray);
-        return maxArray;
-    }
-
-    //The passed array can have some -1 elements and some +ve elements
-    // Return an array containing just the +ve elements
-    private static int[] shrinkArray(int[] columnsArrary) {
-        int countOfColsRefedInArray = 0;
-        int numberOfColsInTriggerTable = columnsArrary.length;
-
-        //Count number of non -1 entries
-        for (int aColumnsArrary1 : columnsArrary) {
-            if (aColumnsArrary1 != -1)
-                countOfColsRefedInArray++;
-        }
-
-        if (countOfColsRefedInArray > 0) {
-            int[] tempArrayOfNeededColumns = new int[countOfColsRefedInArray];
-            int j = 0;
-            for (int aColumnsArrary : columnsArrary) {
-                if (aColumnsArrary != -1)
-                    tempArrayOfNeededColumns[j++] = aColumnsArrary;
-            }
-            return tempArrayOfNeededColumns;
-        } else
-            return null;
-    }
-
-    //Return an array which contains the column positions of all the
-    // +ve columns in the passed array
-    private static int[] justTheRequiredColumnsPositions(int[] columnsArrary) {
-        int countOfColsRefedInArray = 0;
-        int numberOfColsInTriggerTable = columnsArrary.length;
-
-        //Count number of non -1 entries
-        for (int aColumnsArrary : columnsArrary) {
-            if (aColumnsArrary != -1)
-                countOfColsRefedInArray++;
-        }
-
-        if (countOfColsRefedInArray > 0) {
-            int[] tempArrayOfNeededColumns = new int[countOfColsRefedInArray];
-            int j = 0;
-            for (int i = 0; i < numberOfColsInTriggerTable; i++) {
-                if (columnsArrary[i] != -1)
-                    tempArrayOfNeededColumns[j++] = i + 1;
-            }
-            return tempArrayOfNeededColumns;
-        } else
-            return null;
-    }
-
-    /**
-     * Whip up a new Temp ResultSet that has a single row. This row will either have all the columns from
-     * the current row of the passed resultset or a subset of the columns from the passed resulset. It all depends
-     * on what columns are needed by the passed trigger and what columns exist in the resulset. The Temp resulset
-     * should only have the columns required by the trigger.
-     *
-     * @param triggerd          We are building Temp resultset for this trigger
-     * @param activation        the activation
-     * @param rs                the result set
-     * @param colsReadFromTable The passed resultset is composed of
-     *                          these columns. We will create a temp resultset which
-     *                          will have either all these columns or only a subset of
-     *                          these columns. It all depends on what columns are needed
-     *                          by the trigger. If this param is null, then that means that
-     *                          all the columns from the trigger table have been read into
-     *                          the passed resultset.
-     * @return a single row result set
-     */
-    public static TemporaryRowHolderResultSet getNewRSOnCurrentRow(TriggerDescriptor triggerd,
-                                                                   Activation activation,
-                                                                   CursorResultSet rs,
-                                                                   int[] colsReadFromTable) throws StandardException {
-        TemporaryRowHolderImpl singleRow;
-
-        //Get columns referenced in trigger action through REFERENCING clause
-        int[] referencedColsInTriggerAction = triggerd.getReferencedColsInTriggerAction();
-        // Get trigger column. If null, then it means that all the columns
-        // have been read because this trigger can be fired for any of the
-        // columns in the table
-        int[] referencedColsInTrigger = triggerd.getReferencedCols();
-
-        if ((referencedColsInTrigger != null) && //this means not all the columns are being read
-                (triggerd.isRowTrigger() && referencedColsInTriggerAction != null &&
-                        referencedColsInTriggerAction.length != 0)) {
-            //If we are here, then trigger is defined on specific columns and
-            // it has trigger action columns used through REFERENCING clause
-
-            //Make an array which is a superset of trigger columns and
-            // trigger action columns referenced through REFERENCING clause.
-            //This superset is what the trigger is looking for in it's
-            // resulset.
-            int[] colsInTrigger = supersetofAllColumns(referencedColsInTrigger, referencedColsInTriggerAction);
-            int colsCountInTrigger = colsInTrigger.length;
-            int[] colsReallyNeeded = new int[colsCountInTrigger];
-
-            //Here, we find out what columns make up the passed resulset
-            int[] actualColsReadFromTable;
-            if (colsReadFromTable != null) //this means not all the columns are being read
-                actualColsReadFromTable = justTheRequiredColumnsPositions(colsReadFromTable);
-            else {
-                int colsInTriggerTable = triggerd.getTableDescriptor().getNumberOfColumns();
-                actualColsReadFromTable = new int[colsInTriggerTable];
-                for (int i = 1; i <= colsInTriggerTable; i++)
-                    actualColsReadFromTable[i - 1] = i;
-            }
-
-            //Now we have what columns make up the passed resulset and what
-            // columns are needed by the trigger. We will map a temporary
-            // resultset for the trigger out of the above information using
-            // the passed resultset
-            int indexInActualColsReadFromTable = 0;
-            for (int i = 0; i < colsCountInTrigger; i++) {
-
-                for (; indexInActualColsReadFromTable < actualColsReadFromTable.length; indexInActualColsReadFromTable++) {
-                    /* Return 1-based key column position if column is in the key */
-                    if (actualColsReadFromTable[indexInActualColsReadFromTable] == colsInTrigger[i]) {
-                        colsReallyNeeded[i] = indexInActualColsReadFromTable + 1;
-                        break;
-                    }
-                }
-            }
-            singleRow =
-                    new TemporaryRowHolderImpl(activation, null,
-                            activation.getLanguageConnectionContext().getLanguageFactory().
-                                    getResultDescription(rs.getResultDescription(), colsReallyNeeded));
-            ExecRow row = activation.getExecutionFactory().getValueRow(colsCountInTrigger);
-            for (int i = 0; i < colsCountInTrigger; i++)
-                row.setColumn(i + 1, rs.getCurrentRow().getColumn(colsReallyNeeded[i]));
-            singleRow.insert(row);
-        } else {
-            singleRow =
-                    new TemporaryRowHolderImpl(activation, null,
-                            rs.getResultDescription());
-            singleRow.insert(rs.getCurrentRow());
-        }
-
-        return (TemporaryRowHolderResultSet) singleRow.getResultSet();
     }
 
     /////////////////////////////////////////////////////////
@@ -352,8 +130,6 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         isOpen = true;
         currentRow = null;
 
-        if (isAppendable)
-            setupPositionBasedScan(numRowsOut);
     }
 
     /**
@@ -364,11 +140,6 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
         numRowsOut = 0;
         isOpen = true;
         currentRow = null;
-
-        if (isAppendable) {
-            setupPositionBasedScan(numRowsOut);
-            return;
-        }
 
         if (scan != null) {
             scan.reopenScan(
@@ -392,16 +163,7 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
             return null;
         }
 
-        if (isAppendable) {
-            return getNextAppendedRow();
-        }
-
-        if (isVirtualMemHeap && holder.lastArraySlot >= 0) {
-            numRowsOut++;
-            currentRow = rowArray[holder.lastArraySlot];
-            currRowFromMem = true;
-            return currentRow;
-        } else if (numRowsOut++ <= holder.lastArraySlot) {
+        if (numRowsOut++ <= holder.getLastArraySlot()) {
             currentRow = rowArray[numRowsOut - 1];
             return currentRow;
         }
@@ -427,120 +189,15 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
                             null,                                // qualifier
                             (DataValueDescriptor[]) null,        // stop key value
                             0);                                  // stop operator
-        } else if (isVirtualMemHeap && holder.state == TemporaryRowHolderImpl.STATE_INSERT) {
-            holder.state = TemporaryRowHolderImpl.STATE_DRAIN;
-            scan.reopenScan(
-                    (DataValueDescriptor[]) null,   // start key value
-                    0,                              // start operator
-                    null,                           // qualifier
-                    (DataValueDescriptor[]) null,   // stop key value
-                    0);                             // stop operator
         }
 
         if (scan.next()) {
             currentRow = rowArray[0].getNewNullRow();
             scan.fetch(currentRow.getRowArray());
-            currRowFromMem = false;
             return currentRow;
         }
         return null;
     }
-
-    public void deleteCurrentRow()
-            throws StandardException {
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(isVirtualMemHeap, "deleteCurrentRow is not implemented");
-        }
-        if (currRowFromMem) {
-            if (holder.lastArraySlot > 0)                // 0 is kept for template
-                rowArray[holder.lastArraySlot] = null;  // erase reference
-            holder.lastArraySlot--;
-        } else {
-            if (baseRowLocation == null)
-                baseRowLocation = scan.newRowLocationTemplate();
-            scan.fetchLocation(baseRowLocation);
-            if (heapCC == null) {
-                heapCC = tc.openConglomerate(holder.getTemporaryConglomId(),
-                        false,
-                        TransactionController.OPENMODE_FORUPDATE,
-                        TransactionController.MODE_TABLE,
-                        TransactionController.ISOLATION_SERIALIZABLE);
-            }
-            heapCC.delete(baseRowLocation);
-        }
-    }
-
-
-    //following variables are specific to the position based scans.
-    DataValueDescriptor[] indexRow;
-    ScanController indexsc;
-
-    //open the scan of the temporary heap and the position index
-    private void setupPositionBasedScan(long position) throws StandardException {
-
-        //incase nothing is inserted yet into the temporary row holder
-        if (holder.getTemporaryConglomId() == 0)
-            return;
-        if (heapCC == null) {
-            heapCC = tc.openConglomerate(holder.getTemporaryConglomId(),
-                    false,
-                    0,
-                    TransactionController.MODE_TABLE,
-                    TransactionController.ISOLATION_SERIALIZABLE);
-        }
-
-        currentRow = rowArray[0].getNewNullRow();
-        indexRow = new DataValueDescriptor[2];
-        indexRow[0] = new SQLLongint(position);
-        indexRow[1] = heapCC.newRowLocationTemplate();
-
-        DataValueDescriptor[] searchRow = new DataValueDescriptor[1];
-        searchRow[0] = new SQLLongint(position);
-
-        if (indexsc == null) {
-            indexsc = tc.openScan(positionIndexConglomId,
-                    false,                           // don't hold open across commit
-                    0,                               // for read
-                    TransactionController.MODE_TABLE,
-                    TransactionController.ISOLATION_SERIALIZABLE,
-                    null,                               // all fields as objects
-                    searchRow,                          // start position - first row
-                    ScanController.GE,                  // startSearchOperation
-                    null,                               //scanQualifier,
-                    null,                               // stop position - through last row
-                    ScanController.GT);                 // stopSearchOperation
-        } else {
-
-            indexsc.reopenScan(
-                    searchRow,                        // startKeyValue
-                    ScanController.GE,                // startSearchOp
-                    null,                             // qualifier
-                    null,                             // stopKeyValue
-                    ScanController.GT                 // stopSearchOp
-            );
-        }
-
-    }
-
-    //get the next row inserted into the temporary holder
-    private ExecRow getNextAppendedRow() throws StandardException {
-        if (indexsc == null) return null;
-        if (!indexsc.fetchNext(indexRow)) {
-            return null;
-        }
-
-        RowLocation baseRowLocation = (RowLocation) indexRow[1];
-        boolean base_row_exists =
-                heapCC.fetch(
-                        baseRowLocation, currentRow, (FormatableBitSet) null);
-
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(base_row_exists, "base row disappeared.");
-        }
-        numRowsOut++;
-        return currentRow;
-    }
-
 
     /**
      * Return the point of attachment for this subquery.
@@ -1219,6 +876,6 @@ class TemporaryRowHolderResultSet implements CursorResultSet, NoPutResultSet, Cl
      */
     @Override
     public final Activation getActivation() {
-        return holder.activation;
+        return holder.getActivation();
     }
 }

@@ -116,7 +116,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
-                activationHolder.close();
+                activationHolder.close(!getOperation().isOlapServer());
             }
         }
 
@@ -365,5 +365,10 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             baos.close();
             SpliceKryoRegistry.getInstance().returnInstance(kryo);
         }
+    }
+
+    @Override
+    public ActivationHolder getActivationHolder() {
+        return activationHolder;
     }
 }

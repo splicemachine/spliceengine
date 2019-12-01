@@ -16,10 +16,12 @@ package com.splicemachine.derby.stream.output.delete;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
+import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -35,10 +37,13 @@ import java.io.ObjectOutput;
  */
 public abstract class DeleteTableWriterBuilder implements Externalizable,DataSetWriterBuilder{
     protected long heapConglom;
+    protected long tempConglomID;
     protected TxnView txn;
     protected OperationContext operationContext;
     protected byte[] token;
     protected int[] updateCounts;
+    protected String tableVersion;
+    protected ExecRow execRowDefinition;
 
     public DeleteTableWriterBuilder heapConglom(long heapConglom) {
         this.heapConglom = heapConglom;
@@ -52,6 +57,25 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
         this.heapConglom = heapConglom;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder tempConglomerateID(long conglomID){
+        this.tempConglomID = conglomID;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder tableVersion(String tableVersion) {
+        this.tableVersion = tableVersion;
+        return this;
+    }
+
+    @Override
+    public DataSetWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
+        assert execRowDefinition != null :"ExecRowDefinition Cannot Be null!";
+        this.execRowDefinition = execRowDefinition;
         return this;
     }
 
@@ -73,7 +97,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public TableWriter buildTableWriter() throws StandardException{
         long conglom = Long.parseLong(Bytes.toString(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable()));
-        return new DeletePipelineWriter(txn,token,conglom,operationContext);
+        return new DeletePipelineWriter(txn,token,conglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
     }
 
     @Override
@@ -98,20 +122,26 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(heapConglom);
+        out.writeLong(tempConglomID);
+        out.writeUTF(tableVersion);
         SIDriver.driver().getOperationFactory().writeTxn(txn, out);
         out.writeBoolean(operationContext!=null);
         if (operationContext!=null)
             out.writeObject(operationContext);
         ArrayUtil.writeIntArray(out, updateCounts);
+        out.writeObject(execRowDefinition);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         heapConglom = in.readLong();
+        tempConglomID = in.readLong();
+        tableVersion = in.readUTF();
         txn = SIDriver.driver().getOperationFactory().readTxn(in);
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
         updateCounts = ArrayUtil.readIntArray(in);
+        execRowDefinition = (ExecRow) in.readObject();
     }
 
     public static DeleteTableWriterBuilder getDeleteTableWriterBuilderFromBase64String(String base64String) throws IOException {

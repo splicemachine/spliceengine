@@ -128,6 +128,24 @@ public final class TriggerInfo implements Formatable {
         return false;
     }
 
+    /**
+     * Do we have a trigger or triggers that references NEW TABLE or OLD TABLE?
+     *
+     * @return true if we have a statement trigger with a REFERENCING clause.
+     */
+    public boolean hasStatementTriggerWithReferencingClause() {
+        if (triggerDescriptors != null) {
+            for (TriggerDescriptor aTriggerArray : triggerDescriptors) {
+                if (!aTriggerArray.isRowTrigger() &&
+                    (aTriggerArray.getReferencingNew() || aTriggerArray.getReferencingOld())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+
     TriggerDescriptor[] getTriggerDescriptors() {
         return triggerDescriptors;
     }

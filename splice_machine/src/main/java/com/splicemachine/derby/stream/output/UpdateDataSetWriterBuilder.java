@@ -23,8 +23,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
  */
 public interface UpdateDataSetWriterBuilder extends DataSetWriterBuilder{
 
-    UpdateDataSetWriterBuilder execRowDefinition(ExecRow execRow);
-
     UpdateDataSetWriterBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds);
 
     UpdateDataSetWriterBuilder pkCols(int[] pkCols);
@@ -36,6 +34,4 @@ public interface UpdateDataSetWriterBuilder extends DataSetWriterBuilder{
     UpdateDataSetWriterBuilder columnOrdering(int[] colOrdering);
 
     UpdateDataSetWriterBuilder heapList(FormatableBitSet heapList);
-
-    UpdateDataSetWriterBuilder tableVersion(String tableVersion);
 }

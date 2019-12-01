@@ -34,6 +34,7 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.utils.BulkLoadUtils;
 import com.splicemachine.protobuf.ProtoUtil;
@@ -116,6 +117,9 @@ public class InsertDataSetWriter<K,V> implements DataSetWriter{
         }
         rdd.saveAsNewAPIHadoopDataset(config);
         if(opContext.getOperation()!=null){
+            DMLWriteOperation writeOp = (DMLWriteOperation)opContext.getOperation();
+            if (writeOp != null)
+                writeOp.finalizeNestedTransaction();
             opContext.getOperation().fireAfterStatementTriggers();
         }
         ValueRow valueRow=new ValueRow(3);

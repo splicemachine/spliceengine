@@ -40,6 +40,7 @@ import java.io.ObjectOutput;
  */
 public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateDataSetWriterBuilder{
     protected long heapConglom;
+    protected long tempConglomID;
     protected int[] formatIds;
     protected int[] columnOrdering;
     protected int[] pkCols;
@@ -60,6 +61,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         if (operationContext!=null)
             out.writeObject(operationContext);
         out.writeLong(heapConglom);
+        out.writeLong(tempConglomID);
         ArrayUtil.writeIntArray(out, formatIds);
         ArrayUtil.writeIntArray(out, columnOrdering);
         ArrayUtil.writeIntArray(out, pkCols);
@@ -76,6 +78,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
         if (in.readBoolean())
             operationContext = (OperationContext) in.readObject();
         heapConglom = in.readLong();
+        tempConglomID = in.readLong();
         formatIds = ArrayUtil.readIntArray(in);
         columnOrdering = ArrayUtil.readIntArray(in);
         if(columnOrdering==null)
@@ -94,7 +97,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
-    public UpdateDataSetWriterBuilder tableVersion(String tableVersion) {
+    public DataSetWriterBuilder tableVersion(String tableVersion) {
         assert tableVersion != null :"Table Version Cannot Be null!";
         this.tableVersion = tableVersion;
         return this;
@@ -108,7 +111,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
-    public UpdateDataSetWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
+    public DataSetWriterBuilder execRowDefinition(ExecRow execRowDefinition) {
         assert execRowDefinition != null :"ExecRowDefinition Cannot Be null!";
         this.execRowDefinition = execRowDefinition;
         return this;
@@ -142,6 +145,13 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     }
 
     @Override
+    public UpdateDataSetWriterBuilder tempConglomerateID(long conglomID){
+        assert tempConglomID !=-1 :"Only Set Temp Congloms allowed!";
+        this.tempConglomID = conglomID;
+        return this;
+    }
+
+    @Override
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public UpdateDataSetWriterBuilder formatIds(int[] formatIds) {
         assert formatIds != null :"Format ids cannot be null";
@@ -161,7 +171,7 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
 
     @Override
     public TableWriter buildTableWriter() throws StandardException{
-        return new UpdatePipelineWriter(heapConglom,formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
+        return new UpdatePipelineWriter(heapConglom,tempConglomID,formatIds,columnOrdering,pkCols,pkColumns,tableVersion,
                 txn,token, execRowDefinition,heapList,operationContext);
     }
 

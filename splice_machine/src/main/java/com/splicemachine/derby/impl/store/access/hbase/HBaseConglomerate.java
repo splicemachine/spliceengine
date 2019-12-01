@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -91,7 +92,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 isExternal,
                 containerId,
                 this,
-                ((SpliceTransaction)rawtran).getTxn(),
+                ((BaseSpliceTransaction)rawtran).getTxnInformation(),
                 properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),

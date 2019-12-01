@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.output;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.si.api.txn.TxnView;
@@ -29,6 +30,8 @@ public interface DataSetWriterBuilder{
 
     DataSetWriterBuilder destConglomerate(long heapConglom);
 
+    DataSetWriterBuilder tempConglomerateID(long conglomID);
+
     DataSetWriterBuilder txn(TxnView txn);
 
     DataSetWriterBuilder token(byte[] token);
@@ -38,6 +41,10 @@ public interface DataSetWriterBuilder{
     DataSetWriterBuilder skipIndex(boolean skipIndex);
 
     DataSetWriterBuilder updateCounts(int[] updateCounts);
+
+    DataSetWriterBuilder tableVersion(String tableVersion);
+
+    DataSetWriterBuilder execRowDefinition(ExecRow definition);
 
     TxnView getTxn();
 

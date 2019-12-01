@@ -99,6 +99,12 @@ public class LazyTxnView implements TxnView {
     }
 
     @Override
+    public boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly) {
+        lookup(false);
+        return delegate.hasActiveWriteableOrRolledBackTransactionInLineage(ancestor, checkForRollbackOnly);
+    }
+
+    @Override
     public TaskId getTaskId() {
         lookup(false);
         return delegate.getTaskId();

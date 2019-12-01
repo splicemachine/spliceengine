@@ -87,7 +87,7 @@ public class HasCorrelatedCRsVisitor implements Visitor
 			/* trigger action references are correlated
 			 */
 			if (((MethodCallNode)node).getMethodName().equals("getTriggerExecutionContext") ||
-//				((MethodCallNode)node).getMethodName().equals("TriggerOldTransitionRows") ||
+				((MethodCallNode)node).getMethodName().equals("TriggerOldTransitionRows") ||
 				((MethodCallNode)node).getMethodName().equals("TriggerNewTransitionRows")
 			   )
 			{

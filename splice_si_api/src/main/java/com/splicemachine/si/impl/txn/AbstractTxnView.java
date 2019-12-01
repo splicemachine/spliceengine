@@ -153,8 +153,14 @@ public abstract class AbstractTxnView implements TxnView {
           }
 
           if(otherTxn.descendsFrom(this)){
-              //we are an ancestor, so use READ_COMMITTED/READ_UNCOMMITTED semantics
+              // We are an ancestor, so use READ_COMMITTED semantics,
+              // unless there is an active writeable transaction or rolled back
+              // transaction in the lineage.
               Txn.IsolationLevel level = isolationLevel;
+              if (otherTxn.hasActiveWriteableOrRolledBackTransactionInLineage(this,
+                                level == Txn.IsolationLevel.READ_UNCOMMITTED))
+                  return false;
+
               if(level== Txn.IsolationLevel.SNAPSHOT_ISOLATION)
                   level = Txn.IsolationLevel.READ_COMMITTED;
 
@@ -293,6 +299,25 @@ public abstract class AbstractTxnView implements TxnView {
             if(t.equivalent(potentialParent)) return true;
             else
                 t = t.getParentTxnView();
+        }
+        return false;
+    }
+
+    @Override
+    public boolean hasActiveWriteableOrRolledBackTransactionInLineage(TxnView ancestor, boolean checkForRollbackOnly) {
+        TxnView t = this;
+        while(!t.equals(Txn.ROOT_TRANSACTION)){
+            if(t.equivalent(ancestor)) {
+                return false;
+            }
+            if (t.allowsWrites()) {
+                if (t.getState() == Txn.State.ROLLEDBACK)
+                    return true;
+                if (!checkForRollbackOnly &&
+                    t.getState() == Txn.State.ACTIVE)
+                    return true;
+            }
+            t = t.getParentTxnView();
         }
         return false;
     }
