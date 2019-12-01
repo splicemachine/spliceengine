@@ -35,15 +35,18 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -83,13 +86,29 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private int[] changedColIds;
     private String[] changedColNames;
     private String statementText;
+    protected ConnectionContext cc;
     private UUID targetTableId;
     private String targetTableName;
-    private ExecRow triggeringResultSet;
+    private ExecRow triggeringRow;
     private TriggerDescriptor triggerd;
     private ExecRow afterRow;   // used exclusively for InsertResultSets which have autoincrement columns.
     private TriggerEvent event;
     private FormatableBitSet heapList;
+    private ExecRow execRowDefinition;
+    private String tableVersion;
+    private long conglomId;
+
+    protected CursorResultSet  triggeringResultSet;
+
+    /*
+    ** Used to track all the result sets we have given out to
+    ** users.  When the trigger context is no longer valid,
+    ** we close all the result sets that may be in the user
+    ** space because they can no longer provide meaningful
+    ** results.
+    */
+    @SuppressWarnings("UseOfObsoleteCollectionType")
+    private Vector<ResultSet> resultSetVector;
 
     /**
      * aiCounters is a list of AutoincrementCounters used to keep state which might be used by the trigger. This is
@@ -114,7 +133,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * @param targetTableName the name of the table upon which the trigger fired
      * @param aiCounters      A list of AutoincrementCounters to keep state of the ai columns in this insert trigger.
      */
-    public TriggerExecutionContext(String statementText,
+    public TriggerExecutionContext(ConnectionContext cc,
+                                   String statementText,
                                    int[] changedColIds,
                                    String[] changedColNames,
                                    UUID targetTableId,
@@ -129,6 +149,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         this.targetTableName = targetTableName;
         this.aiCounters = aiCounters;
         this.heapList = heapList;
+        this.resultSetVector = new Vector<>();
+        this.cc = cc;
 
         if (SanityManager.DEBUG) {
             if ((changedColIds == null) != (changedColNames == null)) {
@@ -143,7 +165,34 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         }
     }
 
+    public long getConglomId() {
+        return conglomId;
+    }
+
+    public ExecRow getExecRowDefinition() {
+        return execRowDefinition;
+    }
+
+    public String getTableVersion() {
+        return tableVersion;
+    }
+
+    public void setExecRowDefinition(ExecRow execRowDefinition) {
+        this.execRowDefinition = execRowDefinition;
+    }
+
+    public void setTableVersion(String tableVersion) {
+        this.tableVersion = tableVersion;
+    }
+
+    public void setConglomId(long conglomId) {
+        this.conglomId = conglomId;
+    }
+
+    public boolean hasTriggeringResultSet() { return triggeringResultSet != null; }
+
     public void setTriggeringResultSet(CursorResultSet rs) throws StandardException {
+        triggeringResultSet = rs;
         if (rs == null) {
             return;
         }
@@ -161,11 +210,14 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                 }
             }
         }
-        triggeringResultSet = rs.getCurrentRow();
+        if (rs.isClosed())
+            rs.open();
+        triggeringRow = rs.getCurrentRow();
         try {
-            rs.close();
+            if (triggerd.isRowTrigger())
+                rs.close();
         } catch (StandardException e) {
-            // ignore - close quietly. We have only a single row impl currently
+            // ignore - close quietly.
         }
     }
 
@@ -177,10 +229,12 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         this.triggerd = triggerd;
     }
 
-    public void clearTrigger() throws StandardException {
+    public void clearTrigger(boolean deferCleanup) throws StandardException {
         event = null;
         triggerd = null;
-        triggeringResultSet = null;
+        triggeringRow = null;
+        if (!deferCleanup)
+            cleanup();
     }
 
     /////////////////////////////////////////////////////////
@@ -297,24 +351,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         return false;
     }
 
-    /**
-     * Returns a result set row the old images of the changed rows. For a row trigger, the result set will have a
-     * single row.  For a statement trigger, this result set has every row that has changed or will change.  If a
-     * statement trigger does not affect a row, then the result set will be empty (i.e. ResultSet.next()
-     * will return false).
-     *
-     * @return the ResultSet containing before images of the rows changed by the triggering event.
-     * @throws SQLException if called after the triggering event has completed
-     */
-    private ExecRow getOldRowSet() throws SQLException {
-        // private currently since no callers currently and we have impl of only 1 exec row at a time
-        if (triggeringResultSet == null) {
-            return null;
-        }
-        if (this.event != null && this.event.isUpdate()) {
-            return extractColumns(triggeringResultSet, true);
-        }
-        return triggeringResultSet;
+    public void setConnectionContext(ConnectionContext cc) {
+        this.cc = cc;
     }
 
     /**
@@ -326,16 +364,30 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * @return the ResultSet containing after images of the rows changed by the triggering event.
      * @throws SQLException if called after the triggering event has completed
      */
-    private ExecRow getNewRowSet() throws SQLException {
-        // private currently since no callers currently and we have impl of only 1 exec row at a time
-        if (triggeringResultSet == null) {
-            return null;
-        }
-        if (this.event != null && this.event.isUpdate()) {
-            return extractColumns(triggeringResultSet, false);
-        }
-        return triggeringResultSet;
-    }
+    public ResultSet getNewRowSet() throws SQLException
+	{
+		if (triggeringResultSet == null)
+		{
+                    return null;
+		}
+		try
+		{
+			/* We should really shallow clone the result set, because it could be used
+			 * at multiple places independently in trigger action.  This is a bug found
+			 * during the fix of beetle 4373.
+			 */
+			CursorResultSet ars = triggeringResultSet;
+			if (ars instanceof TemporaryRowHolderResultSet)
+				ars = (CursorResultSet) ((TemporaryRowHolderResultSet) ars).clone();
+			ars.open();
+			java.sql.ResultSet rs = cc.getResultSet(ars);
+			resultSetVector.addElement(rs);
+			return rs;
+		} catch (StandardException se)
+		{
+			throw PublicAPI.wrapStandardException(se);
+		}
+	}
 
     /**
      * Like getBeforeResultSet(), but returns a result set positioned on the first row of the before result set.
@@ -345,19 +397,33 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * @throws SQLException if called after the triggering event has completed
      */
     public ExecRow getOldRow() throws SQLException {
-        return getOldRowSet();
+        return buildOldRow(triggeringRow, false);
     }
 
-    /**
-     * Like getAfterResultSet(), but returns a result set positioned on the first row of the before result set.
-     * Used as a convenience to get a column for a row trigger.  Equivalent to getAfterResultSet() followed by next().
-     *
-     * @return the ResultSet positioned on the new row image.
-     * @throws SQLException if called after the triggering event hascompleted
-     */
-    public ExecRow getNewRow() throws SQLException {
-        return getNewRowSet();
+    public ExecRow buildOldRow(ExecRow sourceRow, boolean forStatementTrigger) throws SQLException {
+        if (sourceRow == null) {
+            return null;
+        }
+        if (this.event != null && this.event.isUpdate()) {
+            return extractColumns(sourceRow, true, forStatementTrigger);
+        }
+        return sourceRow;
     }
+
+    public ExecRow getNewRow() throws SQLException {
+        return buildNewRow(triggeringRow, false);
+    }
+
+    public ExecRow buildNewRow(ExecRow sourceRow, boolean forStatementTrigger) throws SQLException {
+        if (sourceRow == null) {
+            return null;
+        }
+        if (this.event != null && this.event.isUpdate()) {
+            return extractColumns(sourceRow, false, forStatementTrigger);
+        }
+        return sourceRow;
+    }
+
 
     public Long getAutoincrementValue(String identity) {
         // first search the map-- this represents the ai values generated by this trigger.
@@ -440,7 +506,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         out.writeObject(targetTableId);
         out.writeObject(targetTableName);
         out.writeObject(triggerd);
-        out.writeObject(triggeringResultSet);
+        out.writeObject(triggeringRow);
         out.writeObject(afterRow);
         if (event != null) {
             out.writeBoolean(true);
@@ -449,6 +515,15 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             out.writeBoolean(false);
         }
         out.writeObject(heapList);
+        boolean hasExecRowDefinition = execRowDefinition != null;
+        out.writeBoolean(hasExecRowDefinition);
+        if (hasExecRowDefinition)
+            out.writeObject(execRowDefinition);
+        boolean hasTableVersion = tableVersion != null;
+        out.writeBoolean(hasTableVersion);
+        if (hasTableVersion)
+            out.writeUTF(tableVersion);
+        out.writeLong(conglomId);
     }
 
     @Override
@@ -463,12 +538,18 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         targetTableId = (UUID) in.readObject();
         targetTableName = (String) in.readObject();
         triggerd = (TriggerDescriptor) in.readObject();
-        triggeringResultSet = (ExecRow) in.readObject();
+        triggeringRow = (ExecRow) in.readObject();
         afterRow = (ExecRow) in.readObject();
         if (in.readBoolean()) {
             event = TriggerEvent.values()[in.readInt()];
         }
         heapList = (FormatableBitSet)in.readObject();
+        this.resultSetVector = new Vector<>();
+        if (in.readBoolean())
+            execRowDefinition = (ExecRow) in.readObject();
+        if (in.readBoolean())
+            tableVersion = in.readUTF();
+        conglomId = in.readLong();
     }
 
     /**
@@ -486,8 +567,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * @return an update exec row with either old or new transition values.
      * @throws SQLException
      */
-    private ExecRow extractColumns(ExecRow resultSet, boolean firstHalf) throws SQLException {
-        if (heapList != null && triggerd.getReferencedCols() != null)
+    private ExecRow extractColumns(ExecRow resultSet, boolean firstHalf, boolean forStatementTrigger) throws SQLException {
+        if (!forStatementTrigger && heapList != null && triggerd.getReferencedCols() != null)
             return extractTriggerColumns(resultSet, firstHalf);
         else {
             return extractAllColumns(resultSet, firstHalf);
@@ -534,7 +615,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                 (referencedColsInTriggerAction!=null?referencedColsInTriggerAction.length:0);
         ExecRow result = new ValueRow(nResultCols);
         try {
-            FormatableBitSet allTriggerColumns = new FormatableBitSet(triggerd.getTableDescriptor().getNumberOfColumns()+1);
+            FormatableBitSet allTriggerColumns = new FormatableBitSet(triggerd.getNumBaseTableColumns()+1);
             if (referencedCols != null) {
                 for (int col : referencedCols) {
                     allTriggerColumns.set(col);
@@ -562,5 +643,46 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             throw Util.generateCsSQLException(e);
         }
         return result;
+    }
+
+    /**
+     * Cleanup the trigger execution context.  <B>MUST</B>
+     * be called when the caller is done with the trigger
+     * execution context.
+     * <p>
+     * We go to somewhat exaggerated lengths to free up
+     * all our resources here because a user may hold on
+     * to a TEC after it is valid, so we clean everything
+     * up to be on the safe side.
+     *
+     * @exception StandardException on unexpected error
+     */
+    protected void cleanup()
+            throws StandardException
+    {
+        /*
+        ** Explicitly close all result sets that we have
+        ** given out to the user.
+        */
+        if (resultSetVector != null) {
+            for (ResultSet rs : resultSetVector) {
+                try {
+                    rs.close();
+                } catch (Exception e) {
+                }
+            }
+        }
+        resultSetVector.clear();
+
+        /*
+        ** We should have already closed our underlying
+        ** ExecResultSets by closing the jdbc result sets,
+        ** but in case we got an error that we caught and
+        ** ignored, explicitly close them.
+        */
+        if (triggeringResultSet != null)
+        {
+            triggeringResultSet.close();
+        }
     }
 }

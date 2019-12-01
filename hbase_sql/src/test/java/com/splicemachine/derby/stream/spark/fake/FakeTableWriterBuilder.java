@@ -51,6 +51,11 @@ public class FakeTableWriterBuilder extends InsertTableWriterBuilder {
     }
 
     @Override
+    public DataSetWriterBuilder tempConglomerateID(long conglomID){
+        return this;
+    }
+
+    @Override
     public InsertTableWriterBuilder txn(TxnView txn) {
         return this;
     }

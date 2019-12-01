@@ -71,7 +71,7 @@ public class TableScanPredicateFunction<Op extends SpliceOperation> extends Spli
         try {
             if (!initialized) {
                 initialized = true;
-                op = (ScanOperation) getOperation();
+                op = getOperation() instanceof ScanOperation ? (ScanOperation) getOperation() : null;
                 if (op != null) {
                     this.qualifiers = op.getScanInformation().getScanQualifiers();
                     this.baseColumnMap = op.getOperationInformation().getBaseColumnMap();

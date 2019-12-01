@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,8 +40,10 @@ import java.util.Vector;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
@@ -51,17 +54,18 @@ import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
  */
 public class TriggerEventActivator {
 
-    private LanguageConnectionContext lcc;
     private TriggerInfo triggerInfo;
     private TriggerExecutionContext tec;
     private Map<TriggerEvent, List<GenericTriggerExecutor>> statementExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<GenericTriggerExecutor>> rowExecutorsMap = new HashMap<>();
     private Activation activation;
+    private ConnectionContext cc;
     private String statementText;
     private UUID tableId;
     private String tableName;
     private boolean tecPushed;
     private FormatableBitSet heapList;
+
     /**
      * Basic constructor
      *
@@ -83,21 +87,33 @@ public class TriggerEventActivator {
         this.activation = activation;
         this.tableId = tableId;
         this.triggerInfo = triggerInfo;
-        this.lcc = activation.getLanguageConnectionContext();
-        StatementContext context = lcc.getStatementContext();
+
+        StatementContext context = getLcc().getStatementContext();
         if (context != null) {
             this.statementText = context.getStatementText();
         }
         this.heapList = heapList;
+        cc = (ConnectionContext) getLcc().getContextManager().getContext(ConnectionContext.CONTEXT_ID);
 
         initTriggerExecContext(aiCounters);
         setupExecutors(triggerInfo);
     }
 
+    private void pushTriggerExecutionContext() throws StandardException {
+        if(!tecPushed)
+        {
+            LanguageConnectionContext lcc = getLcc();
+            lcc.pushTriggerExecutionContext(tec);
+            if (activation.getLanguageConnectionContext() != lcc)
+                activation.getLanguageConnectionContext().pushTriggerExecutionContext(tec);
+            tecPushed = true;
+        }
+    }
+
     private void initTriggerExecContext(Vector<AutoincrementCounter> aiCounters) throws StandardException {
-        GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
+        GenericExecutionFactory executionFactory = (GenericExecutionFactory) getLcc().getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
-               statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
+               cc, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                 tableId, tableName, aiCounters, heapList);
     }
 
@@ -114,11 +130,11 @@ public class TriggerEventActivator {
         for (TriggerDescriptor td : triggerInfo.getTriggerDescriptors()) {
             TriggerEvent event = td.getTriggerEvent();
             if (td.isRowTrigger()) {
-                RowTriggerExecutor executor = new RowTriggerExecutor(tec, td, activation, lcc);
+                RowTriggerExecutor executor = new RowTriggerExecutor(tec, td, activation, getLcc());
                 executor.forceCompile();
                 addToMap(rowExecutorsMap, event, executor);
             } else {
-                addToMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, lcc));
+                addToMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, getLcc()));
             }
         }
     }
@@ -128,7 +144,9 @@ public class TriggerEventActivator {
      *
      * @param event a trigger event
      */
-    public void notifyStatementEvent(TriggerEvent event) throws StandardException {
+    public void notifyStatementEvent(TriggerEvent event,
+                                     CursorResultSet triggeringResultSet,
+                                     boolean deferCleanup) throws StandardException {
 
         if (statementExecutorsMap.isEmpty()) {
             return;
@@ -139,20 +157,17 @@ public class TriggerEventActivator {
         }
 
         try {
-            lcc.pushExecutionStmtValidator(tec);
-            if (! tecPushed) {
-                lcc.pushTriggerExecutionContext(tec);
-                tecPushed = true;
-            }
+            getLcc().pushExecutionStmtValidator(tec);
+            pushTriggerExecutionContext();
 
             for (GenericTriggerExecutor triggerExecutor : triggerExecutors) {
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
                 // Fire the statement or row trigger.
-                triggerExecutor.fireTrigger(event, null, null);
+                triggerExecutor.fireTrigger(event, triggeringResultSet, null, deferCleanup);
             }
         } finally {
-            lcc.popExecutionStmtValidator(tec);
+            getLcc().popExecutionStmtValidator(tec);
         }
     }
 
@@ -165,7 +180,8 @@ public class TriggerEventActivator {
      */
     public void notifyRowEvent(TriggerEvent event,
                                CursorResultSet rs,
-                               int[] colsReadFromTable) throws StandardException {
+                               int[] colsReadFromTable,
+                               boolean deferCleanup) throws StandardException {
 
         if (rowExecutorsMap.isEmpty()) {
             return;
@@ -176,37 +192,44 @@ public class TriggerEventActivator {
         }
 
         try {
-            lcc.pushExecutionStmtValidator(tec);
-            if (! tecPushed) {
-                lcc.pushTriggerExecutionContext(tec);
-                tecPushed = true;
-            }
+            getLcc().pushExecutionStmtValidator(tec);
+            pushTriggerExecutionContext();
 
             for (GenericTriggerExecutor triggerExecutor : triggerExecutors) {
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
                 // Fire the statement or row trigger.
-                triggerExecutor.fireTrigger(event, rs, colsReadFromTable);
+                triggerExecutor.fireTrigger(event, rs, colsReadFromTable, deferCleanup);
             }
         } finally {
-            lcc.popExecutionStmtValidator(tec);
+            getLcc().popExecutionStmtValidator(tec);
         }
     }
 
     /**
      * Clean up and release resources.
      */
-    public void cleanup() throws StandardException {
+    public void cleanup(boolean deferCleanup) throws StandardException {
         if (tec != null) {
-            tec.clearTrigger();
+            tec.clearTrigger(deferCleanup);
             if (tecPushed) {
+                LanguageConnectionContext lcc = getLcc();
                 lcc.popTriggerExecutionContext(tec);
+                if (activation.getLanguageConnectionContext() != lcc)
+                    activation.getLanguageConnectionContext().popTriggerExecutionContext(tec);
             }
             tecPushed = false;
         }
     }
 
-    public LanguageConnectionContext getLcc() {
+    public LanguageConnectionContext getLcc() throws StandardException {
+        LanguageConnectionContext lcc = null;
+        try {
+            lcc = ConnectionUtil.getCurrentLCC();
+        }
+        catch (SQLException e) {
+            throw StandardException.plainWrapException(e);
+        }
         return lcc;
     }
 
@@ -218,4 +241,6 @@ public class TriggerEventActivator {
         }
         genericTriggerExecutors.add(executor);
     }
+
+    public TriggerExecutionContext getTriggerExecutionContext() { return tec; }
 }

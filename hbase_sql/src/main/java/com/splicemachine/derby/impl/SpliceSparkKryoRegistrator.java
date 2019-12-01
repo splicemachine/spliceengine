@@ -43,8 +43,11 @@ import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
+import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
+import com.splicemachine.derby.catalog.TriggerOldTransitionRows;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.kryo.SparkValueRowSerializer;
+import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
@@ -925,5 +928,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(FakeColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TriggerNewTransitionRows.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TriggerOldTransitionRows.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TriggerRowHolderImpl.class,EXTERNALIZABLE_SERIALIZER);
     }
 }
