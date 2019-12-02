@@ -247,7 +247,13 @@ public class JoinNode extends TableOperatorNode{
         }
 
         CostEstimate lrsCE = leftResultSet.getCostEstimate();
-        lrsCE.setJoinType(LEFTOUTERJOIN);
+        // TODO DB-7816 why this was originally set to left outer join?
+        if (this instanceof FullOuterJoinNode)
+            lrsCE.setJoinType(FULLOUTERJOIN);
+        else if (this instanceof HalfOuterJoinNode)
+            lrsCE.setJoinType(LEFTOUTERJOIN);
+        else
+            lrsCE.setJoinType(INNERJOIN);
         double savedAccumulatedMemory = lrsCE.getAccumulatedMemory();
         lrsCE.setAccumulatedMemory(leftOptimizer.getAccumulatedMemory());
         rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),lrsCE);
@@ -278,8 +284,8 @@ public class JoinNode extends TableOperatorNode{
 		** Get the cost of this result set in the context of the whole plan.
 		*/
 
-		// TODO DB-7816 why outerjoin flag is set here?
-        costEstimate.setJoinType(LEFTOUTERJOIN);
+		// TODO DB-7816 why outerjoin flag is set originally to left join?
+        costEstimate.setJoinType(INNERJOIN);
         getCurrentAccessPath().getJoinStrategy().estimateCost(this,
                 predList,
                 null,
@@ -287,7 +293,6 @@ public class JoinNode extends TableOperatorNode{
                 optimizer,
                 costEstimate
         );
-        costEstimate.setJoinType(INNERJOIN);
 
         // propagate the sortorder from the outer table if any
         // only do this if the current node is the first resultset in the join sequence as
