@@ -1894,7 +1894,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     public NoPutResultSet getSetResultSet(Activation activation,
                                           String getColumnDVDsMethodNames,
                                           GeneratedMethod getNewDVDsMethod) throws StandardException {
-        SpliceLogUtils.trace(LOG, "getSignalResultSet");
+        SpliceLogUtils.trace(LOG, "getSetResultSet");
         try {
             SetOperation top =
                 new SetOperation(activation, getColumnDVDsMethodNames, getNewDVDsMethod);
