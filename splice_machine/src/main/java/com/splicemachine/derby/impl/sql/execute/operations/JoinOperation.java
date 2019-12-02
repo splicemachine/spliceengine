@@ -105,8 +105,9 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		protected boolean serializeLeftResultSet = true;
 		protected boolean serializeRightResultSet = true;
         protected ExecRow rightTemplate;
+        protected ExecRow leftTemplate;
         protected ExecRow mergedRowTemplate;
-        protected String emptyRowFunMethodName;
+        protected String rightEmptyRowFunMethodName;
         public boolean wasRightOuterJoin = false;
         public int joinType = JoinNode.INNERJOIN;
 		private Restriction mergeRestriction;
@@ -158,7 +159,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				rightFromSSQ = in.readBoolean();
                 wasRightOuterJoin = in.readBoolean();
                 joinType = in.readInt();
-                emptyRowFunMethodName = readNullableString(in);
+                rightEmptyRowFunMethodName = readNullableString(in);
 				boolean readMerged=false;
 				if(in.readBoolean()){
 						leftResultSet = (SpliceOperation) in.readObject();
@@ -194,7 +195,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				out.writeBoolean(rightFromSSQ);
                 out.writeBoolean(wasRightOuterJoin);
                 out.writeInt(joinType);
-                writeNullableString(emptyRowFunMethodName, out);
+                writeNullableString(rightEmptyRowFunMethodName, out);
 				out.writeBoolean(serializeLeftResultSet);
 				if(serializeLeftResultSet)
 						out.writeObject(leftResultSet);
@@ -241,6 +242,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
                 if (rightTemplate == null)
                     rightTemplate = rightRow.getClone();
+                if (leftTemplate == null)
+                	leftTemplate = leftRow.getClone();
 		}
 
 		protected int[] generateHashKeys(int hashKeyItem) {
@@ -360,9 +363,13 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         return mergeRestriction;
     }
 
-    public ExecRow getEmptyRow() throws StandardException {
+    public ExecRow getRightEmptyRow() throws StandardException {
         return rightTemplate;
     }
+
+	public ExecRow getLeftEmptyRow() throws StandardException {
+		return leftTemplate;
+	}
 
 	public ExecRow getKeyRow(ExecRow row) throws StandardException {
 		ExecRow keyRow = activation.getExecutionFactory().getValueRow(getLeftHashKeys().length);

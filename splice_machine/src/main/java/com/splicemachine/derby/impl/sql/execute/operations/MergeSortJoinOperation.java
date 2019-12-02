@@ -99,9 +99,8 @@ public class MergeSortJoinOperation extends JoinOperation {
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
-    public int emptyRightRowsReturned = 0;
-    protected SpliceMethod<ExecRow> emptyRowFun;
-    protected ExecRow emptyRow;
+    protected SpliceMethod<ExecRow> rightEmptyRowFun;
+    protected ExecRow rightEmptyRow;
     protected static final String NAME = MergeSortJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -145,7 +144,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         super.readExternal(in);
         leftHashKeyItem = in.readInt();
         rightHashKeyItem = in.readInt();
-        emptyRightRowsReturned = in.readInt();
     }
 
     @Override
@@ -154,7 +152,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         super.writeExternal(out);
         out.writeInt(leftHashKeyItem);
         out.writeInt(rightHashKeyItem);
-        out.writeInt(emptyRightRowsReturned);
     }
 
     @Override
@@ -162,7 +159,6 @@ public class MergeSortJoinOperation extends JoinOperation {
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
         SpliceLogUtils.trace(LOG, "leftHashkeyItem=%d,rightHashKeyItem=%d", leftHashKeyItem, rightHashKeyItem);
-        emptyRightRowsReturned = 0;
         leftHashKeys = generateHashKeys(leftHashKeyItem);
         rightHashKeys = generateHashKeys(rightHashKeyItem);
         JoinUtils.getMergedRow(leftRow, rightRow, wasRightOuterJoin, mergedRow);
@@ -201,6 +197,7 @@ public class MergeSortJoinOperation extends JoinOperation {
         DataSet<ExecRow> rightDataSet2 =
             rightDataSet1.map(new CountJoinedRightFunction(operationContext));
 //        if (!getJoinType) Remove all nulls from the right side...
+        if (joinType != JoinNode.FULLOUTERJOIN)
             rightDataSet2 = rightDataSet2.filter(new InnerJoinNullFilterFunction(operationContext,rightHashKeys));
 
         if (LOG.isDebugEnabled()) {
@@ -244,11 +241,15 @@ public class MergeSortJoinOperation extends JoinOperation {
         PairDataSet<ExecRow, ExecRow> leftDataSet,
         PairDataSet<ExecRow, ExecRow> rightDataSet) throws StandardException {
 
-        if (joinType == JoinNode.LEFTOUTERJOIN || joinType == JoinNode.FULLOUTERJOIN) { // Outer Join
+        if (joinType == JoinNode.LEFTOUTERJOIN) { // Left Outer Join
+            return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext)
+                        .flatmap(new CogroupLeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                        .map(new SetCurrentLocatedRowFunction<>(operationContext));
+        } else if (joinType == JoinNode.FULLOUTERJOIN) {
             // TODO DB-7816 for full join implementation
             return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext)
-                        .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
-                        .map(new SetCurrentLocatedRowFunction<>(operationContext));
+                    .flatmap(new CogroupFullOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext, leftHashKeys))
+                    .map(new SetCurrentLocatedRowFunction<>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin

@@ -255,7 +255,7 @@ public class BroadcastJoinOperation extends JoinOperation{
         else {
             if (isOuterJoin()) { // Outer Join with and without restriction
                 result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                        .flatMap(new OuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                        .flatMap(new LeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
             } else {
                 if (this.leftHashKeys.length != 0 && !this.notExistsRightSide)

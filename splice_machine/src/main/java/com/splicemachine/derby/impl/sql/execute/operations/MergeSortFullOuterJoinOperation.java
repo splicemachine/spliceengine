@@ -25,12 +25,17 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Created by yxia on 12/1/19.
  */
 public class MergeSortFullOuterJoinOperation extends MergeSortJoinOperation {
     private static Logger LOG = Logger.getLogger(MergeSortFullOuterJoinOperation.class);
+    protected String leftEmptyRowFunMethodName;
+    protected SpliceMethod<ExecRow> leftEmptyRowFun;
+    protected ExecRow leftEmptyRow;
 
     @SuppressWarnings("UnusedDeclaration")
     public MergeSortFullOuterJoinOperation() {
@@ -47,7 +52,8 @@ public class MergeSortFullOuterJoinOperation extends MergeSortJoinOperation {
             Activation activation,
             GeneratedMethod restriction,
             int resultSetNumber,
-            GeneratedMethod emptyRowFun,
+            GeneratedMethod leftEmptyRowFun,
+            GeneratedMethod rightEmptyRowFun,
             boolean wasRightOuterJoin,
             boolean oneRowRightSide,
             boolean notExistsRightSide,
@@ -61,7 +67,8 @@ public class MergeSortFullOuterJoinOperation extends MergeSortJoinOperation {
                 optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
                 sparkExpressionTreeAsString);
         SpliceLogUtils.trace(LOG, "instantiate");
-        this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+        this.leftEmptyRowFunMethodName = (leftEmptyRowFun == null) ? null : leftEmptyRowFun.getMethodName();
+        this.rightEmptyRowFunMethodName = (rightEmptyRowFun == null) ? null : rightEmptyRowFun.getMethodName();
         this.wasRightOuterJoin = wasRightOuterJoin;
         this.joinType = JoinNode.FULLOUTERJOIN;
         init();
@@ -71,7 +78,8 @@ public class MergeSortFullOuterJoinOperation extends MergeSortJoinOperation {
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "init");
         super.init(context);
-        emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,context.getActivation());
+        rightEmptyRowFun = (rightEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,context.getActivation());
+        leftEmptyRowFun = (leftEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(leftEmptyRowFunMethodName,context.getActivation());
     }
 
     @Override
@@ -80,10 +88,30 @@ public class MergeSortFullOuterJoinOperation extends MergeSortJoinOperation {
     }
 
     @Override
-    public ExecRow getEmptyRow() throws StandardException {
-        if (emptyRow == null)
-            emptyRow = emptyRowFun.invoke();
-        return emptyRow;
+    public ExecRow getRightEmptyRow() throws StandardException {
+        if (rightEmptyRow == null)
+            rightEmptyRow = rightEmptyRowFun.invoke();
+        return rightEmptyRow;
     }
 
+    @Override
+    public ExecRow getLeftEmptyRow() throws StandardException {
+        if (leftEmptyRow == null)
+            leftEmptyRow = leftEmptyRowFun.invoke();
+        return leftEmptyRow;
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        SpliceLogUtils.trace(LOG, "readExternal");
+        super.readExternal(in);
+        leftEmptyRowFunMethodName = readNullableString(in);
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        SpliceLogUtils.trace(LOG, "writeExternal");
+        super.writeExternal(out);
+        writeNullableString(leftEmptyRowFunMethodName, out);
+    }
 }

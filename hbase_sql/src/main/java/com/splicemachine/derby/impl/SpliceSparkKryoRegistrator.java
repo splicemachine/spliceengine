@@ -609,7 +609,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
 
 
         instance.register(CogroupInnerJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(CogroupOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CogroupLeftOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ColumnComparator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(GroupedAggregateRollupFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
 
@@ -636,7 +636,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(OuterJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(OuterJoinPairFunction.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(OuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LeftOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ProjectRestrictMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ProjectRestrictPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowComparator.class,EXTERNALIZABLE_SERIALIZER);
@@ -917,5 +917,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(SparkCastNode.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SignalOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SetOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CogroupFullOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
     }
 }

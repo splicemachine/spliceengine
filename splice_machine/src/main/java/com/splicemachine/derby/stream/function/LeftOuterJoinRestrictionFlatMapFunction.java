@@ -32,15 +32,15 @@ import java.util.List;
  *
  */
 @NotThreadSafe
-public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<ExecRow,Iterable<ExecRow>>,ExecRow> {
+public class LeftOuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<ExecRow,Iterable<ExecRow>>,ExecRow> {
     protected ExecRow leftRow;
     protected ExecRow rightRow;
     protected ExecRow mergedRow;
-    public OuterJoinRestrictionFlatMapFunction() {
+    public LeftOuterJoinRestrictionFlatMapFunction() {
         super();
     }
 
-    public OuterJoinRestrictionFlatMapFunction(OperationContext<Op> operationContext) {
+    public LeftOuterJoinRestrictionFlatMapFunction(OperationContext<Op> operationContext) {
         super(operationContext);
     }
 
@@ -72,7 +72,7 @@ public class OuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
         }
         if (returnRows.isEmpty()) {
             mergedRow = JoinUtils.getMergedRow(leftRow,
-                    op.getEmptyRow(), op.wasRightOuterJoin,
+                    op.getRightEmptyRow(), op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));
             mergedRow.setKey(leftRow.getKey());
             returnRows.add(mergedRow);

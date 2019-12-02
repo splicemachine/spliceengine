@@ -58,7 +58,7 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
         }
         // No Rows Matched...
         ExecRow returnRow = JoinUtils.getMergedRow(leftRow,
-                op.getEmptyRow(), op.wasRightOuterJoin,
+                op.getRightEmptyRow(), op.wasRightOuterJoin,
                 executionFactory.getValueRow(numberOfColumns));
         op.setCurrentRow(returnRow);
         return new SingletonIterator(returnRow);

@@ -57,7 +57,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 					optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
 					sparkExpressionTreeAsString);
 				SpliceLogUtils.trace(LOG, "instantiate");
-				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+				this.rightEmptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
                 this.joinType = JoinNode.LEFTOUTERJOIN;
 				init();
@@ -69,7 +69,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				SpliceLogUtils.trace(LOG, "init");
             super.init(context);
             emptyRightRowsReturned = 0;
-            emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
+            emptyRowFun = (rightEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,activation);
 		}
 
 		@Override

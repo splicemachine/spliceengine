@@ -179,13 +179,16 @@ public class FullOuterJoinNode extends JoinNode {
 
     @Override
     protected int addOuterJoinArguments(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
-		/* Nulls always generated from the right */
+		/* Nulls from the left */
+        leftResultSet.getResultColumns().generateNulls(acb,mb);
+
+        /* Nulls from the right */
         rightResultSet.getResultColumns().generateNulls(acb,mb);
 
-		/* Was this originally a right outer join? */
+		/* wasRightOuterJoin */
         mb.push(false);
 
-        return 2;
+        return 3;
     }
 
     /**
@@ -194,7 +197,7 @@ public class FullOuterJoinNode extends JoinNode {
     @Override
     protected int getNumJoinArguments(){
 		/* We add two more arguments than the superclass does */
-        return super.getNumJoinArguments()+2;
+        return super.getNumJoinArguments()+3;
     }
 
     @Override

@@ -60,7 +60,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
                         optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
                         sparkExpressionTreeAsString);
                 SpliceLogUtils.trace(LOG, "instantiate");
-                emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+                rightEmptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
                 this.wasRightOuterJoin = wasRightOuterJoin;
                 this.joinType = JoinNode.LEFTOUTERJOIN;
                 init();
@@ -69,11 +69,11 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
-        emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
+        emptyRowFun = (rightEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,activation);
     }
 
     @Override
-    public ExecRow getEmptyRow () throws StandardException {
+    public ExecRow getRightEmptyRow() throws StandardException {
 		if (emptyRow == null)
 				emptyRow = emptyRowFun.invoke();
 		return emptyRow;
