@@ -45,13 +45,8 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.unsafe.Platform;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 
@@ -1604,89 +1599,6 @@ public final class SQLTimestamp extends DataType
     public Format getFormat() {
     	return Format.TIMESTAMP;
     }
-
-	/**
-	 *
-	 * Write to Project Tungsten format (UnsafeRow).  Timestamp is
-	 * written as 3 ints.
-	 *
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-     */
-	    @Override
-	    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
-	        if (isNull())
-		            unsafeRowWriter.setNullAt(ordinal);
-	        else {
-				PlatformUtils.writeTimestamp(unsafeRowWriter, ordinal, encodedDate, encodedTime, nanos);
-			}
-	    }
-
-	/**
-	 *
-	 * Write Element into Positioned Array
-	 *
-	 * @param unsafeArrayWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-		if (isNull())
-			unsafeArrayWriter.setNull(ordinal);
-		else {
-			byte[] data = new byte[12];
-			Platform.putInt(data,16,encodedDate);
-			Platform.putInt(data,20,encodedTime);
-			Platform.putInt(data,24,nanos);
-			unsafeArrayWriter.write(ordinal,data);
-		}
-	}
-
-	/**
-	 *
-	 * Read Element from Positioned Array
-	 *
-	 * @param unsafeArrayData
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-		if (unsafeArrayData.isNullAt(ordinal))
-			setToNull();
-		else {
-			byte[] data = unsafeArrayData.getBinary(ordinal);
-			encodedDate = Platform.getInt(data, 16);
-			encodedTime = Platform.getInt(data, 20);
-			nanos = Platform.getInt(data, 24);
-			isNull = false;
-		}
-	}
-
-	/**
-	 *
-	 * Read from Project Tungsten format (UnsafeRow).  Timestamp is
-	 * read as 3 ints.
-	 *
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 */
-		@Override
-	    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-	        if (unsafeRow.isNullAt(ordinal))
-		            setToNull();
-	        else {
-				long offsetAndSize = unsafeRow.getLong(ordinal);
-				int offset = (int)(offsetAndSize >> 32);
-				encodedDate = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset);
-				encodedTime = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 4L);
-				nanos = Platform.getInt(unsafeRow.getBaseObject(), unsafeRow.getBaseOffset() + (long)offset + 8L);
-				isNull = false;
-			}
-	    }
 
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
