@@ -145,4 +145,22 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void fullJoinWithATableWithSingleTableCondition() throws Exception {
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join (select * from t2 --splice-properties useSpark=%s\n " +
+                "where a2=3) dt on a1=a2", useSpark);
+        String expected = "B1 |A1 | B2  | A2  | C2  |\n" +
+                "--------------------------\n" +
+                "10 | 1 |NULL |NULL |NULL |\n" +
+                "20 | 2 |NULL |NULL |NULL |\n" +
+                "20 | 2 |NULL |NULL |NULL |\n" +
+                "30 | 3 | 30  |  3  |  3  |\n" +
+                "40 | 4 |NULL |NULL |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
 }

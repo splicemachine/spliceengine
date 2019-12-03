@@ -946,8 +946,8 @@ public class JoinNode extends TableOperatorNode{
             // which, is they are inner joins, a priori think they are
             // flattenable. If left/right result sets are not outer joins,
             // these next two calls are no-ops.
-            ((FromTable)leftResultSet).transformOuterJoins(null,numTables);
-            ((FromTable)rightResultSet).transformOuterJoins(null,numTables);
+            leftResultSet = ((FromTable)leftResultSet).transformOuterJoins(null,numTables);
+            rightResultSet = ((FromTable)rightResultSet).transformOuterJoins(null,numTables);
             return this;
         }
 
@@ -1526,6 +1526,24 @@ public class JoinNode extends TableOperatorNode{
 
 		/* ON clause */
         if(joinClause!=null){
+            /* JoinNode.deferredBindExpressions() may be called again after the outer join rewrite
+               optimization, at this stage, we don't want to simplify the ON clause predicate again, especially
+               the top AND node with ParTrue
+             */
+            if (!joinClauseNormalized) {
+                Visitor constantExpressionVisitor =
+                        new ConstantExpressionVisitor(SelectNode.class);
+                joinClause = (ValueNode) joinClause.accept(constantExpressionVisitor);
+
+                if (!getCompilerContext().getDisablePredicateSimplification()) {
+                    Visitor predSimplVisitor =
+                            new PredicateSimplificationVisitor(fromListParam,
+                                    SelectNode.class);
+
+                    joinClause = (ValueNode) joinClause.accept(predSimplVisitor);
+                }
+            }
+
 			/* Create a new fromList with only left and right children before
 			 * binding the join clause. Valid column references in the join clause
 			 * are limited to columns from the 2 tables being joined. This

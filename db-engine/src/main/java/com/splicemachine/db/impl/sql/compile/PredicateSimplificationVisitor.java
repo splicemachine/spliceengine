@@ -52,13 +52,13 @@ class PredicateSimplificationVisitor implements Visitor {
         this.fromListParam = fromListParam;
     }
 
-    private static boolean isBooleanTrue(Visitable node) {
+    public static boolean isBooleanTrue(Visitable node) {
         if (node instanceof BooleanConstantNode) {
             return ((BooleanConstantNode)node).isBooleanTrue();
         }
         return false;
     }
-    private static boolean isBooleanFalse(Visitable node) {
+    public static boolean isBooleanFalse(Visitable node) {
         if (node instanceof BooleanConstantNode) {
             return ((BooleanConstantNode)node).isBooleanFalse();
         }

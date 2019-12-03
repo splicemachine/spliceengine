@@ -116,7 +116,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
     @Override
     public String fullOuterJoinResultSetMethodName() {
-        return "getNestedLoopFullOuterJoinResultSet";
+       // return "getNestedLoopFullOuterJoinResultSet";
+        throw new UnsupportedOperationException("NestedLoop full join not supported currently");
     }
 
     @Override

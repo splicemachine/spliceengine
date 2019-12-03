@@ -217,4 +217,38 @@ public class FullOuterJoinNode extends JoinNode {
         sb.append(")");
         return sb.toString();
     }
+
+    @Override
+    public FromTable transformOuterJoins(ValueNode predicateTree,int numTables) throws StandardException{
+
+        super.transformOuterJoins(null,numTables);
+        if(PredicateSimplificationVisitor.isBooleanTrue(joinClause)){
+            JoinNode ij=(JoinNode)
+                    getNodeFactory().getNode(
+                            C_NodeTypes.JOIN_NODE,
+                            leftResultSet,
+                            rightResultSet,
+                            joinClause,
+                            null,
+                            resultColumns,
+                            null,
+                            null,
+                            getContextManager());
+            ij.setTableNumber(tableNumber);
+            ij.setSubqueryList(subqueryList);
+            ij.setAggregateVector(aggregateVector);
+
+            leftResultSet.notFlattenableJoin();
+            rightResultSet.notFlattenableJoin();
+            return ij;
+        }
+
+		/* We can't transform this node, so tell both sides of the
+		 * outer join that they can't get flattened into outer query block.
+		 */
+        leftResultSet.notFlattenableJoin();
+        rightResultSet.notFlattenableJoin();
+
+        return this;
+    }
 }
