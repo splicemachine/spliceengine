@@ -36,7 +36,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -86,9 +85,8 @@ public class SQLIntegerTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(10, ((Row) execRow).getInt(0));
                 Assert.assertTrue(((Row) execRow).isNullAt(1));
                 Row sparkRow = execRow.getSparkRow();
-                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{10, null}, execRow.schema());
-                Assert.assertEquals(row.getInt(0), 10);
-                Assert.assertTrue(row.isNullAt(1));
+                Assert.assertEquals(sparkRow.getInt(0), 10);
+                Assert.assertTrue(sparkRow.isNullAt(1));
         }
         @Test
         public void testColumnStatistics() throws Exception {

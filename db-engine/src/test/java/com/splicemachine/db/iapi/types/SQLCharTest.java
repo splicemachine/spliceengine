@@ -36,7 +36,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -63,9 +62,8 @@ public class SQLCharTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals("foobar", ((Row) execRow).getString(0));
                 Assert.assertTrue(((Row) execRow).isNullAt(1));
                 Row sparkRow = execRow.getSparkRow();
-                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{"foobar", null}, execRow.schema());
-                Assert.assertEquals(row.getString(0), "foobar");
-                Assert.assertTrue(row.isNullAt(1));
+                Assert.assertEquals(sparkRow.getString(0), "foobar");
+                Assert.assertTrue(sparkRow.isNullAt(1));
         }
 
         @Test
