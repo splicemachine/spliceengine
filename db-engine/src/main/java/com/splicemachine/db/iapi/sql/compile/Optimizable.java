@@ -449,4 +449,9 @@ public interface Optimizable {
 	 * @param accessPath The access path to test.
 	 */
         boolean isAboveSparkThreshold(AccessPath accessPath);
+
+	void setAccumulatedCost(CostEstimate cost);
+	void setAccumulatedCostForSortAvoidancePlan(CostEstimate cost);
+	CostEstimate getAccumulatedCost();
+	CostEstimate getAccumulatedCostforSortAvoidancePlan();
 }
