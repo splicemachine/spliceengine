@@ -38,10 +38,6 @@ import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -216,26 +212,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     @Override
     public int hashCode(){
         return (int)(containerId^(containerId>>>32));
-    }
-
-    @Override
-    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
-        throw new UnsupportedOperationException("Not Implemented");
-    }
-
-    @Override
-    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-        throw new UnsupportedOperationException("Not Implemented");
-    }
-
-    @Override
-    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-        throw new UnsupportedOperationException("Not Implemented");
-    }
-
-    @Override
-    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        throw new UnsupportedOperationException("Not Implemented");
     }
 
     @Override

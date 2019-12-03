@@ -224,7 +224,7 @@ public class TestOrcReaderPositions
         OrcFile.WriterOptions writerOptions = new OrcWriterOptions(conf)
                 .memory(new NullMemoryManager(conf))
                 .inspector(createSettableStructObjectInspector("test", javaLongObjectInspector))
-                .compress(SNAPPY);
+                .compress(CompressionKind.SNAPPY);
         Writer writer = OrcFile.createWriter(new Path(file.toURI()), writerOptions);
         for (Map.Entry<String, String> entry : metadata.entrySet()) {
             writer.addUserMetadata(entry.getKey(), ByteBuffer.wrap(entry.getValue().getBytes(UTF_8)));

@@ -48,10 +48,6 @@ import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
@@ -1317,137 +1313,13 @@ abstract class SQLBinary
         setValue(shrunkData);
     }
 
-    /**
-     *
-     * Write to a Project Tungsten UnsafeRow format.
-     *
-     * @see UnsafeRowWriter#write(int, byte[])
-     *
-     * @param unsafeRowWriter
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException{
-        if (isNull())
-            unsafeRowWriter.setNullAt(ordinal);
-        else {
-            unsafeRowWriter.write(ordinal, dataValue);
-        }
-    }
-
-    /**
-     * Read Data as position in Array
-     *
-     * @param unsafeArrayData
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-        if (unsafeArrayData.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            dataValue = unsafeArrayData.getBinary(ordinal);
-        }
-    }
-
-    /**
-     *
-     * Write Array Data
-     *
-     * @param unsafeArrayWriter
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-        if (isNull())
-            unsafeArrayWriter.setNull(ordinal);
-        else {
-            unsafeArrayWriter.write(ordinal, dataValue);
-        }
-    }
-
-    /**
-     *
-     * Read from a Project Tungsten UnsafeRow format.
-     *
-     * @see UnsafeRow#getBinary(int)
-     *
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        if (unsafeRow.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            dataValue = unsafeRow.getBinary(ordinal);
-        }
-    }
-
-    @Override
-    public void read(Row row, int ordinal) throws StandardException {
-        if (row.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            dataValue = (byte[]) row.get(ordinal);
-        }
-    }
-
-
-
-    @Override
-    public StructField getStructField(String columnName) {
-        return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
-    }
-
-
-    public void updateThetaSketch(UpdateSketch updateSketch) {
-        updateSketch.update(dataValue);
-    }
-
-    @Override
-    public void setSparkObject(Object sparkObject) throws StandardException {
-        if (sparkObject == null)
-            setToNull();
-        else {
-            dataValue = (byte[]) sparkObject; // Autobox, must be something better.
-            setIsNull(false);
-        }
-    }
-
-    @Override
-    public Object getSparkObject() throws StandardException {
-        if (isNull() || dataValue == null)
-            return null;
-        return dataValue;
-    }
-
-	/**
-	 * This method implements the locate function for binary string.
-	 * @param searchFrom    - The binary string to search from
-	 * @param start         - The position to search from in the binary string searchFrom
-	 * @param result        - The object to return
-	 *
-	 *
-	 * @return  The position in searchFrom the fist occurrence of this.value.
-	 *              0 is returned if searchFrom does not contain this.value.
-	 * @exception StandardException     Thrown on error
-	 */
-	public NumberDataValue locate(  ConcatableDataValue searchFrom,
-									NumberDataValue start,
-									NumberDataValue result)
-			throws StandardException
-	{
-		int startVal;
-
-		if( result == null )
-		{
-			result = new SQLInteger();
+	@Override
+	public void read(Row row, int ordinal) throws StandardException {
+		if (row.isNullAt(ordinal))
+			setToNull();
+		else {
+			isNull = false;
+			dataValue = (byte[]) row.get(ordinal);
 		}
 
 		if( start.isNull() )

@@ -30,11 +30,7 @@
  */
 package com.splicemachine.db.iapi.types;
 
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.GenericRow;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.BufferHolder;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
+import com.splicemachine.db.iapi.types.*;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -46,72 +42,4 @@ import java.util.Arrays;
  *
  */
 public class SQLRefTest extends SQLDataValueDescriptorTest {
-
-        @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLRef value = new SQLRef(new SQLRowId("1".getBytes()));
-                SQLRef valueA = new SQLRef();
-                writer.reset();
-                value.write(writer, 0);
-                valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",(Object) new SQLRowId("1".getBytes()),(Object) valueA.getObject());
-                Assert.assertTrue("SerdeIncorrect", !valueA.isNull());
-
-                Object[] data = new Object[1];
-                data[0] = new SQLRowId("1".getBytes()).getBytes();
-                Row genericRow = new GenericRow(data);
-                valueA = new SQLRef();
-                valueA.read(genericRow,0);
-                Assert.assertTrue("SerdeIncorrect", !valueA.isNull());
-        }
-
-        @Test
-        public void serdeHBaseRowLocation() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLRef value = new SQLRef(new HBaseRowLocation("1".getBytes()));
-                SQLRef valueA = new SQLRef();
-                writer.reset();
-                value.write(writer, 0);
-                valueA.read(row,0);
-                Assert.assertEquals("SerdeIncorrect",(Object) new SQLRowId("1".getBytes()),(Object) valueA.getObject());
-                Assert.assertTrue("SerdeIncorrect", !valueA.isNull());
-
-                Object[] data = new Object[1];
-                data[0] = new HBaseRowLocation("1".getBytes()).getBytes();
-                Row genericRow = new GenericRow(data);
-                valueA = new SQLRef();
-                valueA.read(genericRow,0);
-                Assert.assertTrue("SerdeIncorrect", !valueA.isNull());
-         }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLRef value = new SQLRef();
-                SQLRef valueA = new SQLRef();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", row.isNullAt(0));
-                value.read(row, 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-        }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRow row = new UnsafeRow(1);
-                UnsafeRowWriter writer = new UnsafeRowWriter(new BufferHolder(row),1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLRef(new SQLRowId()));
-                value.setValue(new DataValueDescriptor[] {new SQLRef(new SQLRowId("1".getBytes())),new SQLRef(new SQLRowId("435".getBytes())),
-                        new SQLRef(new SQLRowId("----".getBytes())), new SQLRef(new SQLRowId())});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLRef(new SQLRowId()));
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(row,0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-        }
 }

@@ -49,13 +49,8 @@ import com.splicemachine.db.iapi.util.UTF8Util;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
-import org.apache.spark.unsafe.types.UTF8String;
 import org.joda.time.DateTime;
 
 import java.io.*;
@@ -3463,80 +3458,6 @@ public class SQLChar
     public int getSqlCharSize() { return sqlCharSize; }
     public void setSqlCharSize(int size) { sqlCharSize = size; }
 
-    /**
-     *
-     * Write into the Project Tungsten Format (UnsafeRow).
-     *
-     * @see UnsafeRowWriter#write(int, UTF8String)
-     *
-     * @param unsafeRowWriter
-     * @param ordinal
-     */
-    @Override
-    public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
-        if (isNull())
-            unsafeRowWriter.setNullAt(ordinal);
-        else {
-            unsafeRowWriter.write(ordinal, UTF8String.fromString(value));
-        }
-    }
-
-    /**
-     *
-     * Write Array of SQLChars
-     *
-     * @param unsafeArrayWriter
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-        if (isNull())
-            unsafeArrayWriter.setNull(ordinal);
-        else {
-            unsafeArrayWriter.write(ordinal, UTF8String.fromString(value));
-        }
-    }
-
-    /**
-     *
-     * Read the data from the array into this element
-     *
-     * @param unsafeArrayData
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-        if (unsafeArrayData.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            value = unsafeArrayData.getUTF8String(ordinal).toString();
-        }
-    }
-
-    /**
-     *
-     * Read into the Project Tungsten Format (UnsafeRow).
-     *
-     * @see UnsafeRow#getUTF8String(int)
-     *
-     * @param unsafeRow
-     * @param ordinal
-     * @throws StandardException
-     */
-    @Override
-    public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        if (unsafeRow.isNullAt(ordinal))
-            setToNull();
-        else {
-            isNull = false;
-            value = unsafeRow.getUTF8String(ordinal).toString();
-        }
-    }
-
-    @Override
     public void read(Row row, int ordinal) throws StandardException {
         if (row.isNullAt(ordinal))
             setToNull();
