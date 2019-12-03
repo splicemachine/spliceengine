@@ -126,7 +126,7 @@ public class StatsConfiguration implements ConfigurationDefault {
      * Defaults to Integer.MAX_VALUE
      */
     public static final String COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT = "splice.statistics.collectSchemaStatisticsMaximumConcurrent";
-    public static final int DEFAULT_COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT = Integer.MAX_VALUE;
+    public static final int DEFAULT_COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT = 100;
 
 
     @Override
