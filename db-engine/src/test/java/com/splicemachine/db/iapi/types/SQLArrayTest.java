@@ -14,7 +14,6 @@
  */
 package com.splicemachine.db.iapi.types;
 
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,16 +25,4 @@ import org.junit.Test;
  *
  */
 public class SQLArrayTest extends SQLDataValueDescriptorTest {
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLArray value = new SQLArray();
-                SQLArray valueA = new SQLArray();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
-                value.read(writer.getRow(), 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-        }
-
 }

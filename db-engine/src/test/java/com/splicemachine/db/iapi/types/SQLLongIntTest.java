@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -76,28 +75,6 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
         }
     
         @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLLongint value = new SQLLongint(100l);
-                SQLLongint valueA = new SQLLongint();
-                value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",100l,writer.getRow().getLong(0),0l);
-                valueA.read(writer.getRow(),0);
-                Assert.assertEquals("SerdeIncorrect",100l,valueA.getLong(),0l);
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLLongint value = new SQLLongint();
-                SQLLongint valueA = new SQLLongint();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
-                value.read(writer.getRow(), 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
-
-        @Test
         public void testColumnStatistics() throws Exception {
                 SQLLongint value1 = new SQLLongint();
                 ItemStatistics stats = new ColumnStatisticsImpl(value1);
@@ -124,20 +101,6 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLLongint(1000),new SQLLongint(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLLongint(),new SQLLongint(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLLongint(5000),new SQLLongint(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
-        }
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLLongint());
-                value.setValue(new DataValueDescriptor[] {new SQLLongint(23),new SQLLongint(48), new SQLLongint(10), new SQLLongint()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLLongint());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(writer.getRow(),0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-
         }
 
         @Test

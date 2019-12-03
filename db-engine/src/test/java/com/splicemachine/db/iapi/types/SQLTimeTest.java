@@ -33,7 +33,6 @@ package com.splicemachine.db.iapi.types;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -47,44 +46,6 @@ import java.util.GregorianCalendar;
  *
  */
 public class SQLTimeTest extends SQLDataValueDescriptorTest {
-
-        @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                Time time = new Time(System.currentTimeMillis());
-                SQLTime value = new SQLTime(time);
-                SQLTime valueA = new SQLTime();
-                writer.reset();
-                value.write(writer, 0);
-                valueA.read(writer.getRow(),0);
-                Assert.assertEquals("SerdeIncorrect",time.toString(),valueA.getTime(new GregorianCalendar()).toString());
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                Time time = new Time(System.currentTimeMillis());
-                SQLTime value = new SQLTime(time);
-                SQLTime valueA = new SQLTime();
-                writer.reset();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLTime());
-                value.setValue(new DataValueDescriptor[] {new SQLTime(new Time(System.currentTimeMillis())),new SQLTime(new Time(System.currentTimeMillis())),
-                        new SQLTime(new Time(System.currentTimeMillis())), new SQLTime()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLTime());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(writer.getRow(),0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-        }
 
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {

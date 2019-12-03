@@ -35,7 +35,6 @@ package com.splicemachine.db.impl.sql.compile;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.parser.ParserInterface;
 import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
@@ -43,8 +42,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.function.Function;
 
-import static com.splicemachine.db.impl.sql.compile.RelationalOperator.EQUALS_RELOP;
-import static com.splicemachine.db.impl.sql.compile.RelationalOperator.ILLEGAL_UNDEFINED_RELOP;
 
 public class SparkColumnReference extends AbstractSparkExpressionNode
 {

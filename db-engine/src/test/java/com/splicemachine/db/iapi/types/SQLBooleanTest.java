@@ -30,14 +30,12 @@
  */
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -51,28 +49,6 @@ import java.util.Arrays;
 public class SQLBooleanTest extends SQLDataValueDescriptorTest {
 
         @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLBoolean value = new SQLBoolean(true);
-                SQLBoolean valueA = new SQLBoolean();
-                value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",true,writer.getRow().getBoolean(0));
-                valueA.read(writer.getRow(),0);
-                Assert.assertEquals("SerdeIncorrect",true,valueA.getBoolean());
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLBoolean value = new SQLBoolean();
-                SQLBoolean valueA = new SQLBoolean();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
-                value.read(writer.getRow(), 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
-
-        @Test
         public void rowValueToDVDValue() throws Exception {
                 SQLBoolean bool1 = new SQLBoolean(true);
                 SQLBoolean bool2 = new SQLBoolean();
@@ -82,9 +58,8 @@ public class SQLBooleanTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(true, ((Row) execRow).getBoolean(0));
                 Assert.assertTrue(((Row) execRow).isNullAt(1));
                 Row sparkRow = execRow.getSparkRow();
-                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{true, null}, execRow.schema());
-                Assert.assertEquals(row.getBoolean(0), true);
-                Assert.assertTrue(row.isNullAt(1));
+                Assert.assertEquals(sparkRow.getBoolean(0), true);
+                Assert.assertTrue(sparkRow.isNullAt(1));
         }
         public void testColumnStatistics() throws Exception {
                 SQLBoolean value1 = new SQLBoolean();
@@ -112,21 +87,6 @@ public class SQLBooleanTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(5000.0d,(double) stats.rangeSelectivity(new SQLBoolean(false),new SQLBoolean(true),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(5000.0d,(double) stats.rangeSelectivity(new SQLBoolean(),new SQLBoolean(true),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(9000.0d,(double) stats.rangeSelectivity(new SQLBoolean(false),new SQLBoolean(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
-        }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLBoolean());
-                value.setValue(new DataValueDescriptor[] {new SQLBoolean(true),new SQLBoolean(false),
-                        new SQLBoolean(true), new SQLBoolean()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLBoolean());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(writer.getRow(),0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
         }
 
         @Test

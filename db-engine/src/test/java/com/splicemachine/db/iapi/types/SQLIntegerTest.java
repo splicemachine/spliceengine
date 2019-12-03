@@ -32,12 +32,10 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -78,28 +76,6 @@ public class SQLIntegerTest extends SQLDataValueDescriptorTest {
         }
     
         @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLInteger value = new SQLInteger(100);
-                SQLInteger valueA = new SQLInteger();
-                value.write(writer, 0);
-                Assert.assertEquals("SerdeIncorrect",100,writer.getRow().getInt(0),0);
-                valueA.read(writer.getRow(),0);
-                Assert.assertEquals("SerdeIncorrect",100,valueA.getInt(),0);
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLInteger value = new SQLInteger();
-                SQLInteger valueA = new SQLInteger();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", writer.getRow().isNullAt(0));
-                value.read(writer.getRow(), 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
-
-        @Test
         public void rowValueToDVDValue() throws Exception {
                 SQLInteger int1 = new SQLInteger(10);
                 SQLInteger int2 = new SQLInteger();
@@ -109,9 +85,8 @@ public class SQLIntegerTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(10, ((Row) execRow).getInt(0));
                 Assert.assertTrue(((Row) execRow).isNullAt(1));
                 Row sparkRow = execRow.getSparkRow();
-                GenericRowWithSchema row = new GenericRowWithSchema(new Object[]{10, null}, execRow.schema());
-                Assert.assertEquals(row.getInt(0), 10);
-                Assert.assertTrue(row.isNullAt(1));
+                Assert.assertEquals(sparkRow.getInt(0), 10);
+                Assert.assertTrue(sparkRow.isNullAt(1));
         }
         @Test
         public void testColumnStatistics() throws Exception {
@@ -140,21 +115,6 @@ public class SQLIntegerTest extends SQLDataValueDescriptorTest {
                 Assert.assertEquals(1000.0d,(double) stats.rangeSelectivity(new SQLInteger(1000),new SQLInteger(2000),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(500.0d,(double) stats.rangeSelectivity(new SQLInteger(),new SQLInteger(500),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
                 Assert.assertEquals(4000.0d,(double) stats.rangeSelectivity(new SQLInteger(5000),new SQLInteger(),true,false),RANGE_SELECTIVITY_ERRROR_BOUNDS);
-        }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLInteger());
-                value.setValue(new DataValueDescriptor[] {new SQLInteger(23),new SQLInteger(48), new SQLInteger(10), new SQLInteger()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLInteger());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(writer.getRow(),0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-
         }
 
         @Test

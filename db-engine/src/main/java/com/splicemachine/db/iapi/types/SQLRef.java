@@ -46,10 +46,6 @@ import java.sql.RowId;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
@@ -280,82 +276,6 @@ public class SQLRef extends DataType implements RefDataValue {
 	}
 	public Format getFormat() {
 		return Format.REF;
-	}
-
-	/**
-	 *
-	 * Write into a Project Tungsten format (UnsafeRow).  This calls the
-	 * reference's write method.
-	 *
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) throws StandardException {
-		if (isNull())
-				unsafeRowWriter.setNullAt(ordinal);
-		else {
-				value.write(unsafeRowWriter,ordinal);
-			}
-	}
-
-	/**
-	 *
-	 * Write Element into Positioned Array
-	 *
-	 * @param unsafeArrayWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-		if (isNull())
-			unsafeArrayWriter.setNull(ordinal);
-		else {
-			value.writeArray(unsafeArrayWriter,ordinal);
-		}
-	}
-
-	/**
-	 *
-	 * Read Element from Positioned Array
-	 *
-	 * @param unsafeArrayData
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-		if (unsafeArrayData.isNullAt(ordinal)) {
-			setIsNull(true);
-		} else {
-			if (value == null)
-				value = new SQLRowId();
-			value.read(unsafeArrayData, ordinal);
-			setIsNull(false);
-		}
-	}
-
-	/**
-	 *
-	 * Read into a Project Tungsten format.  This calls the Reference's
-	 * read method.
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-        if (unsafeRow.isNullAt(ordinal))
-            setToNull();
-        else {
-            if (value == null)
-                value = new SQLRowId();
-            value.read(unsafeRow, ordinal);
-            isNull = evaluateNull();
-        }
 	}
 
 	@Override

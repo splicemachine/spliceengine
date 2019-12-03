@@ -32,9 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.catalyst.parser.ParserInterface;
 import org.apache.spark.sql.types.DataType;
-import org.apache.spark.sql.catalyst.parser.ParseException;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -42,7 +40,6 @@ import java.io.ObjectOutput;
 import java.util.function.Function;
 
 import static java.lang.String.format;
-import static org.apache.spark.sql.functions.lit;
 
 public class SparkCastNode extends AbstractSparkExpressionNode
 {

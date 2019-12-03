@@ -37,7 +37,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.quantiles.ItemsUnion;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
@@ -52,27 +51,6 @@ import java.util.GregorianCalendar;
  *
  */
 public class SQLTimestampTest extends SQLDataValueDescriptorTest {
-
-        @Test
-        public void serdeValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-                SQLTimestamp value = new SQLTimestamp(timestamp);
-                SQLTimestamp valueA = new SQLTimestamp();
-                writer.reset();
-                value.write(writer, 0);
-                valueA.read(writer.getRow(),0);
-                Assert.assertEquals("SerdeIncorrect",timestamp.toString(),valueA.getTimestamp(new GregorianCalendar()).toString());
-            }
-
-        @Test
-        public void serdeNullValueData() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLTimestamp value = new SQLTimestamp();
-                SQLTimestamp valueA = new SQLTimestamp();
-                value.write(writer, 0);
-                Assert.assertTrue("SerdeIncorrect", valueA.isNull());
-            }
 
         @Test
         public void testColumnStatistics() throws Exception {
@@ -114,22 +92,6 @@ public class SQLTimestampTest extends SQLDataValueDescriptorTest {
                 itemsSketch.update(integer2);
                 quantilesSketchUnion.update(itemsSketch);
         }
-
-        @Test
-        public void testArray() throws Exception {
-                UnsafeRowWriter writer = new UnsafeRowWriter(1);
-                SQLArray value = new SQLArray();
-                value.setType(new SQLTimestamp());
-                value.setValue(new DataValueDescriptor[] {new SQLTimestamp(new Timestamp(System.currentTimeMillis())),new SQLTimestamp(new Timestamp(System.currentTimeMillis())),
-                        new SQLTimestamp(new Timestamp(System.currentTimeMillis())), new SQLTimestamp()});
-                SQLArray valueA = new SQLArray();
-                valueA.setType(new SQLTimestamp());
-                writer.reset();
-                value.write(writer,0);
-                valueA.read(writer.getRow(),0);
-                Assert.assertTrue("SerdeIncorrect", Arrays.equals(value.value,valueA.value));
-        }
-
 
         @Test
         public void testExecRowSparkRowConversion() throws StandardException {

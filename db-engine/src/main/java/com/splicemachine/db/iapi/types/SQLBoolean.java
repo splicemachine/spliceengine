@@ -48,10 +48,6 @@ import java.sql.SQLException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.catalyst.expressions.UnsafeArrayData;
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeArrayWriter;
-import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
@@ -1056,80 +1052,6 @@ public final class SQLBoolean
 	private boolean value;
 	public Format getFormat() {
 		return Format.BOOLEAN;
-	}
-	/**
-	 *
-	 * Write to a Project Tungsten UnsafeRow Format.
-	 *
-	 * @see UnsafeRowWriter#write(int, boolean)
-	 *
-	 * @param unsafeRowWriter
-	 * @param ordinal
-     */
-	@Override
-	public void write(UnsafeRowWriter unsafeRowWriter, int ordinal) {
-		if (isNull())
-			unsafeRowWriter.setNullAt(ordinal);
-		else {
-			isNull = false;
-			unsafeRowWriter.write(ordinal, value);
-		}
-	}
-
-	/**
-	 *
-	 * Write Element in positioned Array
-	 *
-	 * @param unsafeArrayWriter
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void writeArray(UnsafeArrayWriter unsafeArrayWriter, int ordinal) throws StandardException {
-		if (isNull())
-			unsafeArrayWriter.setNull(ordinal);
-		else {
-			isNull = false;
-			unsafeArrayWriter.write(ordinal, value);
-		}
-	}
-
-	/**
-	 *
-	 * Read element from positioned array
-	 *
-	 * @param unsafeArrayData
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeArrayData unsafeArrayData, int ordinal) throws StandardException {
-		if (unsafeArrayData.isNullAt(ordinal))
-			setToNull();
-		else {
-			isNull = false;
-			value = unsafeArrayData.getBoolean(ordinal);
-		}
-	}
-
-	/**
-	 *
-	 * Read from a Project Tungsten UnsafeRow Format.
-	 *
-	 * @see UnsafeRow#getBoolean(int)
-	 *
-	 * @param unsafeRow
-	 * @param ordinal
-	 * @throws StandardException
-     */
-	@Override
-	public void read(UnsafeRow unsafeRow, int ordinal) throws StandardException {
-		if (unsafeRow.isNullAt(ordinal))
-			setToNull();
-		else {
-			isNull = false;
-			value = unsafeRow.getBoolean(ordinal);
-		}
 	}
 
 	@Override

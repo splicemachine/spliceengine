@@ -372,6 +372,11 @@
                 <artifactId>jackson-core</artifactId>
                 <version>2.9.9</version>
             </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-scala_2.11</artifactId>
+                <version>2.9.9</version>
+            </dependency>
             <!--dependency>
                 <groupId>org.codehaus.jackson</groupId>
                 <artifactId>jackson-core-asl</artifactId>
@@ -858,8 +863,8 @@
                 <hbase.version>2.0.2.3.1.0.0-78</hbase.version>
                 <hive.version>3.1.0.3.1.2.0-4</hive.version>
                 <zookeeper.version>3.4.6.3.1.0.0-78</zookeeper.version>
-                <spark.version>2.4.3</spark.version>
-                <spark.major.version>spark2.4</spark.major.version>
+                <spark.version>2.3.2.3.1.0.0-78</spark.version>
+                <spark.major.version>spark2.3</spark.major.version>
                 <kafka.version>2.0.0.3.1.0.0-78</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
                 <parquet.version>orc-spark-2.3</parquet.version>
