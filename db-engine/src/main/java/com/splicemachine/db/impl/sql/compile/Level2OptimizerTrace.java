@@ -120,7 +120,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="User-specified join order has now been optimized.";
                 break;
             case CONSIDERING_JOIN_ORDER:
-                traceString=buildJoinOrder("Considering join order: ",false,intParam1,optimizer.proposedJoinOrder);
+                traceString=buildJoinOrder("Considering join order: ",false,intParam1,optimizer.proposedJoinOrder) + ", current cost starts with: " + objectParam1;
                 break;
             case TOTAL_COST_NON_SA_PLAN:
                 traceString="Total cost of non-sort-avoidance plan is "+optimizer.currentCost;
@@ -326,6 +326,18 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 cd=(ConglomerateDescriptor) objectParam1;
                 cdString=dumpConglomerateDescriptor(cd);
                 traceString="Skipping sparse index " + cdString + " because it is not eligible";
+                break;
+            case PULL_OPTIMIZABLE:
+                if (intParam1 == 0) {
+                    // for regular plan
+                    traceString = "Join order: Pull optimizable " + intParam1 + ", current cost after pulling: " + objectParam1;
+                } else {
+                    // for sort avoidance plan
+                    traceString = "Join order: Pull optimizable " + intParam1 + ", current sort avoidance cost after pulling: " + objectParam1;
+                }
+                break;
+            case REWIND_JOINORDER:
+                traceString="Join order: Rewind to " + objectParam1;
                 break;
             default:
                 throw new IllegalStateException("Unexpected Trace flag: "+ flag);

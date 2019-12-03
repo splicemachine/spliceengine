@@ -850,7 +850,7 @@ public class OptimizerImpl implements Optimizer{
 			 */
             optimizableList.getOptimizable(nextOptimizable).getBestAccessPath().setCostEstimate(null);
 
-            tracer.trace(OptimizerFlag.CONSIDERING_JOIN_ORDER,0,0,0.0, null);
+            tracer.trace(OptimizerFlag.CONSIDERING_JOIN_ORDER,0,0,0.0, currentCost);
 
             Optimizable nextOpt= optimizableList.getOptimizable(nextOptimizable);
 
@@ -901,12 +901,15 @@ public class OptimizerImpl implements Optimizer{
 			** optimizable.
 			*/
             addCost(bestCostEstimate,currentCost);
+            // store accumulated cost in curOpt
+            curOpt.setAccumulatedCost(currentCost);
 
             if(curOpt.considerSortAvoidancePath() && requiredRowOrdering!=null){
 				/* Add the cost for the sort avoidance path, if there is one */
                 bestCostEstimate=curOpt.getBestSortAvoidancePath().getCostEstimate();
 
                 addCost(bestCostEstimate,currentSortAvoidanceCost);
+                curOpt.setAccumulatedCostForSortAvoidancePlan(currentSortAvoidanceCost);
             }
 
             if(optimizerTrace){
@@ -1544,15 +1547,26 @@ public class OptimizerImpl implements Optimizer{
             if(joinPosition==0) break;
         }
         currentCost.setCost(0.0d,0.0d,0.0d);
+        currentCost.setRemoteCost(0.0d);
+        currentCost.setRemoteCostPerPartition(0.0d);
         currentCost.setBase(null);
         currentCost.setRowOrdering(null);
+
+
         currentSortAvoidanceCost.setCost(0.0d,0.0d,0.0d);
+        currentSortAvoidanceCost.setRemoteCost(0.0d);
+        currentSortAvoidanceCost.setRemoteCostPerPartition(0.0d);
         currentSortAvoidanceCost.setBase(null);
         currentSortAvoidanceCost.setRowOrdering(null);
         assignedTableMap.clearAll();
         outermostCostEstimate.setCost(0.0d,outermostCostEstimate.getEstimatedRowCount(),0d);
         outermostCostEstimate.setBase(null);
         outermostCostEstimate.setRowOrdering(null);
+
+        OptimizerTrace tracer = tracer();
+        if(optimizerTrace){
+            tracer.trace(OptimizerFlag.REWIND_JOINORDER,0,0,0.0, currentCost);
+        }
     }
 
     /*
@@ -1838,101 +1852,33 @@ public class OptimizerImpl implements Optimizer{
         Optimizable pullMe= optimizableList.getOptimizable(proposedJoinOrder[joinPosition]);
 
 		/*
-		** Subtract the cost estimate of the optimizable being
-		** removed from the total cost estimate.
-		**
-		** The total cost is the sum of all the costs, but the total
-		** number of rows is the number of rows returned by the
-		** innermost optimizable.
+		** Restore the previous cost estimate
 		*/
-        double prevRowCount;
-        double prevSingleScanRowCount;
-        double prevRemoteCost;
+
         int prevPosition=0;
         if(joinPosition==0){
-            prevRowCount=outermostCostEstimate.rowCount();
-            prevSingleScanRowCount=outermostCostEstimate.singleScanRowCount();
-            prevRemoteCost = outermostCostEstimate.remoteCost();
+            currentCost.setCost(outermostCostEstimate);
         }else{
             prevPosition=proposedJoinOrder[joinPosition-1];
-            CostEstimate localCE= optimizableList.getOptimizable(prevPosition).getBestAccessPath().getCostEstimate();
-            prevRowCount=localCE.rowCount();
-            prevSingleScanRowCount=localCE.singleScanRowCount();
-            prevRemoteCost = localCE.remoteCost();
-        }
-
-		/*
-		** If there is no feasible join order, the cost estimate
-		** in the best access path may never have been set.
-		** In this case, do not subtract anything from the
-		** current cost, since nothing was added to the current
-		** cost.
-		*/
-        double newLocalCost=currentCost.localCost();
-        double pullLocalCost;
-        CostEstimate pullCostEstimate= pullMe.getBestAccessPath().getCostEstimate();
-        if(pullCostEstimate!=null){
-            pullLocalCost=pullCostEstimate.localCost();
-
-            newLocalCost-=pullLocalCost;
-            // For a complete join order, we may add sort cost to the plan,
-            // so we we need to deduct it if any
-            if (joinPosition == numOptimizables-1) {
-                if (sortCost != null && sortCost.getLocalCost() != Double.MAX_VALUE)
-                    newLocalCost-= sortCost.getLocalCost();
-            }
-
-			/*
-			** It's possible for newCost to go negative here due to
-			** loss of precision--but that should ONLY happen if the
-			** optimizable we just pulled was at position 0.  If we
-			** have a newCost that is <= 0 at any other time, then
-			** it's the result of a different kind of precision loss--
-			** namely, the estimated cost of pullMe was so large that
-			** we lost the precision of the accumulated cost as it
-			** existed prior to pullMe. Then when we subtracted
-			** pullMe's cost out, we ended up setting newCost to zero.
-			** That's an unfortunate side effect of optimizer cost
-			** estimates that grow too large. If that's what happened
-			** here,try to make some sense of things by adding up costs
-			** as they existed prior to pullMe...
-			*/
-            if(newLocalCost<=0.0){
-                if(joinPosition==0)
-                    newLocalCost=0.0;
-                else
-                    newLocalCost=recoverCostFromProposedJoinOrder(false);
-            }
-        }
-        //new remote cost should be the previous optimal's remote cost, see
-        // logi in addCost()
-        double newRemoteCost = prevRemoteCost;
-
-		/* If we are choosing a new outer table, then
-		 * we rest the starting cost to the outermostCost.
-		 * (Thus avoiding any problems with floating point
-		 * accuracy and going negative.)
-		 */
-        if(joinPosition==0){
-            if(outermostCostEstimate!=null){
-                newRemoteCost=outermostCostEstimate.remoteCost();
-                newLocalCost=outermostCostEstimate.localCost();
-            }else{
-                newRemoteCost=0.0;
-                newLocalCost=0.0;
+            CostEstimate  previousAccumulatedCost = optimizableList.getOptimizable(prevPosition).getAccumulatedCost();
+            currentCost.setCost(previousAccumulatedCost);
+            //reset the accumulatedCost saved in the current optimizable if it has been set
+            // currentAccumulatedCost may be null as there is no feasible join strategy for the optimizable and no cost set
+            CostEstimate currentAccumulatedCost = pullMe.getAccumulatedCost();
+            if (currentAccumulatedCost != null) {
+                currentAccumulatedCost.setLocalCost(Double.MAX_VALUE);
+                currentAccumulatedCost.setLocalCostPerPartition(Double.MAX_VALUE);
+                currentAccumulatedCost.setRemoteCost(Double.MAX_VALUE);
+                currentAccumulatedCost.setRemoteCostPerPartition(Double.MAX_VALUE);
             }
         }
 
-        currentCost.setLocalCost(newLocalCost);
-        currentCost.setRemoteCost(newRemoteCost);
-        // For join costing, cost and cost per partition are the same.
-        currentCost.setLocalCostPerPartition(newLocalCost);
-        currentCost.setRemoteCostPerPartition(newRemoteCost);
-
-        currentCost.setRowCount(prevRowCount);
-        currentCost.setSingleScanRowCount(prevSingleScanRowCount);
         currentCost.setBase(null);
 
+        OptimizerTrace tracer = tracer();
+        if(optimizerTrace){
+            tracer.trace(OptimizerFlag.PULL_OPTIMIZABLE,proposedJoinOrder[joinPosition],0,0.0, currentCost);
+        }
 		/*
 		** Subtract from the sort avoidance cost if there is a
 		** required row ordering.
@@ -1944,66 +1890,28 @@ public class OptimizerImpl implements Optimizer{
 		*/
         if(requiredRowOrdering!=null){
             if(pullMe.considerSortAvoidancePath()){
-                AccessPath ap=pullMe.getBestSortAvoidancePath();
-                double prevLocalCost;
-                double prevLocalCostPerPartition;
-                double prevRemoteCostPerPartition;
-
 				/*
-				** Subtract the sort avoidance cost estimate of the
-				** optimizable being removed from the total sort
-				** avoidance cost estimate.
-				**
-				** The total cost is the sum of all the costs, but the
-				** total number of rows is the number of rows returned
-				** by the innermost optimizable.
+				** Restore the previous sort avoidance cost estimate
 				*/
                 if(joinPosition==0){
-                    prevRowCount=outermostCostEstimate.rowCount();
-                    prevSingleScanRowCount= outermostCostEstimate.singleScanRowCount();
-
-					/* If we are choosing a new outer table, then
-					 * we rest the starting cost to the outermostCost.
-					 * (Thus avoiding any problems with floating point
-					 * accuracy and going negative.)
-					 */
-                    prevRemoteCost=outermostCostEstimate.remoteCost();
-                    prevLocalCost=outermostCostEstimate.localCost();
-                    prevLocalCostPerPartition=outermostCostEstimate.getLocalCostPerPartition();
-                    prevRemoteCostPerPartition=outermostCostEstimate.getRemoteCostPerPartition();
+                    currentSortAvoidanceCost.setCost(outermostCostEstimate);
                 }else{
-                    CostEstimate localCE = optimizableList.getOptimizable(prevPosition)
-                            .getBestSortAvoidancePath().getCostEstimate();
-                    prevRowCount = localCE.rowCount();
-                    prevSingleScanRowCount = localCE.singleScanRowCount();
-                    prevRemoteCost = localCE.remoteCost();
-                    prevLocalCost = currentSortAvoidanceCost.localCost() -
-                            ap.getCostEstimate().localCost();
-                    prevLocalCostPerPartition = currentSortAvoidanceCost.getLocalCostPerPartition() -
-                            ap.getCostEstimate().getLocalCostPerPartition();
-                    prevRemoteCostPerPartition = localCE.getRemoteCostPerPartition();
-                }
-
-                // See discussion above for "newCost"; same applies here.
-                if(prevLocalCost<=0.0){
-                    if(joinPosition==0) {
-                        prevLocalCost = 0.0;
-                        prevLocalCostPerPartition = 0.0;
-                    }
-                    else{
-                        prevLocalCost= recoverCostFromProposedJoinOrder(true);
-                        // Join planning stores cost per partition in remoteCost and localCost.
-                        prevLocalCostPerPartition=prevLocalCost;
+                    CostEstimate previousAccumulatedSACost = optimizableList.getOptimizable(prevPosition).getAccumulatedCostforSortAvoidancePlan();
+                    currentSortAvoidanceCost.setCost(previousAccumulatedSACost);
+                    //reset the accumulatedCost saved in the current optimizable
+                    CostEstimate currentAccumulatedSACost = pullMe.getAccumulatedCostforSortAvoidancePlan();
+                    if (currentAccumulatedSACost != null) {
+                        currentAccumulatedSACost.setLocalCost(Double.MAX_VALUE);
+                        currentAccumulatedSACost.setLocalCostPerPartition(Double.MAX_VALUE);
+                        currentAccumulatedSACost.setRemoteCost(Double.MAX_VALUE);
+                        currentAccumulatedSACost.setRemoteCostPerPartition(Double.MAX_VALUE);
                     }
                 }
-
-                currentSortAvoidanceCost.setLocalCost(prevLocalCost);
-                currentSortAvoidanceCost.setRemoteCost(prevRemoteCost);
-                currentSortAvoidanceCost.setLocalCostPerPartition(prevLocalCostPerPartition);
-                currentSortAvoidanceCost.setRemoteCostPerPartition(prevRemoteCostPerPartition);
-                currentSortAvoidanceCost.setRowCount(prevRowCount);
-                currentSortAvoidanceCost.setSingleScanRowCount(prevSingleScanRowCount);
                 currentSortAvoidanceCost.setBase(null);
+
+                if(optimizerTrace){
+                    tracer.trace(OptimizerFlag.PULL_OPTIMIZABLE,proposedJoinOrder[joinPosition],1,0.0, currentSortAvoidanceCost);
+                }
 
 				/*
 				** Remove the table from the best row ordering.
