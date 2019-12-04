@@ -548,6 +548,22 @@ public class GenericStatement implements Statement{
             }
             cc.setAllowOverflowSensitiveNativeSparkExpressions(allowOverflowSensitiveNativeSparkExpressions);
 
+            String currentTimestampPrecisionString =
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);
+            int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
+            try {
+                if (currentTimestampPrecisionString != null)
+                    currentTimestampPrecision = Integer.valueOf(currentTimestampPrecisionString);
+                    if (currentTimestampPrecision < 0)
+                        currentTimestampPrecision = 0;
+                    if (currentTimestampPrecision > 9)
+                        currentTimestampPrecision = 9;
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setCurrentTimestampPrecision(currentTimestampPrecision);
+
             if (! cc.isSparkVersionInitialized()) {
                 // If splice.spark.version is manually set, use it...
                 String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);

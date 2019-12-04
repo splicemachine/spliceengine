@@ -158,19 +158,20 @@ public interface CompilerContext extends Context
                                                                             NEXT_VALUE_FOR_ILLEGAL
 																			);
 
-	int			WHERE_CLAUSE_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
-	int			HAVING_CLAUSE_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
-	int			ON_CLAUSE_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
-	int			AGGREGATE_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
-	int			CONDITIONAL_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
-	int			GROUP_BY_RESTRICTION		= NEXT_VALUE_FOR_ILLEGAL;
-	int         DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES              = 10000;
-	boolean     DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
-	boolean     DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
-	boolean     DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
+	int WHERE_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+	int HAVING_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+	int ON_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+	int AGGREGATE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+	int CONDITIONAL_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+	int GROUP_BY_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+	int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 10000;
+	boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
+	boolean DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
+	boolean DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
 	SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
 	NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
-	boolean     DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
+	boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
+	int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -700,4 +701,8 @@ public interface CompilerContext extends Context
 	public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
 
 	public boolean getAllowOverflowSensitiveNativeSparkExpressions();
+
+	public void setCurrentTimestampPrecision(int newValue);
+
+	public int getCurrentTimestampPrecision();
 }
