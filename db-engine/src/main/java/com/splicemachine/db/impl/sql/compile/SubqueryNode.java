@@ -369,7 +369,7 @@ public class SubqueryNode extends ValueNode{
 		 * attachment as -1.
 		 */
         if(!isMaterializable()){
-            this.pointOfAttachment=pointOfAttachment;
+                this.pointOfAttachment=pointOfAttachment;
         }
     }
 

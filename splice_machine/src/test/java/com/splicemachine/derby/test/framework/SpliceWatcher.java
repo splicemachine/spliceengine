@@ -126,7 +126,7 @@ public class SpliceWatcher extends TestWatcher {
         return currentConnection;
     }
 
-    public PreparedStatement prepareStatement(String sql) throws Exception {
+    public PreparedStatement prepareStatement(String sql) throws SQLException {
         PreparedStatement ps = getOrCreateConnection().prepareStatement(sql);
         statements.add(ps);
         return ps;
@@ -198,7 +198,7 @@ public class SpliceWatcher extends TestWatcher {
         currentConnection = null;
     }
 
-    public ResultSet executeQuery(String sql) throws Exception {
+    public ResultSet executeQuery(String sql) throws SQLException {
         Statement s = getStatement();
         ResultSet rs = s.executeQuery(sql);
         resultSets.add(rs);
@@ -267,7 +267,7 @@ public class SpliceWatcher extends TestWatcher {
         return s.executeUpdate(sql);
     }
 
-    public Statement getStatement() throws Exception {
+    public Statement getStatement() throws SQLException {
         Statement s = getOrCreateConnection().createStatement();
         statements.add(s);
         return s;

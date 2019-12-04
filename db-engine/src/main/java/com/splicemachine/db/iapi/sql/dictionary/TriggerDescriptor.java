@@ -96,6 +96,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private Timestamp creationTimestamp;
     private UUID triggerSchemaId;
     private UUID triggerTableId;
+    private String whenClauseText;
 
 
     /**
@@ -127,6 +128,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @param referencingNew                whether or not NEW appears in REFERENCING clause
      * @param oldReferencingName            old referencing table name, if any, that appears in REFERCING clause
      * @param newReferencingName            new referencing table name, if any, that appears in REFERCING clause
+     * @param whenClauseText                the SQL text of the WHEN clause, or {@code null}
+     *                                      if there is no WHEN clause
      */
     public TriggerDescriptor(
             DataDictionary dataDictionary,
@@ -147,7 +150,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             boolean referencingOld,
             boolean referencingNew,
             String oldReferencingName,
-            String newReferencingName) {
+            String newReferencingName,
+            String whenClauseText) {
         super(dataDictionary);
         this.id = id;
         this.sd = sd;
@@ -169,6 +173,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.newReferencingName = newReferencingName;
         this.triggerSchemaId = sd.getUUID();
         this.triggerTableId = td.getUUID();
+        this.whenClauseText = whenClauseText;
     }
     
     /**
@@ -276,7 +281,30 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @return the trigger action sps
      */
     public SPSDescriptor getActionSPS(LanguageConnectionContext lcc) throws StandardException {
-        if (actionSPS == null) {
+
+        return getSPS(lcc, false /* isWhenClause */);
+
+    }
+
+    /**
+     * Get the SPS for the triggered SQL statement or the WHEN clause.
+     *
+     * @param lcc the LanguageConnectionContext to use
+     * @param isWhenClause {@code true} if the SPS for the WHEN clause is
+     *   requested, {@code false} if it is the triggered SQL statement
+     * @return the requested SPS
+     * @throws StandardException if an error occurs
+     */
+    private SPSDescriptor getSPS(LanguageConnectionContext lcc,
+                                 boolean isWhenClause)
+            throws StandardException
+    {
+        DataDictionary dd = getDataDictionary();
+        SPSDescriptor sps = isWhenClause ? whenSPS : actionSPS;
+        UUID spsId = isWhenClause ? whenSPSId : actionSPSId;
+        String originalSQL = isWhenClause ? whenClauseText : triggerDefinition;
+
+        if (sps == null) {
             //bug 4821 - do the sysstatement look up in a nested readonly
             //transaction rather than in the user transaction. Because of
             //this, the nested compile transaction which is attempting to
@@ -287,7 +315,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             // fail for row trigger that were executing on remote nodes with SpliceTransactionView with which we
             // cannot begin a new txn.
             //  lcc.beginNestedTransaction(true);
-            actionSPS = getDataDictionary().getSPSDescriptor(actionSPSId);
+            sps = dd.getSPSDescriptor(spsId);
             // lcc.commitNestedTransaction();
         }
 
@@ -305,29 +333,52 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         //will then get updated into SYSSTATEMENTS table.
         boolean usesReferencingClause = referencedColsInTriggerAction != null;
 
-        if ((!actionSPS.isValid() || (actionSPS.getPreparedStatement() == null)) && isRow && usesReferencingClause) {
-            SchemaDescriptor compSchema = getDataDictionary().getSchemaDescriptor(triggerSchemaId, null);
+        if ((!sps.isValid() || (sps.getPreparedStatement() == null)) && isRow && usesReferencingClause) {
+            SchemaDescriptor compSchema = dd.getSchemaDescriptor(triggerSchemaId, null);
             CompilerContext newCC = lcc.pushCompilerContext(compSchema);
             Parser pa = newCC.getParser();
-            Visitable stmtnode = pa.parseStatement(triggerDefinition);
+            Visitable stmtnode =
+                    isWhenClause ? pa.parseSearchCondition(originalSQL)
+                                 : pa.parseStatement(originalSQL);
             lcc.popCompilerContext(newCC);
+            int[] cols;
+            cols = dd.examineTriggerNodeAndCols(stmtnode,
+					oldReferencingName,
+					newReferencingName,
+					originalSQL,
+					referencedCols,
+					referencedColsInTriggerAction,
+                                        0,
+					getTableDescriptor(),
+					null,
+                                        false,
+                                        null);
 
-            actionSPS.setText(getDataDictionary().getTriggerActionString(stmtnode,
-                    oldReferencingName,
-                    newReferencingName,
-                    triggerDefinition,
-                    referencedCols,
-                    referencedColsInTriggerAction,
-                    0,
-                    getTableDescriptor(),
-                    null,
-                    false
-            ));
+            String newText = dd.getTriggerActionString(stmtnode,
+					oldReferencingName,
+					newReferencingName,
+                                        originalSQL,
+					referencedCols,
+					referencedColsInTriggerAction,
+					0,
+					getTableDescriptor(),
+					null,
+                                        false,
+                                        null,
+                                        cols);
+            if (isWhenClause) {
+                // The WHEN clause is not a full SQL statement, just a search
+                // condition, so we need to turn it into a statement in order
+                // to create an SPS.
+                newText = "VALUES ( " + newText + " )";
+            }
+            sps.setText(newText);
+
             //By this point, we are finished transforming the trigger action if
             //it has any references to old/new transition variables.
         }
 
-        return actionSPS;
+        return sps;
     }
 
     /**
@@ -338,13 +389,23 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     }
 
     /**
+     * Get the SQL text of the WHEN clause.
+     * @return SQL text for the WHEN clause, or {@code null} if there is
+     *   no WHEN clause
+     */
+    public String getWhenClauseText() {
+        return whenClauseText;
+    }
+
+    /**
      * Get the trigger when clause sps
      */
-    public SPSDescriptor getWhenClauseSPS() throws StandardException {
-        if (whenSPS == null) {
-            whenSPS = getDataDictionary().getSPSDescriptor(whenSPSId);
+    public SPSDescriptor getWhenClauseSPS(LanguageConnectionContext lcc) throws StandardException {
+        if (whenSPSId == null) {
+            // This trigger doesn't have a WHEN clause.
+            return null;
         }
-        return whenSPS;
+        return getSPS(lcc, true /* isWhenClause */);
     }
 
     /**
@@ -702,6 +763,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         referencingNew = in.readBoolean();
         oldReferencingName = (String) in.readObject();
         newReferencingName = (String) in.readObject();
+        whenClauseText = (String) in.readObject();
 
     }
 
@@ -763,6 +825,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         out.writeBoolean(referencingNew);
         out.writeObject(oldReferencingName);
         out.writeObject(newReferencingName);
+        out.writeObject(whenClauseText);
     }
 
     /**
