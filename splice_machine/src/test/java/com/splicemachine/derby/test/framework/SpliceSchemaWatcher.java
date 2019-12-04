@@ -135,6 +135,17 @@ public class SpliceSchemaWatcher extends TestWatcher {
         }
     }
 
+    public void cleanSchemaObjects() throws RuntimeException {
+        try (Connection connection = SpliceNetConnection.getConnection()) {
+            SchemaDAO schemaDAO = new SchemaDAO(connection);
+            schemaDAO.cleanSchemaObjects(schemaName, null, null);
+
+            connection.commit();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public String toString() {
         return schemaName;

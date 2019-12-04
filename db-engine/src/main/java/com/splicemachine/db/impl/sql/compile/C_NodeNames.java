@@ -352,6 +352,10 @@ public interface C_NodeNames
 
 	String SELF_REFERENCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SelfReferenceNode";
 
+	String SIGNAL_NAME = "com.splicemachine.db.impl.sql.compile.SignalNode";
+
+	String SET_NAME = "com.splicemachine.db.impl.sql.compile.SetNode";
+
 	// WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

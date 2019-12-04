@@ -165,7 +165,7 @@ public class Trigger_Create_IT {
     public void create_illegal_statementTriggersCannotHaveReferencingClause() throws Exception {
         verifyTriggerCreateFails(
                 tb.on("T").named("t1").before().delete().referencing("NEW AS N").statement().then("select * from sys.systables"),
-                "STATEMENT triggers may only reference table transition variables/tables.");
+                "DELETE triggers may only reference OLD transition variables/tables.");
     }
 
     @Test
@@ -202,9 +202,9 @@ public class Trigger_Create_IT {
 
         // DELETE row triggers cannot reference a NEW row
         verifyTriggerCreateFails(tb.on("T").named("t1").before().delete().referencing("NEW as NEW_ROW").row().then("select NEW_ROW.a from sys.systables"),
-                "DELETE triggers may only reference old transition variables/tables.");
+                "DELETE triggers may only reference OLD transition variables/tables.");
         verifyTriggerCreateFails(tb.on("T").named("t1").after().delete().referencing("NEW as NEW_ROW").row().then("select NEW_ROW.a from sys.systables"),
-                "DELETE triggers may only reference old transition variables/tables.");
+                "DELETE triggers may only reference OLD transition variables/tables.");
     }
 
     @Test

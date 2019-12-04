@@ -2076,4 +2076,12 @@ public interface ResultSetFactory {
 											  String explainPlan,
 											  int iterationLimit) throws StandardException;
 
+	NoPutResultSet getSignalResultSet(Activation activation,
+	                                  String sqlState,
+	                                  GeneratedMethod errorTextGenerator) throws StandardException;
+
+        NoPutResultSet getSetResultSet(Activation activation,
+                                       String getColumnDVDsMethodNames,
+                                       GeneratedMethod getNewDVDsMethod) throws StandardException;
+
 }

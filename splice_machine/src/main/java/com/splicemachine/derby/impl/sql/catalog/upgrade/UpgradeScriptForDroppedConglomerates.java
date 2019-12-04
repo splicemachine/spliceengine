@@ -43,7 +43,7 @@ public class UpgradeScriptForDroppedConglomerates extends UpgradeScriptBase {
         try {
             LOG.info("Creating " + HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME);
             SIDriver.driver().getTableFactory().getAdmin().newPartition().withName(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME).create();
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.warn("Exception while creating while creating " + HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME + ", does it already exist?", e);
         }
     }

@@ -42,8 +42,10 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -821,6 +823,7 @@ public abstract class GenericConstantActionFactory {
 	 * @param referencedColsInTriggerAction	what columns does the trigger 
 	 *						action reference through old/new transition variables
 	 *						(may be null)
+         * @param originalWhenText The original user text of the WHEN clause (may be null)
 	 * @param originalActionText The original user text of the trigger action
 	 * @param referencingOld whether or not OLD appears in REFERENCING clause
 	 * @param referencingNew whether or not NEW appears in REFERENCING clause
@@ -843,6 +846,7 @@ public abstract class GenericConstantActionFactory {
 		Timestamp			creationTimestamp,
 		int[]				referencedCols,
 		int[]				referencedColsInTriggerAction,
+		String				originalWhenText,
 		String				originalActionText,
 		boolean				referencingOld,
 		boolean				referencingNew,
