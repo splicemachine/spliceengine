@@ -315,6 +315,8 @@ public interface SConfiguration {
 
     long getPartitionCacheExpiration();
 
+    int getCollectSchemaStatisticsMaximumConcurrent();
+
     // StorageConfiguration
     int getSplitBlockSize();
 
