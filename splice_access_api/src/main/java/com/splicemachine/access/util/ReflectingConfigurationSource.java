@@ -25,28 +25,43 @@ import com.splicemachine.access.configuration.ConfigurationSource;
  */
 public class ReflectingConfigurationSource implements ConfigurationSource {
     @Override
-    public int getInt(String key, int deflt) {
-        return deflt;
+    public int getInt(String key, int defaultValue) {
+        return defaultValue;
     }
 
     @Override
-    public long getLong(String key, long deflt) {
-        return deflt;
+    public int getInt(String key, int defaultValue, int minValue, int maxValue) {
+        return defaultValue;
     }
 
     @Override
-    public boolean getBoolean(String key, boolean deflt) {
-        return deflt;
+    public long getLong(String key, long defaultValue) {
+        return defaultValue;
     }
 
     @Override
-    public String getString(String key, String deflt) {
-        return deflt;
+    public long getLong(String key, long defaultValue, long minValue, long maxValue) {
+        return defaultValue;
     }
 
     @Override
-    public double getDouble(String key, double deflt) {
-        return deflt;
+    public boolean getBoolean(String key, boolean defaultValue) {
+        return defaultValue;
+    }
+
+    @Override
+    public String getString(String key, String defaultValue) {
+        return defaultValue;
+    }
+
+    @Override
+    public double getDouble(String key, double defaultValue) {
+        return defaultValue;
+    }
+
+    @Override
+    public double getDouble(String key, double defaultValue, double minValue, double maxValue) {
+        return defaultValue;
     }
 
     @Override
