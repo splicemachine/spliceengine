@@ -1277,6 +1277,73 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         }
     }
 
+    @Override
+    public NoPutResultSet getBroadcastFullOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
+            boolean wasRightOuterJoin,
+            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException {
+
+        return getBroadcastFullOuterJoinResultSet(
+                leftResultSet,  leftNumCols,
+                rightResultSet,  rightNumCols,
+                leftHashKeyItem,  rightHashKeyItem,
+                joinClause,  resultSetNumber,
+                leftEmptyRowFun, rightEmptyRowFun,
+                wasRightOuterJoin,
+                oneRowRightSide,  notExistsRightSide,
+                rightFromSSQ,
+                optimizerEstimatedRowCount,  optimizerEstimatedCost,
+                userSuppliedOptimizerOverrides,
+                explainPlan,
+                null);
+    }
+
+    @Override
+    public NoPutResultSet getBroadcastFullOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
+            boolean wasRightOuterJoin,
+            boolean oneRowRightSide, boolean notExistsRightSide,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getMergeSortLeftOuterJoinResultSet");
+        try{
+            ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
+            ConvertedResultSet right = (ConvertedResultSet)rightResultSet;
+            JoinOperation op = new BroadcastFullOuterJoinOperation(left.getOperation(), leftNumCols,
+                    right.getOperation(), rightNumCols,leftHashKeyItem,rightHashKeyItem,
+                    leftResultSet.getActivation(), joinClause,
+                    resultSetNumber,
+                    leftEmptyRowFun,
+                    rightEmptyRowFun,
+                    wasRightOuterJoin,
+                    oneRowRightSide,
+                    notExistsRightSide,
+                    rightFromSSQ,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    userSuppliedOptimizerOverrides,
+                    sparkExpressionTreeAsString);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
 
     @Override
     public NoPutResultSet getNestedLoopJoinResultSet(

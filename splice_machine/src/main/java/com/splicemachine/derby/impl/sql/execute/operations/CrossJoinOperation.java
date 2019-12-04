@@ -89,7 +89,7 @@ public class CrossJoinOperation extends JoinOperation{
         rightHashKeyItem=in.readInt();
     }
 
-    public long getSequenceId() {
+    public long getRightSequenceId() {
         return sequenceId;
     }
 

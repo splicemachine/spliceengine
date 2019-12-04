@@ -387,9 +387,13 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		throw new UnsupportedOperationException();
 	}
 
-	public long getSequenceId() {
+	public long getRightSequenceId() {
 		throw new UnsupportedOperationException("Not supported");
 	}
+
+    public long getLeftSequenceId() {
+        throw new UnsupportedOperationException("Not supported");
+    }
 
 	@Override
 	public String getVTIFileName() {

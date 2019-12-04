@@ -53,6 +53,10 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 		 * "instantiated" multiple times because that only has
 		 * meaning for VTIs.
 		 */
+
+        if (outerCost != null && outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
+            return false;
+
         return innerTable.isMaterializable() || innerTable.supportsMultipleInstantiations();
     }
 
@@ -116,7 +120,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
     @Override
     public String fullOuterJoinResultSetMethodName() {
-       // return "getNestedLoopFullOuterJoinResultSet";
         throw new UnsupportedOperationException("NestedLoop full join not supported currently");
     }
 

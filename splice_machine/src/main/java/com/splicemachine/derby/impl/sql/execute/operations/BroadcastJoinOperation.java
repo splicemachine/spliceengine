@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.client.SpliceClient;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.function.broadcast.BroadcastJoinFlatMapFunction;
@@ -36,7 +37,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
 
 /**
  *
@@ -106,8 +106,8 @@ public class BroadcastJoinOperation extends JoinOperation{
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
-    protected List<ExecRow> rights;
-    protected long sequenceId;
+    protected long rightSequenceId;
+    protected long leftSequenceId;
     protected static final String NAME = BroadcastJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -141,7 +141,8 @@ public class BroadcastJoinOperation extends JoinOperation{
                 optimizerEstimatedRowCount,optimizerEstimatedCost,userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
-        this.sequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
+        this.rightSequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
+        this.leftSequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
         init();
     }
 
@@ -151,19 +152,24 @@ public class BroadcastJoinOperation extends JoinOperation{
         super.readExternal(in);
         leftHashKeyItem=in.readInt();
         rightHashKeyItem=in.readInt();
-        sequenceId = in.readLong();
+        rightSequenceId = in.readLong();
+        leftSequenceId = in.readLong();
     }
 
-    public long getSequenceId() {
-        return sequenceId;
+    public long getRightSequenceId() {
+        return rightSequenceId;
     }
 
+    public long getLeftSequenceId() {
+        return leftSequenceId;
+    }
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
         out.writeInt(leftHashKeyItem);
         out.writeInt(rightHashKeyItem);
-        out.writeLong(sequenceId);
+        out.writeLong(rightSequenceId);
+        out.writeLong(leftSequenceId);
     }
 
     @Override
@@ -221,7 +227,7 @@ public class BroadcastJoinOperation extends JoinOperation{
          * so route to the rdd implementation for now for SSQ.  Also, spark join can't handle a zero length
          * hash key, so it will use rdd as well.
          */
-        if (rightFromSSQ || leftHashKeys.length == 0)
+        if (rightFromSSQ)
             useDataset = false;
 
         DataSet<ExecRow> result;
@@ -232,8 +238,10 @@ public class BroadcastJoinOperation extends JoinOperation{
         if (usesNativeSparkDataSet)
         {
             DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
-            if (isOuterJoin())
+            if (joinType == JoinNode.LEFTOUTERJOIN)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
+            else if (joinType == JoinNode.FULLOUTERJOIN)
+                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.FULLOUTER,true);
             else if (notExistsRightSide)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTANTI,true);
 
@@ -253,10 +261,15 @@ public class BroadcastJoinOperation extends JoinOperation{
             }
         }
         else {
-            if (isOuterJoin()) { // Outer Join with and without restriction
+            if (joinType == JoinNode.LEFTOUTERJOIN) { // Left Outer Join with and without restriction
                 result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
                         .flatMap(new LeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
+            } else if (joinType == JoinNode.FULLOUTERJOIN) {
+                result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+                        .flatMap(new LeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                        .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
+                // do another round of rightResultSet full join result on rightResultSet.uniqid = rightResultSet.uniqid
             } else {
                 if (this.leftHashKeys.length != 0 && !this.notExistsRightSide)
                     leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));

@@ -163,4 +163,46 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void fullJoinWithInEqualityCondition() throws Exception {
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on a1>a2", useSpark);
+        String expected = "B1  | A1  | B2  | A2  | C2  |\n" +
+                "------------------------------\n" +
+                " 10  |  1  |NULL |NULL |NULL |\n" +
+                " 20  |  2  |NULL |NULL |NULL |\n" +
+                " 20  |  2  |NULL |NULL |NULL |\n" +
+                " 30  |  3  | 20  |  2  |  2  |\n" +
+                " 30  |  3  | 20  |  2  |  2  |\n" +
+                " 40  |  4  | 20  |  2  |  2  |\n" +
+                " 40  |  4  | 20  |  2  |  2  |\n" +
+                " 40  |  4  | 30  |  3  |  3  |\n" +
+                "NULL |NULL | 40  |  4  |NULL |\n" +
+                "NULL |NULL | 50  |  5  |NULL |\n" +
+                "NULL |NULL | 60  |  6  |  6  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void fullJoinWithInEqualityConditionThroughRDDImplementation() throws Exception {
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on a1>a2 and case when c1=3 then 3 end>c2", useSpark);
+        String expected = "B1  | A1  | B2  | A2  | C2  |\n" +
+                "------------------------------\n" +
+                " 10  |  1  |NULL |NULL |NULL |\n" +
+                " 20  |  2  |NULL |NULL |NULL |\n" +
+                " 20  |  2  |NULL |NULL |NULL |\n" +
+                " 30  |  3  | 20  |  2  |  2  |\n" +
+                " 30  |  3  | 20  |  2  |  2  |\n" +
+                " 40  |  4  |NULL |NULL |NULL |\n" +
+                "NULL |NULL | 30  |  3  |  3  |\n" +
+                "NULL |NULL | 40  |  4  |NULL |\n" +
+                "NULL |NULL | 50  |  5  |NULL |\n" +
+                "NULL |NULL | 60  |  6  |  6  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }

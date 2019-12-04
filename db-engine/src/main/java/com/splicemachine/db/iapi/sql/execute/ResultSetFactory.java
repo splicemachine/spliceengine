@@ -1756,6 +1756,46 @@ public interface ResultSetFactory {
 			String explainPlan,
 			String sparkExpressionTreeAsString) throws StandardException;
 
+	NoPutResultSet getBroadcastFullOuterJoinResultSet(NoPutResultSet leftResultSet,
+													  int leftNumCols,
+													  NoPutResultSet rightResultSet,
+													  int rightNumCols,
+													  int leftHashKeyItem,
+													  int rightHashKeyItem,
+													  GeneratedMethod joinClause,
+													  int resultSetNUmber,
+													  GeneratedMethod leftEmptyRowFun,
+													  GeneratedMethod rightEmptyRowFun,
+													  boolean wasRightOuterJoin,
+													  boolean oneRowRightSide,
+													  boolean noExistsRightSide,
+													  boolean rightFromSSQ,
+													  double optimizerEstimatedRowCount,
+													  double optimizerEstimatedCost,
+													  String userSuppliedOptimizerOverrides,
+													  String explainPlan,
+													  String sparkExpressionTreeAsString)
+			throws StandardException;
+
+	NoPutResultSet getBroadcastFullOuterJoinResultSet(NoPutResultSet leftResultSet,
+													  int leftNumCols,
+													  NoPutResultSet rightResultSet,
+													  int rightNumCols,
+													  int leftHashKeyItem,
+													  int rightHashKeyItem,
+													  GeneratedMethod joinClause,
+													  int resultSetNUmber,
+													  GeneratedMethod leftEmptyRowFun,
+													  GeneratedMethod rightEmptyRowFun,
+													  boolean wasRightOuterJoin,
+													  boolean oneRowRightSide,
+													  boolean noExistsRightSide,
+													  boolean rightFromSSQ,
+													  double optimizerEstimatedRowCount,
+													  double optimizerEstimatedCost,
+													  String userSuppliedOptimizerOverrides,
+													  String explainPlan)
+			throws StandardException;
 	/**
 		REMIND: needs more description...
 

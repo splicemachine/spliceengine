@@ -29,8 +29,8 @@ import java.io.IOException;
 
 public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
-	protected SpliceMethod<ExecRow> emptyRowFun;
-	protected ExecRow emptyRow;
+	protected SpliceMethod<ExecRow> rightEmptyRowFun;
+	protected ExecRow rightEmptyRow;
 
 	public BroadcastLeftOuterJoinOperation() {
 		super();
@@ -46,7 +46,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 			Activation activation,
 			GeneratedMethod restriction,
 			int resultSetNumber,
-			GeneratedMethod emptyRowFun,
+			GeneratedMethod rightEmptyRowFun,
 			boolean wasRightOuterJoin,
 		    boolean oneRowRightSide,
 		    boolean notExistsRightSide,
@@ -60,7 +60,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
                         optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
                         sparkExpressionTreeAsString);
                 SpliceLogUtils.trace(LOG, "instantiate");
-                rightEmptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+                rightEmptyRowFunMethodName = (rightEmptyRowFun == null) ? null : rightEmptyRowFun.getMethodName();
                 this.wasRightOuterJoin = wasRightOuterJoin;
                 this.joinType = JoinNode.LEFTOUTERJOIN;
                 init();
@@ -69,14 +69,14 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
-        emptyRowFun = (rightEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,activation);
+        rightEmptyRowFun = (rightEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,activation);
     }
 
     @Override
     public ExecRow getRightEmptyRow() throws StandardException {
-		if (emptyRow == null)
-				emptyRow = emptyRowFun.invoke();
-		return emptyRow;
+		if (rightEmptyRow == null)
+				rightEmptyRow = rightEmptyRowFun.invoke();
+		return rightEmptyRow;
 	}
 
     @Override

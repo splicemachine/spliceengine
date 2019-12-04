@@ -58,6 +58,7 @@ import com.splicemachine.derby.serialization.SpliceObserverInstructions;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.function.broadcast.AbstractBroadcastJoinFlatMapFunction;
 import com.splicemachine.derby.stream.spark.*;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ListDataTypeSerializer;
@@ -918,5 +919,9 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(SignalOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(SetOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(CogroupFullOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(AbstractBroadcastJoinFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 322);
+        instance.register(LeftAntiJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 323);
+        instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,324);
+        instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,325);
     }
 }

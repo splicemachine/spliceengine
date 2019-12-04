@@ -64,6 +64,7 @@ import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.control.BadRecordsRecorder;
 import com.splicemachine.derby.stream.control.ControlOperationContext;
 import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.function.broadcast.AbstractBroadcastJoinFlatMapFunction;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ListDataTypeSerializer;
 import com.splicemachine.derby.utils.kryo.SimpleObjectSerializer;
@@ -90,14 +91,7 @@ import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.util.*;
 
 
 /**
@@ -960,5 +954,9 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LeftOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,321);
         instance.register(CogroupLeftOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 322);
         instance.register(CogroupFullOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 323);
+        instance.register(AbstractBroadcastJoinFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 324);
+        instance.register(LeftAntiJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 325);
+        instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,326);
+        instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,327);
     }
 }
