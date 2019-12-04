@@ -27,48 +27,97 @@ public interface ConfigurationSource {
 
     /**
      * Get the value from this configuration source set by the given <code>key</code>
-     * or <code>deflt</code> if no value exists for that key.
+     * or <code>defaultValue</code> if no value exists for that key.
      * @param key the property key
-     * @param deflt the default value to return if no value exists for the given key
-     * @return the value that was set or the default value if no value exists yet
+     * @param defaultValue the default value to return if no value exists for the given key or
+     *                     if the value cannot be parsed to an int.
+     * @return the property if properly set else the defaultValue
      */
-    int getInt(String key, int deflt);
+    int getInt(String key, int defaultValue);
 
     /**
      * Get the value from this configuration source set by the given <code>key</code>
-     * or <code>deflt</code> if no value exists for that key.
+     * or <code>defaultValue</code> if no value exists for that key.
      * @param key the property key
-     * @param deflt the default value to return if no value exists for the given key
-     * @return the value that was set or the default value if no value exists yet
+     * @param defaultValue the default value to return if no value exists for the given key or
+     *                     if the value cannot be parsed to an int.
+     * @param minValue A given value must be greater or equal to this value
+     * @param maxValue A given value must be lesser or equal to this value
+     * @return the property if it's properly set between minValue and maxValue.
+     *         If it's set too low: minValue.
+     *         If it's set too high: maxValue.
+     *         Otherwise: defaultValue.
      */
-    long getLong(String key, long deflt);
+    int getInt(String key, int defaultValue, int minValue, int maxValue);
 
     /**
      * Get the value from this configuration source set by the given <code>key</code>
-     * or <code>deflt</code> if no value exists for that key.
+     * or <code>defaultValue</code> if no value exists for that key.
      * @param key the property key
-     * @param deflt the default value to return if no value exists for the given key
-     * @return the value that was set or the default value if no value exists yet
+     * @param defaultValue the default value to return if no value exists for the given key or
+     *                     if the value cannot be parsed to a long.
+     * @return the property if properly set else the defaultValue
      */
-    boolean getBoolean(String key, boolean deflt);
+    long getLong(String key, long defaultValue);
 
     /**
      * Get the value from this configuration source set by the given <code>key</code>
-     * or <code>deflt</code> if no value exists for that key.
+     * or <code>defaultValue</code> if no value exists for that key.
      * @param key the property key
-     * @param deflt the default value to return if no value exists for the given key
-     * @return the value that was set or the default value if no value exists yet
+     * @param defaultValue the default value to return if no value exists for the given key or
+     *                     if the value cannot be parsed to a long.
+     * @param minValue A given value must be greater or equal to this value
+     * @param maxValue A given value must be lesser or equal to this value
+     * @return the property if it's properly set between minValue and maxValue.
+     *         If it's set too low: minValue.
+     *         If it's set too high: maxValue.
+     *         Otherwise: defaultValue.
      */
-    String getString(String key, String deflt);
+    long getLong(String key, long defaultValue, long minValue, long maxValue);
 
     /**
      * Get the value from this configuration source set by the given <code>key</code>
-     * or <code>deflt</code> if no value exists for that key.
+     * or <code>defaultValue</code> if no value exists for that key.
      * @param key the property key
-     * @param deflt the default value to return if no value exists for the given key
+     * @param defaultValue the default value to return if no value exists for the given key
+     *                     or if value cannot be parsed to a boolean.
+     * @return the property if properly set else the defaultValue
+     */
+    boolean getBoolean(String key, boolean defaultValue);
+
+    /**
+     * Get the value from this configuration source set by the given <code>key</code>
+     * or <code>defaultValue</code> if no value exists for that key.
+     * @param key the property key
+     * @param defaultValue the default value to return if no value exists for the given key
      * @return the value that was set or the default value if no value exists yet
      */
-    double getDouble(String key, double deflt);
+    String getString(String key, String defaultValue);
+
+    /**
+     * Get the value from this configuration source set by the given <code>key</code>
+     * or <code>defaultValue</code> if no value exists for that key.
+     * @param key the property key
+     * @param defaultValue the default value to return if no value exists for the given key or
+     *                     if the value cannot be parsed as a double.
+     * @return the property if properly set else the defaultValue
+     */
+    double getDouble(String key, double defaultValue);
+
+    /**
+     * Get the value from this configuration source set by the given <code>key</code>
+     * or <code>defaultValue</code> if no value exists for that key.
+     * @param key the property key
+     * @param defaultValue the default value to return if no value exists for the given key or
+     *                     if the value cannot be parsed as a double.
+     * @param minValue A given value must be greater or equal to this value
+     * @param maxValue A given value must be lesser or equal to this value
+     * @return the property if it's properly set between minValue and maxValue.
+     *         If it's set too low: minValue.
+     *         If it's set too high: maxValue.
+     *         Otherwise: defaultValue.
+     */
+    double getDouble(String key, double defaultValue, double minValue, double maxValue);
 
     /**
      * Get the mapping of property key to (toString()) value for configuration properties
