@@ -58,6 +58,8 @@ public class TableScanOperationIT{
     private static SpliceTableWatcher spliceTableWatcher9=new SpliceTableWatcher("NUMBERS",SCHEMA,"(i int, l bigint, s smallint, d double precision, r real, dc decimal(10,2), PRIMARY KEY(i))");
     private static SpliceTableWatcher spliceTableWatcher10=new SpliceTableWatcher("CONSUMER_DATA",SCHEMA,"(SEQUENCE_ID bigint NOT NULL,CONSUMER_ID bigint NOT NULL,CONTRIBUTOR_ID varchar(128) NOT NULL,WINDOW_KEY_ADDRESS varchar(128) NOT NULL,ADDRESS_HASH varchar(128) NOT NULL,PRIMARY KEY (WINDOW_KEY_ADDRESS, CONSUMER_ID, CONTRIBUTOR_ID))");
     private static SpliceTableWatcher spliceTableWatcher11=new SpliceTableWatcher("TINYINTTEST",SCHEMA,"(col1 tinyint, col2 tinyint, primary key(col2))");
+    private static SpliceTableWatcher spliceTableWatcher12=new SpliceTableWatcher("TBL1",SCHEMA,"(A1 BIGINT, B1 BOOLEAN, C1 CHAR(5), D1 DATE, E1 DECIMAL(5,2), F1 DOUBLE, G1 FLOAT, H1 INT, I1 VARCHAR(10), J1 REAL, K1 SMALLINT, L1 TIME, M1 TIMESTAMP, N1 TINYINT)");
+    private static SpliceTableWatcher spliceTableWatcher13=new SpliceTableWatcher("TBL2",SCHEMA,"(A2 BIGINT, B2 BOOLEAN, C2 CHAR(5), D2 DATE, E2 DECIMAL(5,2), F2 DOUBLE, G2 FLOAT, H2 INT, I2 VARCHAR(10), J2 REAL, K2 SMALLINT, L2 TIME, M2 TIMESTAMP, N2 TINYINT)");
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(spliceClassWatcher)
@@ -72,6 +74,8 @@ public class TableScanOperationIT{
             .around(spliceTableWatcher9)
             .around(spliceTableWatcher10)
             .around(spliceTableWatcher11)
+            .around(spliceTableWatcher12)
+            .around(spliceTableWatcher13)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description){
@@ -95,6 +99,8 @@ public class TableScanOperationIT{
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,1)",SCHEMA,"TINYINTTEST"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (2,2)",SCHEMA,"TINYINTTEST"));
                         spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,3)",SCHEMA,"TINYINTTEST"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1, true, 'ABC', '2019-12-25', 2.25, 12.34, 5.12, 10, 'ABCDEFG', 2.15, 123, '18:53:13', '2019-12-25 18:53:13.2', 123)",SCHEMA,"TBL1"));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (2, false, 'CBA', '2020-12-25', 3.25, 13.34, 6.12, 11, 'GFEDCBA', 3.15, 124, '19:53:13', '2019-12-25 19:53:13.2', 124)",SCHEMA,"TBL2"));
 
                     }catch(Exception e){
                         throw new RuntimeException(e);
@@ -958,6 +964,68 @@ public class TableScanOperationIT{
                 assertEquals("Incorrect count returned!", 0, count);
             }
 
+        }
+    }
+
+    @Test
+    public void testNotEqualsOperatorDataTypesSelect() throws Exception {
+        String[] queries = {
+            "SELECT * FROM %s WHERE A1 ^= 1",
+            "SELECT * FROM %s WHERE B1 ^= true",
+            "SELECT * FROM %s WHERE C1 ^= 'ABC'",
+            "SELECT * FROM %s WHERE D1 ^= '2019-12-25'",
+            "SELECT * FROM %s WHERE E1 ^= 2.25",
+            "SELECT * FROM %s WHERE F1 ^= 12.34",
+            "SELECT * FROM %s WHERE G1 ^= 5.12",
+            "SELECT * FROM %s WHERE H1 ^= 10",
+            "SELECT * FROM %s WHERE I1 ^= 'ABCDEFG'",
+            "SELECT * FROM %s WHERE J1 ^= 2.15",
+            "SELECT * FROM %s WHERE K1 ^= 123",
+            "SELECT * FROM %s WHERE L1 ^= '18:53:13'",
+            "SELECT * FROM %s WHERE M1 ^= '2019-12-25 18:53:13.2'",
+            "SELECT * FROM %s WHERE N1 ^= 123"
+        };
+        try (Statement s = conn.createStatement()) {
+            for (String query : queries){
+                try (ResultSet rs = s.executeQuery(format(query, spliceTableWatcher12))) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                    }
+                    assertEquals("Incorrect count returned!", 0, count);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testNotEqualsOperatorDataTypesJoin () throws Exception {
+        String[] queries = {
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 ^= %s.A2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.B1 ^= %s.B2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.C1 ^= %s.C2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.D1 ^= %s.D2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.E1 ^= %s.E2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.F1 ^= %s.F2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.G1 ^= %s.G2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.H1 ^= %s.H2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.I1 ^= %s.I2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.J1 ^= %s.J2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.K1 ^= %s.K2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.L1 ^= %s.L2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.M1 ^= %s.M2",
+                "SELECT A1, A2 FROM %s JOIN %s ON %s.N1 ^= %s.N2"
+        };
+        try (Statement s = conn.createStatement()) {
+            for (String query : queries){
+                try (ResultSet rs = s.executeQuery(format(query, spliceTableWatcher12,spliceTableWatcher13,spliceTableWatcher12,spliceTableWatcher13))) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                    }
+                    assertEquals("Incorrect count returned!", 1, count);
+                }
+            }
         }
     }
 
