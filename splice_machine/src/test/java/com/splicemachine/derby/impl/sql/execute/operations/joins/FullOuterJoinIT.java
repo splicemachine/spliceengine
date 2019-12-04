@@ -75,6 +75,17 @@ public class FullOuterJoinIT extends SpliceUnitTest {
                         row(6, 60, 6)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table t3 (a3 int, b3 int, c3 int)")
+                .withInsert("insert into t3 values(?,?,?)")
+                .withRows(rows(
+                        row(3, 30, 3),
+                        row(5, 50, null),
+                        row(6, 60, 6),
+                        row(6, 60, 6),
+                        row(7, 70, 7)))
+                .create();
+
         conn.commit();
     }
 
@@ -204,5 +215,12 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testConversionOfFullJoinWithNoConstraintsToInnerJoin() throws Exception {
+        String sqlText = format("explain select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on 3=3 \n" +
+                "full join t3 on 1=1", useSpark);
+        queryDoesNotContainString(sqlText, "Full", methodWatcher);
     }
 }

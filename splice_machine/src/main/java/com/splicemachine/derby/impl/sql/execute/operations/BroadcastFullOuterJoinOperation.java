@@ -151,14 +151,14 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
         }
         else {
             result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                        .flatMap(new LeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext));
+                        .flatMap(new LeftOuterJoinRestrictionFlatMapFunction(operationContext));
 
-                // do another round of rightResultSet full join result on rightResultSet.uniqid = rightResultSet.uniqid
+                // do right anti join left to get the non-matching rows
             DataSet<ExecRow> nonMatchingRightSet = rightDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext, true))
-                    .flatMap(new LeftAntiJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext, true));
+                    .flatMap(new LeftAntiJoinRestrictionFlatMapFunction(operationContext, true));
 
             result = result.union(nonMatchingRightSet, operationContext)
-                    .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
+                    .map(new SetCurrentLocatedRowFunction(operationContext));
         }
 
         result = result.map(new CountProducedFunction(operationContext), /*isLast=*/true);

@@ -57,6 +57,8 @@ public class LeftAntiJoinRestrictionFlatMapFunction <Op extends SpliceOperation>
             mergedRow = JoinUtils.getMergedRow(leftRow,
                     rightRow, rightAsLeft,
                     executionFactory.getValueRow(numberOfColumns));
+            mergedRow.setKey(leftRow.getKey());
+            op.setCurrentRow(mergedRow);
             if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
                 return Collections.emptyIterator();
             }
