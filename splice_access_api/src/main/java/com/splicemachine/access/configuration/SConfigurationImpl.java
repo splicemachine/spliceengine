@@ -222,6 +222,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long fallbackRegionRowCount;
     private final  long fallbackRemoteLatencyRatio;
     private final  long partitionCacheExpiration;
+    private final  int collectSchemaStatisticsMaximumConcurrent;
 
     // StorageConfiguration
     private final  int splitBlockSize;
@@ -436,6 +437,10 @@ public final class SConfigurationImpl implements SConfiguration {
     }
 
     // PipelineConfiguration
+    @Override
+    public int getCollectSchemaStatisticsMaximumConcurrent() {
+        return collectSchemaStatisticsMaximumConcurrent;
+    }
     @Override
     public int getCoreWriterThreads() {
         return coreWriterThreads;
@@ -957,6 +962,7 @@ public final class SConfigurationImpl implements SConfiguration {
         determineSparkRowThreshold = builder.determineSparkRowThreshold;
         networkBindAddress = builder.networkBindAddress;
         upgradeForcedFrom = builder.upgradeForcedFrom;
+        collectSchemaStatisticsMaximumConcurrent = builder.collectSchemaStatisticsMaximumConcurrent;
         coreWriterThreads = builder.coreWriterThreads;
         maxDependentWriteThreads = builder.maxDependentWriteThreads;
         maxIndependentWriteThreads = builder.maxIndependentWriteThreads;
