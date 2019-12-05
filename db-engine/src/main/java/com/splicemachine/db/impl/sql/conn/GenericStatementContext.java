@@ -60,6 +60,7 @@ import com.splicemachine.db.iapi.services.context.ContextImpl;
 
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.utils.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;

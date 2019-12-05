@@ -82,7 +82,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     protected CostEstimate bestCostEstimate;
 
-    private double perRowUsage=-1;
+    // running sum of best cost for the current join path
+    protected CostEstimate accumulatedCost;
+    protected CostEstimate accumulatedCostForSortAvoidancePlan;
+
 
     private boolean considerSortAvoidancePath;
 
@@ -1325,6 +1328,26 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     public boolean isAboveSparkThreshold(AccessPath accessPath) {
         return isAboveSparkThreshold(accessPath.getCostEstimate());
+    }
+
+    public void setAccumulatedCost(CostEstimate cost) {
+        if (accumulatedCost == null)
+            accumulatedCost = cost.cloneMe();
+        else
+            accumulatedCost.setCost(cost);
+    }
+    public void setAccumulatedCostForSortAvoidancePlan(CostEstimate cost) {
+        if (accumulatedCostForSortAvoidancePlan == null)
+            accumulatedCostForSortAvoidancePlan = cost.cloneMe();
+        else
+            accumulatedCostForSortAvoidancePlan.setCost(cost);
+    }
+    public CostEstimate getAccumulatedCost() {
+        return accumulatedCost;
+    }
+
+    public CostEstimate getAccumulatedCostforSortAvoidancePlan() {
+        return accumulatedCostForSortAvoidancePlan;
     }
 
 }

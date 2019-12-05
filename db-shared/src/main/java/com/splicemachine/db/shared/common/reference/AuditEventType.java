@@ -29,39 +29,26 @@
  * and are licensed to you under the GNU Affero General Public License.
  */
 
-package com.splicemachine.db.iapi.store.access;
+package com.splicemachine.db.shared.common.reference;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-
-/**
- * The SortCostController interface provides methods that an access client
- * (most likely the system optimizer) can use to get sorter's estimated cost of
- * various operations on the SortController.
- *
- * @see TransactionController#createSort
- * @see RowCountable
+/*
+    List of all events' name used for audit logging.
  */
+public enum AuditEventType {
+        CREATE_USER("SYSCS_UTIL.SYSCS_CREATE_USER"),
+        DROP_USER("SYSCS_UTIL.SYSCS_DROP_USER"),
+        MODIFY_PASSWORD("SYSCS_UTIL.SYSCS_MODIFY_PASSWORD"),
+        RESET_PASSWORD("SYSCS_UTIL.SYSCS_RESET_PASSWORD"),
+        LOGIN("LOGIN");
 
-public interface SortCostController{
-    /**
-     * Close the controller.
-     * <p/>
-     * Close the open controller.  This method always succeeds, and never
-     * throws any exceptions. Callers must not use the StoreCostController
-     * after closing it; they are strongly advised to clear
-     * out the StoreCostController reference after closing.
-     * <p/>
-     */
-    void close();
+        private String procedure;
 
-    /**
-     *
-     * Estimate the sort cost.
-     *
-     * @param baseCost
-     * @throws StandardException
-     */
-    void estimateSortCost(CostEstimate baseCost, CostEstimate sortCost) throws StandardException;
+        AuditEventType(String procedure) {
+                this.procedure = procedure;
+        }
+
+        public String getProcedure() {
+                return procedure;
+        }
 
 }

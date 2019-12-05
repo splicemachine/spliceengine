@@ -1044,6 +1044,8 @@ public interface SQLState {
 	String LANG_INVALID_USE_OF_DEFAULT                                 = "42Y85";
 	String LANG_INVALID_SESSION_PROPERTY                               = "42Y86";
 	String LANG_INVALID_SESSION_PROPERTY_VALUE                         = "42Y87";
+	String LANG_INVALID_FORCED_NO_SUBQUERY_FLATTEN_VALUE               = "42Y88";
+	String LANG_INVALID_SUBQUERY_PROPERTY                              = "42Y89";
 	String LANG_STMT_NOT_UPDATABLE                                     = "42Y90";
 	String LANG_NO_SPS_USING_IN_TRIGGER                                = "42Y91";
 	String LANG_TRIGGER_BAD_REF_MISMATCH                               = "42Y92";

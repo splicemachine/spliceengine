@@ -1077,6 +1077,7 @@ public class SQLParser
 		  case EQUALS_OPERATOR:
 		  case NOT_EQUALS_OPERATOR:
 		  case NOT_EQUALS_OPERATOR2: // !=
+		  case NOT_EQUALS_OPERATOR3: // ^=
 		  case LESS_THAN_OPERATOR:
 		  case GREATER_THAN_OPERATOR:
 		  case LESS_THAN_OR_EQUALS_OPERATOR:
@@ -3188,6 +3189,7 @@ TOKEN :
 |	<EQUALS_OPERATOR: "=">
 |	<NOT_EQUALS_OPERATOR: "<>">
 |	<NOT_EQUALS_OPERATOR2: "!=">
+|   <NOT_EQUALS_OPERATOR3: "^=">
 |	<GREATER_THAN_OPERATOR: ">">
 |	<GREATER_THAN_OR_EQUALS_OPERATOR: ">=">
 |	<QUESTION_MARK: "?">
@@ -3201,7 +3203,7 @@ TOKEN :
 
 TOKEN :
 {	/* Identifiers */
-	<IDENTIFIER: ( <LETTER> ) (<LETTER> | "_" | <DIGIT>)* >
+	<IDENTIFIER: ( <LETTER> ) (<LETTER> | "_" | <DIGIT> | "@" | "$" | "#")* >
 }
 
 TOKEN: {	<K: "K" >	 }
@@ -6433,6 +6435,7 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 	ValueNode	likePattern;
 	ValueNode	betweenLeft;
 	ValueNode	betweenRight;
+	Properties  properties = null;
 }
 {
 	operator = compOp()
@@ -6445,7 +6448,11 @@ remainingNonNegatablePredicate(ValueNode leftOperand) throws StandardException :
 			operator = quantifier(operator)
 			<LEFT_PAREN>
 			leftOperand = tableSubquery(operator, leftOperand)
-			<RIGHT_PAREN>
+			<RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
+			{
+	            if (leftOperand instanceof SubqueryNode)
+	                ((SubqueryNode)leftOperand).setProperties(properties);
+			}
 		)
 		|
 		(
@@ -6531,6 +6538,11 @@ compOp() throws StandardException :
 	{
 		return BinaryOperatorNode.NE;
 	}
+|
+    <NOT_EQUALS_OPERATOR3>
+    {
+        return BinaryOperatorNode.NE;
+    }
 |
 	<LESS_THAN_OPERATOR>
 	{
@@ -7767,6 +7779,7 @@ valueExpressionPrimary() throws StandardException :
 {
 	ValueNode	value;
 	int			tokKind;
+	Properties  properties = null;
 }
 {
 	/* This LOOKAHEAD is required to distinguish
@@ -7867,8 +7880,11 @@ valueExpressionPrimary() throws StandardException :
 
 		value = valueExpression()
 	)
-	<RIGHT_PAREN>
+	<RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
 	{
+        if (value instanceof SubqueryNode)
+            ((SubqueryNode)value).setProperties(properties);
+
 		return value;
 	}
 |
@@ -10186,6 +10202,7 @@ inPredicateValue(ValueNode leftOperand) throws StandardException :
 {
 	ValueNode		retval;
 	int				tokKind;
+	Properties      properties = null;
 }
 {
 	<LEFT_PAREN>
@@ -10200,8 +10217,10 @@ inPredicateValue(ValueNode leftOperand) throws StandardException :
 	|
 		retval = inValueList(leftOperand)
 	)
-	<RIGHT_PAREN>
+	<RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
 	{
+	    if (retval instanceof SubqueryNode)
+	        ((SubqueryNode)retval).setProperties(properties);
 		return retval;
 	}
 }
@@ -10345,12 +10364,16 @@ SubqueryNode
 existsExpression() throws StandardException :
 {
 	SubqueryNode	subqueryNode;
+	Properties  properties=null;
 }
 {
 	<EXISTS> <LEFT_PAREN>
 	subqueryNode = tableSubquery(SubqueryNode.EXISTS_SUBQUERY, null)
-	<RIGHT_PAREN>
+	<RIGHT_PAREN> [ properties = propertyList(true)<CHECK_PROPERTIES>]
 	{
+        if (subqueryNode instanceof SubqueryNode)
+        	((SubqueryNode)subqueryNode).setProperties(properties);
+
 		return subqueryNode;
 	}
 }

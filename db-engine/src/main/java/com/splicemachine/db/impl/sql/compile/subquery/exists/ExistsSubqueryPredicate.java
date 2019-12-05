@@ -63,6 +63,9 @@ class ExistsSubqueryPredicate implements org.spark_project.guava.base.Predicate<
 
     private boolean doWeHandle(SubqueryNode subqueryNode) throws StandardException {
 
+        if (subqueryNode.isHintNotFlatten())
+            return false;
+
         boolean existsSubquery = subqueryNode.isEXISTS();
         boolean notExistsSubquery = subqueryNode.isNOT_EXISTS();
         ResultSetNode subqueryResultSet = subqueryNode.getResultSet();

@@ -535,12 +535,18 @@ need to restart each of those services.
 
 There are a few configuration modifications you might want to make:
 
+* [Enable automatically restart for HBase service](#enable-automatically-restart) if you want HBase recover automatically after some failures.
 * [Modify the Authentication Mechanism](#modify-the-authentication-mechanism) if you want to
   authenticate users with something other than the default *native
   authentication* mechanism.
 * [Modify the Log Location](#modify-the-log-location) if you want your Splice Machine
   log entries stored somewhere other than in the logs for your region
   servers.
+  
+### Enable Automatically Restart
+
+After network partition, HBase master or region server may exit. So you may want to enable auto restart for Hbase in
+Ambari -> Admin -> Service Auto Start.
 
 ### Modify the Authentication Mechanism
 
@@ -595,6 +601,23 @@ Configuration:
 Splice Machine uses log4j to config OLAP server's log.  If you want to change the default log behavior of OLAP server,
 config `splice.olap.log4j.configuration` in `hbase-site.xml`. It specifies the log4j.properties file you want to use.
 This file needs to be available on HBase master server.
+
+#### Security Audit log
+
+Splice Machine records security related actions (e.g. CREATE / DROP USER, MODIFY PASSWORD, LOGIN) in audit log. You can modify where Splice
+Machine stores audit log by adding the following snippet to your *RegionServer Logging
+Advanced Configuration Snippet (Safety Valve)* section of your HBase
+Configuration:
+
+   ```
+    log4j.appender.spliceAudit=org.apache.log4j.FileAppender
+    log4j.appender.spliceAudit.File=${hbase.log.dir}/splice-audit.log
+    log4j.appender.spliceAudit.layout=org.apache.log4j.PatternLayout
+    log4j.appender.spliceAudit.layout.ConversionPattern=%d{ISO8601} %m%n
+    
+    log4j.logger.splice-audit=INFO, spliceAudit
+    log4j.additivity.splice-audit=false
+   ```
 
 ## Verify your Splice Machine Installation
 

@@ -33,15 +33,21 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1935-SNAPSHOT</version>
+        <version>3.1.0.1938-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>db-tools-i18n</artifactId>
     <properties>
         <loc-src-dir>${project.basedir}/src/main/resources/com/splicemachine/db/loc/</loc-src-dir>
-        <loc-out-dir>${project.build.outputDirectory}/com/splicemachine/db/loc</loc-out-dir>
+	<loc-out-dir>${project.build.directory}/generated-resources/messages/com/splicemachine/db/loc</loc-out-dir>
     </properties>
     <build>
+	    <resources>
+		    <resource>
+			    <directory>${project.build.directory}/generated-resources/messages/</directory>
+			    <filtering>false</filtering>
+		    </resource>
+	    </resources>
         <plugins>
             <!-- ================================================================================================
             Build english property file from XML.  Create property files for all other languages.

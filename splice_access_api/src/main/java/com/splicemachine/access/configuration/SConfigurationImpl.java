@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Field;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -72,6 +71,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final String authorizationScheme;
     private final String rangerServiceName;
     private final int sentryPollingInterval;
+    private String rangerUserSyncCaseConversion;
 
 
     // DDLConfiguration
@@ -606,6 +606,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getSentryPollingInterval() {
         return sentryPollingInterval;
     }
+    @Override
+    public String getRangerUserSyncCaseConversion() {
+        return rangerUserSyncCaseConversion;
+    }
 
 
     @Override
@@ -894,6 +898,7 @@ public final class SConfigurationImpl implements SConfiguration {
         authorizationScheme = builder.authorizationScheme;
         rangerServiceName = builder.rangerServiceName;
         sentryPollingInterval = builder.sentryPollingInterval;
+        rangerUserSyncCaseConversion = builder.rangerUserSyncCaseConversion;
         fallbackNullFraction = builder.fallbackNullFraction;
         optimizerExtraQualifierMultiplier = builder.optimizerExtraQualifierMultiplier;
         cardinalityPrecision = builder.cardinalityPrecision;
