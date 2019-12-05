@@ -20,7 +20,7 @@ package com.splicemachine.access.configuration;
  */
 public class StatsConfiguration implements ConfigurationDefault {
 
-    /*
+    /**
      * The default precision to use when estimating the cardinality of a given column in a partition.
      * This number can be chosen to be anything >=4, but the total memory used per column will
      * change as mem_used = (1<<CARDINALITY_PRECISION) bytes, so don't make this too high, or you
@@ -29,19 +29,19 @@ public class StatsConfiguration implements ConfigurationDefault {
     public static final String CARDINALITY_PRECISION="splice.statistics.cardinality";
     public static final int DEFAULT_CARDINALITY_PRECISION=14;
 
-    /*
+    /**
      * The number of "top-k" frequent elements to keep for each collection on each column in a partition.
      */
     public static final String TOPK_SIZE = "splice.statistics.topKSize";
     public static final int DEFAULT_TOPK_PRECISION = 10;
 
-    /*
+    /**
      * The size of the partition statistics cache. Partitions will be evicted when the total size
      * exceeds this threshold
      */
     public static final String PARTITION_CACHE_SIZE = "splice.statistics.partitionCache.size";
     public static final long DEFAULT_PARTITION_CACHE_SIZE = 8192;
-    /*
+    /**
      * The amount of time to keep a given partition in the partition cache. Turning this number up will
      * decrease the amount of network calls made to fetch statistics, but will also allow statistics
      * to grow more stale before being replaced. Tune this with caution. Measured in Milliseconds
@@ -57,7 +57,7 @@ public class StatsConfiguration implements ConfigurationDefault {
     public static final int DEFAULT_INDEX_FETCH_REPETITION_COUNT = 3;
 
 
-    /*
+    /**
      * This is the cardinality fraction to fall back on when we cannot measure the cardinality directly (or
      * statistics are not available for some reason). By default it assumes that there are 100 duplicates
      * of every row (giving a cardinality fraction of 0.01)
@@ -65,9 +65,6 @@ public class StatsConfiguration implements ConfigurationDefault {
      * Note that this is configurable, but that configuring it is pretty pointless--it is FAR better to just
      * compute statistics on the column of interest to get more precise values. This is only here as an absolute
      * fallback when the algorithm can do nothing else.
-     */
-    /**
-     *
      */
     public static final String FALLBACK_CARDINALITY_FRACTION = "splice.statistics.defaultCardinalityFraction";
     public static final double DEFAULT_FALLBACK_CARDINALITY_FRACTION=.1d;
@@ -124,6 +121,14 @@ public class StatsConfiguration implements ConfigurationDefault {
     public static final String FALLBACK_ROW_WIDTH="splice.statistics.fallbackMinimumRowWidth";
     public static final int DEFAULT_FALLBACK_ROW_WIDTH=170;
 
+    /**
+     * The number of concurrent jobs that can be started by Collect Schema Statistics
+     * Defaults to Integer.MAX_VALUE
+     */
+    public static final String COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT = "splice.statistics.collectSchemaStatisticsMaximumConcurrent";
+    public static final int DEFAULT_COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT = 100;
+
+
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         // FIXME: JC - some of these are not referenced anywhere outside. Do we need them?
@@ -146,5 +151,6 @@ public class StatsConfiguration implements ConfigurationDefault {
 //        builder.fallbackCardinalityFraction = configurationSource.getDouble(FALLBACK_CARDINALITY_FRACTION, DEFAULT_FALLBACK_CARDINALITY_FRACTION);
 //        builder.fallbackIndexSelectivityFraction = configurationSource.getDouble(FALLBACK_INDEX_SELECTIVITY_FRACTION, DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION);
         builder.optimizerExtraQualifierMultiplier = configurationSource.getDouble(OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER, DEFAULT_OPTIMIZER_EXTRA_QUALIFIER_MULTIPLIER);
+        builder.collectSchemaStatisticsMaximumConcurrent = configurationSource.getInt(COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT, DEFAULT_COLLECT_SCHEMA_STATISTICS_MAXIMUM_CONCURRENT);
     }
 }
