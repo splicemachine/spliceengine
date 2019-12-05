@@ -451,7 +451,13 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
 
 		LocalField lf = super.getCurrentSetup();
 
-		// 3) the execute method gets a statement (prior to the return)
+		// 3) Set precision
+		//    cdt.setTimestampPrecision(precision)
+		executeMethod.getField(lf);
+		executeMethod.push(myCompCtx.getCurrentTimestampPrecision());
+		executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, "setTimestampPrecision", "void", 1);
+
+		// 4) the execute method gets a statement (prior to the return)
 		//    to tell cdt to restart:
 		//	  cdt.forget();
 
