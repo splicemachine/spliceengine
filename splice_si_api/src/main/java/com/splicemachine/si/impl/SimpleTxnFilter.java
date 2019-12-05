@@ -42,12 +42,13 @@ public class SimpleTxnFilter implements TxnFilter{
     private final TxnSupplier transactionStore;
     private final TxnView myTxn;
     private final ReadResolver readResolver;
+    private IgnoreTxnSupplier ignoreTxnSupplier = null;
     //per row fields
     private final LongHashSet visitedTxnIds=new LongHashSet();
     private Long tombstonedTxnRow = null;
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
-    private final String tableName;
+
     /*
      * The most common case for databases is insert-only--that is, that there
      * are few updates and deletes relative to the number of inserts. As a result,
@@ -58,7 +59,23 @@ public class SimpleTxnFilter implements TxnFilter{
      * this variable first. That way, we avoid potentially expensive locking through the
      * transaction supplier.
      */
-    private TxnView currentTxn;
+    private static int MAX_CACHED = 8;
+    private TxnView[] localCache = new TxnView[MAX_CACHED];
+    private int cacheIdx = 0;
+
+    private void cacheLocally(TxnView txn) {
+        localCache[cacheIdx] = txn;
+        cacheIdx = (cacheIdx + 1) & (MAX_CACHED - 1);
+    }
+
+    private TxnView checkLocally(long txnId) {
+        for (TxnView txn : localCache) {
+            if (txn != null && txn.getTxnId() == txnId) {
+                return txn;
+            }
+        }
+        return null;
+    }
 
     /**
      * In some cases we can safely ignore any data with a txnId greater than our
@@ -72,11 +89,14 @@ public class SimpleTxnFilter implements TxnFilter{
                            TxnSupplier baseSupplier,
                            boolean ignoreNewerTransactions) {
         assert readResolver!=null;
-        this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier,1024); //TODO -sf- configure
-        this.tableName=tableName;
+        this.transactionStore = new ActiveTxnCacheSupplier(baseSupplier, 100); //TODO -sf- configure
         this.myTxn=myTxn;
         this.readResolver=readResolver;
         this.ignoreNewerTransactions = ignoreNewerTransactions;
+        SIDriver driver = SIDriver.driver();
+        if (driver != null) {
+            ignoreTxnSupplier = driver.getIgnoreTxnSupplier();
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -209,11 +229,6 @@ public class SimpleTxnFilter implements TxnFilter{
 		 * it matches, then we can see it.
 		 */
         long timestamp=data.version();//dataStore.getOpFactory().getTimestamp(data);
-        SIDriver driver = SIDriver.driver();
-        IgnoreTxnSupplier ignoreTxnSupplier = null;
-        if (driver != null) {
-            ignoreTxnSupplier = driver.getIgnoreTxnSupplier();
-        }
         if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(timestamp))
             return DataFilter.ReturnCode.SKIP;
         if(tombstonedTxnRow != null && timestamp<= tombstonedTxnRow)
@@ -238,13 +253,15 @@ public class SimpleTxnFilter implements TxnFilter{
         return toCompare != null ? myTxn.canSee(toCompare) : false;
     }
 
-    private TxnView fetchTransaction(long txnId) throws IOException{
-        TxnView toCompare=currentTxn;
-        if(currentTxn==null || currentTxn.getTxnId()!=txnId){
-            toCompare=transactionStore.getTransaction(txnId);
-            currentTxn=toCompare;
+    private TxnView fetchTransaction(long txnId) throws IOException {
+        TxnView txn = checkLocally(txnId);
+        if (txn == null) {
+            txn = transactionStore.getTransaction(txnId);
+            if (txn != null) {
+                cacheLocally(txn);
+            }
         }
-        return toCompare;
+        return txn;
     }
 
     private void addToAntiTombstoneCache(DataCell data) throws IOException{
@@ -273,30 +290,10 @@ public class SimpleTxnFilter implements TxnFilter{
     }
 
     private void ensureTransactionIsCached(DataCell data) throws IOException{
-        long txnId=data.version();//this.dataStore.getOpFactory().getTimestamp(data);
-        visitedTxnIds.add(txnId);
-        if(!transactionStore.transactionCached(txnId)){
-			/*
-			 * We do not have a cache entry for this transaction, so we want
-			 * to add it in. We have two possible scenarios:
-			 *
-			 * 1. The transaction is marked as "failed"--i.e. it's been rolled back
-			 * 2. The transaction has a commit timestamp.
-			 *
-			 * In case #1, we only care about the txnId, which we already have,
-			 * and in case #2, we only care about the commit timestamp (none of the read
-			 * isolation levels require information about the begin timestamp).
-			 *
-			 * This version of SI will physically remove entries associated
-			 * with rolled-back values, so case #1 isn't likely to happen--however,
-			 * older installations of SpliceMachine used the commit timestamp to indicate
-			 * a failure, so we have to check for it.
-			 */
-
-            long commitTs=data.valueAsLong();//dataStore.getOpFactory().getValueToLong(data);
-            TxnView toCache=new CommittedTxn(txnId,commitTs);//since we don't care about the begin timestamp, just use the TxnId
-            transactionStore.cache(toCache);
-            currentTxn=toCache;
+        long txnId = data.version();
+        if (checkLocally(txnId) == null) {
+            long commitTs = data.valueAsLong();
+            cacheLocally(new CommittedTxn(txnId, commitTs));
         }
     }
 
