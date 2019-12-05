@@ -15,6 +15,7 @@ import org.spark_project.guava.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -32,16 +33,20 @@ public class FullOuterJoinIT extends SpliceUnitTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{"true"});
-        params.add(new Object[]{"false"});
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
+        params.add(new Object[]{"true", "sortmerge"});
+        params.add(new Object[]{"true", "broadcast"});
+        params.add(new Object[]{"false", "sortmerge"});
+        params.add(new Object[]{"false", "broadcast"});
         return params;
     }
 
     private static String useSpark;
+    private static String joinStrategy;
 
-    public FullOuterJoinIT(String useSpark) {
+    public FullOuterJoinIT(String useSpark, String joinStrategy) {
         this.useSpark = useSpark;
+        this.joinStrategy = joinStrategy;
     }
 
     @ClassRule
@@ -96,7 +101,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
 
     @Test
     public void simpleTwoTableFullJoined() throws Exception {
-        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on c1=c2", useSpark);
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on c1=c2", useSpark, joinStrategy);
         String expected = "B1  | A1  | B2  | A2  | C2  |\n" +
                 "------------------------------\n" +
                 " 10  |  1  |NULL |NULL |NULL |\n" +
@@ -117,7 +122,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
 
     @Test
     public void twoTableFullJoinedWithBothEqualityAndNonEqualityCondition() throws Exception {
-        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on c1+1=c2 and a1<a2", useSpark);
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on c1+1=c2 and a1<a2", useSpark, joinStrategy);
         String expected = "B1  | A1  | B2  | A2  | C2  |\n" +
                 "------------------------------\n" +
                 " 10  |  1  | 20  |  2  |  2  |\n" +
@@ -137,7 +142,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
 
     @Test
     public void twoTableFullJoinedThroughRDDImplementation() throws Exception {
-        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on a1=a2 and case when c1=2 then 2 end=c2", useSpark);
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2 and case when c1=2 then 2 end=c2", useSpark, joinStrategy);
         String expected = "B1  | A1  | B2  | A2  | C2  |\n" +
                 "------------------------------\n" +
                 " 10  |  1  |NULL |NULL |NULL |\n" +
@@ -160,7 +165,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
     @Test
     public void fullJoinWithATableWithSingleTableCondition() throws Exception {
         String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join (select * from t2 --splice-properties useSpark=%s\n " +
-                "where a2=3) dt on a1=a2", useSpark);
+                "where a2=3) dt --splice-properties joinStrategy=%s\n on a1=a2", useSpark, joinStrategy);
         String expected = "B1 |A1 | B2  | A2  | C2  |\n" +
                 "--------------------------\n" +
                 "10 | 1 |NULL |NULL |NULL |\n" +
@@ -176,7 +181,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
 
     @Test
     public void fullJoinWithInEqualityCondition() throws Exception {
-        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on a1>a2", useSpark);
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1>a2", useSpark, joinStrategy);
         String expected = "B1  | A1  | B2  | A2  | C2  |\n" +
                 "------------------------------\n" +
                 " 10  |  1  |NULL |NULL |NULL |\n" +
@@ -191,14 +196,18 @@ public class FullOuterJoinIT extends SpliceUnitTest {
                 "NULL |NULL | 50  |  5  |NULL |\n" +
                 "NULL |NULL | 60  |  6  |  6  |";
 
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try {
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }catch (SQLException e) {
+            Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
+        }
     }
 
     @Test
     public void fullJoinWithInEqualityConditionThroughRDDImplementation() throws Exception {
-        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s\n on a1>a2 and case when c1=3 then 3 end>c2", useSpark);
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1>a2 and case when c1=3 then 3 end>c2", useSpark, joinStrategy);
         String expected = "B1  | A1  | B2  | A2  | C2  |\n" +
                 "------------------------------\n" +
                 " 10  |  1  |NULL |NULL |NULL |\n" +
@@ -212,9 +221,13 @@ public class FullOuterJoinIT extends SpliceUnitTest {
                 "NULL |NULL | 50  |  5  |NULL |\n" +
                 "NULL |NULL | 60  |  6  |  6  |";
 
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try {
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        } catch (SQLException e) {
+            Assert.assertTrue("Invalid exception thrown: "+ e, e.getMessage().startsWith("No valid execution plan"));
+        }
     }
 
     @Test
