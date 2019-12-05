@@ -1448,4 +1448,9 @@ public interface Property {
 	 */
 	String SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS =
 		"splice.execution.allowOverflowSensitiveNativeSparkExpressions";
+
+	/**
+	 * Fractional seconds precision of current_timestamp
+	 */
+	String SPLICE_CURRENT_TIMESTAMP_PRECISION = "splice.function.currentTimestampPrecision";
 }
