@@ -70,6 +70,7 @@ public class StandardException extends Exception
 	private String textMessage;
 	private String sqlState;
 	private transient int report;
+	private boolean isSignal = false;
 
 	/*
 	** End of constructors
@@ -79,7 +80,8 @@ public class StandardException extends Exception
 		
 	}
 	
-	
+	public void setIsSignal(boolean isSignal) { this.isSignal = isSignal; }
+	public boolean isSignal() { return isSignal; }
 	
 	public String getTextMessage() {
 		return textMessage;
@@ -208,6 +210,13 @@ public class StandardException extends Exception
 
 		if (messageID.length() == 5)
 			return messageID;
+		else if (messageID.length() < 5) {
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < 5-messageID.length(); i++)
+				sb.append(' ');
+			sb.append(messageID);
+			return sb.toString();
+		}
 		return messageID.substring(0, 5);
 	}
 
@@ -253,6 +262,7 @@ public class StandardException extends Exception
 			break;
 
 		default:
+	              if (messageID.length() >= 7)
 			switch (messageID.charAt(6)) {
 			case 'M':
 				lseverity = ExceptionSeverity.SYSTEM_SEVERITY;

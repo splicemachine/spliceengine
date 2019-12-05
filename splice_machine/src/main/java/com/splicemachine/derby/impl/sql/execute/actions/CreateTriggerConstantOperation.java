@@ -57,9 +57,10 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
     private final boolean isEnabled;
     private final boolean referencingOld;
     private final boolean referencingNew;
-    private final UUID whenSPSId;
+    private       UUID   whenSPSId;
     private final String whenText;
     private final String actionText;
+    private final String originalWhenText;
     private final String originalActionText;
     private final String oldReferencingName;
     private final String newReferencingName;
@@ -120,6 +121,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
             Timestamp creationTimestamp,
             int[] referencedCols,
             int[] referencedColsInTriggerAction,
+            String originalWhenText,
             String originalActionText,
             boolean referencingOld,
             boolean referencingNew,
@@ -143,6 +145,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         this.referencedCols = referencedCols;
         this.referencedColsInTriggerAction = referencedColsInTriggerAction;
         this.originalActionText = originalActionText;
+        this.originalWhenText = originalWhenText;
         this.referencingOld = referencingOld;
         this.referencingNew = referencingNew;
         this.oldReferencingName = oldReferencingName;
@@ -275,6 +278,10 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         actionSPSId = (actionSPSId == null) ?
                 dd.getUUIDFactory().createUUID() : actionSPSId;
 
+        if (whenSPSId == null && whenText != null) {
+            whenSPSId = dd.getUUIDFactory().createUUID();
+        }
+
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         /*
@@ -292,8 +299,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
                         isRow,
                         isEnabled,
                         triggerTable,
-                        null,
-//                        whenspsd == null ? null : whenspsd.getUUID(),
+                        whenSPSId,
                         actionSPSId,
                         creationTimestamp == null ? new Timestamp(System.currentTimeMillis()) : creationTimestamp,
                         referencedCols,
@@ -302,7 +308,8 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
                         referencingOld,
                         referencingNew,
                         oldReferencingName,
-                        newReferencingName);
+                        newReferencingName,
+                        originalWhenText);
 
 
         dd.addDescriptor(triggerd, triggerSd,
@@ -314,8 +321,11 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
         ** If we have a WHEN action we create it now.
         */
         if (whenText != null) {
+            // The WHEN clause is just a search condition and not a full
+            // SQL statement. Turn in into a VALUES statement.
+            String whenValuesStmt = "VALUES ( " + whenText + " )";
             whenspsd = createSPS(lcc, ddg, dd, tc, tmpTriggerId, triggerSd,
-                    whenSPSId, spsCompSchemaId, whenText, true, triggerTable);
+                    whenSPSId, spsCompSchemaId, whenValuesStmt, true, triggerTable);
         }
 
         /*

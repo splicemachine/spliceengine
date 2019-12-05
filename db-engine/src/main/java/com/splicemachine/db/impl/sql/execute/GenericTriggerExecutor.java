@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
@@ -42,6 +43,9 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 
 /**
@@ -59,8 +63,12 @@ public abstract class GenericTriggerExecutor {
     private SPSDescriptor whenClause;
     private SPSDescriptor action;
 
-    private ExecPreparedStatement ps;
-    private Activation spsActivation;
+    // Cached prepared statement and activation for WHEN clause and
+    // trigger action.
+    private ExecPreparedStatement   whenPS;
+    private Activation              spsWhenActivation;
+    private ExecPreparedStatement   actionPS;
+    private Activation              spsActionActivation;
 
     /**
      * Constructor
@@ -91,15 +99,15 @@ public abstract class GenericTriggerExecutor {
                               CursorResultSet rs,
                               int[] colsReadFromTable) throws StandardException;
 
-    protected SPSDescriptor getWhenClause() throws StandardException {
+    private SPSDescriptor getWhenClause() throws StandardException {
         if (!whenClauseRetrieved) {
             whenClauseRetrieved = true;
-            whenClause = triggerd.getWhenClauseSPS();
+            whenClause = triggerd.getWhenClauseSPS(lcc);
         }
         return whenClause;
     }
 
-    protected SPSDescriptor getAction() throws StandardException {
+    private SPSDescriptor getAction() throws StandardException {
         if (!actionRetrieved) {
             actionRetrieved = true;
             action = triggerd.getActionSPS(lcc);
@@ -108,11 +116,29 @@ public abstract class GenericTriggerExecutor {
     }
 
     /**
-     * Execute the given stored prepared statement.  We just grab the prepared statement from the spsd,
+     * Execute the given stored prepared statement.  We
+     * just grab the prepared statement from the spsd,
      * get a new activation holder and let er rip.
+     *
+     * @param sps the SPS to execute
+     * @param isWhen {@code true} if the SPS is for the WHEN clause,
+     *               {@code false} otherwise
+     * @return {@code true} if the SPS is for a WHEN clause and it evaluated
+     *         to {@code TRUE}, {@code false} otherwise
+     * @exception StandardException on error
      */
-    protected void executeSPS(SPSDescriptor sps) throws StandardException {
+    protected boolean executeSPS(SPSDescriptor sps, boolean isWhen) throws StandardException {
         boolean recompile = false;
+        boolean whenClauseWasTrue = false;
+
+        // The prepared statement and the activation may already be available
+        // if the trigger has been fired before in the same statement. (Only
+        // happens with row triggers that are triggered by a statement that
+        // touched multiple rows.) The WHEN clause and the trigger action have
+        // their own prepared statement and activation. Fetch the correct set.
+        ExecPreparedStatement ps = isWhen ? whenPS : actionPS;
+        Activation spsActivation = isWhen
+                ? spsWhenActivation : spsActionActivation;
 
         while (true) {
             /*
@@ -120,8 +146,11 @@ public abstract class GenericTriggerExecutor {
             ** way a row trigger doesn't do any unnecessary
             ** setup work.
             */
-            if (ps == null || recompile) {
-                compile(sps);
+            if (ps == null || spsActivation == null || recompile) {
+
+                compile(sps, ps, isWhen);
+                spsActivation = isWhen ? spsWhenActivation : spsActionActivation;
+                ps = isWhen ? whenPS : actionPS;
             }
 
             // save the active statement context for exception handling purpose
@@ -143,7 +172,31 @@ public abstract class GenericTriggerExecutor {
                 // timeout to its parent statement's timeout settings.
                 ((GenericPreparedStatement)ps).setNeedsSavepoint(false);
                 ResultSet rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
-                if (rs.returnsRows()) {
+                if (isWhen)
+                {
+                    // This is a WHEN clause. Expect a single BOOLEAN value
+                    // to be returned.
+                    ExecRow row = rs.getNextRow();
+                    if (SanityManager.DEBUG && row.nColumns() != 1) {
+                        SanityManager.THROWASSERT(
+                            "Expected WHEN clause to have exactly "
+                            + "one column, found: " + row.nColumns());
+                    }
+
+                    DataValueDescriptor value = row.getColumn(1);
+                    if (SanityManager.DEBUG) {
+                        SanityManager.ASSERT(value instanceof SQLBoolean);
+                    }
+
+                    whenClauseWasTrue =
+                            !value.isNull() && value.getBoolean();
+
+                    if (SanityManager.DEBUG) {
+                        SanityManager.ASSERT(rs.getNextRow() == null,
+                                "WHEN clause returned more than one row");
+                    }
+                }
+                else if (rs.returnsRows()) {
                     // Fetch all the data to ensure that functions in the select list or values statement will
                     // be evaluated and side effects will happen. Why else would the trigger action return
                     // rows, but for side effects?
@@ -159,7 +212,7 @@ public abstract class GenericTriggerExecutor {
                 ** statement context(SC) and the trigger execution context
                 ** (TEC) in language connection context(LCC) properly (e.g.:  
                 ** "Maximum depth triggers exceeded" exception); otherwise, 
-                ** this will leave old TECs lingering and may result in 
+                ** this will leave old TECs lingering and may result in
                 ** subsequent statements within the same connection to throw 
                 ** the same exception again prematurely.  
                 **    
@@ -200,7 +253,7 @@ public abstract class GenericTriggerExecutor {
             }
 
             /* Done with execution without any recompiles */
-            break;
+            return whenClauseWasTrue;
         }
     }
 
@@ -215,10 +268,29 @@ public abstract class GenericTriggerExecutor {
      * goes away post Lassen we can consider removing this method. Or maybe someone can find a better way.
      */
     public void forceCompile() throws StandardException {
-        compile(getAction());
+
+        if (getWhenClause() != null) {
+            if (spsWhenActivation == null)
+                spsWhenActivation = activation;
+            compile(getWhenClause(), whenPS, true);
+        }
+        if (getAction() != null) {
+            if (spsActionActivation == null)
+                spsActionActivation = activation;
+            compile(getAction(), actionPS, false);
+        }
     }
 
-    private void compile(SPSDescriptor sps) throws StandardException {
+    private void compile(SPSDescriptor sps,
+                         ExecPreparedStatement ps,
+                         boolean isWhen) throws StandardException {
+
+        // The SPS activation will set its parent activation from
+        // the statement context. Reset it to the original parent
+        // activation first so that it doesn't use the activation of
+        // the previously executed SPS as parent. DERBY-6348.
+        lcc.getStatementContext().setActivation(activation);
+
         ps = sps.getPreparedStatement();
         /*
          * We need to clone the prepared statement so we don't
@@ -226,9 +298,10 @@ public abstract class GenericTriggerExecutor {
          * during the course of execution.
          */
         ps = ps.getClone();
+
         // it should be valid since we've just prepared for it
         ps.setValid();
-        spsActivation = ps.getActivation(lcc, false);
+        Activation spsActivation = ps.getActivation(lcc, false);
 
         /*
          * Normally, we want getSource() for an sps invocation
@@ -238,16 +311,53 @@ public abstract class GenericTriggerExecutor {
          */
         ps.setSource(sps.getText());
         ps.setSPSAction();
+
+        // Cache the prepared statement and activation in case the
+        // trigger fires multiple times.
+        if (isWhen) {
+            whenPS = ps;
+            spsWhenActivation = spsActivation;
+        } else {
+            actionPS = ps;
+            spsActionActivation = spsActivation;
+        }
     }
 
     /**
      * Cleanup after executing an sps.
      */
     protected void clearSPS() throws StandardException {
-        if (spsActivation != null) {
-            spsActivation.close();
+        if (spsActionActivation != null) {
+            spsActionActivation.close();
         }
-        ps = null;
-        spsActivation = null;
+        actionPS = null;
+        spsActionActivation = null;
+
+        if (spsWhenActivation != null) {
+            spsWhenActivation.close();
+        }
+        whenPS = null;
+        spsWhenActivation = null;
+    }
+
+    /**
+     * <p>
+     * Execute the WHEN clause SPS and the trigger action SPS.
+     * </p>
+     *
+     * <p>
+     * If there is no WHEN clause, the trigger action should always be
+     * executed. If there is a WHEN clause, the trigger action should only
+     * be executed if the WHEN clause returns TRUE.
+     * </p>
+     *
+     * @throws StandardException if trigger execution fails
+     */
+    final void executeWhenClauseAndAction() throws StandardException {
+        SPSDescriptor whenClauseDescriptor = getWhenClause();
+        if (whenClauseDescriptor == null ||
+                executeSPS(whenClauseDescriptor, true)) {
+            executeSPS(getAction(), false);
+        }
     }
 } 

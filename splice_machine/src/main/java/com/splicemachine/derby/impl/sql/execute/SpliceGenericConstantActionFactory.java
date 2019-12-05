@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
@@ -459,14 +460,17 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
             TableDescriptor triggerTable,UUID whenSPSId,String whenText,
             UUID actionSPSId,String actionText,UUID spsCompSchemaId,
             Timestamp creationTimestamp,int[] referencedCols,
-            int[] referencedColsInTriggerAction,String originalActionText,
+            int[] referencedColsInTriggerAction,
+            String originalWhenText,
+            String originalActionText,
             boolean referencingOld,boolean referencingNew,
             String oldReferencingName,String newReferencingName){
         SpliceLogUtils.trace(LOG,"getCreateTriggerConstantAction for trigger {%s.%s}",triggerSchemaName,triggerName);
         return new CreateTriggerConstantOperation(triggerSchemaName,triggerName,
                 eventMask,isBefore,isRow,isEnabled,triggerTable,whenSPSId,
                 whenText,actionSPSId,actionText,spsCompSchemaId,creationTimestamp,
-                referencedCols,referencedColsInTriggerAction,originalActionText,
+                referencedCols,referencedColsInTriggerAction,
+                originalWhenText, originalActionText,
                 referencingOld,referencingNew,oldReferencingName,newReferencingName);
     }
 

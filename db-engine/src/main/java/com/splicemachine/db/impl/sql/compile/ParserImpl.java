@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
+import java.io.StringReader;
 
 public class ParserImpl implements Parser
 {
@@ -177,6 +178,69 @@ public class ParserImpl implements Parser
 		}
 	}
 
+    /**
+     * Parse a full SQL statement or a fragment that represents a
+     * {@code <search condition>}.
+     *
+     * @param sql the SQL statement or fragment to parse
+     * @param paramDefaults parameter defaults to pass on to the parser
+     *   in the case where {@code sql} is a full SQL statement
+     * @param isStatement {@code true} if {@code sql} is a full SQL statement,
+     *   {@code false} if it is a fragment
+     * @return parse tree for the SQL
+     * @throws StandardException if an error happens during parsing
+     */
+    private Visitable parseStatementOrSearchCondition(
+            String sql, Object[] paramDefaults, boolean isStatement)
+        throws StandardException
+    {
+        StringReader sqlText = new StringReader(sql);
+
+	/* Get a char stream if we don't have one already */
+	if (charStream == null)
+	{
+		charStream = new UCode_CharStream(sqlText, 1, 1, LARGE_TOKEN_SIZE);
+	}
+	else
+	{
+		charStream.ReInit(sqlText, 1, 1, LARGE_TOKEN_SIZE);
+	}
+
+	/* remember the string that we're parsing */
+        SQLtext = sql;
+
+	/* Parse the statement, and return the QueryTree */
+	try
+	{
+            SQLParser p = getParser();
+            return isStatement
+                    ? p.Statement(sql, paramDefaults)
+                    : p.SearchCondition(sql);
+		}
+		catch (ParseException e)
+		{
+		    throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, e.getMessage());
+		}
+		catch (TokenMgrError e)
+		{
+			// Derby - 2103.
+			// When the exception occurs cachedParser may live with
+			// some flags set inappropriately that may cause Exception
+			// in the subsequent compilation. This seems to be a javacc bug.
+			// Issue Javacc-152 has been raised.
+			// As a workaround, the cachedParser object is cleared to ensure
+			// that the exception does not have any side effect.
+			// TODO : Remove the following line if javacc-152 is fixed.
+			cachedParser = null;
+		    throw StandardException.newException(SQLState.LANG_LEXICAL_ERROR, e.getMessage());
+		}
+	}
+
+	@Override
+	public Visitable parseSearchCondition(String sqlFragment)
+	    throws StandardException {
+		return parseStatementOrSearchCondition(sqlFragment, null, false);
+	}
 	/**
 	 * Returns the current SQL text string that is being parsed.
 	 *
