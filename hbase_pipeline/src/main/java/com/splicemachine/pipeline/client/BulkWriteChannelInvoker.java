@@ -19,6 +19,7 @@ import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.ipc.RpcChannelFactory;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.utils.PipelineCompressor;
 import com.splicemachine.storage.PartitionInfoCache;

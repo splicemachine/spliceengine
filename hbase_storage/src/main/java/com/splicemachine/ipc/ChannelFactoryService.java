@@ -12,10 +12,10 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.hbase;
+package com.splicemachine.ipc;
 
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.pipeline.client.RpcChannelFactory;
+import com.splicemachine.ipc.RpcChannelFactory;
 
 import java.util.Iterator;
 import java.util.ServiceLoader;

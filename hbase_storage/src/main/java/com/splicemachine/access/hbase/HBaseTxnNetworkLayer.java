@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.hbase;
 
+import com.splicemachine.ipc.RpcChannelFactory;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.SkeletonTxnNetworkLayer;
 import org.apache.hadoop.hbase.client.Table;
@@ -29,10 +30,12 @@ import java.util.Map;
  *         Date: 12/22/15
  */
 public class HBaseTxnNetworkLayer extends SkeletonTxnNetworkLayer{
+    private RpcChannelFactory channelFactory;
     private final Table table;
 
-    public HBaseTxnNetworkLayer(Table table){
-        this.table=table;
+    public HBaseTxnNetworkLayer(RpcChannelFactory channelFactory, Table table) {
+        this.channelFactory = channelFactory;
+        this.table = table;
     }
 
     @Override
@@ -43,7 +46,7 @@ public class HBaseTxnNetworkLayer extends SkeletonTxnNetworkLayer{
     @Override
     protected TxnMessage.TxnLifecycleService getLifecycleService(byte[] rowKey) throws IOException{
         TxnMessage.TxnLifecycleService service;
-        CoprocessorRpcChannel coprocessorRpcChannel=table.coprocessorService(rowKey);
+        CoprocessorRpcChannel coprocessorRpcChannel = channelFactory.newChannel(table.getName(), rowKey);
         try{
             service=ProtobufUtil.newServiceStub(TxnMessage.TxnLifecycleService.class,coprocessorRpcChannel);
         }catch(Exception e){

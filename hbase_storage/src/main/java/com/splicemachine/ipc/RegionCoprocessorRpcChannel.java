@@ -12,11 +12,12 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.pipeline.client;
+package com.splicemachine.ipc;
 
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.RpcController;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.ClientServiceCallable;
 import org.apache.hadoop.hbase.client.ClusterConnection;
@@ -56,7 +57,11 @@ class RegionCoprocessorRpcChannel extends SyncCoprocessorRpcChannel {
         if(this.row == null) {
             throw new NullPointerException("Can\'t be null!");
         } else {
-            ClientServiceCallable callable = new ClientServiceCallable(this.conn, this.table, this.row, this.conn.getRpcControllerFactory().newController(), -1) {
+            int priority = HConstants.PRIORITY_UNSET;
+            if (controller instanceof SpliceRpcController) {
+                priority = ((SpliceRpcController)controller).getPriority();
+            }
+            ClientServiceCallable callable = new ClientServiceCallable(this.conn, this.table, this.row, this.conn.getRpcControllerFactory().newController(), priority) {
                 protected ClientProtos.CoprocessorServiceResponse rpcCall() throws Exception {
                     byte[] regionName = this.getLocation().getRegionInfo().getRegionName();
                     ClientProtos.CoprocessorServiceRequest csr = CoprocessorRpcUtils.getCoprocessorServiceRequest(method, request, RegionCoprocessorRpcChannel.this.row, regionName);

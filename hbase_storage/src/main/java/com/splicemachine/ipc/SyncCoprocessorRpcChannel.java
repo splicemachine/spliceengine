@@ -1,4 +1,4 @@
-package com.splicemachine.pipeline.client;
+package com.splicemachine.ipc;
 
 /**
  * Created by jyuan on 4/5/19.

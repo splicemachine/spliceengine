@@ -15,6 +15,7 @@
 package com.splicemachine.pipeline.client;
 
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
+import com.splicemachine.ipc.RpcChannelFactory;
 import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.PipelineWriter;
 import com.splicemachine.pipeline.api.BulkWriter;

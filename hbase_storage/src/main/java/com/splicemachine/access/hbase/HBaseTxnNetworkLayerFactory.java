@@ -16,6 +16,8 @@ package com.splicemachine.access.hbase;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.ipc.ChannelFactoryService;
+import com.splicemachine.ipc.RpcChannelFactory;
 import com.splicemachine.si.impl.TxnNetworkLayer;
 import com.splicemachine.si.impl.TxnNetworkLayerFactory;
 import org.apache.hadoop.hbase.TableName;
@@ -33,21 +35,22 @@ import java.io.IOException;
 public class HBaseTxnNetworkLayerFactory implements TxnNetworkLayerFactory{
     private TableName txnTable;
     private Connection connection;
+    private RpcChannelFactory channelFactory;
 
     public HBaseTxnNetworkLayerFactory(){ }
 
     @Override
     public void configure(SConfiguration config) throws IOException{
-        this.connection=HBaseConnectionFactory.getInstance(config).getConnection();
+        this.connection = HBaseConnectionFactory.getInstance(config).getConnection();
         String namespace = config.getNamespace();
         String txnTable = HConfiguration.TRANSACTION_TABLE;
-        this.txnTable= TableName.valueOf(namespace,txnTable);
-
+        this.txnTable = TableName.valueOf(namespace,txnTable);
+        channelFactory = ChannelFactoryService.loadChannelFactory(config);
     }
 
     @Override
     public TxnNetworkLayer accessTxnNetwork() throws IOException{
-        Table table=connection.getTable(txnTable);
-        return new HBaseTxnNetworkLayer(table);
+        Table table = connection.getTable(txnTable);
+        return new HBaseTxnNetworkLayer(channelFactory, table);
     }
 }
