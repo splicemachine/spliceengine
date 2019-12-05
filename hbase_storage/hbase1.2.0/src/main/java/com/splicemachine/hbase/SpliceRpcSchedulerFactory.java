@@ -40,7 +40,7 @@ public class SpliceRpcSchedulerFactory extends SimpleRpcSchedulerFactory {
                 HConstants.QOS_THRESHOLD);
     }
 
-    class SplicePriorityFunction implements PriorityFunction {
+    public class SplicePriorityFunction implements PriorityFunction {
 
         PriorityFunction delegate;
 
