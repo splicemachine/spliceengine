@@ -78,12 +78,12 @@ public class CurrentDatetime {
     /**
      * Holds the datetime at the time the class was constructed
      */
-    final private LocalDateTime constructionDateTime;
+    private LocalDateTime constructionDateTime;
 
     /**
      * Holds the System.nanoTime at the time the class was constructed
      */
-    final private long constructionNanos;
+    private long constructionNanos;
 
     /**
      * Holds the number of decimal places required by the end user
@@ -146,6 +146,8 @@ public class CurrentDatetime {
         ensure that it starts over with a new current datetime value.
      */
     public void forget() {
+        constructionDateTime = LocalDateTime.now();
+        constructionNanos = System.nanoTime();
         currentDateTime = null;
         currentDate = null;
         currentTime = null;
