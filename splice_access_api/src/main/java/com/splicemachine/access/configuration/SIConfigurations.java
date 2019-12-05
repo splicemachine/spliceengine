@@ -30,7 +30,7 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
 
     public static final String completedTxnCacheSize="splice.txn.completedTxns.cacheSize";
-    private static final int DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE=1<<17; // want to hold lots of completed transactions
+    private static final int DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE=1<<20; // want to hold lots of completed transactions
 
     public static final String completedTxnConcurrency="splice.txn.completedTxns.concurrency";
     private static final int DEFAULT_COMPLETED_TRANSACTION_CONCURRENCY=64;
@@ -155,7 +155,7 @@ public class SIConfigurations implements ConfigurationDefault {
 
     // Threads processing first queue
     public static final String ROLLFORWARD_FIRST_THREADS = "splice.txn.rollforward.firstQueueThreads";
-    public static final int DEFAULT_ROLLFORWARD_FIRST_THREADS = 10;
+    public static final int DEFAULT_ROLLFORWARD_FIRST_THREADS = 25;
 
     // Threads processing second queue
     public static final String ROLLFORWARD_SECOND_THREADS = "splice.txn.rollforward.secondQueueThreads";
