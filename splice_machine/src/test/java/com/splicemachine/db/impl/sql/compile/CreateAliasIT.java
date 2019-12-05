@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class CreateAliasIT extends SpliceUnitTest {
 
@@ -52,30 +53,12 @@ public class CreateAliasIT extends SpliceUnitTest {
         assertEquals(1, rs.getInt("C1"));
         rs.close();
         methodWatcher.executeUpdate("drop synonym t2");
-
-        // create a synonym with the same name again, and it should be successful
-        // to confirm that dictionary cache has cleared the entry for previous t2.
-        methodWatcher.executeUpdate("create synonym t2 for t1");
-        rs = methodWatcher.executeQuery("select c1 from t2");
-        rs.next();
-        assertEquals(1, rs.getInt("C1"));
-        rs.close();
-        methodWatcher.executeUpdate("drop synonym t2");
     }
 
     @Test
     public void testCreateAlias() throws  Exception {
         methodWatcher.executeUpdate("create alias t3 for t1");
         ResultSet rs = methodWatcher.executeQuery("select c1 from t3");
-        rs.next();
-        assertEquals(1, rs.getInt("C1"));
-        rs.close();
-        methodWatcher.executeUpdate("drop alias t3");
-
-        // create a synonym with the same name again, and it should be successful
-        // to confirm that dictionary cache has cleared the entry for previous t2.
-        methodWatcher.executeUpdate("create alias t3 for t1");
-        rs = methodWatcher.executeQuery("select c1 from t3");
         rs.next();
         assertEquals(1, rs.getInt("C1"));
         rs.close();
