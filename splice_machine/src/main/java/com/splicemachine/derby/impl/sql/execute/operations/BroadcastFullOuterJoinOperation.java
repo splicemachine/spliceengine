@@ -43,6 +43,7 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
     protected String leftEmptyRowFunMethodName;
     protected SpliceMethod<ExecRow> leftEmptyRowFun;
     protected ExecRow leftEmptyRow;
+    OperationContext opContextClone;
 
     public BroadcastFullOuterJoinOperation() {
         super();
@@ -129,7 +130,6 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
         OperationContext operationContext = dsp.createOperationContext(this);
         DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
 
-//        operationContext.pushScope();
         leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
@@ -147,25 +147,40 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
         DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
         if (usesNativeSparkDataSet)
         {
+            opContextClone = null;
             result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.FULLOUTER,true);
         }
         else {
-            result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
+            try {
+                opContextClone = operationContext.getClone();
+                result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
                         .flatMap(new LeftOuterJoinRestrictionFlatMapFunction(operationContext));
 
                 // do right anti join left to get the non-matching rows
-            DataSet<ExecRow> nonMatchingRightSet = rightDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext, true))
-                    .flatMap(new LeftAntiJoinRestrictionFlatMapFunction(operationContext, true));
+                BroadcastJoinOperation opClone = (BroadcastJoinOperation)opContextClone.getOperation();
 
-            result = result.union(nonMatchingRightSet, operationContext)
-                    .map(new SetCurrentLocatedRowFunction(operationContext));
+                DataSet<ExecRow> nonMatchingRightSet = opClone.getRightResultSet().getDataSet(dsp).mapPartitions(new CogroupBroadcastJoinFunction(opContextClone, true))
+                        .flatMap(new LeftAntiJoinRestrictionFlatMapFunction(opContextClone, true));
+
+                result = result.union(nonMatchingRightSet, operationContext)
+                        .map(new SetCurrentLocatedRowFunction(operationContext));
+            } catch (Exception e) {
+                throw StandardException.plainWrapException(e);
+            }
         }
 
-        result = result.map(new CountProducedFunction(operationContext), /*isLast=*/true);
+        result = result.map(new CountProducedFunction(operationContext), /*isLast=*/false);
 
-//        operationContext.popScope();
 
         return result;
     }
+
+    @Override
+    public void close() throws StandardException {
+        super.close();
+        if (opContextClone != null)
+            opContextClone.getOperation().close();
+    }
+
 }
 
