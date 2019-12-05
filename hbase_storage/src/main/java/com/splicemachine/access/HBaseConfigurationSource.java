@@ -32,29 +32,71 @@ public class HBaseConfigurationSource implements ConfigurationSource {
     }
 
     @Override
-    public int getInt(String key, int deflt) {
-        return delegate.getInt(key, deflt);
+    public int getInt(String key, int defaultValue) {
+        try {
+            return delegate.getInt(key, defaultValue);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 
     @Override
-    public long getLong(String key, long deflt) {
-        return delegate.getLong(key, deflt);
+    public int getInt(String key, int defaultValue, int minValue, int maxValue) {
+        int i = getInt(key, defaultValue);
+        if (i < minValue)
+            return minValue;
+        if (i > maxValue)
+            return maxValue;
+        return i;
     }
 
     @Override
-    public boolean getBoolean(String key, boolean deflt) {
-        return delegate.getBoolean(key, deflt);
+    public long getLong(String key, long defaultValue) {
+        try {
+            return delegate.getLong(key, defaultValue);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 
     @Override
-    public String getString(String key, String deflt) {
+    public long getLong(String key, long defaultValue, long minValue, long maxValue) {
+        long l = getLong(key, defaultValue);
+        if (l < minValue)
+            return minValue;
+        if (l > maxValue)
+            return maxValue;
+        return l;
+    }
+
+    @Override
+    public boolean getBoolean(String key, boolean defaultValue) {
+        return delegate.getBoolean(key, defaultValue);
+    }
+
+    @Override
+    public String getString(String key, String defaultValue) {
         String value = delegate.get(key);
-        return (value != null ? value : deflt);
+        return (value != null ? value : defaultValue);
     }
 
     @Override
-    public double getDouble(String key, double deflt) {
-        return delegate.getDouble(key, deflt);
+    public double getDouble(String key, double defaultValue) {
+        try {
+            return delegate.getDouble(key, defaultValue);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    @Override
+    public double getDouble(String key, double defaultValue, double minValue, double maxValue) {
+        double d = getDouble(key, defaultValue);
+        if (d < minValue)
+            return minValue;
+        if (d > maxValue)
+            return maxValue;
+        return d;
     }
 
     @Override

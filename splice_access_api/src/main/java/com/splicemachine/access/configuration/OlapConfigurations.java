@@ -111,6 +111,8 @@ public class OlapConfigurations implements ConfigurationDefault {
     // Share of time spent on transaction resolution, between 0 and 1 (no time vs infinite time)
     public static final String SPARK_COMPACTION_RESOLUTION_SHARE = "spark.compaction.resolution.share";
     public static final double DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE = 0.2f;
+    public static final double MIN_SPARK_COMPACTION_RESOLUTION_SHARE = 0;
+    public static final double MAX_SPARK_COMPACTION_RESOLUTION_SHARE = 1;
 
     // Size of buffer for asynchronous transaction resolution
     public static final String SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = "spark.compaction.resolution.bufferSize";
@@ -172,11 +174,7 @@ public class OlapConfigurations implements ConfigurationDefault {
         builder.olapShufflePartitions = configurationSource.getInt(OLAP_SHUFFLE_PARTITIONS,DEFAULT_OLAP_SHUFFLE_PARTITIONS);
         builder.olapCompactionMaximumWait = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_WAIT, DEFAULT_SPARK_COMPACTION_MAXIMUM_WAIT);
         builder.olapCompactionMaximumConcurrent = configurationSource.getInt(SPARK_COMPACTION_MAXIMUM_CONCURRENT, DEFAULT_SPARK_COMPACTION_MAXIMUM_CONCURRENT);
-        builder.olapCompactionResolutionShare = configurationSource.getDouble(SPARK_COMPACTION_RESOLUTION_SHARE, DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE);
-        if (builder.olapCompactionResolutionShare < 0)
-            builder.olapCompactionResolutionShare = 0;
-        if (builder.olapCompactionResolutionShare > 1)
-            builder.olapCompactionResolutionShare = 1;
+        builder.olapCompactionResolutionShare = configurationSource.getDouble(SPARK_COMPACTION_RESOLUTION_SHARE, DEFAULT_SPARK_COMPACTION_RESOLUTION_SHARE, MIN_SPARK_COMPACTION_RESOLUTION_SHARE, MAX_SPARK_COMPACTION_RESOLUTION_SHARE);
 
         builder.olapCompactionResolutionBufferSize = configurationSource.getInt(SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE, DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE);
         builder.olapCompactionBlocking = configurationSource.getBoolean(SPARK_COMPACTION_BLOCKING, DEFAULT_SPARK_COMPACTION_BLOCKING);
