@@ -48,10 +48,12 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.regex.Pattern;
 
 import com.splicemachine.db.catalog.SystemProcedures;
+import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.jdbc.*;
@@ -71,12 +73,9 @@ import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
-import com.splicemachine.db.shared.common.reference.AuditEventType;
 import com.splicemachine.primitives.Bytes;
-import com.splicemachine.utils.StringUtils;
+import com.sun.security.auth.callback.TextCallbackHandler;
 import com.sun.security.jgss.GSSUtil;
-import org.apache.log4j.Logger;
-
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -84,7 +83,11 @@ import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.Oid;
 
 import javax.security.auth.Subject;
-
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginContext;
 
 /**
  * This class translates DRDA protocol from an application requester to JDBC
@@ -92,8 +95,6 @@ import javax.security.auth.Subject;
  * for return to the application requester.
  */
 class DRDAConnThread extends Thread {
-
-	private static final Logger AUDITLOG =Logger.getLogger("splice-audit");
 
 	private static final Pattern PARSE_TIMESTAMP_PATTERN =
 			Pattern.compile("[-.]");
@@ -1538,18 +1539,11 @@ class DRDAConnThread extends Thread {
 		if (database.securityMechanism == CodePoint.SECMEC_KERSEC) {
 		    p.put(Attribute.DRDA_KERSEC_AUTHENTICATED, Boolean.toString(gssContext.isEstablished()));
 		}
-
-		String ip = ((InetSocketAddress)this.getSession().clientSocket.getRemoteSocketAddress()).getAddress().toString().replace("/","");
-		String userid = this.getDatabase().userId;
-		try {
-			p.put(Property.IP_ADDRESS, ip);
+            
+	 	try {
+			p.put(Property.IP_ADDRESS, ((InetSocketAddress)this.getSession().clientSocket.getRemoteSocketAddress()).getAddress().toString().replace("/",""));
 			database.makeConnection(p);
-			if (AUDITLOG.isInfoEnabled())
-				AUDITLOG.info(StringUtils.logSpliceAuditEvent(userid, AuditEventType.LOGIN.name(),true,ip,null,null));
-
 	  	} catch (SQLException se) {
-			if (AUDITLOG.isInfoEnabled())
-				AUDITLOG.info(StringUtils.logSpliceAuditEvent(userid, AuditEventType.LOGIN.name(),false,ip,null,se.getMessage()));
 			String sqlState = se.getSQLState();
 
 			databaseAccessException = se;
