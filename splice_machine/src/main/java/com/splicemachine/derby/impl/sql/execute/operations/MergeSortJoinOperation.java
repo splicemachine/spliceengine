@@ -246,7 +246,6 @@ public class MergeSortJoinOperation extends JoinOperation {
                         .flatmap(new CogroupLeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<>(operationContext));
         } else if (joinType == JoinNode.FULLOUTERJOIN) {
-            // TODO DB-7816 for full join implementation
             return leftDataSet.cogroup(rightDataSet, "Cogroup Left and Right", operationContext)
                     .flatmap(new CogroupFullOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext, leftHashKeys))
                     .map(new SetCurrentLocatedRowFunction<>(operationContext));

@@ -165,6 +165,20 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         nullify();
         return super.visit(node);
     }
+
+    /**
+     * Adjusts the remote rows and cost based on the limit, removes limit elements
+     *
+     * @param node
+     * @return
+     * @throws StandardException
+     */
+    @Override
+    public Visitable visit(FullOuterJoinNode node) throws StandardException {
+        adjustCost(node);
+        nullify();
+        return super.visit(node);
+    }
     /**
      * Adjusts the remote rows and cost based on the limit, removes limit elements
      *

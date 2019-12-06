@@ -188,6 +188,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                 // no join predicates.
                 for (int i = 0; i < predList.size(); i++) {
                     pred = (Predicate)predList.getOptPredicate(i);
+                    // TODO DB-7816, we want to relax this for scenario like t1 full join t2 on a1=1
                     if (pred.isJoinPredicate()) {
                         ap.setMissingHashKeyOK(true);
 

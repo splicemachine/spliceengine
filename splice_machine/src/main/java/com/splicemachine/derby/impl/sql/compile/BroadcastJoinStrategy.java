@@ -89,6 +89,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         if (JoinStrategyUtil.isNonCoveringIndex(innerTable))
             return false;
 
+        /* TODO DB-7816 disable full outer join noncovering index path for left table */
+
         boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost,wasHinted,true);
 
         return hashFeasible;

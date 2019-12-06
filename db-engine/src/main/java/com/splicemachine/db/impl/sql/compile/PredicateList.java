@@ -744,7 +744,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             Predicate[] preds=new Predicate[size];
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
-                if(isQualifier(pred,optTable,pushPreds) ||
+           //     if (pred.isFullJoinPredicate())
+           //         continue;
+                if(!pred.isFullJoinPredicate() && isQualifier(pred,optTable,pushPreds) ||
                         (isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds))
                         ) {
                     pred.markQualifier();
@@ -821,8 +823,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         List<Predicate> predicates=new ArrayList<>();
         for(int index=0;index<size;index++){
             Predicate pred=elementAt(index);
+        //    if (pred.isFullJoinPredicate())
+        //        continue;
+
             Integer position=isIndexUseful(pred,optTable,pushPreds,skipProbePreds,baseColumnPositions);
-            if(position!=null){
+            if(!pred.isFullJoinPredicate() && position!=null){
                 if (pred.isInListProbePredicate()) {
                     inlistPreds.put(position, pred);
                     if (position >= 0 && multiColumnMultiProbeEnabled)
@@ -841,7 +846,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     usefulPredicates[usefulCount++] = pred;
                 }
             }else{
-                if(primaryKey && isQualifier(pred,optTable,pushPreds) ||
+                if(!pred.isFullJoinPredicate() && primaryKey && isQualifier(pred,optTable,pushPreds) ||
                 isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){

@@ -125,12 +125,6 @@ public class FullOuterJoinNode extends JoinNode {
     }
 
     /**
-     * Push expressions down to the first ResultSetNode which can do expression
-     * evaluation and has the same referenced table map.
-     * RESOLVE - This means only pushing down single table expressions to
-     * DistinctNodes today.  Once we have a better understanding of how
-     * the optimizer will work, we can push down join clauses.
-     *
      * @param outerPredicateList The PredicateList from the outer RS.
      * @throws StandardException Thrown on error
      */
@@ -163,7 +157,7 @@ public class FullOuterJoinNode extends JoinNode {
 
 		/* Recurse down both sides of tree */
         PredicateList noPredicates= (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
-        leftFromTable.pushExpressions(getLeftPredicateList());
+        leftFromTable.pushExpressions(noPredicates);
         rightFromTable.pushExpressions(noPredicates);
     }
 

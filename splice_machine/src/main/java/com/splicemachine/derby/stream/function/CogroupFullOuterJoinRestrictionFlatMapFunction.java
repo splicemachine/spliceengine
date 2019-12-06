@@ -56,6 +56,7 @@ public class CogroupFullOuterJoinRestrictionFlatMapFunction<Op extends SpliceOpe
 
             Iterator<ExecRow> it = tuple._2._2.iterator();
             boolean leftHasMatch = false;
+            // check if hashkey is null or not to prevent null=null to be qualified as true
             if (!hashKeyIsNull(leftRow)) {
                 int rightIndex = 0;
                 while (it.hasNext()) {

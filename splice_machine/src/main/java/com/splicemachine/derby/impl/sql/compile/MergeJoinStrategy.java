@@ -23,7 +23,6 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.*;
 
-import javax.ws.rs.NotSupportedException;
 import java.util.Arrays;
 import java.util.BitSet;
 

@@ -116,12 +116,14 @@ public class RSUtils {
     public static final Set<?> binaryRSNs = ImmutableSet.of(
             JoinNode.class,
             HalfOuterJoinNode.class,
+            FullOuterJoinNode.class,
             UnionNode.class,
             IntersectOrExceptNode.class);
 
     public static final Set<?> binaryRSNsExcludeUnion = ImmutableSet.of(
             JoinNode.class,
             HalfOuterJoinNode.class,
+            FullOuterJoinNode.class,
             IntersectOrExceptNode.class);
 
     public static final org.spark_project.guava.base.Predicate<Object> isBinaryRSN =
@@ -136,17 +138,20 @@ public class RSUtils {
             RowResultSetNode.class);
 
     public static Map<Class<?>, String> sinkingNames =
-            ImmutableMap.<Class<?>, String>of(
-                    JoinNode.class, "join",
-                    HalfOuterJoinNode.class, "join",
-                    AggregateNode.class, "aggregate",
-                    DistinctNode.class, "distinct",
-                    OrderByNode.class, "sort");
+            ImmutableMap.<Class<?>, String>builder()
+                    .put(JoinNode.class, "join")
+                    .put(HalfOuterJoinNode.class, "join")
+                    .put(FullOuterJoinNode.class, "join")
+                    .put(AggregateNode.class, "aggregate")
+                    .put(DistinctNode.class, "distinct")
+                    .put(OrderByNode.class, "sort")
+            .build();
 
     public final static Set<?> sinkers =
             ImmutableSet.of(
                     JoinNode.class,
                     HalfOuterJoinNode.class,
+                    FullOuterJoinNode.class,
                     AggregateNode.class,
                     DistinctNode.class,
                     OrderByNode.class);

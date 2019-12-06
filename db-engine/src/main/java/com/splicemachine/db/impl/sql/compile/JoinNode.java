@@ -493,6 +493,9 @@ public class JoinNode extends TableOperatorNode{
         if(leftRC!=null){
             resultColumn=leftRC;
 
+            if(this instanceof FullOuterJoinNode)
+                leftRC.setNullability(true);
+
 			/* Find out if the column is in the using clause */
             if(usingClause!=null){
                 usingRC=usingClause.getResultColumn(leftRC.getName());
@@ -534,7 +537,7 @@ public class JoinNode extends TableOperatorNode{
             // has not been called yet, the caller of this method will see
             // the wrong nullability. This problem is logged as DERBY-2916.
             // Until that's fixed, set the nullability here too.
-            if(this instanceof HalfOuterJoinNode){
+            if(this instanceof HalfOuterJoinNode || this instanceof FullOuterJoinNode){
                 rightRC.setNullability(true);
             }
 
@@ -723,6 +726,16 @@ public class JoinNode extends TableOperatorNode{
             joinPredicates.categorize();
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
                           "JoinNode pulled join expressions.", joinPredicates);
+
+            if (this instanceof FullOuterJoinNode) {
+                // mark join condition as forFullJoin
+                for(int index=joinPredicates.size()-1;index>=0;index--){
+                    Predicate predicate;
+
+                    predicate=joinPredicates.elementAt(index);
+                    predicate.markFullJoinPredicate(true);
+                }
+            }
             joinClause=null;
         }
 
@@ -797,7 +810,7 @@ public class JoinNode extends TableOperatorNode{
 		 * can be applied.
 		 */
         if(SanityManager.DEBUG){
-            if(this instanceof HalfOuterJoinNode){
+            if(this instanceof HalfOuterJoinNode || this instanceof FullOuterJoinNode){
                 SanityManager.THROWASSERT(
                         "JN.pushExpressions() not expected to be called for "+
                                 getClass().getName());
@@ -870,7 +883,7 @@ public class JoinNode extends TableOperatorNode{
 		 * flattened directly.)
 		 */
         if(SanityManager.DEBUG){
-            if(this instanceof HalfOuterJoinNode){
+            if(this instanceof HalfOuterJoinNode || this instanceof FullOuterJoinNode){
                 SanityManager.THROWASSERT(
                         "JN.flatten() not expected to be called for "+
                                 getClass().getName());
@@ -1484,9 +1497,10 @@ public class JoinNode extends TableOperatorNode{
 		   (VirtualColumnNodes include pointers to source ResultSetNode, this, and source ResultColumn.) */
         resultColumns.genVirtualColumnNodes(leftResultSet,leftRCL,false);
 
-		/* If this is a right outer join, we can get nulls on the left side, so change the types of the left result set
+		/* If this is a right outer join or full join, we can get nulls on the left side, so change the types of the left result set
 		   to be nullable. */
-        if(this instanceof HalfOuterJoinNode && ((HalfOuterJoinNode)this).isRightOuterJoin()){
+        if(this instanceof HalfOuterJoinNode && ((HalfOuterJoinNode)this).isRightOuterJoin() ||
+           this instanceof FullOuterJoinNode){
             resultColumns.setNullability(true);
         }
 
@@ -1506,9 +1520,10 @@ public class JoinNode extends TableOperatorNode{
         tmpRCL.genVirtualColumnNodes(rightResultSet,rightRCL,false);
         tmpRCL.adjustVirtualColumnIds(resultColumns.size());
 
-	   /* If this is a left outer join, we can get nulls on the right side, so change the types of the right result set
+	   /* If this is a left outer join or full join, we can get nulls on the right side, so change the types of the right result set
 		* to be nullable. */
-        if(this instanceof HalfOuterJoinNode && !((HalfOuterJoinNode)this).isRightOuterJoin()){
+        if(this instanceof HalfOuterJoinNode && !((HalfOuterJoinNode)this).isRightOuterJoin() ||
+           this instanceof FullOuterJoinNode){
             tmpRCL.setNullability(true);
         }
 
@@ -1861,7 +1876,7 @@ public class JoinNode extends TableOperatorNode{
             if(table!=null){
                 for(int i=table.nonStoreRestrictionList.size()-1;i>=0;i--){
                     Predicate op=(Predicate)table.nonStoreRestrictionList.getOptPredicate(i);
-                    if(op.isJoinPredicate() || op.getPulled()){
+                    if(op.isJoinPredicate() || op.getPulled() || op.isFullJoinPredicate()){
                         table.nonStoreRestrictionList.removeOptPredicate(i);
                     }
                 }

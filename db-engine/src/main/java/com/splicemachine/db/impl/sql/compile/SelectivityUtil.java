@@ -141,7 +141,7 @@ public class SelectivityUtil {
         //Outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
         // the left table's row count,
 
-        if (selectivityJoinType == selectivityJoinType.LEFTOUTER) {
+        if (selectivityJoinType == selectivityJoinType.LEFTOUTER || selectivityJoinType == selectivityJoinType.FULLOUTER) {
             selectivity = Math.max(selectivity,1d / innerRowCount);
         }
         return selectivity;
@@ -208,7 +208,7 @@ public class SelectivityUtil {
             // Look for equality predicate that is not a join predicate
             boolean existsNonjoinPredicate = false;
             for (Predicate predicate : optimizableEqualityPredicateList) {
-                if (!predicate.isJoinPredicate()) {
+                if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
                     existsNonjoinPredicate = true;
                     break;
                 }
@@ -221,18 +221,7 @@ public class SelectivityUtil {
         return true;
     }
 
-    public static double existsFraction(ConglomerateDescriptor cd, OptimizablePredicateList predList) {
-        double fraction = 1.0d;
-        if (predList != null) {
-            for (int i = 0; i < predList.size(); i++) {
-                Predicate p = (Predicate) predList.getOptPredicate(i);
-                if (!p.isJoinPredicate()) {
-                }
 
-            }
-        }
-        return fraction;
-    }
 
     public static double getTotalHeapSize(CostEstimate innerCostEstimate,
                                           CostEstimate outerCostEstimate,
