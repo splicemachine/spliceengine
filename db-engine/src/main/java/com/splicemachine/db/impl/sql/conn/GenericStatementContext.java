@@ -790,8 +790,7 @@ final class GenericStatementContext
 		if (sb != null) {
 
 			sb.append("Failed Statement is: ");
-
-			sb.append(getStatementText());
+			sb.append(StringUtils.maskMessage(getStatementText(), StringUtils.maskPasswordPattern, StringUtils.maskString));
 
 			if ((pvs != null) && pvs.getParameterCount() > 0)
 			{
