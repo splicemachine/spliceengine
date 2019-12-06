@@ -3858,6 +3858,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (maxStatementLogLen >= 0 && maxStatementLogLen < statement.length()) {
                 subStatement = statement.substring(0, maxStatementLogLen) + " ... ";
             }
+            subStatement = StringUtils.maskMessage(subStatement, StringUtils.maskPasswordPattern,StringUtils.maskString);
+            //In case the masked log is longer than max length
+            if (maxStatementLogLen >= 0 && maxStatementLogLen < subStatement.length()) {
+                subStatement = subStatement.substring(0, maxStatementLogLen) + " ... ";
+            }
             String result = String.format("sqlHash=%s, statement=[ %s ]", hash, subStatement);
             lastLogStmt = statement;
             lastLogStmtFormat = result;
