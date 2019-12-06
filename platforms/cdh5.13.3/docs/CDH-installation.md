@@ -590,7 +590,7 @@ You can use <a href="https://www.cloudera.com/documentation/enterprise/5-8-x/top
 Splice Machine logs all SQL statements by default, storing the log
 entries in your region server's logs, as described in our [Using
 Logging](https://doc.splicemachine.com/developers_tuning_logging) topic. You can modify where Splice
-Machine stores logs by adding the following snippet to your *RegionServer Logging
+Machine stroes logs by adding the following snippet to your *RegionServer Logging
 Advanced Configuration Snippet (Safety Valve)* section of your HBase
 Configuration:
 
@@ -619,23 +619,6 @@ Splice Machine uses log4j to config OLAP server's log. There is a default config
 parcel. It default to write logs to `/var/log/hadoop-yarn`.
 If you want to change the log behavior of OLAP server, config `splice.olap.log4j.configuration` in `hbase-site.xml`.
 It specifies the log4j.properties file you want to use. This file needs to be available on HBase master server.
-
-#### Security Audit log
-
-Splice Machine records security related actions (e.g. CREATE / DROP USER, MODIFY PASSWORD, LOGIN) in audit log. You can modify where Splice
-Machine stores audit log by adding the following snippet to your *RegionServer Logging
-Advanced Configuration Snippet (Safety Valve)* section of your HBase
-Configuration:
-
-   ```
-    log4j.appender.spliceAudit=org.apache.log4j.FileAppender
-    log4j.appender.spliceAudit.File=${hbase.log.dir}/splice-audit.log
-    log4j.appender.spliceAudit.layout=org.apache.log4j.PatternLayout
-    log4j.appender.spliceAudit.layout.ConversionPattern=%d{ISO8601} %m%n
-    
-    log4j.logger.splice-audit=INFO, spliceAudit
-    log4j.additivity.splice-audit=false
-   ```
 
 ## Deploy the Client Configuration
 
