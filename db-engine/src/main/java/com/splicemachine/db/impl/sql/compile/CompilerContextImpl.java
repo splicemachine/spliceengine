@@ -276,6 +276,13 @@ public class CompilerContextImpl extends ContextImpl
 		return allowOverflowSensitiveNativeSparkExpressions;
 	}
 
+	public void setCurrentTimestampPrecision(int newValue) {
+		currentTimestampPrecision = newValue;
+	}
+
+	public int getCurrentTimestampPrecision() {
+		return currentTimestampPrecision;
+	}
 
 	/**
 	 * Get the current next subquery number from this CompilerContext.
@@ -1129,6 +1136,7 @@ public class CompilerContextImpl extends ContextImpl
 	private boolean sparkVersionInitialized = false;
 	private CompilerContext.NativeSparkModeType nativeSparkAggregationMode = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
 	private boolean allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
+	private int currentTimestampPrecision = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.

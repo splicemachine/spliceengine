@@ -827,7 +827,7 @@ public class Subquery_Flattening_Exists_IT {
         6 rows selected
          */
         SpliceUnitTest.rowContainsQuery(new int[]{3, 4, 5}, "explain " + sqlText, methodWatcher,
-                new String[]{"ProjectRestrict", "preds=[is not null(subq=1)]"},
+                new String[]{"ProjectRestrict", "preds=[is not null(subq=0)]"},
                 new String[]{"Subquery", "correlated=false,expression=true,invariant=true"},
                 new String[] {"Values"});
 

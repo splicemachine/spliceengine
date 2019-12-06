@@ -553,7 +553,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                 int index = 0;
                 for (int j = heapList.anySetBit(); j >= 0; j = heapList.anySetBit(j)) {
                     if (j == i) {
-                        result.setColumn(pos++, resultSet.getColumn(sourceIndex + index).cloneValue(false));
+                        result.setColumn(pos++, resultSet.getColumn(sourceIndex + index));
                     }
                     index++;
                 }

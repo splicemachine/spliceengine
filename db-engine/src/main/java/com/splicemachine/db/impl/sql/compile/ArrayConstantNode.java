@@ -358,11 +358,12 @@ public class ArrayConstantNode extends ValueNode {
 								PredicateList outerPredicateList)
 			throws StandardException
 	{
-		argumentsList.preprocess(
-				numTables,
-				outerFromList,
-				outerSubqueryList,
-				outerPredicateList);
+		if (argumentsList != null)
+			argumentsList.preprocess(
+					numTables,
+					outerFromList,
+					outerSubqueryList,
+					outerPredicateList);
 
 		return this;
 	}

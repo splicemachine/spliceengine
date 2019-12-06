@@ -27,8 +27,10 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -40,16 +42,16 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
-import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
-import com.splicemachine.db.impl.sql.compile.ColumnReference;
-import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.SortedSet;
+
+import static com.splicemachine.db.impl.sql.compile.CreateTriggerNode.bindWhenClause;
 
 /**
  * @author Scott Fines
@@ -57,6 +59,35 @@ import java.util.List;
  */
 public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     private static final Logger LOG = Logger.getLogger(ModifyColumnConstantOperation.class);
+
+    /**
+     * <p>
+     * A list that describes how the original SQL text of the trigger action
+     * statement was modified when transition tables and transition variables
+     * were replaced by VTI calls. Each element in the list contains four
+     * integers describing positions where modifications have happened. The
+     * first two integers are begin and end positions of a transition table
+     * or transition variable in {@link #originalActionText the original SQL
+     * text}. The last two integers are begin and end positions of the
+     * corresponding replacement in {@link #actionText the transformed SQL
+     * text}.
+     * </p>
+     *
+     * <p>
+     * Begin positions are inclusive and end positions are exclusive.
+     * </p>
+     */
+    private final ArrayList<int[]>
+            actionTransformations = new ArrayList<int[]>();
+
+    /**
+     * Structure that has the same shape as {@code actionTransformations},
+     * except that it describes the transformations in the WHEN clause.
+     */
+    private final ArrayList<int[]>
+            whenClauseTransformations = new ArrayList<int[]>();
+
+    private int[] referencedColsInTriggerAction;
 
     /**
      * Make the AlterAction for an ALTER TABLE statement.
@@ -851,7 +882,23 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                         // depends on the column being dropped, it will be
                         // caught here.
                         TriggerDescriptor trdToBeDropped = dd.getTriggerDescriptor(depsTriggerDesc.getUUID());
-                        columnDroppedAndTriggerDependencies(trdToBeDropped,tableDescriptor, cascade, columnName,activation);
+                        UUID whenClauseId = trdToBeDropped.getWhenClauseId();
+                        boolean gotDropped = false;
+                        if (whenClauseId != null) {
+                            gotDropped = columnDroppedAndTriggerDependencies(
+                                    trdToBeDropped, tableDescriptor, whenClauseId,
+                                    true, cascade, columnName, activation);
+                        }
+                        // If no dependencies were found in the WHEN clause,
+                        // we have to check if the triggered SQL statement
+                        // depends on the column being dropped. But if there
+                        // were dependencies and the trigger has already been
+                        // dropped, there is no point in looking for more
+                        // dependencies.
+                        if (!gotDropped)
+                            columnDroppedAndTriggerDependencies(trdToBeDropped, tableDescriptor,
+                                                                trdToBeDropped.getActionId(),
+                                                                false, cascade, columnName, activation);
                     }
                 }
             }
@@ -1106,11 +1153,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
     }
 
-    private void columnDroppedAndTriggerDependencies(TriggerDescriptor trd,
-                                                     TableDescriptor td,
-                                                     boolean cascade,
-                                                     String columnName,
-                                                     Activation activation)
+    private boolean
+    columnDroppedAndTriggerDependencies(TriggerDescriptor trd,
+                                        TableDescriptor td,
+                                        UUID spsUUID, boolean isWhenClause,
+			                boolean cascade, String columnName,
+                                        Activation activation)
             throws StandardException {
         /*
          * For the trigger, get the trigger action sql provided by the user
@@ -1127,80 +1175,89 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Here we get the trigger action sql and use the parser to build
         // the parse tree for it.
-        SchemaDescriptor compSchema;
-        compSchema = dd.getSchemaDescriptor(trd.getSchemaDescriptor().getUUID(), null);
+        SchemaDescriptor compSchema = dd.getSchemaDescriptor(
+                dd.getSPSDescriptor(spsUUID).getCompSchemaId(),
+                null);
         CompilerContext newCC = lcc.pushCompilerContext(compSchema);
-        Parser pa = newCC.getParser();
-        StatementNode stmtnode = (StatementNode)pa.parseStatement(trd.getTriggerDefinition());
+        Parser	pa = newCC.getParser();
+        String originalSQL = isWhenClause ? trd.getWhenClauseText()
+                                          : trd.getTriggerDefinition();
+
+        Visitable node = isWhenClause ? pa.parseSearchCondition(originalSQL)
+                                      : pa.parseStatement(originalSQL);
         lcc.popCompilerContext(newCC);
         // Do not delete following. We use this in finally clause to
         // determine if the CompilerContext needs to be popped.
         newCC = null;
 
         try {
-            // We are interested in ColumnReference classes in the parse tree
-            CollectNodesVisitor visitor = new CollectNodesVisitor(ColumnReference.class);
-            stmtnode.accept(visitor);
+            // Regenerate the internal representation for the trigger action
+            // sql using the ColumnReference classes in the parse tree. It
+            // will catch dropped column getting used in trigger action sql
+            // through the REFERENCING clause(this can happen only for the
+            // the triggers created prior to 10.7. Trigger created with
+            // 10.7 and higher keep track of trigger action column used
+            // through the REFERENCING clause in system table and hence
+            // use of dropped column will be detected earlier in this
+            // method for such triggers).
+            //
+            // We might catch errors like following during this step.
+            // Say that following pre-10.7 trigger exists in the system and
+            // user is dropping column c11. During the regeneration of the
+            // internal trigger action sql format, we will catch that
+            // column oldt.c11 does not exist anymore
+            // CREATE TRIGGER DERBY4998_SOFT_UPGRADE_RESTRICT_tr1
+            //    AFTER UPDATE OF c12
+            //    ON DERBY4998_SOFT_UPGRADE_RESTRICT REFERENCING OLD AS oldt
+            //    FOR EACH ROW
+            //    SELECT oldt.c11 from DERBY4998_SOFT_UPGRADE_RESTRICT
 
-            /*
-             * Regenerate the internal representation for the trigger action
-             * sql using the ColumnReference classes in the parse tree. It
-             * will catch dropped column getting used in trigger action sql
-             * through the REFERENCING clause(this can happen only for the
-             * the triggers created prior to 10.7. Trigger created with
-             * 10.7 and higher keep track of trigger action column used
-             * through the REFERENCING clause in system table and hence
-             * use of dropped column will be detected earlier in this
-             * method for such triggers).
-             *
-             * We might catch errors like following during this step.
-             * Say that following pre-10.7 trigger exists in the system and
-             * user is dropping column c11. During the regeneration of the
-             * internal trigger action sql format, we will catch that
-             * column oldt.c11 does not exist anymore
-             * CREATE TRIGGER DERBY4998_SOFT_UPGRADE_RESTRICT_tr1
-             *    AFTER UPDATE OF c12
-             *    ON DERBY4998_SOFT_UPGRADE_RESTRICT REFERENCING OLD AS oldt
-             *    FOR EACH ROW
-             *    SELECT oldt.c11 from DERBY4998_SOFT_UPGRADE_RESTRICT
-             */
-            SPSDescriptor triggerActionSPSD = trd.getActionSPS(lcc);
-            int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
-            java.util.Arrays.fill(referencedColsInTriggerAction, -1);
-            triggerActionSPSD.setText(dd.getTriggerActionString(stmtnode,
-                    trd.getOldReferencingName(),
-                    trd.getNewReferencingName(),
-                    trd.getTriggerDefinition(),
-                    trd.getReferencedCols(),
-                    referencedColsInTriggerAction,
-                    0,
-                    trd.getTableDescriptor(),
-                    trd.getTriggerEventDML(),
-                    true
-            ));
+            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc)
+                                             : trd.getActionSPS(lcc);
+			int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
+			java.util.Arrays.fill(referencedColsInTriggerAction, -1);
+            String newText = dd.getTriggerActionString(node,
+				trd.getOldReferencingName(),
+				trd.getNewReferencingName(),
+                originalSQL,
+				trd.getReferencedCols(),
+				referencedColsInTriggerAction,
+				0,
+				trd.getTableDescriptor(),
+				trd.getTriggerEventDML(),
+                true,
+                null,
+                null);
 
-            /*
-             * Now that we have the internal format of the trigger action sql,
-             * bind that sql to make sure that we are not using colunm being
-             * dropped in the trigger action sql directly (ie not through
-             * REFERENCING clause.
-             * eg
-             * create table atdc_12 (a integer, b integer);
-             * create trigger atdc_12_trigger_1 after update of a
-             *     on atdc_12 for each row select a,b from atdc_12
-             * Drop one of the columns used in the trigger action
-             *   alter table atdc_12 drop column b
-             * Following rebinding of the trigger action sql will catch the use
-             * of column b in trigger atdc_12_trigger_1
-             */
-            compSchema = dd.getSchemaDescriptor(trd.getSchemaDescriptor().getUUID(), null);
+            if (isWhenClause) {
+                // The WHEN clause is not a full SQL statement, just a search
+                // condition, so we need to turn it into a statement in order
+                // to create an SPS.
+                newText = "VALUES ( " + newText + " )";
+            }
+
+            sps.setText(newText);
+
+            // Now that we have the internal format of the trigger action sql,
+            // bind that sql to make sure that we are not using colunm being
+            // dropped in the trigger action sql directly (ie not through
+            // REFERENCING clause.
+            // eg
+            // create table atdc_12 (a integer, b integer);
+            // create trigger atdc_12_trigger_1 after update of a
+            //     on atdc_12 for each row select a,b from atdc_12
+            // Drop one of the columns used in the trigger action
+            //   alter table atdc_12 drop column b
+            // Following rebinding of the trigger action sql will catch the use
+            // of column b in trigger atdc_12_trigger_1
             newCC = lcc.pushCompilerContext(compSchema);
             newCC.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
             pa = newCC.getParser();
-            stmtnode = (StatementNode)pa.parseStatement(triggerActionSPSD.getText());
+            StatementNode stmtnode = (StatementNode) pa.parseStatement(newText);
             // need a current dependent for bind
-            newCC.setCurrentDependent(triggerActionSPSD.getPreparedStatement());
+            newCC.setCurrentDependent(sps.getPreparedStatement());
             stmtnode.bindStatement();
+
         } catch (StandardException se) {
             /*
              *Need to catch for few different kinds of sql states depending
@@ -1248,7 +1305,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                             StandardException.newWarning(
                                     SQLState.LANG_TRIGGER_DROPPED,
                                     trd.getName(), td.getName()));
-                    return;
+                    return true;
                 }
                 else
                 {	// we'd better give an error if don't drop it,
@@ -1276,6 +1333,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
          * columns in the table. We will save that in the system table.
         */
         dd.addDescriptor(trd, sd, DataDictionary.SYSTRIGGERS_CATALOG_NUM, false, tc, false);
+        return false;
     }
 
     /**

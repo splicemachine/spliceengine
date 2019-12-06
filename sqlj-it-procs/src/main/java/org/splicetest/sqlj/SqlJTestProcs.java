@@ -15,6 +15,8 @@
 package org.splicetest.sqlj;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Stored procedures to test the SQLJ JAR file loading system procedures (INSTALL_JAR, REPLACE_JAR, and REMOVE_JAR).
@@ -188,5 +190,42 @@ public class SqlJTestProcs {
 	public static int MySum(int a, int b) {
 		return a+b;
 	}
+	/**
+	* List that tracks calls to {@code intProcedure()}. It is used to verify
+	* that triggers have fired.
+	*/
+	public static List<Integer> procedureCalls = new ArrayList<Integer>();
 
+	/**
+	* A procedure that takes an {@code int} argument and adds it to the
+	* {@link #procedureCalls} list. Can be used as a stored procedure to
+	* verify that a trigger has been called. Particularly useful in BEFORE
+	* triggers, as they are not allowed to modify SQL data.
+	*
+	* @param i an integer
+	*/
+	public static void intProcedure(int i) {
+	procedureCalls.add(i);
+	}
+
+
+	/**
+	* Stored function used by {@link #testFunctionReadsSQLData()}. It
+	* checks whether the given table is empty.
+	*
+	* @param table the table to check
+	* @return {@code true} if the table is empty, {@code false} otherwise
+	*/
+	public static boolean tableIsEmpty(String table) throws SQLException {
+		Connection c = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+		Statement s = c.createStatement();
+		ResultSet rs = s.executeQuery("select * from " + table);
+		boolean empty = !rs.next();
+
+		rs.close();
+		s.close();
+		c.close();
+
+		return empty;
+	}
 }

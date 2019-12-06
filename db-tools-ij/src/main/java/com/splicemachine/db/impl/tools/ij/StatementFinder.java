@@ -92,6 +92,48 @@ public class StatementFinder {
 	private static final char SLASH = '/';
 	private static final char ASTERISK = '*';
 
+
+	private static final char LITTLE_A = 'a';
+	private static final char LITTLE_T = 't';
+	private static final char LITTLE_O = 'o';
+	private static final char LITTLE_M = 'm';
+	private static final char LITTLE_I = 'i';
+	private static final char LITTLE_C = 'c';
+
+	private static final char LITTLE_E = 'e';
+	private static final char LITTLE_N = 'n';
+	private static final char LITTLE_D = 'd';
+
+	private static final char BIG_A = 'A';
+	private static final char BIG_T = 'T';
+	private static final char BIG_O = 'O';
+	private static final char BIG_M = 'M';
+	private static final char BIG_I = 'I';
+	private static final char BIG_C = 'C';
+
+	private static final char BIG_E = 'E';
+	private static final char BIG_N = 'N';
+	private static final char BIG_D = 'D';
+
+
+	// state variables
+	private static final int NOT_IN_BEGIN_BLOCK = 0;
+	private static final int IN_BEGIN_BLOCK = 1;
+	private static final int IN_BEGIN_BLOCK_SEMICOLON_SEEN = 2;
+
+	// trigger parsing state
+        private static final int WHITESPACE_SEEN = 0;
+        private static final int E_SEEN = 1;
+        private static final int EN_SEEN = 2;
+
+        private static final int A_SEEN = 3;
+        private static final int AT_SEEN = 4;
+	private static final int ATO_SEEN = 5;
+	private static final int ATOM_SEEN = 6;
+	private static final int ATOMI_SEEN = 7;
+        private static final int NOTHING_SEEN = 8;
+
+
 	/**
 		The constructor does not assume the stream is data input
 		or buffered, so it will wrap it appropriately.
@@ -153,6 +195,8 @@ public class StatementFinder {
 	public String nextStatement() {
 		boolean haveSemi = false;
 		char nextChar;
+		int triggerState = NOT_IN_BEGIN_BLOCK;
+		int triggerParseState = WHITESPACE_SEEN;
 
 		// initialize fields for getting the next statement
 		statement.setLength(0);
@@ -187,20 +231,95 @@ public class StatementFinder {
 				continuedStatement=true;
 
 			switch(nextChar) {
+				case SPACE:
+				case TAB:
+				case FORMFEED:
+					triggerParseState = WHITESPACE_SEEN;
+					break;
+				case LITTLE_A:
+				case BIG_A:
+					if (triggerParseState == WHITESPACE_SEEN)
+						triggerParseState = A_SEEN;
+					else
+						triggerParseState = NOTHING_SEEN;
+					break;
+				case LITTLE_T:
+				case BIG_T:
+					if (triggerParseState == A_SEEN)
+						triggerParseState = AT_SEEN;
+					else
+						triggerParseState = NOTHING_SEEN;
+					break;
+				case LITTLE_O:
+				case BIG_O:
+					if (triggerParseState == AT_SEEN)
+						triggerParseState = ATO_SEEN;
+					else
+						triggerParseState = NOTHING_SEEN;
+					break;
+				case LITTLE_M:
+				case BIG_M:
+					if (triggerParseState == ATO_SEEN)
+						triggerParseState = ATOM_SEEN;
+					else
+						triggerParseState = NOTHING_SEEN;
+					break;
+				case LITTLE_I:
+				case BIG_I:
+					if (triggerParseState == ATOM_SEEN)
+						triggerParseState = ATOMI_SEEN;
+					else
+						triggerParseState = NOTHING_SEEN;
+					break;
+				case LITTLE_C:
+				case BIG_C:
+					if (triggerParseState == ATOMI_SEEN)
+						triggerState = IN_BEGIN_BLOCK;
+					triggerParseState = NOTHING_SEEN;
+					break;
+				case LITTLE_E:
+				case BIG_E:
+					if (triggerState == IN_BEGIN_BLOCK_SEMICOLON_SEEN && triggerParseState == WHITESPACE_SEEN)
+						triggerParseState = E_SEEN;
+					else
+						triggerParseState = NOTHING_SEEN;
+					break;
+				case LITTLE_N:
+				case BIG_N:
+					if (triggerState == IN_BEGIN_BLOCK_SEMICOLON_SEEN && triggerParseState == E_SEEN)
+						triggerParseState = EN_SEEN;
+					else
+						triggerParseState = NOTHING_SEEN;
+					break;
+				case LITTLE_D:
+				case BIG_D:
+					if (triggerState == IN_BEGIN_BLOCK_SEMICOLON_SEEN && triggerParseState == EN_SEEN) {
+						triggerState = NOT_IN_BEGIN_BLOCK;
+					}
+					triggerParseState = NOTHING_SEEN;
+					break;
 				case MINUS:
 					readSingleLineComment(nextChar);
+					triggerParseState = WHITESPACE_SEEN;
 					break;
 				case SLASH:
-				    readBracketedComment();
-				    break;
+					readBracketedComment();
+					triggerParseState = WHITESPACE_SEEN;
+					break;
 				case SINGLEQUOTE:
 				case DOUBLEQUOTE:
 					readString(nextChar);
+					triggerParseState = NOTHING_SEEN;
 					break;
 				case SEMICOLON:
-					haveSemi = true;
-					state = END_OF_STATEMENT;
-					continuedStatement=false;
+					if (triggerState == NOT_IN_BEGIN_BLOCK || peekChar() == SEMICOLON) {
+						haveSemi = true;
+						state = END_OF_STATEMENT;
+						continuedStatement = false;
+					}
+					if (triggerState == IN_BEGIN_BLOCK)
+						triggerState = IN_BEGIN_BLOCK_SEMICOLON_SEEN;
+					triggerParseState = WHITESPACE_SEEN;
 					break;
 				case NEWLINE:
 				case RETURN:
@@ -213,7 +332,10 @@ public class StatementFinder {
 							readChar();
 						}
 					}
+					triggerParseState = WHITESPACE_SEEN;
+					break;
 				default:
+					triggerParseState = NOTHING_SEEN;
 					// keep going, just a normal character
 					break;
 			}

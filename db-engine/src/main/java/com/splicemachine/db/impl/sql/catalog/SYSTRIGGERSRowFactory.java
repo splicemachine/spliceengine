@@ -90,8 +90,9 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
     public static final int SYSTRIGGERS_REFERENCINGNEW = 15;
     public static final int SYSTRIGGERS_OLDREFERENCINGNAME = 16;
     public static final int SYSTRIGGERS_NEWREFERENCINGNAME = 17;
+    public static final int SYSTRIGGERS_WHENCLAUSETEXT = 18;
 
-    public static final int SYSTRIGGERS_COLUMN_COUNT = SYSTRIGGERS_NEWREFERENCINGNAME;
+    public static final int SYSTRIGGERS_COLUMN_COUNT = SYSTRIGGERS_WHENCLAUSETEXT;
 
     public static final int SYSTRIGGERS_INDEX1_ID = 0;
     public static final int SYSTRIGGERS_INDEX2_ID = 1;
@@ -119,14 +120,22 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                     , "c013800d-00d7-c025-480d-000a0a411200"    // SYSTRIGGERS_INDEX3
             };
 
+    private final DataDictionary dataDictionary;
+
     /////////////////////////////////////////////////////////////////////////////
     //
     //    CONSTRUCTORS
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    public SYSTRIGGERSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
+    SYSTRIGGERSRowFactory(
+            DataDictionary dd,
+            UUIDFactory uuidf,
+            ExecutionFactory ef,
+            DataValueFactory dvf)
+        throws StandardException {
         super(uuidf, ef, dvf);
+        this.dataDictionary = dd;
         initInfo(SYSTRIGGERS_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
@@ -136,13 +145,24 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
     //
     /////////////////////////////////////////////////////////////////////////////
 
+    @Override
+	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+		throws StandardException
+	{
+        return makeRow(td, getHeapColumnCount());
+    }
+
+    @Override
+    public ExecRow makeEmptyRowForCurrentVersion() throws StandardException {
+        return makeRow(null, SYSTRIGGERS_COLUMN_COUNT);
+    }
+
     /**
      * Make a SYSTRIGGERS row.
      *
      * @return Row suitable for inserting into SYSTRIGGERS.
      */
-    @Override
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
+    private ExecRow makeRow(TupleDescriptor td, int columnCount) throws StandardException {
         DataTypeDescriptor dtd;
         ExecRow row;
         DataValueDescriptor col;
@@ -163,6 +183,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         ReferencedColumns rcd = null;
         boolean referencingOld = false;
         boolean referencingNew = false;
+        String  whenClauseText = null;
 
         if (td != null) {
             TriggerDescriptor triggerDescriptor = (TriggerDescriptor) td;
@@ -189,10 +210,11 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
             referencingNew = triggerDescriptor.getReferencingNew();
             oldReferencingName = triggerDescriptor.getOldReferencingName();
             newReferencingName = triggerDescriptor.getNewReferencingName();
+            whenClauseText = triggerDescriptor.getWhenClauseText();
         }
 
         /* Build the row to insert */
-        row = getExecutionFactory().getValueRow(SYSTRIGGERS_COLUMN_COUNT);
+        row = getExecutionFactory().getValueRow(columnCount);
 
         /* 1st column is TRIGGERID */
         row.setColumn(1, new SQLChar((uuid == null) ? null : uuid.toString()));
@@ -246,6 +268,11 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
 
         /* 17th column is NEWREFERENCINGNAME */
         row.setColumn(17, new SQLVarchar(newReferencingName));
+
+        /* 18th column is WHENCLAUSETEXT */
+        if (row.nColumns() >= 18) {
+            row.setColumn(18, dvf.getLongvarcharDataValue(whenClauseText));
+        }
 
         return row;
     }
@@ -386,6 +413,12 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         col = row.getColumn(17);
         newReferencingName = col.getString();
 
+        // 18th column is WHENCLAUSETEXT (longvarchar)
+        String whenClauseText = null;
+        if (row.nColumns() >= 18) {
+            col = row.getColumn(18);
+            whenClauseText = col.getString();
+        }
         descriptor = new TriggerDescriptor(
                 dd,
                 dd.getSchemaDescriptor(suuid, null),
@@ -405,7 +438,8 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 referencingOld,
                 referencingNew,
                 oldReferencingName,
-                newReferencingName
+                newReferencingName,
+                whenClauseText
         );
 
         return descriptor;
@@ -441,7 +475,8 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("REFERENCINGNEW", Types.BOOLEAN, true),
                 SystemColumnImpl.getIdentifierColumn("OLDREFERENCINGNAME", true),
                 SystemColumnImpl.getIdentifierColumn("NEWREFERENCINGNAME", true),
-
+                SystemColumnImpl.getColumn("WHENCLAUSETEXT",
+                                    Types.LONGVARCHAR, true, Integer.MAX_VALUE),
         };
     }
 
@@ -459,4 +494,12 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
             return true;
         }
     }
+
+    @Override
+    public int getHeapColumnCount() {
+        boolean supportsWhenClause = true;
+        int heapCols = super.getHeapColumnCount();
+        return supportsWhenClause ? heapCols : (heapCols - 1);
+    }
+
 }
