@@ -230,7 +230,6 @@ public class JoinNode extends TableOperatorNode{
 		 * implement full outer join.
 		 */
         // Walk joinPredicates backwards due to possible deletes
-        // TODO DB-7816 do we need to change this logic for full join?
 
 
         for(int index=joinPredicates.size()-1;index>=0;index--){

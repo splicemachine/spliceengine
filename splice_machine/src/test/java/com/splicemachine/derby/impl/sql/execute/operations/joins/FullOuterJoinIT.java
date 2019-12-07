@@ -69,6 +69,17 @@ public class FullOuterJoinIT extends SpliceUnitTest {
                 .create();
 
         new TableCreator(conn)
+                .withCreate("create table t11(a1 int not null, b1 int, c1 int)")
+                .withInsert("insert into t11 values(?,?,?)")
+                .withRows(rows(
+                        row(1,10,1),
+                        row(2,20,2),
+                        row(2,20,2),
+                        row(3,30,3),
+                        row(4,40,null)))
+                .create();
+
+        new TableCreator(conn)
                 .withCreate("create table t2 (a2 int not null, b2 int, c2 int)")
                 .withInsert("insert into t2 values(?,?,?)")
                 .withRows(rows(
@@ -201,7 +212,10 @@ public class FullOuterJoinIT extends SpliceUnitTest {
             Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
             rs.close();
         }catch (SQLException e) {
-            Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
+            if (joinStrategy.equals("sortmerge"))
+                Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
+            else
+                Assert.fail("Unexpected exception: " + e.getMessage());
         }
     }
 
@@ -226,7 +240,10 @@ public class FullOuterJoinIT extends SpliceUnitTest {
             Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
             rs.close();
         } catch (SQLException e) {
-            Assert.assertTrue("Invalid exception thrown: "+ e, e.getMessage().startsWith("No valid execution plan"));
+            if (joinStrategy.equals("sortmerge"))
+                Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
+            else
+                Assert.fail("Unexpected exception: " + e.getMessage());
         }
     }
 
@@ -400,5 +417,71 @@ public class FullOuterJoinIT extends SpliceUnitTest {
     @Ignore
     public void testCorrelatedSubqueryWithFullJoin() throws Exception {
         /* test scalar subquery too */
+    }
+
+    @Test
+    public void testFullJoinWithUsing() throws Exception {
+        String sqlText = format("select * from t1 full join t11 --splice-properties useSpark=%s, joinStrategy=%s\n using (b1,c1)", useSpark, joinStrategy);
+        String expected = "B1  | C1  | A1  | A1  |\n" +
+                "------------------------\n" +
+                " 10  |  1  |  1  |  1  |\n" +
+                " 20  |  2  |  2  |  2  |\n" +
+                " 20  |  2  |  2  |  2  |\n" +
+                " 20  |  2  |  2  |  2  |\n" +
+                " 20  |  2  |  2  |  2  |\n" +
+                " 30  |  3  |  3  |  3  |\n" +
+                " 40  |NULL |  4  |NULL |\n" +
+                "NULL |NULL |NULL |  4  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFullJoinWithDerivedTableAndEqualityCondition() throws Exception {
+        String sqlText = format("select * from t1 full join (select a2, count(*) as CC from t2 group by a2) dt--splice-properties useSpark=%s, joinStrategy=%s\n on c1=CC", useSpark, joinStrategy);
+        String expected = "A1 |B1 | C1  | A2  | CC  |\n" +
+                "--------------------------\n" +
+                " 1 |10 |  1  |  3  |  1  |\n" +
+                " 1 |10 |  1  |  4  |  1  |\n" +
+                " 1 |10 |  1  |  5  |  1  |\n" +
+                " 1 |10 |  1  |  6  |  1  |\n" +
+                " 2 |20 |  2  |  2  |  2  |\n" +
+                " 2 |20 |  2  |  2  |  2  |\n" +
+                " 3 |30 |  3  |NULL |NULL |\n" +
+                " 4 |40 |NULL |NULL |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFullJoinWithDerivedTableAndInEqualityCondition() throws Exception {
+        String sqlText = format("select * from t1 full join (select a2, count(*) as CC from t2 group by a2) dt--splice-properties useSpark=%s, joinStrategy=%s\n on c1<CC", useSpark, joinStrategy);
+
+        String expected = "A1  | B1  | C1  | A2  | CC  |\n" +
+                "------------------------------\n" +
+                "  1  | 10  |  1  |  2  |  2  |\n" +
+                "  2  | 20  |  2  |NULL |NULL |\n" +
+                "  2  | 20  |  2  |NULL |NULL |\n" +
+                "  3  | 30  |  3  |NULL |NULL |\n" +
+                "  4  | 40  |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |  3  |  1  |\n" +
+                "NULL |NULL |NULL |  4  |  1  |\n" +
+                "NULL |NULL |NULL |  5  |  1  |\n" +
+                "NULL |NULL |NULL |  6  |  1  |";
+
+        try {
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }catch (SQLException e) {
+            if (joinStrategy.equals("sortmerge"))
+                Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
+            else
+                Assert.fail("Unexpected exception: " + e.getMessage());
+        }
     }
 }
