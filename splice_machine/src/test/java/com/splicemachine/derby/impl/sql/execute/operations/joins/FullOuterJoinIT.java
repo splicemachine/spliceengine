@@ -102,6 +102,32 @@ public class FullOuterJoinIT extends SpliceUnitTest {
                         row(7, 70, 7)))
                 .create();
 
+        /* create table with PKs */
+        new TableCreator(conn)
+                .withCreate("create table t4(a4 int not null, b4 int, c4 int, primary key (a4))")
+                .withIndex("create index idx_t4 on t4(b4, c4)")
+                .withInsert("insert into t4 values(?,?,?)")
+                .withRows(rows(
+                        row(1,10,1),
+                        row(2,20,2),
+                        row(20,20,2),
+                        row(3,30,3),
+                        row(4,40,null)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t5 (a5 int not null, b5 int, c5 int, primary key (a5))")
+                .withIndex("create index idx_t5 on t5(b5, c5)")
+                .withInsert("insert into t5 values(?,?,?)")
+                .withRows(rows(
+                        row(2, 20, 2),
+                        row(20, 20, 2),
+                        row(3, 30, 3),
+                        row(4,40,null),
+                        row(5, 50, null),
+                        row(6, 60, 6)))
+                .create();
+
         conn.commit();
     }
 
@@ -483,5 +509,71 @@ public class FullOuterJoinIT extends SpliceUnitTest {
             else
                 Assert.fail("Unexpected exception: " + e.getMessage());
         }
+    }
+
+    @Test
+    public void testFullJoinWithOrderBy() throws Exception {
+        // plan should not skip the OrderBy operation
+        String sqlText = format("select * from t4 full join t5 --splice-properties useSpark=%s, joinStrategy=%s\n on a4=a5 order by a4", useSpark, joinStrategy);
+        thirdRowContainsQuery("explain " + sqlText, "OrderBy", methodWatcher);
+
+        String expected = "A4  | B4  | C4  | A5  | B5  | C5  |\n" +
+                "------------------------------------\n" +
+                "  1  | 10  |  1  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                " 20  | 20  |  2  | 20  | 20  |  2  |\n" +
+                "  3  | 30  |  3  |  3  | 30  |  3  |\n" +
+                "  4  | 40  |NULL |  4  | 40  |NULL |\n" +
+                "NULL |NULL |NULL |  5  | 50  |NULL |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFullJoinWithIndexAndOrderBy() throws Exception {
+        // plan should not skip the OrderBy operation
+        String sqlText = format("select b4,c4, b5, c5 from t4 --splice-properties index=idx_t4\n " +
+                "full join t5 --splice-properties index=idx_t5, useSpark=%s, joinStrategy=%s\n on b4=b5 order by b4", useSpark, joinStrategy);
+        thirdRowContainsQuery("explain " + sqlText, "OrderBy", methodWatcher);
+
+        String expected = "B4  | C4  | B5  | C5  |\n" +
+                "------------------------\n" +
+                " 10  |  1  |NULL |NULL |\n" +
+                " 20  |  2  | 20  |  2  |\n" +
+                " 20  |  2  | 20  |  2  |\n" +
+                " 20  |  2  | 20  |  2  |\n" +
+                " 20  |  2  | 20  |  2  |\n" +
+                " 30  |  3  | 30  |  3  |\n" +
+                " 40  |NULL | 40  |NULL |\n" +
+                "NULL |NULL | 50  |NULL |\n" +
+                "NULL |NULL | 60  |  6  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLeftJoinWithFullOuterJoinAsInnerAndOrderBy() throws Exception {
+        // plan should be able to skip the OrderBy operation
+        String sqlText = format("select a4, b4 from t4 left join (select X.a4, Y.a5 from t4 as X full join t5 as Y --splice-properties useSpark=%s, joinStrategy=%s\n" +
+                "on a4=a5) dt(a,b) --splice-properties joinStrategy=broadcast\n " +
+                "on a4=dt.a order by a4", useSpark, joinStrategy);
+        queryDoesNotContainString("explain " + sqlText, "OrderBy", methodWatcher);
+
+        String expected = "A4 |B4 |\n" +
+                "--------\n" +
+                " 1 |10 |\n" +
+                " 2 |20 |\n" +
+                "20 |20 |\n" +
+                " 3 |30 |\n" +
+                " 4 |40 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 }

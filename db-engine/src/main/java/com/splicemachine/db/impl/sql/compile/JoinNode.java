@@ -297,7 +297,10 @@ public class JoinNode extends TableOperatorNode{
         // only do this if the current node is the first resultset in the join sequence as
         // we don't want to propagate sort order from right table of a join.
         RowOrdering joinResultRowOrdering = costEstimate.getRowOrdering();
-        if ((outerCost.isUninitialized() || (outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)) &&
+        // for full outer join,we cannot preserve the row ordering due to the non-matching rows
+        // from right, so add both left and right table to the unordered list
+        if (!(this instanceof FullOuterJoinNode) &&
+                (outerCost.isUninitialized() || (outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)) &&
                 joinResultRowOrdering != null) {
             joinResultRowOrdering.mergeTo(optimizer.getCurrentRowOrdering());
         } else {
