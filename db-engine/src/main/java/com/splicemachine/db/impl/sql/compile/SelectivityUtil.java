@@ -120,7 +120,6 @@ public class SelectivityUtil {
             switch (selectivityJoinType) {
                 case LEFTOUTER:
                 case FULLOUTER:
-                    // TODO DB-7816
                 case INNER:
                     return 1d/innerRowCount;
                 case ANTIJOIN:
@@ -138,11 +137,14 @@ public class SelectivityUtil {
             }
         }
 
-        //Outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
+        //Left outer join selectivity should be bounded by 1 / innerRowCount, so that the outputRowCount no less than
         // the left table's row count,
 
-        if (selectivityJoinType == selectivityJoinType.LEFTOUTER || selectivityJoinType == selectivityJoinType.FULLOUTER) {
+        if (selectivityJoinType == selectivityJoinType.LEFTOUTER) {
             selectivity = Math.max(selectivity,1d / innerRowCount);
+        } else if (selectivityJoinType == selectivityJoinType.FULLOUTER) {
+            // Full outer join output row count should be no less than outerRowCount + innerRowCount
+            selectivity = Math.max(selectivity, (double)(innerRowCount + outerRowCount)/(innerRowCount*outerRowCount));
         }
         return selectivity;
     }

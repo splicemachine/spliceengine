@@ -246,7 +246,6 @@ public class JoinNode extends TableOperatorNode{
         }
 
         CostEstimate lrsCE = leftResultSet.getCostEstimate();
-        // TODO DB-7816 why this was originally set to left outer join?
         if (this instanceof FullOuterJoinNode)
             lrsCE.setJoinType(FULLOUTERJOIN);
         else if (this instanceof HalfOuterJoinNode)
@@ -282,9 +281,10 @@ public class JoinNode extends TableOperatorNode{
 		/*
 		** Get the cost of this result set in the context of the whole plan.
 		*/
-
-		// TODO DB-7816 why outerjoin flag is set originally to left join?
-        costEstimate.setJoinType(INNERJOIN);
+        // when we get here, we are costing the whole JoinNode as the right of another
+        // join, and whether the join is outer or inner has been carried in the
+        // outerCost's joinType, we shouldn't change either the joinType for the
+        // outerCost nor current costEstimate(JoinNode's cost) here.
         getCurrentAccessPath().getJoinStrategy().estimateCost(this,
                 predList,
                 null,

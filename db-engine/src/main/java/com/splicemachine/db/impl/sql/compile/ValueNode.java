@@ -31,9 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.List;
-import java.util.Objects;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -50,6 +47,9 @@ import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+
+import java.util.List;
+import java.util.Objects;
 
 /**
  * A ValueNode is an abstract class for all nodes that can represent data
@@ -1032,6 +1032,7 @@ public abstract class ValueNode extends QueryTreeNode
         double selectivity = 0.0d;
         switch(selectivityJoinType) {
             case LEFTOUTER:
+			case FULLOUTER:
                 selectivity = 1.0d/innerRowCount;
                 break;
             case INNER:

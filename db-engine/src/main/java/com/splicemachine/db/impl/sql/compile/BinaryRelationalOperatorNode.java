@@ -1507,7 +1507,7 @@ public class BinaryRelationalOperatorNode
             if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.LEFTOUTER)) {
                 selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
             } else if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.FULLOUTER)) {
-                // TODO DB-7816
+                // TODO DB-7816, temporarily borrow the selectivity logic from left join, may need to revisit
                 selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
             } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
                 ColumnReference left = (ColumnReference) leftOperand;
