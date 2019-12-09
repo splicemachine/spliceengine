@@ -70,6 +70,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
 
         new TableCreator(conn)
                 .withCreate("create table t11(a1 int not null, b1 int, c1 int)")
+                .withIndex("create index idx_t11 on t11(b1)")
                 .withInsert("insert into t11 values(?,?,?)")
                 .withRows(rows(
                         row(1,10,1),
@@ -575,5 +576,82 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testLeftIsNonCoveringIndex() throws Exception {
+        String sqlText = format("select * from t11 --splice-properties index=idx_t11\n " +
+                "full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on b1=b2", useSpark, joinStrategy);
+
+        String expected = "A1  | B1  | C1  | A2  | B2  | C2  |\n" +
+                "------------------------------------\n" +
+                "  1  | 10  |  1  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  3  | 30  |  3  |  3  | 30  |  3  |\n" +
+                "  4  | 40  |NULL |  4  | 40  |NULL |\n" +
+                "NULL |NULL |NULL |  5  | 50  |NULL |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLeftIsNonCoveringIndex2() throws Exception {
+        /* join condition is not covered by the index */
+        String sqlText = format("select * from t11 --splice-properties index=idx_t11\n " +
+                "full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on c1=c2", useSpark, joinStrategy);
+
+        String expected = "A1  | B1  | C1  | A2  | B2  | C2  |\n" +
+                "------------------------------------\n" +
+                "  1  | 10  |  1  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  3  | 30  |  3  |  3  | 30  |  3  |\n" +
+                "  4  | 40  |NULL |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |  4  | 40  |NULL |\n" +
+                "NULL |NULL |NULL |  5  | 50  |NULL |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testLeftIsNonCoveringIndex3() throws Exception {
+        /* join condition is not covered by the index and is inequality join condition */
+        String sqlText = format("select * from t11 --splice-properties index=idx_t11\n " +
+                "full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on c1>c2", useSpark, joinStrategy);
+
+        String expected = "A1  | B1  | C1  | A2  | B2  | C2  |\n" +
+                "------------------------------------\n" +
+                "  1  | 10  |  1  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "  3  | 30  |  3  |  2  | 20  |  2  |\n" +
+                "  3  | 30  |  3  |  2  | 20  |  2  |\n" +
+                "  4  | 40  |NULL |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |  3  | 30  |  3  |\n" +
+                "NULL |NULL |NULL |  4  | 40  |NULL |\n" +
+                "NULL |NULL |NULL |  5  | 50  |NULL |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |";
+
+        try {
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }catch (SQLException e) {
+            if (joinStrategy.equals("sortmerge"))
+                Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
+            else
+                Assert.fail("Unexpected exception: " + e.getMessage());
+        }
     }
 }
