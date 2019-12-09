@@ -744,8 +744,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             Predicate[] preds=new Predicate[size];
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
-           //     if (pred.isFullJoinPredicate())
-           //         continue;
+
                 if(!pred.isFullJoinPredicate() && isQualifier(pred,optTable,pushPreds) ||
                         (isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds))
                         ) {
@@ -823,8 +822,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         List<Predicate> predicates=new ArrayList<>();
         for(int index=0;index<size;index++){
             Predicate pred=elementAt(index);
-        //    if (pred.isFullJoinPredicate())
-        //        continue;
 
             Integer position=isIndexUseful(pred,optTable,pushPreds,skipProbePreds,baseColumnPositions);
             if(!pred.isFullJoinPredicate() && position!=null){

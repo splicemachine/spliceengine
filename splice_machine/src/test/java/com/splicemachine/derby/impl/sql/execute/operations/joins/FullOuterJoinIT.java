@@ -4,6 +4,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.subquery.SubqueryITUtil;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -18,6 +19,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 
+import static com.splicemachine.subquery.SubqueryITUtil.ONE_SUBQUERY_NODE;
+import static com.splicemachine.subquery.SubqueryITUtil.TWO_SUBQUERY_NODES;
+import static com.splicemachine.subquery.SubqueryITUtil.ZERO_SUBQUERY_NODES;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
@@ -405,11 +409,6 @@ public class FullOuterJoinIT extends SpliceUnitTest {
 
     @Test
     public void testConsecutiveFullOuterJoins() throws Exception {
-        /*
-        String sqlText = format("select * from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n" +
-                "full join t3 --splice-properties joinStrategy=sortmerge\n " +
-                "on a2=a3 on a1=a3", useSpark, joinStrategy);
-        */
         String sqlText = format("select * from t1 full join t2 --splice-properties useSpark=%s\n" +
                 "full join t3 --splice-properties joinStrategy=%s\n " +
                 "on a2=a3 on a1=a3", useSpark, joinStrategy);
@@ -434,16 +433,250 @@ public class FullOuterJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
-    public void testSubqueryInOnClauseOfFullOuterJoin() throws Exception {
-        /* subquery is not flattened */
-        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2 and a1 in (select a3 from t3)", useSpark, joinStrategy);
+    public void testMixtureOfOuterJoins() throws Exception {
+        String sqlText = format("select * from t1 left join t2 --splice-properties useSpark=%s\n" +
+                "full join t3 --splice-properties joinStrategy=%s\n " +
+                "on a2=a3 on a1=a3", useSpark, joinStrategy);
+        String expected = "A1 |B1 | C1  | A2  | B2  | C2  | A3  | B3  | C3  |\n" +
+                "--------------------------------------------------\n" +
+                " 1 |10 |  1  |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                " 3 |30 |  3  |  3  | 30  |  3  |  3  | 30  |  3  |\n" +
+                " 4 |40 |NULL |NULL |NULL |NULL |NULL |NULL |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = format("select * from t1 left join t2 --splice-properties useSpark=%s\n" +
+                "full join t3 --splice-properties joinStrategy=%s\n " +
+                "on a2=a3 on a1=a2", useSpark, joinStrategy);
+        expected = "A1 |B1 | C1  | A2  | B2  | C2  | A3  | B3  | C3  |\n" +
+                "--------------------------------------------------\n" +
+                " 1 |10 |  1  |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                " 3 |30 |  3  |  3  | 30  |  3  |  3  | 30  |  3  |\n" +
+                " 4 |40 |NULL |  4  | 40  |NULL |NULL |NULL |NULL |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 
     @Test
-    @Ignore
-    public void testCorrelatedSubqueryWithFullJoin() throws Exception {
-        /* test scalar subquery too */
+    public void testMixtureOfOuterJoins2() throws Exception {
+        String sqlText = format("select * from t1 full join t2 --splice-properties useSpark=%s\n" +
+                "left join t3 --splice-properties joinStrategy=%s\n " +
+                "on a2=a3 on a1=a3", useSpark, joinStrategy);
+        String expected = "A1  | B1  | C1  | A2  | B2  | C2  | A3  | B3  | C3  |\n" +
+                "------------------------------------------------------\n" +
+                "  1  | 10  |  1  |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                "  3  | 30  |  3  |  3  | 30  |  3  |  3  | 30  |  3  |\n" +
+                "  4  | 40  |NULL |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |  4  | 40  |NULL |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |  5  | 50  |NULL |  5  | 50  |NULL |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |  6  | 60  |  6  |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |  6  | 60  |  6  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = format("select * from t1 full join t2 --splice-properties useSpark=%s\n" +
+                "left join t3 --splice-properties joinStrategy=%s\n " +
+                "on a2=a3 on a1=a2", useSpark, joinStrategy);
+        expected = "A1  | B1  | C1  | A2  | B2  | C2  | A3  | B3  | C3  |\n" +
+                "------------------------------------------------------\n" +
+                "  1  | 10  |  1  |NULL |NULL |NULL |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "  2  | 20  |  2  |  2  | 20  |  2  |NULL |NULL |NULL |\n" +
+                "  3  | 30  |  3  |  3  | 30  |  3  |  3  | 30  |  3  |\n" +
+                "  4  | 40  |NULL |  4  | 40  |NULL |NULL |NULL |NULL |\n" +
+                "NULL |NULL |NULL |  5  | 50  |NULL |  5  | 50  |NULL |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |  6  | 60  |  6  |\n" +
+                "NULL |NULL |NULL |  6  | 60  |  6  |  6  | 60  |  6  |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testCorrelatedSubqueryWithFullJoinInWhereClause() throws Exception {
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2 where a1 in (select a3 from t3 where b2=b3)", useSpark, joinStrategy);
+        String expected = "B1 |A1 |B2 |A2 |C2 |\n" +
+                "--------------------\n" +
+                "30 | 3 |30 | 3 | 3 |";
+
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sqlText, ZERO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
+    public void testCorrelatedSSQWithFullJoin() throws Exception {
+        String sqlText = format("select (select a5 from t5 where a1=a5) as ssq1, (select a5 from t5 where a2=a5) as ssq2, t1.*, t2.*  from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2", useSpark, joinStrategy);
+        String expected = "SSQ1 |SSQ2 | A1  | B1  | C1  | A2  | B2  | C2  |\n" +
+                "------------------------------------------------\n" +
+                "  2  |  2  |  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  |  2  |  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  |  2  |  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  2  |  2  |  2  | 20  |  2  |  2  | 20  |  2  |\n" +
+                "  3  |  3  |  3  | 30  |  3  |  3  | 30  |  3  |\n" +
+                "  4  |  4  |  4  | 40  |NULL |  4  | 40  |NULL |\n" +
+                "NULL |  5  |NULL |NULL |NULL |  5  | 50  |NULL |\n" +
+                "NULL |  6  |NULL |NULL |NULL |  6  | 60  |  6  |\n" +
+                "NULL |NULL |  1  | 10  |  1  |NULL |NULL |NULL |";
+
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sqlText, TWO_SUBQUERY_NODES, expected);
+    }
+
+    @Test
+    public void testFullJoinInSubquery1() throws Exception {
+        String sqlText = format("select * from t11 where c1 in (select c1 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2 where t11.b1=t1.b1)", useSpark, joinStrategy);
+        String expected = "A1 |B1 |C1 |\n" +
+                "------------\n" +
+                " 1 |10 | 1 |\n" +
+                " 2 |20 | 2 |\n" +
+                " 2 |20 | 2 |\n" +
+                " 3 |30 | 3 |";
+
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sqlText, ONE_SUBQUERY_NODE, expected);
+    }
+
+    @Test
+    public void testFullJoinInSubquery2() throws Exception {
+        String sqlText = format("select * from t5 where c5 not in (select c1 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2 where t5.b5=t1.b1)", useSpark, joinStrategy);
+        String expected = "A5 |B5 | C5  |\n" +
+                "--------------\n" +
+                " 5 |50 |NULL |\n" +
+                " 6 |60 |  6  |";
+
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(), sqlText, ONE_SUBQUERY_NODE, expected);
+    }
+
+
+    @Test
+    public void testFullJoinInDerivedTable() throws Exception {
+        String sqlText = format("select * from t11, (select * from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n " +
+                "on a1=a2) dt where t11.a1 = dt.a2", useSpark, joinStrategy);
+        String expected = "A1 |B1 | C1  |A1 |B1 | C1  |A2 |B2 | C2  |\n" +
+                "------------------------------------------\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 3 |30 |  3  | 3 |30 |  3  | 3 |30 |  3  |\n" +
+                " 4 |40 |NULL | 4 |40 |NULL | 4 |40 |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testFullJoinWithClause() throws Exception {
+        String sqlText = format("with dt as select * from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2\n" +
+                "select * from t11, dt where t11.a1 = dt.a2", useSpark, joinStrategy);
+        String expected = "A1 |B1 | C1  |A1 |B1 | C1  |A2 |B2 | C2  |\n" +
+                "------------------------------------------\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 2 |20 |  2  | 2 |20 |  2  | 2 |20 |  2  |\n" +
+                " 3 |30 |  3  | 3 |30 |  3  | 3 |30 |  3  |\n" +
+                " 4 |40 |NULL | 4 |40 |NULL | 4 |40 |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testAggregationOnTopOfFullJoin() throws Exception {
+        String sqlText = format("with dt as select a2, count(*) as CC from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2 group by a2 \n" +
+                "select * from t11, dt where t11.a1 = dt.a2", useSpark, joinStrategy);
+        String expected = "A1 |B1 | C1  |A2 |CC |\n" +
+                "----------------------\n" +
+                " 2 |20 |  2  | 2 | 4 |\n" +
+                " 2 |20 |  2  | 2 | 4 |\n" +
+                " 3 |30 |  3  | 3 | 1 |\n" +
+                " 4 |40 |NULL | 4 | 1 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    @Ignore("Wrong result for control path tracked in DB-8976")
+    public void testWindowFunctionOnTopOfFullJoin() throws Exception {
+        String sqlText = format("select case when a1 <=3 then 'A' else 'B' end as pid, t1.*, t2.*, max(c2) over (partition by case when a1 <=3 then 'A' else 'B' end order by a1, a2 rows between unbounded preceding and current row) as cmax from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1>a2 order by pid, a1, a2", useSpark, joinStrategy);
+        String expected = "PID | A1  | B1  | C1  | A2  | B2  | C2  |CMAX |\n" +
+                "------------------------------------------------\n" +
+                "  A  |  1  | 10  |  1  |NULL |NULL |NULL |NULL |\n" +
+                "  A  |  2  | 20  |  2  |NULL |NULL |NULL |NULL |\n" +
+                "  A  |  2  | 20  |  2  |NULL |NULL |NULL |NULL |\n" +
+                "  A  |  3  | 30  |  3  |  2  | 20  |  2  |  2  |\n" +
+                "  A  |  3  | 30  |  3  |  2  | 20  |  2  |  2  |\n" +
+                "  B  |  4  | 40  |NULL |  2  | 20  |  2  |  2  |\n" +
+                "  B  |  4  | 40  |NULL |  2  | 20  |  2  |  2  |\n" +
+                "  B  |  4  | 40  |NULL |  3  | 30  |  3  |  3  |\n" +
+                "  B  |NULL |NULL |NULL |  4  | 40  |NULL |  3  |\n" +
+                "  B  |NULL |NULL |NULL |  5  | 50  |NULL |  3  |\n" +
+                "  B  |NULL |NULL |NULL |  6  | 60  |  6  |  6  |";
+
+        try {
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            rs.close();
+        }catch (SQLException e) {
+            if (joinStrategy.equals("sortmerge"))
+                Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
+            else
+                Assert.fail("Unexpected exception: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testFullJoinInUnionAll() throws Exception {
+        // predicate outside union-all cannot be pushed inside full outer join
+        String sqlText = format("select * from (select a1 as X from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n" +
+                "on a1=a2\n" +
+                "union all\n" +
+                "select a5 as X from t5) dt where X in (1,3,5,7)", useSpark, joinStrategy);
+
+        rowContainsQuery(new int[]{5, 7, 8}, "explain " + sqlText, methodWatcher,
+                new String[]{"MultiProbeTableScan", "preds=[(A5[7:1] IN (1,3,5,7))]"},
+                new String[]{"ProjectRestrict", "preds=[(A1[4:1] IN (1,3,5,7))]"},
+                new String[]{"FullOuterJoin", "preds=[(A1[4:1] = A2[4:2])]"});
+
+        String expected = "X |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 3 |\n" +
+                " 3 |\n" +
+                " 5 |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 
     @Test
