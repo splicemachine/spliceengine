@@ -43,7 +43,8 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
     protected String leftEmptyRowFunMethodName;
     protected SpliceMethod<ExecRow> leftEmptyRowFun;
     protected ExecRow leftEmptyRow;
-    OperationContext opContextClone;
+    OperationContext opContextForLeftJoin;
+    OperationContext opContextForAntiJoin;
 
     public BroadcastFullOuterJoinOperation() {
         super();
@@ -128,39 +129,42 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext = dsp.createOperationContext(this);
-        DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
 
-        leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing BroadcastJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     getJoinTypeString(), notExistsRightSide, restriction != null);
 
-
-
-        boolean useDataset = true ;
-
         DataSet<ExecRow> result;
         boolean usesNativeSparkDataSet =
-                (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+                (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                         (restriction == null || hasSparkJoinPredicate()) &&
                         !containsUnsafeSQLRealComparison());
-        DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
         if (usesNativeSparkDataSet)
         {
-            opContextClone = null;
+            opContextForLeftJoin = null;
+            opContextForAntiJoin = null;
+            DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
+            leftDataSet = leftDataSet.map(new CountJoinedLeftFunction(operationContext));
+            DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
             result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.FULLOUTER,true);
         }
         else {
             try {
-                opContextClone = operationContext.getClone();
-                result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                        .flatMap(new LeftOuterJoinRestrictionFlatMapFunction(operationContext));
+                // clone the context for the computation of the left join and anti-join
+                opContextForLeftJoin = operationContext.getClone();
+                opContextForAntiJoin = operationContext.getClone();
+
+                // compute left join
+                BroadcastJoinOperation opCloneForLeftJoin = (BroadcastJoinOperation) opContextForLeftJoin.getOperation();
+                DataSet<ExecRow> leftDataSet = opCloneForLeftJoin.getLeftOperation().getDataSet(dsp).map(new CountJoinedLeftFunction(opContextForLeftJoin));
+                result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(opContextForLeftJoin))
+                        .flatMap(new LeftOuterJoinRestrictionFlatMapFunction(opContextForLeftJoin));
 
                 // do right anti join left to get the non-matching rows
-                BroadcastJoinOperation opClone = (BroadcastJoinOperation)opContextClone.getOperation();
+                BroadcastJoinOperation opCloneForAntiJoin = (BroadcastJoinOperation) opContextForAntiJoin.getOperation();
 
-                DataSet<ExecRow> nonMatchingRightSet = opClone.getRightResultSet().getDataSet(dsp).mapPartitions(new CogroupBroadcastJoinFunction(opContextClone, true))
-                        .flatMap(new LeftAntiJoinRestrictionFlatMapFunction(opContextClone, true));
+                DataSet<ExecRow> nonMatchingRightSet = opCloneForAntiJoin.getRightResultSet().getDataSet(dsp).mapPartitions(new CogroupBroadcastJoinFunction(opContextForAntiJoin, true))
+                        .flatMap(new LeftAntiJoinRestrictionFlatMapFunction(opContextForAntiJoin, true));
 
                 result = result.union(nonMatchingRightSet, operationContext)
                         .map(new SetCurrentLocatedRowFunction(operationContext));
@@ -178,8 +182,10 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
     @Override
     public void close() throws StandardException {
         super.close();
-        if (opContextClone != null)
-            opContextClone.getOperation().close();
+        if (opContextForLeftJoin != null)
+            opContextForLeftJoin.getOperation().close();
+        if (opContextForAntiJoin != null)
+            opContextForAntiJoin.getOperation().close();
     }
 
 }
