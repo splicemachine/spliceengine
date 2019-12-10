@@ -3004,6 +3004,7 @@ TOKEN [IGNORE_CASE] :
 |	<PARQUET: "parquet">
 |   <AVRO: "avro">
 |	<ORC: "orc">
+|   <OPTIMIZE: "optimize">
 |	<SAVEPOINT: "savepoint">
 |	<SCALE: "scale">
 |	<SECURITY: "security">
@@ -4198,6 +4199,7 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
     ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
+    int optimizeForRows = 1;
 }
 {
     [ <WITH> withClauseList(parameterList) ]
@@ -4205,6 +4207,7 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 		[ orderCols = orderByClause(queryExpression) ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 		[ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
+		[ optimizeForRows = getOptimizeForRowsHintValue() ]
 		[ isolationLevel = atIsolationLevel() ]
 	{
 	    if (topNOut[0] != null) {
@@ -6044,6 +6047,7 @@ simpleTable(ValueNode[] topNOut) throws StandardException :
 }
 {
 	resultSetNode = querySpecification(topNOut)
+
 	{
 		return resultSetNode;
 	}
@@ -17194,6 +17198,7 @@ reservedKeyword() :
 |	tok = <ONLY>
 |	tok = <OPEN>
 |	tok = <OPTION>
+|   tok = <OPTIMIZE>
 |	tok = <OR>
 |	tok = <ORDER>
 |   tok = <OUT>
@@ -17615,4 +17620,23 @@ caseSensitiveIdentifier() :
 	{
 		return str;
 	}
+}
+
+/*
+ * <A NAME="getOptimizeForRows">getOptimizeForRows</A>
+ */
+int
+getOptimizeForRowsHintValue() throws StandardException:
+{
+	int optimizeForRows;
+}
+{
+    <OPTIMIZE> <FOR> optimizeForRows = uint_value() (<ROW>|<ROWS>)
+    {
+
+        if ( optimizeForRows <= 0 )
+            throw StandardException.newException(SQLState.LANG_INVALID_INTEGER_LITERAL, optimizeForRows);
+        else
+            return optimizeForRows;
+    }
 }
