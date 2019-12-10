@@ -510,6 +510,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                                                                         new BadRecordsAccumulator());
     }
 
+    @Override
     public ActivationHolder getActivationHolder() {
         return broadcastedActivation!= null ? broadcastedActivation.getActivationHolder() : null;
     }

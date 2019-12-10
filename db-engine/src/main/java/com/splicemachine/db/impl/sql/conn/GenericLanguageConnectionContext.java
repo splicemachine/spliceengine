@@ -3636,9 +3636,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void setTriggerStack(TriggerExecutionStack triggerStack){
-        if(this.triggerStack!=null){
-            SanityManager.THROWASSERT("LCC already has a trigger stack.");
-        }
+//        if(this.triggerStack!=null){
+//            SanityManager.THROWASSERT("LCC already has a trigger stack.");
+//        }    msirek-temp
         this.triggerStack=triggerStack;
     }
 

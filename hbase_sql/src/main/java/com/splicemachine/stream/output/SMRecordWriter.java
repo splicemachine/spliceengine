@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.pipeline.Exceptions;
@@ -46,7 +47,7 @@ public class SMRecordWriter extends RecordWriter<RowLocation,Either<Exception, E
             SpliceLogUtils.trace(LOG, "init");
             this.tableWriter = tableWriter;
             this.outputCommitter = outputCommitter;
-            SparkOperationContext context = (SparkOperationContext)tableWriter.getOperationContext();
+            OperationContext context = (OperationContext)tableWriter.getOperationContext();
             if (context != null) {
                 activationHolder = context.getActivationHolder();
                 activationHolder.reinitialize(tableWriter.getTxn());

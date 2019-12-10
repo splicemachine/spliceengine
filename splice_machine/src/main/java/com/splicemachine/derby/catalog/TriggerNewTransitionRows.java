@@ -49,6 +49,7 @@ import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -102,15 +103,18 @@ public class TriggerNewTransitionRows
 	}
 
 	public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
-	    try {
-                resultSet.next();
-            }
-	    catch (SQLException e) {
-	        throw StandardException.plainWrapException(e);
-            }
+//	    try {  msirek-temp
+//                resultSet.next();
+//            }
+//	    catch (SQLException e) {
+//	        throw StandardException.plainWrapException(e);
+//            }
 	    String tableName = Long.toString(((TriggerRowHolderImpl)((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder()).getConglomerateId());
 
 	    Activation activation = ((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder().getActivation();
+	    // return ((InsertOperation)activation.getResultSet()).getLeftOperation().getDataSet(dsp);  // msirek-temp
+            return ((DMLWriteOperation)activation.getResultSet()).getSourceSet();
+/*
 	    DMLWriteOperation writeOperation = (DMLWriteOperation)(activation.getResultSet());
 	    String tableVersion = writeOperation.getTableVersion();
 	    TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
@@ -156,7 +160,7 @@ public class TriggerNewTransitionRows
                 .rowDecodingMap(rowDecodingMap)
                 .buildDataSet(writeOperation);
 
-
+*/
 	    // return dsp.getEmpty();  msirek-temp
         }
 

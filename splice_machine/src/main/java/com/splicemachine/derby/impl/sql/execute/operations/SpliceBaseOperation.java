@@ -460,7 +460,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         // otherwise deal with it normally
     }
 
-    protected boolean isOlapServer() {
+    @Override
+    public boolean isOlapServer() {
         return Thread.currentThread().currentThread().getName().startsWith("olap-worker");
     }
 

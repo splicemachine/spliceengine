@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +43,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
@@ -52,7 +54,6 @@ import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
  */
 public class TriggerEventActivator {
 
-    private LanguageConnectionContext lcc;
     private TriggerInfo triggerInfo;
     private TriggerExecutionContext tec;
     private Map<TriggerEvent, List<GenericTriggerExecutor>> statementExecutorsMap = new HashMap<>();
@@ -85,20 +86,20 @@ public class TriggerEventActivator {
         this.activation = activation;
         this.tableId = tableId;
         this.triggerInfo = triggerInfo;
-        this.lcc = activation.getLanguageConnectionContext();
-        StatementContext context = lcc.getStatementContext();
+
+        StatementContext context = getLcc().getStatementContext();
         if (context != null) {
             this.statementText = context.getStatementText();
         }
         this.heapList = heapList;
-        cc = (ConnectionContext)lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
+        cc = (ConnectionContext)getLcc().getContextManager().getContext(ConnectionContext.CONTEXT_ID);
 
         initTriggerExecContext(aiCounters);
         setupExecutors(triggerInfo);
     }
 
     private void initTriggerExecContext(Vector<AutoincrementCounter> aiCounters) throws StandardException {
-        GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
+        GenericExecutionFactory executionFactory = (GenericExecutionFactory) getLcc().getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
                cc, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                 tableId, tableName, aiCounters, heapList);
@@ -117,11 +118,11 @@ public class TriggerEventActivator {
         for (TriggerDescriptor td : triggerInfo.getTriggerDescriptors()) {
             TriggerEvent event = td.getTriggerEvent();
             if (td.isRowTrigger()) {
-                RowTriggerExecutor executor = new RowTriggerExecutor(tec, td, activation, lcc);
+                RowTriggerExecutor executor = new RowTriggerExecutor(tec, td, activation, getLcc());
                 executor.forceCompile();
                 addToMap(rowExecutorsMap, event, executor);
             } else {
-                addToMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, lcc));
+                addToMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, getLcc()));
             }
         }
     }
@@ -143,9 +144,9 @@ public class TriggerEventActivator {
         }
 
         try {
-            lcc.pushExecutionStmtValidator(tec);
+            getLcc().pushExecutionStmtValidator(tec);
             if (! tecPushed) {
-                lcc.pushTriggerExecutionContext(tec);
+                getLcc().pushTriggerExecutionContext(tec);
                 tecPushed = true;
             }
 
@@ -156,7 +157,7 @@ public class TriggerEventActivator {
                 triggerExecutor.fireTrigger(event, triggeringResultSet, null);
             }
         } finally {
-            lcc.popExecutionStmtValidator(tec);
+            getLcc().popExecutionStmtValidator(tec);
         }
     }
 
@@ -180,9 +181,9 @@ public class TriggerEventActivator {
         }
 
         try {
-            lcc.pushExecutionStmtValidator(tec);
+            getLcc().pushExecutionStmtValidator(tec);
             if (! tecPushed) {
-                lcc.pushTriggerExecutionContext(tec);
+                getLcc().pushTriggerExecutionContext(tec);
                 tecPushed = true;
             }
 
@@ -193,7 +194,7 @@ public class TriggerEventActivator {
                 triggerExecutor.fireTrigger(event, rs, colsReadFromTable);
             }
         } finally {
-            lcc.popExecutionStmtValidator(tec);
+            getLcc().popExecutionStmtValidator(tec);
         }
     }
 
@@ -204,13 +205,20 @@ public class TriggerEventActivator {
         if (tec != null) {
             tec.clearTrigger();
             if (tecPushed) {
-                lcc.popTriggerExecutionContext(tec);
+                getLcc().popTriggerExecutionContext(tec);
             }
             tecPushed = false;
         }
     }
 
-    public LanguageConnectionContext getLcc() {
+    public LanguageConnectionContext getLcc() throws StandardException {
+        LanguageConnectionContext lcc = null;
+        try {
+            lcc = ConnectionUtil.getCurrentLCC();
+        }
+        catch (SQLException e) {
+            throw StandardException.plainWrapException(e);
+        }
         return lcc;
     }
 

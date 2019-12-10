@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
@@ -138,11 +139,10 @@ public class ActivationHolder implements Externalizable {
     }
 
     public synchronized Activation getActivation() {
-        // Only directly instantiated ActivationHolders have initialized == true
-        // Those deserialized will check if impl.get() and activation are both set
-        if (!initialized) {
-            init(txn, true);
-        }
+        // If impl.get() does not hold a txnResource, we have to
+        // allocate one now...
+        if (!initialized || soi != null)
+            init(txn, !initialized);
         return activation;
     }
 
@@ -169,24 +169,30 @@ public class ActivationHolder implements Externalizable {
         } else
             out.writeBoolean(false);
         out.writeObject(getActivation().getLanguageConnectionContext().getDataDictionary().getDataDictionaryCache().getPropertyCache());
-        out.writeBoolean(initialized);
+        out.writeBoolean(initialized); // msirek-temp
     }
 
     private void init(TxnView txn, boolean reinit){
         try {
             SpliceTransactionResourceImpl txnResource = impl.get();
-            if (txnResource != null) {
-                if (activation != null) return;
-                txnResource.close();
+            boolean reinitTxnResource = reinit || (txnResource == null);
+            if (reinitTxnResource)
+                reinit = true;
+            if (!reinitTxnResource) {
+                if (activation != null)
+                    return;
             }
 
-            txnResource = new SpliceTransactionResourceImpl();
-            txnResource.marshallTransaction(txn, propertyCache);
+            if (reinitTxnResource) {
+                txnResource = new SpliceTransactionResourceImpl();
+                txnResource.marshallTransaction(txn, propertyCache);
+            }
             impl.set(txnResource);
-            activation = soi.getActivation(this, txnResource.getLcc());
-            activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
-            activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
-
+            if (soi != null) {
+                activation = soi.getActivation(this, txnResource.getLcc());
+                activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
+                activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
+            }
             // Push internal connection to the current context manager
             EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
             new EmbedConnectionContext(ContextService.getService().getCurrentContextManager(), internalConnection);
@@ -220,7 +226,7 @@ public class ActivationHolder implements Externalizable {
         } else
             groupUsers = null;
         propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
-        initialized = in.readBoolean();
+        initialized = in.readBoolean(); // msirek-temp
     }
 
     public void setActivation(Activation activation) {
@@ -236,15 +242,23 @@ public class ActivationHolder implements Externalizable {
     }
 
     public synchronized void reinitialize(TxnView otherTxn, boolean reinit) {
-        close();
+        if (reinit)
+            close();
         init(otherTxn != null ? otherTxn : txn, reinit);
     }
 
-    public void close() {
-        SpliceTransactionResourceImpl txnResource = impl.get();
-        if (txnResource != null) {
-            txnResource.close();
-            impl.set(null);
+    public void close(boolean closeTxnResource) {
+        if (closeTxnResource) {
+            SpliceTransactionResourceImpl txnResource = impl.get();
+            if (txnResource != null) {
+                txnResource.close();
+                impl.set(null);
+            }
         }
+        activation = null;
+    }
+
+    public void close() {
+        close(true);
     }
 }

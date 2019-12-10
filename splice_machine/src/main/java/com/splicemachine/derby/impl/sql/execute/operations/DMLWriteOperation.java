@@ -53,6 +53,7 @@ import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.python.antlr.ast.Exec;
 import org.spark_project.guava.base.Strings;
 
 import java.io.IOException;
@@ -86,6 +87,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
     private SpliceMethod<ExecRow> checkGM;
     private String checkGMFunMethodName;
     protected String tableVersion;
+    protected DataSet<ExecRow> sourceSet;
 
 
     public DMLWriteOperation(){
@@ -118,6 +120,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
             this.checkGM=new SpliceMethod<>(checkGMFunMethodName,activation);
         }
 
+    }
+
+    public DataSet<ExecRow> getSourceSet() {
+        return sourceSet;
+    }
+
+    public void setSourceSet(DataSet<ExecRow> sourceSet) {
+        this.sourceSet = sourceSet;
     }
 
     public String getTableVersion() { return tableVersion; }
@@ -394,6 +404,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation{
         } else {
             set=source.getDataSet(dsp).shufflePartitions();
         }
+        setSourceSet(set);
         return Pair.newPair(set, expectedUpdatecounts);
     }
 
