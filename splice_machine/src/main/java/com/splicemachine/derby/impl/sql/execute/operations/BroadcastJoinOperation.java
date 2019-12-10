@@ -227,7 +227,7 @@ public class BroadcastJoinOperation extends JoinOperation{
          * so route to the rdd implementation for now for SSQ.  Also, spark join can't handle a zero length
          * hash key, so it will use rdd as well.
          */
-        if (rightFromSSQ)
+        if (rightFromSSQ || leftHashKeys.length == 0)
             useDataset = false;
 
         DataSet<ExecRow> result;
@@ -238,10 +238,8 @@ public class BroadcastJoinOperation extends JoinOperation{
         if (usesNativeSparkDataSet)
         {
             DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
-            if (joinType == JoinNode.LEFTOUTERJOIN)
+            if (isOuterJoin())
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTOUTER,true);
-            else if (joinType == JoinNode.FULLOUTERJOIN)
-                result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.FULLOUTER,true);
             else if (notExistsRightSide)
                 result = leftDataSet.join(operationContext,rightDataSet, DataSet.JoinType.LEFTANTI,true);
 
@@ -261,15 +259,10 @@ public class BroadcastJoinOperation extends JoinOperation{
             }
         }
         else {
-            if (joinType == JoinNode.LEFTOUTERJOIN) { // Left Outer Join with and without restriction
+            if (isOuterJoin()) { // Left Outer Join with and without restriction
                 result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
                         .flatMap(new LeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
                         .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
-            } else if (joinType == JoinNode.FULLOUTERJOIN) {
-                result = leftDataSet.mapPartitions(new CogroupBroadcastJoinFunction(operationContext))
-                        .flatMap(new LeftOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
-                        .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
-                // do another round of rightResultSet full join result on rightResultSet.uniqid = rightResultSet.uniqid
             } else {
                 if (this.leftHashKeys.length != 0 && !this.notExistsRightSide)
                     leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));

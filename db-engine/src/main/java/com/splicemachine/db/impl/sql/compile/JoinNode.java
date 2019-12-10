@@ -111,11 +111,11 @@ public class JoinNode extends TableOperatorNode{
             case CROSSJOIN:
                 return "CROSS JOIN";
             case LEFTOUTERJOIN:
-                return "LEFT LEFTOUTER JOIN";
+                return "LEFT OUTER JOIN";
             case RIGHTOUTERJOIN:
-                return "RIGHT LEFTOUTER JOIN";
+                return "RIGHT OUTER JOIN";
             case FULLOUTERJOIN:
-                return "FULL LEFTOUTER JOIN";
+                return "FULL OUTER JOIN";
             case UNIONJOIN:
                 return "UNION JOIN";
             default:
@@ -409,7 +409,7 @@ public class JoinNode extends TableOperatorNode{
 
 		/* Get the logical left side of the join.
 		 * This is where the join columns come from.
-		 * (For RIGHT LEFTOUTER JOIN, the left is the right
+		 * (For RIGHT OUTER JOIN, the left is the right
 		 * and the right is the left and the JOIN is the NIOJ).
 		 */
         ResultSetNode logicalLeftRS=getLogicalLeftResultSet();
@@ -481,7 +481,7 @@ public class JoinNode extends TableOperatorNode{
     @Override
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException{
 		/* Get the logical left and right sides of the join.
-		 * (For RIGHT LEFTOUTER JOIN, the left is the right
+		 * (For RIGHT OUTER JOIN, the left is the right
 		 * and the right is the left and the JOIN is the NIOJ).
 		 */
         ResultSetNode logicalLeftRS=getLogicalLeftResultSet();
@@ -512,7 +512,7 @@ public class JoinNode extends TableOperatorNode{
         }else{
             //If this column represents the join column from the
             // right table for predicate generated for USING/NATURAL
-            // of RIGHT LEFTOUTER JOIN then flag it such by setting
+            // of RIGHT OUTER JOIN then flag it such by setting
             // rightOuterJoinUsingClause to true.
             // eg
             //     select c from t1 right join t2 using (c)
@@ -1401,7 +1401,7 @@ public class JoinNode extends TableOperatorNode{
     /**
      * Return the logical left result set for this qualified
      * join node.
-     * (For RIGHT LEFTOUTER JOIN, the left is the right
+     * (For RIGHT OUTER JOIN, the left is the right
      * and the right is the left and the JOIN is the NIOJ).
      */
     ResultSetNode getLogicalLeftResultSet(){
@@ -1411,7 +1411,7 @@ public class JoinNode extends TableOperatorNode{
     /**
      * Return the logical right result set for this qualified
      * join node.
-     * (For RIGHT LEFTOUTER JOIN, the left is the right
+     * (For RIGHT OUTER JOIN, the left is the right
      * and the right is the left and the JOIN is the NIOJ).
      */
     ResultSetNode getLogicalRightResultSet(){

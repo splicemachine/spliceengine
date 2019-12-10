@@ -1066,7 +1066,7 @@ public class OptimizerImpl implements Optimizer{
             FromTable fromTable = (FromTable)optimizable;
             if (fromTable.getFromSSQ()) {
                 savedJoinType = outerCost.getJoinType();
-                outerCost.setJoinType(JoinNode.INNERJOIN);
+                outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
             }
         }
 		/* Cost the optimizable at the current join position */

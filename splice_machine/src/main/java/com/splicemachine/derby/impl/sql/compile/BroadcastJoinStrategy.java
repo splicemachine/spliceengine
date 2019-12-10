@@ -63,7 +63,6 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 
     @Override
     public String fullOuterJoinResultSetMethodName() {
-       // throw new UnsupportedOperationException("Broadcast full join not supported currently");
         return "getBroadcastFullOuterJoinResultSet";
     }
 	
