@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -1027,6 +1028,116 @@ public class TableScanOperationIT{
                 }
             }
         }
+    }
+
+    @Test
+    public void testOptimizeForRowsSyntax() throws Exception {
+        String[] queries = {
+                "SELECT A1 FROM %s OPTIMIZE FOR 1 ROW",
+                "SELECT A1 FROM %s TABLE_ALIASE OPTIMIZE FOR 1 ROW",
+                "SELECT A1 FROM %s WHERE B1 = TRUE OPTIMIZE FOR 1 ROW",
+                "SELECT A1 FROM %s WHERE B1 = TRUE ORDER BY C1 OPTIMIZE FOR 1 ROW",
+                "SELECT COUNT(*) FROM %s GROUP BY H1 OPTIMIZE FOR 1 ROW",
+                "SELECT H1,COUNT(*) FROM %s GROUP BY H1 HAVING COUNT(H1) > 0 OPTIMIZE FOR 1 ROW",
+
+                //TEMPLATE SYNTAX TESTING OPTIMIZE FOR N ROW / ROWS
+                "SELECT A1 FROM %s OPTIMIZE FOR 1 ROWS",
+                "SELECT A1 FROM %s WHERE B1 = TRUE OPTIMIZE FOR 1 ROWS",
+                "SELECT A1 FROM %s WHERE B1 = TRUE ORDER BY C1 OPTIMIZE FOR 1 ROWS",
+                "SELECT COUNT(*) FROM %s GROUP BY H1 OPTIMIZE FOR 1 ROWS",
+                "SELECT H1,COUNT(*) FROM %s GROUP BY H1 HAVING COUNT(H1) > 0 OPTIMIZE FOR 1 ROWS",
+                "SELECT A1 FROM %s OPTIMIZE FOR 20 ROW",
+                "SELECT A1 FROM %s WHERE B1 = TRUE OPTIMIZE FOR 20 ROW",
+                "SELECT A1 FROM %s WHERE B1 = TRUE ORDER BY C1 OPTIMIZE FOR 20 ROW",
+                "SELECT COUNT(*) FROM %s GROUP BY H1 OPTIMIZE FOR 20 ROW",
+                "SELECT H1,COUNT(*) FROM %s GROUP BY H1 HAVING COUNT(H1) > 0 OPTIMIZE FOR 20 ROW",
+                "SELECT A1 FROM %s OPTIMIZE FOR 20 ROWS",
+                "SELECT A1 FROM %s WHERE B1 = TRUE OPTIMIZE FOR 20 ROWS",
+                "SELECT A1 FROM %s WHERE B1 = TRUE ORDER BY C1 OPTIMIZE FOR 20 ROWS",
+                "SELECT COUNT(*) FROM %s GROUP BY H1 OPTIMIZE FOR 20 ROWS",
+                "SELECT H1,COUNT(*) FROM %s GROUP BY H1 HAVING COUNT(H1) > 0 OPTIMIZE FOR 20 ROWS",
+        };
+        try (Statement s = conn.createStatement()) {
+            for (String query : queries){
+                try (ResultSet rs = s.executeQuery(format(query, spliceTableWatcher12))) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                    }
+                    assertEquals("Incorrect count returned!", 1, count);
+                }
+            }
+        }
+
+        String[] queries_join = {
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 OPTIMIZE FOR 1 ROW",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 WHERE B1 = FALSE AND H2 = 3 OPTIMIZE FOR 1 ROW",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 WHERE B1 = FALSE AND H2 = 3 ORDER BY C1 OPTIMIZE FOR 1 ROW",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 OPTIMIZE FOR 1 ROWS",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 WHERE B1 = FALSE AND H2 = 3 OPTIMIZE FOR 1 ROWS",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 WHERE B1 = FALSE AND H2 = 3 ORDER BY C1 OPTIMIZE FOR 1 ROWS",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 OPTIMIZE FOR 20 ROW",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 WHERE B1 = FALSE AND H2 = 3 OPTIMIZE FOR 20 ROW",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 WHERE B1 = FALSE AND H2 = 3 ORDER BY C1 OPTIMIZE FOR 20 ROW",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 OPTIMIZE FOR 20 ROWS",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 WHERE B1 = FALSE AND H2 = 3 OPTIMIZE FOR 20 ROWS",
+            "SELECT A1, A2 FROM %s JOIN %s ON %s.A1 = %s.A2 WHERE B1 = FALSE AND H2 = 3 ORDER BY C1 OPTIMIZE FOR 20 ROWS",
+        };
+        try (Statement s = conn.createStatement()) {
+            for (String query : queries_join){
+                try (ResultSet rs = s.executeQuery(format(query, spliceTableWatcher12,spliceTableWatcher13,spliceTableWatcher12,spliceTableWatcher13))) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                    }
+                    assertEquals("Incorrect count returned!", 0, count);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testOptimizeForRowsSyntaxNegtive() throws Exception {
+        try {
+            String sql = "SELECT A1 FROM TBL1 OPTIMIZE FOR 0 ROW";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_INVALID_INTEGER_LITERAL, e.getSQLState());
+        }
+
+        try {
+            String sql = "SELECT A1 FROM TBL1 OPTIMIZE FOR -1 ROW";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
+
+        try {
+            String sql = "SELECT A1 FROM TBL1 OPTIMIZE FOR 1.1 ROW";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_INVALID_INTEGER_LITERAL, e.getSQLState());
+        }
+
+        try {
+            String sql = "SELECT A1 FROM TBL1 OPTIMIZE FOR A ROW";
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
+
+        try {
+            String sql = "SELECT A1 FROM (SELECT A2 FROM TBL1 OPTIMIZE FOR A ROW) AS T"; //Optimize syntax is not in the end
+            methodWatcher.executeQuery(sql);
+            Assert.fail("Query is expected to fail with syntax error!");
+        } catch (SQLSyntaxErrorException e) {
+            Assert.assertEquals(SQLState.LANG_SYNTAX_ERROR, e.getSQLState());
+        }
+
     }
 
     private void assertCountEquals(Connection connection,long expectedCount,String query) throws SQLException{
