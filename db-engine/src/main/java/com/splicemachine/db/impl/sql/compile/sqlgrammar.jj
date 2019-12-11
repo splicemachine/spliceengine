@@ -2391,6 +2391,31 @@ public class SQLParser
            return buf.toString();
    }
 
+    /**
+     * Determine if we are seeing an Optimize For Rows clause or the identifier OPTIMIZE
+     *
+     * @return true if it is an Optimize For Rows clause.
+     */
+    private boolean seeingOptimizeForRowsClause()
+    {
+        int nesting = 0;
+
+        // Token number, i == 1: OPTIMIZE
+        int i = 2;
+
+        int tokKind = getToken(i).kind;
+
+        if (tokKind == FOR) {
+            tokKind = getToken(++i).kind;
+            if (tokKind == EXACT_NUMERIC) {
+                tokKind = getToken(++i).kind;
+
+                return (tokKind == ROW ||
+                        tokKind == ROWS);
+            }
+        }
+        return false;
+    }
 }
 
 PARSER_END(SQLParser)
@@ -3004,6 +3029,7 @@ TOKEN [IGNORE_CASE] :
 |	<PARQUET: "parquet">
 |   <AVRO: "avro">
 |	<ORC: "orc">
+|   <OPTIMIZE: "optimize">
 |	<SAVEPOINT: "savepoint">
 |	<SCALE: "scale">
 |	<SECURITY: "security">
@@ -4199,6 +4225,7 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
     ValueNode[] offsetClauses = new ValueNode[ OFFSET_CLAUSE_COUNT ];
     ValueNode[] topNOut = new ValueNode[ 1 ];
     boolean     hasJDBClimitClause = false;
+    int optimizeForRows = 1;
 }
 {
     [ <WITH> withClauseList(parameterList) ]
@@ -4206,6 +4233,7 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 		[ orderCols = orderByClause(queryExpression) ]
         hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
 		[ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
+		[ optimizeForRows = optimizeForRowsClause() ]
 		[ isolationLevel = atIsolationLevel() ]
 	{
 	    if (topNOut[0] != null) {
@@ -6045,6 +6073,7 @@ simpleTable(ValueNode[] topNOut) throws StandardException :
 }
 {
 	resultSetNode = querySpecification(topNOut)
+
 	{
 		return resultSetNode;
 	}
@@ -17458,6 +17487,11 @@ nonReservedKeyword()  :
 	|	tok = <OLD>
 	|	tok = <OLD_TABLE>
 	|	tok = <OJ>
+    |	LOOKAHEAD({
+            getToken(1).kind == OPTIMIZE &&
+            !seeingOptimizeForRowsClause()
+        })
+	    tok = <OPTIMIZE>
 	|	tok = <OVER>
 	|	tok = <PASCAL>
 	|	tok = <PASSING>
@@ -17625,5 +17659,25 @@ caseSensitiveIdentifier() :
 	str = nonReservedKeyword()
 	{
 		return str;
+	}
+}
+
+/*
+ * <A NAME="optimizeForRowsClause">optimizeForRowsClause</A>
+ */
+int
+optimizeForRowsClause() throws StandardException :
+{
+	int optimizeForRows = 1;
+}
+{
+	<OPTIMIZE> <FOR>
+     optimizeForRows = uint_value()
+	( <ROW> | <ROWS> )
+	{
+        if ( optimizeForRows <= 0 )
+            throw StandardException.newException(SQLState.LANG_INVALID_INTEGER_LITERAL, optimizeForRows);
+        else
+            return optimizeForRows;
 	}
 }
