@@ -207,7 +207,7 @@ public class TriggerHandler {
         }
     }
 
-    public LanguageConnectionContext getLcc() {
+    public LanguageConnectionContext getLcc() throws StandardException {
         return triggerActivator.getLcc();
     }
 
