@@ -225,6 +225,14 @@ public class ZkUtils{
         }
     }
 
+    public static void setData(String path,byte[] data,int version, RecoverableZooKeeper rzk) throws IOException{
+        try{
+            rzk.setData(path,data,version);
+        }catch(KeeperException | InterruptedException e){
+            throw new IOException(e);
+        }
+    }
+
     /**
      * Gets data from ZooKeeper.
      * <p/>

@@ -13,7 +13,10 @@ import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.replication.ReplicationPeerDescription;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.spark_project.guava.collect.Lists;
 
 import java.io.IOException;
@@ -31,9 +34,12 @@ public class ReplicationSnapshotChore extends ScheduledChore {
 
     final static byte[] cf = SIConstants.DEFAULT_FAMILY_BYTES;
 
-    private ConcurrentHashMap<String, Long> previousSnapshot;
     private Admin admin;
     private long preTimestamp;
+    private String replicationPath;
+    private volatile boolean isReplicationMaster;
+    private volatile boolean statusChanged;
+    private RecoverableZooKeeper rzk;
 
     public ReplicationSnapshotChore(final String name, final Stoppable stopper, final int period) throws IOException {
         super(name, stopper, period);
@@ -41,16 +47,36 @@ public class ReplicationSnapshotChore extends ScheduledChore {
     }
 
     private void init() throws IOException {
-        SConfiguration conf = HConfiguration.getConfiguration();
-        Connection conn = HBaseConnectionFactory.getInstance(conf).getConnection();
-        admin = conn.getAdmin();
+        try {
+            SpliceLogUtils.info(LOG, "init()");
+            SConfiguration conf = HConfiguration.getConfiguration();
+            Connection conn = HBaseConnectionFactory.getInstance(conf).getConnection();
+            admin = conn.getAdmin();
+            replicationPath = ReplicationUtils.getReplicationPath();
+            rzk = ZkUtils.getRecoverableZooKeeper();
+            while (rzk.exists(replicationPath, false) ==null) {
+                Thread.sleep(100);
+            }
+            byte[] status = rzk.getData(replicationPath, new ReplicationMasterWatcher(this), null);
+            isReplicationMaster = (status != null &&
+                    Bytes.compareTo(status, com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_MASTER) == 0);
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     @Override
     protected void chore() {
         try {
-            boolean replicationEnabled = HConfiguration.getConfiguration().replicationEnabled();
-            if (!replicationEnabled)
+
+            if (statusChanged) {
+                SpliceLogUtils.info(LOG, "status changed");
+                initReplicationConfig();
+                statusChanged = false;
+            }
+
+            if (!isReplicationMaster)
                 return;
 
             List<ReplicationPeerDescription> peers = admin.listReplicationPeers();
@@ -70,7 +96,7 @@ public class ReplicationSnapshotChore extends ScheduledChore {
 
                 for (PartitionServer server : servers) {
                     ServerName serverName = ServerName.valueOf(server.getHostname(), server.getPort(), server.getStartupTimestamp());
-                    GetLSNTask task = new GetLSNTask(snapshot, serverName);
+                    GetWALPositionsTask task = new GetWALPositionsTask(snapshot, serverName);
                     futures.add(executorService.submit(task));
                 }
                 for (Future<Void> future : futures) {
@@ -82,7 +108,6 @@ public class ReplicationSnapshotChore extends ScheduledChore {
                     String clusterKey = peer.getPeerConfig().getClusterKey();
                     updateSlaveTable(clusterKey, timestamp, snapshot);
                 }
-                previousSnapshot = snapshot;
                 preTimestamp = timestamp;
             }
 
@@ -92,36 +117,6 @@ public class ReplicationSnapshotChore extends ScheduledChore {
             throw new RuntimeException(e);
         }
     }
-    /**
-     * Whether there were changes between two snapshots
-     * @param previousSnapshot
-     * @param snapshot
-     * @return
-     */
-    private boolean snapshotChanged(ConcurrentHashMap<String, Long> previousSnapshot,
-                                    ConcurrentHashMap<String, Long> snapshot) {
-
-        if (previousSnapshot == null) {
-            return snapshot.size() > 0;
-        }
-
-        if (previousSnapshot.size() != snapshot.size()) {
-            return true;
-        }
-
-        for (String key : snapshot.keySet()) {
-            if (!previousSnapshot.containsKey(key))
-                return true;
-
-            long value = snapshot.get(key);
-            long oldValue = previousSnapshot.get(key);
-            if (value != oldValue)
-                return true;
-        }
-
-        return false;
-    }
-
 
     /**
      * Insert a row to splice:SPLICE_MASTER_SNAPSHOTS for each slave cluster
@@ -154,11 +149,11 @@ public class ReplicationSnapshotChore extends ScheduledChore {
             for (HashMap.Entry<String, Long> entry : snapshot.entrySet()) {
                 put.addColumn(cf, Bytes.toBytes(entry.getKey()), Bytes.toBytes(entry.getValue()));
                 //if (LOG.isDebugEnabled()) {
-                    sb.append(String.format("{region=%s, LSN=%d}", entry.getKey(), entry.getValue()));
+                    sb.append(String.format("{WAL=%s, position=%d}", entry.getKey(), entry.getValue()));
                 //}
             }
             //if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.info(LOG, "ts = %d, LSNs = %s", timestamp, sb.toString());
+                SpliceLogUtils.info(LOG, "ts = %d, WALs = %s", timestamp, sb.toString());
             //}
             table.put(put);
         }
@@ -169,6 +164,40 @@ public class ReplicationSnapshotChore extends ScheduledChore {
         finally {
             if (table != null)
                 table.close();
+        }
+    }
+
+    private void initReplicationConfig() throws IOException {
+        SpliceLogUtils.info(LOG, "isReplicationMaster = %s", isReplicationMaster);
+        if (isReplicationMaster) {
+            //ReplicationUtils.setReplicationRole("MASTER");
+        }
+    }
+    public void changeStatus() throws IOException{
+        byte[] status = ZkUtils.getData(replicationPath, new ReplicationMasterWatcher(this), null);
+        boolean wasReplicationMaster = isReplicationMaster;
+        isReplicationMaster = Bytes.compareTo(status, com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_MASTER) == 0;
+        SpliceLogUtils.info(LOG, "isReplicationMaster changes from %s to %s", wasReplicationMaster, isReplicationMaster);
+        statusChanged = wasReplicationMaster!=isReplicationMaster;
+    }
+
+    private static class ReplicationMasterWatcher implements Watcher {
+        private final ReplicationSnapshotChore replicationSnapshotTrackerChore;
+
+        public ReplicationMasterWatcher(ReplicationSnapshotChore replicationSnapshotTrackerChore) {
+            this.replicationSnapshotTrackerChore = replicationSnapshotTrackerChore;
+        }
+
+        @Override
+        public void process(WatchedEvent event) {
+            Event.EventType type = event.getType();
+            try {
+                if (type == Event.EventType.NodeDataChanged) {
+                    replicationSnapshotTrackerChore.changeStatus();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }

@@ -14,6 +14,7 @@
 
 package com.splicemachine.hbase;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.SystemClock;
@@ -160,7 +161,6 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
                         new ReplicationProgressTrackerChore("ReplicationProgressTrackerChore", this,
                                 HConfiguration.getConfiguration().getReplicationProgressUpdateInterval());
                 choreService.scheduleChore(replicationProgressTrackerChore);
-
                 String replicationMonitorQuorum = HConfiguration.getConfiguration().getReplicationMonitorQuorum();
                 if (replicationMonitorQuorum != null) {
                     ReplicationMonitorChore replicationMonitorChore =
@@ -168,6 +168,7 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
                                     HConfiguration.getConfiguration().getReplicationMonitorInterval());
                     choreService.scheduleChore(replicationMonitorChore);
                 }
+                SIDriver.driver().getExecutorService().submit(new SetReplicationRoleTask());
             }
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);

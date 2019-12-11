@@ -33,7 +33,7 @@ public class NoOpReplicationManager implements ReplicationManager {
     private NoOpReplicationManager(){ }
 
     @Override
-    public void addPeer(short peerId, String clusterKey, long peerTs, boolean isSerial) throws StandardException {
+    public void addPeer(String clusterKey,short peerId, String peerClusterKey, long peerTs, boolean isSerial) throws StandardException {
 
     }
 

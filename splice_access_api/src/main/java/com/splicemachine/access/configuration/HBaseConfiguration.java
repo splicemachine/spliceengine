@@ -40,6 +40,16 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String BACKUP_PATH = "splice.backup_node";
     public static final String DEFAULT_BACKUP_PATH = "/backup";
     public static final String DEFAULT_BACKUP_LOCK_PATH = "/backup_lock";
+
+    public static final String REPLICATION_PATH = "splice.replication.path";
+    public static final String DEFAULT_REPLICATION_PATH = "/replication";
+    public static final String DEFAULT_REPLICATION_SOURCE_PATH = "/source";
+    public static final String DEFAULT_REPLICATION_PEER_PATH = "/peerId";
+
+    public static final byte[] REPLICATION_MASTER = Bytes.toBytes("MASTER");
+    public static final byte[] REPLICATION_SLAVE = Bytes.toBytes("SLAVE");
+    public static final byte[] REPLICATION_NONE = Bytes.toBytes("NONE");
+
     public static final byte[] BACKUP_IN_PROGRESS = Bytes.toBytes(false);
     public static final byte[] BACKUP_DONE = Bytes.toBytes(true);
 
@@ -195,7 +205,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
             SNOWFLAKE_PATH,
             BOOKINGS_PATH,
             DEFAULT_BACKUP_PATH,
-            DEFAULT_BACKUP_LOCK_PATH
+            DEFAULT_BACKUP_LOCK_PATH,
+            DEFAULT_REPLICATION_PATH
     ));
 
     // Splice Internal Tables
@@ -236,7 +247,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.spliceRootPath = configurationSource.getString(SPLICE_ROOT_PATH, DEFAULT_ROOT_PATH);
         builder.namespace = configurationSource.getString(NAMESPACE, DEFAULT_NAMESPACE);
         builder.backupPath = configurationSource.getString(BACKUP_PATH, DEFAULT_BACKUP_PATH);
-
+        builder.replicationPath = configurationSource.getString(REPLICATION_PATH, DEFAULT_REPLICATION_PATH);
 
         builder.hbaseSecurityAuthentication = configurationSource.getBoolean(HBASE_SECURITY_AUTHENTICATION, false);
         builder.hbaseSecurityAuthorization = configurationSource.getString(HBASE_SECURITY_AUTHORIZATION,

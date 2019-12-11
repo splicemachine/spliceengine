@@ -116,6 +116,8 @@ public interface SConfiguration {
 
     boolean replicationEnabled();
 
+    public String getReplicationPath();
+
     int getReplicationSnapshotInterval();
 
     int getReplicationProgressUpdateInterval();

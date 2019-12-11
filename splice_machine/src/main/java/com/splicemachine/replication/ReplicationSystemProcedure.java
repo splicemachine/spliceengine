@@ -91,6 +91,7 @@ public class ReplicationSystemProcedure {
         try {
             long peerTs = -1;
             String peerClusterKey = null;
+            String clusterKey = getClusterKey();
             try (Connection connection = RemoteUser.getConnection(hostAndPort)) {
                 // Get peer's cluster key
                 try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.GET_CLUSTER_KEY()")) {
@@ -105,9 +106,12 @@ public class ReplicationSystemProcedure {
                 }
 
                 ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+                replicationManager.addPeer(clusterKey, peerId, peerClusterKey, peerTs, isSerial);
+
+
                 connection.createStatement().execute("call SYSCS_UTIL.SET_REPLICATION_ROLE('SLAVE')");
                 replicationManager.setReplicationRole("MASTER");
-                replicationManager.addPeer(peerId, peerClusterKey, peerTs, isSerial);
+
                 String replicationMonitorQuorum = SIDriver.driver().getConfiguration().getReplicationMonitorQuorum();
                 if (replicationMonitorQuorum != null) {
                     replicationManager.monitorReplication(getClusterKey(), peerClusterKey);

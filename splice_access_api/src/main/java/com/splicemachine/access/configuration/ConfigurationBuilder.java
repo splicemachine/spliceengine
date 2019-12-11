@@ -106,6 +106,7 @@ public class ConfigurationBuilder {
     public long regionLoadUpdateInterval;
     public long transactionsWatcherUpdateInterval;
     public String backupPath;
+    public String replicationPath;
     public String compressionAlgorithm;
     public String namespace;
     public String spliceRootPath;
