@@ -45,8 +45,8 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         return params;
     }
 
-    private static String useSpark;
-    private static String joinStrategy;
+    private String useSpark;
+    private String joinStrategy;
 
     public FullOuterJoinIT(String useSpark, String joinStrategy) {
         this.useSpark = useSpark;
@@ -246,7 +246,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
             if (joinStrategy.equals("sortmerge"))
                 Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
             else
-                Assert.fail("Unexpected exception: " + e.getMessage());
+                Assert.fail("Unexpected exception: " + e.getMessage() + "... JoinStrategy=" + joinStrategy + ", useSpark=" + useSpark);
         }
     }
 
@@ -274,7 +274,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
             if (joinStrategy.equals("sortmerge"))
                 Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
             else
-                Assert.fail("Unexpected exception: " + e.getMessage());
+                Assert.fail("Unexpected exception: " + e.getMessage() + "... JoinStrategy=" + joinStrategy + ", useSpark=" + useSpark);
         }
     }
 
@@ -650,7 +650,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
             if (joinStrategy.equals("sortmerge"))
                 Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
             else
-                Assert.fail("Unexpected exception: " + e.getMessage());
+                Assert.fail("Unexpected exception: " + e.getMessage() + "... JoinStrategy=" + joinStrategy + ", useSpark=" + useSpark);
         }
     }
 
@@ -741,7 +741,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
             if (joinStrategy.equals("sortmerge"))
                 Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
             else
-                Assert.fail("Unexpected exception: " + e.getMessage());
+                Assert.fail("Unexpected exception: " + e.getMessage() + "... JoinStrategy=" + joinStrategy + ", useSpark=" + useSpark);
         }
     }
 
@@ -884,7 +884,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
             if (joinStrategy.equals("sortmerge"))
                 Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
             else
-                Assert.fail("Unexpected exception: " + e.getMessage());
+                Assert.fail("Unexpected exception: " + e.getMessage() + "... JoinStrategy=" + joinStrategy + ", useSpark=" + useSpark);
         }
     }
 }
