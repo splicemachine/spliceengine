@@ -403,6 +403,7 @@ public class SpliceDatabase extends BasicDatabase{
                         for(LanguageConnectionContext context : allContexts){
                             context.setReplicationRole(role);
                         }
+                        SpliceLogUtils.info(LOG,"set replication role to %s", role);
                         break;
                     case NOTIFY_JAR_LOADER:
                         DDLUtils.preNotifyJarLoader(change,dataDictionary,dependencyManager);

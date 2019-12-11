@@ -87,6 +87,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long regionLoadUpdateInterval;
     private final  long transactionsWatcherUpdateInterval;
     private final  String backupPath;
+    private final  String replicationPath;
     private final  String compressionAlgorithm;
     private final  String namespace;
     private final  String spliceRootPath;
@@ -396,6 +397,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return backupIOBufferSize;
     }
 
+    @Override
+    public String getReplicationPath() {
+        return replicationPath;
+    }
     @Override
     public boolean replicationEnabled() {
         return replicationEnabled;
@@ -941,6 +946,7 @@ public final class SConfigurationImpl implements SConfiguration {
         regionLoadUpdateInterval = builder.regionLoadUpdateInterval;
         transactionsWatcherUpdateInterval = builder.transactionsWatcherUpdateInterval;
         backupPath = builder.backupPath;
+        replicationPath = builder.replicationPath;
         backupParallelism = builder.backupParallelism;
         backupKeepAliveInterval = builder.backupKeepAliveInterval;
         backupTimeout = builder.backupTimeout;

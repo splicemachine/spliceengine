@@ -28,17 +28,17 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class GetLSNTask implements Callable<Void> {
+public class GetWALPositionsTask implements Callable<Void> {
     private ConcurrentHashMap<String, Long> map;
     private ServerName serverName;
     private String walGroupId;
 
-    public GetLSNTask(ConcurrentHashMap<String, Long> map, ServerName serverName){
+    public GetWALPositionsTask(ConcurrentHashMap<String, Long> map, ServerName serverName){
         this.map = map;
         this.serverName = serverName;
     }
 
-    public GetLSNTask(ConcurrentHashMap<String, Long> map, ServerName serverName, String walGroupId){
+    public GetWALPositionsTask(ConcurrentHashMap<String, Long> map, ServerName serverName, String walGroupId){
         this.map = map;
         this.serverName = serverName;
         this.walGroupId = walGroupId;
@@ -51,14 +51,12 @@ public class GetLSNTask implements Callable<Void> {
         Admin admin = conn.getAdmin();
         CoprocessorRpcChannel channel = admin.coprocessorService(serverName);
         SpliceRSRpcServices.BlockingInterface service = SpliceRSRpcServices.newBlockingStub(channel);
-        SpliceMessage.GetRegionServerLSNRequest.Builder builder = SpliceMessage.GetRegionServerLSNRequest.newBuilder();
-        if (walGroupId != null) {
-            builder.setWalGroupId(walGroupId);
-        }
-        SpliceMessage.GetRegionServerLSNResponse response = service.getRegionServerLSN(null, builder.build());
-        List<SpliceMessage.GetRegionServerLSNResponse.Result> resultList = response.getResultList();
-        for (SpliceMessage.GetRegionServerLSNResponse.Result result : resultList) {
-            map.put(result.getRegionName(), result.getLsn());
+        SpliceMessage.GetWALPositionsRequest.Builder builder = SpliceMessage.GetWALPositionsRequest.newBuilder();
+
+        SpliceMessage.GetWALPositionsResponse response = service.getWALPositions(null, builder.build());
+        List<SpliceMessage.GetWALPositionsResponse.Result> resultList = response.getResultList();
+        for (SpliceMessage.GetWALPositionsResponse.Result result : resultList) {
+            map.put(result.getWALName(), result.getPosition());
         }
         return null;
     }

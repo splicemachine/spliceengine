@@ -3,6 +3,22 @@ package com.splicemachine.hbase;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.ConfigurationSource;
 import com.splicemachine.concurrent.SystemClock;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.timestamp.api.TimestampSource;
@@ -19,6 +35,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
@@ -77,10 +94,11 @@ public class ReplicationUtils {
     }
 
     public static List<String> getRegionServers(Configuration conf) throws IOException, InterruptedException, KeeperException{
-        ZKWatcher zkWatcher = new ZKWatcher(conf, "replication monitor", null, false);
-        RecoverableZooKeeper zk = zkWatcher.getRecoverableZooKeeper();
-        List<String> servers = zk.getChildren("/splice/servers", false);
-        return servers;
+        try(ZKWatcher zkWatcher = new ZKWatcher(conf, "replication monitor", null, false)) {
+            RecoverableZooKeeper zk = zkWatcher.getRecoverableZooKeeper();
+            List<String> servers = zk.getChildren("/splice/servers", false);
+            return servers;
+        }
     }
 
     public static Connection connect(String url) throws SQLException {
@@ -161,5 +179,49 @@ public class ReplicationUtils {
         }
 
         //TODO - enable database replication
+    }
+
+    public static String getReplicationPath() {
+        return HConfiguration.getConfiguration().getSpliceRootPath() +
+                HConfiguration.getConfiguration().getReplicationPath();
+    }
+
+    public static String getReplicationSourcePath() {
+        return getReplicationPath() + HConfiguration.DEFAULT_REPLICATION_SOURCE_PATH;
+    }
+
+    public static String getReplicationPeerPath() {
+        return getReplicationPath() + HConfiguration.DEFAULT_REPLICATION_PEER_PATH;
+    }
+
+    public static void setReplicationRoleLocal(String role) throws IOException {
+        SIDriver.driver().lifecycleManager().setReplicationRole(role);
+        Collection<LanguageConnectionContext> allContexts=
+                ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+        for(LanguageConnectionContext context : allContexts){
+            context.setReplicationRole(role);
+        }
+    }
+
+    public static void setReplicationRole(String role) throws IOException {
+        Txn txn = null;
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
+        try {
+            txn = SIDriver.driver().lifecycleManager().beginTransaction();
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
+            TransactionController tc = transactionResource.getLcc().getTransactionExecute();
+            DDLMessage.DDLChange change = ProtoUtil.createSetReplicationRole(txn.getTxnId(), role);
+            String changeId = DDLUtils.notifyMetadataChange(change);
+            tc.prepareDataDictionaryChange(changeId);
+            tc.commitDataDictionaryChange();
+            SpliceLogUtils.info(LOG, "Change replication role to %s", role);
+        } catch (Exception e) {
+            throw new IOException(e);
+        } finally {
+            if (prepared)
+                transactionResource.close();
+        }
     }
 }

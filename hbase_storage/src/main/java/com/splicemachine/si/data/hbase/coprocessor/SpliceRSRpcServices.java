@@ -21,6 +21,7 @@ import com.google.protobuf.Service;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
@@ -30,6 +31,7 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Region;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 
+import org.apache.hadoop.hbase.regionserver.wal.AbstractFSWAL;
 import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.collect.Lists;
@@ -66,6 +68,37 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
         return services;
     }
 
+
+    @Override
+    public void getWALPositions(RpcController controller,
+                                   SpliceMessage.GetWALPositionsRequest request,
+                                   RpcCallback<SpliceMessage.GetWALPositionsResponse> done) {
+
+        SpliceMessage.GetWALPositionsResponse.Builder responseBuilder =
+                SpliceMessage.GetWALPositionsResponse.newBuilder();
+
+        try {
+            List<WAL> wals = regionServerServices.getWALs();
+            for (WAL wal : wals) {
+                AbstractFSWAL abstractFSWAL = (AbstractFSWAL) wal;
+                Path walName = abstractFSWAL.getCurrentFileName();
+                OptionalLong size = wal.getLogFileSizeIfBeingWritten(walName);
+                responseBuilder.addResult(
+                        SpliceMessage.GetWALPositionsResponse.Result
+                                .newBuilder()
+                                .setPosition(size.isPresent() ? size.getAsLong() : 0)
+                                .setWALName(walName.getName())
+                                .build()
+                );
+            }
+
+            SpliceMessage.GetWALPositionsResponse response = responseBuilder.build();
+            done.run(response);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public void getRegionServerLSN(RpcController controller,
                                    SpliceMessage.GetRegionServerLSNRequest request,
@@ -73,6 +106,7 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
 
         SpliceMessage.GetRegionServerLSNResponse.Builder responseBuilder =
                 SpliceMessage.GetRegionServerLSNResponse.newBuilder();
+
 
         List<? extends Region> regions = regionServerServices.getRegions();
         String walGroupId = request.hasWalGroupId() ? request.getWalGroupId() : null;

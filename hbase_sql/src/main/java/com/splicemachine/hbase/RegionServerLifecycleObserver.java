@@ -122,6 +122,7 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
             manager.registerNetworkService(new NetworkLifecycleService(config));
 
             manager.start();
+            SIDriver.driver().getExecutorService().submit(new SetReplicationRoleTask());
             return manager;
         }catch(Exception e1){
             LOG.error("Unexpected exception registering boot service", e1);
