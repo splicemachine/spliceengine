@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StorablePreparedStatement;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -299,7 +300,8 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         setParams(preparedStatement.getParameterTypes());
 
         String role = lcc.getReplicationRole();
-        if (!dd.isReadOnlyUpgrade() && role.compareToIgnoreCase("SLAVE") != 0) {
+        if (!dd.isReadOnlyUpgrade() && role.compareToIgnoreCase("SLAVE") != 0 &&
+                lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP) == null) {
 
             dd.startWriting(lcc);
 
@@ -902,7 +904,8 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
         DataDictionary dd = getDataDictionary();
 
         String role = lcc.getReplicationRole();
-        if (dd.isReadOnlyUpgrade() || role.compareToIgnoreCase("SLAVE") == 0)
+        if (dd.isReadOnlyUpgrade() || role.compareToIgnoreCase("SLAVE") == 0) ||
+                lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP) != null)
             return;
 
 

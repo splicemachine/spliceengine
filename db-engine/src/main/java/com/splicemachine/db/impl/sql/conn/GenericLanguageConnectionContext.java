@@ -415,6 +415,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (olapQueue != null) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE, olapQueue);
             }
+            String snapshot = connectionProperties.getProperty("snapshot");
+            if (snapshot != null) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP, snapshot);
+            }
         }
 
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);

@@ -326,6 +326,48 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return getAndNameTransaction(cm, AccessFactoryGlobals.USER_TRANS_NAME);
     }
 
+    public TransactionController getReadOnlyTransaction(ContextManager cm, long id) throws StandardException {
+        String transName = AccessFactoryGlobals.USER_TRANS_NAME;
+
+        /*
+         * This call represents the top-level transactional access point. E.g., the top-level user transaction
+         * is created by a call to this method. In this case we are creating a read only transaction at a predefined point
+         */
+        if (LOG.isDebugEnabled())
+            LOG.debug("in SpliceAccessManager - getAndNameTransaction, transName=" + transName);
+        if (cm == null)
+            return null;  // XXX (nat) should throw exception
+
+        /*
+         * See if there's already a transaction context. If there is, then we just work with the one
+         * already created. Otherwise, we have to make a new one
+         */
+        SpliceTransactionManagerContext rtc = (SpliceTransactionManagerContext)
+                cm.getContext(AccessFactoryGlobals.RAMXACT_CONTEXT_ID);
+
+        if (rtc != null)
+            return rtc.getTransactionManager(); //we already have a transaction from the context
+
+        if (LOG.isDebugEnabled())
+            LOG.debug("in SpliceAccessManager - getAndNameTransaction, SpliceTransactionManagerContext is null");
+        /*
+         * We need to create a new transaction controller. Maybe we already have a transaction, but
+         * if not, then we need to create one.
+         *
+         * Note that this puts the raw store transaction context above the access context, which is
+         * required for error handling assumptions to be correct.
+         */
+        Transaction rawtran = rawstore.createPastTransaction(cm, transName, id);
+        SpliceTransactionManager rt = new SpliceTransactionManager(this, rawtran, null);
+
+        rtc = new SpliceTransactionManagerContext(cm, AccessFactoryGlobals.RAMXACT_CONTEXT_ID, rt, false /* abortAll */);
+        TransactionController tc = rtc.getTransactionManager();
+        if (xactProperties != null) {
+            rawtran.setup(tc);
+        }
+        return tc;
+    }
+
     public TransactionController getAndNameTransaction( ContextManager cm, String transName) throws StandardException {
 				/*
 				 * This call represents the top-level transactional access point. E.g., the top-level user transaction
