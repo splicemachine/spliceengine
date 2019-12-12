@@ -35,7 +35,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 
- /**
+import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.DEFAULT_INLIST_SELECTIVITY;
+
+/**
  *
  * Selectivity for an in clause list.  The selectivity is additive but if it ends up being over 1 it snaps back to 0.9.
   *
@@ -117,8 +119,8 @@ public class InListSelectivity extends AbstractSelectivityHolder {
             if (selectivityFactor > 0)
                 selectivity *= selectivityFactor;
 
-            if (selectivity > 0.9d)
-                selectivity = 0.9d;
+            if (selectivity > DEFAULT_INLIST_SELECTIVITY)
+                selectivity = DEFAULT_INLIST_SELECTIVITY;
         }
         return selectivity;
     }

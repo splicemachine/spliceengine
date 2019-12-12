@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.DEFAULT_RANGE_SELECTIVITY;
+
 /**
  * Created by yxia on 11/7/19.
  */
@@ -109,7 +111,7 @@ public class FakeColumnStatisticsImpl extends ColumnStatisticsImpl implements Ex
         if (start.equals(stop))
             return rpv;
 
-        return (long)(0.1 * totalCount);
+        return (long)(DEFAULT_RANGE_SELECTIVITY * totalCount);
     }
 
     @Override

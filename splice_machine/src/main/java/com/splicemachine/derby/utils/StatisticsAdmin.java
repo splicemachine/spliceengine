@@ -15,8 +15,6 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.catalog.Statistics;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -46,7 +44,10 @@ import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.stream.iapi.*;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.DistributedDataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
@@ -525,8 +526,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             long nullCount = (long)(nullCountRatio * totalCount);
 
-            if (rpv > totalCount - nullCount)
-                throw ErrorState.LANG_INVALID_FAKE_STATS.newException("column", "rows per value should be larger than the total number of not-null count : " + (totalCount - nullCount));
+            if (rpv > totalCount - nullCount || rpv < 1)
+                throw ErrorState.LANG_INVALID_FAKE_STATS.newException("column", "rows per value shouldn't be less than 1 or larger than the total number of not-null count : " + (totalCount - nullCount));
 
             long cardinality = (long)(((double)(totalCount- nullCount))/rpv);
 
