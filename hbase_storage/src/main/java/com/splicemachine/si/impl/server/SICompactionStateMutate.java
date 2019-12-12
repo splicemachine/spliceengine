@@ -81,7 +81,7 @@ class SICompactionStateMutate {
             // rolled back data, remove it from the compacted data
             return;
         }
-        if (committed(txn)) {
+        if (isCommitted(txn)) {
             /*
              * This element has been committed all the way to the user level, so a
              * commit timestamp can be placed on it.
@@ -106,7 +106,7 @@ class SICompactionStateMutate {
         }
     }
 
-    static boolean committed(TxnView txn) {
+    static boolean isCommitted(TxnView txn) {
         while (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
             txn = txn.getParentTxnView();
         }
