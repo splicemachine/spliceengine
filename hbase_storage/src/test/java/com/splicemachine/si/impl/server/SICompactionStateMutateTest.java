@@ -1,14 +1,10 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.HOperationFactory;
 import com.splicemachine.si.impl.TxnTestUtils;
 import com.splicemachine.storage.CellType;
-import com.splicemachine.storage.DataCell;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -226,26 +222,26 @@ public class SICompactionStateMutateTest {
     }
 
     @Test
-    public void committed() {
+    public void isCommitted() {
         TxnView committedWithRootParent = TxnTestUtils.getMockCommittedTxn(0x100, 0x200);
-        assertTrue(SICompactionStateMutate.committed(committedWithRootParent));
+        assertTrue(SICompactionStateMutate.isCommitted(committedWithRootParent));
 
         TxnView committedWithCommittedParent = TxnTestUtils.getMockCommittedTxn(0x100, 0x200, committedWithRootParent);
-        assertTrue(SICompactionStateMutate.committed(committedWithCommittedParent));
+        assertTrue(SICompactionStateMutate.isCommitted(committedWithCommittedParent));
 
         TxnView committedThirdGeneration = TxnTestUtils.getMockCommittedTxn(0x100, 0x200, committedWithCommittedParent);
-        assertTrue(SICompactionStateMutate.committed(committedThirdGeneration));
+        assertTrue(SICompactionStateMutate.isCommitted(committedThirdGeneration));
 
         TxnView activeWithRootParent = TxnTestUtils.getMockActiveTxn(0x100);
-        assertFalse(SICompactionStateMutate.committed(activeWithRootParent));
+        assertFalse(SICompactionStateMutate.isCommitted(activeWithRootParent));
 
         TxnView activeWithCommittedParent = TxnTestUtils.getMockActiveTxn(0x150, committedWithCommittedParent);
-        assertFalse(SICompactionStateMutate.committed(activeWithCommittedParent));
+        assertFalse(SICompactionStateMutate.isCommitted(activeWithCommittedParent));
 
         TxnView activeWithActiveParent = TxnTestUtils.getMockActiveTxn(0x150, activeWithRootParent);
-        assertFalse(SICompactionStateMutate.committed(activeWithActiveParent));
+        assertFalse(SICompactionStateMutate.isCommitted(activeWithActiveParent));
 
         TxnView committedWithActiveParent = TxnTestUtils.getMockCommittedTxn(0x150, 0x250, activeWithRootParent);
-        assertFalse(SICompactionStateMutate.committed(committedWithActiveParent));
+        assertFalse(SICompactionStateMutate.isCommitted(committedWithActiveParent));
     }
 }
