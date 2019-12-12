@@ -45,7 +45,8 @@ public interface SessionProperties {
         DEFAULTSELECTIVITYFACTOR(1),
         SKIPSTATS(2),
         RECURSIVEQUERYITERATIONLIMIT(3),
-        OLAPQUEUE(4);
+        OLAPQUEUE(4),
+        SNAPSHOT_TIMESTAMP(5);
 
         public static int COUNT = PROPERTYNAME.values().length;
 
@@ -113,6 +114,14 @@ public interface SessionProperties {
                 }
                 if (recursivequeryIterationLimit <= 0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive integer or null");
+                break;
+            case SNAPSHOT_TIMESTAMP:
+                long timestamp;
+                try {
+                    timestamp = Long.parseLong(valString);
+                } catch (Exception parseIntE) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY_VALUE, valString, "value should be a positive long");
+                }
                 break;
             default:
                 break;

@@ -24,6 +24,7 @@ import com.splicemachine.pipeline.client.WriteFailedException;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
+import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.server.FailedServerException;
 import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.si.api.txn.lifecycle.CannotCommitException;
@@ -591,6 +592,12 @@ public enum ErrorState{
     LANG_MISSING_PARMS("07000"),
     LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION("21000"),
     LANG_STRING_TRUNCATION("22001"),
+    LANG_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE("51045") {
+        @Override
+        public boolean accepts(Throwable t) {
+            return super.accepts(t) || t instanceof ReadOnlyModificationException;
+        }
+    },
     LANG_CONCAT_STRING_OVERFLOW("54006"),
     /*
      * Throw when an attempted insert it outside the range for the given datatype
