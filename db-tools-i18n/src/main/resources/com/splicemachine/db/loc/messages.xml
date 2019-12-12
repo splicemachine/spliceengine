@@ -7749,6 +7749,11 @@ MessageId.java.
             </msg>
 
             <msg>
+                <name>51045</name>
+                <text>The request is not supported for a read-only database.</text>
+            </msg>
+
+            <msg>
                 <name>54002</name>
                 <text>A string constant starting with '{0}' is too long.</text>
                 <arg>prefix</arg>
@@ -8927,6 +8932,7 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>coprocessorService</arg>
                <arg>configurationField</arg>
            </msg>
+
 
            <msg>
                <name>BR001</name>
