@@ -1572,4 +1572,34 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
             "END", expectedErrors, s);
         }
     }
+
+    // Test Triggers with the SET statement that get recompiled.
+    @Test
+    public void test_DB_8974() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a timestamp, b int)");
+            s.execute("insert into t1 values ({ts'2001-01-01 12:00:00'}, 1)");
+            s.execute("CREATE TRIGGER TR1 NO CASCADE\n" +
+                        "BEFORE UPDATE ON T1 REFERENCING NEW AS N\n" +
+                        "FOR EACH ROW MODE DB2SQL\n" +
+                        "WHEN (1=1)\n" +
+                        "BEGIN ATOMIC\n" +
+                        "   SET N.A = {ts'2005-01-01 23:00:00'};\n" +
+                        "END");
+
+            // Altering the table makes the trigger SPS in the
+            // dictionary get marked as invalid to it will be
+            // recompiled the next time it is invoked.
+            s.execute("alter table t1 add column c int");
+
+            s.execute("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
+            s.execute("update t1 set a = {ts'2002-01-01 23:00:00'}");
+
+            String query = "select a from t1";
+            String expected = "A           |\n" +
+            "-----------------------\n" +
+            "2005-01-01 23:00:00.0 |";
+            testQuery(query, expected, s);
+        }
+    }
 }

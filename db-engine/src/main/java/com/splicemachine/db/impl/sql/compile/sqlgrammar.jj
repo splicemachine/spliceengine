@@ -3654,6 +3654,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = declareTemporaryTableDeclaration() |
         statementNode = preparableSQLDataStatement() |
         statementNode = setStatement(new Token[1]) |
+        statementNode = setStatementInCreateTrigger(new Token[1], null) |
         statementNode = spsSetStatement() |
 		statementNode = truncateTableStatement() |
 		statementNode = grantStatement() |
@@ -14902,8 +14903,18 @@ setStatementInCreateTrigger(Token[] tokenHolder, HashSet<String> hs) throws Stan
         ValueNodeList	newValuesList = (ValueNodeList) nodeFactory.getNode(
                                                     C_NodeTypes.VALUE_NODE_LIST,
                                                     getContextManager());
+        if (hs == null)
+            hs = new HashSet<String>();
 }
 {
+  LOOKAHEAD ( { getToken(1).kind == SET &&
+                getToken(2).kind != CURRENT &&
+                getToken(2).kind != ISOLATION &&
+                getToken(2).kind != SCHEMA &&
+                getToken(2).kind != MESSAGE_LOCALE &&
+                getToken(2).kind != ROLE &&
+                getToken(2).kind != SESSION_PROPERTY
+              } )
   <SET> setClauseValueList(assignedColumnsList, newValuesList, hs)
   {
         return (StatementNode) nodeFactory.getNode(

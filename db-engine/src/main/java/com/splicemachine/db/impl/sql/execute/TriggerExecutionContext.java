@@ -511,7 +511,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         int targetIndex = 1;
         for (; sourceIndex<=stopIndex; sourceIndex++) {
             try {
-                result.setColumn(targetIndex++, resultSet.getColumn(sourceIndex).cloneValue(false));
+                result.setColumn(targetIndex++, resultSet.getColumn(sourceIndex));
             } catch (StandardException e) {
                 throw Util.generateCsSQLException(e);
             }
