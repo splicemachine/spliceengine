@@ -27,14 +27,14 @@ import java.util.*;
  *
  * Created by jleach on 4/30/15.
  */
-public class CogroupOuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, Tuple2<ExecRow,Tuple2<Iterable<ExecRow>,Iterable<ExecRow>>>,ExecRow> {
-    private OuterJoinRestrictionFlatMapFunction<Op> outerJoinRestrictionFlatMapFunction;
+public class CogroupLeftOuterJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, Tuple2<ExecRow,Tuple2<Iterable<ExecRow>,Iterable<ExecRow>>>,ExecRow> {
+    private LeftOuterJoinRestrictionFlatMapFunction<Op> leftOuterJoinRestrictionFlatMapFunction;
     protected ExecRow leftRow;
-    public CogroupOuterJoinRestrictionFlatMapFunction() {
+    public CogroupLeftOuterJoinRestrictionFlatMapFunction() {
         super();
     }
 
-    public CogroupOuterJoinRestrictionFlatMapFunction(OperationContext<Op> operationContext) {
+    public CogroupLeftOuterJoinRestrictionFlatMapFunction(OperationContext<Op> operationContext) {
         super(operationContext);
     }
 
@@ -45,14 +45,14 @@ public class CogroupOuterJoinRestrictionFlatMapFunction<Op extends SpliceOperati
         List<Iterable<ExecRow>> returnRows = new LinkedList<>();
         for(ExecRow a_1 : tuple._2._1){
             Iterable<ExecRow> locatedRows=tuple._2._2;
-            returnRows.add(IteratorUtils.toList(outerJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,locatedRows))));
+            returnRows.add(IteratorUtils.toList(leftOuterJoinRestrictionFlatMapFunction.call(new Tuple2<>(a_1,locatedRows))));
         }
         return new ConcatenatedIterable<>(returnRows).iterator();
     }
     @Override
     protected void checkInit() {
         if (!initialized)
-            outerJoinRestrictionFlatMapFunction = new OuterJoinRestrictionFlatMapFunction<>(operationContext);
+            leftOuterJoinRestrictionFlatMapFunction = new LeftOuterJoinRestrictionFlatMapFunction<>(operationContext);
         super.checkInit();
     }
 

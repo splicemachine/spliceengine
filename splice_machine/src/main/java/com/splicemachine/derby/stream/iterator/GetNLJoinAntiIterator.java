@@ -52,7 +52,7 @@ public class GetNLJoinAntiIterator extends GetNLJoinIterator {
 
         if (!hasNext ) {
             // For anti join, if there is no match on the right side, return an empty row
-            ExecRow lr = op.getEmptyRow();
+            ExecRow lr = op.getRightEmptyRow();
             StreamLogUtils.logOperationRecordWithMessage(lr,ctx,"outer - right side no rows");
             op.setCurrentRow(lr);
             rightSideNLJIterator = new SingletonIterator(lr);

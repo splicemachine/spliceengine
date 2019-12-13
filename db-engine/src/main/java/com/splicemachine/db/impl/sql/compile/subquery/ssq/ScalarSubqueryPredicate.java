@@ -149,6 +149,9 @@ public class ScalarSubqueryPredicate implements org.spark_project.guava.base.Pre
                 collectInnerTableSet(innerSet, collect, ((JoinNode) fromTable).getLeftResultSet());
                 collectInnerTableSet(innerSet, true, ((JoinNode) fromTable).getRightResultSet());
             }
+        } else if (fromTable instanceof FullOuterJoinNode) {
+            collectInnerTableSet(innerSet, true, ((JoinNode) fromTable).getLeftResultSet());
+            collectInnerTableSet(innerSet, true, ((JoinNode) fromTable).getRightResultSet());
         } else if (fromTable instanceof TableOperatorNode) {
             collectInnerTableSet(innerSet, collect, ((TableOperatorNode) fromTable).getLeftResultSet());
             collectInnerTableSet(innerSet, collect, ((TableOperatorNode) fromTable).getRightResultSet());

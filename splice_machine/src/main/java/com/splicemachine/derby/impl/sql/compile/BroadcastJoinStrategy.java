@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class BroadcastJoinStrategy extends HashableJoinStrategy {
@@ -58,6 +59,11 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 	@Override
     public String halfOuterJoinResultSetMethodName() {
         return "getBroadcastLeftOuterJoinResultSet";
+    }
+
+    @Override
+    public String fullOuterJoinResultSetMethodName() {
+        return "getBroadcastFullOuterJoinResultSet";
     }
 	
 	/** @see JoinStrategy#multiplyBaseCostByOuterRows */
@@ -132,9 +138,17 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         AccessPath currentAccessPath = innerTable.getCurrentAccessPath();
         boolean isHinted = currentAccessPath.isHintedJoinStrategy();
 
-        if (isHinted || estimatedMemoryMB<regionThreshold && estimatedRowCount<rowCountThreshold &&
-                (!currentAccessPath.isMissingHashKeyOK() || (innerTable instanceof FromBaseTable &&  // non-equality broadcast join only costed if using spark
-                ((FromBaseTable)innerTable).isSpark(((FromBaseTable)innerTable).getdataSetProcessorTypeForAccessPath(currentAccessPath))))) {
+        boolean costIt = isHinted ||
+                estimatedMemoryMB<regionThreshold &&
+                estimatedRowCount<rowCountThreshold &&
+                (!currentAccessPath.isMissingHashKeyOK() ||
+                 // allow full outer join without equality join condition
+                 outerCost.getJoinType() == JoinNode.FULLOUTERJOIN||
+                 // allow left or inner join with non-equality broadcast join only if using spark
+                 (innerTable instanceof FromBaseTable &&
+                        ((FromBaseTable)innerTable).isSpark(((FromBaseTable)innerTable).getdataSetProcessorTypeForAccessPath(currentAccessPath))));
+
+        if (costIt) {
             double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
             double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
             double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
@@ -175,8 +189,14 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         double joiningRowCost = numOfJoinedRows * localLatency;
         assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
         assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        return (outerCost.getLocalCostPerPartition())+((innerCost.getLocalCostPerPartition()+innerCost.getRemoteCostPerPartition()) * innerCost.partitionCount())+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
+        double result = (outerCost.getLocalCostPerPartition())+((innerCost.getLocalCostPerPartition()+innerCost.getRemoteCostPerPartition()) * innerCost.partitionCount())+innerCost.getOpenCost()+innerCost.getCloseCost()+.01 // .01 Hash Cost//
                + joiningRowCost/outerCost.partitionCount();
+        // For full outer join, we need to broadcast the left side also to compute the non-matching rows
+        // from the right, so add cost to reflex that.
+        if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN) {
+            result += (innerCost.getLocalCostPerPartition()) + ((outerCost.getLocalCostPerPartition() + outerCost.getRemoteCostPerPartition()) * outerCost.partitionCount()) + outerCost.getOpenCost() + outerCost.getCloseCost() + joiningRowCost/innerCost.partitionCount();
+        }
+        return result;
     }
 
     @Override

@@ -864,7 +864,7 @@ public class FromBaseTable extends FromTable {
                     if(baseTableRestrictionList.isRedundantPredicate(i)) continue;
                 }
 
-                if(!p.isJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
+                if(!p.isJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
                     scf.addPredicate(p, defaultSelectivityFactor);
             }
             scf.generateCost();
@@ -3171,7 +3171,7 @@ public class FromBaseTable extends FromTable {
             // Look for equality predicate that is not a join predicate
             boolean existsNonjoinPredicate = false;
             for (Predicate predicate : optimizableEqualityPredicateList) {
-                if (!predicate.isJoinPredicate()) {
+                if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
                     existsNonjoinPredicate = true;
                     break;
                 }

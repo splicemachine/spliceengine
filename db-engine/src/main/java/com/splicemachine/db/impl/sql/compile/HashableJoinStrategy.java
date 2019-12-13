@@ -163,6 +163,15 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         // The same conditions as in NestedLoopJoinStrategy.feasible are added for safety.
         // Could these be removed in the future?
         if (hashKeyColumns == null && skipKeyCheck) {
+            // For full outer join, broadcast join is the default join strategy that can be applied
+            // to any kinds of join predicate, so make the eligibility check more general
+            if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN &&
+                (innerTable.isMaterializable() ||
+                 innerTable.supportsMultipleInstantiations())) {
+                ap.setMissingHashKeyOK(true);
+                return true;
+            }
+
             if (innerTable instanceof FromTable                               &&
                 predList != null                                              &&
                 !outerCost.isSingleRow()                                      &&

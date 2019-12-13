@@ -426,6 +426,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
     @SuppressWarnings("ConstantConditions")
     public static boolean isQualifier(Predicate pred,Optimizable optTable,boolean pushPreds) throws StandardException{
+        // do not qualify a full join predicate
+        if (pred.isFullJoinPredicate())
+            return false;
+
 		/*
 		** Skip over it if it's not a relational operator (this includes
 		** BinaryComparisonOperators and IsNullNodes.
@@ -744,6 +748,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             Predicate[] preds=new Predicate[size];
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
+
                 if(isQualifier(pred,optTable,pushPreds) ||
                         (isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds))
                         ) {
@@ -821,8 +826,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         List<Predicate> predicates=new ArrayList<>();
         for(int index=0;index<size;index++){
             Predicate pred=elementAt(index);
+
             Integer position=isIndexUseful(pred,optTable,pushPreds,skipProbePreds,baseColumnPositions);
-            if(position!=null){
+            if(!pred.isFullJoinPredicate() && position!=null){
                 if (pred.isInListProbePredicate()) {
                     inlistPreds.put(position, pred);
                     if (position >= 0 && multiColumnMultiProbeEnabled)
