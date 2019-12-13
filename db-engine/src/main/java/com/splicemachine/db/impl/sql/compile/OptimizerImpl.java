@@ -1061,12 +1061,12 @@ public class OptimizerImpl implements Optimizer{
         }
 
         /* if the current optimizable is from SSQ, we need to use outer join, set the OuterJoin flag in cost accordingly */
-        boolean savedOuterJFlag = false;
+        int savedJoinType = JoinNode.INNERJOIN;
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
             if (fromTable.getFromSSQ()) {
-                savedOuterJFlag = outerCost.isOuterJoin();
-                outerCost.setOuterJoin(true);
+                savedJoinType = outerCost.getJoinType();
+                outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
             }
         }
 		/* Cost the optimizable at the current join position */
@@ -1077,7 +1077,7 @@ public class OptimizerImpl implements Optimizer{
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
             if (fromTable.getFromSSQ())
-                outerCost.setOuterJoin(savedOuterJFlag);
+                outerCost.setJoinType(savedJoinType);
         }
     }
 
@@ -1299,9 +1299,9 @@ public class OptimizerImpl implements Optimizer{
     /**
      * Set whether it is participating in an outer join.
      *
-     * @param isOuterJoin if true, this is an outer join
+     * @param joinType
      */
-    @Override public void setIsOuterJoin(boolean isOuterJoin){ outermostCostEstimate.setOuterJoin(isOuterJoin); }
+    @Override public void setJoinType(int joinType){ outermostCostEstimate.setJoinType(joinType); }
 
     @Override
     public int tableLockThreshold(){ return tableLockThreshold; }

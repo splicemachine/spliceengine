@@ -41,7 +41,7 @@ public class CostEstimateImpl implements CostEstimate {
     public double	cost;
     public double	rowCount;
     public double	singleScanRowCount;
-    public boolean isOuterJoin;
+    public int joinType;
     public boolean isAntiJoin;
 
     private boolean singleRow = false;
@@ -468,24 +468,29 @@ public class CostEstimateImpl implements CostEstimate {
 
     /**
      *
-     * Boolean flag that is set so we can take this into account for JoinSelectivity calculation.
+     * get joinType so that we can take this into account for JoinSelectivity calculation.
      *
      * @return
      */
     @Override
-    public boolean isOuterJoin() {
-        return isOuterJoin;
+    public int getJoinType() {
+        return joinType;
     }
 
+    @Override
+    public boolean isOuterJoin() {
+        return joinType == JoinNode.LEFTOUTERJOIN || joinType == JoinNode.FULLOUTERJOIN;
+    }
     /**
      *
      * Boolean flag that is set so we can take this into account for JoinSelectivity calculation.
      *
      * @return
+     * @param joinType
      */
     @Override
-    public void setOuterJoin(boolean isOuterJoin) {
-        this.isOuterJoin = isOuterJoin;
+    public void setJoinType(int joinType) {
+        this.joinType = joinType;
     }
 
     @Override

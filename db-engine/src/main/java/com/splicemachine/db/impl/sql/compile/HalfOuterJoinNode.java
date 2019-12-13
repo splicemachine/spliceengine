@@ -157,7 +157,7 @@ public class HalfOuterJoinNode extends JoinNode{
 			/* Verify that a user specifed right outer join is transformed into
 			 * a left outer join exactly once.
 			 */
-            assert !transformed: "Attempting to transform a right outer join multiple tiems";
+            assert !transformed: "Attempting to transform a right outer join multiple times";
 
             ResultSetNode tmp=leftResultSet;
 
@@ -590,7 +590,7 @@ public class HalfOuterJoinNode extends JoinNode{
             innerRS=rightResultSet;
         }
 
-        // We a relooking for a null intolerant predicate on an inner table.
+        // We are looking for a null intolerant predicate on an inner table.
         // Collect base table numbers, also if they are located inside a join
         // (inner or outer), that is, the inner operand is itself a join,
         // recursively.

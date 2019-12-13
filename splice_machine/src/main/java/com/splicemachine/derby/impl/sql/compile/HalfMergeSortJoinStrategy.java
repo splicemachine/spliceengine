@@ -89,6 +89,10 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
         return "getHalfMergeSortLeftOuterJoinResultSet";
     }
 
+    public String fullOuterJoinResultSetMethodName() {
+        throw new UnsupportedOperationException("HalfMergeSort full join not supported currently");
+    }
+
     /**
      * Right Side Cost + LeftSideRows*WriteCost
      */

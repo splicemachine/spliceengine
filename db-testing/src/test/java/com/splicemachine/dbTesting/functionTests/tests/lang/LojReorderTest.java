@@ -9852,7 +9852,7 @@ public final class LojReorderTest extends BaseJDBCTestCase {
 
         //
         //------------------------------------------------------------
-        // test unit 4. Update with OUTER JOIN subquery and with OUTER JOIN in
+        // test unit 4. Update with LEFTOUTER JOIN subquery and with LEFTOUTER JOIN in
         //              set clause
         //------------------------------------------------------------
 

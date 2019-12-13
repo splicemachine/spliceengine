@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -28,8 +29,8 @@ import java.io.IOException;
 
 public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
-	protected SpliceMethod<ExecRow> emptyRowFun;
-	protected ExecRow emptyRow;
+	protected SpliceMethod<ExecRow> rightEmptyRowFun;
+	protected ExecRow rightEmptyRow;
 
 	public BroadcastLeftOuterJoinOperation() {
 		super();
@@ -45,7 +46,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 			Activation activation,
 			GeneratedMethod restriction,
 			int resultSetNumber,
-			GeneratedMethod emptyRowFun,
+			GeneratedMethod rightEmptyRowFun,
 			boolean wasRightOuterJoin,
 		    boolean oneRowRightSide,
 		    boolean notExistsRightSide,
@@ -59,23 +60,23 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
                         optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
                         sparkExpressionTreeAsString);
                 SpliceLogUtils.trace(LOG, "instantiate");
-                emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+                rightEmptyRowFunMethodName = (rightEmptyRowFun == null) ? null : rightEmptyRowFun.getMethodName();
                 this.wasRightOuterJoin = wasRightOuterJoin;
-                this.isOuterJoin = true;
+                this.joinType = JoinNode.LEFTOUTERJOIN;
                 init();
 	}
 	
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
-        emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
+        rightEmptyRowFun = (rightEmptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,activation);
     }
 
     @Override
-    public ExecRow getEmptyRow () throws StandardException {
-		if (emptyRow == null)
-				emptyRow = emptyRowFun.invoke();
-		return emptyRow;
+    public ExecRow getRightEmptyRow() throws StandardException {
+		if (rightEmptyRow == null)
+				rightEmptyRow = rightEmptyRowFun.invoke();
+		return rightEmptyRow;
 	}
 
     @Override
