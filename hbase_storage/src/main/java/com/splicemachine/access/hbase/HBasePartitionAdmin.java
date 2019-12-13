@@ -511,8 +511,17 @@ public class HBasePartitionAdmin implements PartitionAdmin{
             SpliceLogUtils.info(LOG, "enabled replication for table %s", tn);
         }
         finally {
-            if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
+            int wait = 0;
+            if (tn != null && !admin.isTableEnabled(tn)) {
                 admin.enableTable(tn);
+                while (wait < 2000 && !admin.isTableEnabled(tn)) {
+                    try {
+                        Thread.sleep(100);
+                        wait++;
+                    } catch (InterruptedException e) {
+                        throw new IOException(e);
+                    }
+                }
             }
         }
     }
@@ -535,8 +544,17 @@ public class HBasePartitionAdmin implements PartitionAdmin{
             SpliceLogUtils.info(LOG, "disabled replication for table %s", tn);
         }
         finally {
-            if (tn != null && !admin.isTableEnabled(tn) && tableEnabled) {
+            int wait = 0;
+            if (tn != null && !admin.isTableEnabled(tn)) {
                 admin.enableTable(tn);
+                while (wait < 2000 && !admin.isTableEnabled(tn)) {
+                    try {
+                        Thread.sleep(100);
+                        wait++;
+                    } catch (InterruptedException e) {
+                        throw new IOException(e);
+                    }
+                }
             }
         }
     }
