@@ -255,7 +255,12 @@ public class SIObserver extends BaseRegionObserver{
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            EnumSet<PurgeConfig> purgeConfig = EnumSet.of(PurgeConfig.PURGE, PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+            EnumSet<PurgeConfig> purgeConfig;
+            if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+                purgeConfig = EnumSet.of(PurgeConfig.PURGE, PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+            } else {
+                purgeConfig = PurgeConfig.NO_PURGE;
+            }
             SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
@@ -275,9 +280,14 @@ public class SIObserver extends BaseRegionObserver{
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                EnumSet<PurgeConfig> purgeConfig = EnumSet.of(PurgeConfig.PURGE);
-                if (!compactionRequest.isMajor())
-                    purgeConfig.add(PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+                EnumSet<PurgeConfig> purgeConfig;
+                if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+                    purgeConfig = EnumSet.of(PurgeConfig.PURGE);
+                    if (!compactionRequest.isMajor())
+                        purgeConfig.add(PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+                } else {
+                    purgeConfig = PurgeConfig.NO_PURGE;
+                }
                 SICompactionScanner siScanner = new SICompactionScanner(
                         state, scanner, purgeConfig,
                         conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);

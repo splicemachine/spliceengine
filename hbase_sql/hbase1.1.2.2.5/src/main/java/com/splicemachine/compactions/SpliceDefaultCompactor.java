@@ -181,12 +181,15 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                     EnumSet<PurgeConfig> purgeConfig;
-                    if (request.isMajor())
-                        purgeConfig = EnumSet.of(PurgeConfig.PURGE);
-                    else
-                        purgeConfig = EnumSet.of(PurgeConfig.PURGE, PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
-                    if (SpliceCompactionUtils.shouldPurge(store))
+                    if (SpliceCompactionUtils.shouldPurge(store)) {
                         purgeConfig = EnumSet.of(PurgeConfig.FORCE_PURGE);
+                    } else if (HConfiguration.getConfiguration().getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+                        purgeConfig = EnumSet.of(PurgeConfig.PURGE);
+                        if (!request.isMajor())
+                            purgeConfig.add(PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+                    } else {
+                        purgeConfig = PurgeConfig.NO_PURGE;
+                    }
 
                     SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, resolutionShare, bufferSize, context);
                     siScanner.start();

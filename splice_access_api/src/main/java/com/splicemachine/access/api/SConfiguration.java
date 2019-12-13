@@ -239,6 +239,8 @@ public interface SConfiguration {
 
     int getOlapShufflePartitions();
 
+    boolean getOlapCompactionAutomaticallyPurgeDeletedRows();
+
     // SQLConfiguration
     boolean debugDumpBindTree();
 
