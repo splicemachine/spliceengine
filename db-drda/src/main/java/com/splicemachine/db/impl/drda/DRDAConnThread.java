@@ -46,6 +46,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -2277,6 +2278,13 @@ class DRDAConnThread extends Thread {
 		DRDAStatement stmt = database.getDRDAStatement(pkgnamcsn);
 		if (stmt == null)
 		{
+			server.consoleMessage("NOT FOUND Pkgnamcsn: " + pkgnamcsn + " key:" + pkgnamcsn.getStatementKey(), true);
+			server.consoleMessage("Entries:", true);
+			for (Object o : database.stmtTable.entrySet()) {
+				Map.Entry e = (Map.Entry) o;
+				server.consoleMessage("(" + e.getKey().toString() +"," + ((DRDAStatement)e.getValue()).toDebugString("")+")", true);
+			}
+
 			//XXX should really throw a SQL Exception here
 			invalidValue(CodePoint.PKGNAMCSN);
 		}
@@ -3985,6 +3993,9 @@ class DRDAConnThread extends Thread {
 		}
 
 		stmt = database.newDRDAStatement(pkgnamcsn);
+
+		server.consoleMessage("STORING Pkgnamcsn: " + pkgnamcsn + " key:" + pkgnamcsn.getStatementKey(), true);
+
 		String sqlStmt = parsePRPSQLSTTobjects(stmt);
 		if (databaseToSet != null)
 			stmt.setDatabase(database);
@@ -4335,6 +4346,9 @@ class DRDAConnThread extends Thread {
 			if ( stmt == null  || !(stmt.wasExplicitlyPrepared()))
 			{ 				
 				stmt  = database.newDRDAStatement(pkgnamcsn);
+
+				server.consoleMessage("STORING Pkgnamcsn: " + pkgnamcsn + " key:" + pkgnamcsn.getStatementKey(), true);
+
 				stmt.setQryprctyp(CodePoint.QRYBLKCTL_DEFAULT);				
 				needPrepareCall = true;
 			}

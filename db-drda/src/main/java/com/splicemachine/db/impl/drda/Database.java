@@ -90,7 +90,7 @@ class Database
 	DRDAStatement defaultStatement;    // default statement used 
 													   // for execute imm
 	private DRDAStatement currentStatement; // current statement we are working on
-	private Hashtable stmtTable;		// Hash table for storing statements
+	public Hashtable stmtTable;		// Hash table for storing statements
 
 	// constructor
 	/**

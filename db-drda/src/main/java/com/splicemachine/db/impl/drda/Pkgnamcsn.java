@@ -205,5 +205,10 @@ final class Pkgnamcsn {
                 pkgid.equals(p.pkgid) &&
                 pkgsn == p.pkgsn;
         }
+
+        @Override
+        public String toString() {
+            return "PkgnamcsnKey with hash " + hash + " for " + Pkgnamcsn.this.toString();
+        }
     }
 }
