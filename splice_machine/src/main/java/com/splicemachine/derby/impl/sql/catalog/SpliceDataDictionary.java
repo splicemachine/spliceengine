@@ -79,6 +79,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl sourceCodeTable=null;
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
+    private volatile TabInfoImpl replicationTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
 
@@ -384,6 +385,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public void createReplicationTables(TransactionController tc) throws StandardException {
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+        TabInfoImpl replicationTableInfo=getReplicationTable();
+        addTableIfAbsent(tc,systemSchema,replicationTableInfo,null);
+    }
+
+    private TabInfoImpl getReplicationTable() throws StandardException{
+        if(replicationTable==null){
+            replicationTable=new TabInfoImpl(new SYSREPLICATIONRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(replicationTable);
+        return replicationTable;
+    }
+
     @Override
     protected void createDictionaryTables(Properties params,
                                           TransactionController tc,
@@ -407,6 +422,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         createPermissionTableSystemViews(tc);
 
+        createReplicationTables(tc);
     }
 
     @Override

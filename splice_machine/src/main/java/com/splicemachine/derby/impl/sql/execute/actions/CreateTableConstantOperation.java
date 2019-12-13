@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FileInfo;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -325,6 +326,16 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 splitKeys);
         SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
+        try {
+            if (tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
+                if (dd.databaseReplicationEnabled() || dd.schemaReplicationEnabled(schemaName)) {
+                    PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+                    admin.enableTableReplication(Long.toString(conglomId));
+                }
+            }
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
         //
         // Create a new table descriptor.
         //
