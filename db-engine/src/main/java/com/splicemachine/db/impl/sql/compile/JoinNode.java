@@ -1545,7 +1545,7 @@ public class JoinNode extends TableOperatorNode{
         if(joinClause!=null){
             /* JoinNode.deferredBindExpressions() may be called again after the outer join rewrite
                optimization, at this stage, we don't want to simplify the ON clause predicate again, especially
-               the top AND node with ParTrue
+               the top AND node with a boolean true.
              */
             if (!joinClauseNormalized) {
                 Visitor constantExpressionVisitor =
