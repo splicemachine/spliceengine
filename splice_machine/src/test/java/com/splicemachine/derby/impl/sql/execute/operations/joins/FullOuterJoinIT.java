@@ -286,6 +286,23 @@ public class FullOuterJoinIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testConversionOfFullJoinWithNoConstraintsToInnerJoin2() throws Exception {
+        String sqlText = format("select * from t1 inner join t3 on a1=a3 full join t2 --splice-properties useSpark=%s\n on 3=3", useSpark);
+        String expected = "A1 |B1 |C1 |A3 |B3 |C3 |A2 |B2 | C2  |\n" +
+                "--------------------------------------\n" +
+                " 3 |30 | 3 | 3 |30 | 3 | 2 |20 |  2  |\n" +
+                " 3 |30 | 3 | 3 |30 | 3 | 2 |20 |  2  |\n" +
+                " 3 |30 | 3 | 3 |30 | 3 | 3 |30 |  3  |\n" +
+                " 3 |30 | 3 | 3 |30 | 3 | 4 |40 |NULL |\n" +
+                " 3 |30 | 3 | 3 |30 | 3 | 5 |50 |NULL |\n" +
+                " 3 |30 | 3 | 3 |30 | 3 | 6 |60 |  6  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
     public void testOnClauseWithSingleTableCondition1() throws Exception {
         String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n on a1=a2 and b2=20", useSpark, joinStrategy);
         String expected = "B1  | A1  | B2  | A2  | C2  |\n" +

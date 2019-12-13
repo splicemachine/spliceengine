@@ -231,9 +231,7 @@ public class FullOuterJoinNode extends JoinNode {
             ij.setTableNumber(tableNumber);
             ij.setSubqueryList(subqueryList);
             ij.setAggregateVector(aggregateVector);
-
-            leftResultSet.notFlattenableJoin();
-            rightResultSet.notFlattenableJoin();
+            
             return ij;
         }
 
