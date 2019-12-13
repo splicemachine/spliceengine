@@ -44,11 +44,11 @@ public class OuterJoinFunction<Op extends SpliceOperation> extends SpliceJoinFun
                     tuple._2.get(),op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
         else
             lr = JoinUtils.getMergedRow(tuple._1,
-                    op.getEmptyRow(),op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
+                    op.getRightEmptyRow(),op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
         op.setCurrentRow(lr);
         if (!op.getRestriction().apply(lr)) {
             lr = JoinUtils.getMergedRow(tuple._1,
-                    op.getEmptyRow(), op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns));
+                    op.getRightEmptyRow(), op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns));
             op.setCurrentRow(lr);
             operationContext.recordFilter();
         }

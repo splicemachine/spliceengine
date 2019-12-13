@@ -1715,7 +1715,8 @@ public class SQLParser
 	 *	CROSS JOIN
 	 *	LEFT OUTER JOIN
 	 *	RIGHT OUTER JOIN
-	 *	NATURAL [ { RIGHT | LEFT } [ OUTER ] | INNER ] JOIN
+	 *  FULL OUTER JOIN
+	 *	NATURAL [ { RIGHT | LEFT | FULL } [ OUTER ] | INNER ] JOIN
 	 *
 	 * @return	TRUE iff the next set of tokens is the beginning of a
 	 *			joinedTableExpression().
@@ -1743,14 +1744,14 @@ public class SQLParser
 		{
 			retval = true;
 		}
-		else if ((tokKind1 == LEFT || tokKind1 == RIGHT) && tokKind2 == OUTER)
+		else if ((tokKind1 == LEFT || tokKind1 == RIGHT || tokKind1 == FULL) && tokKind2 == OUTER)
 		{
 			if (getToken(3).kind == JOIN)
 			{
 				retval = true;
 			}
 		}
-		else if ((tokKind1 == LEFT || tokKind1 == RIGHT) && tokKind2 == JOIN)
+		else if ((tokKind1 == LEFT || tokKind1 == RIGHT || tokKind1 == FULL) && tokKind2 == JOIN)
 		{
 			retval = true;
 		}
@@ -2197,7 +2198,7 @@ public class SQLParser
      * @param onClause the ON clause, or null if there is no ON clause
      * @param usingClause the USING clause, or null if there is no USING clause
      * @param joinType the type of the join (one of the constants INNERJOIN,
-     *                 LEFTOUTERJOIN or RIGHTOUTERJOIN in JoinNode)
+     *                 LEFTOUTERJOIN or RIGHTOUTERJOIN or FULLOUTERJOIN in JoinNode)
      * @return a new join node
      */
     private JoinNode newJoinNode(ResultSetNode leftRSN, ResultSetNode rightRSN,
@@ -2238,6 +2239,16 @@ public class SQLParser
                         onClause,
                         usingClause,
                         Boolean.TRUE,
+                        null,
+                        getContextManager());
+
+            case JoinNode.FULLOUTERJOIN:
+                return (JoinNode) nodeFactory.getNode(
+                        C_NodeTypes.FULL_OUTER_JOIN_NODE,
+                        leftRSN,
+                        rightRSN,
+                        onClause,
+                        usingClause,
                         null,
                         getContextManager());
 
@@ -11016,11 +11027,15 @@ outerJoinType() throws StandardException :
 	{
 		return JoinNode.LEFTOUTERJOIN;
 	}
-|
-	<RIGHT>
+|   <RIGHT>
 	{
 		return JoinNode.RIGHTOUTERJOIN;
 	}
+|
+    <FULL>
+    {
+        return JoinNode.FULLOUTERJOIN;
+    }
 }
 
 Object[]

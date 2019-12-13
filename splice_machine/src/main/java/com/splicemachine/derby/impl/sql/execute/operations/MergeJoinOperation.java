@@ -153,7 +153,7 @@ public class MergeJoinOperation extends JoinOperation {
         operationContext.pushScope();
         try {
             left = left.map(new CountJoinedLeftFunction(operationContext));
-            if (isOuterJoin)
+            if (isOuterJoin())
                 return left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext), true);
             else {
                 if (notExistsRightSide)

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -35,7 +36,7 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
     protected SpliceMethod<ExecRow> emptyRowFun;
     protected ExecRow emptyRow;
 
-    { isOuterJoin = true; }
+    { joinType = JoinNode.LEFTOUTERJOIN; }
 
     public MergeLeftOuterJoinOperation() { super();}
 
@@ -65,7 +66,7 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
                  optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides,
                  sparkExpressionTreeAsString);
         SpliceLogUtils.trace(LOG, "instantiate");
-        emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
+        rightEmptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
         this.wasRightOuterJoin = wasRightOuterJoin;
         init();
     }
@@ -73,12 +74,12 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
-        emptyRowFun = (emptyRowFunMethodName == null) ? null :
-                          new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
+        emptyRowFun = (rightEmptyRowFunMethodName == null) ? null :
+                          new SpliceMethod<ExecRow>(rightEmptyRowFunMethodName,activation);
     }
 
     @Override
-    public ExecRow getEmptyRow() throws StandardException {
+    public ExecRow getRightEmptyRow() throws StandardException {
         if (emptyRow == null){
             emptyRow = emptyRowFun.invoke();
         }

@@ -36,6 +36,10 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
         super(operationContext);
     }
 
+    public CogroupBroadcastJoinFunction(OperationContext operationContext, boolean rightAsLeft) {
+        super(operationContext, rightAsLeft);
+    }
+
     @Override
     protected Iterable<Tuple2<ExecRow, Iterable<ExecRow>>> call(final Iterator<ExecRow> locatedRows, final JoinTable joinTable) {
         return FluentIterable.from(new Iterable<ExecRow>() {

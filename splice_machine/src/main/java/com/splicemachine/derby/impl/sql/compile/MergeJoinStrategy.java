@@ -57,6 +57,11 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
     }
 
     @Override
+    public String fullOuterJoinResultSetMethodName() {
+        throw new UnsupportedOperationException("Merge full join not supported currently");
+    }
+
+    @Override
     public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
@@ -65,6 +70,10 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                             boolean skipKeyCheck) throws StandardException{
         //we can't work if the outer table isn't sorted, regardless of what else happens
         if(outerCost==null) return false;
+
+        if (outerCost.getJoinType() == JoinNode.FULLOUTERJOIN)
+            return false;
+
         RowOrdering outerRowOrdering=outerCost.getRowOrdering();
         if(outerRowOrdering==null)
             return false;
