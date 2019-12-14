@@ -387,7 +387,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
             if (triggerHandler != null)
-                triggerHandler.initTriggerRowHolders();
+                triggerHandler.initTriggerRowHolders(isOlapServer());
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {

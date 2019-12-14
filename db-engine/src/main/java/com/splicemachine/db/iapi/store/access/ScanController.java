@@ -68,7 +68,7 @@ public interface ScanController extends GenericScanController{
      * ascending on an int, in that case a 2 is "greater" than 1 in a forward
      * scan on that index, and 1 is "greater" than 2 in a backward scan.
      * If the btree was ordered descending on an int then 1 is "greater" than
-     * 2 in a forward scan on that index, and 2 is "greater" than 1 in a backward
+     * 2 in a forward scan on that indexcurrentRow, and 2 is "greater" than 1 in a backward
      * scan.
      *
      * @see TransactionController#openScan

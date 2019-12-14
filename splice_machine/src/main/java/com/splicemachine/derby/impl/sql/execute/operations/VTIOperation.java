@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.vti.Restriction;
+import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -292,6 +293,10 @@ public class VTIOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
+        if (this.userVTI instanceof TriggerNewTransitionRows) {
+            TriggerNewTransitionRows tNTR = (TriggerNewTransitionRows) this.userVTI;
+            registerCloseable(tNTR);
+        }
         return getDataSetProvider().getDataSet(this, dsp,getAllocatedRow());
     }
 

@@ -129,6 +129,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
+            addRowToTriggeringResultSet(execRow);
             if (triggerTempTableWriteBuffer != null)
                 triggerTempTableWriteBuffer.add(encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);

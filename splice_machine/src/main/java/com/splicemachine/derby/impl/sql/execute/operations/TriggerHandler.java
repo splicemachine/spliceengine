@@ -70,6 +70,7 @@ public class TriggerHandler {
     private DMLWriteInfo writeInfo;
     private Activation activation;
     private TriggerRowHolderImpl newTableRowHolder;
+    private boolean isSpark;
 
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
@@ -97,17 +98,27 @@ public class TriggerHandler {
         initTriggerActivator(activation, constantAction);
     }
 
+    public void addRowToNewTableRowHolder(ExecRow row) throws StandardException {
+        // On Spark we just use a persisted dataframe to holder the
+        // new trigger rows, so no need to insert the row into the
+        // row holder.  It is used more as a context in the case of
+        // spark to hold useful information in one place.
+        if (!isSpark && newTableRowHolder != null)
+            newTableRowHolder.insert(row);
+    }
+
     public long getNewTableConglomerateId() {
         if (newTableRowHolder == null)
             return 0;
         return newTableRowHolder.getConglomerateId();
     }
-    public void initTriggerRowHolders() {
+    public void initTriggerRowHolders(boolean isSpark) {
+        this.isSpark = isSpark;
         Properties properties = new Properties();
         if (hasAfterStatement)
             newTableRowHolder =
                 new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
-                                         0, false, false, templateRow);
+                                         2, false, false, templateRow, isSpark);
     }
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {

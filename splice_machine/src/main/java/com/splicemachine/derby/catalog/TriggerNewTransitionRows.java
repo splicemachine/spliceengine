@@ -52,6 +52,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -80,11 +81,11 @@ import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.
  *
  */
 public class TriggerNewTransitionRows
-                   extends com.splicemachine.db.vti.UpdatableVTITemplate
-                   implements DatasetProvider, VTICosting
+                   implements DatasetProvider, VTICosting, AutoCloseable
 {
 
 	private ResultSet resultSet;
+	private DataSet<ExecRow> sourceSet;
 
 	/**
 	 * Construct a VTI on the trigger's new row set.
@@ -109,20 +110,26 @@ public class TriggerNewTransitionRows
 //	    catch (SQLException e) {
 //	        throw StandardException.plainWrapException(e);
 //            }
-	    String tableName = Long.toString(((TriggerRowHolderImpl)((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder()).getConglomerateId());
-
-	    Activation activation = ((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder().getActivation();
+            TemporaryRowHolderResultSet tRS = ((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet()));
+            TriggerRowHolderImpl triggerRowsHolder = (tRS == null) ? null : (TriggerRowHolderImpl)tRS.getHolder();
+            Activation activation = triggerRowsHolder.getActivation();
 	    // return ((InsertOperation)activation.getResultSet()).getLeftOperation().getDataSet(dsp);  // msirek-temp
-            return ((DMLWriteOperation)activation.getResultSet()).getSourceSet();
-/*
-	    DMLWriteOperation writeOperation = (DMLWriteOperation)(activation.getResultSet());
-	    String tableVersion = writeOperation.getTableVersion();
-	    TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
-	    Transaction rawStoreXact=((TransactionManager)transactionExecute).getRawStoreXact();
-            TxnView txn = ((BaseSpliceTransaction)rawStoreXact).getActiveStateTxn();
-            ExecRow templateRow = writeOperation.getExecRowDefinition();
+            if (op.isOlapServer()) {
+                sourceSet = ((DMLWriteOperation) activation.getResultSet()).getSourceSet();
+                sourceSet.persist();
+                return sourceSet;
+                //return sourceSet.union(sourceSet, );  msirek-temp
+            }
+            else {
+                String tableName = Long.toString(triggerRowsHolder.getConglomerateId());
+                DMLWriteOperation writeOperation = (DMLWriteOperation) (activation.getResultSet());
+                String tableVersion = writeOperation.getTableVersion();
+                TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+                Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+                TxnView txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+                ExecRow templateRow = writeOperation.getExecRowDefinition();
 
-            DataScan s = Scans.setupScan(
+                DataScan s = Scans.setupScan(
                 null,   // startKeyValues
                 ScanController.NA,   // startSearchOperator
                 null,   // stopKeyValues
@@ -141,16 +148,16 @@ public class TriggerNewTransitionRows
                 false   // rowIdKey
                 );
 
-            s.cacheRows(1000).batchCells(-1);
-            deSiify(s);
+                s.cacheRows(1000).batchCells(-1);
+                deSiify(s);
 
-            int numColumns = templateRow.nColumns();
-            int [] rowDecodingMap = new int[numColumns];
-            for (int i = 0; i < numColumns; i++)
-                rowDecodingMap[i] = i;
+                int numColumns = templateRow.nColumns();
+                int[] rowDecodingMap = new int[numColumns];
+                for (int i = 0; i < numColumns; i++)
+                    rowDecodingMap[i] = i;
 
-	    return dsp.<DMLWriteOperation,ExecRow>newScanSet(writeOperation, tableName)
-                .activation(((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder().getActivation())
+                DataSet<ExecRow> sourceSet = dsp.<DMLWriteOperation, ExecRow>newScanSet(writeOperation, tableName)
+                .activation(((TemporaryRowHolderResultSet) (((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder().getActivation())
                 .transaction(txn)
                 .scan(s)
                 .template(templateRow)
@@ -160,7 +167,10 @@ public class TriggerNewTransitionRows
                 .rowDecodingMap(rowDecodingMap)
                 .buildDataSet(writeOperation);
 
-*/
+                DataSet<ExecRow> cachedRowsSet = new ControlDataSet<>(triggerRowsHolder.getCachedRowsIterator());
+                return sourceSet.union(cachedRowsSet,writeOperation.getOperationContext());
+
+            }
 	    // return dsp.getEmpty();  msirek-temp
         }
 
@@ -192,144 +202,11 @@ public class TriggerNewTransitionRows
         return resultSet.getMetaData();
     }
 
-    @Override
-    public void setRowId(int parameterIndex, RowId x) throws SQLException {
-
-    }
-
-    @Override
-    public void setNString(int parameterIndex, String value) throws SQLException {
-
-    }
-
-    @Override
-    public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
-
-    }
-
-    @Override
-    public void setNClob(int parameterIndex, NClob value) throws SQLException {
-
-    }
-
-    @Override
-    public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-
-    }
-
-    @Override
-    public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-
-    }
-
-    @Override
-    public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
-
-    }
-
-    @Override
-    public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-
-    }
-
-    @Override
-    public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
-
-    }
-
-    @Override
-    public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-
-    }
-
-    @Override
-    public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
-
-    }
-
-    @Override
-    public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
-
-    }
-
-    @Override
-    public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-
-    }
-
-    @Override
-    public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-
-    }
-
-    @Override
-    public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
-
-    }
-
-    @Override
-    public void setClob(int parameterIndex, Reader reader) throws SQLException {
-
-    }
-
-    @Override
-    public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-
-    }
-
-    @Override
-    public void setNClob(int parameterIndex, Reader reader) throws SQLException {
-
-    }
-
-    public ResultSet executeQuery() throws SQLException {
-	   //DERBY-4095. Need to reinititialize ResultSet on 
-       //executeQuery, in case it was closed in a NESTEDLOOP join.
-       return initializeResultSet();
-   }
-    
-   public int getResultSetConcurrency() {
-        return java.sql.ResultSet.CONCUR_READ_ONLY;
-   }
-
-    @Override
-    public boolean isClosed() throws SQLException {
-        return false;
-    }
-
-    @Override
-    public void setPoolable(boolean poolable) throws SQLException {
-
-    }
-
-    @Override
-    public boolean isPoolable() throws SQLException {
-        return false;
-    }
-
-    @Override
-    public void closeOnCompletion() throws SQLException {
-
-    }
-
-    @Override
-    public boolean isCloseOnCompletion() throws SQLException {
-        return false;
-    }
-
     public void close() throws SQLException {
        resultSet.close();
+       if (sourceSet != null)
+           sourceSet.unpersistIt();
    }
-
-    @Override
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
-    }
-
-    @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
-    }
 
     @Override
     public double getEstimatedRowCount(VTIEnvironment vtiEnvironment) throws SQLException {

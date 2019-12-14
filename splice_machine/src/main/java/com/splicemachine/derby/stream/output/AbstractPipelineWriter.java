@@ -99,6 +99,11 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
             operation.evaluateGenerationClauses(row);
     }
 
+    protected void addRowToTriggeringResultSet(ExecRow row) throws StandardException {
+        if (triggerHandler != null)
+            triggerHandler.addRowToNewTableRowHolder(row);
+    }
+
     public void close() throws StandardException {
 
         try {
