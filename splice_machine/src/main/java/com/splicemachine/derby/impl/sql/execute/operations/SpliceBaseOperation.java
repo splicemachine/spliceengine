@@ -42,8 +42,10 @@ import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
+import com.splicemachine.si.impl.txn.WritableTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
@@ -439,9 +441,25 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }
     }
 
+    protected void rollbackTxn() throws StandardException {
+        TxnView txnView = getCurrentTransaction();
+        if (txnView instanceof Txn) {
+            Txn txn = (Txn)txnView;
+            try {
+                txn.rollback();
+            }
+            catch (UnsupportedOperationException | IOException e) {
+                if (e instanceof IOException)
+                    throw StandardException.plainWrapException(e);
+            }
+        }
+
+    }
+
     protected void resubmitDistributed(ResubmitDistributedException e) throws StandardException {
         LOG.warn("The query consumed too many resources running in control mode, resubmitting in Spark");
         close();
+        // rollbackTxn();  msirek-temp
         activation.getPreparedStatement().setDatasetProcessorType(CompilerContext.DataSetProcessorType.FORCED_SPARK);
         openDistributed();
     }

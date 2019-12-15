@@ -121,55 +121,57 @@ public class TriggerNewTransitionRows
                 //return sourceSet.union(sourceSet, );  msirek-temp
             }
             else {
-                String tableName = Long.toString(triggerRowsHolder.getConglomerateId());
-                DMLWriteOperation writeOperation = (DMLWriteOperation) (activation.getResultSet());
-                String tableVersion = writeOperation.getTableVersion();
-                TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
-                Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
-                TxnView txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
-                ExecRow templateRow = writeOperation.getExecRowDefinition();
-
-                DataScan s = Scans.setupScan(
-                null,   // startKeyValues
-                ScanController.NA,   // startSearchOperator
-                null,   // stopKeyValues
-                null,   // stopPrefixValues
-                ScanController.NA,   // stopSearchOperator
-                null,   // qualifiers
-                null,   // conglomerate.getAscDescInfo(),
-                null,   // getAccessedColumns(),
-                null,   // txn : non-transactional
-                false,  // sameStartStop,
-                null,   // conglomerate.getFormat_ids(),
-                null,   // keyDecodingMap,
-                null,   // FormatableBitSetUtils.toCompactedIntArray(getAccessedColumns()),
-                activation.getDataValueFactory(),
-                tableVersion,
-                false   // rowIdKey
-                );
-
-                s.cacheRows(1000).batchCells(-1);
-                deSiify(s);
-
-                int numColumns = templateRow.nColumns();
-                int[] rowDecodingMap = new int[numColumns];
-                for (int i = 0; i < numColumns; i++)
-                    rowDecodingMap[i] = i;
-
-                DataSet<ExecRow> sourceSet = dsp.<DMLWriteOperation, ExecRow>newScanSet(writeOperation, tableName)
-                .activation(((TemporaryRowHolderResultSet) (((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder().getActivation())
-                .transaction(txn)
-                .scan(s)
-                .template(templateRow)
-                .tableVersion(tableVersion)
-                .reuseRowLocation(true)
-                .ignoreRecentTransactions(false)
-                .rowDecodingMap(rowDecodingMap)
-                .buildDataSet(writeOperation);
-
                 DataSet<ExecRow> cachedRowsSet = new ControlDataSet<>(triggerRowsHolder.getCachedRowsIterator());
-                return sourceSet.union(cachedRowsSet,writeOperation.getOperationContext());
+                long conglomID = triggerRowsHolder.getConglomerateId();
+                if (conglomID != 0) {
+                    String tableName = Long.toString(conglomID);
+                    DMLWriteOperation writeOperation = (DMLWriteOperation) (activation.getResultSet());
+                    String tableVersion = writeOperation.getTableVersion();
+                    TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+                    Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+                    TxnView txn = ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+                    ExecRow templateRow = writeOperation.getExecRowDefinition();
 
+                    DataScan s = Scans.setupScan(
+                    null,   // startKeyValues
+                    ScanController.NA,   // startSearchOperator
+                    null,   // stopKeyValues
+                    null,   // stopPrefixValues
+                    ScanController.NA,   // stopSearchOperator
+                    null,   // qualifiers
+                    null,   // conglomerate.getAscDescInfo(),
+                    null,   // getAccessedColumns(),
+                    null,   // txn : non-transactional
+                    false,  // sameStartStop,
+                    null,   // conglomerate.getFormat_ids(),
+                    null,   // keyDecodingMap,
+                    null,   // FormatableBitSetUtils.toCompactedIntArray(getAccessedColumns()),
+                    activation.getDataValueFactory(),
+                    tableVersion,
+                    false   // rowIdKey
+                    );
+
+                    s.cacheRows(1000).batchCells(-1);
+                    deSiify(s);
+
+                    int numColumns = templateRow.nColumns();
+                    int[] rowDecodingMap = new int[numColumns];
+                    for (int i = 0; i < numColumns; i++)
+                        rowDecodingMap[i] = i;
+
+                    DataSet<ExecRow> sourceSet = dsp.<DMLWriteOperation, ExecRow>newScanSet(writeOperation, tableName)
+                    .activation(((TemporaryRowHolderResultSet) (((EmbedResultSet40) resultSet).getUnderlyingResultSet())).getHolder().getActivation())
+                    .transaction(txn)
+                    .scan(s)
+                    .template(templateRow)
+                    .tableVersion(tableVersion)
+                    .reuseRowLocation(true)
+                    .ignoreRecentTransactions(false)
+                    .rowDecodingMap(rowDecodingMap)
+                    .buildDataSet(writeOperation);
+                    return sourceSet.union(cachedRowsSet, writeOperation.getOperationContext());
+                }
+                return cachedRowsSet;
             }
 	    // return dsp.getEmpty();  msirek-temp
         }

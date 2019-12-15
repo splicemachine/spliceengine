@@ -19,6 +19,7 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.TemporaryRowHolder;
@@ -42,20 +43,21 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.TemporaryRowHolderOperation;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.utils.Scans;
+import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.callbuffer.RecordingCallBuffer;
+import com.splicemachine.pipeline.client.WriteCoordinator;
+import com.splicemachine.pipeline.config.UnsafeWriteConfiguration;
+import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.Partition;
 
-import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.deSiify;
 
 /**
 * This is a class that is used to temporarily
@@ -67,7 +69,8 @@ import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.
 * It is used for deferred DML processing.
 *
 */
-public class TriggerRowHolderImpl implements TemporaryRowHolder {
+public class TriggerRowHolderImpl implements TemporaryRowHolder
+{
     public static final int DEFAULT_OVERFLOWTHRESHOLD = 5;
 
     protected static final int STATE_UNINIT = 0;
@@ -75,42 +78,30 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
     public static final int STATE_DRAIN = 2;
 
 
-    protected ExecRow[] 	rowArray;
-    public int 		lastArraySlot;
-    private int			numRowsIn;
-    public int		state = STATE_UNINIT;
+    protected ExecRow[]         rowArray;
+    private int                 numRowsIn = 0;
+    private int                 lastArraySlot = -1;
+    public int                  state = STATE_UNINIT;
 
-    private	long				    CID;
-    private boolean					conglomCreated;
+    private long                CID;
+    private boolean             conglomCreated;
     private ConglomerateController	cc;
     private Properties				properties;
-    private ScanController			scan;
+
     private	ResultDescription		resultDescription;
     /** Activation object with local state information. */
     public Activation						activation;
 
-    private boolean     isUniqueStream;
-
-    /* beetle 3865 updateable cursor use index. A virtual memory heap is a heap that has in-memory
-     * part to get better performance, less overhead. No position index needed. We read from and write
-     * to the in-memory part as much as possible. And we can insert after we start retrieving results.
-     * Could be used for other things too.
-     */
-    private boolean     isVirtualMemHeap;
-    private boolean     uniqueIndexCreated;
-    private boolean     positionIndexCreated;
-    private long        uniqueIndexConglomId;
-    private long        positionIndexConglomId;
-    private ConglomerateController uniqueIndex_cc;
-    private ConglomerateController positionIndex_cc;
-    private DataValueDescriptor[]  uniqueIndexRow = null;
-    private DataValueDescriptor[]  positionIndexRow = null;
-    private RowLocation            destRowLocation; //row location in the temporary conglomerate
-    private SQLLongint             position_sqllong;
     int 			overflowToConglomThreshold;
     boolean                     isSpark;  // Is the query executing on spark?
-
     private ExecRow execRowDefinition;
+
+    protected WriteCoordinator writeCoordinator;
+    protected RecordingCallBuffer<KVPair> triggerTempTableWriteBuffer;
+    protected Callable<Void> triggerTempTableflushCallback;
+    protected Partition triggerTempPartition;
+    private TxnView txn;
+    private byte[] token;
 
     /**
      * Create a temporary row holder with the defined overflow to conglom
@@ -130,10 +121,10 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
             Properties              properties,
             ResultDescription       resultDescription,
             int                     overflowToConglomThreshold,
-            boolean                 isUniqueStream,
-            boolean                 isVirtualMemHeap,
             ExecRow                 execRowDefinition,
-            boolean                 isSpark
+            boolean                 isSpark,
+            TxnView                 txn,
+            byte[]                  token
     )
     {
         if (SanityManager.DEBUG)
@@ -150,8 +141,9 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
         this.activation = activation;
         this.properties = properties;
         this.resultDescription = resultDescription;
-        this.isUniqueStream = isUniqueStream;
-        this.isVirtualMemHeap = isVirtualMemHeap;
+        this.txn = txn;
+        this.token = token;
+
         rowArray = new ExecRow[overflowToConglomThreshold < 1 ? 1 : overflowToConglomThreshold];
         lastArraySlot = -1;
         this.execRowDefinition = execRowDefinition;
@@ -167,90 +159,37 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
         }
     }
 
-    public int getLastArraySlot() { return lastArraySlot; }
-    public void decrementLastArraySlot() { lastArraySlot--; }
-    public int getState() { return state; }
-    public void setState(int state) { this.state = state; }
+    public void setTxn(TxnView txn) {
+        this.txn = txn;
+    }
+
+    public Callable<Void> getTriggerTempTableflushCallback() { return triggerTempTableflushCallback; }
     public Activation getActivation() { return activation; }
     public long getConglomerateId() { return CID; }
 
- /* Avoid materializing a stream just because it goes through a temp table.
-  * It is OK to have a stream in the temp table (in memory or spilled to
-  * disk). The assumption is that one stream does not appear in two rows.
-  * For "update", one stream can be in two rows and the materialization is
-  * done in UpdateResultSet. Note to future users of this class who may
-  * insert a stream into this temp holder:
-  *   (1) As mentioned above, one un-materialized stream can't appear in two
-  *       rows; you need to objectify it first otherwise.
-  *   (2) If you need to retrieve an un-materialized stream more than once
-  *       from the temp holder, you need to either materialize the stream
-  *       the first time, or, if there's a memory constraint, in the first
-  *       time create a RememberBytesInputStream with the byte holder being
-  *       BackingStoreByteHolder, finish it, and reset it after usage.
-  *       A third option is to create a stream clone, but this requires that
-  *       the container handles are kept open until the streams have been
-  *       drained.
-  *
-  * Beetle 4896.
-  */
     private ExecRow cloneRow(ExecRow inputRow)
     {
-            DataValueDescriptor[] cols = inputRow.getRowArray();
-            int ncols = cols.length;
-            ExecRow cloned = ((ValueRow) inputRow).cloneMe();
-            for (int i = 0; i < ncols; i++)
+        DataValueDescriptor[] cols = inputRow.getRowArray();
+        int ncols = cols.length;
+        ExecRow cloned = ((ValueRow) inputRow).cloneMe();
+        for (int i = 0; i < ncols; i++)
+        {
+            if (cols[i] != null)
             {
-                    if (cols[i] != null)
-                    {
-                            /* Rows are 1-based, cols[] is 0-based */
-         cloned.setColumn(i + 1, cols[i].cloneHolder());
-                    }
+                /* Rows are 1-based, cols[] is 0-based */
+                cloned.setColumn(i + 1, cols[i].cloneHolder());
             }
-            if (inputRow instanceof IndexValueRow)
-                    return new IndexValueRow(cloned);
-            else
-                    return cloned;
+        }
+        if (inputRow instanceof IndexValueRow)
+            return new IndexValueRow(cloned);
+        else
+            return cloned;
     }
 
     private void createConglomerate(ExecRow templateRow) throws StandardException{
         if (!conglomCreated)
         {
             TransactionController tc = activation.getTransactionController();
-
-            // TODO-COLLATE, I think collation needs to get set always correctly
-            // but did see what to get collate id when there was no result
-            // description.  The problem comes if row holder is used to stream
-            // row to temp disk, then row is read from disk using an interface
-            // where store creates the DataValueDescriptor template itself,
-            // and subsquently the returned column is used for some sort of
-            // comparison.  Also could be a problem is reader of tempoary
-            // table uses qualifiers, that would result in comparisons internal
-            // to store.  I believe the below client is incomplete - either
-            // it should always be default, or real collate_ids should be
-            // passed in.
-
-            // null collate_ids in createConglomerate call indicates to use all
-            // default collate ids.
-            int collation_ids[] = null;
-
-            /*
-            TODO-COLLATE - if we could count on resultDescription I think the
-            following would work.
-
-            if (resultDescription != null)
-            {
-             // init collation id info from resultDescription for create call
-             collation_ids = new int[resultDescription.getColumnCount()];
-
-             for (int i = 0; i < collation_ids.length; i++)
-             {
-                 collation_ids[i] =
-                     resultDescription.getColumnDescriptor(
-                         i + 1).getType().getCollationType();
-             }
-            }
-            */
-
 
             /*
             ** Create the conglomerate with the template row.
@@ -260,7 +199,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
                  "heap",
                  templateRow.getRowArray(),
                  null, //column sort order - not required for heap
-                 collation_ids,
+                 null, //collation_ids
                  properties,
                  TransactionController.IS_TEMPORARY |
                  TransactionController.IS_KEPT);
@@ -272,9 +211,6 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
                  TransactionController.OPENMODE_FORUPDATE,
                  TransactionController.MODE_TABLE,
                  TransactionController.ISOLATION_SERIALIZABLE);
-            if(isUniqueStream)
-               destRowLocation = cc.newRowLocationTemplate();
-
         }
 
     }
@@ -309,6 +245,28 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
     public InMemoryTriggerRowsIterator getCachedRowsIterator() {
         return new InMemoryTriggerRowsIterator(this);
     }
+
+    // Must use the version of insert that provides the KVPair.
+    public void insert(ExecRow inputRow)
+            throws StandardException
+    {
+        throw new UnsupportedOperationException();
+    }
+
+    protected void rollbackTxn() throws StandardException {
+        if (txn instanceof Txn) {
+            Txn transaction = (Txn)txn;
+            try {
+                transaction.rollback();
+            }
+            catch (UnsupportedOperationException | IOException e) {
+                if (e instanceof IOException)
+                    throw StandardException.plainWrapException(e);
+            }
+        }
+
+    }
+
     /**
      * Insert a row
      *
@@ -316,65 +274,71 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
      *
      * @exception StandardException on error
      */
-    public void insert(ExecRow inputRow)
+    public void insert(ExecRow inputRow, KVPair encode)
             throws StandardException
     {
 
         if (SanityManager.DEBUG)
-        {
-                if(!isUniqueStream && !isVirtualMemHeap)
-                        SanityManager.ASSERT(state != STATE_DRAIN, "you cannot insert rows after starting to drain");
-        }
-        if (! isVirtualMemHeap)
-                state = STATE_INSERT;
+            SanityManager.ASSERT(state != STATE_DRAIN, "you cannot insert rows after starting to drain");
 
-        if(uniqueIndexCreated)
-        {
-                if(isRowAlreadyExist(inputRow))
-                        return;
-        }
+        state = STATE_INSERT;
 
+        if (numRowsIn < overflowToConglomThreshold)
+        {
+            rowArray[numRowsIn++] = cloneRow(inputRow);
+            lastArraySlot++;
+            return;
+        }
+        if (numRowsIn == overflowToConglomThreshold) {
+
+            writeCoordinator = PipelineDriver.driver().writeCoordinator();
+
+            // If running on HBase, don't use a conglomerate if there are many rows
+            // to insert, just switch to using spark.
+            if (PipelineDriver.driver().exceptionFactory().isHBase()) {
+                //rollbackTxn();  msirek-temp
+                throw new ResubmitDistributedException();
+            }
+        }
         numRowsIn++;
-
-        if (lastArraySlot + 1 < overflowToConglomThreshold)
-        {
-            rowArray[++lastArraySlot] = cloneRow(inputRow);
-
-            //In case of unique stream we push every thing into the
-            // conglomerates for time being, we keep one row in the array for
-            // the template.
-            if (!isUniqueStream) {
-                return;
-            }
-        }
-
-        if (!conglomCreated)
+        if (!conglomCreated) {
             createConglomerate(inputRow);
-
-        int status = 0;
-        if(isUniqueStream)
-        {
-            cc.insertAndFetchLocation(inputRow, destRowLocation);
-            insertToPositionIndex(numRowsIn -1, destRowLocation);
-            //create the unique index based on input row ROW Location
-            if(!uniqueIndexCreated)
-                    isRowAlreadyExist(inputRow);
-
-        }else
-        {
-            status = cc.insert(inputRow);
-            if (isVirtualMemHeap)
-                    state = STATE_INSERT;
-        }
-
-        if (SanityManager.DEBUG)
-        {
-            if (status != 0)
-            {
-                    SanityManager.THROWASSERT("got funky status ("+status+") back from "+
-                                    "ConglomerateConstroller.insert()");
+            try {
+                writeCoordinator = PipelineDriver.driver().writeCoordinator();  // msirek-temp
+                triggerTempPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(CID));
+                WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+                writeConfiguration = new UnsafeWriteConfiguration(writeConfiguration, false, true);
+                triggerTempTableWriteBuffer = writeCoordinator.writeBuffer(triggerTempPartition, txn, token, writeConfiguration);
+                triggerTempTableflushCallback = TriggerHandler.flushCallback(triggerTempTableWriteBuffer);
+            }
+            catch (Exception e) {
+                if (e instanceof StandardException)
+                    throw (StandardException)e;
+                throw StandardException.plainWrapException(e);
             }
         }
+
+        try {
+            triggerTempTableWriteBuffer.add(encode);
+        }
+        catch (Exception e) {
+            if (e instanceof StandardException)
+                throw (StandardException)e;
+            throw StandardException.plainWrapException(e);
+        }
+//
+//
+//        int status = 0;
+//        status = cc.insert(inputRow);   msirek-temp
+//
+//        if (SanityManager.DEBUG)
+//        {
+//            if (status != 0)
+//            {
+//                    SanityManager.THROWASSERT("got funky status ("+status+") back from "+
+//                                    "ConglomerateConstroller.insert()");
+//            }
+//        }
     }
 
 
@@ -387,122 +351,6 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
      */
 
 
-    private boolean isRowAlreadyExist(ExecRow inputRow) throws  StandardException
-    {
-            DataValueDescriptor		rlColumn;
-            RowLocation	baseRowLocation;
-            rlColumn = inputRow.getColumn(inputRow.nColumns());
-
-            if(CID!=0 && rlColumn instanceof SQLRef)
-            {
-                    baseRowLocation =
-                            (RowLocation) (rlColumn).getObject();
-
-                    if(!uniqueIndexCreated)
-                    {
-                            TransactionController tc =
-                                    activation.getTransactionController();
-                            int numKeys = 2;
-                            uniqueIndexRow = new DataValueDescriptor[numKeys];
-                            uniqueIndexRow[0] = baseRowLocation;
-                            uniqueIndexRow[1] = baseRowLocation;
-                            Properties props = makeIndexProperties(uniqueIndexRow, CID);
-                            uniqueIndexConglomId =
-                                    tc.createConglomerate(false,
-                 "BTREE",
-                 uniqueIndexRow,
-                 null,
-                 null, // no collation needed for index on row locations.
-                 props,
-                 (TransactionController.IS_TEMPORARY |
-                  TransactionController.IS_KEPT));
-
-                            uniqueIndex_cc = tc.openConglomerate(
-                                                            uniqueIndexConglomId,
-                                                            false,
-                                                            TransactionController.OPENMODE_FORUPDATE,
-                                                            TransactionController.MODE_TABLE,
-                                                            TransactionController.ISOLATION_SERIALIZABLE);
-                            uniqueIndexCreated = true;
-                    }
-
-                    uniqueIndexRow[0] = baseRowLocation;
-                    uniqueIndexRow[1] = baseRowLocation;
-                    // Insert the row into the secondary index.
-                    int status;
-                    ExecRow unIRow = new ValueRow();
-                    unIRow.setRowArray(uniqueIndexRow);
-                    if ((status = uniqueIndex_cc.insert(unIRow))!= 0)
-                    {
-                            if(status == ConglomerateController.ROWISDUPLICATE)
-                            {
-                                    return true ; // okay; we don't insert duplicates
-                            }
-                            else
-                            {
-                                    if (SanityManager.DEBUG)
-                                    {
-                                            if (status != 0)
-                                            {
-                                                    SanityManager.THROWASSERT("got funky status ("+status+") back from "+
-                                                                                                      "Unique Index insert()");
-                                            }
-                                    }
-                            }
-                    }
-            }
-
-            return false;
-    }
-
-
-    /**
-     * Maintain an index that will allow us to read  from the
-     * temporary heap in the order we inserted.
-     * @param position - the number of the row we are inserting into heap
-     * @param rl the row to Location in the temporary heap
-     * @exception StandardException on error
-     */
-
-    private void insertToPositionIndex(int position, RowLocation rl ) throws  StandardException
-    {
-            if(!positionIndexCreated)
-            {
-                    TransactionController tc = activation.getTransactionController();
-                    int numKeys = 2;
-                    position_sqllong = new SQLLongint();
-                    positionIndexRow = new DataValueDescriptor[numKeys];
-                    positionIndexRow[0] = position_sqllong;
-                    positionIndexRow[1] = rl;
-                    Properties props = makeIndexProperties(positionIndexRow, CID);
-                    positionIndexConglomId =
-         tc.createConglomerate(false,
-             "BTREE",
-             positionIndexRow,
-             null,
-             null, // no collation needed for index on row locations.
-             props,
-             (TransactionController.IS_TEMPORARY |
-              TransactionController.IS_KEPT));
-
-                    positionIndex_cc =
-         tc.openConglomerate(
-             positionIndexConglomId,
-             false,
-             TransactionController.OPENMODE_FORUPDATE,
-             TransactionController.MODE_TABLE,
-             TransactionController.ISOLATION_SERIALIZABLE);
-
-                    positionIndexCreated = true;
-            }
-            ExecRow vRow = new ValueRow();
-            vRow.setRowArray(positionIndexRow);
-            position_sqllong.setValue(position);
-            positionIndexRow[0] = position_sqllong;
-            positionIndexRow[1] = rl;
-            //insert the row location to position index
-            positionIndex_cc.insert(vRow);
-    }
 
     /**
      * Get a result set for scanning what has been inserted
@@ -514,18 +362,8 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
     {
             state = STATE_DRAIN;
             TransactionController tc = activation.getTransactionController();
-            if(isUniqueStream)
-            {
-                    return new TemporaryRowHolderResultSet(tc, rowArray,
-                                                               resultDescription, isVirtualMemHeap,
-                                                               true, positionIndexConglomId, this);
-            }
-            else
-            {
-                    return new TemporaryRowHolderResultSet(tc, rowArray, resultDescription, isVirtualMemHeap, this);
-
-            }
-    }
+            return new TemporaryRowHolderResultSet(tc, rowArray, resultDescription, this);
+    }   // msirek-temp
 
     /**
      * Purge the row holder of all its rows.
@@ -557,12 +395,6 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
         return getConglomerateId();
     }
 
-    public long getPositionIndexConglomId()
-    {
-            return positionIndexConglomId;
-    }
-
-
 
     private Properties makeIndexProperties(DataValueDescriptor[] indexRowArray, long conglomId ) throws StandardException {
             int nCols = indexRowArray.length;
@@ -576,10 +408,6 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
             return props;
     }
 
-    public void setRowHolderTypeToUniqueStream()
-    {
-            isUniqueStream = true;
-    }
 
     private void dropTable(long conglomID) throws StandardException {
         try {
@@ -598,11 +426,6 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
      */
     public void close() throws StandardException
     {
-        if (scan != null)
-        {
-                scan.close();
-                scan = null;
-        }
 
         if (cc != null)
         {
@@ -610,32 +433,14 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
                 cc = null;
         }
 
-        if (uniqueIndex_cc != null)
-        {
-                uniqueIndex_cc.close();
-                uniqueIndex_cc = null;
-        }
-
-        if (positionIndex_cc != null)
-        {
-                positionIndex_cc.close();
-                positionIndex_cc = null;
-        }
-
         TransactionController tc = activation.getTransactionController();
 
-        if (uniqueIndexCreated)
-        {
-                tc.dropConglomerate(uniqueIndexConglomId);
-                dropTable(uniqueIndexConglomId);
-                uniqueIndexCreated = false;
-        }
-
-        if (positionIndexCreated)
-        {
-                tc.dropConglomerate(positionIndexConglomId);
-                dropTable(positionIndexConglomId);
-                positionIndexCreated = false;
+        if(triggerTempPartition!=null){
+            try{
+                triggerTempPartition.close();
+            }catch(IOException e){
+                throw Exceptions.parseException(e);
+            }
         }
 
         if (conglomCreated)
@@ -654,7 +459,13 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder {
      }
      state = STATE_UNINIT;
      lastArraySlot = -1;
+     numRowsIn = 0;
     }
+
+    public int getLastArraySlot() { return lastArraySlot; }
+    public void decrementLastArraySlot() { lastArraySlot--; }
+    public int getState() { return state; }
+    public void setState(int state) { this.state = state; }
 }
 
 

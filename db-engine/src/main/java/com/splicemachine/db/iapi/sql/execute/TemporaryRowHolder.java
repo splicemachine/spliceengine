@@ -75,12 +75,6 @@ public interface TemporaryRowHolder
 	//returns the conglomerate number it created
 	long getTemporaryConglomId();
 
-	//return the conglom id of the position index it maintains
-	long getPositionIndexConglomId();
-
-	//sets the type of the temporary row holder to unique stream
-	void setRowHolderTypeToUniqueStream();
-
 	int getLastArraySlot();
 	void decrementLastArraySlot ();
 	int getState();

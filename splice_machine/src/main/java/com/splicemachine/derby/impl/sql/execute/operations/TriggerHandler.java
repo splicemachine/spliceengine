@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -31,7 +32,9 @@ import com.splicemachine.derby.iapi.sql.execute.SingleRowCursorResultSet;
 import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.tools.EmbedConnectionMaker;
 import org.spark_project.guava.collect.Lists;
 
@@ -71,6 +74,8 @@ public class TriggerHandler {
     private Activation activation;
     private TriggerRowHolderImpl newTableRowHolder;
     private boolean isSpark;
+    private TxnView txn;
+    private byte[] token;
 
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
@@ -98,13 +103,25 @@ public class TriggerHandler {
         initTriggerActivator(activation, constantAction);
     }
 
-    public void addRowToNewTableRowHolder(ExecRow row) throws StandardException {
+    public Callable<Void> getTriggerTempTableflushCallback () {
+        if (newTableRowHolder != null)
+             newTableRowHolder.getTriggerTempTableflushCallback();
+        return null;
+    }
+
+    public void setTxn(TxnView txn) {
+        this.txn = txn;
+        if (newTableRowHolder != null)
+            newTableRowHolder.setTxn(txn);
+    }
+
+    public void addRowToNewTableRowHolder(ExecRow row, KVPair encode) throws StandardException {
         // On Spark we just use a persisted dataframe to holder the
         // new trigger rows, so no need to insert the row into the
         // row holder.  It is used more as a context in the case of
         // spark to hold useful information in one place.
         if (!isSpark && newTableRowHolder != null)
-            newTableRowHolder.insert(row);
+            newTableRowHolder.insert(row, encode);
     }
 
     public long getNewTableConglomerateId() {
@@ -112,13 +129,23 @@ public class TriggerHandler {
             return 0;
         return newTableRowHolder.getConglomerateId();
     }
-    public void initTriggerRowHolders(boolean isSpark) {
+    public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token) {
         this.isSpark = isSpark;
+        this.txn = txn;
+        this.token = token;
         Properties properties = new Properties();
-        if (hasAfterStatement)
+        if (hasAfterStatement) {
+            // Create a conglomerate to hold remaining rows if we go above the control execution
+            // row limit, and we are executing on control.
+//            newTableRowHolder =
+//                new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
+//                                         EngineDriver.driver().getConfiguration().getControlExecutionRowLimit(),
+//                                         false, false, templateRow, isSpark);   msirek-temp
             newTableRowHolder =
                 new TriggerRowHolderImpl(activation, properties, writeInfo.getResultDescription(),
-                                         2, false, false, templateRow, isSpark);
+                                         2, templateRow, isSpark, txn, token);
+        }
+
     }
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
@@ -172,20 +199,20 @@ public class TriggerHandler {
         }
     }
 
-    public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback, Callable<Void> triggerTempTableflushCallback) throws Exception {
+    public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
         pendingAfterRows.add(row.getClone());
         if (pendingAfterRows.size() == AFTER_ROW_BUFFER_SIZE) {
-            firePendingAfterTriggers(flushCallback, triggerTempTableflushCallback);
+            firePendingAfterTriggers(flushCallback);
         }
     }
 
-    public void firePendingAfterTriggers(Callable<Void> flushCallback, Callable<Void> triggerTempTableflushCallback) throws Exception {
+    public void firePendingAfterTriggers(Callable<Void> flushCallback) throws Exception {
         /* If there are any un-flushed rows that would cause a constraint violation then this callback will throw.
          * Which is what we want. Check constraints before firing after triggers. */
         try {
             flushCallback.call();
-            if (triggerTempTableflushCallback != null)
-                triggerTempTableflushCallback.call();
+            if (getTriggerTempTableflushCallback() != null)
+                getTriggerTempTableflushCallback().call();
         } catch (Exception e) {
             pendingAfterRows.clear();
             throw e;
@@ -240,14 +267,13 @@ public class TriggerHandler {
 
     public static void fireAfterRowTriggers(TriggerHandler triggerHandler, ExecRow row, Callable<Void> flushCallback) throws Exception {
         if (triggerHandler != null) {
-            triggerHandler.fireAfterRowTriggers(row, flushCallback, null);
+            triggerHandler.fireAfterRowTriggers(row, flushCallback);
         }
     }
 
-    public static void firePendingAfterTriggers(TriggerHandler triggerHandler, Callable<Void> flushCallback,
-                                                Callable<Void> triggerTempTableflushCallback) throws Exception {
+    public static void firePendingAfterTriggers(TriggerHandler triggerHandler, Callable<Void> flushCallback) throws Exception {
         if (triggerHandler != null) {
-            triggerHandler.firePendingAfterTriggers(flushCallback, triggerTempTableflushCallback);
+            triggerHandler.firePendingAfterTriggers(flushCallback);
         }
     }
 

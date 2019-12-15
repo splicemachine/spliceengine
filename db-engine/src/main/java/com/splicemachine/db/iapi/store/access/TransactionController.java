@@ -190,7 +190,7 @@ public interface TransactionController
      * update locks during scan, and either promote the update locks to 
      * exclusive locks if the row is changed or demote the lock if the row
      * is not updated.  The lock demotion depends on the isolation level of
-     * the scan.  If isolation level is ISOLATION_SERIALIZABLE or 
+     * the scan.  If isolation level is ISOLATION_SERIALIZABLE or pipelineex
      * ISOLATION_REPEATABLE_READ
      * then the lock will be converted to a read lock.  If the isolation level 
      * ISOLATION_READ_COMMITTED then the lock is released when the scan moves

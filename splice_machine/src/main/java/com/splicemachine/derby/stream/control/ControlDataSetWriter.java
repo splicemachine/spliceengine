@@ -126,6 +126,9 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                 valueRow = new ValueRow(1);
             }
             valueRow.setColumn(1,new SQLLongint(recordsWritten));
+            // Only fire the statement triggers if the operation is not rolled back.
+            // Previously this was in a 'finally' block:
+            operation.fireAfterStatementTriggers();
             return new ControlDataSet<>(new SingletonIterator(valueRow));
        }catch(Exception e){
             if(txn!=null){
@@ -136,9 +139,6 @@ public class ControlDataSetWriter<K> implements DataSetWriter{
                 }
             }
             throw Exceptions.parseException(e);
-        }
-        finally {
-            operation.fireAfterStatementTriggers();
         }
     }
 

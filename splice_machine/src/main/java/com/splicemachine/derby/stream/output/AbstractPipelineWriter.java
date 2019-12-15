@@ -45,9 +45,8 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected long tempConglomID;
     protected  TriggerHandler triggerHandler;
     protected Callable<Void> flushCallback;
-    protected Callable<Void> triggerTempTableflushCallback;
+
     protected RecordingCallBuffer<KVPair> writeBuffer;
-    protected RecordingCallBuffer<KVPair> triggerTempTableWriteBuffer;
     protected WriteCoordinator writeCoordinator;
     protected DMLWriteOperation operation;
     protected OperationContext operationContext;
@@ -69,12 +68,16 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     @Override
     public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
         writeCoordinator = PipelineDriver.driver().writeCoordinator();
+        if (triggerHandler != null)
+            triggerHandler.setTxn(txn);
         this.triggerHandler = triggerHandler;
     }
 
     @Override
     public void setTxn(TxnView txn) {
         this.txn = txn;
+        if (triggerHandler != null)
+            triggerHandler.setTxn(txn);
     }
 
     @Override
@@ -99,15 +102,15 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
             operation.evaluateGenerationClauses(row);
     }
 
-    protected void addRowToTriggeringResultSet(ExecRow row) throws StandardException {
+    protected void addRowToTriggeringResultSet(ExecRow row, KVPair encode) throws StandardException {
         if (triggerHandler != null)
-            triggerHandler.addRowToNewTableRowHolder(row);
+            triggerHandler.addRowToNewTableRowHolder(row, encode);
     }
 
     public void close() throws StandardException {
 
         try {
-            TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback, triggerTempTableflushCallback);
+            TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
             if (writeBuffer != null) {
                 writeBuffer.flushBuffer();
                 writeBuffer.close();

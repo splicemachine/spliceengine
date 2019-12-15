@@ -83,14 +83,6 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	/** Activation object with local state information. */
 	Activation						activation;
 
-	private boolean     isUniqueStream;
-
-	/* beetle 3865 updateable cursor use index. A virtual memory heap is a heap that has in-memory
-	 * part to get better performance, less overhead. No position index needed. We read from and write
-	 * to the in-memory part as much as possible. And we can insert after we start retrieving results.
-	 * Could be used for other things too.
-	 */
-	private boolean     isVirtualMemHeap;
 	private boolean     uniqueIndexCreated;
 	private boolean     positionIndexCreated;
 	private long        uniqueIndexConglomId;
@@ -121,30 +113,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	) 
 	{
 		this(activation, properties, resultDescription,
-			 DEFAULT_OVERFLOWTHRESHOLD, false, false);
-	}
-	
-	/**
-	 * Uses the default overflow to
- 	 * a conglomerate threshold (5).
-	 *
-	 * @param activation the activation
-	 * @param properties the properties of the original table.  Used
-	 *		to help the store use optimal page size, etc.
-	 * @param resultDescription the result description.  Relevant for the getResultDescription
-	 * 		call on the result set returned by getResultSet.  May be null
-	 * @param isUniqueStream - true , if it has to be temporary row holder unique stream
-	 */
-	public TemporaryRowHolderImpl
-	(
-		Activation				activation, 
-		Properties 				properties, 
-		ResultDescription		resultDescription,
-		boolean                 isUniqueStream
-	) 
-	{
-		this(activation, properties, resultDescription, 1, isUniqueStream,
-			 false);
+			 DEFAULT_OVERFLOWTHRESHOLD);
 	}
 
 
@@ -165,9 +134,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 		Activation			 	activation, 
 		Properties				properties,
 		ResultDescription		resultDescription,
-		int 					overflowToConglomThreshold,
-		boolean                 isUniqueStream,
-		boolean					isVirtualMemHeap
+		int 					overflowToConglomThreshold
 	)
 	{
 		if (SanityManager.DEBUG)
@@ -184,8 +151,6 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 		this.activation = activation;
 		this.properties = properties;
 		this.resultDescription = resultDescription;
-		this.isUniqueStream = isUniqueStream;
-		this.isVirtualMemHeap = isVirtualMemHeap;
 		rowArray = new ExecRow[overflowToConglomThreshold];
 		lastArraySlot = -1;
 	}
@@ -248,11 +213,9 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 
 		if (SanityManager.DEBUG)
 		{
-			if(!isUniqueStream && !isVirtualMemHeap)
-				SanityManager.ASSERT(state != STATE_DRAIN, "you cannot insert rows after starting to drain");
+			SanityManager.ASSERT(state != STATE_DRAIN, "you cannot insert rows after starting to drain");
 		}
-		if (! isVirtualMemHeap)
-			state = STATE_INSERT;
+		state = STATE_INSERT;
 
 		if(uniqueIndexCreated)
 		{
@@ -265,13 +228,8 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 		if (lastArraySlot + 1 < rowArray.length)
 		{
 			rowArray[++lastArraySlot] = cloneRow(inputRow);
-			
-			//In case of unique stream we push every thing into the
-			// conglomerates for time being, we keep one row in the array for
-			// the template.
-            if (!isUniqueStream) {
-				return;  
-            }
+		        return;
+
 		}
 			
 		if (!conglomCreated)
@@ -333,26 +291,11 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                                 TransactionController.OPENMODE_FORUPDATE,
                                 TransactionController.MODE_TABLE,
                                 TransactionController.ISOLATION_SERIALIZABLE);
-			if(isUniqueStream)
-			   destRowLocation = cc.newRowLocationTemplate();
 
 		}
 
 		int status = 0;
-		if(isUniqueStream)
-		{
-			cc.insertAndFetchLocation(inputRow, destRowLocation);
-			insertToPositionIndex(numRowsIn -1, destRowLocation);
-			//create the unique index based on input row ROW Location
-			if(!uniqueIndexCreated)
-				isRowAlreadyExist(inputRow);
-
-		}else
-		{
-			status = cc.insert(inputRow);
-			if (isVirtualMemHeap)
-				state = STATE_INSERT;
-		}
+                status = cc.insert(inputRow);
 
 		if (SanityManager.DEBUG)
 		{
@@ -502,17 +445,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	{
 		state = STATE_DRAIN;
 		TransactionController tc = activation.getTransactionController();
-		if(isUniqueStream)
-		{
-			return new TemporaryRowHolderResultSet(tc, rowArray,
-												   resultDescription, isVirtualMemHeap,
-												   true, positionIndexConglomId, this);
-		}
-		else
-		{
-			return new TemporaryRowHolderResultSet(tc, rowArray, resultDescription, isVirtualMemHeap, this);
-
-		}
+		return new TemporaryRowHolderResultSet(tc, rowArray, resultDescription, this);
 	}
 
 	/**
@@ -573,11 +506,6 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 		props.put("rowLocationColumn", String.valueOf(nCols-1));
 		props.put("baseConglomerateId", String.valueOf(conglomId));
 		return props;
-	}
-
-	public void setRowHolderTypeToUniqueStream()
-	{
-		isUniqueStream = true;
 	}
 
 	/**

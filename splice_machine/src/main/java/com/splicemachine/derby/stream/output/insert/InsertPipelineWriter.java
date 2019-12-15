@@ -26,6 +26,7 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.PermissiveInsertWriteConfiguration;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
+import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
 import com.splicemachine.pipeline.config.UnsafeWriteConfiguration;
 import com.splicemachine.derby.utils.marshall.*;
@@ -58,7 +59,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     protected InsertOperation insertOperation;
     protected boolean isUpsert;
     private Partition table;
-    private Partition triggerTempPartition;
 
     @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="Intentional")
     public InsertPipelineWriter(int[] pkCols,
@@ -107,16 +107,12 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
 
             writeConfiguration.setRecordingContext(operationContext);
             this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
-            if (tempConglomID != 0) {
-                this.triggerTempPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(tempConglomID));
-                triggerTempTableWriteBuffer = writeCoordinator.writeBuffer(triggerTempPartition, txn, token, writeConfiguration);
-            }
+
             writeBuffer = writeCoordinator.writeBuffer(table,txn,token,writeConfiguration);
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
             flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
-            triggerTempTableflushCallback = triggerHandler==null || triggerTempTableWriteBuffer == null ? null
-                                          : TriggerHandler.flushCallback(triggerTempTableWriteBuffer);
+
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -129,9 +125,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
-            addRowToTriggeringResultSet(execRow);
-            if (triggerTempTableWriteBuffer != null)
-                triggerTempTableWriteBuffer.add(encode);
+            addRowToTriggeringResultSet(execRow, encode);
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
             if (operationContext!=null && operationContext.isPermissive()) {
@@ -188,13 +182,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         if(table!=null){
             try{
                 table.close();
-            }catch(IOException e){
-                throw Exceptions.parseException(e);
-            }
-        }
-        if(triggerTempPartition!=null){
-            try{
-                triggerTempPartition.close();
             }catch(IOException e){
                 throw Exceptions.parseException(e);
             }
