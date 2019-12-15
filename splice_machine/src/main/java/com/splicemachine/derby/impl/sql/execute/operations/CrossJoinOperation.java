@@ -127,7 +127,8 @@ public class CrossJoinOperation extends JoinOperation{
 
         DataSet<ExecRow> result;
 
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK)) {
+        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+                (this.leftHashKeys.length == 0 || !containsUnsafeSQLRealComparison())) {
             result = leftDataSet.crossJoin(operationContext, rightDataSet);
             if (restriction != null) {
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));

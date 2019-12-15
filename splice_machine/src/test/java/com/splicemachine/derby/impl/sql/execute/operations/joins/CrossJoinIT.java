@@ -461,14 +461,12 @@ public class CrossJoinIT extends SpliceUnitTest {
         String sqlText = format("select * from \n" +
                 "a --splice-properties joinStrategy=CROSS, useSpark=%s\n" +
                 "where c2=1", useSpark);
-        String expected = "C1 |C2 |\n" +
-                            "--------\n" +
-                            " 1 | 1 |";
-
-        ResultSet rs = classWatcher.executeQuery(sqlText);
-        String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
-        rs.close();
+        try {
+            classWatcher.executeQuery(sqlText);
+            Assert.fail("Query should fail with no valid exeuction plan!");
+        }catch (SQLException e) {
+            Assert.assertTrue("Invalid exception thrown: " + e, e.getMessage().startsWith("No valid execution plan"));
+        }
     }
 
     @Test
