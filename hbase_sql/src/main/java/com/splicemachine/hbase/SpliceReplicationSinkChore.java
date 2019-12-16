@@ -17,8 +17,6 @@ package com.splicemachine.hbase;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.lifecycle.DatabaseLifecycleManager;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
@@ -38,12 +36,13 @@ import java.util.*;
 /**
  * Created by jyuan on 8/1/19.
  */
-public class ReplicationProgressTrackerChore extends ScheduledChore {
+public class SpliceReplicationSinkChore extends ScheduledChore {
 
-    private static final Logger LOG = Logger.getLogger(ReplicationProgressTrackerChore.class);
+    private static final Logger LOG = Logger.getLogger(SpliceReplicationSinkChore.class);
     Connection connection;
     private Map<String, Long> replicationProgress = new HashMap<>();
     private TableName masterSnapshotTable;
+    private TableName replicationProgressTable;
     private RecoverableZooKeeper rzk;
     private String replicationPath;
     private String replicationPeerPath;
@@ -55,7 +54,7 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
     private String rootDir;
     private volatile boolean statusChanged = false;
 
-    public ReplicationProgressTrackerChore(final String name, final Stoppable stopper, final int period) throws IOException {
+    public SpliceReplicationSinkChore(final String name, final Stoppable stopper, final int period) throws IOException {
         super(name, stopper, period);
         init();
     }
@@ -66,6 +65,7 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
             connection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
             String namespace = HConfiguration.getConfiguration().getNamespace();
             masterSnapshotTable = TableName.valueOf(namespace, HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
+            replicationProgressTable = TableName.valueOf(namespace, HBaseConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME);
             rzk = ZkUtils.getRecoverableZooKeeper();
             replicationPath = ReplicationUtils.getReplicationPath();
             replicationPeerPath = ReplicationUtils.getReplicationPeerPath();
@@ -97,8 +97,8 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
 
 
             if (replicationProgress.size() == 0) {
-                getReplicationProgress(replicationProgress);
-                cleanupReplicationProgress(replicationProgress);
+                getReplicationProgress(connection, replicationProgress);
+                //cleanupReplicationProgress(replicationProgress);
                 // If there is no entry in SLAVE_REPLICATION_PROGRESS, do nothing
                 if (replicationProgress.size() == 0)
                     return;
@@ -153,6 +153,39 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
             }
         }
     }
+
+    /**
+     * Get current replication progress
+     * @param conn
+     * @param replicationProgress
+     * @throws IOException
+     */
+    private void getReplicationProgress(Connection conn, Map<String, Long> replicationProgress) throws IOException {
+        Table progressTable = conn.getTable(replicationProgressTable);
+        Get getReplicationProgress = new Get(HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
+        Result r = progressTable.get(getReplicationProgress);
+
+        CellScanner scanner = r.cellScanner();
+        while (scanner.advance()) {
+            Cell cell = scanner.current();
+            byte[] colName = CellUtil.cloneQualifier(cell);
+            if(Arrays.equals(colName, HBaseConfiguration.REPLICATION_PROGRESS_TSCOL_BYTES)){
+                long latestTimestamp = Bytes.toLong(CellUtil.cloneValue(cell));
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "timestamp = %d", latestTimestamp);
+                }
+            }
+            else {
+                String region = Bytes.toString(CellUtil.cloneQualifier(cell));
+                Long seqNum = Bytes.toLong(CellUtil.cloneValue(cell));
+                replicationProgress.put(region, seqNum);
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "region=%s, seqNum=%s", region, seqNum);
+                }
+            }
+        }
+    }
+
     private void getReplicationProgress(Map<String, Long> replicationProgress) throws IOException {
 
         try {
@@ -257,9 +290,9 @@ public class ReplicationProgressTrackerChore extends ScheduledChore {
     }
 
     private static class ReplicationSlaveWatcher implements Watcher {
-        private final ReplicationProgressTrackerChore replicationProgressTrackerChore;
+        private final SpliceReplicationSinkChore replicationProgressTrackerChore;
 
-        public ReplicationSlaveWatcher(ReplicationProgressTrackerChore replicationProgressTrackerChore) {
+        public ReplicationSlaveWatcher(SpliceReplicationSinkChore replicationProgressTrackerChore) {
             this.replicationProgressTrackerChore = replicationProgressTrackerChore;
         }
 

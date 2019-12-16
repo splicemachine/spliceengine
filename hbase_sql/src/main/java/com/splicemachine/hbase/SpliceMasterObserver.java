@@ -14,7 +14,6 @@
 
 package com.splicemachine.hbase;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.SystemClock;
@@ -41,7 +40,6 @@ import org.apache.hadoop.hbase.coprocessor.MasterCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.MasterObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -152,13 +150,13 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
             boolean replicationEnabled = HConfiguration.getConfiguration().replicationEnabled();
             if (replicationEnabled) {
                 this.choreService = new ChoreService("Splice Master ChoreService");
-                ReplicationSnapshotChore replicationSnapshotChore =
-                        new ReplicationSnapshotChore("ReplicationSnapshotChore", this,
+                SpliceReplicationSourceChore replicationSnapshotChore =
+                        new SpliceReplicationSourceChore("SpliceReplicationSourceChore", this,
                                 HConfiguration.getConfiguration().getReplicationSnapshotInterval());
                 choreService.scheduleChore(replicationSnapshotChore);
 
-                ReplicationProgressTrackerChore replicationProgressTrackerChore =
-                        new ReplicationProgressTrackerChore("ReplicationProgressTrackerChore", this,
+                SpliceReplicationSinkChore replicationProgressTrackerChore =
+                        new SpliceReplicationSinkChore("SpliceReplicationSinkChore", this,
                                 HConfiguration.getConfiguration().getReplicationProgressUpdateInterval());
                 choreService.scheduleChore(replicationProgressTrackerChore);
                 String replicationMonitorQuorum = HConfiguration.getConfiguration().getReplicationMonitorQuorum();

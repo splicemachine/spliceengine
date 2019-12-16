@@ -24,24 +24,19 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GetWALPositionsTask implements Callable<Void> {
-    private ConcurrentHashMap<String, Long> map;
+    private ConcurrentHashMap<String, Map<String,Long>> map;
     private ServerName serverName;
-    private String walGroupId;
 
-    public GetWALPositionsTask(ConcurrentHashMap<String, Long> map, ServerName serverName){
+    public GetWALPositionsTask(ConcurrentHashMap<String, Map<String,Long>> map, ServerName serverName){
         this.map = map;
         this.serverName = serverName;
-    }
-
-    public GetWALPositionsTask(ConcurrentHashMap<String, Long> map, ServerName serverName, String walGroupId){
-        this.map = map;
-        this.serverName = serverName;
-        this.walGroupId = walGroupId;
     }
 
     @Override
@@ -55,9 +50,11 @@ public class GetWALPositionsTask implements Callable<Void> {
 
         SpliceMessage.GetWALPositionsResponse response = service.getWALPositions(null, builder.build());
         List<SpliceMessage.GetWALPositionsResponse.Result> resultList = response.getResultList();
+        Map<String, Long> serverSnapshot = new HashMap<>();
         for (SpliceMessage.GetWALPositionsResponse.Result result : resultList) {
-            map.put(result.getWALName(), result.getPosition());
+            serverSnapshot.put(result.getWALName(), result.getPosition());
         }
+        map.put(serverName.getServerName(), serverSnapshot);
         return null;
     }
 }
