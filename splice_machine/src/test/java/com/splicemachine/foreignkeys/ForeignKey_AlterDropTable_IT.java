@@ -197,6 +197,13 @@ public class ForeignKey_AlterDropTable_IT {
         }
     }
 
+    @Test
+    public void testAddSelfReferencingFK() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate("create table P (i int primary key, j int)");
+            s.execute("alter table P add constraint FKC foreign key (j) references P(i)");
+        }
+    }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // helper methods
