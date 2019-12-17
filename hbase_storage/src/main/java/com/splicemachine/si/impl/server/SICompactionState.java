@@ -70,51 +70,8 @@ public class SICompactionState {
      * @param results - the output key values
      */
     public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, boolean purgeDeletedRows) throws IOException {
-        dataToReturn.clear();
-        long maxTombstone = 0;
-        Iterator<TxnView> it = txns.iterator();
-        for (Cell aRawList : rawList) {
-            TxnView txn = it.next();
-            long t = mutate(aRawList, txn);
-            if (t > maxTombstone) {
-                maxTombstone = t;
-            }
-        }
-        if (purgeDeletedRows && maxTombstone > 0) {
-            removeTombStone(maxTombstone);
-        }
-        results.addAll(dataToReturn);
-    }
-
-    private void removeTombStone(long maxTombstone) {
-        SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
-        for (Cell element : cp) {
-            long timestamp = element.getTimestamp();
-            if (timestamp <= maxTombstone) {
-                dataToReturn.remove(element);
-            }
-        }
-    }
-    /**
-     * Apply SI mutation logic to an individual key-value. Return the "new" key-value.
-     */
-    private long mutate(Cell element, TxnView txn) throws IOException {
-        final CellType cellType= CellUtils.getKeyValueType(element);
-        long timestamp = element.getTimestamp();
-        switch (cellType) {
-            case COMMIT_TIMESTAMP:
-                dataToReturn.add(element);
-                return 0;
-            default:
-                if(mutateCommitTimestamp(element,txn))
-                    dataToReturn.add(element);
-                if (cellType == CellType.TOMBSTONE) {
-                    return timestamp;
-                }
-                else {
-                    return 0;
-                }
-        }
+        SICompactionStateMutate impl = new SICompactionStateMutate(purgeDeletedRows);
+        impl.mutate(rawList, txns, results);
     }
 
     private void ensureTransactionCached(long timestamp,Cell element) {
@@ -130,46 +87,6 @@ public class SICompactionState {
             }
         }
     }
-
-    /**
-     * Replace unknown commit timestamps with actual commit times.
-     */
-    private boolean mutateCommitTimestamp(Cell element, TxnView txn) throws IOException {
-        if (txn == null) {
-            // we don't have transactional information, just return the data as is
-            return true;
-        } else if (txn.getState() == Txn.State.ROLLEDBACK) {
-            // rolled back data, remove it from the compacted data
-            return false;
-        } else if (committed(txn)) {
-            /*
-             * This element has been committed all the way to the user level, so a
-             * commit timestamp can be placed on it.
-             */
-            long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
-            dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
-        }
-        // Committed or active, return the original data too
-        return true;
-    }
-
-    private boolean committed(TxnView txn) {
-        while (txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() != Txn.ROOT_TRANSACTION) {
-            txn = txn.getParentTxnView();
-        }
-        return txn.getState() == Txn.State.COMMITTED && txn.getParentTxnView() == Txn.ROOT_TRANSACTION;
-    }
-
-    public Cell newTransactionTimeStampKeyValue(Cell element, byte[] value) {
-        return new KeyValue(element.getRowArray(),
-                element.getRowOffset(),
-                element.getRowLength(),
-                SIConstants.DEFAULT_FAMILY_BYTES,0,1,
-                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,
-                element.getTimestamp(),KeyValue.Type.Put,
-                value,0,value==null?0:value.length);
-    }
-
 
     public boolean isFailedCommitTimestamp(Cell element) {
         return element.getValueLength()==1 && element.getValueArray()[element.getValueOffset()]==SIConstants.SNAPSHOT_ISOLATION_FAILED_TIMESTAMP[0];
