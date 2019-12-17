@@ -14,9 +14,16 @@
 
 package com.splicemachine.si.impl;
 
+import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.si.impl.txn.InheritingTxnView;
 import org.junit.Assert;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author Scott Fines
  *         Date: 7/1/14
@@ -81,4 +88,37 @@ public class TxnTestUtils{
 //        Assert.assertEquals(baseErrorMessage+" Table buffer differs",correct.getDestinationTables(),actual.getDestinationTables());
     }
 
+    public static TxnView getMockCommittedTxn(long begin, long commit, TxnView parent){
+        assert parent != null;
+        return new InheritingTxnView(parent,begin,begin,
+                Txn.IsolationLevel.SNAPSHOT_ISOLATION,
+                false,false,
+                true,true,
+                commit,-1l,
+                Txn.State.COMMITTED);
+    }
+
+    public static TxnView getMockCommittedTxn(long begin, long commit) {
+        return getMockCommittedTxn(begin, commit, Txn.ROOT_TRANSACTION);
+    }
+
+    public static TxnView getMockRolledBackTxn(long begin, TxnView parent) {
+        assert parent != null;
+        return new InheritingTxnView(parent,
+                begin,begin,true,
+                Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ROLLEDBACK);
+    }
+
+    public static TxnView getMockRolledBackTxn(long begin) {
+        return getMockRolledBackTxn(begin, Txn.ROOT_TRANSACTION);
+    }
+
+    public static TxnView getMockActiveTxn(long begin, TxnView parent) {
+        assert parent != null;
+        return new InheritingTxnView(parent,begin,begin,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
+    }
+
+    public static TxnView getMockActiveTxn(long begin) {
+        return getMockActiveTxn(begin, Txn.ROOT_TRANSACTION);
+    }
 }
