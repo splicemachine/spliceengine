@@ -292,6 +292,49 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "Views in SYSVW created!");
     }
 
+    public void createTableColumnViewInSysIBM(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+
+        /**
+         * handle syscolumns in sysibm
+         */
+        // check the existence of syscolumns view in sysibm
+        TableDescriptor td = getTableDescriptor("SYSCOLUMNS", sysIBMSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNS", 1, sysIBMSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_IN_SYSIBM);
+
+        /**
+         * handle systables in sysibm
+         */
+        td = getTableDescriptor("SYSTABLES", sysIBMSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM);
+
+        SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
+    }
+
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
         //drop table descriptor corresponding to the tablestats view
         SchemaDescriptor sd=getSystemSchemaDescriptor();
@@ -406,6 +449,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createSystemViews(tc);
 
         createPermissionTableSystemViews(tc);
+
+        createTableColumnViewInSysIBM(tc);
 
     }
 
