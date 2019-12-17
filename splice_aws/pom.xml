@@ -40,7 +40,7 @@
                         <excludes>
                             <exclude>junit:junit</exclude>
                             <exclude>org.mockito:mockito-all</exclude>
-                            <exclude>org.hamcrest:hamcrest-core</exclude>
+                            <exclude>org.hamcrest:hamcrest</exclude>
                         </excludes>
                     </artifactSet>
                     <relocations>

@@ -201,8 +201,8 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView parentTxn=getMockCommittedTxn(0x200l,0x500l,null);
-        TxnView committed=getMockCommittedTxn(0x300l,0x400l,null);
+        TxnView parentTxn = TxnTestUtils.getMockCommittedTxn(0x200l,0x500l);
+        TxnView committed = TxnTestUtils.getMockCommittedTxn(0x300l,0x400l);
         baseStore.cache(parentTxn);
         baseStore.cache(committed);
 
@@ -217,7 +217,7 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView rolledBackTxn=getMockRolledBackTxn(0x100l,null);
+        TxnView rolledBackTxn = TxnTestUtils.getMockRolledBackTxn(0x100l);
         baseStore.cache(rolledBackTxn);
 
         assertRolledBack(baseStore,rolledBackTxn);
@@ -232,8 +232,8 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView parenTxn=getMockRolledBackTxn(0x100l,null);
-        TxnView rolledBackTxn=getMockActiveTxn(0x200l,parenTxn);
+        TxnView parenTxn = TxnTestUtils.getMockRolledBackTxn(0x100l);
+        TxnView rolledBackTxn = TxnTestUtils.getMockActiveTxn(0x200l,parenTxn);
         baseStore.cache(rolledBackTxn);
         baseStore.cache(parenTxn);
 
@@ -249,8 +249,8 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView parenTxn=getMockRolledBackTxn(0x100l,null);
-        TxnView rolledBackTxn=getMockCommittedTxn(0x200l,0x300l,parenTxn);
+        TxnView parenTxn = TxnTestUtils.getMockRolledBackTxn(0x100l);
+        TxnView rolledBackTxn = TxnTestUtils.getMockCommittedTxn(0x200l,0x300l,parenTxn);
         baseStore.cache(parenTxn);
         baseStore.cache(rolledBackTxn);
 
@@ -265,8 +265,8 @@ public class SimpleTxnFilterTest{
 		 */
         TxnSupplier baseStore=txnSupplier;
 
-        TxnView parenTxn=getMockCommittedTxn(0x100l,0x300l,null);
-        TxnView rolledBackTxn=getMockRolledBackTxn(0x200l,parenTxn);
+        TxnView parenTxn = TxnTestUtils.getMockCommittedTxn(0x100l,0x300l);
+        TxnView rolledBackTxn = TxnTestUtils.getMockRolledBackTxn(0x200l,parenTxn);
         baseStore.cache(parenTxn);
         baseStore.cache(rolledBackTxn);
 
@@ -385,31 +385,6 @@ public class SimpleTxnFilterTest{
         Assert.assertNotNull("Did not create a user cell!",userCell);
         Assert.assertEquals("Incorrect data type!",CellType.USER_DATA,userCell.dataType());
         return userCell;
-    }
-
-    private TxnView getMockCommittedTxn(long begin,long commit,TxnView parent){
-        if(parent==null)
-            parent=Txn.ROOT_TRANSACTION;
-        return new InheritingTxnView(parent,begin,begin,
-                Txn.IsolationLevel.SNAPSHOT_ISOLATION,
-                false,false,
-                true,true,
-                commit,-1l,
-                Txn.State.COMMITTED);
-    }
-
-    private TxnView getMockRolledBackTxn(long begin,TxnView parent){
-        if(parent==null)
-            parent=Txn.ROOT_TRANSACTION;
-        return new InheritingTxnView(parent,
-                begin,begin,true,
-                Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ROLLEDBACK);
-    }
-
-    private TxnView getMockActiveTxn(long begin,TxnView parent){
-        if(parent==null)
-            parent=Txn.ROOT_TRANSACTION;
-        return new InheritingTxnView(parent,begin,begin,true,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
     }
 
 }

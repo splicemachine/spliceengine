@@ -15,6 +15,7 @@
 
 package com.splicemachine.access.client;
 
+import com.splicemachine.si.impl.server.SITestUtils;
 import org.spark_project.guava.collect.Ordering;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.Cell;
@@ -39,25 +40,18 @@ import static org.junit.Assert.*;
 public class MemstoreKeyValueScannerTest {
     @Test
     public void testExistingResultsAreOrdered() throws IOException {
-        byte[] row = Bytes.toBytes("first");
-
-        ResultScanner rs = generateResultScanner(generateKV(row, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, Bytes.toBytes("delete")));
+        ResultScanner rs = generateResultScanner(SITestUtils.getMockTombstoneCell(10));
 
         MemstoreKeyValueScanner mkvs = new MemstoreKeyValueScanner(rs);
 
         List<Cell> results = new ArrayList<>();
-        results.add(generateKV(row, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, Bytes.toBytes("commit")));
-        results.add(generateKV(row, SIConstants.PACKED_COLUMN_BYTES, Bytes.toBytes("value")));
+        results.add(SITestUtils.getMockCommitCell(10));
+        results.add(SITestUtils.getMockValueCell(10));
 
         mkvs.next(results);
 
         assertEquals("Number of results doesn't match", 3, results.size());
         assertTrue("Results are not ordered", Ordering.from(KeyValue.COMPARATOR).isOrdered(results));
-    }
-
-    private KeyValue generateKV(byte[] row, byte[] qualifier, byte[] value) {
-        byte[] cf = Bytes.toBytes("V");
-        return new KeyValue(row, cf, qualifier, 10, value);
     }
 
     private ResultScanner generateResultScanner(KeyValue... kvs) {
