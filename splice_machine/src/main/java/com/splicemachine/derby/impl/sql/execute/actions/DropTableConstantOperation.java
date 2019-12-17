@@ -114,15 +114,14 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
                 }
             }
 
-            /* Drop the columns */
-            dd.dropAllColumnDescriptors(tableId, tc);
-
             /* Drop all table and column permission descriptors */
             dd.dropAllTableAndColPermDescriptors(tableId, tc);
 
             /* Drop the constraints */
             dropAllConstraintDescriptors(td, activation);
 
+            /* Drop the columns */
+            dd.dropAllColumnDescriptors(tableId, tc);
 
             /*
              * Drop all the conglomerates.  Drop the heap last, because the

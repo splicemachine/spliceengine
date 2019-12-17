@@ -97,6 +97,10 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         if (parentInterceptWriteFactory == null) {
             parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds,exceptionFactory,fkConstraintInfos);
         }
+        else {
+            parentInterceptWriteFactory.addReferencingIndexConglomerateNumber(backingIndexConglomIds);
+        }
+
     }
 
     public void addChildIntercept(long referencedConglomerateNumber, FKConstraintInfo fkConstraintInfo) {
