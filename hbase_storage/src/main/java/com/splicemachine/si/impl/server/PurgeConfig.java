@@ -17,7 +17,9 @@ package com.splicemachine.si.impl.server;
 import java.util.EnumSet;
 
 public enum PurgeConfig {
-    FORCE_PURGE, PURGE, KEEP_MOST_RECENT_TOMBSTONE;
+    PURGE, // Purge deleted rows if no active transaction is using them
+    KEEP_MOST_RECENT_TOMBSTONE, // Prevent purging of the most recent tombstone, unless first write token is present
+    FORCE_PURGE; // Purge deleted rows even if transactions are still using some of them
 
     public static EnumSet<PurgeConfig> NO_PURGE = EnumSet.noneOf(PurgeConfig.class);
 }

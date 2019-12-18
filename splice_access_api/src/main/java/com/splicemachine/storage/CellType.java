@@ -32,6 +32,9 @@ public enum CellType{
     /* Column "7" */
     USER_DATA,
 
+    /* Column "8" */
+    FIRST_WRITE_TOKEN,
+
     /* Column "9" */
     FOREIGN_KEY_COUNTER,
 

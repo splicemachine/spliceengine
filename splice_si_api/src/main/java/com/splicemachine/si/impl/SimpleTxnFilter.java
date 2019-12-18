@@ -128,8 +128,8 @@ public class SimpleTxnFilter implements TxnFilter{
             ensureTransactionIsCached(keyValue);
             return DataFilter.ReturnCode.SKIP;
         }
-        if(type==CellType.FOREIGN_KEY_COUNTER){
-            /* Transactional reads always ignore this column, no exceptions. */
+        if(type == CellType.FOREIGN_KEY_COUNTER || type == CellType.FIRST_WRITE_TOKEN){
+            /* Transactional reads always ignore these columns, no exceptions. */
             return DataFilter.ReturnCode.SKIP;
         }
 

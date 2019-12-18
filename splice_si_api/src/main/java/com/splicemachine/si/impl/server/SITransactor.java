@@ -87,7 +87,6 @@ public class SITransactor implements Transactor{
     public boolean processPut(Partition table,RollForward rollForwardQueue,DataPut put) throws IOException{
         if(!isFlaggedForSITreatment(put)) return false;
         final DataPut[] mutations= {put};
-        mutations[0]=put;
         MutationStatus[] operationStatuses=processPutBatch(table,rollForwardQueue,mutations);
         return operationStatusLib.processPutStatus(operationStatuses[0]);
     }
@@ -110,12 +109,9 @@ public class SITransactor implements Transactor{
                 Map<byte[], List<KVPair>> columnMap=familyEntry.getValue();
                 for(Map.Entry<byte[], List<KVPair>> columnEntry : columnMap.entrySet()){
                     byte[] qualifier=columnEntry.getKey();
-                    List<KVPair> kvPairs= Lists.newArrayList(Collections2.filter(columnEntry.getValue(), new Predicate<KVPair>() {
-                        @Override
-                        public boolean apply(@Nullable KVPair input) {
-                            assert input != null;
-                            return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
-                        }
+                    List<KVPair> kvPairs= Lists.newArrayList(Collections2.filter(columnEntry.getValue(), input -> {
+                        assert input != null;
+                        return !statusMap.containsKey(input.getRowKey()) || statusMap.get(input.getRowKey()).isSuccess();
                     }));
                     MutationStatus[] statuses=processKvBatch(table,null,family,qualifier,kvPairs,txnId,defaultConstraintChecker);
                     for(int i=0;i<statuses.length;i++){
@@ -270,8 +266,8 @@ public class SITransactor implements Transactor{
         if (rollforward) {
             toRollforward = new ArrayList<>(dataAndLocks.length);
         }
-        for(int i=0;i<dataAndLocks.length;i++){
-            Pair<KVPair, Lock> baseDataAndLock=dataAndLocks[i];
+        for(int i = 0; i<dataAndLocks.length; i++) {
+            Pair<KVPair, Lock> baseDataAndLock = dataAndLocks[i];
             if(baseDataAndLock==null) continue;
 
             ConflictResults conflictResults=ConflictResults.NO_CONFLICT;
@@ -315,9 +311,9 @@ public class SITransactor implements Transactor{
                 }
             }
 
-            conflictingChildren[i]=conflictResults.getChildConflicts();
-            DataPut mutationToRun=getMutationToRun(table,kvPair,
-                    family,qualifier,transaction,conflictResults,skipWAL,toRollforward);
+            conflictingChildren[i] = conflictResults.getChildConflicts();
+            DataPut mutationToRun = getMutationToRun(
+                    table, kvPair, family, qualifier, transaction, conflictResults, possibleConflicts == null, skipWAL, toRollforward);
             finalMutationsToWrite.put(i,mutationToRun);
         }
         if (toRollforward != null && toRollforward.size() > 0) {
@@ -407,11 +403,12 @@ public class SITransactor implements Transactor{
 
     private DataPut getMutationToRun(Partition table, KVPair kvPair,
                                      byte[] family, byte[] column,
-                                     TxnView transaction, ConflictResults conflictResults, boolean skipWAL, List<ByteSlice> rollforward) throws IOException{
+                                     TxnView transaction, ConflictResults conflictResults, boolean firstOccurence,
+                                     boolean skipWAL, List<ByteSlice> rollforward) throws IOException{
         long txnIdLong=transaction.getTxnId();
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("table = %s, kvPair = %s, txnId = %s", table.toString(), kvPair.toString(), txnIdLong));
         DataPut newPut;
-        if(kvPair.getType()==KVPair.Type.EMPTY_COLUMN){
+        if(kvPair.getType()==KVPair.Type.EMPTY_COLUMN) {
             /*
              * WARNING: This requires a read of column data to populate! Try not to use
              * it unless no other option presents itself.
@@ -423,11 +420,15 @@ public class SITransactor implements Transactor{
              */
             newPut=opFactory.newPut(kvPair.rowKeySlice());
             setTombstonesOnColumns(table,txnIdLong,newPut);
-        }else if(kvPair.getType()==KVPair.Type.DELETE){
+        } else if(kvPair.getType()==KVPair.Type.DELETE) {
             newPut=opFactory.newPut(kvPair.rowKeySlice());
             newPut.tombstone(txnIdLong);
-        }else
-            newPut=opFactory.toDataPut(kvPair,family,column,txnIdLong);
+        } else {
+            newPut = opFactory.toDataPut(kvPair, family, column, txnIdLong);
+            if (firstOccurence) {
+                newPut.addFirstWriteToken(family, txnIdLong);
+            }
+        }
 
         newPut.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         if(kvPair.getType()!=KVPair.Type.DELETE && conflictResults.hasTombstone())

@@ -63,6 +63,14 @@ public class HPut implements HMutation,DataPut{
     }
 
     @Override
+    public void addFirstWriteToken(byte[] family, long txnIdLong) {
+        put.addColumn(family,
+                SIConstants.SNAPSHOT_ISOLATION_FIRST_WRITE_TOKEN_COLUMN_BYTES,
+                txnIdLong,
+                SIConstants.EMPTY_BYTE_ARRAY);
+    }
+
+    @Override
     public void addCell(byte[] family,byte[] qualifier,long timestamp,byte[] value){
         put.addColumn(family,qualifier,timestamp,value);
     }

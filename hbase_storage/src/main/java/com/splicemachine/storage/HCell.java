@@ -149,6 +149,9 @@ public class HCell implements DataCell{
                 case FOREIGN_KEY_COUNTER:
                     qualArray = SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES;
                     break;
+                case FIRST_WRITE_TOKEN:
+                    qualArray = SIConstants.SNAPSHOT_ISOLATION_FIRST_WRITE_TOKEN_COLUMN_BYTES;
+                    break;
                 case OTHER:
                 default:
                     throw new IllegalArgumentException("Programmer error: unexpected cell type "+ newCellType);
@@ -244,6 +247,8 @@ public class HCell implements DataCell{
             } else {
                 return CellType.TOMBSTONE;
             }
+        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.SNAPSHOT_ISOLATION_FIRST_WRITE_TOKEN_COLUMN_BYTES)) {
+            return CellType.FIRST_WRITE_TOKEN;
         } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
             return CellType.FOREIGN_KEY_COUNTER;
         }

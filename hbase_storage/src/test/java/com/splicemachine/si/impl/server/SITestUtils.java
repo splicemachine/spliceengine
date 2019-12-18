@@ -26,4 +26,8 @@ public class SITestUtils {
     public static KeyValue getMockValueCell(long timestamp) {
         return generateKV(row, SIConstants.PACKED_COLUMN_BYTES, timestamp, Bytes.toBytes("value"));
     }
+
+    public static KeyValue getMockFirstWriteCell(long timestamp) {
+        return generateKV(row, SIConstants.SNAPSHOT_ISOLATION_FIRST_WRITE_TOKEN_COLUMN_BYTES, timestamp, Bytes.toBytes(""));
+    }
 }

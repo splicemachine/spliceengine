@@ -56,11 +56,13 @@ public class SIConstants {
      * 0 = contains commit timestamp (optionally written after writing transaction is final)
      * 1 = tombstone (if value empty) or anti-tombstone (if value "0")
      * 7 = encoded user data
+     * 8 = token placed the first time we write to this row
      * 9 = column for causing write conflicts between concurrent transactions writing to parent and child FK tables
      */
     public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes("0");
     public static final byte[] SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES = Bytes.toBytes("1");
     public static final byte[] SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES = Bytes.toBytes("9");
+    public static final byte[] SNAPSHOT_ISOLATION_FIRST_WRITE_TOKEN_COLUMN_BYTES = Bytes.toBytes("8");
     public static final byte[] SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES = Bytes.toBytes("0");
 
 

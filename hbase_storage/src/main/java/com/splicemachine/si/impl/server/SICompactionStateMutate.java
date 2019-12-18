@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
@@ -19,12 +18,14 @@ class SICompactionStateMutate {
     private final EnumSet<PurgeConfig> purgeConfig;
     private long maxTombstoneTimestamp;
     private long lowWatermarkTransaction;
+    private boolean firstRowToken;
 
     SICompactionStateMutate(EnumSet<PurgeConfig> purgeConfig, long lowWatermarkTransaction) {
         this.purgeConfig = purgeConfig;
         this.dataToReturn = new TreeSet<>(KeyValue.COMPARATOR);
         this.maxTombstoneTimestamp = 0;
         this.lowWatermarkTransaction = lowWatermarkTransaction;
+        this.firstRowToken = false;
     }
 
     private boolean isSorted(List<Cell> list) {
@@ -57,7 +58,7 @@ class SICompactionStateMutate {
         }
         if (purgeConfig.contains(PurgeConfig.FORCE_PURGE) ||
                 (purgeConfig.contains(PurgeConfig.PURGE) && maxTombstoneTimestamp > 0)) {
-            removeTombStone(maxTombstoneTimestamp);
+            removeDeletedRows(maxTombstoneTimestamp);
         }
         results.addAll(dataToReturn);
         assert isSorted(results): "CompactionStateMutate: results not sorted";
@@ -71,6 +72,15 @@ class SICompactionStateMutate {
         if (cellType == CellType.COMMIT_TIMESTAMP) {
             assert txn == null;
             dataToReturn.add(element);
+            return;
+        }
+        if (cellType == CellType.FIRST_WRITE_TOKEN) {
+            /*
+             * This cell should never be kept and is only used as an indicator that tombstones
+             * can be purged during flush
+             */
+            assert !firstRowToken; // There can only be one cell of that type
+            firstRowToken = true;
             return;
         }
         if (txn == null) {
@@ -101,11 +111,15 @@ class SICompactionStateMutate {
         dataToReturn.add(element);
     }
 
-    private void removeTombStone(long maxTombstone) {
+    private boolean shouldRemoveMostRecentTombstone() {
+        return firstRowToken || !purgeConfig.contains(PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+    }
+
+    private void removeDeletedRows(long maxTombstone) {
         SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
         for (Cell element : cp) {
             long timestamp = element.getTimestamp();
-            if (timestamp == maxTombstone && !purgeConfig.contains(PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE))
+            if (timestamp == maxTombstone && shouldRemoveMostRecentTombstone())
                 dataToReturn.remove(element);
             else if (timestamp < maxTombstoneTimestamp) {
                 dataToReturn.remove(element);
