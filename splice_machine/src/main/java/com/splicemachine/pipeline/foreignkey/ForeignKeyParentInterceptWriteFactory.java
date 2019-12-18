@@ -59,6 +59,10 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
         this.referencingIndexConglomerateNumbers.remove(conglomerateNumber);
     }
 
+    public void addReferencingIndexConglomerateNumber(List<Long> conglomerateNumbers) {
+        this.referencingIndexConglomerateNumbers.addAll(conglomerateNumbers);
+    }
+
     @Override
     public boolean canReplace(LocalWriteFactory newContext){
         return false;

@@ -138,8 +138,8 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
         TableDescriptor childTd = fkConstraint.getTableDescriptor();
         TableDescriptor parentTd = parentKeyConstraint.getTableDescriptor();
 
-        ColumnDescriptorNameFunction childNameFunction = new ColumnDescriptorNameFunction(childTd);
-        ColumnDescriptorNameFunction parentNameFunction = new ColumnDescriptorNameFunction(parentTd);
+        ColumnDescriptorNameFunction childNameFunction = new ColumnDescriptorNameFunction(childTd, "C");
+        ColumnDescriptorNameFunction parentNameFunction = new ColumnDescriptorNameFunction(parentTd, "P");
 
         ColumnDescriptorList childColumns = fkConstraint.getColumnDescriptors();
         ColumnDescriptorList parentColumns = parentKeyConstraint.getColumnDescriptors();
@@ -173,8 +173,8 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 
         StringBuilder query = new StringBuilder();
         query.append("SELECT DISTINCT " + commaJoiner.join(Iterables.transform(childColumns, childNameFunction)));
-        query.append(" FROM " + childTd.getSchemaName() + "." + childTd.getName());
-        query.append(" LEFT JOIN " + parentTd.getSchemaName() + "." + parentTd.getName() + " ON ");
+        query.append(" FROM " + childTd.getSchemaName() + "." + childTd.getName() + " " + childNameFunction.getAlias());
+        query.append(" LEFT JOIN " + parentTd.getSchemaName() + "." + parentTd.getName() + " " + parentNameFunction.getAlias() + " ON ");
         query.append(andJoiner.join(joinClauseParts));
         query.append(" WHERE ");
         query.append(andJoiner.join(whereClauseParts));
@@ -281,14 +281,21 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
     private static class ColumnDescriptorNameFunction implements Function<ColumnDescriptor, String> {
 
         private TableDescriptor tableDescriptor;
+		private String alias;
 
-        private ColumnDescriptorNameFunction(TableDescriptor tableDescriptor) {
-            this.tableDescriptor = tableDescriptor;
-        }
 
+		private ColumnDescriptorNameFunction(TableDescriptor tableDescriptor, String alias) {
+			this.tableDescriptor = tableDescriptor;
+			this.alias = alias;
+		}
+
+		private String getAlias() {
+			return alias;
+		}
         @Override
         public String apply(ColumnDescriptor columnDescriptor) {
-            return tableDescriptor.getSchemaName() + "." + tableDescriptor.getName() + "." + columnDescriptor.getColumnName();
+            return alias + "." + columnDescriptor.getColumnName();
+
         }
     }
 }
