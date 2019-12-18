@@ -42,32 +42,53 @@ public class MPut implements DataPut{
 
     @Override
     public void tombstone(long txnIdLong){
-        DataCell tCell = new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,txnIdLong,SIConstants.EMPTY_BYTE_ARRAY,CellType.TOMBSTONE);
+        DataCell tCell = new MCell(
+                key,SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TOMBSTONE_COLUMN_BYTES,
+                txnIdLong, SIConstants.EMPTY_BYTE_ARRAY, CellType.TOMBSTONE);
         data.add(tCell);
     }
 
     @Override
     public void antiTombstone(long txnIdLong){
-        DataCell tCell = new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,txnIdLong,
-                SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,CellType.ANTI_TOMBSTONE);
+        DataCell tCell = new MCell(
+                key, SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TOMBSTONE_COLUMN_BYTES,
+                txnIdLong, SIConstants.ANTI_TOMBSTONE_VALUE_BYTES, CellType.ANTI_TOMBSTONE);
         data.add(tCell);
 
     }
 
     @Override
+    public void addFirstWriteToken(byte[] family, long txnIdLong) {
+        DataCell tCell = new MCell(
+                key, family, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES,
+                txnIdLong, SIConstants.EMPTY_BYTE_ARRAY, CellType.FIRST_WRITE_TOKEN);
+        data.add(tCell);
+    }
+
+    @Override
+    public void addDeleteRightAfterFirstWriteToken(byte[] family, long txnIdLong) {
+        DataCell tCell = new MCell(
+                key, family, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES,
+                txnIdLong, SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES, CellType.DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN);
+        data.add(tCell);
+    }
+
+    @Override
     public void addCell(byte[] family,byte[] qualifier,long timestamp,byte[] value){
         CellType ct;
-        if(qualifier==SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES)
+        if (qualifier == SIConstants.TIMESTAMP_COLUMN_BYTES)
             ct = CellType.COMMIT_TIMESTAMP;
-        else if(qualifier==SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)
+        else if (qualifier == SIConstants.FK_COUNTER_COLUMN_BYTES)
             ct = CellType.FOREIGN_KEY_COUNTER;
-        else if(qualifier==SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES)
+        else if (qualifier == SIConstants.TOMBSTONE_COLUMN_BYTES)
             ct = CellType.TOMBSTONE;
-        else if(qualifier==SIConstants.PACKED_COLUMN_BYTES)
+        else if (qualifier == SIConstants.PACKED_COLUMN_BYTES)
             ct = CellType.USER_DATA;
-        else ct =CellType.OTHER;
-        DataCell tCell = new MCell(key,family, qualifier,timestamp,value,ct);
+        else if (qualifier == SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES)
+            ct = CellType.FIRST_WRITE_TOKEN;
+        else
+            ct = CellType.OTHER;
+        DataCell tCell = new MCell(key, family, qualifier, timestamp, value, ct);
         data.add(tCell);
 
     }

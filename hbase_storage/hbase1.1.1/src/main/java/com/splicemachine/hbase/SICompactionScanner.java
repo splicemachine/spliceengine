@@ -24,7 +24,6 @@ import org.apache.hadoop.hbase.regionserver.ScannerContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -36,7 +35,7 @@ public class SICompactionScanner extends AbstractSICompactionScanner {
 
     public SICompactionScanner(SICompactionState compactionState,
                                InternalScanner scanner,
-                               EnumSet<PurgeConfig> purgeConfig,
+                               PurgeConfig purgeConfig,
                                double resolutionShare,
                                int bufferSize,
                                CompactionContext context) {

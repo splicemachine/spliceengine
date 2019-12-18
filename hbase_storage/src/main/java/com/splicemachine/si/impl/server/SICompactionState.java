@@ -64,7 +64,7 @@ public class SICompactionState {
      * @param rawList - the input of key values to process
      * @param results - the output key values
      */
-    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, EnumSet<PurgeConfig> purgeConfig) throws IOException {
+    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
         SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig, TransactionsWatcher.getLowWatermarkTransaction());
         impl.mutate(rawList, txns, results);
     }

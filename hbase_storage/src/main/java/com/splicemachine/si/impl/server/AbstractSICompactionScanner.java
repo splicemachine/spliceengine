@@ -43,13 +43,13 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private final Timer timer;
     private final int timeDelta;
     private final CompactionContext context;
-    private final EnumSet<PurgeConfig> purgeConfig;
+    private final PurgeConfig purgeConfig;
     private AtomicReference<IOException> failure = new AtomicReference<>();
     private AtomicLong remainingTime;
 
     public AbstractSICompactionScanner(SICompactionState compactionState,
                                        InternalScanner scanner,
-                                       EnumSet<PurgeConfig> purgeConfig,
+                                       PurgeConfig purgeConfig,
                                        double resolutionShare,
                                        int bufferSize,
                                        CompactionContext context) {

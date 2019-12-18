@@ -14,10 +14,53 @@
 
 package com.splicemachine.si.impl.server;
 
-import java.util.EnumSet;
+public class PurgeConfig {
+    public enum PurgeLatestTombstone {
+        ALWAYS,
+        IF_DELETE_FOLLOWS_FIRST_WRITE,
+        IF_FIRST_WRITE_PRESENT;
+    }
 
-public enum PurgeConfig {
-    FORCE_PURGE, PURGE, KEEP_MOST_RECENT_TOMBSTONE;
+    private final PurgeLatestTombstone purgeLatestTombstone;
+    private final boolean respectActiveTransactions;
+    private final boolean purge;
 
-    public static EnumSet<PurgeConfig> NO_PURGE = EnumSet.noneOf(PurgeConfig.class);
+    public PurgeConfig(boolean purge, PurgeLatestTombstone purgeLatestTombstone, boolean respectActiveTransactions) {
+        this.purge = purge;
+        this.purgeLatestTombstone = purgeLatestTombstone;
+        this.respectActiveTransactions = respectActiveTransactions;
+    }
+
+    public static PurgeConfig forcePurgeConfig() {
+        return new PurgeConfig(true, PurgeLatestTombstone.ALWAYS, false);
+    }
+
+    public static PurgeConfig purgeDuringFlushConfig() {
+        return new PurgeConfig(true, PurgeLatestTombstone.IF_FIRST_WRITE_PRESENT, true);
+    }
+
+    public static PurgeConfig purgeDuringMinorCompactionConfig() {
+        return new PurgeConfig(true, PurgeLatestTombstone.IF_DELETE_FOLLOWS_FIRST_WRITE, true);
+    }
+
+    public static PurgeConfig purgeDuringMajorCompactionConfig() {
+        return new PurgeConfig(true, PurgeLatestTombstone.ALWAYS, true);
+    }
+
+    public static PurgeConfig noPurgeConfig() {
+        return new PurgeConfig(false, PurgeLatestTombstone.ALWAYS, true);
+    }
+
+    public PurgeLatestTombstone getPurgeLatestTombstone() {
+        return purgeLatestTombstone;
+    }
+
+    public boolean shouldRespectActiveTransactions() {
+        return respectActiveTransactions;
+    }
+
+    public boolean shouldPurge() {
+        return purge;
+    }
 }
+

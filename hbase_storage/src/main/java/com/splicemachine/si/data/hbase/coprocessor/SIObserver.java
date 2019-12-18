@@ -255,11 +255,11 @@ public class SIObserver extends BaseRegionObserver{
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            EnumSet<PurgeConfig> purgeConfig;
+            PurgeConfig purgeConfig;
             if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                purgeConfig = EnumSet.of(PurgeConfig.PURGE, PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+                purgeConfig = PurgeConfig.purgeDuringFlushConfig();
             } else {
-                purgeConfig = PurgeConfig.NO_PURGE;
+                purgeConfig = PurgeConfig.noPurgeConfig();
             }
             SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
@@ -280,13 +280,14 @@ public class SIObserver extends BaseRegionObserver{
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                         driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                EnumSet<PurgeConfig> purgeConfig;
+                PurgeConfig purgeConfig;
                 if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                    purgeConfig = EnumSet.of(PurgeConfig.PURGE);
-                    if (!compactionRequest.isMajor())
-                        purgeConfig.add(PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE);
+                    if (compactionRequest.isMajor())
+                        purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
+                    else
+                        purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
                 } else {
-                    purgeConfig = PurgeConfig.NO_PURGE;
+                    purgeConfig = PurgeConfig.noPurgeConfig();
                 }
                 SICompactionScanner siScanner = new SICompactionScanner(
                         state, scanner, purgeConfig,

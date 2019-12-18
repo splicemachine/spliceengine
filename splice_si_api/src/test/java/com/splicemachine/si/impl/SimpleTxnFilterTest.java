@@ -14,7 +14,6 @@
 
 package com.splicemachine.si.impl;
 
-import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.primitives.Bytes;
@@ -94,7 +93,7 @@ public class SimpleTxnFilterTest{
         TxnView myTxn=new InheritingTxnView(Txn.ROOT_TRANSACTION,0x300l,0x300l,Txn.IsolationLevel.SNAPSHOT_ISOLATION,Txn.State.ACTIVE);
 
         DataPut testCommitKv=operationFactory.newDataPut(myTxn,Encoding.encode("1"));
-        testCommitKv.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0x100l,Bytes.toBytes(1l));
+        testCommitKv.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TIMESTAMP_COLUMN_BYTES,0x100l,Bytes.toBytes(1l));
         DataCell commitCell=testCommitKv.cells().iterator().next();
         Assert.assertNotNull("Did not create a commit cell!",commitCell);
         Assert.assertEquals("Incorrect data type!",CellType.COMMIT_TIMESTAMP,commitCell.dataType());

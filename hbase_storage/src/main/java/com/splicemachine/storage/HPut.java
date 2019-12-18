@@ -50,16 +50,32 @@ public class HPut implements HMutation,DataPut{
     @Override
     public void tombstone(long txnIdLong){
         put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
+                SIConstants.TOMBSTONE_COLUMN_BYTES,
                 txnIdLong,SIConstants.EMPTY_BYTE_ARRAY);
     }
 
     @Override
     public void antiTombstone(long txnIdLong){
         put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,
+                SIConstants.TOMBSTONE_COLUMN_BYTES,
                 txnIdLong,
-                SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES);
+                SIConstants.ANTI_TOMBSTONE_VALUE_BYTES);
+    }
+
+    @Override
+    public void addFirstWriteToken(byte[] family, long txnIdLong) {
+        put.addColumn(family,
+                SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES,
+                txnIdLong,
+                SIConstants.EMPTY_BYTE_ARRAY);
+    }
+
+    @Override
+    public void addDeleteRightAfterFirstWriteToken(byte[] family, long txnIdLong) {
+        put.addColumn(family,
+                SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES,
+                txnIdLong,
+                SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES);
     }
 
     @Override

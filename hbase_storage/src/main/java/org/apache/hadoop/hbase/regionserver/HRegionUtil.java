@@ -354,7 +354,7 @@ public class HRegionUtil extends BaseHRegionUtil{
                         if (!bitSet.get(i)) {
                             Cell kv = new KeyValue(key,
                                                    SIConstants.DEFAULT_FAMILY_BYTES,
-                                                   SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
+                                                   SIConstants.TIMESTAMP_COLUMN_BYTES,
                                                    HConstants.LATEST_TIMESTAMP,
                                                    HConstants.EMPTY_BYTE_ARRAY);
                             bitSet.set(i, checkMemstore(memstore, key, kv) || checkMemstore(snapshot, key, kv));

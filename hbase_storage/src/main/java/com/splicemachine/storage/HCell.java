@@ -135,19 +135,25 @@ public class HCell implements DataCell{
         }else{
             switch(newCellType){
                 case COMMIT_TIMESTAMP:
-                    qualArray = SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES;
+                    qualArray = SIConstants.TIMESTAMP_COLUMN_BYTES;
                     break;
                 case ANTI_TOMBSTONE:
-                    assert Bytes.equals(SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,newValue):
+                    assert Bytes.equals(SIConstants.ANTI_TOMBSTONE_VALUE_BYTES, newValue):
                             "Programmer error: cannot create an ANTI-TOMBSTONE cell without an anti-tombstone value";
                 case TOMBSTONE:
-                    qualArray = SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES;
+                    qualArray = SIConstants.TOMBSTONE_COLUMN_BYTES;
                     break;
                 case USER_DATA:
                     qualArray = SIConstants.PACKED_COLUMN_BYTES;
                     break;
                 case FOREIGN_KEY_COUNTER:
-                    qualArray = SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES;
+                    qualArray = SIConstants.FK_COUNTER_COLUMN_BYTES;
+                    break;
+                case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
+                    assert Bytes.equals(SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES, newValue):
+                            "Programmer error: cannot create an DELETE_RIGHT_AFTER_FIRST_WRITE cell without a value";
+                case FIRST_WRITE_TOKEN:
+                    qualArray = SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES;
                     break;
                 case OTHER:
                 default:
@@ -234,17 +240,23 @@ public class HCell implements DataCell{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private CellType parseType(Cell cell){
-        if (CellUtils.singleMatchingQualifier(cell,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES)) {
+        if (CellUtils.singleMatchingQualifier(cell,SIConstants.TIMESTAMP_COLUMN_BYTES)) {
             return CellType.COMMIT_TIMESTAMP;
         } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.PACKED_COLUMN_BYTES)) {
             return CellType.USER_DATA;
-        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES)) {
-            if (CellUtils.matchingValue(cell, SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES)) {
+        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.TOMBSTONE_COLUMN_BYTES)) {
+            if (CellUtils.matchingValue(cell, SIConstants.ANTI_TOMBSTONE_VALUE_BYTES)) {
                 return CellType.ANTI_TOMBSTONE;
             } else {
                 return CellType.TOMBSTONE;
             }
-        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
+        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES)) {
+            if (CellUtils.matchingValue(cell, SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES)) {
+                return CellType.DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN;
+            } else {
+                return CellType.FIRST_WRITE_TOKEN;
+            }
+        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.FK_COUNTER_COLUMN_BYTES)) {
             return CellType.FOREIGN_KEY_COUNTER;
         }
         return CellType.OTHER;
