@@ -351,7 +351,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             fail();
         } catch (SQLException sqle) {
             String sqlState = sqle.getSQLState();
-            Assert.assertTrue(sqlState, sqlState.compareToIgnoreCase("EXT34") == 0 || sqlState.compareToIgnoreCase("X0X14") == 0);
+            Assert.assertTrue(sqlState, sqlState.compareToIgnoreCase("EXT34") == 0 ||
+                    sqlState.compareToIgnoreCase("X0X14") == 0 ||
+                    sqlState.compareToIgnoreCase("XIE04") == 0);
         }
 
     }
