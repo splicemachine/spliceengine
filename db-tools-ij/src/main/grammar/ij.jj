@@ -1180,8 +1180,9 @@ class ij {
             String getSynonymAliasInfo = "SELECT ALIASINFO \n" +
                     " FROM \n" +
                     " SYS.SYSALIASES A, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S \n" +
-                    " WHERE A.ALIASTYPE LIKE 'S' AND \n" +
+                    " WHERE A.ALIASTYPE = 'S' AND \n" +
                     " S.SCHEMAID = T.SCHEMAID AND \n" +
+                    " A.SCHEMAID = T.SCHEMAID AND \n" +
                     " A.ALIAS = T.TABLENAME AND \n" +
                     " (S.SCHEMANAME LIKE ?) AND (T.TABLENAME LIKE ?)";
 
