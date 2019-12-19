@@ -831,6 +831,9 @@ public interface DataDictionary{
     void deleteColumnStatistics(long conglomerate,
                                 TransactionController tc) throws StandardException;
 
+    void deleteColumnStatisticsByColumnId(long conglomerate,
+                                          int columnId,
+                                          TransactionController tc) throws StandardException;
 
     /**
      * Removes Table Statistics from SYSTABLESTATS.

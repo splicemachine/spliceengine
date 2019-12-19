@@ -109,7 +109,7 @@ public class StoreCostControllerImpl implements StoreCostController {
         if (!partitionStatistics.isEmpty()) {
             int statsType = partitionStatistics.get(0).getStatsType();
             isSampleStats = statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
-            isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
+            isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.FAKE_MERGED_STATS;
             if (isSampleStats)
                 sampleFraction = partitionStatistics.get(0).getSampleFraction();
         }

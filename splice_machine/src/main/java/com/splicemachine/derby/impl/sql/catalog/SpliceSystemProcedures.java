@@ -379,13 +379,39 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     Procedure collectNonMergedSampleStatsForTable = Procedure.newBuilder().name("COLLECT_NONMERGED_TABLE_SAMPLE_STATISTICS")
                             .numOutputParams(0)
                             .numResultSets(1)
-                            .varchar("schema",128)
+                            .varchar("schema",1024)
                             .varchar("table",1024)
                             .arg("samplePercentage", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE).getCatalogType())
                             .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .ownerClass(StatisticsAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(collectNonMergedSampleStatsForTable);
+
+                    Procedure fakeStatsForTable = Procedure.newBuilder().name("FAKE_TABLE_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .modifiesSql()
+                            .catalog("schema")
+                            .catalog("table")
+                            .arg("rowCount", DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                            .arg("meanRowsize", DataTypeDescriptor.getCatalogType(Types.INTEGER))
+                            .arg("numPartitions", DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(fakeStatsForTable);
+
+                    Procedure fakeStatsForColumn = Procedure.newBuilder().name("FAKE_COLUMN_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .modifiesSql()
+                            .catalog("schema")
+                            .catalog("table")
+                            .varchar("column",1024)
+                            .arg("nullCountRatio", DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                            .arg("rowsPerValue", DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(fakeStatsForColumn);
 
                     Procedure importWithBadRecords = Procedure.newBuilder().name("IMPORT_DATA")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
