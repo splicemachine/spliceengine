@@ -48,7 +48,9 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import java.sql.Types;
 import java.util.List;
 
-/**
+import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
+
+ /**
  * This class represents the 6 binary operators: LessThan, LessThanEquals,
  * Equals, NotEquals, GreaterThan and GreaterThanEquals.
  */
@@ -1437,8 +1439,8 @@ public class BinaryRelationalOperatorNode
                 sel = factor * sel;
                 // avoid the estimation to go over 1, in case it happens, round down to 0.9 to be consistent with the logic in
                 // InListSelectivity.getSelectivity()
-                if (sel > 0.9d)
-                    sel = 0.9d;
+                if (sel > DEFAULT_INLIST_SELECTIVITY)
+                    sel = DEFAULT_INLIST_SELECTIVITY;
             }
             return sel;
         } else if (rightOperand instanceof ColumnReference) {
@@ -1459,22 +1461,22 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.EQUALS_RELOP:
                 double selectivity = getReferenceSelectivity(optTable);
                 if (selectivity < 0.0d) // No Stats, lets just guess 10%
-                    return 0.1;
+                    return DEFAULT_SINGLE_POINT_SELECTIVITY;
                 return selectivity;
             case RelationalOperator.NOT_EQUALS_RELOP:
                 selectivity = getReferenceSelectivity(optTable);
                 if (selectivity < 0.0d) // No Stats, lets just guess 10%
-                    return 0.9;
+                    return 1 - DEFAULT_SINGLE_POINT_SELECTIVITY;
                 else
                     return 1-selectivity;
             case RelationalOperator.LESS_THAN_RELOP:
             case RelationalOperator.LESS_EQUALS_RELOP:
             case RelationalOperator.GREATER_EQUALS_RELOP:
                 if(getBetweenSelectivity())
-                    return 0.5d;
+                    return DEFAULT_BETWEEN_SELECTIVITY;
 				/* fallthrough -- only */
             case RelationalOperator.GREATER_THAN_RELOP:
-                return 0.33;
+                return DEFAULT_RANGE_SELECTIVITY;
         }
         return 0.0;
     }

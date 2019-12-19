@@ -69,6 +69,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     public static final int SAMPLE_NONMERGED_STATS = 1;
     public static final int REGULAR_MERGED_STATS = 2;
     public static final int SAMPLE_MERGED_STATS = 3;
+    public static final int FAKE_MERGED_STATS = 4;
 
 
     protected static final int		SYSTABLESTATISTICS_INDEX1_ID = 0;
