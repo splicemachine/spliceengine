@@ -77,7 +77,9 @@ public class TableStatisticsImpl implements TableStatistics {
         if (!partitionStatistics.isEmpty()) {
             if (partitionStatistics.get(0).getPartitionStatistics() != null) {
                 int statsType = partitionStatistics.get(0).getPartitionStatistics().getStatsType();
-                isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS || statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
+                isMergedStats = statsType == SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS ||
+                        statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS ||
+                        statsType == SYSTABLESTATISTICSRowFactory.FAKE_MERGED_STATS;
             }
         }
     }

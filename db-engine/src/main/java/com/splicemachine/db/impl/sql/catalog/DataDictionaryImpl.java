@@ -1295,6 +1295,27 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
+    public void deleteColumnStatisticsByColumnId(long conglomerate,
+                                                 int columnId,
+                                                 TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLLongint(conglomerate));
+
+        // only drop the rows which have the given columnId
+        TupleFilter filter=new ColumnStatsFilter(columnId);
+
+        ti.deleteRows(tc,
+                keyRow,                // start row
+                ScanController.GE,
+                null,                //qualifier
+                filter,                // filter on base row
+                keyRow,                // stop row
+                ScanController.GT,
+                SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_INDEX3_ID);
+    }
+
+    @Override
     public List<PartitionStatisticsDescriptor> getPartitionStatistics(long conglomerate, TransactionController tc) throws StandardException {
         List<PartitionStatisticsDescriptor> partitionStatisticsDescriptors = dataDictionaryCache.partitionStatisticsCacheFind(conglomerate);
         if (partitionStatisticsDescriptors!=null)

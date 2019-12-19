@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
+import com.splicemachine.db.iapi.stats.FakeColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.*;
@@ -951,5 +952,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(LeftAntiJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER, 325);
         instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,326);
         instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,327);
+        instance.register(FakeColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER,328);
     }
 }

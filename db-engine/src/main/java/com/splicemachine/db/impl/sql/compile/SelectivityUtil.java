@@ -61,6 +61,11 @@ public class SelectivityUtil {
         ALL   /* all join conditions, equality or not */
     }
 
+    public static double  DEFAULT_SINGLE_POINT_SELECTIVITY = 0.1d;
+    public static double  DEFAULT_BETWEEN_SELECTIVITY = 0.5d;
+    public static double DEFAULT_RANGE_SELECTIVITY = 0.33d;
+    public static double  DEFAULT_INLIST_SELECTIVITY = 0.9d;
+
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                             OptimizablePredicateList predList,
                             long innerRowCount,long outerRowCount,
