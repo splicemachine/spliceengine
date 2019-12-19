@@ -196,8 +196,8 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, SpliceOperation op) throws StandardException {
-        return delegate.readKafkaTopic(topicName, op);
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        return delegate.readKafkaTopic(topicName, context);
     }
 }
 

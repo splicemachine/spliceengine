@@ -266,5 +266,5 @@ public interface DataSetProcessor {
 
     TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet, KeyHashDecoder decoder, ExecRow key);
 
-    <V> DataSet<ExecRow> readKafkaTopic(String topicName, SpliceOperation op) throws StandardException;
+    <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext op) throws StandardException;
 }

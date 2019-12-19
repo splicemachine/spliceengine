@@ -77,6 +77,7 @@ public class KafkaVTI implements DatasetProvider, VTICosting{
 
     @Override
     public DataSet<ExecRow> getDataSet(SpliceOperation op, DataSetProcessor dsp, ExecRow execRow) throws StandardException {
+        DataSet<ExecRow> ds;
         if (op != null)
             operationContext = dsp.createOperationContext(op);
         else
@@ -84,12 +85,12 @@ public class KafkaVTI implements DatasetProvider, VTICosting{
         try
         {
             operationContext.pushScopeForOp("Read Kafka Topic");
-            dsp.readKafkaTopic(topicName,op);
+            ds = dsp.readKafkaTopic(topicName, operationContext);
         }
         finally {
             operationContext.popScope();
         }
-        return new NativeSparkDataSet<ExecRow>(null);
+        return ds;
     }
 
     @Override

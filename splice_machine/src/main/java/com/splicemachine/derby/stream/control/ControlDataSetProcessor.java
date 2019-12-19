@@ -400,7 +400,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, SpliceOperation op) throws StandardException {
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost" + ":" + 9092);
         props.put("enable.auto.commit", false);
