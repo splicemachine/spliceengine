@@ -124,7 +124,7 @@ public class MPartition implements Partition{
     @Override
     public DataResult getLatest(byte[] rowKey,byte[] family,DataResult previous) throws IOException{
         DataCell start=new MCell(rowKey,family,new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
-        DataCell end=new MCell(rowKey,family,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
+        DataCell end=new MCell(rowKey,family,SIConstants.FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
 
         Set<DataCell> data=memstore.subSet(start,true,end,true);
         List<DataCell> toReturn=new ArrayList<>(data.size());
@@ -250,8 +250,8 @@ public class MPartition implements Partition{
 
     @Override
     public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
-        DataCell s=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,Long.MAX_VALUE,new byte[]{},CellType.FOREIGN_KEY_COUNTER);
-        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.FOREIGN_KEY_COUNTER);
+        DataCell s=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES,Long.MAX_VALUE,new byte[]{},CellType.FOREIGN_KEY_COUNTER);
+        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.FOREIGN_KEY_COUNTER);
 
         NavigableSet<DataCell> dataCells=memstore.subSet(s,true,e,true);
         List<DataCell> results=new ArrayList<>(dataCells.size());
@@ -273,7 +273,7 @@ public class MPartition implements Partition{
     @Override
     public DataResult getLatest(byte[] key,DataResult previous) throws IOException{
         DataCell s=new MCell(key,new byte[]{},new byte[]{},Long.MAX_VALUE,new byte[]{},CellType.USER_DATA);
-        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
+        DataCell e=new MCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES,0l,new byte[]{},CellType.USER_DATA);
 
         NavigableSet<DataCell> dataCells=memstore.subSet(s,true,e,true);
         List<DataCell> results=new ArrayList<>(dataCells.size());
@@ -536,7 +536,7 @@ public class MPartition implements Partition{
             if(stopKey==null||stopKey.length==0){
                 return memstore.tailSet(start,true);
             }else
-                stop=new MCell(stopKey,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
+                stop=new MCell(stopKey,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES,scan.lowVersion(),new byte[]{},CellType.FOREIGN_KEY_COUNTER);
 
             /*
              * It is possible (particularly if the start key is null) that the stop value compares to less than

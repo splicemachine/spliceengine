@@ -12,15 +12,15 @@ public class SITestUtils {
     }
 
     public static KeyValue getMockCommitCell(long timestamp) {
-        return generateKV(row, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, timestamp, Bytes.toBytes(""));
+        return generateKV(row, SIConstants.TIMESTAMP_COLUMN_BYTES, timestamp, Bytes.toBytes(""));
     }
 
     public static KeyValue getMockTombstoneCell(long timestamp) {
-        return generateKV(row, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, timestamp, Bytes.toBytes(""));
+        return generateKV(row, SIConstants.TOMBSTONE_COLUMN_BYTES, timestamp, SIConstants.EMPTY_BYTE_ARRAY);
     }
 
     public static KeyValue getMockAntiTombstoneCell(long timestamp) {
-        return generateKV(row, SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, timestamp, SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES);
+        return generateKV(row, SIConstants.TOMBSTONE_COLUMN_BYTES, timestamp, SIConstants.ANTI_TOMBSTONE_VALUE_BYTES);
     }
 
     public static KeyValue getMockValueCell(long timestamp) {
@@ -28,6 +28,10 @@ public class SITestUtils {
     }
 
     public static KeyValue getMockFirstWriteCell(long timestamp) {
-        return generateKV(row, SIConstants.SNAPSHOT_ISOLATION_FIRST_WRITE_TOKEN_COLUMN_BYTES, timestamp, Bytes.toBytes(""));
+        return generateKV(row, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES, timestamp, SIConstants.EMPTY_BYTE_ARRAY);
+    }
+
+    public static KeyValue getMockDeleteRightAfterFirstWriteCell(long timestamp) {
+        return generateKV(row, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES, timestamp, SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES);
     }
 }

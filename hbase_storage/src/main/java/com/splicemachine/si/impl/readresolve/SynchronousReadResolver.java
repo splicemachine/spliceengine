@@ -136,7 +136,7 @@ public class SynchronousReadResolver implements KeyedReadResolver{
 
         Put put=new Put(rowKey.getByteCopy());
         put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,txnId,
+                SIConstants.TIMESTAMP_COLUMN_BYTES,txnId,
                 Bytes.toBytes(commitTimestamp));
         put.setAttribute(SIConstants.SI_EXEMPT,SIConstants.TRUE_BYTES);
         put.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
@@ -165,8 +165,8 @@ public class SynchronousReadResolver implements KeyedReadResolver{
 
         Delete delete=new Delete(rowKey.getByteCopy(),txnId)
                 .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,txnId) //delete all the columns for our family only
-                .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,txnId) //delete all the columns for our family only
-                .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES,txnId); //delete all the columns for our family only
+                .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TOMBSTONE_COLUMN_BYTES,txnId) //delete all the columns for our family only
+                .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.ANTI_TOMBSTONE_VALUE_BYTES,txnId); //delete all the columns for our family only
         delete.setDurability(Durability.SKIP_WAL);
         delete.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         try{

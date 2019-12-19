@@ -74,6 +74,15 @@ public class MResult implements DataResult{
     }
 
     @Override
+    public DataCell firstWriteToken() {
+        if(dataCells==null) return null;
+        for(DataCell mc:dataCells){
+            if(mc.dataType()==CellType.FIRST_WRITE_TOKEN) return mc;
+        }
+        return null;
+    }
+
+    @Override
     public int size(){
         return dataCells==null? 0: dataCells.size();
     }

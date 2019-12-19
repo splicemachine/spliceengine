@@ -26,7 +26,6 @@ import com.splicemachine.si.api.rollforward.RollForward;
 import com.splicemachine.si.api.server.ConstraintChecker;
 import com.splicemachine.si.api.server.Transactor;
 import com.splicemachine.si.api.txn.ConflictType;
-import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
@@ -42,11 +41,10 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Collections2;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Maps;
-import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -312,8 +310,10 @@ public class SITransactor implements Transactor{
             }
 
             conflictingChildren[i] = conflictResults.getChildConflicts();
+            boolean addFirstOccurrenceToken = possibleConflicts == null // First write
+                    || (possibleConflicts.firstWriteToken() != null && KVPair.Type.DELETE.equals(writeType)); // Delete following first write
             DataPut mutationToRun = getMutationToRun(
-                    table, kvPair, family, qualifier, transaction, conflictResults, possibleConflicts == null, skipWAL, toRollforward);
+                    table, kvPair, family, qualifier, transaction, conflictResults, addFirstOccurrenceToken, skipWAL, toRollforward);
             finalMutationsToWrite.put(i,mutationToRun);
         }
         if (toRollforward != null && toRollforward.size() > 0) {
@@ -403,7 +403,7 @@ public class SITransactor implements Transactor{
 
     private DataPut getMutationToRun(Partition table, KVPair kvPair,
                                      byte[] family, byte[] column,
-                                     TxnView transaction, ConflictResults conflictResults, boolean firstOccurence,
+                                     TxnView transaction, ConflictResults conflictResults, boolean addFirstOccurrenceToken,
                                      boolean skipWAL, List<ByteSlice> rollforward) throws IOException{
         long txnIdLong=transaction.getTxnId();
 //                if (LOG.isTraceEnabled()) LOG.trace(String.format("table = %s, kvPair = %s, txnId = %s", table.toString(), kvPair.toString(), txnIdLong));
@@ -423,9 +423,12 @@ public class SITransactor implements Transactor{
         } else if(kvPair.getType()==KVPair.Type.DELETE) {
             newPut=opFactory.newPut(kvPair.rowKeySlice());
             newPut.tombstone(txnIdLong);
+            if (addFirstOccurrenceToken) {
+                newPut.addDeleteRightAfterFirstWriteToken(family, txnIdLong);
+            }
         } else {
             newPut = opFactory.toDataPut(kvPair, family, column, txnIdLong);
-            if (firstOccurence) {
+            if (addFirstOccurrenceToken) {
                 newPut.addFirstWriteToken(family, txnIdLong);
             }
         }
@@ -450,8 +453,8 @@ public class SITransactor implements Transactor{
                 for(DataCell dc : cells){
                     delete.deleteColumn(dc.family(),dc.qualifier(),lc.value);
                 }
-                delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,lc.value);
-                delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,lc.value);
+                delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TOMBSTONE_COLUMN_BYTES,lc.value);
+                delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TIMESTAMP_COLUMN_BYTES,lc.value);
             }
             delete.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
             table.delete(delete);

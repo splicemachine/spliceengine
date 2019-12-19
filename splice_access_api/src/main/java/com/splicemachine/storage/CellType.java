@@ -32,8 +32,11 @@ public enum CellType{
     /* Column "7" */
     USER_DATA,
 
-    /* Column "8" */
+    /* Column "8" (if empty value) */
     FIRST_WRITE_TOKEN,
+
+    /* Column "8" (if "0" value) */
+    DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN,
 
     /* Column "9" */
     FOREIGN_KEY_COUNTER,

@@ -182,19 +182,23 @@ public class CellUtils {
     }
 
     public static CellType getKeyValueType(Cell keyValue) {
-        if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES)) {
+        if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.TIMESTAMP_COLUMN_BYTES)) {
             return CellType.COMMIT_TIMESTAMP;
         } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
             return CellType.USER_DATA;
-        } else if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES)) {
+        } else if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.TOMBSTONE_COLUMN_BYTES)) {
             if (CellUtils.matchingValue(keyValue, SIConstants.EMPTY_BYTE_ARRAY)) {
                 return CellType.TOMBSTONE;
-            } else if (CellUtils.matchingValue(keyValue,SIConstants.SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES)) {
+            } else if (CellUtils.matchingValue(keyValue,SIConstants.ANTI_TOMBSTONE_VALUE_BYTES)) {
                 return CellType.ANTI_TOMBSTONE;
             }
-        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_FIRST_WRITE_TOKEN_COLUMN_BYTES)) {
-            return CellType.FIRST_WRITE_TOKEN;
-        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES)) {
+        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES)) {
+            if (CellUtils.matchingValue(keyValue, SIConstants.EMPTY_BYTE_ARRAY)) {
+                return CellType.FIRST_WRITE_TOKEN;
+            } else if (CellUtils.matchingValue(keyValue, SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES)) {
+                return CellType.DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN;
+            }
+        } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.FK_COUNTER_COLUMN_BYTES)) {
             return CellType.FOREIGN_KEY_COUNTER;
         }
         return CellType.OTHER;

@@ -26,6 +26,8 @@ public interface DataPut extends DataMutation{
 
     void addFirstWriteToken(byte[] family, long txnIdLong);
 
+    void addDeleteRightAfterFirstWriteToken(byte[] family, long txnIdLong);
+
     void addCell(byte[] family, byte[] qualifier, long timestamp, byte[] value);
 
     void addCell(byte[] family, byte[] qualifier, byte[] value);

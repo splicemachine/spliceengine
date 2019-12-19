@@ -30,6 +30,8 @@ public interface DataResult extends Iterable<DataCell>{
 
     DataCell fkCounter();
 
+    DataCell firstWriteToken();
+
     int size();
 
     DataCell latestCell(byte[] family,byte[] qualifier);

@@ -17,10 +17,11 @@ import static org.junit.Assert.*;
 
 public class SICompactionStateMutateTest {
     long watermark = 0x1000;
-    SICompactionStateMutate cutNoPurge = new SICompactionStateMutate(PurgeConfig.NO_PURGE, watermark);
-    SICompactionStateMutate cutForcePurge = new SICompactionStateMutate(EnumSet.of(PurgeConfig.FORCE_PURGE), watermark);
-    SICompactionStateMutate cutKeepTombstones = new SICompactionStateMutate(EnumSet.of(PurgeConfig.PURGE, PurgeConfig.KEEP_MOST_RECENT_TOMBSTONE), watermark);
-    SICompactionStateMutate cutPurge = new SICompactionStateMutate(EnumSet.of(PurgeConfig.PURGE), watermark);
+    SICompactionStateMutate cutNoPurge = new SICompactionStateMutate(PurgeConfig.noPurgeConfig(), watermark);
+    SICompactionStateMutate cutForcePurge = new SICompactionStateMutate(PurgeConfig.forcePurgeConfig(), watermark);
+    SICompactionStateMutate cutPurgeDuringFlush = new SICompactionStateMutate(PurgeConfig.purgeDuringFlushConfig(), watermark);
+    SICompactionStateMutate cutPurgeDuringMajorCompaction = new SICompactionStateMutate(PurgeConfig.purgeDuringMajorCompactionConfig(), watermark);
+    SICompactionStateMutate cutPurgeDuringMinorCompaction = new SICompactionStateMutate(PurgeConfig.purgeDuringMinorCompactionConfig(), watermark);
     List<Cell> inputCells = new ArrayList<>();
     List<TxnView> transactions = new ArrayList<>();
     List<Cell> outputCells = new ArrayList<>();
@@ -237,7 +238,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(0x200, 0x210),
                 TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
         ));
-        cutKeepTombstones.mutate(inputCells, transactions, outputCells);
+        cutPurgeDuringFlush.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(2));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockCommitCell(0x100),
@@ -259,7 +260,7 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(0x200, 0x210),
                 TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
         ));
-        cutPurge.mutate(inputCells, transactions, outputCells);
+        cutPurgeDuringMajorCompaction.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
     }
 
@@ -293,7 +294,7 @@ public class SICompactionStateMutateTest {
                 transaction1
         ));
 
-        cutPurge.mutate(inputCells, transactions, outputCells);
+        cutPurgeDuringMajorCompaction.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(5));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(0x100),
@@ -333,7 +334,7 @@ public class SICompactionStateMutateTest {
                 transaction1
         ));
 
-        cutKeepTombstones.mutate(inputCells, transactions, outputCells);
+        cutPurgeDuringFlush.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, hasSize(7));
         assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
                 SITestUtils.getMockValueCell(0x100),
@@ -342,26 +343,7 @@ public class SICompactionStateMutateTest {
     }
 
     @Test
-    public void mutateRemoveFirstWriteToken() throws IOException {
-        inputCells.addAll(Arrays.asList(
-                SITestUtils.getMockCommitCell(0x100),
-                SITestUtils.getMockValueCell(0x100),
-                SITestUtils.getMockFirstWriteCell(0x100)
-        ));
-        transactions.addAll(Arrays.asList(
-                null,
-                TxnTestUtils.getMockCommittedTxn(0x100, 0x110),
-                TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
-        ));
-        cutNoPurge.mutate(inputCells, transactions, outputCells);
-        assertThat(outputCells, hasSize(2));
-        assertThat(getRemovedCells(inputCells, outputCells), containsInAnyOrder(
-                SITestUtils.getMockFirstWriteCell(0x100)
-        ));
-    }
-
-    @Test
-    public void mutatePurgeKeepTombstonesOverriddenByFirstWriteToken() throws IOException {
+    public void mutatePurgeKeepTombstonesOverriddenByFirstOccurrenceToken() throws IOException {
         inputCells.addAll(Arrays.asList(
                 SITestUtils.getMockCommitCell(0x200),
                 SITestUtils.getMockCommitCell(0x100),
@@ -376,8 +358,116 @@ public class SICompactionStateMutateTest {
                 TxnTestUtils.getMockCommittedTxn(0x100, 0x110),
                 TxnTestUtils.getMockCommittedTxn(0x100, 0x110)
         ));
-        cutKeepTombstones.mutate(inputCells, transactions, outputCells);
+        cutPurgeDuringFlush.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
+    }
+
+    @Test
+    public void mutatePurgeLatestTombstoneInMinorCompaction() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockTombstoneCell(0x200),
+                SITestUtils.getMockValueCell(0x100),
+                SITestUtils.getMockDeleteRightAfterFirstWriteCell(0x200),
+                SITestUtils.getMockFirstWriteCell(0x100)
+        ));
+
+        TxnView transaction1 = TxnTestUtils.getMockCommittedTxn(0x100, 0x110);
+        TxnView transaction2 = TxnTestUtils.getMockCommittedTxn(0x200, 0x210);
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                transaction2,
+                transaction1,
+                transaction2,
+                transaction1
+        ));
+        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, is(empty()));
+    }
+
+    @Test
+    public void mutateDoNotPurgeLatestTombstoneInMinorCompactionDespiteTwoTokens() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x400),
+                SITestUtils.getMockCommitCell(0x300),
+                SITestUtils.getMockCommitCell(0x200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockTombstoneCell(0x400),
+                SITestUtils.getMockAntiTombstoneCell(0x300),
+                SITestUtils.getMockTombstoneCell(0x200),
+                SITestUtils.getMockValueCell(0x300),
+                SITestUtils.getMockValueCell(0x100),
+                SITestUtils.getMockDeleteRightAfterFirstWriteCell(0x200),
+                SITestUtils.getMockFirstWriteCell(0x100)
+        ));
+        TxnView transaction1 = TxnTestUtils.getMockCommittedTxn(0x100, 0x110);
+        TxnView transaction2 = TxnTestUtils.getMockCommittedTxn(0x200, 0x210);
+        TxnView transaction3 = TxnTestUtils.getMockCommittedTxn(0x300, 0x310);
+        TxnView transaction4 = TxnTestUtils.getMockCommittedTxn(0x1100, 0x1110);
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                null,
+                null,
+                transaction4,
+                transaction3,
+                transaction2,
+                transaction3,
+                transaction1,
+                transaction2,
+                transaction1
+        ));
+        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, contains(
+                SITestUtils.getMockCommitCell(0x400),
+                SITestUtils.getMockTombstoneCell(0x400)
+        ));
+    }
+
+    @Test
+    public void mutateDoNotPurgeLatestTombstoneDuringMinorCompactionMissingFirstWriteToken() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockTombstoneCell(0x200),
+                SITestUtils.getMockValueCell(0x100),
+                SITestUtils.getMockDeleteRightAfterFirstWriteCell(0x200)
+        ));
+        TxnView transaction1 = TxnTestUtils.getMockCommittedTxn(0x100, 0x110);
+        TxnView transaction2 = TxnTestUtils.getMockCommittedTxn(0x200, 0x210);
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                transaction2,
+                transaction1,
+                transaction2
+        ));
+        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, hasSize(3));
+    }
+
+    @Test
+    public void mutateDoNotPurgeLatestTombstoneDuringMinorCompactionMissingDeleteToken() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(0x200),
+                SITestUtils.getMockCommitCell(0x100),
+                SITestUtils.getMockTombstoneCell(0x200),
+                SITestUtils.getMockValueCell(0x100),
+                SITestUtils.getMockFirstWriteCell(0x100)
+        ));
+        TxnView transaction1 = TxnTestUtils.getMockCommittedTxn(0x100, 0x110);
+        TxnView transaction2 = TxnTestUtils.getMockCommittedTxn(0x200, 0x210);
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                transaction2,
+                transaction1,
+                transaction1
+        ));
+        cutPurgeDuringMinorCompaction.mutate(inputCells, transactions, outputCells);
+        assertThat(outputCells, hasSize(2));
     }
 
     @Test

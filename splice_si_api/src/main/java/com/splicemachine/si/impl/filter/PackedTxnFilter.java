@@ -55,6 +55,7 @@ public class PackedTxnFilter implements TxnFilter, SIFilter{
             case ANTI_TOMBSTONE:
             case FOREIGN_KEY_COUNTER:
             case FIRST_WRITE_TOKEN:
+            case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
             case OTHER:
                 return returnCode; // These are always skip...
 
