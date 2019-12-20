@@ -647,7 +647,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			"case when C.COLCOUNT is null then 0 else C.COLCOUNT end as COLCOUNT,\n" +
 			"case when PKCOLS.CC is null then 0 else PKCOLS.CC end as KEYCOLUMNS,\n" +
 			"case when KEYS.CC is null then 0 else KEYS.CC end as KEYUNIQUE,\n" +
-			"case when T.tabletype='A' then 0 else 1252 end as CODEPAGE\n" +
+			"case when T.tabletype='A' then 0 else 1208 end as CODEPAGE\n" +
 			"from (\n" +
 			"      select T.tablename, T.tableid, T.tabletype, S.schemaname\n" +
 			"      from\n" +

@@ -551,7 +551,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when length(COL.COLUMNTYPE) > 8 then substr(COL.COLUMNTYPE, 1, 8)\n" +
             "     else COL.COLUMNTYPE end as CHAR(8)) as COLTYPE,\n" +
             "case when COL.COLUMNDATATYPE.isNullable() then 'Y' else 'N' end NULLS,\n" +
-            "case when COL.COLUMNTYPE in ('CHAR', 'VARCHAR', 'CLOB') then 1252 else 0 end as CODEPAGE,\n" +
+            "case when COL.COLUMNTYPE in ('CHAR', 'VARCHAR', 'CLOB') then 1208 else 0 end as CODEPAGE,\n" +
             "case when COL.COLUMNTYPE='INTEGER' then 4\n" +
             "     when COL.COLUMNTYPE='SMALLINT' then 2\n" +
             "     when COL.COLUMNTYPE='BIGINT' then 8\n" +
