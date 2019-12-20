@@ -8,12 +8,14 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.CellType;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
 
 
 class SICompactionStateMutate {
+    private static final Logger LOG = Logger.getLogger(SICompactionStateMutate.class);
     private SortedSet<Cell> dataToReturn;
     private final PurgeConfig purgeConfig;
     private long maxTombstoneTimestamp;
@@ -71,21 +73,10 @@ class SICompactionStateMutate {
      */
     private void mutate(Cell element, TxnView txn) throws IOException {
         final CellType cellType= CellUtils.getKeyValueType(element);
-        switch (cellType) {
-            case COMMIT_TIMESTAMP:
-                assert txn == null;
-                dataToReturn.add(element);
-                return;
-            case FIRST_WRITE_TOKEN:
-                assert !firstWriteToken;
-                firstWriteToken = true;
-                dataToReturn.add(element);
-                return;
-            case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
-                assert deleteRightAfterFirstWriteTimestamp == 0;
-                deleteRightAfterFirstWriteTimestamp = element.getTimestamp();
-                dataToReturn.add(element);
-                return;
+        if (cellType == CellType.COMMIT_TIMESTAMP) {
+            assert txn == null;
+            dataToReturn.add(element);
+            return;
         }
         if (txn == null) {
             // we don't have transactional information, just return the data as is
@@ -103,12 +94,22 @@ class SICompactionStateMutate {
              */
             long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
             dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
-            if (cellType == CellType.TOMBSTONE) {
-                long t = element.getTimestamp();
-                if (t > maxTombstoneTimestamp &&
-                        (!purgeConfig.shouldRespectActiveTransactions() || t < lowWatermarkTransaction)) {
-                    maxTombstoneTimestamp = t;
-                }
+            switch (cellType) {
+                case TOMBSTONE:
+                    long t = element.getTimestamp();
+                    if (t > maxTombstoneTimestamp &&
+                            (!purgeConfig.shouldRespectActiveTransactions() || t < lowWatermarkTransaction)) {
+                        maxTombstoneTimestamp = t;
+                    }
+                    break;
+                case FIRST_WRITE_TOKEN:
+                    assert !firstWriteToken;
+                    firstWriteToken = true;
+                    break;
+                case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
+                    assert deleteRightAfterFirstWriteTimestamp == 0;
+                    deleteRightAfterFirstWriteTimestamp = element.getTimestamp();
+                    break;
             }
         }
         // Committed or active, return the original data too
