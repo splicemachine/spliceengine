@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1940</version>
+        <version>3.0.0.1941-SNAPSHOT</version>
     </parent>
     <dependencies>
         <!-- Module dependencies-->
