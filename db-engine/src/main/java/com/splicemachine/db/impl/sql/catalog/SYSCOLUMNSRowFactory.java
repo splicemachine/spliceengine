@@ -544,6 +544,10 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "COL.schemaname as TBCREATOR,\n" +
             "cast (case when COL.COLUMNTYPE='TIMESTAMP' then 'TIMESTMP'\n" +
             "     when COL.COLUMNTYPE='VARBINARY' then 'VARBIN'\n" +
+            "     when COL.COLUMNTYPE='LONG VARCHAR' then 'LONGVAR'\n" +
+            "     when COL.COLUMNTYPE like 'CHAR%' then 'CHAR'\n" +
+            "     when COL.COLUMNTYPE like 'VARCHAR%' then 'VARCHAR'\n" +
+            "     when COL.COLUMNTYPE like 'com.%' or COL.COLUMNTYPE like 'java.%' or COL.COLUMNTYPE like 'org.%' then 'DISTINCT'\n" +
             "     when length(COL.COLUMNTYPE) > 8 then substr(COL.COLUMNTYPE, 1, 8)\n" +
             "     else COL.COLUMNTYPE end as CHAR(8)) as COLTYPE,\n" +
             "case when COL.COLUMNDATATYPE.isNullable() then 'Y' else 'N' end NULLS,\n" +
@@ -573,7 +577,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "     when COL.COLUMNTYPE='TIME' then 3\n" +
             "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
             "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
-            "case when CON.keydesc is not null and CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber) \n" +
+            "case when CON.keydesc is not null and CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber)\n" +
             "     end as KEYSEQ\n" +
             "from \n" +
             "(select c.columnname,\n" +
@@ -582,10 +586,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "        c.columnnumber,\n" +
             "        c.columndatatype,\n" +
             "        cast (c.columndatatype.getTypeName() as varchar(128)) as columntype,\n" +
-            "        cast (columndefault as varchar(1536)) as defaultstr,\n" +
-            "        c.partitionposition,\n" +
-            "        t.tableid,\n" +
-            "        t.tabletype\n" +
+            "        t.tableid\n" +
             "from sys.syscolumns c,\n" +
             "     sys.systables t,\n" +
             "     sys.sysschemas s\n" +
