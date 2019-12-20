@@ -106,10 +106,10 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
                 " F5  |  T5   |VIEWSINSYSIBMIT |-DECIMAL - |   Y   |    0    |  10   |   2   |   5   | DECIMAL  |    10     | NULL  |\n" +
                 " G5  |  T5   |VIEWSINSYSIBMIT |-TIMESTMP- |   N   |    0    |  10   |   6   |   6   |TIMESTAMP |    10     |   1   |\n" +
                 " H5  |  T5   |VIEWSINSYSIBMIT |-TIME    - |   Y   |    0    |   3   |   0   |   7   |  TIME    |     3     | NULL  |\n" +
-                " I5  |  T5   |VIEWSINSYSIBMIT |-CHAR    - |   Y   |  1252   |  10   |   0   |   8   |CHARACTER |    10     | NULL  |\n" +
-                " J5  |  T5   |VIEWSINSYSIBMIT |-VARCHAR - |   Y   |  1252   |  200  |   0   |   9   | VARCHAR  |    200    | NULL  |\n" +
+                " I5  |  T5   |VIEWSINSYSIBMIT |-CHAR    - |   Y   |  1208   |  10   |   0   |   8   |CHARACTER |    10     | NULL  |\n" +
+                " J5  |  T5   |VIEWSINSYSIBMIT |-VARCHAR - |   Y   |  1208   |  200  |   0   |   9   | VARCHAR  |    200    | NULL  |\n" +
                 " K5  |  T5   |VIEWSINSYSIBMIT |-BOOLEAN - |   Y   |    0    |   1   |   0   |  10   | BOOLEAN  |     1     | NULL  |\n" +
-                " L5  |  T5   |VIEWSINSYSIBMIT |-CLOB    - |   Y   |  1252   | 32765 |   0   |  11   |  CLOB    |   32765   | NULL  |\n" +
+                " L5  |  T5   |VIEWSINSYSIBMIT |-CLOB    - |   Y   |  1208   | 32765 |   0   |  11   |  CLOB    |   32765   | NULL  |\n" +
                 " M5  |  T5   |VIEWSINSYSIBMIT |-BLOB    - |   Y   |    0    |  -1   |   0   |  12   |  BLOB    |   32768   | NULL  |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -122,10 +122,10 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         String sqlText = format("select name, creator, type, colcount, keycolumns, keyunique, codepage from sysibm.systables where CREATOR='%s' and name in ('T1', 'T2', 'T3', 'T4')", CLASS_NAME);
         String expected = "NAME |    CREATOR     |TYPE |COLCOUNT |KEYCOLUMNS | KEYUNIQUE |CODEPAGE |\n" +
                 "-------------------------------------------------------------------------\n" +
-                " T1  |VIEWSINSYSIBMIT |  T  |    4    |     2     |     1     |  1252   |\n" +
-                " T2  |VIEWSINSYSIBMIT |  T  |    3    |     0     |     0     |  1252   |\n" +
-                " T3  |VIEWSINSYSIBMIT |  T  |    3    |     0     |     0     |  1252   |\n" +
-                " T4  |VIEWSINSYSIBMIT |  T  |    3    |     0     |     0     |  1252   |";
+                " T1  |VIEWSINSYSIBMIT |  T  |    4    |     2     |     1     |  1208   |\n" +
+                " T2  |VIEWSINSYSIBMIT |  T  |    3    |     0     |     0     |  1208   |\n" +
+                " T3  |VIEWSINSYSIBMIT |  T  |    3    |     0     |     0     |  1208   |\n" +
+                " T4  |VIEWSINSYSIBMIT |  T  |    3    |     0     |     0     |  1208   |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -137,7 +137,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         String sqlText = format("select name, creator, type, colcount, keycolumns, keyunique, codepage from sysibm.systables where CREATOR='%s' and name ='T6'", CLASS_NAME);
         String expected = "NAME |    CREATOR     |TYPE |COLCOUNT |KEYCOLUMNS | KEYUNIQUE |CODEPAGE |\n" +
                 "-------------------------------------------------------------------------\n" +
-                " T6  |VIEWSINSYSIBMIT |  T  |    4    |     1     |     2     |  1252   |";
+                " T6  |VIEWSINSYSIBMIT |  T  |    4    |     1     |     2     |  1208   |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -149,8 +149,8 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         String sqlText = format("select name, creator, type, colcount, keycolumns, keyunique, codepage from sysibm.systables where CREATOR='%s' and name in ('SYSCOLUMNS', 'SYSTABLES')", "SYS");
         String expected = "NAME    | CREATOR |TYPE |COLCOUNT |KEYCOLUMNS | KEYUNIQUE |CODEPAGE |\n" +
                 "------------------------------------------------------------------------\n" +
-                "SYSCOLUMNS |   SYS   |  T  |   13    |     0     |     0     |  1252   |\n" +
-                " SYSTABLES |   SYS   |  T  |   15    |     0     |     0     |  1252   |";
+                "SYSCOLUMNS |   SYS   |  T  |   13    |     0     |     0     |  1208   |\n" +
+                " SYSTABLES |   SYS   |  T  |   15    |     0     |     0     |  1208   |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -177,7 +177,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         String sqlText = format("select name, creator, type, colcount, keycolumns, keyunique, codepage from sysibm.systables where CREATOR='%s' and name='V5'", CLASS_NAME);
         String expected = "NAME |    CREATOR     |TYPE |COLCOUNT |KEYCOLUMNS | KEYUNIQUE |CODEPAGE |\n" +
                 "-------------------------------------------------------------------------\n" +
-                " V5  |VIEWSINSYSIBMIT |  V  |   13    |     0     |     0     |  1252   |";
+                " V5  |VIEWSINSYSIBMIT |  V  |   13    |     0     |     0     |  1208   |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -198,7 +198,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
                 "-----------------------------------------------------------------------------------------------------------------------\n" +
                 "COL1 |ORC_PART_2ND |VIEWSINSYSIBMIT | INTEGER |   Y   |    0    |   4   |   0   |   0   | INTEGER |     4     | NULL  |\n" +
                 "COL2 |ORC_PART_2ND |VIEWSINSYSIBMIT | INTEGER |   Y   |    0    |   4   |   0   |   1   | INTEGER |     4     | NULL  |\n" +
-                "COL3 |ORC_PART_2ND |VIEWSINSYSIBMIT | VARCHAR |   Y   |  1252   |  10   |   0   |   2   | VARCHAR |    10     | NULL  |";
+                "COL3 |ORC_PART_2ND |VIEWSINSYSIBMIT | VARCHAR |   Y   |  1208   |  10   |   0   |   2   | VARCHAR |    10     | NULL  |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -208,7 +208,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         sqlText = format("select * from sysibm.systables where CREATOR='%s' and name = 'ORC_PART_2ND'", CLASS_NAME);
         expected = "NAME     |    CREATOR     |TYPE |COLCOUNT |KEYCOLUMNS | KEYUNIQUE |CODEPAGE |\n" +
                 "---------------------------------------------------------------------------------\n" +
-                "ORC_PART_2ND |VIEWSINSYSIBMIT |  E  |    3    |     0     |     0     |  1252   |";
+                "ORC_PART_2ND |VIEWSINSYSIBMIT |  E  |    3    |     0     |     0     |  1208   |";
 
         rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
