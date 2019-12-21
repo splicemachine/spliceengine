@@ -41,9 +41,11 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -603,9 +605,73 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 						DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
 						null,null,view,viewId,0,0,0)
 		});
+
+		// add columnlist for the systables view in sysibm schema
+		Collection<Object[]> colList = Lists.newArrayListWithCapacity(66);
+		colList.add(new Object[]{"NAME", Types.VARCHAR, false, 128});
+		colList.add(new Object[]{"CREATOR", Types.VARCHAR, false, 128});
+		colList.add(new Object[]{"TYPE", Types.CHAR, false, 1});
+       colList.add(new Object[]{"COLCOUNT", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"KEYCOLUMNS", Types.SMALLINT, true, null});
+		colList.add(new Object[]{"KEYUNIQUE", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"CODEPAGE", Types.SMALLINT, false, null});
+
+		Collection<ColumnDescriptor> columnDescriptors = Lists.newArrayListWithCapacity(66);
+		int colPos = 0;
+		for (Object[] entry: colList) {
+			colPos ++;
+			if (entry[3] != null) {
+				columnDescriptors.add(new ColumnDescriptor((String) entry[0], colPos, colPos, DataTypeDescriptor.getBuiltInDataTypeDescriptor((int) entry[1], (boolean) entry[2], (int) entry[3]),
+						null, null, view, viewId, 0, 0, 0));
+			} else {
+				columnDescriptors.add(new ColumnDescriptor((String) entry[0], colPos, colPos, DataTypeDescriptor.getBuiltInDataTypeDescriptor((int) entry[1], (boolean) entry[2]),
+						null, null, view, viewId, 0, 0, 0));
+			}
+		}
+
+		ColumnDescriptor[] arr = new ColumnDescriptor[columnDescriptors.size()];
+		arr = columnDescriptors.toArray(arr);
+		cdsl.add(arr);
+
 		return cdsl;
 	}
 	public static String SYSTABLE_VIEW_SQL = "create view SYSTABLESVIEW as \n" +
 			"SELECT T.*, S.SCHEMANAME FROM SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S "+
 			"WHERE T.SCHEMAID = S.SCHEMAID";
+
+	public static String SYSTABLES_VIEW_IN_SYSIBM = "create view systables as \n" +
+            "select\n" +
+			"T.tablename as NAME,\n" +
+			"T.schemaname as CREATOR,\n" +
+			"case when T.tabletype='S' then 'T' else T.tabletype end as TYPE,\n" +
+			"case when C.COLCOUNT is null then 0 else C.COLCOUNT end as COLCOUNT,\n" +
+			"case when PKCOLS.CC is null then 0 else PKCOLS.CC end as KEYCOLUMNS,\n" +
+			"case when KEYS.CC is null then 0 else KEYS.CC end as KEYUNIQUE,\n" +
+			"case when T.tabletype='A' then 0 else 1208 end as CODEPAGE\n" +
+			"from (\n" +
+			"      select T.tablename, T.tableid, T.tabletype, S.schemaname\n" +
+			"      from\n" +
+			"      sys.systables T, sys.sysschemas S\n" +
+			"      where T.schemaid=S.schemaid) T\n" +
+			"left join -- compute number of columns in a table\n" +
+			"(select C.referenceid, count(*) as COLCOUNT\n" +
+			"      from sys.syscolumns C group by 1) C on T.tableid = C.referenceid\n" +
+			"left join -- compute the number of PK columns\n" +
+			"(select cols.referenceid as tableid,\n" +
+			"        count(*) as CC\n" +
+			" from sys.sysconstraints cons,\n" +
+			"      sys.sysprimarykeys keys,\n" +
+			"      sys.sysconglomerates congloms,\n" +
+			"      sys.syscolumns cols\n" +
+			" where  cols.referenceid = congloms.tableid and\n" +
+			"        cons.tableid = cols.referenceid and cons.type = 'P' and\n" +
+			"        cons.constraintid = keys.constraintid and\n" +
+			"        (case when congloms.descriptor is not null then congloms.descriptor.getKeyColumnPosition(cols.columnnumber) else 0 end) <> 0 and\n" +
+			"        keys.conglomerateid = congloms.conglomerateid\n" +
+			" group by 1) PKCOLS on T.tableid = PKCOLS.tableid\n" +
+			"left join -- compute unique constraint\n" +
+			"(select C.tableid, count(*) as CC\n" +
+			" from sys.sysconstraints C, sys.syskeys as K\n" +
+			" where C.constraintid = K.constraintid and C.type <>'P'\n" +
+			" group by 1) KEYS on T.tableid = KEYS.tableid";
 }
