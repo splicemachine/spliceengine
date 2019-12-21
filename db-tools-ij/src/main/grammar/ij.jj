@@ -1175,6 +1175,30 @@ class ij {
 			verifyTableExists(schema,table);
 
 			DatabaseMetaData dbmd = theConnection.getMetaData();
+
+            //Check if it's a synonym table
+            String getSynonymAliasInfo = "SELECT ALIASINFO \n" +
+                    " FROM \n" +
+                    " SYS.SYSALIASES A, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S \n" +
+                    " WHERE A.ALIASTYPE = 'S' AND \n" +
+                    " S.SCHEMAID = T.SCHEMAID AND \n" +
+                    " A.SCHEMAID = T.SCHEMAID AND \n" +
+                    " A.ALIAS = T.TABLENAME AND \n" +
+                    " (S.SCHEMANAME LIKE ?) AND (T.TABLENAME LIKE ?)";
+
+            PreparedStatement s = theConnection.prepareStatement(getSynonymAliasInfo);
+            s.setString(1, schema);
+            s.setString(2, table);
+            rs = s.executeQuery();
+
+            if (rs.next()){
+                String[] fullName = rs.getString(1).split("\\.");
+                if (fullName.length == 2) {
+                    schema = fullName[0].substring(1,fullName[0].length()-1);
+                    table = fullName[1].substring(1,fullName[1].length()-1);
+                }
+            }
+
 			rs = dbmd.getColumns(null,schema,table,null);
 
 			int[] displayColumns = new int[] {
