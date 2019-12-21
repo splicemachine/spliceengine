@@ -128,6 +128,8 @@ public interface SConfiguration {
 
     int getReplicationMonitorInterval();
 
+    String getReplicationHealthcheckScript();
+
     String getCompressionAlgorithm();
 
     String getNamespace();

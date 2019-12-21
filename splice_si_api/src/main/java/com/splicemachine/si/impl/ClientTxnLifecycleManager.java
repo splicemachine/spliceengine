@@ -16,6 +16,7 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.annotations.ThreadSafe;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.ExceptionFactory;
 import com.splicemachine.si.api.txn.*;
 import com.splicemachine.si.constants.SIConstants;
@@ -200,7 +201,8 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
 
     @Override
     public Txn elevateTransaction(Txn txn,byte[] destinationTable) throws IOException{
-        if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0) {
+        if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0 &&
+                Bytes.compareTo(destinationTable, "replication".getBytes()) != 0) {
             throw exceptionFactory.doNotRetry("Cannot elevate a Txn, because splice is read-only.");
         }
         if(!txn.allowsWrites()){
@@ -256,7 +258,8 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager{
                                           TxnView parentTxn,
                                           byte[] destinationTable,
                                           TaskId taskId) throws IOException{
-		if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0) {
+		if (replicationRole.compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0 &&
+        Bytes.compareTo(destinationTable, "replication".getBytes()) != 0) {
             throw exceptionFactory.doNotRetry("Cannot create a writeable Txn, because splice is read-only.");
         }
         /*

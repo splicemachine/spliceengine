@@ -124,6 +124,7 @@ public class ConfigurationBuilder {
     public String replicationMonitorQuorum;
     public String replicationMonitorPath;
     public int replicationMonitorInterval;
+    public String replicationHealthcheckScript;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;

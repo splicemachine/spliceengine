@@ -121,15 +121,26 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                     future.get();
                 }
 
+                if (LOG.isDebugEnabled()) {
+                    List<String> sortedWals = sortWals(snapshot);
+                    for (String wal:sortedWals )
+                    SpliceLogUtils.debug(LOG, "snapshot %s", wal);
+                }
                 // Send Snapshots to each peer
                 for (ReplicationPeerDescription peer : peers) {
                     String clusterKey = peer.getPeerConfig().getClusterKey();
                     Connection connection = getConnection(clusterKey);
                     removeOldWals(snapshot);
                     sendSnapshot(connection, timestamp, snapshot);
-                    sendReplicationProgress(peer.getPeerId(), connection);
                 }
                 preTimestamp = timestamp;
+            }
+
+            for (ReplicationPeerDescription peer : peers) {
+                String clusterKey = peer.getPeerConfig().getClusterKey();
+                Connection connection = getConnection(clusterKey);
+                removeOldWals(snapshot);
+                sendReplicationProgress(peer.getPeerId(), connection);
             }
 
         }
@@ -143,6 +154,11 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
 
         try {
             Map<String, Map<String, Long>> walPositions = getWalPositions(peerId);
+            if (LOG.isDebugEnabled()) {
+                List<String> sortedWals = sortWals(walPositions);
+                for (String wal:sortedWals )
+                    SpliceLogUtils.debug(LOG, "replicated %s", wal);
+            }
             //If there are more than one wal from a wal group, ignore old wals
             Set<String> oldWals = removeOldWals(walPositions);
             Map<String, Long> replicationProgress = getReplicationProgress(walPositions);
@@ -157,6 +173,10 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                                            Connection connection) throws IOException {
 
         try (Table table = connection.getTable(replicationProgressTableName)) {
+
+            // Delete the current progress
+            Delete delete = new Delete(com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
+            table.delete(delete);
 
             long timestamp = System.currentTimeMillis();
 
@@ -173,21 +193,15 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                 Long position = progress.getValue();
                 byte[] walCol = wal.getBytes();
 
-                //if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.info(LOG, "updateReplicationProgress: wal = %s, position = %d", wal, position);
-                //}
-                if (position > 0) {
-                    put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, walCol,
-                            Bytes.toBytes(position));
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "updateReplicationProgress: wal = %s, position = %d", wal, position);
                 }
+
+                put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, walCol,
+                        Bytes.toBytes(position));
             }
             table.put(put);
 
-            Delete delete = new Delete(com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
-            for (String oldWal : oldWals) {
-                delete.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, oldWal.getBytes());
-            }
-            table.delete(delete);
         }
     }
 
@@ -215,7 +229,9 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
 
                 try (WAL.Reader reader = WALFactory.createReader(fs, walLink.getAvailablePath(fs), conf)) {
                     // Seek to the position and look ahead
-                    reader.seek(position);
+                    if (position > 0) {
+                        reader.seek(position);
+                    }
                     WAL.Entry entry;
                     long previous = position;
                     while ((entry = reader.next()) != null) {
@@ -235,7 +251,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                         }
                     }
                     replicationProgress.put(wal, previous);
-                    SpliceLogUtils.info(LOG, "WAL = %s, position = %d", wal, previous);
+                    SpliceLogUtils.debug(LOG, "WAL = %s, position = %d", wal, previous);
                 }
                 catch (EOFException e) {
                     replicationProgress.put(wal, position);
@@ -300,11 +316,11 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                         String key = walGroup + "." + ln;
                         walPositions.remove(key);
                         oldWals.add(key);
-                        SpliceLogUtils.info(LOG, "Log %s:%d has completed replication, remove it", key, walPositions.get(key));
+                        SpliceLogUtils.debug(LOG, "Log %s:%d has completed replication, remove it", key, walPositions.get(key));
                     } else {
                         walPositions.remove(walName);
                         oldWals.add(walName);
-                        SpliceLogUtils.info(LOG, "Log %s:%d has completed replication, remove it", walName, walPositions.get(walName));
+                        SpliceLogUtils.debug(LOG, "Log %s:%d has completed replication, remove it", walName, walPositions.get(walName));
                     }
                 } else {
                     regionGroupMap.put(walGroup, logNum);
@@ -336,14 +352,14 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             for (Map<String, Long> snapshot : serverSnapshot.values()) {
                 for (HashMap.Entry<String, Long> entry : snapshot.entrySet()) {
                     put.addColumn(cf, Bytes.toBytes(entry.getKey()), Bytes.toBytes(entry.getValue()));
-                    //if (LOG.isDebugEnabled()) {
-                    sb.append(String.format("{WAL=%s, position=%d}", entry.getKey(), entry.getValue()));
-                    //}
+                    if (LOG.isDebugEnabled()) {
+                        sb.append(String.format("{WAL=%s, position=%d}", entry.getKey(), entry.getValue()));
+                    }
                 }
             }
-            //if (LOG.isDebugEnabled()) {
-                SpliceLogUtils.info(LOG, "ts = %d, WALs = %s", timestamp, sb.toString());
-            //}
+            if (LOG.isDebugEnabled()) {
+                SpliceLogUtils.debug(LOG, "ts = %d, WALs = %s", timestamp, sb.toString());
+            }
             table.put(put);
         }
         catch (Exception e) {
@@ -408,5 +424,17 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    private List<String> sortWals(Map<String, Map<String, Long>> wals) {
+        List<String> sortedWals = Lists.newArrayList();
+        for ( Map<String, Long> w : wals.values()) {
+            for (Map.Entry<String, Long> walPosition : w.entrySet()) {
+                sortedWals.add(walPosition.getKey()+":"+walPosition.getValue());
+            }
+        }
+
+        Collections.sort(sortedWals);
+        return sortedWals;
     }
 }

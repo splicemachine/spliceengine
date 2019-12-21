@@ -256,9 +256,9 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
             for (Result r : scanner) {
                 byte[] rowKey = r.getRow();
                 long timestamp = new Long(new String(rowKey));
-                //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "Checking snapshot taken at %d", timestamp);
-                //}
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "Checking snapshot taken at %d", timestamp);
+                }
                 CellScanner s = r.cellScanner();
                 while (s.advance()) {
                     Cell cell = s.current();
@@ -266,10 +266,10 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
                     Long position = Bytes.toLong(CellUtil.cloneValue(cell));
                     if (replicationProgress.containsKey(walName)) {
                         long appliedPosition = replicationProgress.get(walName);
-                        //if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.info(LOG,
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG,
                                     "WAL=%s, snapshot=%d, progress=%d", walName, position, appliedPosition);
-                        //}
+                        }
                         if (appliedPosition < position) {
                             // applied seqNum is behind snapshot seqNum,cannot move timestamp forward
                             return;
@@ -279,9 +279,9 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
                 Delete d = new Delete(rowKey);
                 // We have replicated beyond this snapshot, delete it and bump up timestamp
                 snapshotTable.delete(d);
-                //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "Deleted snapshot %d.", timestamp);
-                //}
+                if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "Deleted snapshot %d.", timestamp);
+                }
                 ReplicationUtils.setTimestamp(timestamp);
             }
         }finally {

@@ -24,4 +24,6 @@ public interface ReplicationPeerDescription {
     boolean isEnabled();
 
     String getClusterKey();
+
+    boolean isSerial();
 }

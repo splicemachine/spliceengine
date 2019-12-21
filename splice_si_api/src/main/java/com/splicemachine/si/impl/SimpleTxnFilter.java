@@ -20,6 +20,7 @@ import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
 import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
@@ -48,6 +49,7 @@ public class SimpleTxnFilter implements TxnFilter{
     private Long tombstonedTxnRow = null;
     private Long antiTombstonedTxnRow = null;
     private final ByteSlice rowKey=new ByteSlice();
+    private boolean isSlave;
 
     /*
      * The most common case for databases is insert-only--that is, that there
@@ -96,6 +98,7 @@ public class SimpleTxnFilter implements TxnFilter{
         SIDriver driver = SIDriver.driver();
         if (driver != null) {
             ignoreTxnSupplier = driver.getIgnoreTxnSupplier();
+            isSlave = SIDriver.driver().lifecycleManager().getReplicationRole().equals(SIConstants.REPLICATION_ROLE_SLAVE);
         }
     }
 
@@ -247,6 +250,14 @@ public class SimpleTxnFilter implements TxnFilter{
             return false;
 
         TxnView toCompare=fetchTransaction(txnId);
+
+        if (isSlave && toCompare != null) {
+            long committedTs = toCompare.getCommitTimestamp();
+            if (committedTs == -1 || myTxn.getBeginTimestamp() < committedTs){
+                return false;
+            }
+        }
+
         // If the database is restored from a backup, it may contain data that were written by a transaction which
         // is not present in SPLICE_TXN table, because SPLICE_TXN table is copied before the transaction begins.
         // However, the table written by the txn was copied
