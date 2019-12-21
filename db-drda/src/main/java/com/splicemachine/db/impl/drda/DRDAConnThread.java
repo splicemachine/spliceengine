@@ -289,8 +289,8 @@ class DRDAConnThread extends Thread {
 	DRDAConnThread(Session session, NetworkServerControlImpl server, 
 						  long timeSlice,
 						  boolean logConnections) {
-	
-   	super();
+
+		super();
 
 		// Create a more meaningful name for this thread (but preserve its
 		// thread id from the default name).
@@ -301,7 +301,11 @@ class DRDAConnThread extends Thread {
 		this.timeSlice = timeSlice;
 		this.logConnections = logConnections;
         this.pendingStatementTimeout = -1;
-		initialize();
+		rdbnam = new DRDAString();
+		rdbcolid = new DRDAString();
+		pkgid = new DRDAString();
+		pkgcnstkn = new DRDAString();
+		initialize();					// initializeForSession(session)?
     }
 
 	/**
@@ -667,19 +671,13 @@ class DRDAConnThread extends Thread {
 	private void initialize()
 	{
 		// set input and output sockets
-		// this needs to be done before creating reader
 		sockis = session.sessionInput;
 		sockos = session.sessionOutput;
 
-		reader = new DDMReader(this, session.dssTrace);
-		writer = new DDMWriter(this, session.dssTrace);
-		
-		/* At this stage we can initialize the strings as we have
-		 * the CcsidManager for the DDMWriter. */
-		rdbnam = new DRDAString(writer);
-	    rdbcolid = new DRDAString(writer);
-	    pkgid = new DRDAString(writer);
-	    pkgcnstkn = new DRDAString(writer);
+		reader = session.reader;
+		writer = session.writer;
+
+		session.setAgent(this);
 	}
 
 	/**
@@ -691,11 +689,9 @@ class DRDAConnThread extends Thread {
 		sockis = session.sessionInput;
 		sockos = session.sessionOutput;
 
-		// intialize reader and writer
-		reader.initialize(this, session.dssTrace);
-		writer.reset(session.dssTrace);
-
 		// initialize local pointers to session info
+		reader = session.reader;
+		writer = session.writer;
 		database = session.database;
 		appRequester = session.appRequester;
 
@@ -703,12 +699,10 @@ class DRDAConnThread extends Thread {
 		if (session.state == Session.ATTEXC)
 			sqlamLevel = appRequester.getManagerLevel(CodePoint.SQLAM);
 
-        /* All sessions MUST start as EBCDIC */
-        reader.setEbcdicCcsid();
-        writer.setEbcdicCcsid();
-
         // Associate current session remote user to this thread
         RemoteUser.setRemoteUser(session.getRemoteUser());
+
+		session.setAgent(this);
 	}
 	/**      
 	 * In initial state for a session, 
@@ -728,9 +722,6 @@ class DRDAConnThread extends Thread {
 		{
 			try {
 				server.processCommands(reader, writer, session);
-				// reset reader and writer
-				reader.initialize(this, null);
-				writer.reset(null);
 				closeSession();
 			} catch (Throwable t) {
 				if (t instanceof InterruptedException)
@@ -5751,8 +5742,9 @@ class DRDAConnThread extends Thread {
             // check the client version first
             if (appRequester.greaterThanOrEqualTo(10,3,0) ) {
                 // check the database name
-                if (!rdbnam.toString().equals(database.getDatabaseName()))
-                    rdbnamMismatch(CodePoint.PKGNAMCSN);
+                if (!reader.toJavaString(rdbnam).equals(database.getDatabaseName())) {
+					rdbnamMismatch(CodePoint.PKGNAMCSN);
+				}
             }
 
 			reader.readString(rdbcolid, CodePoint.RDBCOLID_LEN, true);
@@ -5796,7 +5788,7 @@ class DRDAConnThread extends Thread {
             if ( appRequester.getClientType() != AppRequester.DNC_CLIENT
                  || appRequester.greaterThanOrEqualTo(10,3,0) ) {
                 // check the database name
-                if (!rdbnam.toString().equals(database.getDatabaseName()))
+                if (!reader.toJavaString(rdbnam).equals(database.getDatabaseName()))
                     rdbnamMismatch(CodePoint.PKGNAMCSN);
             }
 
@@ -5839,10 +5831,8 @@ class DRDAConnThread extends Thread {
 			byte[] token = new byte[pkgcnstkn.length()];
 			System.arraycopy(pkgcnstkn.getBytes(), 0, token, 0, token.length);
 
-			prevPkgnamcsn =
-				new Pkgnamcsn(rdbnam.toString(), rdbcolid.toString(),
-							  pkgid.toString(), pkgsn,
-							  new ConsistencyToken(token));
+			prevPkgnamcsn = new Pkgnamcsn(reader.toJavaString(rdbnam), reader.toJavaString(rdbcolid),
+							reader.toJavaString(pkgid), pkgsn, new ConsistencyToken(token));
 		}
 
 		return prevPkgnamcsn;

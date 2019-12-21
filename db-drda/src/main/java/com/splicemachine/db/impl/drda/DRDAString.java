@@ -43,9 +43,6 @@ final class DRDAString {
     /** Buffer representing the string. */
     private byte[] buffer;
     
-    /** Keep the DDMWriter as it contains the current CCSID manager being used */
-    private final DDMWriter writer;
-
     /** True if the contents were modified in the previous call to
      * <code>setBytes</code>. */
     private boolean modified;
@@ -55,13 +52,9 @@ final class DRDAString {
 
     /**
      * Create a new <code>DRDAString</code> instance.
-     *
-     * @param w a <code>DDMWriter</code> which holds current CCSidManager
-     * and which encoding is used
      */
-    DRDAString(DDMWriter w) {
+    DRDAString() {
         this.buffer = new byte[0];
-        this.writer = w;
         this.cachedString = null;
     }
 
@@ -123,8 +116,7 @@ final class DRDAString {
      */
     public String toString() {
         if (cachedString == null) {
-            cachedString =
-                writer.getCurrentCcsidManager().convertToJavaString(buffer);
+            cachedString = new String(buffer);
         }
         return cachedString;
     }

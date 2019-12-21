@@ -145,7 +145,7 @@ class DDMWriter
     
     volatile long totalByteCount = 0;
     
-	DDMWriter (DRDAConnThread agent, DssTrace dssTrace)
+	DDMWriter(DssTrace dssTrace)
 	{
 	    // Create instances of the two ccsid managers and default to EBCDIC
 	    this.ebcdicCcsidManager = new EbcdicCcsidManager();
@@ -153,7 +153,6 @@ class DDMWriter
 	    this.ccsidManager = this.ebcdicCcsidManager;
 	    
 		this.buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
-		this.agent = agent;
 		this.prevHdrLocation = -1;
 		this.previousCorrId = DssConstants.CORRELATION_ID_UNKNOWN;
 		this.previousChainByte = DssConstants.DSS_NOCHAIN;
@@ -165,6 +164,10 @@ class DDMWriter
 		encoder = NetworkServerControlImpl.DEFAULT_CHARSET.newEncoder()
 			.onMalformedInput(CodingErrorAction.REPLACE)
 			.onUnmappableCharacter(CodingErrorAction.REPLACE);
+	}
+
+	protected void setAgent(DRDAConnThread agent) {
+		this.agent = agent;
 	}
 
 	// Switch the ccsidManager to the UTF-8 instance
@@ -188,12 +191,7 @@ class DDMWriter
 	 */
 	protected void reset(DssTrace dssTrace)
 	{
-		buffer.clear();
-		top = 0;
-		dssLengthLocation = 0;
-		nextCorrelationID = 1;
-		correlationID = DssConstants.CORRELATION_ID_UNKNOWN;
-		isDRDAProtocol = true;
+		clearBuffer();
 		this.dssTrace = dssTrace;
 	}
 

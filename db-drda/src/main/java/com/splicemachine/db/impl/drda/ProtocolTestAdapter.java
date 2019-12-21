@@ -58,7 +58,7 @@ public class ProtocolTestAdapter {
     public static final int CP_SECCHKCD = CodePoint.SECCHKCD;
 
     private final CcsidManager ccsidManager = new EbcdicCcsidManager();
-    private final DDMWriter writer = new DDMWriter(null, null);
+    private final DDMWriter writer = new DDMWriter(null);
     private final Socket socket;
     private final DDMReader reader;
     private final OutputStream out;

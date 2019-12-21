@@ -68,6 +68,8 @@ class Session
 	protected int connNum;				// connection number
 	protected InputStream sessionInput;	// session input stream
 	protected OutputStream sessionOutput;	// session output stream
+	protected DDMReader reader;
+	protected DDMWriter writer;
 	protected String traceFileName;		// trace file name for session
 	protected boolean traceOn;			// whether trace is currently on for the session
 	protected int state;				// the current state of the session
@@ -148,6 +150,12 @@ class Session
 			dbtable = null;
 			database = null;
 		}
+	}
+
+
+	protected void setAgent(DRDAConnThread agent) {
+		reader.setAgent(agent);
+		writer.setAgent(agent);
 	}
 
 	/**
@@ -298,11 +306,12 @@ class Session
 	{
 		sessionInput = clientSocket.getInputStream();
 		sessionOutput = clientSocket.getOutputStream();
+		reader = new DDMReader(dssTrace, sessionInput);
+		writer = new DDMWriter(dssTrace);
 		if (traceOn)
 			initTrace(traceDirectory,false);
 		state = INIT;
-
-                enableOutboundCompression = false;
+		enableOutboundCompression = false;
 	}
 
 	protected  String buildRuntimeInfo(String indent, LocalizedResource localLangUtil)

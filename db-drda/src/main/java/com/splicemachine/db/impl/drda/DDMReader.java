@@ -177,11 +177,12 @@ class DDMReader
     volatile long totalByteCount = 0;
 
 	// constructor
-	DDMReader (DRDAConnThread agent, DssTrace dssTrace)
+	DDMReader(DssTrace dssTrace, InputStream inputStream)
 	{
+		this.inputStream = inputStream;
 		buffer = new byte[DEFAULT_BUFFER_SIZE];
 		ddmCollectionLenStack = new long[MAX_MARKS_NESTING];
-		initialize(agent, dssTrace);
+		initialize(dssTrace);
 	}
 	/**
 	 * This constructor is used for testing the protocol
@@ -194,23 +195,18 @@ class DDMReader
 		ddmCollectionLenStack = new long[MAX_MARKS_NESTING];
 		
 		this.inputStream = inputStream;
-		initialize(null, null);
+		initialize(null);
 	}
 
 	/**
 	 * Initialize values for this session, the reader is reused so we need to
 	 * set null and 0 values
 	 */
-	protected void initialize(DRDAConnThread agent, DssTrace dssTrace)
+	private void initialize(DssTrace dssTrace)
   	{
-		this.agent = agent;
 		this.utf8CcsidManager = new Utf8CcsidManager();
         this.ebcdicCcsidManager = new EbcdicCcsidManager();
         this.ccsidManager = ebcdicCcsidManager;
-		if (agent != null)
-		{
-			inputStream = agent.getInputStream();
-		}
 		topDdmCollectionStack = EMPTY_STACK;
     	svrcod = 0;
 		pos = 0;
@@ -222,6 +218,10 @@ class DDMReader
 		this.dssTrace = dssTrace;
 		dssIsChainedWithDiffID = false;
 		dssIsChainedWithSameID = false;
+	}
+
+	protected void setAgent(DRDAConnThread agent) {
+		this.agent = agent;
 	}
 
 	// Switch the ccsidManager to the UTF-8 instance
@@ -1473,6 +1473,10 @@ class DDMReader
 			}
 		}
 		dst.setBytes(buffer, startPos, size);
+	}
+
+	protected String toJavaString(DRDAString str) {
+		return ccsidManager.convertToJavaString(str.getBytes());
 	}
 
 	/**
