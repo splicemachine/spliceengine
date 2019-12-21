@@ -1350,7 +1350,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(1)
                             .smallint("peerId")
-                            .varchar("hostAndPort", 32672)
+                            .varchar("clusterKey", 32672)
+                            .arg("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .arg("isSerial", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
@@ -1474,6 +1475,22 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(getPeers);
+
+                    Procedure getWalPositions = Procedure.newBuilder().name("GET_REPLICATED_WAL_POSITIONS")
+                            .numOutputParams(0)
+                            .smallint("peerId")
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getWalPositions);
+
+                    Procedure getWalPosition = Procedure.newBuilder().name("GET_REPLICATED_WAL_POSITION")
+                            .numOutputParams(0)
+                            .varchar("wal",32672)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(getWalPosition);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

@@ -1990,6 +1990,8 @@ public interface SQLState {
 	 */
 	String INVALID_REPLICATION_ROLE									= "RPL001";
 	String PEER_EXISTS									            = "RPL002";
+	String INVALID_REPLICATION_PEER									= "RPL003";
+    String CANNOT_CONNECT_PEER                                      = "RPL004";
 
     /**
      * External table

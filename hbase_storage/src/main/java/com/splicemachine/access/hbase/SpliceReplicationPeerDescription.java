@@ -23,6 +23,7 @@ public class SpliceReplicationPeerDescription implements ReplicationPeerDescript
     private final String id;
     private final boolean enabled;
     private final String clusterKey;
+    private boolean serial;
 
     public SpliceReplicationPeerDescription(String id, String clusterKey, boolean enabled) {
         this.id = id;
@@ -30,9 +31,16 @@ public class SpliceReplicationPeerDescription implements ReplicationPeerDescript
         this.enabled = enabled;
     }
 
+    public SpliceReplicationPeerDescription(String id, String clusterKey, boolean enabled, boolean serial) {
+        this.id = id;
+        this.clusterKey = clusterKey;
+        this.enabled = enabled;
+        this.serial = serial;
+    }
+
     @Override
     public String getId() {
-        return  id;
+        return id;
     }
 
     @Override
@@ -43,5 +51,10 @@ public class SpliceReplicationPeerDescription implements ReplicationPeerDescript
     @Override
     public String getClusterKey() {
         return clusterKey;
+    }
+
+    @Override
+    public boolean isSerial() {
+        return serial;
     }
 }

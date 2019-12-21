@@ -32,13 +32,13 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.impl.drda.RemoteUser;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.catalog.SYSREPLICATIONRowFactory;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.SpliceAdmin;
@@ -61,6 +61,43 @@ public class ReplicationSystemProcedure {
 
     private static Logger LOG = Logger.getLogger(ReplicationSystemProcedure.class);
 
+    public static void GET_REPLICATED_WAL_POSITION(String wal, ResultSet[] resultSets) throws StandardException, SQLException {
+        ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+        String walPosition = replicationManager.getReplicatedWalPosition(wal);
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        ResultColumnDescriptor[] rcds = {
+                new GenericColumnDescriptor("walPosition", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
+        };
+        List<ExecRow> rows = Lists.newArrayList();
+        ExecRow template = new ValueRow(1);
+        template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+        template.getColumn(1).setValue(walPosition);
+        rows.add(template);
+        IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+        inprs.openCore();
+        resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+    }
+
+    public static void GET_REPLICATED_WAL_POSITIONS(short peerId, ResultSet[] resultSets) throws StandardException, SQLException {
+        ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+        List<String> walPositions = replicationManager.getReplicatedWalPositions(peerId);
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+        ResultColumnDescriptor[] rcds = {
+                new GenericColumnDescriptor("walPosition", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
+        };
+        List<ExecRow> rows = Lists.newArrayList();
+        for (String walPosition : walPositions) {
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            template.getColumn(1).setValue(walPosition);
+            rows.add(template);
+        }
+        IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+        inprs.openCore();
+        resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+    }
     public static void LIST_PEERS(ResultSet[] resultSets) throws StandardException, SQLException {
 
         ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
@@ -71,15 +108,17 @@ public class ReplicationSystemProcedure {
         ResultColumnDescriptor[] rcds = {
                 new GenericColumnDescriptor("PeerId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
                 new GenericColumnDescriptor("clusterKey", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR)),
-                new GenericColumnDescriptor("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN))
+                new GenericColumnDescriptor("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN)),
+                new GenericColumnDescriptor("serial", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN))
         };
         List<ExecRow> rows = Lists.newArrayList();
         for (ReplicationPeerDescription replicationPeer : replicationPeers) {
-            ExecRow template = new ValueRow(3);
-            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar(), new SQLBoolean()});
+            ExecRow template = new ValueRow(4);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLVarchar(), new SQLBoolean(), new SQLBoolean()});
             template.getColumn(1).setValue(replicationPeer.getId());
             template.getColumn(2).setValue(replicationPeer.getClusterKey());
             template.getColumn(3).setValue(replicationPeer.isEnabled());
+            template.getColumn(4).setValue(replicationPeer.isSerial());
             rows.add(template);
         }
         IteratorNoPutResultSet inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
@@ -93,35 +132,25 @@ public class ReplicationSystemProcedure {
         resultSets[0] = ProcedureUtils.generateResult("Success", clusterKey);
     }
 
-    public static void ADD_PEER(short peerId, String hostAndPort, boolean isSerial, ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void ADD_PEER(short peerId,
+                                String peerClusterKey,
+                                boolean enabled,
+                                boolean isSerial,
+                                ResultSet[] resultSets) throws StandardException, SQLException {
         try {
-            long peerTs = -1;
-            String peerClusterKey = null;
             String clusterKey = getClusterKey();
-            try (Connection connection = RemoteUser.getConnection(hostAndPort)) {
-                // Get peer's cluster key
-                try (ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.GET_CLUSTER_KEY()")) {
-                    rs.next();
-                    peerClusterKey = rs.getString(1);
-                }
 
-                // Get peer's timestamp
-                try (ResultSet rs = connection.createStatement().executeQuery("call syscs_util.SYSCS_GET_CURRENT_TRANSACTION()")) {
-                    rs.next();
-                    peerTs = rs.getLong(1);
-                }
+            // Add peer first
+            ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+            replicationManager.addPeer(peerId, peerClusterKey, isSerial);
 
-                ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
-                replicationManager.addPeer(clusterKey, peerId, peerClusterKey, peerTs, isSerial);
+            String replicationMonitorQuorum = SIDriver.driver().getConfiguration().getReplicationMonitorQuorum();
+            if (replicationMonitorQuorum != null) {
+                replicationManager.monitorReplication(clusterKey, peerClusterKey);
+            }
 
-
-                connection.createStatement().execute("call SYSCS_UTIL.SET_REPLICATION_ROLE('SLAVE')");
-                replicationManager.setReplicationRole("MASTER");
-
-                String replicationMonitorQuorum = SIDriver.driver().getConfiguration().getReplicationMonitorQuorum();
-                if (replicationMonitorQuorum != null) {
-                    replicationManager.monitorReplication(getClusterKey(), peerClusterKey);
-                }
+            if (enabled) {
+                enablePeer(peerId);
             }
             resultSets[0] = ProcedureUtils.generateResult("Success", String.format("Added %s as peer %d", peerClusterKey, peerId));
         } catch (Exception e) {
@@ -142,8 +171,7 @@ public class ReplicationSystemProcedure {
 
     public static void ENABLE_PEER(short peerId, ResultSet[] resultSets) throws StandardException, SQLException {
         try {
-            ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
-            replicationManager.enablePeer(peerId);
+            enablePeer(peerId);
             resultSets[0] = ProcedureUtils.generateResult("Success", String.format("Enabled peer %d", peerId));
         } catch (Exception e) {
             resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
@@ -587,4 +615,29 @@ public class ReplicationSystemProcedure {
             }
         }
     }
-}
+
+    private static void enablePeer(short peerId) throws StandardException {
+
+        ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+        List<ReplicationPeerDescription> replicationPeerDescriptions = replicationManager.getReplicationPeers();
+        String peerClusterKey = null;
+        boolean enabled = false;
+        for (ReplicationPeerDescription replicationPeerDescription : replicationPeerDescriptions) {
+            short id = new Short(replicationPeerDescription.getId());
+            if (id == peerId) {
+                peerClusterKey = replicationPeerDescription.getClusterKey();
+                enabled = replicationPeerDescription.isEnabled();
+            }
+        }
+
+        if (peerClusterKey == null) {
+            throw StandardException.newException(SQLState.INVALID_REPLICATION_PEER, peerId);
+        }
+
+        if (enabled)
+            return;
+
+        String clusterKey = getClusterKey();
+        replicationManager.enablePeer(clusterKey, peerId, peerClusterKey);
+    }
+ }

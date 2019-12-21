@@ -105,6 +105,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  String replicationMonitorQuorum;
     private final  String replicationMonitorPath;
     private final  int replicationMonitorInterval;
+    private final  String replicationHealthcheckScript;
 
     // OperationConfiguration
     private final  int sequenceBlockSize;
@@ -425,6 +426,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getReplicationMonitorInterval() {
         return replicationMonitorInterval;
+    }
+    @Override
+    public String getReplicationHealthcheckScript() {
+        return replicationHealthcheckScript;
     }
     @Override
     public String getCompressionAlgorithm() {
@@ -959,6 +964,7 @@ public final class SConfigurationImpl implements SConfiguration {
         replicationMonitorPath = builder.replicationMonitorPath;
         replicationMonitorQuorum = builder.replicationMonitorQuorum;
         replicationMonitorInterval = builder.replicationMonitorInterval;
+        replicationHealthcheckScript = builder.replicationHealthcheckScript;
         compressionAlgorithm = builder.compressionAlgorithm;
         namespace = builder.namespace;
         spliceRootPath = builder.spliceRootPath;

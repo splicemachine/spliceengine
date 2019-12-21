@@ -18,6 +18,7 @@ import com.clearspring.analytics.util.Lists;
 import com.jcraft.jsch.JSchException;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.replication.ReplicationSystemProcedure;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ScheduledChore;
@@ -29,7 +30,9 @@ import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -63,6 +66,8 @@ public class ReplicationMonitorChore extends ScheduledChore {
     public static final String DB_URL_LOCAL = "jdbc:splice://%s/splicedb;user=splice;password=admin";
 
     private Map<String, Connection> connectionPool = new HashMap<>();
+
+    private String healthcheckScript;
 
     // This constructor is for chore services
     public ReplicationMonitorChore(final String name,
@@ -110,6 +115,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
             ZkUtils.recursiveSafeCreate(path, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, rzk);
             determineLeadership();
         }
+        healthcheckScript = SIDriver.driver().getConfiguration().getReplicationHealthcheckScript();
     }
 
     public void determineLeadership() throws KeeperException, InterruptedException{
@@ -217,7 +223,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
                 }
             }
 
-            if (masterCluster == null || masterCluster != mc) {
+            if (masterCluster == null || !masterCluster.equals(mc)) {
                 masterCluster = mc;
             }
             if (masterCluster != null) {
@@ -240,19 +246,43 @@ public class ReplicationMonitorChore extends ScheduledChore {
             }
 
             if (!failover) {
-                healthCheckMasterCluster();
+                if (healthcheckScript != null) {
+                    runHealthcheckScript();
+                }
+                else {
+                    healthCheckMasterCluster();
+                }
             }
 
             // If this is leader, determine whether a failover should be triggered
             if (isLeader) {
                 failover = failover || shouldFailOver();
                 if (failover) {
-                    sendAlert();
+                    //sendAlert();
+                    performFailover();
                 }
             }
         }
         catch (Exception e) {
             LOG.info("Encountered an error:", e);
+        }
+    }
+
+    private void runHealthcheckScript() throws IOException, InterruptedException, KeeperException {
+
+        String command = healthcheckScript;
+        for (String rs : regionServers) {
+            String[] s = rs.split(":");
+             command += " " + s[0];
+        }
+        String result = executeScript(command);
+        byte[] status = result.equals("SUCCESS") ? ReplicationUtils.MASTER_CLUSTER_STATUS_UP :
+                ReplicationUtils.MASTER_CLUSTER_STATUS_DOWN;
+
+        String path = isMaster ? replicationMonitorPath + "/master/" + thisCluster :
+                replicationMonitorPath + "/peers/" + thisCluster;
+        if (rzk.exists(path, false) != null) {
+            rzk.setData(path, status, -1);
         }
     }
 
@@ -431,5 +461,31 @@ public class ReplicationMonitorChore extends ScheduledChore {
         String[] s = node.split(":");
         String clusterKey = s[0]+":" + s[1]+":/"+s[2];
         return clusterKey;
+    }
+
+    private String executeScript(String command) throws  IOException, InterruptedException {
+        Process p = Runtime.getRuntime().exec(command);
+        p.waitFor();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        BufferedReader errorReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+
+
+
+        String line = "";
+        String error = "";
+        while ((line = errorReader.readLine()) != null) {
+            error += line;
+        }
+
+        if (error.length() > 0) {
+            SpliceLogUtils.error(LOG, "Encountered an error when executing script %s : %s", healthcheckScript, error);
+        }
+        line = "";
+        String result = "";
+        while ((line = reader.readLine()) != null) {
+            result += line;
+        }
+
+        return  result;
     }
 }

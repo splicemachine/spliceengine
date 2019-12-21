@@ -23,9 +23,10 @@ import java.util.List;
  * Created by jyuan on 2/6/19.
  */
 public interface ReplicationManager {
-    void addPeer(String clusterKey,short peerId, String peerClusterKey, long peerTs, boolean isSerial) throws StandardException;
+
+    void addPeer(short peerId, String peerClusterKey, boolean isSerial) throws StandardException;
     void removePeer(short peerId) throws StandardException;
-    void enablePeer(short peerId) throws StandardException;
+    void enablePeer(String clusterKey, short peerId, String peerClusterKey) throws StandardException;
     void disablePeer(short peerId) throws StandardException;
     void enableTableReplication(String tableName) throws StandardException;
     void disableTableReplication(String tableName) throws StandardException;
@@ -33,4 +34,6 @@ public interface ReplicationManager {
     String getReplicationRole() throws StandardException;
     List<ReplicationPeerDescription> getReplicationPeers() throws StandardException;
     void monitorReplication(String masterClusterKey, String slaveClusterKey) throws StandardException;
+    default String getReplicatedWalPosition(String wal) throws StandardException{ return null;}
+    default List<String> getReplicatedWalPositions(short peerId) throws StandardException{return null;}
 }

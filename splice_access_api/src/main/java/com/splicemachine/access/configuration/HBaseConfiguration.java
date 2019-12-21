@@ -185,6 +185,8 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String SPLICE_REPLICATION_MONITOR_INTERVAL = "splice.replication.monitor.interval";
     public static final int DEFAULT_SPLICE_REPLICATION_MONITOR_INTERVAL = 1000;
 
+    public static final String SPLICE_REPLICATION_HEALTHCHECKSCRIPT = "splice.replication.healthcheck.script";
+
     /**
      * The Path in zookeeper for storing the maximum reserved timestamp
      * from the ZkTimestampSource implementation.
@@ -265,5 +267,6 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.replicationMonitorQuorum = configurationSource.getString(SPLICE_REPLICATION_MONITOR_QUORUM, null);
         builder.replicationEnabled = configurationSource.getBoolean(SPLICE_REPLICATION_ENABLED, DEFAULT_SPLICE_REPLICATION_ENABLED);
         builder.replicationMonitorInterval = configurationSource.getInt(SPLICE_REPLICATION_MONITOR_INTERVAL, DEFAULT_SPLICE_REPLICATION_MONITOR_INTERVAL);
+        builder.replicationHealthcheckScript = configurationSource.getString(SPLICE_REPLICATION_HEALTHCHECKSCRIPT, null);
     }
 }
