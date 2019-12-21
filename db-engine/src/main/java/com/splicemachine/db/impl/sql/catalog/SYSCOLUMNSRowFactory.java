@@ -42,9 +42,11 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -492,6 +494,40 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
                         null,null,view,viewId,0,0,0)
         });
+
+        // add columnlist for the syscolumns view in sysibm schema
+        Collection<Object[]> colList = Lists.newArrayListWithCapacity(50);
+        colList.add(new Object[]{"NAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"TBNAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"TBCREATOR", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"COLTYPE", Types.CHAR, false, 8});
+        colList.add(new Object[]{"NULLS", Types.CHAR, false, 1});
+        colList.add(new Object[]{"CODEPAGE", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"LENGTH", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"SCALE", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"COLNO", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"TYPENAME", Types.VARCHAR, false, 128});
+        colList.add(new Object[]{"LONGLENGTH", Types.INTEGER, false, null});
+        colList.add(new Object[]{"KEYSEQ", Types.SMALLINT, true, null});
+
+
+        Collection<ColumnDescriptor> columnDescriptors = Lists.newArrayListWithCapacity(50);
+        int colPos = 0;
+        for (Object[] entry: colList) {
+            colPos ++;
+            if (entry[3] != null) {
+                columnDescriptors.add(new ColumnDescriptor((String) entry[0], colPos, colPos, DataTypeDescriptor.getBuiltInDataTypeDescriptor((int) entry[1], (boolean) entry[2], (int) entry[3]),
+                        null, null, view, viewId, 0, 0, 0));
+            } else {
+                columnDescriptors.add(new ColumnDescriptor((String) entry[0], colPos, colPos, DataTypeDescriptor.getBuiltInDataTypeDescriptor((int) entry[1], (boolean) entry[2]),
+                        null, null, view, viewId, 0, 0, 0));
+            }
+        }
+
+        ColumnDescriptor[] arr = new ColumnDescriptor[columnDescriptors.size()];
+        arr = columnDescriptors.toArray(arr);
+        cdsl.add(arr);
+
         return cdsl;
     }
     public static String SYSCOLUMNS_VIEW_SQL = "create view SYSCOLUMNSVIEW as \n" +
@@ -499,4 +535,73 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "T.TABLENAME, " +
             "T.SCHEMANAME " +
             "FROM SYS.SYSCOLUMNS C, SYSVW.SYSTABLESVIEW T WHERE T.TABLEID = C.REFERENCEID";
+
+
+    public static String SYSCOLUMNS_VIEW_IN_SYSIBM = "create view SYSCOLUMNS as \n" +
+            "select\n" +
+            "COL.columnname as NAME,\n" +
+            "COL.tablename as TBNAME,\n" +
+            "COL.schemaname as TBCREATOR,\n" +
+            "cast (case when COL.COLUMNTYPE='TIMESTAMP' then 'TIMESTMP'\n" +
+            "     when COL.COLUMNTYPE='VARBINARY' then 'VARBIN'\n" +
+            "     when COL.COLUMNTYPE='LONG VARCHAR' then 'LONGVAR'\n" +
+            "     when COL.COLUMNTYPE like 'CHAR%' then 'CHAR'\n" +
+            "     when COL.COLUMNTYPE like 'VARCHAR%' then 'VARCHAR'\n" +
+            "     when COL.COLUMNTYPE like 'com.%' or COL.COLUMNTYPE like 'java.%' or COL.COLUMNTYPE like 'org.%' then 'DISTINCT'\n" +
+            "     when length(COL.COLUMNTYPE) > 8 then substr(COL.COLUMNTYPE, 1, 8)\n" +
+            "     else COL.COLUMNTYPE end as CHAR(8)) as COLTYPE,\n" +
+            "case when COL.COLUMNDATATYPE.isNullable() then 'Y' else 'N' end NULLS,\n" +
+            "case when COL.COLUMNTYPE in ('CHAR', 'VARCHAR', 'CLOB') then 1208 else 0 end as CODEPAGE,\n" +
+            "case when COL.COLUMNTYPE='INTEGER' then 4\n" +
+            "     when COL.COLUMNTYPE='SMALLINT' then 2\n" +
+            "     when COL.COLUMNTYPE='BIGINT' then 8\n" +
+            "     when COL.COLUMNTYPE='FLOAT' then 4\n" +
+            "     when COL.COLUMNTYPE='DATE' then 4\n" +
+            "     when COL.COLUMNTYPE='TIMESTAMP' then 10\n" +
+            "     when COL.COLUMNTYPE='TIME' then 3\n" +
+            "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
+            "     when COL.COLUMNDATATYPE.getMaximumWidth() > 32767 then -1\n" +
+            "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LENGTH,\n" +
+            "case when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getScale()\n" +
+            "     when COL.COLUMNTYPE='TIMESTAMP' then 6\n" +
+            "     else 0 end as SCALE,\n" +
+            "COL.columnnumber-1 as COLNO, -- 0-based\n" +
+            "case when COL.COLUMNTYPE='CHAR' then 'CHARACTER'\n" +
+            "     else COL.COLUMNTYPE end as TYPENAME,\n" +
+            "case when COL.COLUMNTYPE='INTEGER' then 4\n" +
+            "     when COL.COLUMNTYPE='SMALLINT' then 2\n" +
+            "     when COL.COLUMNTYPE='BIGINT' then 8\n" +
+            "     when COL.COLUMNTYPE='FLOAT' then 4\n" +
+            "     when COL.COLUMNTYPE='DATE' then 4\n" +
+            "     when COL.COLUMNTYPE='TIMESTAMP' then 10\n" +
+            "     when COL.COLUMNTYPE='TIME' then 3\n" +
+            "     when COL.COLUMNTYPE='DECIMAL' then COL.COLUMNDATATYPE.getPrecision()\n" +
+            "     else COL.COLUMNDATATYPE.getMaximumWidth() end as LONGLENGTH,\n" +
+            "case when CON.keydesc is not null and CON.keydesc.getKeyColumnPosition(COL.columnnumber) > 0 then CON.keydesc.getKeyColumnPosition(COL.columnnumber)\n" +
+            "     end as KEYSEQ\n" +
+            "from \n" +
+            "(select c.columnname,\n" +
+            "        t.tablename,\n" +
+            "        s.schemaname,\n" +
+            "        c.columnnumber,\n" +
+            "        c.columndatatype,\n" +
+            "        cast (c.columndatatype.getTypeName() as varchar(128)) as columntype,\n" +
+            "        t.tableid\n" +
+            "from sys.syscolumns c,\n" +
+            "     sys.systables t,\n" +
+            "     sys.sysschemas s\n" +
+            "where c.referenceid = t.tableid and\n" +
+            "      t.schemaid = s.schemaid\n" +
+            ") col\n" +
+            "left join (\n" +
+            "select cons.tableid,\n" +
+            "       congloms.descriptor as keydesc\n" +
+            "from sys.sysconstraints cons,\n" +
+            "     sys.sysprimarykeys keys,\n" +
+            "     sys.sysconglomerates congloms\n" +
+            "where cons.type = 'P' and\n" +
+            "      cons.constraintid = keys.constraintid and\n" +
+            "      cons.tableid = congloms.tableid and\n" +
+            "      keys.conglomerateid = congloms.conglomerateid\n" +
+            ") con on col.tableid = con.tableid";
 }
