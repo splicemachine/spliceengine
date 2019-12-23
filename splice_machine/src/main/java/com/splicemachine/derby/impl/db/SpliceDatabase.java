@@ -82,10 +82,6 @@ public class SpliceDatabase extends BasicDatabase{
             startParams = new Properties();
         }
 
-        // Set 60 Second Default if Missing from startup parameters
-        if (System.getProperty("derby.drda.timeSlice") == null)
-            System.setProperty("derby.drda.timeSlice","60000");
-
         //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         String logStatementText = System.getProperty("derby.language.logStatementText");
         if (logStatementText == null) {
