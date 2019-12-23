@@ -290,11 +290,58 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
                         row(1.175E-7,1)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table t1 (a1 int, b1 int, c1 int, d1 char(5))")
+                .withInsert("insert into t1 values(?, ?, ?, ?)")
+                .withRows(rows(
+                        row(1, 3, 5, 7),
+                        row(2, 4, 6, 8)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t2 (a2 int, b2 int, c2 int, d2 char(5))")
+                .withInsert("insert into t2 values(?, ?, ?, ?)")
+                .withRows(rows(
+                        row(2, 4, 6, 8)))
+                .create();
+
     }
 
     @BeforeClass
     public static void createDataSet() throws Exception {
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
+    }
+
+    @Test
+    public void test_DB_9024() throws Exception {
+        String sqlText = format("select c1, b1, d1, lead(b1) over (partition by c1, d1 order by b1 desc) as X\n" +
+        "from t1 --splice-properties useSpark=%s\n" +
+        "where d1 in (select d2 from t2\n" +
+        "where b2=4)\n" +
+        "group by 1,2,3"
+        , useSpark);
+
+        String expected =
+            "C1 |B1 |D1 |  X  |\n" +
+            "------------------\n" +
+            " 6 | 4 | 8 |NULL |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select c1, b1, d1, lead(b1) over (partition by c1, d1 order by b1 desc) as X\n" +
+        "from t1 --splice-properties useSpark=%s\n" +
+        "where d1 not in (select d2 from t2\n" +
+        "where b2=4)\n" +
+        "group by 1,2,3"
+        , useSpark);
+
+        expected =
+            "C1 |B1 |D1 |  X  |\n" +
+            "------------------\n" +
+            " 5 | 3 | 7 |NULL |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
     }
 
     @Test
