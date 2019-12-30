@@ -18,19 +18,16 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Test SQL expressions, which may now be evaluated native SparkSQL,
@@ -48,7 +45,7 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
         params.add(new Object[]{false});
         return params;
     }
-    private static final String SCHEMA = PredicateSimplificationIT.class.getSimpleName();
+    private static final String SCHEMA = ProjectRestrictSparkExpressionIT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -580,7 +577,16 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "-----------------------------------------------------------------------------------------------\n" +
             "-11                           -11                           -11                           -11 |\n" +
             " 3                             3                             3                             3  |\n" +
-            " 5                             5                             5                             5  |"
+            " 5                             5                             5                             5  |",
+            "1  |\n" +
+            "------\n" +
+            "5844 |",
+            "1   |\n" +
+            "-------\n" +
+            "-5844 |",
+            "1 |\n" +
+            "----\n" +
+            " 3 |"
         };
 
         String query[] = {
@@ -684,6 +690,9 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "select rand(13.3) from t1 --splice-properties useSpark=%s\n",
             "select (7+DATE('2017-9-22')) from t1 --splice-properties useSpark=%s\n",
             "select c || c || c || c from t1 --splice-properties useSpark=%s\n",
+            "select DATE('2017-01-01') - a from t6 --splice-properties useSpark=%s\n",
+            "select a - DATE('2017-01-01') from t6 --splice-properties useSpark=%s\n",
+            "select a - (b-3) from t6 --splice-properties useSpark=%s\n"
         };
 
         for (int i = 0; i < query.length; i++) {
