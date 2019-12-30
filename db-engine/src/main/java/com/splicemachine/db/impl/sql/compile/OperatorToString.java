@@ -540,7 +540,12 @@ public class OperatorToString {
                         if (leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID) {
                             if (vars.buildExpressionTree)
                                 throwNotImplementedError();
-                            return format("date_sub(%s, %s) ", opToString2(leftOperand, vars),
+                            /* use datediff if both operands are of date type */
+                            if (rightOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)
+                                return format("datediff(%s, %s) ", opToString2(leftOperand, vars),
+                                        opToString2(rightOperand, vars));
+                            else
+                                return format("date_sub(%s, %s) ", opToString2(leftOperand, vars),
                             opToString2(rightOperand, vars));
                         }
                         else if (leftOperand.getTypeId().getTypeFormatId() == TIMESTAMP_TYPE_ID)
