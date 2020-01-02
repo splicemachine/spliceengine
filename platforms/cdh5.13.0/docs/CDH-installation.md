@@ -23,7 +23,7 @@ your cluster contains the prerequisite software components:
 * HDFS installed
 * YARN installed
 * ZooKeeper installed
-* Spark2 installed (2.2 Release 2 recommended)
+* Spark2 installed
 
 **NOTE:** The specific versions of these components that you need depend on your
 operating environment, and are called out in detail in the
@@ -39,50 +39,8 @@ Machine on your cluster:
 
    Which Splice Machine parcel URL you need depends upon which Splice
    Machine version you're installing and which version of CDH you are
-   using. Here are the URLs for Splice Machine Release 2.7 and
-   2.5:
-
-   <table>
-   <col />
-   <col />
-   <col />
-   <col />
-   <thead>
-       <tr>
-           <th>CDH Version</th>
-           <th>Parcel Type</th>
-           <th>Installer Package Link(s)</th>
-       </tr>
-   </thead>
-   <tbody>
-       <tr>
-           <td rowspan="6" style="vertical-align:top"><bold>5.8.3</bold></td>
-           <td>EL6</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-el6.parcel]</td>
-       </tr>
-       <tr>
-           <td>EL7</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-el7.parcel]</td>
-       </tr>
-       <tr>
-           <td>Precise</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-el6.precise]</td>
-       </tr>
-       <tr>
-           <td>SLES11</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-sles11.parcel]</td>
-       </tr>
-       <tr>
-           <td>Trusty</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-trusty.parcel]</td>
-       </tr>
-       <tr>
-           <td>Wheezy</td>
-           <td>[https://s3.amazonaws.com/splice-releases/2.5.0.1802/cluster/parcel/cdh5.8.3/SPLICEMACHINE-2.5.0.1802.cdh5.8.3.p0.540-wheezy.parcel]</a></td>
-        </tr>
-    </tbody>
-   </table>
-
+   using.
+   
    **NOTE:** To be sure that you have the latest URL, please check [the Splice
    Machine Community site](https://community.splicemachine.com/) or contact your Splice
    Machine representative.
@@ -534,21 +492,11 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>splice.olap.log4j.configuration</name><value>file:/opt/cloudera/parcels/SPLICEMACHINE/conf/olap-log4j.properties</value></property>   
    ````
 
-3. Set the value of `HBase Client Advanced Configuration Snippet (Safety Valve) for hbase-site.xml`:
+3. Set the value of Java Configuration Options for HBase Master
 
-   ````
-   <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>
-   <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>
-   <property><name>hfile.block.cache.size</name><value>.1</value></property>
-   <property><name>splice.compression</name><value>snappy</value></property>
-   <property><name>splice.txn.activeCacheSize</name><value>10240</value></property>
-   ````
-
-4. Set the value of Java Configuration Options for HBase Master
-
-   ````
-   -XX:MaxPermSize=512M -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=0 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true  -Dsplice.spark.yarn.am.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.driver.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.executor.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/SPLICEMACHINE/lib/*:/opt/cloudera/parcels/SPARK2/lib/spark2/jars/*:/opt/cloudera/parcels/CDH/lib/hbase/lib/* -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=4 -Dsplice.spark.executor.memory=8g -Dspark.compaction.reserved.slots=4  -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/cloudera/parcels/SPARK2/lib/spark2/jars/*
-   ````
+   ```
+    -XX:MaxPermSize=512M -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=2g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=4 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=0 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true  -Dsplice.spark.yarn.am.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=8192 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.driver.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.executor.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/SPLICEMACHINE/lib/*:/opt/cloudera/parcels/SPARK2/lib/spark2/jars/*:/opt/cloudera/parcels/CDH/lib/hbase/lib/* -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=10 -Dsplice.spark.executor.memory=24g -Dspark.compaction.reserved.slots=4  -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/cloudera/parcels/SPARK2/lib/spark2/jars/* -Dsplice.spark.sql.shuffle.partitions=900 -Dsplice.spark.reducer.maxSizeInFlight=512m -Dsplice.spark.maxRemoteBlockSizeFetchToMem=105000000 
+   ```
 
 5. Set the value of Java Configuration Options for Region Servers:
 
