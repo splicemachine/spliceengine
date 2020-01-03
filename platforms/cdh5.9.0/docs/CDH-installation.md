@@ -449,7 +449,7 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>hbase.balancer.period</name><value>60000</value></property>
    <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>
    <property><name>hbase.client.max.perregion.tasks</name><value>100</value></property>
-   <property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.hbase.RegionServerLifecycleObserver</value></property>
+   <property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices</value></property>
    <property><name>hbase.hstore.defaultengine.compactionpolicy.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactionPolicy</value></property>
    <property><name>hbase.hstore.defaultengine.compactor.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactor</value></property>
    <property><name>hbase.htable.threads.max</name><value>96</value></property>
@@ -491,8 +491,63 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>splice.olap_server.memory</name><value>8196</value></property>   
    <property><name>splice.olap.log4j.configuration</name><value>file:/opt/cloudera/parcels/SPLICEMACHINE/conf/olap-log4j.properties</value></property>   
    ````
+3. Set the value of `HBase Client Advanced Configuration Snippet (Safety Valve) for hbase-site.xml`:
 
-3. Set the value of Java Configuration Options for HBase Master
+  ```
+  <property><name>dfs.client.read.shortcircuit.buffer.size</name><value>131072</value></property>                                     
+  <property><name>hbase.balancer.period</name><value>60000</value></property>                                     
+  <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>                                     
+  <property><name>hbase.client.max.perregion.tasks</name><value>100</value></property>                                     
+  <property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.hbase.RegionServerLifecycleObserver</value></property>                                     
+  <property><name>hbase.hstore.defaultengine.compactionpolicy.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactionPolicy</value></property>                                     
+  <property><name>hbase.hstore.defaultengine.compactor.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactor</value></property>                                     
+  <property><name>hbase.htable.threads.max</name><value>96</value></property>                                     
+  <property><name>hbase.ipc.warn.response.size</name><value>-1</value></property>                                     
+  <property><name>hbase.ipc.warn.response.time</name><value>-1</value></property>                                     
+  <property><name>hbase.master.loadbalance.bytable</name><value>true</value></property>                                     
+  <property><name>hbase.mvcc.impl</name><value>org.apache.hadoop.hbase.regionserver.SIMultiVersionConsistencyControl</value></property>                                     
+  <property><name>hbase.regions.slop</name><value>0.01</value></property>                                     
+  <property><name>hbase.regionserver.global.memstore.size.lower.limit</name><value>0.9</value></property>                                     
+  <property><name>hbase.regionserver.global.memstore.size</name><value>0.25</value></property>                                     
+  <property><name>hbase.regionserver.maxlogs</name><value>48</value></property>                                     
+  <property><name>hbase.regionserver.wal.enablecompression</name><value>true</value></property>                                     
+  <property><name>hbase.rowlock.wait.duration</name><value>0</value></property>                                     
+  <property><name>hbase.status.multicast.port</name><value>16100</value></property>                                     
+  <property><name>hbase.wal.disruptor.batch</name><value>true</value></property>                                     
+  <property><name>hbase.wal.provider</name><value>multiwal</value></property>                                     
+  <property><name>hbase.wal.regiongrouping.numgroups</name><value>16</value></property>                                     
+  <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>                                     
+  <property><name>hfile.block.bloom.cacheonwrite</name><value>true</value></property>                                     
+  <property><name>io.storefile.bloom.error.rate</name><value>0.005</value></property>                                     
+  <property><name>splice.client.numConnections</name><value>1</value></property>                                     
+  <property><name>splice.client.write.maxDependentWrites</name><value>60000</value></property>                                     
+  <property><name>splice.client.write.maxIndependentWrites</name><value>60000</value></property>                                     
+  <property><name>splice.compression</name><value>snappy</value></property>                                     
+  <property><name>splice.debug.logStatementContext</name><value>false</value></property>                                     
+  <property><name>splice.marshal.kryoPoolSize</name><value>1100</value></property>                                     
+  <property><name>splice.olap_server.clientWaitTime</name><value>900000</value></property>                                     
+  <property><name>splice.ring.bufferSize</name><value>131072</value></property>                                     
+  <property><name>splice.splitBlockSize</name><value>67108864</value></property>                                     
+  <property><name>splice.timestamp_server.clientWaitTime</name><value>120000</value></property>                                     
+  <property><name>splice.txn.activeTxns.cacheSize</name><value>10240</value></property>                                     
+  <property><name>splice.txn.completedTxns.concurrency</name><value>128</value></property>                                     
+  <property><name>splice.txn.concurrencyLevel</name><value>4096</value></property>                                     
+  <property><name>hbase.hstore.compaction.max.size</name><value>260046848</value></property>                                     
+  <property><name>hbase.hstore.compaction.min.size</name><value>16777216</value></property>                                     
+  <property><name>hbase.hstore.compaction.min</name><value>5</value></property>                                     
+  <property><name>hbase.regionserver.thread.compaction.large</name><value>1</value></property>                                     
+  <property><name>splice.authentication.native.algorithm</name><value>SHA-512</value></property>                                     
+  <property><name>splice.authentication</name><value>NATIVE</value></property>                                     
+  <property><name>splice.olap_server.memory</name><value>8196</value></property>                                     
+  <property><name>splice.olap.log4j.configuration</name><value>file:/opt/cloudera/parcels/SPLICEMACHINE/conf/olap-log4j.properties</value></property>                                     
+  <property><name>hfile.block.cache.size</name><value>.1</value></property>                                     
+  <property><name>splice.authentication.impersonation.enabled</name><value>true</value></property>                                    
+  <property><name>splice.authentication.impersonation.users</name><value>admin=splice</value></property>                                     
+  <property><name>splice.authentication.native.create.credentials.database</name><value>true</value></property>                                     
+  <property><name>splice.metadataRestrictionEnabled</name><value>DISABLED</value></property>                                     
+  ```
+
+4. Set the value of Java Configuration Options for HBase Master
 
    ````
    -XX:MaxPermSize=512M -XX:+HeapDumpOnOutOfMemoryError -XX:MaxDirectMemorySize=2g -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10101 -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn-client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=2g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=4 -Dsplice.spark.dynamicAllocation.maxExecutors=12 -Dsplice.spark.io.compression.lz4.blockSize=32k -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=0 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true  -Dsplice.spark.yarn.am.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=8192 -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties -Dsplice.spark.driver.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.driver.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/jars/htrace-core-3.1.0-incubating.jar -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.executor.extraClassPath=/opt/cloudera/parcels/CDH/lib/hbase/conf:/opt/cloudera/parcels/SPLICEMACHINE/lib/*:/opt/cloudera/parcels/SPARK2/lib/spark2/jars/*:/opt/cloudera/parcels/CDH/lib/hbase/lib/* -Dsplice.spark.executor.extraLibraryPath=/opt/cloudera/parcels/CDH/lib/hadoop/lib/native -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=10 -Dsplice.spark.executor.memory=24g -Dspark.compaction.reserved.slots=4  -Dsplice.spark.local.dir=/tmp -Dsplice.spark.yarn.jars=/opt/cloudera/parcels/SPARK2/lib/spark2/jars/* -Dsplice.spark.sql.shuffle.partitions=900 -Dsplice.spark.reducer.maxSizeInFlight=512m
@@ -510,13 +565,14 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
 
 There are a few configuration modifications you might want to make:
 
+* [Enable automatically restart for HBase service](#enable-automatically-restart) if you want HBase recover automatically after some failures.
 * [Modify the Authentication Mechanism](#modify-the-authentication-mechanism) if you want to
   authenticate users with something other than the default *native
   authentication* mechanism.
 * [Modify the Log Location](#modify-the-logging-location) if you want your Splice Machine
   log entries stored somewhere other than in the logs for your region
   servers.
-
+  
 ### Enable Automatically Restart
 
 After network partition, HBase master or region server may exit. So you may want to enable "Automatically Restart Process"
