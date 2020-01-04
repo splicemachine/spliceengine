@@ -70,7 +70,6 @@ public class OlapServerMaster implements Watcher {
     private String masterPath;
 
     UserGroupInformation ugi;
-    UserGroupInformation yarnUgi;
 
     public OlapServerMaster(ServerName serverName, int port, String queueName) {
         this.serverName = serverName;
@@ -96,11 +95,6 @@ public class OlapServerMaster implements Watcher {
 
         // Initialize clients to ResourceManager and NodeManagers
         Configuration conf = HConfiguration.unwrapDelegate();
-
-        UserGroupInformation.isSecurityEnabled();
-        AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = getClient(conf);
-
-        LOG.info("Registered with Resource Manager");
 
         String principal = System.getProperty("splice.spark.yarn.principal");
         String keytab = System.getProperty("splice.spark.yarn.keytab");
@@ -129,6 +123,14 @@ public class OlapServerMaster implements Watcher {
                 }
             }
         }
+
+        // Transfer tokens from original user to the one we'll use from now on
+        SparkHadoopUtil.get().transferCredentials(original, ugi);
+
+        UserGroupInformation.isSecurityEnabled();
+        AMRMClientAsync<AMRMClient.ContainerRequest> rmClient = getClient(conf);
+
+        LOG.info("Registered with Resource Manager");
 
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
@@ -192,8 +194,6 @@ public class OlapServerMaster implements Watcher {
         while(!end.get()) {
             Thread.sleep(10000);
             ugi.checkTGTAndReloginFromKeytab();
-            if (yarnUgi != null)
-                yarnUgi.checkTGTAndReloginFromKeytab();
         }
 
         LOG.info("OlapServerMaster shutting down");
@@ -246,26 +246,7 @@ public class OlapServerMaster implements Watcher {
 
     public AMRMClientAsync<AMRMClient.ContainerRequest> getClient(Configuration conf) throws IOException, YarnException, InterruptedException {
 
-        String principal = System.getProperty("splice.spark.yarn.principal");
-        String keytab = System.getProperty("splice.spark.yarn.keytab");
-
-        UserGroupInformation original = UserGroupInformation.getCurrentUser();
-        if (principal != null && keytab != null) {
-            try {
-                LOG.info("Login with principal (" + principal +") and keytab (" + keytab +")");
-                UserGroupInformation.loginUserFromKeytab(principal, keytab);
-
-            } catch (IOException e) {
-                LOG.error("Error while authenticating user " + principal + " with keytab " + keytab, e);
-                throw new RuntimeException(e);
-            }
-
-            yarnUgi = UserGroupInformation.getCurrentUser();
-        }
-
-        UserGroupInformation user = yarnUgi != null ? yarnUgi : ugi;
-        SparkHadoopUtil.get().transferCredentials(original, user);
-        return user.doAs(new PrivilegedExceptionAction<AMRMClientAsync<AMRMClient.ContainerRequest>>() {
+        return ugi.doAs(new PrivilegedExceptionAction<AMRMClientAsync<AMRMClient.ContainerRequest>>() {
             @Override
             public AMRMClientAsync<AMRMClient.ContainerRequest> run() throws Exception {
                 return initClient(conf);
