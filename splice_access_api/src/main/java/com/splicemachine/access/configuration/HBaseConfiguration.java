@@ -222,6 +222,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
     public static final String SLAVE_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
+    public static final String REPLICATION_PROGRESS_ROWKEY = "ReplicationProgress";
     public static final byte[] REPLICATION_PROGRESS_ROWKEY_BYTES = Bytes.toBytes("ReplicationProgress");
     public static final byte[] REPLICATION_PROGRESS_TSCOL_BYTES = Bytes.toBytes("Timestamp");
 

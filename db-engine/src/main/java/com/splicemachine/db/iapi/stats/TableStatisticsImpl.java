@@ -300,7 +300,16 @@ public class TableStatisticsImpl implements TableStatistics {
         if (totalPartition > 0)
             return totalPartition;
         if (isMergedStats)
-            totalPartition = (partitionStatistics.isEmpty()) ? 0:(int)(partitionStatistics.get(0).getPartitionStatistics().getNumberOfPartitions());
+            if (partitionStatistics.isEmpty()) {
+                totalPartition = 0;
+            }else {
+                if (partitionStatistics.get(0).getPartitionStatistics() != null) {
+                    totalPartition = (int) (partitionStatistics.get(0).getPartitionStatistics().getNumberOfPartitions());
+                }
+                else {
+                    totalPartition = 0;
+                }
+            }
         else
             totalPartition = partitionStatistics.size();
         return totalPartition;

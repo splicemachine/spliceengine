@@ -3,6 +3,7 @@ package com.splicemachine.hbase;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -12,7 +13,6 @@ import org.apache.commons.collections.map.HashedMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.io.WALLink;
 import org.apache.hadoop.hbase.replication.ReplicationPeerDescription;
@@ -21,7 +21,6 @@ import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.hadoop.hbase.wal.WALEdit;
 import org.apache.hadoop.hbase.wal.WALFactory;
-import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.log4j.Logger;
@@ -71,7 +70,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             }
             byte[] status = rzk.getData(replicationPath, new ReplicationMasterWatcher(this), null);
             isReplicationMaster = (status != null &&
-                    Bytes.compareTo(status, com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_MASTER) == 0);
+                    Bytes.compareTo(status, HBaseConfiguration.REPLICATION_MASTER) == 0);
 
             Configuration configuration = HConfiguration.unwrapDelegate();
             hbaseRoot = configuration.get(HConstants.ZOOKEEPER_ZNODE_PARENT);
@@ -128,19 +127,23 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                 }
                 // Send Snapshots to each peer
                 for (ReplicationPeerDescription peer : peers) {
-                    String clusterKey = peer.getPeerConfig().getClusterKey();
-                    Connection connection = getConnection(clusterKey);
-                    removeOldWals(snapshot);
-                    sendSnapshot(connection, timestamp, snapshot);
+                    if (peer.isEnabled()) {
+                        String clusterKey = peer.getPeerConfig().getClusterKey();
+                        Connection connection = getConnection(clusterKey);
+                        removeOldWals(snapshot);
+                        sendSnapshot(connection, timestamp, snapshot);
+                    }
                 }
                 preTimestamp = timestamp;
             }
 
             for (ReplicationPeerDescription peer : peers) {
-                String clusterKey = peer.getPeerConfig().getClusterKey();
-                Connection connection = getConnection(clusterKey);
-                removeOldWals(snapshot);
-                sendReplicationProgress(peer.getPeerId(), connection);
+                if (peer.isEnabled()) {
+                    String clusterKey = peer.getPeerConfig().getClusterKey();
+                    Connection connection = getConnection(clusterKey);
+                    removeOldWals(snapshot);
+                    sendReplicationProgress(peer.getPeerId(), connection);
+                }
             }
 
         }
@@ -175,17 +178,17 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
         try (Table table = connection.getTable(replicationProgressTableName)) {
 
             // Delete the current progress
-            Delete delete = new Delete(com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
+            Delete delete = new Delete(HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
             table.delete(delete);
 
             long timestamp = System.currentTimeMillis();
 
             // Create a single row update containing
-            Put put = new Put(com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
+            Put put = new Put(HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
 
             // Add a timestamp column
             put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
-                    com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_PROGRESS_TSCOL_BYTES, Bytes.toBytes(timestamp));
+                    HBaseConfiguration.REPLICATION_PROGRESS_TSCOL_BYTES, Bytes.toBytes(timestamp));
 
             // Add a column for each wal
             for(Map.Entry<String, Long> progress: replicationProgress.entrySet()){
@@ -193,9 +196,9 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                 Long position = progress.getValue();
                 byte[] walCol = wal.getBytes();
 
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "updateReplicationProgress: wal = %s, position = %d", wal, position);
-                }
+                //if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.info(LOG, "updateReplicationProgress: wal = %s, position = %d", wal, position);
+                //}
 
                 put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, walCol,
                         Bytes.toBytes(position));
@@ -218,21 +221,13 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                 WALLink walLink = new WALLink(conf, server, wal);
                 long position = walPosition.get(wal);
 
-//                long len = fs.getFileStatus(walLink.getAvailablePath(fs)).getLen();
-//                SpliceLogUtils.info(LOG, "WAL = %s, position = %d, len = %d", wal, position, len);
-//
-//                if (position == len) {
-//                    SpliceLogUtils.info(LOG, "WAL = %s, position = %d", wal, position);
-//                    replicationProgress.put(wal, position);
-//                    continue;
-//                }
-
                 try (WAL.Reader reader = WALFactory.createReader(fs, walLink.getAvailablePath(fs), conf)) {
                     // Seek to the position and look ahead
                     if (position > 0) {
                         reader.seek(position);
                     }
                     WAL.Entry entry;
+                    String family = null;
                     long previous = position;
                     while ((entry = reader.next()) != null) {
                         WALEdit edit = entry.getEdit();
@@ -240,18 +235,29 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
                         List<Cell> cells = edit.getCells();
                         if (cells.size() > 0) {
                             Cell cell = cells.get(0);
-                            String family = Bytes.toStringBinary(cell.getFamilyArray(), cell.getFamilyOffset(),
+                            family = Bytes.toStringBinary(cell.getFamilyArray(), cell.getFamilyOffset(),
                                     cell.getFamilyLength());
-                            if (family.equals(SIConstants.DEFAULT_FAMILY_NAME))
+                            String row = Bytes.toStringBinary(cell.getRowArray(), cell.getRowOffset(),
+                                    cell.getRowLength());
+                            if (family.equals(SIConstants.DEFAULT_FAMILY_NAME) ||
+                                    row.equals(HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY))
                                 break;
                             else {
                                 previous = reader.getPosition();
-                                SpliceLogUtils.info(LOG, "See a cell of %s. Bump up position to %d", family, previous);
+                                SpliceLogUtils.info(LOG, "See a cell of %s from %s. Bump up position to %d", family,
+                                        walLink.getAvailablePath(fs), previous);
                             }
                         }
                     }
-                    replicationProgress.put(wal, previous);
-                    SpliceLogUtils.debug(LOG, "WAL = %s, position = %d", wal, previous);
+                    if (family == null) {
+                        replicationProgress.put(wal, reader.getPosition());
+                    }
+                    else {
+                        replicationProgress.put(wal, previous);
+                    }
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "WAL = %s, position = %d", wal, previous);
+                    }
                 }
                 catch (EOFException e) {
                     replicationProgress.put(wal, position);
@@ -382,7 +388,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
             String zkQuorum = s[0];
             String port = s[1];
             String hbaseRoot = s[2];
-            Configuration conf = HBaseConfiguration.create();
+            Configuration conf = org.apache.hadoop.hbase.HBaseConfiguration.create();
             conf.set(HConstants.ZOOKEEPER_CLIENT_PORT, port);
             conf.set(HConstants.ZOOKEEPER_QUORUM, zkQuorum);
             conf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, hbaseRoot);
@@ -401,7 +407,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
     public void changeStatus() throws IOException{
         byte[] status = ZkUtils.getData(replicationPath, new ReplicationMasterWatcher(this), null);
         boolean wasReplicationMaster = isReplicationMaster;
-        isReplicationMaster = Bytes.compareTo(status, com.splicemachine.access.configuration.HBaseConfiguration.REPLICATION_MASTER) == 0;
+        isReplicationMaster = Bytes.compareTo(status, HBaseConfiguration.REPLICATION_MASTER) == 0;
         SpliceLogUtils.info(LOG, "isReplicationMaster changes from %s to %s", wasReplicationMaster, isReplicationMaster);
         statusChanged = wasReplicationMaster!=isReplicationMaster;
     }

@@ -19,6 +19,8 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.si.api.txn.ActiveTxnTracker;
 import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.Lists;
@@ -395,12 +397,21 @@ public class CoprocessorTxnStore implements TxnStore {
             // we didn't find it
             if (ignoreMissingTransactions) {
                 // return committed mock transaction
-                return new InheritingTxnView(Txn.ROOT_TRANSACTION,queryId,queryId,
+                return new InheritingTxnView(Txn.ROOT_TRANSACTION, queryId, queryId,
                         Txn.IsolationLevel.SNAPSHOT_ISOLATION,
                         false, false,
-                        true,true,
-                        queryId,queryId,
-                        Txn.State.COMMITTED,Iterators.emptyIterator(),System.currentTimeMillis(),null);
+                        true, true,
+                        queryId, queryId,
+                        Txn.State.COMMITTED, Iterators.emptyIterator(), System.currentTimeMillis(), null);
+            }
+            else if (SIDriver.driver().lifecycleManager().getReplicationRole().compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0) {
+                // return active mock transaction
+                return new InheritingTxnView(Txn.ROOT_TRANSACTION, queryId, queryId,
+                        Txn.IsolationLevel.SNAPSHOT_ISOLATION,
+                        false, false,
+                        true, true,
+                        queryId, queryId,
+                        Txn.State.ACTIVE, Iterators.emptyIterator(), System.currentTimeMillis(), null);
             } else {
                  throw new TransactionMissing(queryId);
             }

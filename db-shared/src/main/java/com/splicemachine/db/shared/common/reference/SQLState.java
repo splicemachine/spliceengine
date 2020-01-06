@@ -1992,7 +1992,7 @@ public interface SQLState {
 	String PEER_EXISTS									            = "RPL002";
 	String INVALID_REPLICATION_PEER									= "RPL003";
     String CANNOT_CONNECT_PEER                                      = "RPL004";
-
+	String READ_ONLY												= "RPL005";
     /**
      * External table
      */

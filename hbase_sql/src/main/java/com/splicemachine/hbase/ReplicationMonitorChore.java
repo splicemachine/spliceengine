@@ -24,13 +24,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.ScheduledChore;
 import org.apache.hadoop.hbase.Stoppable;
 import org.apache.hadoop.hbase.replication.ReplicationException;
+import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.ReplicationProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
+import org.apache.hbase.thirdparty.com.google.protobuf.CodedOutputStream;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.*;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Connection;
@@ -115,7 +119,6 @@ public class ReplicationMonitorChore extends ScheduledChore {
             ZkUtils.recursiveSafeCreate(path, new byte[]{}, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, rzk);
             determineLeadership();
         }
-        healthcheckScript = SIDriver.driver().getConfiguration().getReplicationHealthcheckScript();
     }
 
     public void determineLeadership() throws KeeperException, InterruptedException{
@@ -175,8 +178,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
         byte[] status = healthyCount >= regionServers.size() * 0.5 ? ReplicationUtils.MASTER_CLUSTER_STATUS_UP :
                 ReplicationUtils.MASTER_CLUSTER_STATUS_DOWN;
 
-        String path = isMaster ? replicationMonitorPath + "/master/" + thisCluster :
-                replicationMonitorPath + "/peers/" + thisCluster;
+        String path = replicationMonitorPath + "/monitors/" + thisCluster;
         if (rzk.exists(path, false) != null) {
             rzk.setData(path, status, -1);
         }
@@ -231,6 +233,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
                 isMaster = masterCluster.equals(thisCluster);
                 try {
                     regionServers = getRegionServers();
+                    failover = (regionServers.size() == 0); // failover if no region server is up
                 } catch (Exception e) {
                     SpliceLogUtils.error(LOG, "Encountered an error when trying to get a list of all region servers", e);
                     failover = true;
@@ -245,7 +248,9 @@ public class ReplicationMonitorChore extends ScheduledChore {
                 return;
             }
 
+
             if (!failover) {
+                healthcheckScript = SIDriver.driver().getConfiguration().getReplicationHealthcheckScript();
                 if (healthcheckScript != null) {
                     runHealthcheckScript();
                 }
@@ -258,8 +263,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
             if (isLeader) {
                 failover = failover || shouldFailOver();
                 if (failover) {
-                    //sendAlert();
-                    performFailover();
+                    sendAlert();
                 }
             }
         }
@@ -279,34 +283,27 @@ public class ReplicationMonitorChore extends ScheduledChore {
         byte[] status = result.equals("SUCCESS") ? ReplicationUtils.MASTER_CLUSTER_STATUS_UP :
                 ReplicationUtils.MASTER_CLUSTER_STATUS_DOWN;
 
-        String path = isMaster ? replicationMonitorPath + "/master/" + thisCluster :
-                replicationMonitorPath + "/peers/" + thisCluster;
+        String path = replicationMonitorPath + "/monitors/" + thisCluster;
         if (rzk.exists(path, false) != null) {
             rzk.setData(path, status, -1);
         }
     }
 
     private boolean shouldFailOver() throws KeeperException, InterruptedException{
-        List<String> children = rzk.getChildren(replicationMonitorPath + "/monitors", false);
 
         int total = 0;
         int count = 0;
-        // For each live monitor, check its reported master cluster status.
+
+        List<String> children = rzk.getChildren(replicationMonitorPath + "/monitors", false);
+        total += children.size();
         for (String cluster:children) {
-            String path = replicationMonitorPath + "/master/" + cluster;
-            if (rzk.exists(path, false) == null) {
-                path = replicationMonitorPath + "/peers/" + cluster;
-            }
-            if (rzk.exists(path, false) != null) {
-                byte[] status = rzk.getData(path, false, null);
-                if (Bytes.compareTo(status, ReplicationUtils.MASTER_CLUSTER_STATUS_UP) == 0) {
-                    count++;
-                }
+            String path = replicationMonitorPath + "/monitors/" + cluster;
+            byte[] status = rzk.getData(path, false, null);
+            if (Bytes.compareTo(status, ReplicationUtils.MASTER_CLUSTER_STATUS_UP) == 0) {
+                count++;
             }
         }
 
-        children = rzk.getChildren(replicationMonitorPath + "/peers", false);
-        total = children.size() + 1; // total number of clusters = peers + master(1)
         boolean failOver = count < total/2;
         if (failOver) {
             SpliceLogUtils.warn(LOG, "%d out of %d monitors reported master cluster is unhealthy!!!", total-count, total);
@@ -356,14 +353,50 @@ public class ReplicationMonitorChore extends ScheduledChore {
         // Elect a new master. By default, choose the cluster that is most up-to-date with master
         String newMaster = electNewMaster();
 
-        // Sync old master with new master
-        syncUpWALs();
+        boolean masterReachable = isMasterReachable();
 
-        // disable replication from old master. If it is recovered, it's no longer replicating data to other clusters
-        disableMaster();
+        long masterTimestamp = -1;
+        if (masterReachable) {
+            // Sync old master with new master
+            syncUpWALs();
+
+            // disable replication from old master. If it is recovered, it's no longer replicating data to other clusters
+            disableMaster();
+
+            masterTimestamp = getMasterTimestamp();
+        }
 
         // setup replication for new master. Replication peers are not enabled until they syn up with old masters
-        configureNewMaster(newMaster);
+        configureNewMaster(newMaster, masterTimestamp);
+    }
+
+    private long getMasterTimestamp() throws IOException, KeeperException, InterruptedException {
+        String masterClusterKey = getClusterKey(masterCluster);
+        Configuration conf = ReplicationUtils.createConfiguration(masterClusterKey);
+
+        try (ZKWatcher masterZkw = new ZKWatcher(conf, "replication monitor", null, false)) {
+            RecoverableZooKeeper rzk = masterZkw.getRecoverableZooKeeper();
+            String rootNode = HConfiguration.getConfiguration().getSpliceRootPath();
+            String node = rootNode + HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
+            byte[] data = rzk.getData(node, false, null);
+            long ts = Bytes.toLong(data);
+            return ts;
+        }
+    }
+
+    private boolean isMasterReachable() {
+        String masterClusterKey = getClusterKey(masterCluster);
+        Configuration conf = ReplicationUtils.createConfiguration(masterClusterKey);
+
+        try (ZKWatcher masterZkw = new ZKWatcher(conf, "replication monitor", null, false)) {
+            String[] s = masterClusterKey.split(":");
+            RecoverableZooKeeper rzk = masterZkw.getRecoverableZooKeeper();
+            List<String> children = rzk.getChildren(s[2], false);
+            return true;
+        }
+        catch (Exception e) {
+            return false;
+        }
     }
 
     private void syncUpWALs() throws JSchException, IOException{
@@ -386,7 +419,10 @@ public class ReplicationMonitorChore extends ScheduledChore {
         String peerPath = hbaseRootDir+"/replication/peers";
         List<String> peers = masterRzk.getChildren(peerPath, false);
         for (String peer : peers) {
-            ZkUtils.recursiveDelete(peerPath + "/" + peer, masterRzk);
+            String p = peerPath + "/" + peer;
+            List<String> children = masterRzk.getChildren(p, false);
+            String peerStatePath = p + "/" + children.get(0);
+            masterRzk.setData(peerStatePath, toByteArray(ReplicationProtos.ReplicationState.State.DISABLED), -1);
         }
 
         // Delete configuration from monitor quorum
@@ -400,7 +436,23 @@ public class ReplicationMonitorChore extends ScheduledChore {
         }
     }
 
-    private void configureNewMaster(String newMaster) throws IOException, InterruptedException, KeeperException, SQLException{
+    protected static byte[] toByteArray(final ReplicationProtos.ReplicationState.State state) {
+        ReplicationProtos.ReplicationState msg =
+                ReplicationProtos.ReplicationState.newBuilder().setState(state).build();
+        // There is no toByteArray on this pb Message?
+        // 32 bytes is default which seems fair enough here.
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            CodedOutputStream cos = CodedOutputStream.newInstance(baos, 16);
+            msg.writeTo(cos);
+            cos.flush();
+            baos.flush();
+            return ProtobufUtil.prependPBMagic(baos.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void configureNewMaster(String newMaster, long ts) throws IOException, InterruptedException, KeeperException, SQLException{
 
         Configuration conf = null;
         for (String peer : peers) {
@@ -416,17 +468,34 @@ public class ReplicationMonitorChore extends ScheduledChore {
             ReplicationUtils.setupReplicationMaster(connection, newMasterClusterKey);
             Integer peerId = 1;
             for (String peer : peers) {
-                if (peer.equals(newMaster))
+                if (peer.equals(newMaster)) {
                     continue;
-
+                }
                 String peerClusterKey = getClusterKey(peer);
-                ReplicationUtils.addPeer(connection, peerClusterKey, peerId.toString());
+                ReplicationUtils.addPeer(connection, peerClusterKey, peerId.toString(), true, false);
                 peerId++;
+            }
+            // Add old master as a disabled peer
+            String peerClusterKey = getClusterKey(masterCluster);
+            ReplicationUtils.addPeer(connection, peerClusterKey, peerId.toString(), false, false);
+            if (ts > 0) {
+                setNewMasterTimestamp(newMasterClusterKey, ts);
             }
         }
 
     }
 
+    private void setNewMasterTimestamp(String newMasterClusterKey,
+                                       long ts) throws IOException, KeeperException, InterruptedException{
+        Configuration conf = ReplicationUtils.createConfiguration(newMasterClusterKey);
+
+        try (ZKWatcher masterZkw = new ZKWatcher(conf, "replication monitor", null, false)) {
+            RecoverableZooKeeper rzk = masterZkw.getRecoverableZooKeeper();
+            String rootNode = HConfiguration.getConfiguration().getSpliceRootPath();
+            String node = rootNode + HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
+            rzk.setData(node, Bytes.toBytes(ts), -1);
+        }
+    }
     private String electNewMaster() throws IOException, InterruptedException,
             KeeperException, SQLException, JSchException, ReplicationException{
 

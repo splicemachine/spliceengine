@@ -295,7 +295,7 @@ class SpliceTestPlatformConfig {
         config.set("splice.authentication.ldap.mapGroupAttr", "jy=splice,dgf=splice");
         config.setInt("splice.txn.completedTxns.cacheSize", 4096);
         //config.set("splice.replication.monitor.quorum", "srv091:2181");
-        config.set("splice.replication.healthcheck.script", "/Users/jyuan/replication/scripts/healthCheck.sh");
+        //config.set("splice.replication.healthcheck.script", "/Users/jyuan/replication/scripts/healthCheck.sh");
 
         // below two parameters are needed to test ranger authorization on standalone system
         // config.set("splice.authorization.scheme", "RANGER");

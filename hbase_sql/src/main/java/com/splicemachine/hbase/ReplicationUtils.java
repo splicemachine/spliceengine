@@ -139,10 +139,13 @@ public class ReplicationUtils {
         return connection;
     }
 
-    public static void addPeer(Connection connection, String peerClusterKey, String peerId) throws SQLException, IOException, KeeperException, InterruptedException {
-        Configuration conf = createConfiguration(peerClusterKey);
-        String server = getRegionServerAddress(conf);
-        String sql = String.format("call syscs_util.add_peer(%s, '%s')", peerId, server);
+    public static void addPeer(Connection connection,
+                               String peerClusterKey,
+                               String peerId,
+                               boolean enabled,
+                               boolean serial) throws SQLException, IOException, KeeperException, InterruptedException {
+        String sql = String.format("call syscs_util.add_peer(%s, '%s', '%s', '%s')", peerId, peerClusterKey,
+                enabled ? "true" : "false", serial ? "true" : "false");
         ResultSet rs = connection.createStatement().executeQuery(sql);
         rs.next();
         try {

@@ -242,6 +242,7 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
 
             BackupUtils.waitForBackupToComplete(tableName, regionName);
             isCompacting.set(true);
+            SpliceLogUtils.info(LOG, "setting isCompacting=true for %s:%s", tableName, regionName);
             return scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
@@ -252,6 +253,7 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
     public void postCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, StoreFile resultFile, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
         try {
             isCompacting.set(false);
+            SpliceLogUtils.info(LOG, "setting isCompacting=false for %s:%s", tableName, regionName);
             if (LOG.isDebugEnabled()) {
                 String filePath =  resultFile != null?resultFile.getPath().toString():null;
                 SpliceLogUtils.debug(LOG, "Compaction result file %s", filePath);
