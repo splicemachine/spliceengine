@@ -416,25 +416,7 @@ public class SQLVarchar
     @Override
 	public int hashCode()
 	{
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(!(this instanceof CollationElementsInterface),
-					"SQLVarchar.hashCode() does not work with collation");
-		}
-
-		try {
-			String str = getString();
-
-			if (str == null)
-			{
-				return 0;
-			} else {
-				return str.hashCode();
-			}
-		}
-		catch (StandardException se)
-		{
-			throw new RuntimeException(se);
-		}
+		return super.hashCode();
 	}
 
 }
