@@ -295,7 +295,17 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
                         row("splice", 2, "2018-12-04"),
                         row("splice", 2, "2018-12-05")))
                 .create();
-    
+
+
+        new TableCreator(conn)
+                .withCreate("create table t111 (a1 varchar(5), b1 varchar(5), c1 int, primary key(a1))")
+                .withInsert("insert into t111 values (?,?,?)")
+                .withRows(rows(
+                        row("bbb  ", "bbb  ", 2),
+                        row("bbb", "bbb", 22),
+                        row("bbb ", "bbb ", 222)))
+                .create();
+
         // Reset derby.database.maxMulticolumnProbeValues to the default setting.
         spliceClassWatcher.execute("call syscs_util.syscs_set_global_database_property('" + Property.MAX_MULTICOLUMN_PROBE_VALUES + "', null)");
     
@@ -2490,4 +2500,39 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
     }
 
+
+    @Test
+    public void testInListWithVarcharColumnAndValuesOfDifferentTrailingspaces() throws Exception {
+        String sqlText = format("select '-' || a1 || '-' from t111 --splice-properties useSpark=%s\n" +
+                "where a1 in ('bbb  ', 'bbb')", useSpark);
+
+        String expected =
+                "1    |\n" +
+                        "---------\n" +
+                        "-bbb  - |\n" +
+                        " -bbb-  |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testInListWithVarcharColumnAndValuesOfDifferentTrailingspaces2() throws Exception {
+        String sqlText = format("select '-' || a1 || '-' from t111 --splice-properties useSpark=%s\n" +
+                "where a1 in (?, ?)", useSpark);
+        PreparedStatement ps = methodWatcher.prepareStatement(sqlText);
+        ps.setString(1, "bbb  ");
+        ps.setString(2, "bbb");
+
+        String expected =
+                "1    |\n" +
+                        "---------\n" +
+                        "-bbb  - |\n" +
+                        " -bbb-  |";
+
+        ResultSet rs = ps.executeQuery();
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }
