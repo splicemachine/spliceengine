@@ -98,6 +98,8 @@ public class JoinNode extends TableOperatorNode{
     private PredicateList leftPredicateList;
     private PredicateList rightPredicateList;
 
+    protected enum CONVERSION {CONVERTLEFT, CONVERTRIGHT, CONVERTINNER, NONE}
+
     /**
      * Convert the joinType to a string.
      *

@@ -384,6 +384,11 @@ public class CoalesceFunctionNode extends ValueNode
     public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly)
         throws StandardException
     {
+		if (simplePredsOnly)
+		{
+			return false;
+		}
+
         return argumentsList.categorize(referencedTabs, simplePredsOnly);
     }
 
