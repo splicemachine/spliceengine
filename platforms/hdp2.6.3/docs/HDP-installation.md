@@ -100,6 +100,7 @@ important configurations are set properly by clicking "recommend" button next to
 (4) In Hbase's config "hbase-env template", make sure the comments like "Splice Specific 
 Information" are in the configurations.
 
+(5) In YARN's config for custom yarn-site, the hdp.version is set.
 
 6. Please click next all the way down to this page ,then click 'deploy'. After that finishes, Splice
  Machine is installed.
