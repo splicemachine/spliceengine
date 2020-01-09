@@ -989,4 +989,50 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+
+    @Test
+    public void testComparisionOfSQLCharAndVarchar() throws Exception {
+        // test simple case of two table joining on SQLChar and SQLVarchar
+        String sqlText = format("select * from t7, t9 --splice-properties joinStrategy=sortmerge, useSpark=%s\n" +
+                "where a7=a9", useSpark);
+
+        String expected = "A7   | B7   |C7 | A9   | B9   |C9 |\n" +
+                "------------------------------------\n" +
+                "AAAAA |AAAAA | 1 |AAAAA |AAAAA | 1 |\n" +
+                " BBB  | BBB  | 2 | BBB  | BBB  |22 |";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        // hint dt with hashable join strategy
+        sqlText = format("select * from --splice-properties joinOrder=fixed\n" +
+                "t7, (select a9, c9 from t9 \n" +
+                "union all select a10, c10 from t10 --splice-properties useSpark=%s\n" +
+                ")dt(a,c) --splice-properties joinStrategy=broadcast\n" +
+                "where a=a7", useSpark);
+
+        expected = "A7   | B7   |C7 |  A   | C |\n" +
+                "-----------------------------\n" +
+                "AAAAA |AAAAA | 1 |AAAAA | 1 |\n" +
+                " BBB  | BBB  | 2 | BBB  |22 |";
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = format("select * from --splice-properties joinOrder=fixed\n" +
+                "t7, (select a9, c9 from t9 \n" +
+                "union all select a10, c10 from t10 --splice-properties useSpark=%s\n" +
+                ")dt(a,c) --splice-properties joinStrategy=sortmerge\n" +
+                "where a=a7", useSpark);
+
+        rs = methodWatcher.executeQuery(sqlText);
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
 }
