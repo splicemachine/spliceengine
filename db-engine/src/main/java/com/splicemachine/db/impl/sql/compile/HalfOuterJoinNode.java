@@ -818,7 +818,9 @@ public class HalfOuterJoinNode extends JoinNode{
         JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
-                .append(joinStrategy.getJoinStrategyType().niceName()).append(isRightOuterJoin()?"RightOuter":"LeftOuter").append("Join(")
+                // at this point, all the right outer join has been converted to left join, so we
+                // should always see a left join here
+                .append(joinStrategy.getJoinStrategyType().niceName()).append("LeftOuter").append("Join(")
                 .append("n=").append(order)
                 .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         if (joinPredicates !=null) {
