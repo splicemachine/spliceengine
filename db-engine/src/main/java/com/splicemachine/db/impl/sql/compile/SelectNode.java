@@ -875,6 +875,12 @@ public class SelectNode extends ResultSetNode{
                     getNodeFactory().doJoinOrderOptimization(),
                     getContextManager());
             bindExpressions(afromList);
+            // bindExpressions() does constant folding and predicate simplification for
+            // where and having clause and get rid of the top AND node with 1=1,
+            // the top AND node is always expected from the subsequent
+            // logic, so we need to call normExpressions() again to normalize WHERE clause.
+            whereClause = normExpressions(whereClause);
+            havingClause=normExpressions(havingClause);
             fromList.bindResultColumns(afromList);
         }
 
