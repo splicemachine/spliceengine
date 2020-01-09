@@ -134,7 +134,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     }
 
     // If executing on control, the nested transaction is
-    // allocated in ControlDataSetProcessor, otherwise it
+    // allocated in ControlDataSetWriter, otherwise it
     // is allocated here.  If we don't get a nested transaction,
     // any data written to tables that needs to be accessed by
     // AFTER statement triggers won't be visible.  Spark begins the
