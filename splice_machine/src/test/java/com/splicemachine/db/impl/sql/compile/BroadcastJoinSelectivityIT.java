@@ -68,7 +68,7 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
             rowContainsQuery(s,
                     new int[]{3},
                     "explain select * from ts_10_npk --splice-properties joinStrategy=BROADCAST\n right outer join ts_5_npk on ts_10_npk.c1 = ts_5_npk.c1",
-                    "BroadcastRightOuterJoin");
+                    "BroadcastLeftOuterJoin");
         }
     }
 
