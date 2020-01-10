@@ -1505,5 +1505,7 @@ public interface Property {
     String SPARK_RESULT_STREAMING_BATCHES = "sparkResultStreamingBatches";
 
     String SPARK_RESULT_STREAMING_BATCH_SIZE = "sparkResultStreamingBatchSize";
+
+    String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 }
 
