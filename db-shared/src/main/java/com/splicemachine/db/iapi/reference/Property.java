@@ -1453,4 +1453,6 @@ public interface Property {
 	 * Fractional seconds precision of current_timestamp
 	 */
 	String SPLICE_CURRENT_TIMESTAMP_PRECISION = "splice.function.currentTimestampPrecision";
+
+	String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 }
