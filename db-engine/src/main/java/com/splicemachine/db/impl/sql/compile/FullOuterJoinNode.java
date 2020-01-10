@@ -244,9 +244,9 @@ public class FullOuterJoinNode extends JoinNode {
         JBitSet leftMap=leftResultSet.LOJgetReferencedTables(numTables);
         JBitSet rightMap = rightResultSet.LOJgetReferencedTables(numTables);
 
-		/* Walk predicates looking for
-		 * a null intolerant predicate on the inner table.
-		 */
+        /* Walk predicates looking for
+         * a null intolerant predicate on the inner table.
+         */
         ValueNode vn=predicateTree;
         JoinNode ij = this;
         while(vn instanceof AndNode){
@@ -255,31 +255,31 @@ public class FullOuterJoinNode extends JoinNode {
             AndNode and=(AndNode)vn;
             ValueNode left=and.getLeftOperand();
 
-			/* Skip IS NULL predicates as they are not null intolerant */
+            /* Skip IS NULL predicates as they are not null intolerant */
             if(left.isInstanceOf(C_NodeTypes.IS_NULL_NODE)){
                 vn=and.getRightOperand();
                 continue;
             }
 
-			/* Only consider predicates that are relops */
+            /* Only consider predicates that are relops */
             if(left instanceof RelationalOperator){
                 JBitSet refMap=new JBitSet(numTables);
-				/* Do not consider method calls,
-				 * conditionals, field references, etc. */
+                /* Do not consider method calls,
+                 * conditionals, field references, etc. */
                 if(!(left.categorize(refMap,true))){
                     vn=and.getRightOperand();
                     continue;
                 }
 
-				/* If the predicate is a null intolerant predicate
-				 * on the inner table side then we can flatten to a
-				 * left/right join depending on the side the inner table is located.
-				 */
-				if (refMap.intersects(leftMap)) {
-				    if (refMap.intersects(rightMap)) {
+                /* If the predicate is a null intolerant predicate
+                 * on the inner table side then we can flatten to a
+                 * left/right join depending on the side the inner table is located.
+                 */
+                if (refMap.intersects(leftMap)) {
+                    if (refMap.intersects(rightMap)) {
                         action = CONVERSION.CONVERTINNER;
                     } else {
-				        if (ij instanceof FullOuterJoinNode) {
+                        if (ij instanceof FullOuterJoinNode) {
                             // FJ -> LJ
                             action = CONVERSION.CONVERTLEFT;
                         } else {
@@ -293,7 +293,7 @@ public class FullOuterJoinNode extends JoinNode {
                         }
                     }
                 } else if (refMap.intersects(rightMap)) {
-				    if (ij instanceof FullOuterJoinNode) {
+                    if (ij instanceof FullOuterJoinNode) {
                         // FJ -> RJ
                         action = CONVERSION.CONVERTRIGHT;
                     } else {
@@ -361,9 +361,9 @@ public class FullOuterJoinNode extends JoinNode {
             vn=and.getRightOperand();
         }
 
-		/* We can't transform this node to inner join, so tell both sides of the
-		 * outer join that they can't get flattened into outer query block.
-		 */
+        /* We can't transform this node to inner join, so tell both sides of the
+         * outer join that they can't get flattened into outer query block.
+         */
         leftResultSet.notFlattenableJoin();
         rightResultSet.notFlattenableJoin();
 
