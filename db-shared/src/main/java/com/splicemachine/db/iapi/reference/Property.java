@@ -1485,4 +1485,6 @@ public interface Property {
      * Create a read only connection at some fixed point in the past determined by this transaction id
      */
     String CONNECTION_SNAPSHOT = "snapshot";
+
+	String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 }
