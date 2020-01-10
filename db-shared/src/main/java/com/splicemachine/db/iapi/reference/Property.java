@@ -1454,6 +1454,8 @@ public interface Property {
      */
     String SPLICE_CURRENT_TIMESTAMP_PRECISION = "splice.function.currentTimestampPrecision";
 
+	String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
+
     String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
 
     /**
