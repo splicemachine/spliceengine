@@ -78,7 +78,7 @@ public class HCell implements DataCell{
     @Override
     public CellType dataType(){
         if(cellType==null)
-            cellType = parseType(delegate);
+            cellType = CellUtils.getKeyValueType(delegate);
         return cellType;
     }
 
@@ -235,31 +235,6 @@ public class HCell implements DataCell{
     public long familyLength(){
         if(delegate==null) return 0;
         return delegate.getFamilyLength();
-    }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private CellType parseType(Cell cell){
-        if (CellUtils.singleMatchingQualifier(cell,SIConstants.TIMESTAMP_COLUMN_BYTES)) {
-            return CellType.COMMIT_TIMESTAMP;
-        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.PACKED_COLUMN_BYTES)) {
-            return CellType.USER_DATA;
-        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.TOMBSTONE_COLUMN_BYTES)) {
-            if (CellUtils.matchingValue(cell, SIConstants.ANTI_TOMBSTONE_VALUE_BYTES)) {
-                return CellType.ANTI_TOMBSTONE;
-            } else {
-                return CellType.TOMBSTONE;
-            }
-        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES)) {
-            if (CellUtils.matchingValue(cell, SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES)) {
-                return CellType.DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN;
-            } else {
-                return CellType.FIRST_WRITE_TOKEN;
-            }
-        } else if (CellUtils.singleMatchingQualifier(cell, SIConstants.FK_COUNTER_COLUMN_BYTES)) {
-            return CellType.FOREIGN_KEY_COUNTER;
-        }
-        return CellType.OTHER;
     }
 
     @Override

@@ -131,18 +131,19 @@ class SICompactionStateMutate {
             case IF_FIRST_WRITE_PRESENT:
                 return firstWriteToken;
         }
-        assert false: "Developer error";
+        assert false;
         return false;
     }
 
     private void removeDeletedRows() {
-        SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
-        for (Cell element : cp) {
+        Iterator<Cell> it = dataToReturn.iterator();
+        while (it.hasNext()) {
+            Cell element = it.next();
             long timestamp = element.getTimestamp();
             if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
-                dataToReturn.remove(element);
+                it.remove();
             else if (timestamp < maxTombstoneTimestamp) {
-                dataToReturn.remove(element);
+                it.remove();
             }
         }
     }

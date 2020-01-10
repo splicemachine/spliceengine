@@ -187,13 +187,13 @@ public class CellUtils {
         } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
             return CellType.USER_DATA;
         } else if (CellUtils.singleMatchingQualifier(keyValue,SIConstants.TOMBSTONE_COLUMN_BYTES)) {
-            if (CellUtils.matchingValue(keyValue, SIConstants.EMPTY_BYTE_ARRAY)) {
+            if (CellUtils.matchingValue(keyValue, SIConstants.TOMBSTONE_VALUE_BYTES)) {
                 return CellType.TOMBSTONE;
             } else if (CellUtils.matchingValue(keyValue,SIConstants.ANTI_TOMBSTONE_VALUE_BYTES)) {
                 return CellType.ANTI_TOMBSTONE;
             }
         } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES)) {
-            if (CellUtils.matchingValue(keyValue, SIConstants.EMPTY_BYTE_ARRAY)) {
+            if (CellUtils.matchingValue(keyValue, SIConstants.FIRST_WRITE_VALUE_BYTES)) {
                 return CellType.FIRST_WRITE_TOKEN;
             } else if (CellUtils.matchingValue(keyValue, SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES)) {
                 return CellType.DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN;
