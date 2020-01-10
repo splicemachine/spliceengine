@@ -1263,4 +1263,106 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void testLikePredicateForConversion() throws Exception {
+        String sqlText = format("select b7, a7, b2, a2, c2 from t7 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n" +
+                "on a7=a2 where c7 like '%s'", useSpark, joinStrategy, "20%");
+        String expected = "B7     |A7 |B2 |A2 |C2 |\n" +
+                "----------------------------\n" +
+                "2020-01-02 | 2 |20 | 2 | 2 |\n" +
+                "2020-01-02 | 2 |20 | 2 | 2 |";
+
+        ResultSet rs = methodWatcher.executeQuery("explain " + sqlText);
+        String explainString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertTrue(sqlText + " expected to use LeftOuterJoin", explainString.contains("LeftOuterJoin"));
+        rs.close();
+        rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testBetweenPredicateForConversion() throws Exception {
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n" +
+                "on a1=a2 where b1 between b2 and 40", useSpark, joinStrategy);
+        String expected = "B1 |A1 |B2 |A2 | C2  |\n" +
+                "----------------------\n" +
+                "20 | 2 |20 | 2 |  2  |\n" +
+                "20 | 2 |20 | 2 |  2  |\n" +
+                "20 | 2 |20 | 2 |  2  |\n" +
+                "20 | 2 |20 | 2 |  2  |\n" +
+                "30 | 3 |30 | 3 |  3  |\n" +
+                "40 | 4 |40 | 4 |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery("explain " + sqlText);
+        String explainString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertTrue(sqlText + " expected to use InnerJoin", !explainString.contains("LeftOuterJoin") && !explainString.contains("FullOuterJoin"));
+        rs.close();
+        rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testInlistPredicateForConversion() throws Exception {
+        String sqlText = format("select b1, a1, b2, a2, c2 from t1 full join t2 --splice-properties useSpark=%s, joinStrategy=%s\n" +
+                "on a1=a2 where b1 in (20, 30)", useSpark, joinStrategy);
+        String expected = "B1 |A1 |B2 |A2 |C2 |\n" +
+                "--------------------\n" +
+                "20 | 2 |20 | 2 | 2 |\n" +
+                "20 | 2 |20 | 2 | 2 |\n" +
+                "20 | 2 |20 | 2 | 2 |\n" +
+                "20 | 2 |20 | 2 | 2 |\n" +
+                "30 | 3 |30 | 3 | 3 |";
+
+        ResultSet rs = methodWatcher.executeQuery("explain " + sqlText);
+        String explainString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        Assert.assertTrue(sqlText + " expected to use LeftJoin", explainString.contains("LeftOuterJoin"));
+        rs.close();
+        rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testInlistPredicateForConversion2() throws Exception {
+        String sqlText = format("select a1, b1, a2, b2, a3, b3 from t1 full join t2 on a1=a2 full join t3 --splice-properties useSpark=%s, joinStrategy=%s\n" +
+                "on a2=a3 where b1 in (b2, b3)", useSpark, joinStrategy);
+
+        /* plan looks similar to the following */
+        /*
+        Plan
+        ----
+        Cursor(n=8,rows=20,updateMode=READ_ONLY (1),engine=Spark)
+          ->  ScrollInsensitive(n=7,totalCost=58.06,outputRows=20,outputHeapSize=160 B,partitions=1)
+            ->  ProjectRestrict(n=6,totalCost=45.46,outputRows=20,outputHeapSize=160 B,partitions=1,preds=[(B1[8:2] IN (B2[8:4],B3[8:6]))])
+              ->  MergeSortLeftOuterJoin(n=5,totalCost=45.46,outputRows=20,outputHeapSize=160 B,partitions=1,preds=[(A2[8:3] = A3[8:5])])
+                ->  TableScan[T3(3328)](n=4,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=160 B,partitions=1)
+                ->  BroadcastLeftOuterJoin(n=3,totalCost=12.3,outputRows=20,outputHeapSize=100 B,partitions=1,preds=[(A1[4:1] = A2[4:3])])
+                  ->  TableScan[T2(3312)](n=2,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=100 B,partitions=1)
+                  ->  TableScan[T1(3264)](n=1,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=40 B,partitions=1)
+
+        8 rows selected
+         */
+        rowContainsQuery(new int[]{4,5,6,7,8}, "explain " + sqlText, methodWatcher,
+                new String[]{"LeftOuterJoin"},
+                new String[]{"TableScan[T3"},
+                new String[]{"LeftOuterJoin"},
+                new String[]{"TableScan[T2"},
+                new String[]{"TableScan[T1"});
+
+        String expected = "A1 |B1 |A2 |B2 | A3  | B3  |\n" +
+                "----------------------------\n" +
+                " 2 |20 | 2 |20 |NULL |NULL |\n" +
+                " 2 |20 | 2 |20 |NULL |NULL |\n" +
+                " 2 |20 | 2 |20 |NULL |NULL |\n" +
+                " 2 |20 | 2 |20 |NULL |NULL |\n" +
+                " 3 |30 | 3 |30 |  3  | 30  |\n" +
+                " 4 |40 | 4 |40 |NULL |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }

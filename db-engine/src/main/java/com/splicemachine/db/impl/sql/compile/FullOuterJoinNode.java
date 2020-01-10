@@ -261,12 +261,22 @@ public class FullOuterJoinNode extends JoinNode {
                 continue;
             }
 
-            /* Only consider predicates that are relops */
-            if(left instanceof RelationalOperator){
+            /* To be conservative, only consider predicates that are relops, certain inlist, between and like ops */
+            if (left instanceof RelationalOperator ||
+                    left instanceof InListOperatorNode ||
+                    left instanceof BetweenOperatorNode ||
+                    left instanceof LikeEscapeOperatorNode){
                 JBitSet refMap=new JBitSet(numTables);
                 /* Do not consider method calls,
                  * conditionals, field references, etc. */
-                if(!(left.categorize(refMap,true))){
+
+                /* only consider the left side of inlist operator, as right are ORed elements */
+                if (left instanceof InListOperatorNode) {
+                    if (!((InListOperatorNode) left).getLeftOperandList().categorize(refMap,true)) {
+                        vn=and.getRightOperand();
+                        continue;
+                    }
+                } else if(!(left.categorize(refMap,true))){
                     vn=and.getRightOperand();
                     continue;
                 }
