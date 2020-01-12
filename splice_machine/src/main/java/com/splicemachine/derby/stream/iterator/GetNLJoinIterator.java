@@ -14,11 +14,18 @@
 
 package com.splicemachine.derby.stream.iterator;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.derby.stream.function.NLJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
 
+import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 
@@ -29,6 +36,9 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
 
     protected ExecRow locatedRow;
     protected OperationContext operationContext;
+    protected boolean initialized;
+    ContextManager cm;
+    boolean newContextManager, lccPushed;
 
     public GetNLJoinIterator() {}
 
@@ -39,7 +49,62 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
 
     public abstract Pair<OperationContext, Iterator<ExecRow>> call() throws Exception;
 
+    private boolean needsLCCInContext() {
+        if (operationContext != null) {
+            Activation activation = operationContext.getActivation();
+            if (activation != null) {
+                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+                if (lcc != null) {
+                    TriggerExecutionContext tec = lcc.getTriggerExecutionContext();
+                    return tec.currentTriggerHasReferencingClause();
+                }
+            }
+        }
+        return false;
+    }
 
+    // Push the LanguageConnectionContext to the current Context Manager
+    // if we're executing a trigger with a referencing clause.
+    protected void init() {
+        initialized = true;
+        if (!needsLCCInContext())
+            return;
+        cm = ContextService.getFactory().getCurrentContextManager();
+        if (cm == null) {
+            newContextManager = true;
+            cm = ContextService.getFactory().newContextManager();
+            ContextService.getFactory().setCurrentContextManager(cm);
+        }
+        if (cm != null) {
+            try {
+                ConnectionUtil.getCurrentLCC();
+            }
+            catch (SQLException e) {
+                // If the current LCC is not available in the context,
+                // push it now.
+                if (operationContext != null) {
+                    Activation activation = operationContext.getActivation();
+                    if (activation != null && activation.getLanguageConnectionContext() != null) {
+                        lccPushed = true;
+                        cm.pushContext(activation.getLanguageConnectionContext());
+                    }
+                }
+            }
+        }
+    }
+
+    protected void cleanup() {
+        if (cm != null) {
+            if (lccPushed)
+                cm.popContext();
+            if (newContextManager)
+                ContextService.getFactory().resetCurrentContextManager(cm);
+            cm = null;
+        }
+        newContextManager = false;
+        lccPushed = false;
+        initialized = false;
+    }
 
     public static GetNLJoinIterator makeGetNLJoinIterator(NLJoinFunction.JoinType joinType,
                                                    OperationContext operationContext,

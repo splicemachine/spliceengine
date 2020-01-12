@@ -39,6 +39,8 @@ public class GetNLJoinAntiIterator extends GetNLJoinIterator {
 
     @Override
     public Pair<OperationContext, Iterator<ExecRow>> call() throws Exception {
+        if (!initialized)
+            init();
         JoinOperation op = (JoinOperation) this.operationContext.getOperation();
         op.getLeftOperation().setCurrentRow(this.locatedRow);
         SpliceOperation rightOperation=op.getRightOperation();
@@ -54,6 +56,7 @@ public class GetNLJoinAntiIterator extends GetNLJoinIterator {
             StreamLogUtils.logOperationRecordWithMessage(lr,operationContext,"outer - right side no rows");
             op.setCurrentRow(lr);
             rightSideNLJIterator = new SingletonIterator(lr);
+            cleanup();
         }
         else {
             rightSideNLJIterator = Collections.<ExecRow>emptyList().iterator();

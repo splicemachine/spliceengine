@@ -31,22 +31,11 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
-import com.splicemachine.db.iapi.jdbc.ConnectionContext;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.*;
-
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -57,6 +46,14 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.Util;
+
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  * A trigger execution context (TEC) holds information that is available from the context of a trigger invocation.<br/>
@@ -163,6 +160,12 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                         "different number of changed col ids vs names");
             }
         }
+    }
+
+    public boolean currentTriggerHasReferencingClause() {
+        if (triggerd == null)
+            return false;
+        return triggerd.hasReferencingClause();
     }
 
     public long getConglomId() {
