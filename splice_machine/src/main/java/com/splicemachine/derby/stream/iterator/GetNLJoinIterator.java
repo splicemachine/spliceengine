@@ -37,8 +37,8 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
     protected ExecRow locatedRow;
     protected OperationContext operationContext;
     protected boolean initialized;
-    ContextManager cm;
-    boolean newContextManager, lccPushed;
+    protected ContextManager cm;
+    protected boolean newContextManager, lccPushed;
 
     public GetNLJoinIterator() {}
 
