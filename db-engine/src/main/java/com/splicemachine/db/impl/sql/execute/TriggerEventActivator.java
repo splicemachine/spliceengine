@@ -31,13 +31,6 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
@@ -48,6 +41,9 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
+
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  * Responsible for firing a trigger or set of triggers based on an event.
@@ -222,13 +218,16 @@ public class TriggerEventActivator {
         }
     }
 
-    public LanguageConnectionContext getLcc() throws StandardException {
+    public LanguageConnectionContext getLcc() // throws StandardException  //msirek-temp
+    {
         LanguageConnectionContext lcc = null;
         try {
             lcc = ConnectionUtil.getCurrentLCC();
         }
         catch (SQLException e) {
-            throw StandardException.plainWrapException(e);
+            // Avoid the exception here so we can get a more meaningful
+            // stacktrace later on, to help us debug the issue better.
+            return activation.getLanguageConnectionContext();
         }
         return lcc;
     }
