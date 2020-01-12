@@ -56,7 +56,8 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
                 LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
                 if (lcc != null) {
                     TriggerExecutionContext tec = lcc.getTriggerExecutionContext();
-                    return tec.currentTriggerHasReferencingClause();
+                    if (tec != null)
+                        return tec.currentTriggerHasReferencingClause();
                 }
             }
         }
