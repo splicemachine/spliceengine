@@ -192,10 +192,12 @@ public interface TxnView extends Externalizable {
     boolean descendsFrom(TxnView potentialParent);
 
     /**
-     * Determine if this transaction is a descendent of the specified transaction.
+     * Determines if there is an active writeable or rolled back transaction in this path
+     * between this transaction and some ancestor transaction, not including this or
+     * the ancestor transaction.
      *
-     * @param ancestor the transaction which we've already determined to be an ancestor
-     *                  of our transaction.
+     * @param ancestor a transaction which we've already determined to be an ancestor
+     *                 of our transaction.
      * @param checkForRollbackOnly if true, test only for rolled back transactions.
      * @return true if there is an active writable transaction or rolled back transaction
      *         in the lineage drawn from the ancestor transaction to our transaction.
