@@ -39,6 +39,8 @@ public class GetNLJoinLeftOuterIterator extends GetNLJoinIterator {
 
     @Override
     public Pair<OperationContext, Iterator<ExecRow>> call() throws Exception {
+        if (!initialized)
+            init();
         OperationContext ctx = this.operationContext.get();
         JoinOperation op = (JoinOperation) ctx.getOperation();
         op.getLeftOperation().setCurrentRow(this.locatedRow);
@@ -54,6 +56,7 @@ public class GetNLJoinLeftOuterIterator extends GetNLJoinIterator {
             StreamLogUtils.logOperationRecordWithMessage(lr,ctx,"outer - right side no rows");
             op.setCurrentRow(lr);
             rightSideNLJIterator = new SingletonIterator(lr);
+            cleanup();
         }
 
         return new Pair<>(ctx, rightSideNLJIterator);
