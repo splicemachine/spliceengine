@@ -19,7 +19,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
@@ -46,11 +45,12 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushTriggerExecutionContextFromActivation;
 
 /**
  * Created by dgomezferro on 11/4/15.
@@ -140,7 +140,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
 
     // Push the LanguageConnectionContext to the current Context Manager
     // if we're executing a trigger with a referencing clause.
-    private void initCurrentLCC() {
+    private void initCurrentLCC() throws StandardException {
         if (!needsLCCInContext())
             return;
         cm = ContextService.getFactory().getCurrentContextManager();
@@ -150,24 +150,12 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
             ContextService.getFactory().setCurrentContextManager(cm);
         }
         if (cm != null) {
-            try {
-                ConnectionUtil.getCurrentLCC();
-            }
-            catch (SQLException e) {
-                // If the current LCC is not available in the context,
-                // push it now.
-                if (operationContext != null) {
-                    Activation activation = operationContext.getActivation();
-                    if (activation != null && activation.getLanguageConnectionContext() != null) {
-                        lccPushed = true;
-                        cm.pushContext(activation.getLanguageConnectionContext());
-                    }
-                }
-            }
+            if (operationContext != null)
+                lccPushed = pushTriggerExecutionContextFromActivation(operationContext.getActivation(), cm);
         }
     }
 
-    private synchronized void init() {
+    private synchronized void init() throws Exception {
         if (init)
             return;
         init = true;
