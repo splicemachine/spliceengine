@@ -17,7 +17,6 @@ package com.splicemachine.derby.stream.iterator;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
@@ -25,10 +24,11 @@ import com.splicemachine.derby.stream.function.NLJoinFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
 
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
+
+import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushTriggerExecutionContextFromActivation;
 
 /**
  * Created by jyuan on 10/10/16.
@@ -68,7 +68,7 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
 
     // Push the LanguageConnectionContext to the current Context Manager
     // if we're executing a trigger with a referencing clause.
-    protected void init() {
+    protected void init() throws Exception {
         initialized = true;
         if (!needsLCCInContext())
             return;
@@ -79,20 +79,9 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
             ContextService.getFactory().setCurrentContextManager(cm);
         }
         if (cm != null) {
-            try {
-                ConnectionUtil.getCurrentLCC();
-            }
-            catch (SQLException e) {
-                // If the current LCC is not available in the context,
-                // push it now.
-                OperationContext ctx = operationContext.get();
-                if (ctx != null) {
-                    Activation activation = ctx.getActivation();
-                    if (activation != null && activation.getLanguageConnectionContext() != null) {
-                        lccPushed = true;
-                        cm.pushContext(activation.getLanguageConnectionContext());
-                    }
-                }
+            OperationContext ctx = operationContext.get();
+            if (ctx != null) {
+                lccPushed = pushTriggerExecutionContextFromActivation(ctx.getActivation(), cm);
             }
         }
     }
