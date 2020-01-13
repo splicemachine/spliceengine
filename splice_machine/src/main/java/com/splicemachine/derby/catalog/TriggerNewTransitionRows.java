@@ -33,12 +33,7 @@ package com.splicemachine.derby.catalog;
 
 import com.splicemachine.db.iapi.db.Factory;
 import com.splicemachine.db.iapi.error.StandardException;
-
-import java.io.*;
-import java.sql.ResultSet;
-
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -68,8 +63,13 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 
-import java.sql.*;
-import java.util.Collections;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 
 import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.deSiify;
 
@@ -278,10 +278,15 @@ public class TriggerNewTransitionRows
 	        try {
 	            lcc = activation.getLanguageConnectionContext();
 
-	            if (!tec.hasTriggeringResultSet() && ConnectionUtil.getCurrentLCC() != lcc &&
+	            if (tec.statementTriggerWithReferencingClause() &&
+                        !tec.hasTriggeringResultSet() &&
+                        ConnectionUtil.getCurrentLCC() != lcc &&
                         lcc.getTriggerExecutionContext() != null) {
-                        if (ConnectionUtil.getCurrentLCC().getTriggerExecutionContext() != null)
-                            ConnectionUtil.getCurrentLCC().popTriggerExecutionContext(tec);
+
+	                TriggerExecutionContext currentTEC =
+                            ConnectionUtil.getCurrentLCC().getTriggerExecutionContext();
+                        if (currentTEC != null)
+                            ConnectionUtil.getCurrentLCC().popTriggerExecutionContext(currentTEC);
                         tec = lcc.getTriggerExecutionContext();
                         ConnectionUtil.getCurrentLCC().pushTriggerExecutionContext(tec);
                     }

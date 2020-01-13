@@ -33,8 +33,6 @@ package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
-import com.splicemachine.test_dao.TriggerBuilder;
-import com.splicemachine.util.StatementUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -42,11 +40,13 @@ import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
 import java.sql.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
 
 import static com.splicemachine.db.shared.common.reference.MessageId.SPLICE_GENERIC_EXCEPTION;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_TRIGGER_BAD_REF_MISMATCH;
-import static org.junit.Assert.*;
 
 /**
  * Test REFERENCING clause in triggers.
@@ -80,17 +80,8 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
     private TestConnection c2;
 
     private static final String SYNTAX_ERROR = "42X01";
-    private static final String NOT_BOOLEAN = "42X19";
-    private static final String HAS_PARAMETER = "42Y27";
-    private static final String HAS_DEPENDENTS = "X0Y25";
-    private static final String TRUNCATION = "22001";
-    private static final String NOT_AUTHORIZED = "42504";
-    private static final String NO_TABLE_PERMISSION = "42500";
-    private static final String JAVA_EXCEPTION = "XJ001";
-    private static final String NOT_SINGLE_COLUMN = "42X39";
     private static final String NON_SCALAR_QUERY = "21000";
     private static final String TRIGGER_RECURSION = "54038";
-    private static final String PROC_USED_AS_FUNC = "42Y03";
 
 
     @Parameterized.Parameters
