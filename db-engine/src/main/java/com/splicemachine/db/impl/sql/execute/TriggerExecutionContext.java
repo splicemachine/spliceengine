@@ -168,6 +168,12 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         return triggerd.hasReferencingClause();
     }
 
+    public boolean statementTriggerWithReferencingClause() {
+        if (triggerd == null)
+            return false;
+        return triggerd.hasReferencingClause() && !triggerd.isRowTrigger();
+    }
+
     public long getConglomId() {
         return conglomId;
     }
