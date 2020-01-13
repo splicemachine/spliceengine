@@ -94,7 +94,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     private UUID triggerSchemaId;
     private UUID triggerTableId;
     private String whenClauseText;
-    private int numBaseTableColumns;
+    protected int numBaseTableColumns;
 
 
     /**
@@ -381,7 +381,16 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     }
 
     public int getNumBaseTableColumns() {
-        return numBaseTableColumns;
+        if (numBaseTableColumns != 0)
+            return numBaseTableColumns;
+        else {
+            try {
+                return getTableDescriptor().getNumberOfColumns();
+            }
+            catch (StandardException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     /**
@@ -774,7 +783,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         oldReferencingName = (String) in.readObject();
         newReferencingName = (String) in.readObject();
         whenClauseText = (String) in.readObject();
-        numBaseTableColumns = in.readInt();
     }
 
     @Override
@@ -836,7 +844,6 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         out.writeObject(oldReferencingName);
         out.writeObject(newReferencingName);
         out.writeObject(whenClauseText);
-        out.writeInt(numBaseTableColumns);
     }
 
     /**
