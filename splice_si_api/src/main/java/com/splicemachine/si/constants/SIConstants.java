@@ -59,7 +59,7 @@ public class SIConstants {
      * 8 = token placed the first time we write to this row
      * 9 = column for causing write conflicts between concurrent transactions writing to parent and child FK tables
      */
-    public static final byte[] TIMESTAMP_COLUMN_BYTES = Bytes.toBytes("0");
+    public static final byte[] COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes("0");
     public static final byte[] TOMBSTONE_COLUMN_BYTES = Bytes.toBytes("1");
     public static final byte[] FK_COUNTER_COLUMN_BYTES = Bytes.toBytes("9");
     public static final byte[] FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES = Bytes.toBytes("8");

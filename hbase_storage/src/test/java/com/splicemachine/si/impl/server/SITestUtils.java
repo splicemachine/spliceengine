@@ -12,7 +12,7 @@ public class SITestUtils {
     }
 
     public static KeyValue getMockCommitCell(long timestamp) {
-        return generateKV(row, SIConstants.TIMESTAMP_COLUMN_BYTES, timestamp, Bytes.toBytes(""));
+        return generateKV(row, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, timestamp, Bytes.toBytes(""));
     }
 
     public static KeyValue getMockTombstoneCell(long timestamp) {

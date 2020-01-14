@@ -53,7 +53,7 @@ public class HResult implements DataResult{
     @Override
     public DataCell commitTimestamp(){
         if(result==null) return null;
-        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TIMESTAMP_COLUMN_BYTES);
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES);
         if(columnLatestCell==null) return null;
         wrapper.set(columnLatestCell);
         return wrapper;

@@ -130,7 +130,7 @@ public class MSynchronousReadResolver implements KeyedReadResolver{
 
         DataPut put=new MPut(rowKey.getByteCopy());
         put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.TIMESTAMP_COLUMN_BYTES,txnId,
+                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,txnId,
                 Bytes.toBytes(commitTimestamp));
         put.addAttribute(SIConstants.SI_EXEMPT,SIConstants.TRUE_BYTES);
         put.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);

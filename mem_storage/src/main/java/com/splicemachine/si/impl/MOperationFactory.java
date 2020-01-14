@@ -82,7 +82,7 @@ public class MOperationFactory implements OperationFactory{
     public DataCell newCell(byte[] key,byte[] family,byte[] qualifier,long timestamp,byte[] value){
         CellType c;
         ByteComparator byteComparator=ByteComparisons.comparator();
-        if(byteComparator.equals(SIConstants.TIMESTAMP_COLUMN_BYTES, qualifier)) {
+        if(byteComparator.equals(SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, qualifier)) {
            c = CellType.COMMIT_TIMESTAMP;
         } else if(byteComparator.equals(SIConstants.TOMBSTONE_COLUMN_BYTES, qualifier)) {
             if(byteComparator.equals(SIConstants.ANTI_TOMBSTONE_VALUE_BYTES, value)) {

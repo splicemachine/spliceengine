@@ -76,7 +76,7 @@ public class MPut implements DataPut{
     @Override
     public void addCell(byte[] family,byte[] qualifier,long timestamp,byte[] value){
         CellType ct;
-        if (qualifier == SIConstants.TIMESTAMP_COLUMN_BYTES)
+        if (qualifier == SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES)
             ct = CellType.COMMIT_TIMESTAMP;
         else if (qualifier == SIConstants.FK_COUNTER_COLUMN_BYTES)
             ct = CellType.FOREIGN_KEY_COUNTER;

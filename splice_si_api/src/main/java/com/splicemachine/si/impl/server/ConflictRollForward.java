@@ -73,7 +73,7 @@ public class ConflictRollForward {
         bs.set(cell.keyArray(), cell.keyOffset(), cell.keyLength());
         if (txn.getEffectiveState().equals(Txn.State.COMMITTED)) {
             DataPut put = opFactory.newPut(bs);
-            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TIMESTAMP_COLUMN_BYTES, cell.version(), Bytes.toBytes(txn.getEffectiveCommitTimestamp()));
+            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, cell.version(), Bytes.toBytes(txn.getEffectiveCommitTimestamp()));
             put.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
             put.skipWAL();
             mutations.add(put);
@@ -83,7 +83,7 @@ public class ConflictRollForward {
             delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES, cell.version());
             delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES, cell.version());
             delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TOMBSTONE_COLUMN_BYTES, cell.version());
-            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TIMESTAMP_COLUMN_BYTES, cell.version());
+            delete.deleteColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, cell.version());
             delete.addAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
             delete.skipWAL();
             mutations.add(delete);

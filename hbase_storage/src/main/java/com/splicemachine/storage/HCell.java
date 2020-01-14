@@ -135,7 +135,7 @@ public class HCell implements DataCell{
         }else{
             switch(newCellType){
                 case COMMIT_TIMESTAMP:
-                    qualArray = SIConstants.TIMESTAMP_COLUMN_BYTES;
+                    qualArray = SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES;
                     break;
                 case ANTI_TOMBSTONE:
                     assert Bytes.equals(SIConstants.ANTI_TOMBSTONE_VALUE_BYTES, newValue):

@@ -160,7 +160,7 @@ class SICompactionStateMutate {
                 element.getRowOffset(),
                 element.getRowLength(),
                 SIConstants.DEFAULT_FAMILY_BYTES,0,1,
-                SIConstants.TIMESTAMP_COLUMN_BYTES,0,1,
+                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,
                 element.getTimestamp(),KeyValue.Type.Put,
                 value,0,value==null?0:value.length);
     }

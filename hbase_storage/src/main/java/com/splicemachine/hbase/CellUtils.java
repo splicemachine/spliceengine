@@ -182,7 +182,7 @@ public class CellUtils {
     }
 
     public static CellType getKeyValueType(Cell keyValue) {
-        if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.TIMESTAMP_COLUMN_BYTES)) {
+        if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES)) {
             return CellType.COMMIT_TIMESTAMP;
         } else if (CellUtils.singleMatchingQualifier(keyValue, SIConstants.PACKED_COLUMN_BYTES)) {
             return CellType.USER_DATA;

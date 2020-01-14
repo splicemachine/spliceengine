@@ -148,7 +148,7 @@ public class SynchronousReadResolverTest {
         //check to see if the resolver added the proper key value
         result = region.get(new Get(rowKey));
         Assert.assertEquals("Incorrect result size after read resolve!", 2, result.size());
-        Cell commitTs = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TIMESTAMP_COLUMN_BYTES);
+        Cell commitTs = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES);
         Assert.assertNotNull("No Commit TS column found!", commitTs);
         Assert.assertEquals("Incorrect committed txnId", committedTxn.getTxnId(), commitTs.getTimestamp());
         Assert.assertEquals("Incorrect commit timestamp!", committedTxn.getEffectiveCommitTimestamp(), Bytes.toLong(CellUtil.cloneValue(commitTs)));
@@ -213,7 +213,7 @@ public class SynchronousReadResolverTest {
         Assert.assertEquals("Incorrect result size", 2, result.size());
         kv = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
         Assert.assertNotNull("No data column found!", kv);
-        Cell commitTs = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.TIMESTAMP_COLUMN_BYTES);
+        Cell commitTs = result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES);
         Assert.assertNotNull("No Commit TS column found!", commitTs);
         Assert.assertEquals("Incorrect committed txnId", childTxn.getTxnId(), commitTs.getTimestamp());
         Assert.assertEquals("Incorrect commit timestamp!", childTxn.getEffectiveCommitTimestamp(), Bytes.toLong(CellUtil.cloneValue(commitTs)));

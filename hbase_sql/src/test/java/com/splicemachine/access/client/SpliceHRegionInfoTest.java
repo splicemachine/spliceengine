@@ -43,12 +43,12 @@ public class SpliceHRegionInfoTest {
         keyValueList.add(new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.PACKED_COLUMN_BYTES, DEFAULT_TIMESTAMP, rowKey));
         keyValueList.add(new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.TIMESTAMP_COLUMN_BYTES, DEFAULT_TIMESTAMP_2, rowKey));
+                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, DEFAULT_TIMESTAMP_2, rowKey));
 
         Collections.sort(keyValueList,SpliceKVComparator.INSTANCE);
         Assert.assertTrue("Position 1 incorrect",Bytes.equals(keyValueList.get(0).getQualifierArray(),
                 keyValueList.get(0).getQualifierOffset(),keyValueList.get(0).getQualifierLength(),
-                SIConstants.TIMESTAMP_COLUMN_BYTES,0,1));
+                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0,1));
         Assert.assertTrue("Position 2 incorrect",Bytes.equals(keyValueList.get(1).getQualifierArray(),
                 keyValueList.get(1).getQualifierOffset(),keyValueList.get(1).getQualifierLength(),
                 SIConstants.TOMBSTONE_COLUMN_BYTES,0,1));

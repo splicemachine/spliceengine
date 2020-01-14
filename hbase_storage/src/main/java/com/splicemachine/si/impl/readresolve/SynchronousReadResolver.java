@@ -136,7 +136,7 @@ public class SynchronousReadResolver implements KeyedReadResolver{
 
         Put put=new Put(rowKey.getByteCopy());
         put.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.TIMESTAMP_COLUMN_BYTES,txnId,
+                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,txnId,
                 Bytes.toBytes(commitTimestamp));
         put.setAttribute(SIConstants.SI_EXEMPT,SIConstants.TRUE_BYTES);
         put.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
@@ -168,7 +168,7 @@ public class SynchronousReadResolver implements KeyedReadResolver{
                 .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES,txnId)
                 .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,txnId)
                 .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TOMBSTONE_COLUMN_BYTES,txnId)
-                .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TIMESTAMP_COLUMN_BYTES,txnId);
+                .addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,txnId);
         delete.setDurability(Durability.SKIP_WAL);
         delete.setAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME,SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_VALUE);
         try{
