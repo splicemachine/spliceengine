@@ -15,11 +15,7 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.kafka.common.serialization.Serializer;
-import org.eclipse.jdt.internal.codeassist.impl.Engine;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Externalizable;
@@ -34,6 +30,18 @@ public class ExternalizableSerializer implements Serializer<Externalizable> {
 
     @Override
     public byte[] serialize(String topic, Externalizable data) {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutputStream oos = new ObjectOutputStream(bos)){
+            data.writeExternal(oos);
+            oos.flush();
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Deprecated
+    public byte[] serialize1(String topic, Externalizable data) {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              ObjectOutputStream oos = new ObjectOutputStream(bos)){
             data.writeExternal(oos);

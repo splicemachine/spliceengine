@@ -39,9 +39,12 @@ import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.kafka.clients.consumer.CommitFailedException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -59,9 +62,11 @@ import org.apache.kafka.common.serialization.StringSerializer;
 //import com.splicemachine.derby.stream.spark.ExternalizableDeserializer;
 
 import javax.annotation.Nonnull;
+import java.io.ByteArrayInputStream;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.SequenceInputStream;
 import java.net.URISyntaxException;
 import java.nio.file.OpenOption;
@@ -69,8 +74,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 
 /**

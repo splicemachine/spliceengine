@@ -19,6 +19,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.utils.marshall.dvd.KryoDescriptorSerializer;
 import com.splicemachine.stream.StreamProtocol;
 import com.splicemachine.stream.handlers.OpenHandler;
 import io.netty.bootstrap.Bootstrap;
@@ -28,10 +29,15 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.apache.hadoop.hive.ql.exec.spark.KryoSerializer;
+import org.apache.hive.com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -105,6 +111,7 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
         props.put("client.id", "spark-producer");
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ExternalizableSerializer.class.getName());
+//        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
         KafkaProducer<Integer, Externalizable> producer = new KafkaProducer<>(props);
         int count = 0 ;
         while (locatedRowIterator.hasNext()) {
@@ -115,9 +122,52 @@ public class KafkaStreamer<T> implements Function2<Integer, Iterator<T>, Iterato
             producer.send(record);
         }
 
-        ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
-                partition.intValue(), -1, new ValueRow());
-        producer.send(record); // termination marker
+//        ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
+//                partition.intValue(), -1, new ValueRow());
+//        producer.send(record); // termination marker
+
+        producer.close();
+        // TODO Clean up
+        return Arrays.asList("OK").iterator();
+    }
+
+    @Deprecated
+    public Iterator<String> call1(Integer partition, Iterator<T> locatedRowIterator) throws Exception {
+        this.partition = partition;
+        taskContext = TaskContext.get();
+
+        if (taskContext.attemptNumber() > 0) {
+            // TODO handle retries
+
+            int entriesInKafka = 0;
+            // open connection to partition in Kafka
+            // get number of entries there
+
+            // TODO failed task retry
+            for (int i = 0; i < entriesInKafka; ++i) {
+                locatedRowIterator.next();
+            }
+        }
+
+        Properties props = new Properties();
+        props.put("bootstrap.servers", host + ":" + 9092);
+        props.put("client.id", "spark-producer");
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
+//        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ExternalizableSerializer.class.getName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
+        KafkaProducer<Integer, Externalizable> producer = new KafkaProducer<>(props);
+        int count = 0 ;
+        while (locatedRowIterator.hasNext()) {
+            T lr = locatedRowIterator.next();
+
+            ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
+                    partition.intValue(), count++, lr);
+            producer.send(record);
+        }
+
+//        ProducerRecord<Integer, Externalizable> record = new ProducerRecord(topicName,
+//                partition.intValue(), -1, new ValueRow());
+//        producer.send(record); // termination marker
 
         producer.close();
         // TODO Clean up
