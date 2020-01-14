@@ -136,7 +136,6 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
         double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList, SelectivityUtil.JoinPredicateType.MERGE_SEARCH);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        innerCost.setNumPartitions(outerCost.partitionCount());
         boolean empty = isOuterTableEmpty(innerTable, predList);
         /* totalJoinedRows is different from totalOutputRows
          * totalJoinedRows: the number of joined rows constructed just based on the merge join search conditions, that is, the equality join conditions on the leading index columns.
@@ -144,14 +143,15 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
          * totalJoinedRows is always equal or larger than totalOutputRows */
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
         double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
+        innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
-        innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
     }
 
     /**
