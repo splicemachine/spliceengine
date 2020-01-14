@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.compaction.SparkCompactionFunction;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.SpliceCompactionUtils;
 import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
@@ -35,6 +36,7 @@ import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.CompactionContext;
+import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.io.FileUtils;
@@ -341,9 +343,19 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    boolean purgeDeletedRows = request.isMajor() && shouldPurge();
+                    PurgeConfig purgeConfig;
+                    if (SpliceCompactionUtils.shouldPurge(store)) {
+                        purgeConfig = PurgeConfig.forcePurgeConfig();
+                    } else if (HConfiguration.getConfiguration().getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+                        if (request.isMajor())
+                            purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
+                        else
+                            purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
+                    } else {
+                        purgeConfig = PurgeConfig.noPurgeConfig();
+                    }
 
-                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
+                    SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }
