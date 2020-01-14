@@ -282,7 +282,7 @@ public class FixedSITableScannerTest{
         byte[] value=hash.encode();
         final DataCell dataKv=opFactory.newCell(key,SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,1l,value);
         final DataCell siKv=opFactory.newCell(key,SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,1l,SIConstants.EMPTY_BYTE_ARRAY);
+                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,1l,SIConstants.EMPTY_BYTE_ARRAY);
         final boolean[] returned=new boolean[]{false};
 
         DataScanner scanner=mock(DataScanner.class);
