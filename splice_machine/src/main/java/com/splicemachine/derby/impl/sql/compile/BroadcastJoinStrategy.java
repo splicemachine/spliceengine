@@ -152,16 +152,17 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
             double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
             double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
-            innerCost.setNumPartitions(outerCost.partitionCount());
             double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
-            innerCost.setLocalCost(joinCost);
-            innerCost.setLocalCostPerPartition(joinCost);
             double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+            innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
             innerCost.setRemoteCost(remoteCostPerPartition);
             innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
+            innerCost.setLocalCost(joinCost);
+            innerCost.setLocalCostPerPartition(joinCost);
+            innerCost.setNumPartitions(outerCost.partitionCount());
             innerCost.setRowOrdering(outerCost.getRowOrdering());
             innerCost.setRowCount(totalOutputRows);
-            innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalOutputRows));
+
         }
         else {
             // Set cost to max to rule out broadcast join
