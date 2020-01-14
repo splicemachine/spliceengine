@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -60,6 +60,11 @@ public class SelectivityUtil {
         HASH_SEARCH,  /* join conditions that can be used for hash-based joins (like broadcast, sortmerge) to search for matching rows, they should be equality join conditions */
         ALL   /* all join conditions, equality or not */
     }
+
+    public static double  DEFAULT_SINGLE_POINT_SELECTIVITY = 0.1d;
+    public static double  DEFAULT_BETWEEN_SELECTIVITY = 0.5d;
+    public static double DEFAULT_RANGE_SELECTIVITY = 0.33d;
+    public static double  DEFAULT_INLIST_SELECTIVITY = 0.9d;
 
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                             OptimizablePredicateList predList,

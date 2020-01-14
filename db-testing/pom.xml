@@ -26,14 +26,14 @@
   ~
   ~ Splice Machine, Inc. has modified the Apache Derby code in this file.
   ~
-  ~ All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
+  ~ All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
   ~ and are licensed to you under the GNU Affero General Public License.
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1940-SNAPSHOT</version>
+        <version>3.1.0.1943-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>db-testing</artifactId>

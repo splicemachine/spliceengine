@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -509,7 +509,9 @@ public class ExportOperationIT {
             fail();
         } catch (SQLException sqle) {
             String sqlState = sqle.getSQLState();
-            Assert.assertTrue(sqlState, sqlState.compareToIgnoreCase("EXT26") == 0 || sqlState.compareToIgnoreCase("XCZ02") == 0);
+            Assert.assertTrue(sqlState, sqlState.compareToIgnoreCase("EXT26") == 0 ||
+                    sqlState.compareToIgnoreCase("XCZ02") == 0 ||
+                    sqlState.compareToIgnoreCase("XJ001") == 0);
         }
     }
 

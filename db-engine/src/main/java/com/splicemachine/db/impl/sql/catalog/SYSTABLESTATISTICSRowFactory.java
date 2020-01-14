@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -69,6 +69,7 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     public static final int SAMPLE_NONMERGED_STATS = 1;
     public static final int REGULAR_MERGED_STATS = 2;
     public static final int SAMPLE_MERGED_STATS = 3;
+    public static final int FAKE_MERGED_STATS = 4;
 
 
     protected static final int		SYSTABLESTATISTICS_INDEX1_ID = 0;

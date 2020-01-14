@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -81,10 +81,6 @@ public class SpliceDatabase extends BasicDatabase{
         if (startParams == null) {
             startParams = new Properties();
         }
-
-        // Set 60 Second Default if Missing from startup parameters
-        if (System.getProperty("derby.drda.timeSlice") == null)
-            System.setProperty("derby.drda.timeSlice","60000");
 
         //  System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         String logStatementText = System.getProperty("derby.language.logStatementText");

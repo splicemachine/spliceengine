@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -194,6 +194,40 @@ public class ForeignKey_AlterDropTable_IT {
             s.executeUpdate("create table P (a int primary key, b int)");
 
             assertQueryFail("create table C (a int references P(a) ON DELETE SET NULL)","Feature not implemented: ON DELETE SET NULL.");
+        }
+    }
+
+    @Test
+    public void testAddSelfReferencingFK() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table P (i int primary key, j int)");
+            s.execute("alter table P add constraint FKC foreign key (j) references P(i)");
+        }
+    }
+
+    @Test
+    public void testDropAndAddFK() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table P (i int primary key, j int)");
+            s.execute("insert into P values (1,1),(2,2),(3,3)");
+            s.execute("create table C(i int)");
+            s.execute("alter table C add constraint FK  foreign key (i) references P");
+            s.execute("insert into c values 1");
+            String error = "Operation on table 'P' caused a violation of foreign key constraint 'FK' for key (I).  The statement has been rolled back.";
+            try {
+                s.execute("delete from P where i=1");
+                fail("Expect Constraint violation");
+            } catch (Exception e) {
+                Assert.assertEquals(error, e.getMessage());
+            }
+            s.execute("alter table c drop constraint FK");
+            s.execute("alter table C add constraint FK foreign key (i) references P");
+            try {
+                s.execute("delete from P where i=1");
+                fail("Expect Constraint violation");
+            } catch (Exception e) {
+                Assert.assertEquals(error, e.getMessage());
+            }
         }
     }
 

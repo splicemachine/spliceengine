@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -185,6 +185,11 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
                             CostEstimate outerCost,
                             boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+
+        // cross join strategy cannot be applied to the very left table as it is not a join but just a scan
+        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d)) {
+            return false;
+        }
 
 	// Cross join can't handle IndexLookups on the inner table currently because
         // the join predicates get mapped to the IndexScan instead of the CrossJoin.

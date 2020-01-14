@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -127,7 +127,8 @@ public class CrossJoinOperation extends JoinOperation{
 
         DataSet<ExecRow> result;
 
-        if (dsp.getType().equals(DataSetProcessor.Type.SPARK)) {
+        if (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
+                (this.leftHashKeys.length == 0 || !containsUnsafeSQLRealComparison())) {
             result = leftDataSet.crossJoin(operationContext, rightDataSet);
             if (restriction != null) {
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));

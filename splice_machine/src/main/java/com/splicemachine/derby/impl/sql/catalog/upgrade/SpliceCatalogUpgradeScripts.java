@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -75,6 +75,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1928), new UpgradeScriptBase(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1933), new UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1938), new UpgradeScriptForTriggerWhenClause(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1941), new UpgradeScriptForTableColumnViewInSYSIBM(sdd,tc));
     }
 
     public void run() throws StandardException{

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
+import com.splicemachine.db.iapi.stats.FakeColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.*;
@@ -923,5 +924,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(LeftAntiJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(BroadcastFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(MergeSortFullOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FakeColumnStatisticsImpl.class,EXTERNALIZABLE_SERIALIZER);
     }
 }

@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -273,4 +273,5 @@ public interface MessageId {
     String LANG_COLUMN_STATISTICS_NOT_POSSIBLE           = "SE020";
     String LANG_DISABLE_STATS_FOR_KEYED_COLUMN           = "SE021";
     String LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED        = "SE026";
+    String LANG_INVALID_FAKE_STATS                       = "SE027";
 }

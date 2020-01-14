@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -1989,6 +1989,7 @@ public enum ErrorState{
     LANG_DISABLE_STATS_FOR_KEYED_COLUMN("SE021"),
     LANG_INVALID_DAY("SE022"),
     LANG_STATS_EXTRAPOLATION_NOT_SUPPORTED("SE026"),
+    LANG_INVALID_FAKE_STATS("SE027"),
     INCORRECT_COLUMN_COUNT_IN_IMPORT("XIE0A"),
     CANNOT_WRITE_AT_LOCATION("EXT22"),
     TIMESTAMP_SERVER_CONNECTION("TSS01") {

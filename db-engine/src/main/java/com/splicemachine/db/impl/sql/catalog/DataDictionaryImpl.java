@@ -25,7 +25,7 @@
  *
  * Splice Machine, Inc. has modified the Apache Derby code in this file.
  *
- * All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
+ * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
 
@@ -1292,6 +1292,27 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         ExecIndexRow keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,new SQLLongint(conglomerate));
         ti.deleteRow(tc,keyRow,SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_INDEX3_ID);
+    }
+
+    @Override
+    public void deleteColumnStatisticsByColumnId(long conglomerate,
+                                                 int columnId,
+                                                 TransactionController tc) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLLongint(conglomerate));
+
+        // only drop the rows which have the given columnId
+        TupleFilter filter=new ColumnStatsFilter(columnId);
+
+        ti.deleteRows(tc,
+                keyRow,                // start row
+                ScanController.GE,
+                null,                //qualifier
+                filter,                // filter on base row
+                keyRow,                // stop row
+                ScanController.GT,
+                SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_INDEX3_ID);
     }
 
     @Override

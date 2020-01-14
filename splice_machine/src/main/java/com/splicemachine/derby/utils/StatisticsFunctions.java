@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -16,6 +16,7 @@ package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
+import com.splicemachine.db.iapi.stats.FakeColumnStatisticsImpl;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
@@ -61,19 +62,19 @@ public class StatisticsFunctions {
     }
 
     public static String STATS_QUANTILES(ColumnStatisticsImpl itemStatistics) throws StandardException {
-        if(itemStatistics==null)
+        if(itemStatistics==null || itemStatistics instanceof FakeColumnStatisticsImpl)
             return null;
         return itemStatistics.getQuantilesSketch().toString(true,true);
     }
 
     public static String STATS_FREQUENCIES(ColumnStatisticsImpl itemStatistics) throws StandardException {
-        if(itemStatistics==null)
+        if(itemStatistics==null || itemStatistics instanceof FakeColumnStatisticsImpl)
             return null;
         return itemStatistics.getFrequenciesSketch().toString();
     }
 
     public static String STATS_THETA(ColumnStatisticsImpl itemStatistics) throws StandardException {
-        if(itemStatistics==null)
+        if(itemStatistics==null || itemStatistics instanceof FakeColumnStatisticsImpl)
             return null;
         return itemStatistics.getThetaSketch().toString();
     }

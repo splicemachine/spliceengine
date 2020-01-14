@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -31,7 +31,6 @@ import org.junit.rules.TestRule;
 
 import java.sql.*;
 
-import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
@@ -41,7 +40,7 @@ import static org.junit.Assert.assertEquals;
  *         Date: 3/2/15
  */
 @Category(SerialTest.class)
-public class StatisticsAdminIT{
+public class StatisticsAdminIT extends SpliceUnitTest {
     private static final String SCHEMA=StatisticsAdminIT.class.getSimpleName().toUpperCase();
     private static final String SCHEMA2=SCHEMA+"2";
     private static final String SCHEMA3=SCHEMA+"3";
@@ -198,6 +197,22 @@ public class StatisticsAdminIT{
                         row(1,1,1,1,1.0,1.0,10.01,"2018-12-12","2013-03-23 09:45:00", "15:09:02", "AAAA")))
                 .create();
 
+
+        new TableCreator(conn4)
+                .withCreate("create table t6 (a6 int, b6 int, c6 int, primary key (a6))")
+                .withInsert("insert into t6 values (?,?,?)")
+                .withRows(rows(
+                        row(1,1,1),
+                        row(2,2,2),
+                        row(3,3,3),
+                        row(4,4,4),
+                        row(5,5,5),
+                        row(6,6,6),
+                        row(7,7,7),
+                        row(8,8,8),
+                        row(9,9,9),
+                        row(10,10,10)))
+                .create();
     }
 
     private static void doCreateSharedTables(Connection conn) throws Exception{
@@ -1164,6 +1179,41 @@ public class StatisticsAdminIT{
 
         /* step 6: clean up */
         methodWatcher4.execute("drop table TAB_TO_SPLIT");
+    }
+
+    @Test
+    public void testQueryUsingFakeStats() throws Exception {
+        methodWatcher4.execute(format("call syscs_util.fake_table_statistics('%s', 'T6', 10000, 100, 4)", SCHEMA4));
+        methodWatcher4.execute(format("call syscs_util.fake_column_statistics('%s', 'T6', '%s', 0, 1000)", SCHEMA4, "B6"));
+        methodWatcher4.execute(format("call syscs_util.fake_column_statistics('%s', 'T6', '%s', 0, 10000)", SCHEMA4, "A6"));
+
+        // check the result of sys stats views
+        ResultSet rs = methodWatcher4.executeQuery(format("select schemaname, tablename, total_row_count, avg_row_count, total_size, num_partitions, stats_type from sysvw.systablestatistics where schemaname='%s' and tablename='%s'", SCHEMA4, "T6"));
+        String expected = "SCHEMANAME     | TABLENAME | TOTAL_ROW_COUNT | AVG_ROW_COUNT |TOTAL_SIZE |NUM_PARTITIONS |STATS_TYPE |\n" +
+                "----------------------------------------------------------------------------------------------------------\n" +
+                "STATISTICSADMINIT4 |    T6     |      10000      |   2500.0000   |  1000000  |       4       |     4     |";
+        String resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals("Fake table stats does not match expected result.", expected, resultString);
+        rs.close();
+
+        rs = methodWatcher4.executeQuery(format("select schemaname, tablename, columnname, cardinality, null_count, null_fraction, min_value, max_value from sysvw.syscolumnstatistics where schemaname='%s' and tablename='%s' and columnname='%s'", SCHEMA4, "T6", "B6"));
+        expected = "SCHEMANAME     | TABLENAME |COLUMNNAME | CARDINALITY |NULL_COUNT | NULL_FRACTION | MIN_VALUE | MAX_VALUE |\n" +
+                "--------------------------------------------------------------------------------------------------------------\n" +
+                "STATISTICSADMINIT4 |    T6     |    B6     |     10      |     0     |      0.0      |   NULL    |   NULL    |";
+        resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        assertEquals("Fake column stats does not match expected result.", expected, resultString);
+        rs.close();
+
+        // check the estimations in explain for table stats
+        rowContainsQuery(new int[]{3}, format("explain select * from %s.t6", SCHEMA4), methodWatcher,
+                new String[]{"scannedRows=10000,outputRows=10000", "partitions=4"});
+
+        // check the estimations in explain for point range selectivity
+        rowContainsQuery(new int[]{3}, format("explain select * from %s.t6 where b6=5", SCHEMA4), methodWatcher,
+                new String[]{"scannedRows=10000,outputRows=1000", "partitions=4,preds=[(B6[0:2] = 5)]"});
+
+        rowContainsQuery(new int[]{3}, format("explain select * from %s.t6 where a6=5", SCHEMA4), methodWatcher,
+                new String[]{"scannedRows=1,outputRows=1", "partitions=4,preds=[(A6[0:1] = 6)]"});
     }
 
     /* ****************************************************************************************************************/

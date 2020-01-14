@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 - 2019 Splice Machine, Inc.
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
  *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -851,8 +851,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     // ExecRowDefinition.
     private Dataset<Row> fixupColumnNames(JoinOperation op, JoinType joinType,
                                           Dataset<Row> leftDF, Dataset<Row> rightDF,
-                                          Dataset<Row> joinedDF) {
+                                          Dataset<Row> joinedDF,
+                                          SpliceOperation leftOp,
+                                          SpliceOperation rightOp) throws StandardException {
+        boolean isSemiOrAntiJoin =
+                joinType.strategy().equals(JoinType.LEFTANTI.strategy()) ||
+                joinType.strategy().equals(JoinType.LEFTSEMI.strategy());
         boolean needsFixup =
+                isSemiOrAntiJoin ||
                 leftDFOfJoinProjectsFewerColumnsThanDefined(op, joinType, leftDF);
         if (!needsFixup)
             return joinedDF;
@@ -887,13 +893,32 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             expressions[i] = expression.toString();
         }
 
-         for (int i = 0; i < rightDF.schema().length(); i++) {
-            String fieldName = ValueRow.getNamedColumn(i + baseColNo);
-            expression.setLength(0);
-            expression.append(fieldName);
-            expression.append(" as ");
-            expression.append(ValueRow.getNamedColumn(i + adjColNo));
-            expressions[i + adjColNo] = expression.toString();
+        if (isSemiOrAntiJoin) {
+            ExecRow rowDef = rightOp.getExecRowDefinition();
+            for (int i = 0; i < rightDF.schema().length(); i++) {
+                String fieldName = ValueRow.getNamedColumn(i + adjColNo);
+                String sourceFieldName = ValueRow.getNamedColumn(i);
+                DataType dataType =
+                        rowDef.getColumn(i+1).getStructField(sourceFieldName).dataType();
+                String dataTypeString = dataType.typeName();
+
+                expression.setLength(0);
+                expression.append("CAST (null as ");
+                expression.append(dataTypeString);
+                expression.append(") as ");
+                expression.append(fieldName);
+                expressions[i + adjColNo] = expression.toString();
+            }
+        }
+        else {
+            for (int i = 0; i < rightDF.schema().length(); i++) {
+                String fieldName = ValueRow.getNamedColumn(i + baseColNo);
+                expression.setLength(0);
+                expression.append(fieldName);
+                expression.append(" as ");
+                expression.append(ValueRow.getNamedColumn(i + adjColNo));
+                expressions[i + adjColNo] = expression.toString();
+            }
         }
         joinedDF = joinedDF.selectExpr(expressions);
 
@@ -942,13 +967,15 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 NativeSparkDataSet nds =
                   new NativeSparkDataSet(rightDF.join(leftDF, expr, joinType.RIGHTOUTER.strategy()), context);
                 joinedSet = nds;
-                nds.dataset = fixupColumnNames(op, joinType, rightDF, leftDF, nds.dataset);
+                nds.dataset = fixupColumnNames(op, joinType, rightDF, leftDF, nds.dataset,
+                                               op.getRightOperation(), op.getLeftOperation());
             }
             else {
                 NativeSparkDataSet nds =
                   new NativeSparkDataSet(leftDF.join(rightDF, expr, joinType.strategy()), context);
                 joinedSet = nds;
-                nds.dataset = fixupColumnNames(op, joinType, leftDF, rightDF, nds.dataset);
+                nds.dataset = fixupColumnNames(op, joinType, leftDF, rightDF, nds.dataset,
+                                               op.getLeftOperation(), op.getRightOperation());
             }
 
             return joinedSet;
@@ -988,8 +1015,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             DataSet joinedSet = new NativeSparkDataSet(joinedDF, context);
             NativeSparkDataSet nds = (NativeSparkDataSet)joinedSet;
-            nds.dataset = fixupColumnNames((JoinOperation) context.getOperation(),
-                                           DataSet.JoinType.INNER, leftDF, rightDF, nds.dataset);
+            SpliceOperation op = context.getOperation();
+            nds.dataset = fixupColumnNames((JoinOperation) op,
+                                           DataSet.JoinType.INNER, leftDF, rightDF, nds.dataset,
+                                           op.getLeftOperation(), op.getRightOperation());
             return joinedSet;
 
         }  catch (Exception e) {

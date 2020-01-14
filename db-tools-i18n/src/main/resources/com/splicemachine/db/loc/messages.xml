@@ -26,7 +26,7 @@
   ~
   ~ Splice Machine, Inc. has modified the Apache Derby code in this file.
   ~
-  ~ All such Splice Machine modifications are Copyright 2012 - 2019 Splice Machine, Inc.,
+  ~ All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
   ~ and are licensed to you under the GNU Affero General Public License.
   -->
 
@@ -8912,6 +8912,13 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <text>Cannot enable statistics extrapolation for column {0}: Column type {1} does not support extrapolation.</text>
                <arg>column</arg>
                <arg>columnType</arg>
+           </msg>
+
+           <msg>
+               <name>SE027</name>
+               <text>Cannot inject fake {0} statistics: {1} </text>
+               <arg>type</arg>
+               <arg>reason</arg>
            </msg>
 
            <msg>

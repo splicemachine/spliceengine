@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2012 - 2019 Splice Machine, Inc.
+  ~ Copyright (c) 2012 - 2020 Splice Machine, Inc.
   ~
   ~ This file is part of Splice Machine.
   ~ Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.1.0.1940-SNAPSHOT</version>
+    <version>3.1.0.1943-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
