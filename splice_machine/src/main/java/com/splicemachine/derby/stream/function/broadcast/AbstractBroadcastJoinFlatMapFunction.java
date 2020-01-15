@@ -50,7 +50,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushTriggerExecutionContextFromActivation;
+import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextFromActivation;
 
 /**
  * Created by dgomezferro on 11/4/15.
@@ -151,7 +151,7 @@ public abstract class AbstractBroadcastJoinFlatMapFunction<In, Out> extends Spli
         }
         if (cm != null) {
             if (operationContext != null)
-                lccPushed = pushTriggerExecutionContextFromActivation(operationContext.getActivation(), cm);
+                lccPushed = pushLanguageConnectionContextFromActivation(operationContext.getActivation(), cm);
         }
     }
 

@@ -28,7 +28,7 @@ import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushTriggerExecutionContextFromActivation;
+import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextFromActivation;
 
 /**
  * Created by jyuan on 10/10/16.
@@ -40,6 +40,7 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
     protected ContextManager cm;
     protected boolean newContextManager, lccPushed;
     protected Supplier<OperationContext> operationContext;
+    private   OperationContext ctx;
 
     public GetNLJoinIterator() {}
 
@@ -50,8 +51,14 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
 
     public abstract Pair<OperationContext, Iterator<ExecRow>> call() throws Exception;
 
+    protected OperationContext getCtx() {
+        if (ctx == null)
+            ctx = operationContext.get();
+        return ctx;
+    }
+
     private boolean needsLCCInContext() {
-        OperationContext ctx = operationContext.get();
+        OperationContext ctx = getCtx();
         if (ctx != null) {
             Activation activation = ctx.getActivation();
             if (activation != null) {
@@ -79,9 +86,9 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
             ContextService.getFactory().setCurrentContextManager(cm);
         }
         if (cm != null) {
-            OperationContext ctx = operationContext.get();
+            OperationContext ctx = getCtx();
             if (ctx != null) {
-                lccPushed = pushTriggerExecutionContextFromActivation(ctx.getActivation(), cm);
+                lccPushed = pushLanguageConnectionContextFromActivation(ctx.getActivation(), cm);
             }
         }
     }
