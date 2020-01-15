@@ -233,6 +233,8 @@ public class TriggerHandler {
                                 f.apply(ah.getLCC());
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
+                            } finally {
+                                ah.close(false);
                             }
                             return null;
                         }

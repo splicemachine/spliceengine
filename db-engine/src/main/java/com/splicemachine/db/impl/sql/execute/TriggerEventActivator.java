@@ -100,8 +100,8 @@ public class TriggerEventActivator {
     public TriggerEventActivator(UUID tableId,
                                  TriggerInfo triggerInfo,
                                  Activation activation,
-                                 Vector<AutoincrementCounter> aiCounters, 
-                                 ExecutorService executorService, 
+                                 Vector<AutoincrementCounter> aiCounters,
+                                 ExecutorService executorService,
                                  Function<Function<LanguageConnectionContext,Void>, Callable> withContext,
                                  FormatableBitSet heapList) throws StandardException {
         if (triggerInfo == null) {

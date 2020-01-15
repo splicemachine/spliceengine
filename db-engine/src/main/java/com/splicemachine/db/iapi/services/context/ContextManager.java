@@ -43,6 +43,10 @@ import org.apache.log4j.Logger;
 import java.sql.SQLException;
 import java.util.*;
 
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  *
  * The ContextManager collects contexts as they are
@@ -60,205 +64,222 @@ import java.util.*;
 
 public class ContextManager
 {
-	private static final Logger LOG = Logger.getLogger(ContextManager.class);
+    private static final Logger LOG = Logger.getLogger(ContextManager.class);
 
-	/**
-	 * The CtxStack implement a stack on top of an ArrayList (to avoid
-	 * the inherent overhead associated with java.util.Stack which is
-	 * built on top of java.util.Vector, which is fully
-	 * synchronized).
-	 */
-	private static final class CtxStack {
-		/** Internal list with all the elements of the stack. */
-		private final List<Context> stack_ = new ArrayList<>();
+    /**
+     * The CtxStack implement a stack on top of an ArrayList (to avoid
+     * the inherent overhead associated with java.util.Stack which is
+     * built on top of java.util.Vector, which is fully
+     * synchronized).
+     */
+    private static final class CtxStack {
+        /** Internal list with all the elements of the stack. */
+        private final List<Context> stack_ = new ArrayList<>();
 
-		// Keeping a reference to the top element on the stack
-		// optimizes the frequent accesses to this element. The
-		// tradeoff is that pushing and popping becomes more
-		// expensive, but those operations are infrequent.
-		private Context top_ = null;
+        // Keeping a reference to the top element on the stack
+        // optimizes the frequent accesses to this element. The
+        // tradeoff is that pushing and popping becomes more
+        // expensive, but those operations are infrequent.
+        private Context top_ = null;
 
-		void push(Context context) {
-			stack_.add(context);
-			top_ = context;
-		}
-		void pop() {
-            stack_.remove(stack_.size() - 1);
-            top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
+        void push(Context context) {
+            synchronized(stack_) {
+            stack_.add(context);
+            top_ = context;
         }
-		void remove(Context context) {
-			if (context == top_) {
-				pop();
-				return;
-			}
-			int index=stack_.lastIndexOf(context);
-			if(index>=0)
-				stack_.remove(index);
-		}
-		Context top() {
-			return top_;
-		}
-		boolean isEmpty() { return stack_.isEmpty(); }
-	}
+        }
+        void pop() {
+            synchronized(stack_) {
+                stack_.remove(stack_.size() - 1);
 
-	/**
-	 * Parent context manager used in parallel operations
-	 * Each forked task creates its own ContextManager pointing to the parent
-	 * assuming it remains unchanged until all forked tasks are joined.
-	 * Only getContext() delegates to parent.
-	 */
-	private ContextManager parent;
+                        top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
+                    }
+                }
+        void remove(Context context) {
+            synchronized(stack_) {
+                        if (context == top_) {
+                            pop();
+                            return;
+                        }
+                        int index = stack_.lastIndexOf(context);
+                        if (index >= 0)
+                            stack_.remove(index);
+                    }
+        }
+        Context top() {
+            synchronized (stack_) {
+                return top_;
+            }
+        }
+        boolean isEmpty() { return stack_.isEmpty(); }
+    }
 
-	/**
-	 * HashMap that holds the Context objects. The Contexts are stored
-	 * with a String key.
-	 * @see ContextManager#pushContext(Context)
-	 */
-	private final Map<String, CtxStack> ctxTable = new HashMap<>();
+    /**
+     * Parent context manager used in parallel operations
+     * Each forked task creates its own ContextManager pointing to the parent
+     * assuming it remains unchanged until all forked tasks are joined.
+     * Only getContext() delegates to parent.
+     */
+    private ContextManager parent;
 
-	/**
-	 * List of all Contexts of all types.
-	 */
-	private final List<Context> holder = new ArrayList<>();
+    /**
+     * HashMap that holds the Context objects. The Contexts are stored
+     * with a String key.
+     * @see ContextManager#pushContext(Context)
+     */
+    private final Map<String, CtxStack> ctxTable = new ConcurrentHashMap<>();
 
-	public void setActiveThread(){
-		this.activeThread = Thread.currentThread();
-	}
+    /**
+     * List of all Contexts of all types.
+     */
+    private final List<Context> holder = new ArrayList<>();
 
-	/**
-	 * Add a Context object to the ContextManager. The object is added
-	 * both to the holder list and to a stack for the specific type of
-	 * Context.
-	 * @param newContext the new Context object
-	 */
-	public void pushContext(Context newContext)
-	{
-		checkInterrupt();
-		final String contextId = newContext.getIdName();
-		CtxStack idStack = ctxTable.get(contextId);
+    public void setActiveThread(){
+        this.activeThread = Thread.currentThread();
+    }
 
-		// if the stack is null, create a new one.
-		if (idStack == null) {
-			idStack = new CtxStack();
-			ctxTable.put(contextId, idStack);
-		}
+    /**
+     * Add a Context object to the ContextManager. The object is added
+     * both to the holder list and to a stack for the specific type of
+     * Context.
+     * @param newContext the new Context object
+     */
+    public void pushContext(Context newContext)
+    {
+        checkInterrupt();
+        final String contextId = newContext.getIdName();
+        CtxStack idStack = ctxTable.get(contextId);
 
-		// add to top of id's stack
-		idStack.push(newContext);
-
-		// add to top of global stack too
-		holder.add(newContext);
-	}
-	
-	/**
-	 * Obtain the last pushed Context object of the type indicated by
-	 * the contextId argument.
-	 * @param contextId a String identifying the type of Context
-	 * @return The Context object with the corresponding contextId, or null if not found
-	 */
-	public Context getContext(String contextId) {
-		checkInterrupt();
-		
-		final CtxStack idStack = ctxTable.get(contextId);
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(idStack == null || idStack.isEmpty() ||
-					Objects.equals(idStack.top().getIdName(), contextId));
-		}
-		if (idStack != null) {
-			return idStack.top();
-		}
-		if (parent != null) {
-			return parent.getContext(contextId);
-		}
-		return null;
-	}
-
-	/**
-	 * Remove the last pushed Context object, regardless of type. If
-	 * there are no Context objects, no action is taken.
-	 */
-	public void popContext()
-	{
-		checkInterrupt();
-		// no contexts to remove, so we're done.
-		if (holder.isEmpty()) {
-			return;
-		}
-
-		// remove the top context from the global stack
-		Context theContext = holder.remove(holder.size()-1);
-
-		// now find its id and remove it from there, too
-		final String contextId = theContext.getIdName();
-		final CtxStack idStack = ctxTable.get(contextId);
-
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT( idStack != null &&
-								  (! idStack.isEmpty()) &&
-					Objects.equals(idStack.top().getIdName(), contextId));
-		}
-		idStack.pop();
-	}
-
-	/**
-	 * Removes the specified Context object. If the specified Context object does not exist
-	 * (already removed), no action is taken.
-	 * @param theContext the Context object to remove.
-	 */
-	void popContext(Context theContext)
-	{
-		checkInterrupt();
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!holder.isEmpty());
-
-		// first, remove it from the global stack.
-        int index = holder.lastIndexOf(theContext);
-        if (index >=0) {
-            holder.remove(index);
+        // if the stack is null, create a new one.
+        if (idStack == null) {
+            idStack = new CtxStack();
+            ctxTable.put(contextId, idStack);
         }
 
+        // add to top of id's stack
+        idStack.push(newContext);
+
+        // add to top of global stack too
+                synchronized (holder) {
+                    holder.add(newContext);
+                }
+    }
+
+    /**
+     * Obtain the last pushed Context object of the type indicated by
+     * the contextId argument.
+     * @param contextId a String identifying the type of Context
+     * @return The Context object with the corresponding contextId, or null if not found
+     */
+    public Context getContext(String contextId) {
+        checkInterrupt();
+
+        final CtxStack idStack = ctxTable.get(contextId);
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(idStack == null || idStack.isEmpty() ||
+                    Objects.equals(idStack.top().getIdName(), contextId));
+        }
+        if (idStack != null) {
+            return idStack.top();
+        }
+        if (parent != null) {
+            return parent.getContext(contextId);
+        }
+        return null;
+    }
+
+    /**
+     * Remove the last pushed Context object, regardless of type. If
+     * there are no Context objects, no action is taken.
+     */
+    public void popContext()
+    {
+        checkInterrupt();
+
+                Context theContext;
+                synchronized (holder) {
+            // no contexts to remove, so we're done.
+                    if (holder.isEmpty()) {
+                        return;
+                    }
+
+                    // remove the top context from the global stack
+                    theContext = holder.remove(holder.size() - 1);
+                }
+        // now find its id and remove it from there, too
         final String contextId = theContext.getIdName();
-		final CtxStack idStack = ctxTable.get(contextId);
+        final CtxStack idStack = ctxTable.get(contextId);
 
-		if (idStack != null) {
-			// now remove it from its id's stack.
-			idStack.remove(theContext);
-		}
-	}
-    
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT( idStack != null &&
+                                  (! idStack.isEmpty()) &&
+                    Objects.equals(idStack.top().getIdName(), contextId));
+        }
+        idStack.pop();
+    }
+
+    /**
+     * Removes the specified Context object. If the specified Context object does not exist
+     * (already removed), no action is taken.
+     * @param theContext the Context object to remove.
+     */
+    void popContext(Context theContext)
+    {
+        checkInterrupt();
+        synchronized (holder) {
+                    if (SanityManager.DEBUG)
+                        SanityManager.ASSERT(!holder.isEmpty());
+
+                    // first, remove it from the global stack.
+                    int index = holder.lastIndexOf(theContext);
+                    if (index >= 0) {
+                        holder.remove(index);
+                    }
+                }
+                final String contextId = theContext.getIdName();
+        final CtxStack idStack = ctxTable.get(contextId);
+
+        if (idStack != null) {
+            // now remove it from its id's stack.
+            idStack.remove(theContext);
+        }
+    }
+
     /**
      * Is the ContextManager empty containing no Contexts.
      */
     public final boolean isEmpty()
     {
-        return holder.isEmpty();
+        synchronized (holder) {
+            return holder.isEmpty();
+        }
     }
-	
-	/**
-	 * Return an unmodifiable list reference to the ArrayList backing
-	 * CtxStack object for this type of Contexts. This method allows
-	 * fast traversal of all Contexts on that stack. The first element
-	 * in the List corresponds to the bottom of the stack. The
-	 * assumption is that the Stack will not be modified while it is
-	 * being traversed.
-	 * @param contextId the type of Context stack to return.
-	 * @return an unmodifiable "view" of the ArrayList backing the stack
-	 * @see com.splicemachine.db.iapi.sql.conn.StatementContext#resetSavePoint()
-	 */
-	public final List<Context> getContextStack(String contextId) {
-		List<Context> contexts= new ArrayList<>();
-		for (ContextManager cm = this; cm != null; cm = cm.parent) {
-			cm.accumulate(contexts, contextId);
-		}
-		return Collections.unmodifiableList(contexts);
-	}
 
-	void accumulate(List<Context> contexts, String contextId) {
-		CtxStack cs = ctxTable.get(contextId);
-		if (cs != null) {
-			contexts.addAll(cs.stack_);
-		}
-	}
+    /**
+     * Return an unmodifiable list reference to the ArrayList backing
+     * CtxStack object for this type of Contexts. This method allows
+     * fast traversal of all Contexts on that stack. The first element
+     * in the List corresponds to the bottom of the stack. The
+     * assumption is that the Stack will not be modified while it is
+     * being traversed.
+     * @param contextId the type of Context stack to return.
+     * @return an unmodifiable "view" of the ArrayList backing the stack
+     * @see com.splicemachine.db.iapi.sql.conn.StatementContext#resetSavePoint()
+     */
+    public final List<Context> getContextStack(String contextId) {
+        List<Context> contexts= new ArrayList<>();
+        for (ContextManager cm = this; cm != null; cm = cm.parent) {
+            cm.accumulate(contexts, contextId);
+        }
+        return Collections.unmodifiableList(contexts);
+    }
+
+    void accumulate(List<Context> contexts, String contextId) {
+        CtxStack cs = ctxTable.get(contextId);
+        if (cs != null) {
+            contexts.addAll(cs.stack_);
+        }
+    }
 
     /**
      * clean up error and print it to db.log. Extended diagnosis including
@@ -274,94 +295,94 @@ public class ContextManager
      * @return true if the context manager is shutdown, false otherwise.
      */
     public boolean cleanupOnError(Throwable error, boolean diagActive)
-	{
-		if (shutdown)
-			return true;
+    {
+        if (shutdown)
+            return true;
 
-		if (errorStringBuilder == null)
-			errorStringBuilder = new ErrorStringBuilder(errorStream.getHeader());
+        if (errorStringBuilder == null)
+            errorStringBuilder = new ErrorStringBuilder(errorStream.getHeader());
 
-		ThreadDeath seenThreadDeath = null;
-		if (error instanceof ThreadDeath)
-			seenThreadDeath = (ThreadDeath) error;
+        ThreadDeath seenThreadDeath = null;
+        if (error instanceof ThreadDeath)
+            seenThreadDeath = (ThreadDeath) error;
 
         if (error instanceof PassThroughException) {
             error = error.getCause();
         }
 
-		boolean reportError = reportError(error);
+        boolean reportError = reportError(error);
 
-		if (reportError) 
-		{
-			ContextImpl lcc = null;
-			StringBuffer sb = null;
-			if (! shutdown)
-			{
-				// report an id for the message if possible
-				lcc = (ContextImpl) getContext(ContextId.LANG_CONNECTION);
-				if (lcc != null) {
-					sb = lcc.appendErrorInfo();
-				}
-			}
+        if (reportError)
+        {
+            ContextImpl lcc = null;
+            StringBuffer sb = null;
+            if (! shutdown)
+            {
+                // report an id for the message if possible
+                lcc = (ContextImpl) getContext(ContextId.LANG_CONNECTION);
+                if (lcc != null) {
+                    sb = lcc.appendErrorInfo();
+                }
+            }
 
-			String cleanup = "Cleanup action starting";
+            String cleanup = "Cleanup action starting";
 
-			if (sb != null) {
-				sb.append(cleanup);
-				cleanup = sb.toString();
-			}
+            if (sb != null) {
+                sb.append(cleanup);
+                cleanup = sb.toString();
+            }
 
-			errorStringBuilder.appendln(cleanup);
-			
-			if (!shutdown)		// Do this only during normal processing.
-			{	
-				ContextImpl sc = (ContextImpl) getContext(ContextId.LANG_STATEMENT);
-				// Output the SQL statement that failed in the log file.
-				if (sc != null)
-				{					
-					sb = sc.appendErrorInfo();
-					if (sb != null)
-						errorStringBuilder.appendln(sb.toString());
-				}
-			}
-		}
-		
-		/*
-		  REVISIT RESOLVE
-		  Ensure that the traversal of the stack works in all 
-		  cases where contexts can  pop themselves *and* 
-		  contexts can pop other contexts off the stack.
-		*/ 
-		
+            errorStringBuilder.appendln(cleanup);
+
+            if (!shutdown)        // Do this only during normal processing.
+            {
+                ContextImpl sc = (ContextImpl) getContext(ContextId.LANG_STATEMENT);
+                // Output the SQL statement that failed in the log file.
+                if (sc != null)
+                {
+                    sb = sc.appendErrorInfo();
+                    if (sb != null)
+                        errorStringBuilder.appendln(sb.toString());
+                }
+            }
+        }
+
+        /*
+          REVISIT RESOLVE
+          Ensure that the traversal of the stack works in all
+          cases where contexts can  pop themselves *and*
+          contexts can pop other contexts off the stack.
+        */
+
 
 forever: for (;;) {
 
             int errorSeverity = getErrorSeverity(error);
- 			if (reportError) {
-				errorStringBuilder.stackTrace(error);
-				flushErrorString();
-			}
+             if (reportError) {
+                errorStringBuilder.stackTrace(error);
+                flushErrorString();
+            }
 
 
-			boolean	lastHandler = false;
+            boolean    lastHandler = false;
 
 
-			/*
-			 *	Walk down the stack, calling cleanup on each context.
-			 *  Be robust against multiple context popping (see GenericLanguageConnectionContext).
-			 */
-			Context[] contexts = holder.toArray(new Context[holder.size()]);
-			for (int index = contexts.length - 1; index >= 0; --index) {
-				try {
-					if (lastHandler)
-					{
-						break;
-					}
+            /*
+             *    Walk down the stack, calling cleanup on each context.
+             *  Be robust against multiple context popping (see GenericLanguageConnectionContext).
+             */
+            Context[] contexts = holder.toArray(new Context[holder.size()]);
+            for (int index = contexts.length - 1; index >= 0; --index) {
+                try {
+                    if (lastHandler)
+                    {
+                        break;
+                    }
 
-					Context ctx = contexts[index];
-					lastHandler = ctx.isLastHandler(errorSeverity);
+                    Context ctx = contexts[index];
+                    lastHandler = ctx.isLastHandler(errorSeverity);
 
-					ctx.cleanupOnError(error);
+                    ctx.cleanupOnError(error);
                     //When errorSeverity greater or equals Property.EXT_DIAG_SEVERITY_LEVEL,
                     //the threadDump information will be in db.log and
                     //the diagnosis information will be prepared.
@@ -374,178 +395,181 @@ forever: for (;;) {
                     } else {
                         threadDump = null;
                     }
-				}
-				catch (StandardException se) {
-
-					if (error instanceof StandardException) {
-
-						if (se.getSeverity() > ((StandardException) error).getSeverity()) {
-							// Ok, error handling raised a more severe error,
-							// restart with the more severe error
-							error = se;
-							reportError = reportError(se);
-							if (reportError) {
-								errorStream.printThrowable("New exception raised during cleanup", error);
-							}
-							continue forever;
-						}
-					}
-
-					if (reportError(se)) {
-						errorStringBuilder.appendln("Less severe exception raised during cleanup (ignored) " + se.getMessage());
-						errorStringBuilder.stackTrace(se);
-						flushErrorString();
-					}
-
-					/*
-						For a less severe error, keep with the last error
-					 */
                 }
-				catch (Throwable t) {
-					reportError = reportError(t);
+                catch (StandardException se) {
 
+                    if (error instanceof StandardException) {
 
-					if (error instanceof StandardException) {
-						/*
-							Ok, error handling raised a more severe error,
-							restart with the more severe error
-							A Throwable after a StandardException is always 
-							more severe.
-						 */
-						error = t;
-						if (reportError) {
-							errorStream.printThrowable("New exception raised during cleanup", error);
-						}
-						continue forever;
-					}
+                        if (se.getSeverity() > ((StandardException) error).getSeverity()) {
+                            // Ok, error handling raised a more severe error,
+                            // restart with the more severe error
+                            error = se;
+                            reportError = reportError(se);
+                            if (reportError) {
+                                errorStream.printThrowable("New exception raised during cleanup", error);
+                            }
+                            continue forever;
+                        }
+                    }
 
+                    if (reportError(se)) {
+                        errorStringBuilder.appendln("Less severe exception raised during cleanup (ignored) " + se.getMessage());
+                        errorStringBuilder.stackTrace(se);
+                        flushErrorString();
+                    }
 
-					if (reportError) {
-						errorStringBuilder.appendln("Equally severe exception raised during cleanup (ignored) " + t.getMessage());
-						errorStringBuilder.stackTrace(t);
-						flushErrorString();
-					}
-
-					if (t instanceof ThreadDeath) {
-						if (seenThreadDeath != null)
-							throw seenThreadDeath;
-
-						seenThreadDeath = (ThreadDeath) t;
-					}
-	
-					/*
-						For a less severe error, just continue with the last
-						error
-					 */
+                    /*
+                        For a less severe error, keep with the last error
+                     */
                 }
-			}
+                catch (Throwable t) {
+                    reportError = reportError(t);
+
+
+                    if (error instanceof StandardException) {
+                        /*
+                            Ok, error handling raised a more severe error,
+                            restart with the more severe error
+                            A Throwable after a StandardException is always
+                            more severe.
+                         */
+                        error = t;
+                        if (reportError) {
+                            errorStream.printThrowable("New exception raised during cleanup", error);
+                        }
+                        continue forever;
+                    }
+
+
+                    if (reportError) {
+                        errorStringBuilder.appendln("Equally severe exception raised during cleanup (ignored) " + t.getMessage());
+                        errorStringBuilder.stackTrace(t);
+                        flushErrorString();
+                    }
+
+                    if (t instanceof ThreadDeath) {
+                        if (seenThreadDeath != null)
+                            throw seenThreadDeath;
+
+                        seenThreadDeath = (ThreadDeath) t;
+                    }
+
+                    /*
+                        For a less severe error, just continue with the last
+                        error
+                     */
+                }
+            }
 
             if (threadDump != null) {
                 errorStream.println(threadDump);
                 JVMInfo.javaDump();
             }
 
-			if (reportError) {
-				errorStream.println("Cleanup action completed");
-			}
+            if (reportError) {
+                errorStream.println("Cleanup action completed");
+            }
 
-			if (seenThreadDeath != null)
-				throw seenThreadDeath;
+            if (seenThreadDeath != null)
+                throw seenThreadDeath;
 
-			return false;
-		}
+            return false;
+        }
 
-	}
+    }
 
 
-	synchronized boolean  setInterrupted(Context c) {
+    synchronized boolean  setInterrupted(Context c) {
 
-		boolean interruptMe = (c == null) || holder.contains(c);
+        boolean interruptMe;
+                synchronized(holder) {
+                    interruptMe = (c == null) || holder.contains(c);
+                }
 
-		if (interruptMe) {
-			this.shutdown = true;
-		}
-		return interruptMe;
-	}
+        if (interruptMe) {
+            this.shutdown = true;
+        }
+        return interruptMe;
+    }
 
-	/**
-		Check to see if we have been interrupted. If we have then
-		a ShutdownException will be thrown. This will be either the
-		one passed to interrupt or a generic one if some outside
-		source interrupted the thread.
-	*/
-	private void checkInterrupt() {
-		if (shutdown) {
-			// system must have changed underneath us
-			throw new ShutdownException();
-		}
-	}
+    /**
+        Check to see if we have been interrupted. If we have then
+        a ShutdownException will be thrown. This will be either the
+        one passed to interrupt or a generic one if some outside
+        source interrupted the thread.
+    */
+    private void checkInterrupt() {
+        if (shutdown) {
+            // system must have changed underneath us
+            throw new ShutdownException();
+        }
+    }
 
-	/**
-		Set the locale for this context.
-	*/
-	public void setLocaleFinder(LocaleFinder finder) {
-		this.finder = finder;
-	}
+    /**
+        Set the locale for this context.
+    */
+    public void setLocaleFinder(LocaleFinder finder) {
+        this.finder = finder;
+    }
 
-	private Locale messageLocale;
+    private Locale messageLocale;
 
-	public void setMessageLocale(String localeID) throws StandardException {
-		this.messageLocale = Monitor.getLocaleFromString(localeID);
-	}
+    public void setMessageLocale(String localeID) throws StandardException {
+        this.messageLocale = Monitor.getLocaleFromString(localeID);
+    }
 
-	public Locale getMessageLocale()
-	{
-		if (messageLocale != null)
-			return messageLocale;
-		else if (finder != null) {
-			try {
-				return finder.getCurrentLocale();
-			} catch (StandardException ignored) {
-				
-			}
-		}
-		return Locale.getDefault();
-	}
+    public Locale getMessageLocale()
+    {
+        if (messageLocale != null)
+            return messageLocale;
+        else if (finder != null) {
+            try {
+                return finder.getCurrentLocale();
+            } catch (StandardException ignored) {
 
-	/**
-	 * Flush the built up error string to wherever
-	 * it is supposed to go, and reset the error string
-	 */
-	private void flushErrorString()
-	{
-		errorStream.println(errorStringBuilder.get().toString());
-		errorStringBuilder.reset();
-	}
+            }
+        }
+        return Locale.getDefault();
+    }
 
-	/*
-	** Class methods
-	*/
+    /**
+     * Flush the built up error string to wherever
+     * it is supposed to go, and reset the error string
+     */
+    private void flushErrorString()
+    {
+        errorStream.println(errorStringBuilder.get().toString());
+        errorStringBuilder.reset();
+    }
 
-	private boolean reportError(Throwable t) {
+    /*
+    ** Class methods
+    */
 
-		if (t instanceof StandardException) {
+    private boolean reportError(Throwable t) {
 
-			StandardException se = (StandardException) t;
+        if (t instanceof StandardException) {
 
-			switch (se.report()) {
-			case StandardException.REPORT_DEFAULT:
-				int level = se.getSeverity();
-				return (level >= logSeverityLevel) ||
-					(level == ExceptionSeverity.NO_APPLICABLE_SEVERITY);
+            StandardException se = (StandardException) t;
 
-			case StandardException.REPORT_NEVER:
-				return false;
+            switch (se.report()) {
+            case StandardException.REPORT_DEFAULT:
+                int level = se.getSeverity();
+                return (level >= logSeverityLevel) ||
+                    (level == ExceptionSeverity.NO_APPLICABLE_SEVERITY);
 
-			case StandardException.REPORT_ALWAYS:
-			default:
-				return true;
-			}
-		}
+            case StandardException.REPORT_NEVER:
+                return false;
 
-		return !(t instanceof ShutdownException);
+            case StandardException.REPORT_ALWAYS:
+            default:
+                return true;
+            }
+        }
 
-	}
+        return !(t instanceof ShutdownException);
+
+    }
     
     /**
      * return the severity of the exception. Currently, this method 
@@ -570,38 +594,38 @@ forever: for (;;) {
         return ExceptionSeverity.NO_APPLICABLE_SEVERITY;
     }
 
-	/**
-	 * Constructs a new instance. No CtxStacks are inserted into the
-	 * hashMap as they will be allocated on demand.
-	 * @param parent parent context manager
-	 * @param stream error stream for reporting errors
-	 */
-	ContextManager(ContextManager parent, HeaderPrintWriter stream)
-	{
-		this.parent = parent;
-		errorStream = stream;
-		logSeverityLevel = 0;
-		extDiagSeverityLevel = 40000;
-/*		XXX - TODO John Leach: Need to make this configurable.  Quick hack to stop hitting file system.
+    /**
+     * Constructs a new instance. No CtxStacks are inserted into the
+     * hashMap as they will be allocated on demand.
+     * @param parent parent context manager
+     * @param stream error stream for reporting errors
+     */
+    ContextManager(ContextManager parent, HeaderPrintWriter stream)
+    {
+        this.parent = parent;
+        errorStream = stream;
+        logSeverityLevel = 0;
+        extDiagSeverityLevel = 40000;
+/*        XXX - TODO John Leach: Need to make this configurable.  Quick hack to stop hitting file system.
       logSeverityLevel = PropertyUtil.getSystemInt(Property.LOG_SEVERITY_LEVEL,
-			SanityManager.DEBUG ? 0 : ExceptionSeverity.SESSION_SEVERITY);
+            SanityManager.DEBUG ? 0 : ExceptionSeverity.SESSION_SEVERITY);
         extDiagSeverityLevel = PropertyUtil.getSystemInt(
                 Property.EXT_DIAG_SEVERITY_LEVEL,
                 ExceptionSeverity.SESSION_SEVERITY);
                 */
-	}
+    }
 
-	private int		logSeverityLevel;
+    private int        logSeverityLevel;
     // DERBY-4856 track extendedDiagSeverityLevel variable
     private int extDiagSeverityLevel;
 
-	private HeaderPrintWriter errorStream;
-	private ErrorStringBuilder errorStringBuilder;
+    private HeaderPrintWriter errorStream;
+    private ErrorStringBuilder errorStringBuilder;
     // DERBY-4856 add thread dump information.
     private String threadDump;
 
-	private boolean shutdown;
-	private LocaleFinder finder;
+    private boolean shutdown;
+    private LocaleFinder finder;
 
     /**
      * The thread that owns this ContextManager, set by
@@ -621,12 +645,12 @@ forever: for (;;) {
      * @see ContextService#setCurrentContextManager(ContextManager)
      * @see ContextService#resetCurrentContextManager(ContextManager)
      */
-	volatile Thread	activeThread;
+    volatile Thread    activeThread;
     
     /**
      * Count of the number of setCurrentContextManager calls
      * by a single thread, for nesting situations with a single
      * active ContextManager.
      */
-	int		activeCount;
+    int        activeCount;
 }

@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -80,7 +81,7 @@ public class ActivationHolder implements Externalizable {
         this.initialized = true;
         addSubOperations(operationsMap, operation);
         addSubOperations(operationsMap, (SpliceOperation) activation.getResultSet());
-        if(activation.getResultSet()!=null){
+        if (activation.getResultSet() != null) {
             operationsList.add((SpliceOperation) activation.getResultSet());
         }
         if (operation instanceof StatisticsOperation) {
@@ -89,10 +90,10 @@ public class ActivationHolder implements Externalizable {
         }
 
         for (Field field : activation.getClass().getDeclaredFields()) {
-            if(!field.getType().isAssignableFrom(SpliceOperation.class)) continue; //ignore qualifiers
+            if (!field.getType().isAssignableFrom(SpliceOperation.class)) continue; //ignore qualifiers
 
             boolean isAccessible = field.isAccessible();
-            if(!isAccessible)
+            if (!isAccessible)
                 field.setAccessible(true);
 
             try {
@@ -118,7 +119,7 @@ public class ActivationHolder implements Externalizable {
         this.groupUsers = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
     }
 
-    public void newTxnResource() throws StandardException{
+    public void newTxnResource() throws StandardException {
         try {
             SpliceTransactionResourceImpl txnResource = impl.get();
             boolean needToSet = txnResource == null;
@@ -128,12 +129,11 @@ public class ActivationHolder implements Externalizable {
                 txnResource.close();
             LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
             txnResource.marshallTransaction(txn,
-                                            lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
-                                            lcc.getTransactionExecute(), lcc.getUserName(), lcc.getInstanceNumber());
+                    lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
+                    lcc.getTransactionExecute(), lcc.getUserName(), lcc.getInstanceNumber());
             if (needToSet)
                 impl.set(txnResource);
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw Exceptions.parseException(e);
         }
     }
@@ -175,12 +175,12 @@ public class ActivationHolder implements Externalizable {
 
     @Override
     public synchronized void writeExternal(ObjectOutput out) throws IOException {
-        if(soi==null){
+        if (soi == null) {
             soi = SpliceObserverInstructions.create(this);
         }
         out.writeObject(operationsList);
         out.writeObject(soi);
-        SIDriver.driver().getOperationFactory().writeTxnStack(txn,out);
+        SIDriver.driver().getOperationFactory().writeTxnStack(txn, out);
         if (currentUser != null) {
             out.writeBoolean(true);
             out.writeObject(currentUser);
@@ -199,13 +199,21 @@ public class ActivationHolder implements Externalizable {
         return txnResource.getLcc();
     }
 
-    private void init(TxnView txn, boolean reinit){
+    private void init(TxnView txn, boolean reinit) {
         try {
             SpliceTransactionResourceImpl txnResource = impl.get();
+            ContextManager cm = ContextService.getFactory().getCurrentContextManager();
             if (txnResource != null) {
-                if (activation != null) return;
+                if (activation != null &&
+                        activation.getLanguageConnectionContext() != null &&
+                        activation.getLanguageConnectionContext().getContextManager() == cm)
+                    return;
                 txnResource.close();
             }
+            // Reset the current context manager, because marshallTransaction
+            // is going to allocate a new one.
+            if (cm != null)
+                ContextService.getFactory().resetCurrentContextManager(cm);
 
             txnResource = new SpliceTransactionResourceImpl();
             txnResource.marshallTransaction(txn, propertyCache);
@@ -217,7 +225,7 @@ public class ActivationHolder implements Externalizable {
             activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
 
             // Push internal connection to the current context manager
-            EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
+            EmbedConnection internalConnection = (EmbedConnection) EngineDriver.driver().getInternalConnection();
             new EmbedConnectionContext(ContextService.getService().getCurrentContextManager(), internalConnection);
 
             if (reinit) {
@@ -241,14 +249,18 @@ public class ActivationHolder implements Externalizable {
         soi = (SpliceObserverInstructions) in.readObject();
         txn = SIDriver.driver().getOperationFactory().readTxnStack(in);
         if (in.readBoolean()) {
-            currentUser = (String)in.readObject();
+            currentUser = (String) in.readObject();
         } else
             currentUser = null;
         if (in.readBoolean()) {
-            groupUsers = (List<String>)in.readObject();
+            groupUsers = (List<String>) in.readObject();
         } else
             groupUsers = null;
         propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
+    }
+
+    public void setupSpliceObserverInstructions() {
+        soi = SpliceObserverInstructions.create(this);
     }
 
     public void setActivation(Activation activation) {
@@ -268,11 +280,20 @@ public class ActivationHolder implements Externalizable {
         init(otherTxn != null ? otherTxn : txn, reinit);
     }
 
-    public void close() {
-        SpliceTransactionResourceImpl txnResource = impl.get();
-        if (txnResource != null) {
-            txnResource.close();
-            impl.set(null);
+    public void close(boolean closeTxnResource) {
+        if (closeTxnResource) {
+            SpliceTransactionResourceImpl txnResource = impl.get();
+            if (txnResource != null) {
+                txnResource.close();
+                impl.set(null);
+            }
         }
+        activation = null;
+        initialized = false;
+        propertyCache = null;
+    }
+
+    public void close() {
+        close(true);
     }
 }

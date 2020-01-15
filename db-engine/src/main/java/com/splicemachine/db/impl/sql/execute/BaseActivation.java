@@ -1078,6 +1078,8 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     }
 
 	protected final void setParameterValueSet(int paramCount, boolean hasReturnParam) {
+		if (paramCount <= 0)
+		    pvs = null;
 
         pvs = lcc.getLanguageFactory().newParameterValueSet(
             lcc.getLanguageConnectionFactory().getClassFactory().getClassInspector(),
