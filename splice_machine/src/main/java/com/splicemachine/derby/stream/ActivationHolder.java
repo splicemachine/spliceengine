@@ -15,27 +15,27 @@
 package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
-import com.splicemachine.db.impl.sql.catalog.ManagedCache;
-import com.splicemachine.derby.utils.StatisticsOperation;
-import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Optional;
-import org.spark_project.guava.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
+import com.splicemachine.derby.utils.StatisticsOperation;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Optional;
+import org.spark_project.guava.collect.Maps;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Externalizable;
@@ -173,24 +173,30 @@ public class ActivationHolder implements Externalizable {
         try {
             initialized = true;
             SpliceTransactionResourceImpl txnResource = impl.get();
-            boolean reinitTxnResource = reinit || (txnResource == null);
-            if (reinitTxnResource)
-                reinit = true;
-            if (!reinitTxnResource) {
-                if (activation != null)
+            ContextManager cm = ContextService.getFactory().getCurrentContextManager();
+            if (txnResource != null) {
+                if (activation != null &&
+                    activation.getLanguageConnectionContext() != null &&
+                    activation.getLanguageConnectionContext().getContextManager() == cm)
                     return;
+                txnResource.close();
             }
+            // Reset the current context manager, because marshallTransaction
+            // is going to allocate a new one.
+            if (cm != null)
+                ContextService.getFactory().resetCurrentContextManager(cm);
 
-            if (reinitTxnResource) {
-                txnResource = new SpliceTransactionResourceImpl();
-                txnResource.marshallTransaction(txn, propertyCache);
-            }
+            txnResource = new SpliceTransactionResourceImpl();
+            txnResource.marshallTransaction(txn, propertyCache);
             impl.set(txnResource);
+            if (soi == null)
+                soi = SpliceObserverInstructions.create(this);
             if (soi != null) {
                 activation = soi.getActivation(this, txnResource.getLcc());
                 activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
                 activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
             }
+
             // Push internal connection to the current context manager
             EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
             new EmbedConnectionContext(ContextService.getService().getCurrentContextManager(), internalConnection);
