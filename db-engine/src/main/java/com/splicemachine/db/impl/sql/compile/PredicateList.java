@@ -2473,9 +2473,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                 // RESOLVE: Consider using variant type of the expression, instead of
                 // ConstantNode or ParameterNode in the future.
-                if(left instanceof ColumnReference && isConstantOrParameterNode(right)){
+                if(left instanceof ColumnReference && right.isConstantOrParameterTreeNode()){
                     searchClauses.addElement(predicate);
-                }else if(isConstantOrParameterNode(left) && right instanceof ColumnReference){
+                }else if(left.isConstantOrParameterTreeNode() && right instanceof ColumnReference){
                     // put the ColumnReference on the left to simplify things
                     andNode.setLeftOperand(bcon.getSwappedEquivalent());
                     searchClauses.addElement(predicate);
