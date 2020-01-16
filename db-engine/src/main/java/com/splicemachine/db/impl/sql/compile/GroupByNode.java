@@ -249,8 +249,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                 optimizer,
                 predList,
                 outerCost,
-                rowOrdering
-        );
+                rowOrdering);
     }
 
     @Override

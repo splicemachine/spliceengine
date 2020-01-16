@@ -387,9 +387,9 @@ public abstract class ResultSetNode extends QueryTreeNode{
         BooleanConstantNode booleanNode;
         ResultColumn resultColumn;
 
-		/* We need to be able to handle both ResultColumn and AllResultColumn
+        /* We need to be able to handle both ResultColumn and AllResultColumn
          * since they are peers.
-		 */
+         */
         if(resultColumns.elementAt(0) instanceof AllResultColumn){
             resultColumn=(ResultColumn)getNodeFactory().getNode(
                     C_NodeTypes.RESULT_COLUMN,
@@ -400,8 +400,8 @@ public abstract class ResultSetNode extends QueryTreeNode{
             return this;
         }else{
             resultColumn=(ResultColumn)resultColumns.elementAt(0);
-	
-			/* Nothing to do if query is already select TRUE ... */
+
+            /* Nothing to do if query is already select TRUE ... */
             if(resultColumn.getExpression().isBooleanTrue() &&
                     resultColumns.size()==1){
                 return this;
@@ -415,7 +415,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
         resultColumn.setExpression(booleanNode);
         resultColumn.setType(booleanNode.getTypeServices());
-		/* VirtualColumnIds are 1-based, RCLs are 0-based */
+        /* VirtualColumnIds are 1-based, RCLs are 0-based */
         resultColumn.setVirtualColumnId(1);
         resultColumns.setElementAt(resultColumn,0);
         return this;
@@ -486,16 +486,16 @@ public abstract class ResultSetNode extends QueryTreeNode{
                                   DMLStatementNode statement,
                                   FromList fromListParam)
             throws StandardException{
-		/* For insert select, we need to expand any *'s in the
-		 * select before binding the result columns
-		 */
+        /* For insert select, we need to expand any *'s in the
+         * select before binding the result columns
+         */
         if(this instanceof SelectNode){
             resultColumns.expandAllsAndNameColumns(((SelectNode)this).fromList);
         }
 
-		/* If specified, copy the result column names down to the 
-		 * source's target list.
-		 */
+        /* If specified, copy the result column names down to the
+         * source's target list.
+         */
         if(targetColumnList!=null){
             resultColumns.copyResultColumnNames(targetColumnList);
         }
@@ -630,7 +630,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @return The modified query tree
      */
     public ResultSetNode modifyAccessPaths() throws StandardException{
-		/* Default behavior is to do nothing */
+        /* Default behavior is to do nothing */
         return this;
     }
 
@@ -672,17 +672,17 @@ public abstract class ResultSetNode extends QueryTreeNode{
         resultColumns=newRCL;
     }
 
-	/*
-	** Check whether the column lengths and types of the result columns
-	** match the expressions under those columns.  This is useful for
-	** INSERT and UPDATE statements.  For SELECT statements this method
-	** should always return true.  There is no need to call this for a
-	** DELETE statement.
-	**
-	** @return	true means all the columns match their expressions,
-	**		false means at least one column does not match its
-	**		expression
-	*/
+    /*
+    ** Check whether the column lengths and types of the result columns
+    ** match the expressions under those columns.  This is useful for
+    ** INSERT and UPDATE statements.  For SELECT statements this method
+    ** should always return true.  There is no need to call this for a
+    ** DELETE statement.
+    **
+    ** @return    true means all the columns match their expressions,
+    **        false means at least one column does not match its
+    **        expression
+    */
 
     /**
      * Get the referencedTableMap for this ResultSetNode
@@ -719,7 +719,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
 
     public void rejectParameters() throws StandardException{
-		/* Okay if no resultColumns yet - means no parameters there */
+        /* Okay if no resultColumns yet - means no parameters there */
         if(resultColumns!=null){
             resultColumns.rejectParameters();
         }
@@ -779,23 +779,23 @@ public abstract class ResultSetNode extends QueryTreeNode{
         LanguageConnectionContext lcc=getLanguageConnectionContext();
         CompilerContext compilerContext=getCompilerContext();
 
-		/* Get a Statement to pass to the parser */
+        /* Get a Statement to pass to the parser */
 
-		/* We're all set up to parse. We have to build a compilable SQL statement
-		 * before we can parse -  So, we goober up a VALUES defaultText.
-		 */
+        /* We're all set up to parse. We have to build a compilable SQL statement
+         * before we can parse -  So, we goober up a VALUES defaultText.
+         */
         String values="VALUES "+defaultText;
 
-		/*
-		** Get a new compiler context, so the parsing of the select statement
-		** doesn't mess up anything in the current context (it could clobber
-		** the ParameterValueSet, for example).
-		*/
+        /*
+        ** Get a new compiler context, so the parsing of the select statement
+        ** doesn't mess up anything in the current context (it could clobber
+        ** the ParameterValueSet, for example).
+        */
         CompilerContext newCC=lcc.pushCompilerContext();
 
         p=newCC.getParser();
 
-		/* Finally, we can call the parser */
+        /* Finally, we can call the parser */
         // Since this is always nested inside another SQL statement, so topLevel flag
         // should be false
         Visitable qt=p.parseStatement(values);
@@ -869,27 +869,27 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
     public ResultSetNode genProjectRestrict()
             throws StandardException{
-		/* We get a shallow copy of the ResultColumnList and its
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
+        /* We get a shallow copy of the ResultColumnList and its
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         */
         ResultColumnList prRCList=resultColumns;
         resultColumns=resultColumns.copyListAndObjects();
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 */
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, this, and source ResultColumn.)
+         */
         prRCList.genVirtualColumnNodes(this,resultColumns);
 
-		/* Finally, we create the new ProjectRestrictNode */
+        /* Finally, we create the new ProjectRestrictNode */
         return (ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 this,
                 prRCList,
-                null,	/* Restriction */
+                null,    /* Restriction */
                 null,   /* Restriction as PredicateList */
-                null,	/* Project subquery list */
-                null,	/* Restrict subquery list */
+                null,    /* Project subquery list */
+                null,    /* Restrict subquery list */
                 null,
                 getContextManager());
     }
@@ -1114,7 +1114,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
                                      DataDictionary dataDictionary,
                                      RequiredRowOrdering requiredRowOrdering) throws StandardException{
         if(optimizer==null){
-			/* Get an optimizer. */
+            /* Get an optimizer. */
             LanguageConnectionContext lcc=getLanguageConnectionContext();
             OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
 
@@ -1123,6 +1123,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
         optimizer.prepForNextRound();
         return optimizer;
+    }
+
+    /**
+     * Resets the current optimizer
+     */
+    protected void resetOptimizer() {
+        optimizer = null;
     }
 
     /**
@@ -1215,28 +1222,28 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
     ResultSetNode genProjectRestrictForReordering()
             throws StandardException{
-		/* We get a shallow copy of the ResultColumnList and its
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
+        /* We get a shallow copy of the ResultColumnList and its
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         */
         ResultColumnList prRCList=resultColumns;
         resultColumns=resultColumns.copyListAndObjects();
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 * NOTE: We don't want to mark the underlying RCs as referenced, otherwise
-		 * we won't be able to project out any of them.
-		 */
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, this, and source ResultColumn.)
+         * NOTE: We don't want to mark the underlying RCs as referenced, otherwise
+         * we won't be able to project out any of them.
+         */
         prRCList.genVirtualColumnNodes(this,resultColumns,false);
-		/* Finally, we create the new ProjectRestrictNode */
+        /* Finally, we create the new ProjectRestrictNode */
         return (ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 this,
                 prRCList,
-                null,	/* Restriction */
+                null,    /* Restriction */
                 null,   /* Restriction as PredicateList */
-                null,	/* Project subquery list */
-                null,	/* Restrict subquery list */
+                null,    /* Project subquery list */
+                null,    /* Restrict subquery list */
                 null,
                 getContextManager());
     }
@@ -1291,10 +1298,10 @@ public abstract class ResultSetNode extends QueryTreeNode{
                         C_NodeTypes.RESULT_COLUMN_LIST,
                         getContextManager());
 
-		/* Create a massaged version of the source RCL.
-		 * (Much simpler to build new list and then assign to source,
-		 * rather than massage the source list in place.)
-		 */
+        /* Create a massaged version of the source RCL.
+         * (Much simpler to build new list and then assign to source,
+         * rather than massage the source list in place.)
+         */
         int numTargetColumns=target.resultColumnList.size();
         for(int index=0;index<numTargetColumns;index++){
             ResultColumn newResultColumn=null;
@@ -1518,9 +1525,9 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
     void adjustForSortElimination(RequiredRowOrdering rowOrdering)
             throws StandardException{
-		/* Default is to ignore the row ordering; subclasses must
-		 * override if they need to use it.
-		 */
+        /* Default is to ignore the row ordering; subclasses must
+         * override if they need to use it.
+         */
         adjustForSortElimination();
     }
 
@@ -1642,10 +1649,10 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
         int numTargetColumns=target.resultColumnList.size();
 
-		/* Create a massaged version of the source RCL.
-		 * (Much simpler to build new list and then assign to source,
-		 * rather than massage the source list in place.)
-		 */
+        /* Create a massaged version of the source RCL.
+         * (Much simpler to build new list and then assign to source,
+         * rather than massage the source list in place.)
+         */
         for(int index=0;index<numTargetColumns;index++){
             ResultColumn newResultColumn;
             ResultColumn oldResultColumn;
@@ -1662,7 +1669,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
                         oldResultColumn.getName(),
                         null,
                         getContextManager());
-				/* The ColumnReference points to the source of the value */
+                /* The ColumnReference points to the source of the value */
                 newColumnReference.setSource(oldResultColumn);
                 // colMap entry is 0-based, columnId is 1-based.
                 newColumnReference.setType(oldResultColumn.getType());
@@ -1691,15 +1698,15 @@ public abstract class ResultSetNode extends QueryTreeNode{
             newResultCols.addResultColumn(newResultColumn);
         }
 
-		/* The generated ProjectRestrictNode now has the ResultColumnList
-		 * in the order that the InsertNode expects.
-		 * NOTE: This code here is an exception to several "rules":
-		 *		o  This is the only ProjectRestrictNode that is currently
-		 *		   generated outside of preprocess().
-		 *	    o  The UnionNode is the only node which is not at the
-		 *		   top of the query tree which has ColumnReferences under
-		 *		   its ResultColumnList prior to expression push down.
-		 */
+        /* The generated ProjectRestrictNode now has the ResultColumnList
+         * in the order that the InsertNode expects.
+         * NOTE: This code here is an exception to several "rules":
+         *        o  This is the only ProjectRestrictNode that is currently
+         *           generated outside of preprocess().
+         *        o  The UnionNode is the only node which is not at the
+         *           top of the query tree which has ColumnReferences under
+         *           its ResultColumnList prior to expression push down.
+         */
         return (ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 this,
@@ -1751,5 +1758,4 @@ public abstract class ResultSetNode extends QueryTreeNode{
     public boolean getContainsSelfReference() {
         return containsSelfReference;
     }
-
 }

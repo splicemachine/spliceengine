@@ -33,71 +33,71 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public class NestedLoopJoinOperation extends JoinOperation {
-		private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
-		protected boolean isHash;
+        private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
+        protected boolean isHash;
         protected static final String NAME = NestedLoopJoinOperation.class.getSimpleName().replaceAll("Operation","");
-    	@Override
-    	public String getName() {
-    			return NAME;
-    	}
-		public NestedLoopJoinOperation() {
-				super();
-		}
+        @Override
+        public String getName() {
+                return NAME;
+        }
+        public NestedLoopJoinOperation() {
+                super();
+        }
 
-		public NestedLoopJoinOperation(SpliceOperation leftResultSet,
-																	 int leftNumCols,
-																	 SpliceOperation rightResultSet,
-																	 int rightNumCols,
-																	 Activation activation,
-																	 GeneratedMethod restriction,
-																	 int resultSetNumber,
-																	 boolean oneRowRightSide,
-																	 boolean notExistsRightSide,
-									                                 boolean rightFromSSQ,
-																	 double optimizerEstimatedRowCount,
-																	 double optimizerEstimatedCost,
-																	 String userSuppliedOptimizerOverrides,
-																	 String sparkExpressionTreeAsString) throws StandardException {
-				super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,activation,restriction,
-								resultSetNumber,oneRowRightSide,notExistsRightSide,rightFromSSQ,optimizerEstimatedRowCount,
-								optimizerEstimatedCost,userSuppliedOptimizerOverrides,sparkExpressionTreeAsString);
-				this.isHash = false;
+        public NestedLoopJoinOperation(SpliceOperation leftResultSet,
+                                       int leftNumCols,
+                                       SpliceOperation rightResultSet,
+                                       int rightNumCols,
+                                       Activation activation,
+                                       GeneratedMethod restriction,
+                                       int resultSetNumber,
+                                       boolean oneRowRightSide,
+                                       boolean notExistsRightSide,
+                                       boolean rightFromSSQ,
+                                       double optimizerEstimatedRowCount,
+                                       double optimizerEstimatedCost,
+                                       String userSuppliedOptimizerOverrides,
+                                       String sparkExpressionTreeAsString) throws StandardException {
+                super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,activation,restriction,
+                      resultSetNumber,oneRowRightSide,notExistsRightSide,rightFromSSQ,optimizerEstimatedRowCount,
+                      optimizerEstimatedCost,userSuppliedOptimizerOverrides,sparkExpressionTreeAsString);
+                this.isHash = false;
                 init();
-		}
+        }
 
-		@Override
-		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-				super.readExternal(in);
-				isHash = in.readBoolean();
-		}
+        @Override
+        public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+                super.readExternal(in);
+                isHash = in.readBoolean();
+        }
 
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				super.writeExternal(out);
-				out.writeBoolean(isHash);
-		}
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+                super.writeExternal(out);
+                out.writeBoolean(isHash);
+        }
 
-		@Override
-		public void init(SpliceOperationContext context) throws IOException, StandardException{
-				super.init(context);
-		}
+        @Override
+        public void init(SpliceOperationContext context) throws IOException, StandardException{
+                super.init(context);
+        }
 
-		@Override
-		public String toString() {
-				return "NestedLoop"+super.toString();
-		}
+        @Override
+        public String toString() {
+                return "NestedLoop"+super.toString();
+        }
 
-		@Override
-		public String prettyPrint(int indentLevel) {
-				return "NestedLoopJoin:" + super.prettyPrint(indentLevel);
-		}
+        @Override
+        public String prettyPrint(int indentLevel) {
+                return "NestedLoopJoin:" + super.prettyPrint(indentLevel);
+        }
 
 
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-		if (!isOpen)
-			throw new IllegalStateException("Operation is not open");
+        if (!isOpen)
+            throw new IllegalStateException("Operation is not open");
 
-		DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
+        DataSet<ExecRow> left = leftResultSet.getDataSet(dsp);
         OperationContext<NestedLoopJoinOperation> operationContext = dsp.createOperationContext(this);
 
         operationContext.pushScope();
@@ -106,15 +106,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
                 return left.mapPartitions(new NLJOuterJoinFunction(operationContext), true);
             else {
                 if (notExistsRightSide)
-					return left.mapPartitions(new NLJAntiJoinFunction(operationContext), true);
-				else {
-					if (oneRowRightSide)
-						return left.mapPartitions(new NLJOneRowInnerJoinFunction(operationContext), true);
-					else
-						return left.mapPartitions(new NLJInnerJoinFunction(operationContext), true);
-				}
+                    return left.mapPartitions(new NLJAntiJoinFunction(operationContext), true);
+                else {
+                    if (oneRowRightSide)
+                        return left.mapPartitions(new NLJOneRowInnerJoinFunction(operationContext), true);
+                    else
+                        return left.mapPartitions(new NLJInnerJoinFunction(operationContext), true);
+                }
 
-			}
+            }
         } finally {
             operationContext.popScope();
         }

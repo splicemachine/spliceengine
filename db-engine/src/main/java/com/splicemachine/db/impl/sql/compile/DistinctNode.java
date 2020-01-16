@@ -68,7 +68,7 @@ import java.util.*;
  */
 public class DistinctNode extends SingleChildResultSetNode
 {
-	boolean inSortedOrder;
+    boolean inSortedOrder;
 
     @Override
     public boolean isParallelizable() {
@@ -76,106 +76,103 @@ public class DistinctNode extends SingleChildResultSetNode
     }
 
     /**
-	 * Initializer for a DistinctNode.
-	 *
-	 * @param childResult	The child ResultSetNode
-	 * @param inSortedOrder	Whether or not the child ResultSetNode returns its
-	 *						output in sorted order.
-	 * @param tableProperties	Properties list associated with the table
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void init(
-						Object childResult,
-						Object inSortedOrder,
-						Object tableProperties) throws StandardException
-	{
-		super.init(childResult, tableProperties);
+     * Initializer for a DistinctNode.
+     *
+     * @param childResult    The child ResultSetNode
+     * @param inSortedOrder    Whether or not the child ResultSetNode returns its
+     *                        output in sorted order.
+     * @param tableProperties    Properties list associated with the table
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void init(
+                        Object childResult,
+                        Object inSortedOrder,
+                        Object tableProperties) throws StandardException
+    {
+        super.init(childResult, tableProperties);
 
-		if (SanityManager.DEBUG)
-		{
-			if (!(childResult instanceof Optimizable))
-			{
-				SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
-					", expected to be instanceof Optimizable");
-			}
-			if (!(childResult instanceof FromTable))
-			{
-				SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
-					", expected to be instanceof FromTable");
-			}
-		}
+        if (SanityManager.DEBUG)
+        {
+            if (!(childResult instanceof Optimizable))
+            {
+                SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
+                    ", expected to be instanceof Optimizable");
+            }
+            if (!(childResult instanceof FromTable))
+            {
+                SanityManager.THROWASSERT("childResult, " + childResult.getClass().getName() +
+                    ", expected to be instanceof FromTable");
+            }
+        }
 
-		ResultColumnList prRCList;
+        ResultColumnList prRCList;
 
-		/*
-			We want our own resultColumns, which are virtual columns
-			pointing to the child result's columns.
+        /*
+            We want our own resultColumns, which are virtual columns
+            pointing to the child result's columns.
 
-			We have to have the original object in the distinct node,
-			and give the underlying project the copy.
-		 */
+            We have to have the original object in the distinct node,
+            and give the underlying project the copy.
+         */
 
-		/* We get a shallow copy of the ResultColumnList and its 
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
-		prRCList = this.childResult.getResultColumns().copyListAndObjects();
-		resultColumns = this.childResult.getResultColumns();
-		this.childResult.setResultColumns(prRCList);
+        /* We get a shallow copy of the ResultColumnList and its
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         */
+        prRCList = this.childResult.getResultColumns().copyListAndObjects();
+        resultColumns = this.childResult.getResultColumns();
+        this.childResult.setResultColumns(prRCList);
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the DistinctNode's RCL.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 */
-		resultColumns.genVirtualColumnNodes(this, prRCList);
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the DistinctNode's RCL.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, this, and source ResultColumn.)
+         */
+        resultColumns.genVirtualColumnNodes(this, prRCList);
 
-		/* Verify that we can perform a DISTINCT on the
-		 * underlying tree.
-		 */
-		resultColumns.verifyAllOrderable();
+        /* Verify that we can perform a DISTINCT on the
+         * underlying tree.
+         */
+        resultColumns.verifyAllOrderable();
 
-		this.inSortedOrder = (Boolean) inSortedOrder;
-	}
+        this.inSortedOrder = (Boolean) inSortedOrder;
+    }
 
-	/*
-	 *  Optimizable interface
-	 */
+    /*
+     *  Optimizable interface
+     */
 
-	/**
-	 * @see Optimizable#optimizeIt
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public CostEstimate optimizeIt(Optimizer optimizer,
-									OptimizablePredicateList predList,
-									CostEstimate outerCost,
-									RowOrdering rowOrdering)
-			throws StandardException
-	{
-		CostEstimate childCost =
-			((Optimizable) childResult).optimizeIt(optimizer,
-									predList,
-									outerCost,
-									rowOrdering);
+    /**
+     * @see Optimizable#optimizeIt
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public CostEstimate optimizeIt(Optimizer optimizer,
+                                   OptimizablePredicateList predList,
+                                   CostEstimate outerCost,
+                                   RowOrdering rowOrdering)
+            throws StandardException
+    {
+        CostEstimate childCost = ((Optimizable) childResult).optimizeIt(
+                optimizer, predList, outerCost, rowOrdering);
 
-		return super.optimizeIt(optimizer, predList, outerCost, rowOrdering);
-	}
+        return super.optimizeIt(optimizer, predList, outerCost, rowOrdering);
+    }
 
-	/**
-	 * @see Optimizable#estimateCost
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public CostEstimate estimateCost(OptimizablePredicateList predList,
-									ConglomerateDescriptor cd,
-									CostEstimate outerCost,
-									Optimizer optimizer,
-									RowOrdering rowOrdering)
-			throws StandardException
-	{
+    /**
+     * @see Optimizable#estimateCost
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public CostEstimate estimateCost(OptimizablePredicateList predList,
+                                     ConglomerateDescriptor cd,
+                                     CostEstimate outerCost,
+                                     Optimizer optimizer,
+                                     RowOrdering rowOrdering)
+            throws StandardException
+    {
         costEstimate = getNewCostEstimate();
         CostEstimate baseCost = childResult.getFinalCostEstimate(true);
-		double rc = baseCost.rowCount() > 1? baseCost.rowCount():1;
+        double rc = baseCost.rowCount() > 1? baseCost.rowCount():1;
         double outputHeapSizePerRow = baseCost.getEstimatedHeapSize()/rc;
         double remoteCostPerRow=baseCost.remoteCost()/rc;
 
@@ -204,142 +201,142 @@ public class DistinctNode extends SingleChildResultSetNode
         costEstimate.setRowCount(tableCardinality);
         costEstimate.setEstimatedHeapSize((long)outputHeapSize);
 
-		return costEstimate;
-	}
+        return costEstimate;
+    }
 
-	/**
-	 * @see com.splicemachine.db.iapi.sql.compile.Optimizable#pushOptPredicate
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * @see com.splicemachine.db.iapi.sql.compile.Optimizable#pushOptPredicate
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate)
-			throws StandardException
-	{
-		return false;
-		// return ((Optimizable) childResult).pushOptPredicate(optimizablePredicate);
-	}
+    public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate)
+            throws StandardException
+    {
+        return false;
+        // return ((Optimizable) childResult).pushOptPredicate(optimizablePredicate);
+    }
 
 
-	/**
-	 * Optimize this DistinctNode.  
-	 *
-	 * @param dataDictionary	The DataDictionary to use for optimization
-	 * @param predicates		The PredicateList to optimize.  This should
-	 *							be a join predicate.
-	 * @param outerRows			The number of outer joining rows
-	 *
-	 * @return	ResultSetNode	The top of the optimized subtree
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Optimize this DistinctNode.
+     *
+     * @param dataDictionary    The DataDictionary to use for optimization
+     * @param predicates        The PredicateList to optimize.  This should
+     *                            be a join predicate.
+     * @param outerRows            The number of outer joining rows
+     *
+     * @return    ResultSetNode    The top of the optimized subtree
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public ResultSetNode optimize(DataDictionary dataDictionary,
-								  PredicateList predicates,
-								  double outerRows) 
-					throws StandardException
-	{
-		/* We need to implement this method since a PRN can appear above a
-		 * SelectNode in a query tree.
-		 */
-		childResult = (ResultSetNode) childResult.optimize(
-															dataDictionary,
-															predicates,
-															outerRows);
-		Optimizer optimizer = getOptimizer(
-						(FromList) getNodeFactory().getNode(
-							C_NodeTypes.FROM_LIST,
-							getNodeFactory().doJoinOrderOptimization(),
-							this,
-							getContextManager()),
-						predicates,
-						dataDictionary,
-						(RequiredRowOrdering) null);
+    public ResultSetNode optimize(DataDictionary dataDictionary,
+                                  PredicateList predicates,
+                                  double outerRows)
+                    throws StandardException
+    {
+        /* We need to implement this method since a PRN can appear above a
+         * SelectNode in a query tree.
+         */
+        childResult = (ResultSetNode) childResult.optimize(
+                                                            dataDictionary,
+                                                            predicates,
+                                                            outerRows);
+        Optimizer optimizer = getOptimizer(
+                        (FromList) getNodeFactory().getNode(
+                            C_NodeTypes.FROM_LIST,
+                            getNodeFactory().doJoinOrderOptimization(),
+                            this,
+                            getContextManager()),
+                        predicates,
+                        dataDictionary,
+                        (RequiredRowOrdering) null);
 
-		// RESOLVE: NEED TO FACTOR IN COST OF SORTING AND FIGURE OUT HOW
-		// MANY ROWS HAVE BEEN ELIMINATED.
-		costEstimate = optimizer.newCostEstimate();
+        // RESOLVE: NEED TO FACTOR IN COST OF SORTING AND FIGURE OUT HOW
+        // MANY ROWS HAVE BEEN ELIMINATED.
+        costEstimate = optimizer.newCostEstimate();
 
-		costEstimate.setCost(childResult.getCostEstimate().getEstimatedCost(),
-							 childResult.getCostEstimate().rowCount(),
-							 childResult.getCostEstimate().singleScanRowCount());
+        costEstimate.setCost(childResult.getCostEstimate().getEstimatedCost(),
+                             childResult.getCostEstimate().rowCount(),
+                             childResult.getCostEstimate().singleScanRowCount());
 
-		return this;
-	}
+        return this;
+    }
 
-	/**
-	 * Return whether or not the underlying ResultSet tree
-	 * is ordered on the specified columns.
-	 * RESOLVE - This method currently only considers the outermost table 
-	 * of the query block.
-	 *
-	 * @param	crs					The specified ColumnReference[]
-	 * @param	permuteOrdering		Whether or not the order of the CRs in the array can be permuted
-	 * @param	fbtVector			Vector that is to be filled with the FromBaseTable	
-	 *
-	 * @return	Whether the underlying ResultSet tree
-	 * is ordered on the specified column.
-	 */
-	boolean isOrderedOn(ColumnReference[] crs, boolean permuteOrdering, Vector fbtVector)
-	{
-		/* RESOLVE - DistinctNodes are ordered on their RCLs.
-		 * Walk RCL to see if cr is 1st non-constant column in the
-		 * ordered result.
-		 */
-		return false;
-	}
+    /**
+     * Return whether or not the underlying ResultSet tree
+     * is ordered on the specified columns.
+     * RESOLVE - This method currently only considers the outermost table
+     * of the query block.
+     *
+     * @param    crs                    The specified ColumnReference[]
+     * @param    permuteOrdering        Whether or not the order of the CRs in the array can be permuted
+     * @param    fbtVector            Vector that is to be filled with the FromBaseTable
+     *
+     * @return    Whether the underlying ResultSet tree
+     * is ordered on the specified column.
+     */
+    boolean isOrderedOn(ColumnReference[] crs, boolean permuteOrdering, Vector fbtVector)
+    {
+        /* RESOLVE - DistinctNodes are ordered on their RCLs.
+         * Walk RCL to see if cr is 1st non-constant column in the
+         * ordered result.
+         */
+        return false;
+    }
 
     /**
      * generate the distinct result set operating over the source
-	 * resultset.
+     * resultset.
      *
-	 * @exception StandardException		Thrown on error
+     * @exception StandardException        Thrown on error
      */
-	public void generate(ActivationClassBuilder acb,
-								MethodBuilder mb)
-							throws StandardException
-	{
-		/* Get the next ResultSet#, so we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
-		assignResultSetNumber();
+    public void generate(ActivationClassBuilder acb,
+                                MethodBuilder mb)
+                            throws StandardException
+    {
+        /* Get the next ResultSet#, so we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
+        assignResultSetNumber();
 
-		// Get the final cost estimate based on the child's cost.
-		costEstimate = getFinalCostEstimate(false);
+        // Get the final cost estimate based on the child's cost.
+        costEstimate = getFinalCostEstimate(false);
 
-		/*
-			create the orderItem and stuff it in.
-		 */
-		int orderItem = acb.addItem(acb.getColumnOrdering(resultColumns));
+        /*
+            create the orderItem and stuff it in.
+         */
+        int orderItem = acb.addItem(acb.getColumnOrdering(resultColumns));
 
-		/* Generate the SortResultSet:
-		 *	arg1: childExpress - Expression for childResultSet
-		 *  arg2: distinct - true, of course
-		 *  arg3: isInSortedOrder - is the source result set in sorted order
-		 *  arg4: orderItem - entry in saved objects for the ordering
-		 *  arg5: rowAllocator - method to construct rows for fetching
-		 *			from the sort
-		 *  arg6: row size
-		 *  arg7: resultSetNumber
-		 *  arg8: explain plan
-		 */
+        /* Generate the SortResultSet:
+         *    arg1: childExpress - Expression for childResultSet
+         *  arg2: distinct - true, of course
+         *  arg3: isInSortedOrder - is the source result set in sorted order
+         *  arg4: orderItem - entry in saved objects for the ordering
+         *  arg5: rowAllocator - method to construct rows for fetching
+         *            from the sort
+         *  arg6: row size
+         *  arg7: resultSetNumber
+         *  arg8: explain plan
+         */
 
-		acb.pushGetResultSetFactoryExpression(mb);
+        acb.pushGetResultSetFactoryExpression(mb);
 
-		childResult.generate(acb, mb);
-		mb.push(true);
-		mb.push(inSortedOrder);
-		mb.push(orderItem);
-		resultColumns.generateHolder(acb, mb);
-		mb.push(resultColumns.getTotalColumnSize());
-		mb.push(resultSetNumber);
-		mb.push(costEstimate.rowCount());
-		mb.push(costEstimate.getEstimatedCost());
-		mb.push(printExplainInformationForActivation());
+        childResult.generate(acb, mb);
+        mb.push(true);
+        mb.push(inSortedOrder);
+        mb.push(orderItem);
+        resultColumns.generateHolder(acb, mb);
+        mb.push(resultColumns.getTotalColumnSize());
+        mb.push(resultSetNumber);
+        mb.push(costEstimate.rowCount());
+        mb.push(costEstimate.getEstimatedCost());
+        mb.push(printExplainInformationForActivation());
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getSortResultSet",
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getSortResultSet",
                 ClassName.NoPutResultSet, 10);
-	}
+    }
 
 
     @Override

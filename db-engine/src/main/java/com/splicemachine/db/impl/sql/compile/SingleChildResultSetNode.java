@@ -146,6 +146,14 @@ public abstract class SingleChildResultSetNode extends FromTable{
         }
     }
 
+    @Override
+    public void resetAccessPaths() {
+        super.resetAccessPaths();
+        if (childResult instanceof Optimizable) {
+            ((Optimizable)childResult).resetAccessPaths();
+        }
+    }
+
     /**
      * @see Optimizable#updateBestPlanMap
      * <p/>
@@ -539,4 +547,12 @@ public abstract class SingleChildResultSetNode extends FromTable{
         childResult.buildTree(tree,depth+1);
     }
 
+    @Override
+    protected boolean determineSpark() throws StandardException {
+        if (childResult.determineSpark()) {
+            setDataSetProcessorType(CompilerContext.DataSetProcessorType.SPARK);
+            return true;
+        }
+        return false;
+    }
 }

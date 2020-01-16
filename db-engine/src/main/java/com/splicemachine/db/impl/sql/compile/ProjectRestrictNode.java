@@ -126,11 +126,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         this.projectSubquerys=(SubqueryList)projectSubquerys;
         this.restrictSubquerys=(SubqueryList)restrictSubquerys;
 
-		/* A PRN will only hold the tableProperties for
+        /* A PRN will only hold the tableProperties for
          * a result set tree if its child is not an
-		 * optimizable.  Otherwise, the properties will
-		 * be transferred down to the child.
-		 */
+         * optimizable.  Otherwise, the properties will
+         * be transferred down to the child.
+         */
         if(tableProperties!=null &&
                 (childResult instanceof Optimizable)){
             ((Optimizable)childResult).setProperties(getProperties());
@@ -141,23 +141,23 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             containsSelfReference = true;
     }
 
-	/*
-	 *  Optimizable interface
-	 */
+    /*
+     *  Optimizable interface
+     */
 
     @Override
     public boolean nextAccessPath(Optimizer optimizer,
                                   OptimizablePredicateList predList,
                                   RowOrdering rowOrdering) throws StandardException{
-		/*
-		** If the child result set is an optimizable, let it choose its next
-		** access path.  If it is not an optimizable, we have to tell the
-		** caller that there is an access path the first time we are called
-		** for this position in the join order, and that there are no more
-		** access paths for subsequent calls for this position in the join
-		** order.  The startOptimizing() method is called once on each
-		** optimizable when it is put into a join position.
-		*/
+        /*
+        ** If the child result set is an optimizable, let it choose its next
+        ** access path.  If it is not an optimizable, we have to tell the
+        ** caller that there is an access path the first time we are called
+        ** for this position in the join order, and that there are no more
+        ** access paths for subsequent calls for this position in the join
+        ** order.  The startOptimizing() method is called once on each
+        ** optimizable when it is put into a join position.
+        */
         if(childResult instanceof Optimizable){
             return ((Optimizable)childResult).nextAccessPath(optimizer, restrictionList, rowOrdering);
         }else{
@@ -183,14 +183,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public int getTableNumber(){
-		/* GROSS HACK - We need to get the tableNumber after
-		 * calling modifyAccessPaths() on the child when doing
-		 * a hash join on an arbitrary result set.  The problem
-		 * is that the child will always be an optimizable at this
-		 * point.  So, we 1st check to see if we should get it from
-		 * this node.  (We set the boolean to true in the appropriate
-		 * place in modifyAccessPaths().)
-		 */
+        /* GROSS HACK - We need to get the tableNumber after
+         * calling modifyAccessPaths() on the child when doing
+         * a hash join on an arbitrary result set.  The problem
+         * is that the child will always be an optimizable at this
+         * point.  So, we 1st check to see if we should get it from
+         * this node.  (We set the boolean to true in the appropriate
+         * place in modifyAccessPaths().)
+         */
         if(getTableNumberHere){
             return super.getTableNumber();
         }
@@ -206,36 +206,36 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                                    OptimizablePredicateList predList,
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
-		/*
-		** RESOLVE: Most types of Optimizables only implement estimateCost(),
-		** and leave it up to optimizeIt() in FromTable to figure out the
-		** total cost of the join.  A ProjectRestrict can have a non-Optimizable
-		** child, though, in which case we want to tell the child the
-		** number of outer rows - it could affect the join strategy
-		** significantly.  So we implement optimizeIt() here, which overrides
-		** the optimizeIt() in FromTable.  This assumes that the join strategy
-		** for which this join node is the inner table is a nested loop join,
-		** which will not be a valid assumption when we implement other
-		** strategies like materialization (hash join can work only on
-		** base tables).  The join strategy for a base table under a
-		** ProjectRestrict is set in the base table itself.
-		*/
+        /*
+        ** RESOLVE: Most types of Optimizables only implement estimateCost(),
+        ** and leave it up to optimizeIt() in FromTable to figure out the
+        ** total cost of the join.  A ProjectRestrict can have a non-Optimizable
+        ** child, though, in which case we want to tell the child the
+        ** number of outer rows - it could affect the join strategy
+        ** significantly.  So we implement optimizeIt() here, which overrides
+        ** the optimizeIt() in FromTable.  This assumes that the join strategy
+        ** for which this join node is the inner table is a nested loop join,
+        ** which will not be a valid assumption when we implement other
+        ** strategies like materialization (hash join can work only on
+        ** base tables).  The join strategy for a base table under a
+        ** ProjectRestrict is set in the base table itself.
+        */
 
         CostEstimate childCost;
 
         costEstimate=getCostEstimate(optimizer);
 
-		/*
-		** Don't re-optimize a child result set that has already been fully
-		** optimized.  For example, if the child result set is a SelectNode,
-		** it will be changed to a ProjectRestrictNode, which we don't want
-		** to re-optimized.
-		*/
+        /*
+        ** Don't re-optimize a child result set that has already been fully
+        ** optimized.  For example, if the child result set is a SelectNode,
+        ** it will be changed to a ProjectRestrictNode, which we don't want
+        ** to re-optimized.
+        */
         // NOTE: TO GET THE RIGHT COST, THE CHILD RESULT MAY HAVE TO BE
         // OPTIMIZED MORE THAN ONCE, BECAUSE THE NUMBER OF OUTER ROWS
         // MAY BE DIFFERENT EACH TIME.
         // if (childResultOptimized)
-        // 	return costEstimate;
+        //     return costEstimate;
 
         // It's possible that a call to optimize the left/right will cause
         // a new "truly the best" plan to be stored in the underlying base
@@ -249,15 +249,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-		/* If the childResult is instanceof Optimizable, then we optimizeIt.
-		 * Otherwise, we are going into a new query block.  If the new query
-		 * block has already had its access path modified, then there is
-		 * nothing to do.  Otherwise, we must begin the optimization process
-		 * anew on the new query block.
-		 */
+        /* If the childResult is instanceof Optimizable, then we optimizeIt.
+         * Otherwise, we are going into a new query block.  If the new query
+         * block has already had its access path modified, then there is
+         * nothing to do.  Otherwise, we must begin the optimization process
+         * anew on the new query block.
+         */
         if(childResult instanceof Optimizable){
-            childCost=((Optimizable)childResult).optimizeIt(optimizer,restrictionList,outerCost,rowOrdering);
-			/* Copy child cost to this node's cost */
+            childCost=((Optimizable)childResult).optimizeIt(optimizer, restrictionList, outerCost, rowOrdering);
+            /* Copy child cost to this node's cost */
             costEstimate.setCost(childCost);
 
 
@@ -295,50 +295,51 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                     cd = baseTables.get(0).baseConglomerateDescriptor;
                 }
             }
-			/* Copy child cost to this node's cost */
+            /* Copy child cost to this node's cost */
             costEstimate=childResult.costEstimate;
-            getCurrentAccessPath().getJoinStrategy().estimateCost(this,restrictionList,cd,outerCost,optimizer,costEstimate);
+            getCurrentAccessPath().getJoinStrategy().estimateCost(
+                    this, restrictionList, cd, outerCost, optimizer, costEstimate);
 
-			/* Note: Prior to the fix for DERBY-781 we had calls here
-			 * to set the cost estimate for BestAccessPath and
-			 * BestSortAvoidancePath to equal costEstimate.  That used
-			 * to be okay because prior to DERBY-781 we would only
-			 * get here once (per join order) for a given SelectNode/
-			 * RowResultSetNode and thus we could safely say that the
-			 * costEstimate from the most recent call to "optimize()"
-			 * was the best one so far (because we knew that we would
-			 * only call childResult.optimize() once).  Now that we
-			 * support hash joins with subqueries, though, we can get
-			 * here twice per join order: once when the optimizer is
-			 * considering a nested loop join with this PRN, and once
-			 * when it is considering a hash join.  This means we can't
-			 * just arbitrarily use the cost estimate for the most recent
-			 * "optimize()" as the best cost because that may not
-			 * be accurate--it's possible that the above call to
-			 * childResult.optimize() was for a hash join, but that
-			 * we were here once before (namely for nested loop) and
-			 * the cost of the nested loop is actually less than
-			 * the cost of the hash join.  In that case it would
-			 * be wrong to use costEstimate as the cost of the "best"
-			 * paths because it (costEstimate) holds the cost of
-			 * the hash join, not of the nested loop join.  So with
-			 * DERBY-781 the following calls were removed:
-			 *   getBestAccessPath().setCostEstimate(costEstimate);
-			 *   getBestSortAvoidancePath().setCostEstimate(costEstimate);
-			 * If costEstimate *does* actually hold the estimate for
-			 * the best path so far, then we will set BestAccessPath
-			 * and BestSortAvoidancePath as needed in the following
-			 * call to "considerCost".
-			 */
+            /* Note: Prior to the fix for DERBY-781 we had calls here
+             * to set the cost estimate for BestAccessPath and
+             * BestSortAvoidancePath to equal costEstimate.  That used
+             * to be okay because prior to DERBY-781 we would only
+             * get here once (per join order) for a given SelectNode/
+             * RowResultSetNode and thus we could safely say that the
+             * costEstimate from the most recent call to "optimize()"
+             * was the best one so far (because we knew that we would
+             * only call childResult.optimize() once).  Now that we
+             * support hash joins with subqueries, though, we can get
+             * here twice per join order: once when the optimizer is
+             * considering a nested loop join with this PRN, and once
+             * when it is considering a hash join.  This means we can't
+             * just arbitrarily use the cost estimate for the most recent
+             * "optimize()" as the best cost because that may not
+             * be accurate--it's possible that the above call to
+             * childResult.optimize() was for a hash join, but that
+             * we were here once before (namely for nested loop) and
+             * the cost of the nested loop is actually less than
+             * the cost of the hash join.  In that case it would
+             * be wrong to use costEstimate as the cost of the "best"
+             * paths because it (costEstimate) holds the cost of
+             * the hash join, not of the nested loop join.  So with
+             * DERBY-781 the following calls were removed:
+             *   getBestAccessPath().setCostEstimate(costEstimate);
+             *   getBestSortAvoidancePath().setCostEstimate(costEstimate);
+             * If costEstimate *does* actually hold the estimate for
+             * the best path so far, then we will set BestAccessPath
+             * and BestSortAvoidancePath as needed in the following
+             * call to "considerCost".
+             */
 
             // childResultOptimized = true;
 
-			/* RESOLVE - ARBITRARYHASHJOIN - Passing restriction list here, as above, is correct.
-			 * However,  passing predList makes the following work:
-			 *	select * from t1, (select * from t2) c properties joinStrategy = hash where t1.c1 = c.c1;
-			 * The following works with restrictionList:
-			 *	select * from t1, (select c1 + 0 from t2) c(c1) properties joinStrategy = hash where t1.c1 = c.c1;
-			 */
+            /* RESOLVE - ARBITRARYHASHJOIN - Passing restriction list here, as above, is correct.
+             * However,  passing predList makes the following work:
+             *    select * from t1, (select * from t2) c properties joinStrategy = hash where t1.c1 = c.c1;
+             * The following works with restrictionList:
+             *    select * from t1, (select c1 + 0 from t2) c(c1) properties joinStrategy = hash where t1.c1 = c.c1;
+             */
             optimizer.considerCost(this,restrictionList,getCostEstimate(),outerCost);
         }
 
@@ -366,10 +367,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                                         Optimizer optimizer,
                                         CostEstimate outerCost) throws StandardException{
 
-		/* The child being an Optimizable is a special case.  In that
-		 * case, we want to get the current access path and join strategy
-		 * from the child.  Otherwise, we want to get it from this node.
-		 */
+        /* The child being an Optimizable is a special case.  In that
+         * case, we want to get the current access path and join strategy
+         * from the child.  Otherwise, we want to get it from this node.
+         */
         if(childResult instanceof Optimizable){
             // With DERBY-805 it's possible that, when considering a nested
             // loop join with this PRN, we pushed predicates down into the
@@ -420,14 +421,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public AccessPath getTrulyTheBestAccessPath(){
-		/* The childResult will always be an Optimizable
-		 * during code generation.  If the childResult was
-		 * not an Optimizable during optimization, then this node
-		 * will have the truly the best access path, so we want to
-		 * return it from this node, rather than traversing the tree.
-		 * This can happen for non-flattenable derived tables.
-		 * Anyway, we note this state when modifying the access paths.
-		 */
+        /* The childResult will always be an Optimizable
+         * during code generation.  If the childResult was
+         * not an Optimizable during optimization, then this node
+         * will have the truly the best access path, so we want to
+         * return it from this node, rather than traversing the tree.
+         * This can happen for non-flattenable derived tables.
+         * Anyway, we note this state when modifying the access paths.
+         */
         if(hasTrulyTheBestAccessPath){
             return super.getTrulyTheBestAccessPath();
         }
@@ -538,48 +539,48 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
         boolean origChildOptimizable=true;
 
-		/* It is okay to optimize most nodes multiple times.  However,
-		 * modifying the access path is something that should only be done
-		 * once per node.  One reason for this is that the predicate list
-		 * will be empty after the 1st call, and we assert that it should
-		 * be non-empty.  Multiple calls to modify the access path can
-		 * occur when there is a non-flattenable FromSubquery (or view).
-		 */
+        /* It is okay to optimize most nodes multiple times.  However,
+         * modifying the access path is something that should only be done
+         * once per node.  One reason for this is that the predicate list
+         * will be empty after the 1st call, and we assert that it should
+         * be non-empty.  Multiple calls to modify the access path can
+         * occur when there is a non-flattenable FromSubquery (or view).
+         */
         if(accessPathModified){
             return this;
         }
 
-		/*
-		** Do nothing if the child result set is not optimizable, as there
-		** can be nothing to modify.
-		*/
+        /*
+        ** Do nothing if the child result set is not optimizable, as there
+        ** can be nothing to modify.
+        */
         boolean alreadyPushed=false;
         if(!(childResult instanceof Optimizable)){
             // Remember that the original child was not Optimizable
             origChildOptimizable=false;
 
-			/* When we optimized the child we passed in our restriction list
-			 * so that scoped predicates could be pushed further down the
-			 * tree.  We need to do the same when modifying the access
-			 * paths to ensure we generate the same plans the optimizer
-			 * chose.
-			 */
+            /* When we optimized the child we passed in our restriction list
+             * so that scoped predicates could be pushed further down the
+             * tree.  We need to do the same when modifying the access
+             * paths to ensure we generate the same plans the optimizer
+             * chose.
+             */
             childResult=childResult.modifyAccessPaths(restrictionList);
 
-			/* Mark this node as having the truly ... for
-			 * the underlying tree.
-			 */
+            /* Mark this node as having the truly ... for
+             * the underlying tree.
+             */
             hasTrulyTheBestAccessPath=true;
 
-			/* Replace this PRN with a HRN if we are doing a hash join */
+            /* Replace this PRN with a HRN if we are doing a hash join */
             if(trulyTheBestAccessPath.getJoinStrategy().isHashJoin()){
                 assert restrictionList!=null: "restrictionList expected to be non-null";
                 assert !restrictionList.isEmpty() : "restrictionList.size() expected to be non-zero";
-				/* We're doing a hash join on an arbitary result set.
-				 * We need to get the table number from this node when
-				 * dividing up the restriction list for a hash join.
-				 * We need to explicitly remember this.
-				 */
+                /* We're doing a hash join on an arbitary result set.
+                 * We need to get the table number from this node when
+                 * dividing up the restriction list for a hash join.
+                 * We need to explicitly remember this.
+                 */
                 getTableNumberHere=true;
             }else{
                 if (getCompilerContext().isProjectionPruningEnabled()) {
@@ -588,20 +589,20 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                      */
                     resultColumns.doProjection(false);
                 }
-				/* We consider materialization into a temp table as a last step.
-				 * Currently, we only materialize VTIs that are inner tables
-				 * and can't be instantiated multiple times.  In the future we
-				 * will consider materialization as a cost based option.
-				 */
+                /* We consider materialization into a temp table as a last step.
+                 * Currently, we only materialize VTIs that are inner tables
+                 * and can't be instantiated multiple times.  In the future we
+                 * will consider materialization as a cost based option.
+                 */
                 return (Optimizable)considerMaterialization(outerTables);
             }
         }
 
-		/* If the child is not a FromBaseTable, then we want to
-		 * keep going down the tree.  (Nothing to do at this node.)
-		 */
+        /* If the child is not a FromBaseTable, then we want to
+         * keep going down the tree.  (Nothing to do at this node.)
+         */
         else if(!(childResult instanceof FromBaseTable)){
-			/* Make sure that we have a join strategy */
+            /* Make sure that we have a join strategy */
             if(trulyTheBestAccessPath.getJoinStrategy()==null){
                 trulyTheBestAccessPath=((Optimizable)childResult).getTrulyTheBestAccessPath();
             }
@@ -644,33 +645,33 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             restrictionList.pushUsefulPredicates((Optimizable)childResult);
         }
 
-		/*
-		** The optimizer's decision on the access path for the child result
-		** set may require the generation of extra result sets.  For
-		** example, if it chooses an index, we need an IndexToBaseRowNode
-		** above the FromBaseTable (and the FromBaseTable has to change
-		** its column list to match that of the index.
-		*/
+        /*
+        ** The optimizer's decision on the access path for the child result
+        ** set may require the generation of extra result sets.  For
+        ** example, if it chooses an index, we need an IndexToBaseRowNode
+        ** above the FromBaseTable (and the FromBaseTable has to change
+        ** its column list to match that of the index.
+        */
         if(origChildOptimizable){
             childResult=childResult.changeAccessPath();
         }
         accessPathModified=true;
 
-		/*
-		** Replace this PRN with a HTN if a hash join
-		** is being done at this node.  (hash join on a scan
-		** is a special case and is handled at the FBT.)
-		*/
+        /*
+        ** Replace this PRN with a HTN if a hash join
+        ** is being done at this node.  (hash join on a scan
+        ** is a special case and is handled at the FBT.)
+        */
         if(trulyTheBestAccessPath.getJoinStrategy()!=null &&
                 trulyTheBestAccessPath.getJoinStrategy().isHashJoin()){
             return replaceWithHashTableNode();
         }
 
-		/* We consider materialization into a temp table as a last step.
-		 * Currently, we only materialize VTIs that are inner tables
-		 * and can't be instantiated multiple times.  In the future we
-		 * will consider materialization as a cost based option.
-		 */
+        /* We consider materialization into a temp table as a last step.
+         * Currently, we only materialize VTIs that are inner tables
+         * and can't be instantiated multiple times.  In the future we
+         * will consider materialization as a cost based option.
+         */
         return (Optimizable)considerMaterialization(outerTables);
     }
 
@@ -720,19 +721,19 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             }
         }
 
-		/* We want to divide the predicate list into 3 separate lists -
-		 *	o predicates against the source of the hash table, which will
-		 *	  be applied on the way into the hash table (searchRestrictionList)
-		 *  o join clauses which are qualifiers and get applied to the
-		 *	  rows in the hash table on a probe (joinRestrictionList)
-		 *	o non-qualifiers involving both tables which will get
-		 *	  applied after a row gets returned from the HTRS (nonQualifiers)
-		 *
-		 * We do some unnecessary work when doing this as we want to reuse
-		 * as much existing code as possible.  The code that we are reusing
-		 * was originally built for hash scans, hence the unnecessary
-		 * requalification list.
-		 */
+        /* We want to divide the predicate list into 3 separate lists -
+         *    o predicates against the source of the hash table, which will
+         *      be applied on the way into the hash table (searchRestrictionList)
+         *  o join clauses which are qualifiers and get applied to the
+         *      rows in the hash table on a probe (joinRestrictionList)
+         *    o non-qualifiers involving both tables which will get
+         *      applied after a row gets returned from the HTRS (nonQualifiers)
+         *
+         * We do some unnecessary work when doing this as we want to reuse
+         * as much existing code as possible.  The code that we are reusing
+         * was originally built for hash scans, hence the unnecessary
+         * requalification list.
+         */
         ContextManager ctxMgr=getContextManager();
         PredicateList searchRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         PredicateList joinQualifierList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
@@ -744,9 +745,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 requalificationRestrictionList,
                 getDataDictionary());
 
-		/* Break out the non-qualifiers from HTN's join qualifier list and make that
-		 * the new restriction list for this PRN.
-		 */
+        /* Break out the non-qualifiers from HTN's join qualifier list and make that
+         * the new restriction list for this PRN.
+         */
         restrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         /* For non-base table, we remove first 2 lists from requal list to avoid adding duplicates.
          */
@@ -760,30 +761,30 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         ResultColumnList htRCList;
 
-		/* We get a shallow copy of the child's ResultColumnList and its 
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
+        /* We get a shallow copy of the child's ResultColumnList and its
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         */
         htRCList=childResult.getResultColumns();
         childResult.setResultColumns(htRCList.copyListAndObjects());
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the HTN's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 * NOTE: We don't want to mark the underlying RCs as referenced, otherwise
-		 * we won't be able to project out any of them.
-		 */
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the HTN's ResultColumnList.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, this, and source ResultColumn.)
+         * NOTE: We don't want to mark the underlying RCs as referenced, otherwise
+         * we won't be able to project out any of them.
+         */
         htRCList.genVirtualColumnNodes(childResult,childResult.getResultColumns(),false);
 
-		/* The CRs for this side of the join in both the searchRestrictionList
-		 * the joinQualifierList now point to the HTN's RCL.  We need them
-		 * to point to the RCL in the child of the HTN.  (We skip doing this for
-		 * the joinQualifierList as the code to generate the Qualifiers does not
-		 * care.)
-		 */
+        /* The CRs for this side of the join in both the searchRestrictionList
+         * the joinQualifierList now point to the HTN's RCL.  We need them
+         * to point to the RCL in the child of the HTN.  (We skip doing this for
+         * the joinQualifierList as the code to generate the Qualifiers does not
+         * care.)
+         */
         RemapCRsVisitor rcrv=new RemapCRsVisitor(true);
         searchRestrictionList.accept(rcrv);
 
-		/* We can finally put the HTN between ourself and our old child. */
+        /* We can finally put the HTN between ourself and our old child. */
         childResult=(ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.HASH_TABLE_NODE,
                 childResult,
@@ -802,10 +803,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public void verifyProperties(DataDictionary dDictionary) throws StandardException{
-		/* Table properties can be attached to this node if
-		 * its child is not an optimizable, otherwise they
-		 * are attached to its child.
-		 */
+        /* Table properties can be attached to this node if
+         * its child is not an optimizable, otherwise they
+         * are attached to its child.
+         */
 
         if(childResult instanceof Optimizable){
             ((Optimizable)childResult).verifyProperties(dDictionary);
@@ -918,7 +919,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
         childResult=childResult.preprocess(numTables,gbl,fromList);
 
-		/* Build the referenced table map */
+        /* Build the referenced table map */
         referencedTableMap=(JBitSet)childResult.getReferencedTableMap().clone();
 
         return this;
@@ -940,23 +941,23 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         assert predicateList!=null: "predicateList is expected to be non-null";
 
-		/* Push single table predicates down to the left of an outer
-		 * join, if possible.  (We need to be able to walk an entire
-		 * join tree.)
-		 */
+        /* Push single table predicates down to the left of an outer
+         * join, if possible.  (We need to be able to walk an entire
+         * join tree.)
+         */
         if(childResult instanceof JoinNode){
             ((FromTable)childResult).pushExpressions(predicateList);
 
         }
 
-		/* Build a list of the single table predicates that we can push down */
+        /* Build a list of the single table predicates that we can push down */
         pushPList=predicateList.getPushablePredicates(referencedTableMap);
 
-		/* If this is a PRN above a SelectNode, probably due to a 
-		 * view or derived table which couldn't be flattened, then see
-		 * if we can push any of the predicates which just got pushed
-		 * down to our level into the SelectNode.
-		 */
+        /* If this is a PRN above a SelectNode, probably due to a
+         * view or derived table which couldn't be flattened, then see
+         * if we can push any of the predicates which just got pushed
+         * down to our level into the SelectNode.
+         */
         if(pushPList!=null && (childResult instanceof SelectNode)){
             SelectNode childSelect=(SelectNode)childResult;
 
@@ -977,30 +978,30 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
 
 
-		/* DERBY-649: Push simple predicates into Unions. It would be up to UnionNode
-		 * to decide if these predicates can be pushed further into underlying SelectNodes
-		 * or UnionNodes.  Note, we also keep the predicateList at this
-		 * ProjectRestrictNode in case the predicates are not pushable or only
-		 * partially pushable.
-		 *
-		 * It is possible to expand this optimization in UnionNode later.
-		 */
+        /* DERBY-649: Push simple predicates into Unions. It would be up to UnionNode
+         * to decide if these predicates can be pushed further into underlying SelectNodes
+         * or UnionNodes.  Note, we also keep the predicateList at this
+         * ProjectRestrictNode in case the predicates are not pushable or only
+         * partially pushable.
+         *
+         * It is possible to expand this optimization in UnionNode later.
+         */
         if(pushPList!=null && (childResult instanceof UnionNode))
             ((UnionNode)childResult).pushExpressions(pushPList);
 
         if(restrictionList==null){
             restrictionList=pushPList;
         }else if(pushPList!=null && !pushPList.isEmpty()){
-			/* Concatenate the 2 PredicateLists */
+            /* Concatenate the 2 PredicateLists */
             restrictionList.destructiveAppend(pushPList);
         }
 
-		/* RESOLVE - this looks like the place to try to try to push the 
-		 * predicates through the ProjectRestrict.  Seems like we should
-		 * "rebind" the column references and reset the referenced table maps
-		 * in restrictionList and then call childResult.pushExpressions() on
-		 * restrictionList.
-		 */
+        /* RESOLVE - this looks like the place to try to try to push the
+         * predicates through the ProjectRestrict.  Seems like we should
+         * "rebind" the column references and reset the referenced table maps
+         * in restrictionList and then call childResult.pushExpressions() on
+         * restrictionList.
+         */
     }
 
     /**
@@ -1034,10 +1035,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      */
     @Override
     public boolean flattenableInFromSubquery(FromList fromList){
-		/* Flattening currently involves merging predicates and FromLists.
-		 * We don't have a FromList, so we can't flatten for now.
-		 */
-		/* RESOLVE - this will introduce yet another unnecessary PRN */
+        /* Flattening currently involves merging predicates and FromLists.
+         * We don't have a FromList, so we can't flatten for now.
+         */
+        /* RESOLVE - this will introduce yet another unnecessary PRN */
         return false;
     }
 
@@ -1067,9 +1068,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     public ResultSetNode optimize(DataDictionary dataDictionary,
                                   PredicateList predicates,
                                   double outerRows) throws StandardException{
-		/* We need to implement this method since a PRN can appear above a
-		 * SelectNode in a query tree.
-		 */
+        /* We need to implement this method since a PRN can appear above a
+         * SelectNode in a query tree.
+         */
         childResult=childResult.optimize(dataDictionary, restrictionList, outerRows);
 
         Optimizer optimizer=getOptimizer(
@@ -1100,12 +1101,12 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      */
     @Override
     public CostEstimate getCostEstimate(){
-		/*
-		** The cost estimate will be set here if either optimize() or
-		** optimizeIt() was called on this node.  It's also possible
-		** that optimization was done directly on the child node,
-		** in which case the cost estimate will be null here.
-		*/
+        /*
+        ** The cost estimate will be set here if either optimize() or
+        ** optimizeIt() was called on this node.  It's also possible
+        ** that optimization was done directly on the child node,
+        ** in which case the cost estimate will be null here.
+        */
         if(costEstimate==null)
             return childResult.getCostEstimate();
         else{
@@ -1231,7 +1232,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         String stringClassName = "java.lang.String";
         LocalField arrayField = acb.newFieldDeclaration(
-		                            Modifier.PRIVATE, stringClassName + "[]");
+                                    Modifier.PRIVATE, stringClassName + "[]");
         mb.pushNewArray(stringClassName, numberOfValues);
         mb.setField(arrayField);
 
@@ -1260,10 +1261,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     private void generateMinion(ExpressionClassBuilder acb,
                                 MethodBuilder mb,
                                 boolean genChildResultSet) throws StandardException{
-		/* If this ProjectRestrict doesn't do anything, bypass its generation.
-		 * (Remove any true and true predicates first, as they could be left
-		 * by the like transformation.)
-		 */
+        /* If this ProjectRestrict doesn't do anything, bypass its generation.
+         * (Remove any true and true predicates first, as they could be left
+         * by the like transformation.)
+         */
         if(restrictionList!=null && !restrictionList.isEmpty()){
             restrictionList.eliminateBooleanTrueAndBooleanTrue();
         }
@@ -1277,15 +1278,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         // build up the tree.
 
-		/* Put the predicates back into the tree */
+        /* Put the predicates back into the tree */
         if(restrictionList!=null){
             constantRestriction=restrictionList.restoreConstantPredicates();
             // Remove any redundant predicates before restoring
             restrictionList.removeRedundantPredicates();
             restriction=restrictionList.restorePredicates();
-			/* Allow the restrictionList to get garbage collected now
-			 * that we're done with it.
-			 */
+            /* Allow the restrictionList to get garbage collected now
+             * that we're done with it.
+             */
              // restrictionList=null; DO NOT CLEANUP :JL Explain Plan Still needs this possibly.
         }
 
@@ -1314,14 +1315,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         int mapArrayItem=acb.addItem(new ReferencedColumnsDescriptorImpl(mapArray));
         int cloneMapItem=acb.addItem(cloneMap);
 
-		/* Will this node do a projection? */
+        /* Will this node do a projection? */
         boolean doesProjection=true;
 
-		/* Does a projection unless same # of columns in same order
-		 * as child.
-		 */
+        /* Does a projection unless same # of columns in same order
+         * as child.
+         */
         if((!reflectionNeededForProjection())&&mapArray!=null&&mapArray.length==childResult.getResultColumns().size()){
-			/* mapArray entries are 1-based */
+            /* mapArray entries are 1-based */
             int index=0;
             for(;index<mapArray.length;index++){
                 if(mapArray[index]!=index+1){
@@ -1334,15 +1335,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
 
 
-		/* Generate the ProjectRestrictSet:
-		 *	arg1: childExpress - Expression for childResultSet
-		 *  arg2: Activation
-		 *  arg3: restrictExpress - Expression for restriction
-		 *  arg4: projectExpress - Expression for projection
-		 *  arg5: resultSetNumber
-		 *  arg6: constantExpress - Expression for constant restriction
-		 *			(for example, where 1 = 2)
-		 *  arg7: mapArrayItem - item # for mapping of source columns
+        /* Generate the ProjectRestrictSet:
+         *    arg1: childExpress - Expression for childResultSet
+         *  arg2: Activation
+         *  arg3: restrictExpress - Expression for restriction
+         *  arg4: projectExpress - Expression for projection
+         *  arg5: resultSetNumber
+         *  arg6: constantExpress - Expression for constant restriction
+         *            (for example, where 1 = 2)
+         *  arg7: mapArrayItem - item # for mapping of source columns
          *  arg8: cloneMapItem - item # for mapping of columns that need cloning
          *  arg9: reuseResult - whether or not the result row can be reused
          *                      (ie, will it always be the same)
@@ -1355,9 +1356,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         acb.pushGetResultSetFactoryExpression(mb);
         generateChild(acb, mb, genChildResultSet);
 
-		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
+        /* Get the next ResultSet #, so that we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
         assignResultSetNumber();
 
         // Load our final cost estimate.
@@ -1370,19 +1371,19 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         else {
             // this sets up the method and the static field.
             // generates:
-            // 	Object userExprFun { }
+            //     Object userExprFun { }
             MethodBuilder userExprFun=acb.newUserExprFun();
 
             // restriction knows it is returning its value;
 
-			/* generates:
-			 *    return  <restriction.generate(acb)>;
-			 * and adds it to userExprFun
-			 * NOTE: The explicit cast to DataValueDescriptor is required
-			 * since the restriction may simply be a boolean column or subquery
-			 * which returns a boolean.  For example:
-			 *		where booleanColumn
-			 */
+            /* generates:
+             *    return  <restriction.generate(acb)>;
+             * and adds it to userExprFun
+             * NOTE: The explicit cast to DataValueDescriptor is required
+             * since the restriction may simply be a boolean column or subquery
+             * which returns a boolean.  For example:
+             *        where booleanColumn
+             */
             restriction.generateExpression(acb,userExprFun);
             userExprFun.methodReturn();
 
@@ -1392,16 +1393,16 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // restriction is used in the final result set as an access of the new static
             // field holding a reference to this new method.
             // generates:
-            //	ActivationClass.userExprFun
+            //    ActivationClass.userExprFun
             // which is the static field that "points" to the userExprFun
             // that evaluates the where clause.
             acb.pushMethodReference(mb,userExprFun);
         }
 
-		/* Determine whether or not reflection is needed for the projection.
-		 * Reflection is not needed if all of the columns map directly to source
-		 * columns.
-		 */
+        /* Determine whether or not reflection is needed for the projection.
+         * Reflection is not needed if all of the columns map directly to source
+         * columns.
+         */
         boolean canUseSparkSQLExpressions = false;
         boolean hasGroupingFunction = false;
         if(reflectionNeededForProjection()){
@@ -1429,19 +1430,19 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }else{
             // this sets up the method and the static field.
             // generates:
-            // 	userExprFun { }
+            //     userExprFun { }
             MethodBuilder userExprFun=acb.newUserExprFun();
 
             // restriction knows it is returning its value;
 
-			/* generates:
-			 *    return <restriction.generate(acb)>;
-			 * and adds it to userExprFun
-			 * NOTE: The explicit cast to DataValueDescriptor is required
-			 * since the restriction may simply be a boolean column or subquery
-			 * which returns a boolean.  For example:
-			 *		where booleanColumn
-			 */
+            /* generates:
+             *    return <restriction.generate(acb)>;
+             * and adds it to userExprFun
+             * NOTE: The explicit cast to DataValueDescriptor is required
+             * since the restriction may simply be a boolean column or subquery
+             * which returns a boolean.  For example:
+             *        where booleanColumn
+             */
             constantRestriction.generateExpression(acb,userExprFun);
 
             userExprFun.methodReturn();
@@ -1452,7 +1453,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // restriction is used in the final result set as an access
             // of the new static field holding a reference to this new method.
             // generates:
-            //	ActivationClass.userExprFun
+            //    ActivationClass.userExprFun
             // which is the static field that "points" to the userExprFun
             // that evaluates the where clause.
             acb.pushMethodReference(mb,userExprFun);
@@ -1481,10 +1482,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * @return true if this ProjectRestrict is a No-Op.
      */
     public boolean nopProjectRestrict(){
-		/*
-		** This ProjectRestrictNode is not a No-Op if it does any
-		** restriction.
-		*/
+        /*
+        ** This ProjectRestrictNode is not a No-Op if it does any
+        ** restriction.
+        */
         if((restriction!=null) || (constantRestriction!=null) || (restrictionList!=null && !restrictionList.isEmpty())){
             return false;
         }
@@ -1492,12 +1493,12 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         ResultColumnList childColumns=childResult.getResultColumns();
         ResultColumnList PRNColumns=this.getResultColumns();
 
-		/*
-		** The two lists have the same numbers of elements.  Are the lists
-		** identical?  In other words, is the expression in every ResultColumn
-		** in the PRN's RCL a ColumnReference that points to the same-numbered
-		** column?
-		*/
+        /*
+        ** The two lists have the same numbers of elements.  Are the lists
+        ** identical?  In other words, is the expression in every ResultColumn
+        ** in the PRN's RCL a ColumnReference that points to the same-numbered
+        ** column?
+        */
         return PRNColumns.nopProjection(childColumns);
 
     }
@@ -1526,19 +1527,19 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             MaterializeResultSetNode mrsn;
             ResultColumnList prRCList;
 
-			/* If the restriction contians a ColumnReference from another
-			 * table then the MRSN must go above the childResult.  Otherwise we can put
-			 * it above ourselves. (The later is optimal since projection and restriction 
-			 * will only happen once.)
-			 * Put MRSN above PRN if any of the following are true:
-			 *	o  PRN doesn't have a restriction list
-			 *	o  PRN's restriction list is empty 
-			 *  o  Table's referenced in PRN's restriction list are a subset of
-			 *	   table's referenced in PRN's childResult.  (NOTE: Rather than construct
-			 *     a new, empty JBitSet before checking, we simply clone the childResult's
-			 *	   referencedTableMap.  This is done for code simplicity and will not 
-			 *	   affect the result.)
-			 */
+            /* If the restriction contians a ColumnReference from another
+             * table then the MRSN must go above the childResult.  Otherwise we can put
+             * it above ourselves. (The later is optimal since projection and restriction
+             * will only happen once.)
+             * Put MRSN above PRN if any of the following are true:
+             *    o  PRN doesn't have a restriction list
+             *    o  PRN's restriction list is empty
+             *  o  Table's referenced in PRN's restriction list are a subset of
+             *       table's referenced in PRN's childResult.  (NOTE: Rather than construct
+             *     a new, empty JBitSet before checking, we simply clone the childResult's
+             *       referencedTableMap.  This is done for code simplicity and will not
+             *       affect the result.)
+             */
             ReferencedTablesVisitor rtv=new ReferencedTablesVisitor((JBitSet)childResult.getReferencedTableMap().clone());
             boolean emptyRestrictionList=(restrictionList==null || restrictionList.isEmpty());
             if(!emptyRestrictionList){
@@ -1546,19 +1547,19 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             }
             if(emptyRestrictionList ||
                     childResult.getReferencedTableMap().contains(rtv.getTableMap())){
-				/* We get a shallow copy of the ResultColumnList and its 
-				 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-				 */
+                /* We get a shallow copy of the ResultColumnList and its
+                 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+                 */
                 prRCList=resultColumns;
                 setResultColumns(resultColumns.copyListAndObjects());
 
-				/* Replace ResultColumn.expression with new VirtualColumnNodes
-				 * in the NormalizeResultSetNode's ResultColumnList.  (VirtualColumnNodes include
-				 * pointers to source ResultSetNode, this, and source ResultColumn.)
-				 */
+                /* Replace ResultColumn.expression with new VirtualColumnNodes
+                 * in the NormalizeResultSetNode's ResultColumnList.  (VirtualColumnNodes include
+                 * pointers to source ResultSetNode, this, and source ResultColumn.)
+                 */
                 prRCList.genVirtualColumnNodes(this,resultColumns);
 
-				/* Finally, we create the new MaterializeResultSetNode */
+                /* Finally, we create the new MaterializeResultSetNode */
                 mrsn=(MaterializeResultSetNode)getNodeFactory().getNode(
                         C_NodeTypes.MATERIALIZE_RESULT_SET_NODE,
                         this,
@@ -1571,23 +1572,23 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 }
                 return mrsn;
             }else{
-				/* We get a shallow copy of the ResultColumnList and its 
-				 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-				 */
+                /* We get a shallow copy of the ResultColumnList and its
+                 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+                 */
                 prRCList=childResult.getResultColumns();
                 childResult.setResultColumns(prRCList.copyListAndObjects());
 
-				/* Replace ResultColumn.expression with new VirtualColumnNodes
-				 * in the MaterializeResultSetNode's ResultColumnList.  (VirtualColumnNodes include
-				 * pointers to source ResultSetNode, this, and source ResultColumn.)
-				 */
+                /* Replace ResultColumn.expression with new VirtualColumnNodes
+                 * in the MaterializeResultSetNode's ResultColumnList.  (VirtualColumnNodes include
+                 * pointers to source ResultSetNode, this, and source ResultColumn.)
+                 */
                 prRCList.genVirtualColumnNodes(childResult,childResult.getResultColumns());
 
-				/* RESOLVE - we need to push single table predicates down so that
-				 * they get applied while building the MaterializeResultSet.
-				 */
+                /* RESOLVE - we need to push single table predicates down so that
+                 * they get applied while building the MaterializeResultSet.
+                 */
 
-				/* Finally, we create the new MaterializeResultSetNode */
+                /* Finally, we create the new MaterializeResultSetNode */
                 mrsn=(MaterializeResultSetNode)getNodeFactory().getNode(
                         C_NodeTypes.MATERIALIZE_RESULT_SET_NODE,
                         childResult,
@@ -1734,9 +1735,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     public void assignResultSetNumber() throws StandardException{
         super.assignResultSetNumber();
 
-		/* Set the point of attachment in all subqueries attached
-		 * to this node.
-		 */
+        /* Set the point of attachment in all subqueries attached
+         * to this node.
+         */
         if(projectSubquerys!=null && !projectSubquerys.isEmpty()){
             projectSubquerys.setPointOfAttachment(resultSetNumber);
         }

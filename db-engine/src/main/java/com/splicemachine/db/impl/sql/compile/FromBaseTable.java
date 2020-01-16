@@ -87,7 +87,7 @@ import static com.splicemachine.db.impl.ast.RSUtils.isRSN;
  * know what columns will ultimately be needed from the UpdateNode above
  * us.  For example, consider:<pre><i>
  * <p/>
- * 	get c as 'select cint from t for update of ctinyint'
+ *     get c as 'select cint from t for update of ctinyint'
  *  update t set ctinyint = csmallint
  * <p/>
  * </pre></i> Ideally, the cursor only selects cint.  Then,
@@ -201,10 +201,10 @@ public class FromBaseTable extends FromTable {
      * Initializer for a table in a FROM list. Parameters are as follows:
      * <p/>
      * <ul>
-     * <li>tableName			The name of the table</li>
-     * <li>correlationName	The correlation name</li>
-     * <li>derivedRCL		The derived column list</li>
-     * <li>tableProperties	The Properties list associated with the table.</li>
+     * <li>tableName            The name of the table</li>
+     * <li>correlationName    The correlation name</li>
+     * <li>derivedRCL        The derived column list</li>
+     * <li>tableProperties    The Properties list associated with the table.</li>
      * </ul>
      * <p/>
      * <p>
@@ -212,10 +212,10 @@ public class FromBaseTable extends FromTable {
      * </p>
      * <p/>
      * <ul>
-     * <li>tableName			The name of the table</li>
-     * <li>correlationName	The correlation name</li>
-     * <li>updateOrDelete	Table is being updated/deleted from. </li>
-     * <li>derivedRCL		The derived column list</li>
+     * <li>tableName            The name of the table</li>
+     * <li>correlationName    The correlation name</li>
+     * <li>updateOrDelete    Table is being updated/deleted from. </li>
+     * <li>derivedRCL        The derived column list</li>
      * </ul>
      */
     @Override
@@ -268,9 +268,9 @@ public class FromBaseTable extends FromTable {
         return true;
     }
 
-	/*
+    /*
      * Optimizable interface.
-	 */
+     */
 
     @Override
     public boolean nextAccessPath(Optimizer optimizer,
@@ -283,22 +283,22 @@ public class FromBaseTable extends FromTable {
         OptimizerTrace tracer=optimizer.tracer();
         tracer.trace(OptimizerFlag.CALLING_NEXT_ACCESS_PATH,((predList==null)?0:predList.size()),0,0.0,getExposedName(), predList);
 
-		/*
-		 ** Remove the ordering of the current conglomerate descriptor,
-		 ** if any.
-		 */
+        /*
+         ** Remove the ordering of the current conglomerate descriptor,
+         ** if any.
+         */
         rowOrdering.removeOptimizable(getTableNumber());
 
         // RESOLVE: This will have to be modified to step through the
         // join strategies as well as the conglomerates.
 
         if(userSpecifiedIndexName!=null){
-			/*
-			 ** User specified an index name, so we should look at only one
-			 ** index.  If there is a current conglomerate descriptor, and there
-			 ** are no more join strategies, we've already looked at the index,
-			 ** so go back to null.
-			 */
+            /*
+             ** User specified an index name, so we should look at only one
+             ** index.  If there is a current conglomerate descriptor, and there
+             ** are no more join strategies, we've already looked at the index,
+             ** so go back to null.
+             */
             if(currentConglomerateDescriptor!=null){
                 if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
                     currentConglomerateDescriptor=null;
@@ -308,11 +308,11 @@ public class FromBaseTable extends FromTable {
                              correlationName);
 
                 if(StringUtil.SQLToUpperCase(userSpecifiedIndexName).equals("NULL")){
-					/* Special case - user-specified table scan */
+                    /* Special case - user-specified table scan */
                     currentConglomerateDescriptor=tableDescriptor.getConglomerateDescriptor(
                             tableDescriptor.getHeapConglomerateId());
                 }else{
-					/* User-specified index name */
+                    /* User-specified index name */
                     getConglomDescs();
 
                     for(ConglomerateDescriptor conglomDesc : conglomDescs){
@@ -326,7 +326,7 @@ public class FromBaseTable extends FromTable {
                         }
                     }
 
-					/* We should always find a match */
+                    /* We should always find a match */
                     assert currentConglomerateDescriptor!=null:"Expected to find match for forced index "+userSpecifiedIndexName;
                     if (!isIndexEligible(currentConglomerateDescriptor, predList))
                         currentConglomerateDescriptor = null;
@@ -342,22 +342,22 @@ public class FromBaseTable extends FromTable {
             }
         }else{
             if(currentConglomerateDescriptor!=null){
-				/*
-				 ** Once we have a conglomerate descriptor, cycle through
-				 ** the join strategies (done in parent).
-				 */
+                /*
+                 ** Once we have a conglomerate descriptor, cycle through
+                 ** the join strategies (done in parent).
+                 */
                 if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
-				    /*
-				     ** When we're out of join strategies, go to the next
-				     ** conglomerate descriptor.
-				     */
+                    /*
+                     ** When we're out of join strategies, go to the next
+                     ** conglomerate descriptor.
+                     */
                     currentConglomerateDescriptor=getNextConglom(currentConglomerateDescriptor, predList, optimizer);
 
                     if (currentConglomerateDescriptor != null) {
-				    /*
-				     ** New conglomerate, so step through join strategies
-				     ** again.
-				     */
+                    /*
+                     ** New conglomerate, so step through join strategies
+                     ** again.
+                     */
                         resetJoinStrategies();
 
                         if (!super.nextAccessPath(optimizer, predList, rowOrdering)) {
@@ -368,7 +368,7 @@ public class FromBaseTable extends FromTable {
                     }
                 }
             }else{
-				/* Get the first conglomerate descriptor */
+                /* Get the first conglomerate descriptor */
                 currentConglomerateDescriptor=getFirstConglom(predList, optimizer);
 
                 if (currentConglomerateDescriptor != null) {
@@ -389,9 +389,9 @@ public class FromBaseTable extends FromTable {
                          correlationName);
         }
 
-		/*
-		 * Tell the rowOrdering that what the ordering of this conglomerate is
-		 */
+        /*
+         * Tell the rowOrdering that what the ordering of this conglomerate is
+         */
         IndexRowGenerator irg=null;
         if(currentConglomerateDescriptor!=null){
             if(currentConglomerateDescriptor.isIndex()){ // Index
@@ -410,12 +410,12 @@ public class FromBaseTable extends FromTable {
                 }
             }
             if(irg==null){ // We are scanning a table without a primary key
-	            /* If we are scanning the heap, but there
-	             * is a full match on a unique key, then
-	             * we can say that the table IS NOT unordered.
-	             * (We can't currently say what the ordering is
-	             * though.)
-	             */
+                /* If we are scanning the heap, but there
+                 * is a full match on a unique key, then
+                 * we can say that the table IS NOT unordered.
+                 * (We can't currently say what the ordering is
+                 * though.)
+                 */
                 if(!isOneRowResultSet(predList)){
                     tracer.trace(OptimizerFlag.ADDING_UNORDERED_OPTIMIZABLE,((predList==null)?0:predList.size()),0,0.0,predList);
 
@@ -479,7 +479,7 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public boolean isMaterializable() throws StandardException{
-		    /* base tables are always materializable */
+            /* base tables are always materializable */
         return true;
     }
 
@@ -487,7 +487,7 @@ public class FromBaseTable extends FromTable {
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate) throws StandardException{
         assert optimizablePredicate instanceof Predicate: "optimizablePredicate expected to be instanceof Predicate";
 
-		/* Add the matching predicate to the restrictionList */
+        /* Add the matching predicate to the restrictionList */
         restrictionList.addPredicate((Predicate)optimizablePredicate);
 
         return true;
@@ -503,7 +503,7 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public boolean isCoveringIndex(ConglomerateDescriptor cd) throws StandardException{
-		    /* You can only be a covering index if you're an index */
+            /* You can only be a covering index if you're an index */
         if(!cd.isIndex())
             return false;
 
@@ -516,15 +516,15 @@ public class FromBaseTable extends FromTable {
         for(int index=0;index<rclSize;index++){
             ResultColumn rc=resultColumns.elementAt(index);
 
-		    /* Ignore unreferenced columns */
+            /* Ignore unreferenced columns */
             if(!rc.isReferenced()){
                 continue;
             }
 
-			/* Ignore constants - this can happen if all of the columns
-			 * were projected out and we ended up just generating
-			 * a "1" in RCL.doProject().
-			 */
+            /* Ignore constants - this can happen if all of the columns
+             * were projected out and we ended up just generating
+             * a "1" in RCL.doProject().
+             */
             if(rc.getExpression() instanceof ConstantNode){
                 continue;
             }
@@ -533,7 +533,7 @@ public class FromBaseTable extends FromTable {
 
             colPos=rc.getColumnPosition();
 
-			/* Is this column in the index? */
+            /* Is this column in the index? */
             for(int baseCol : baseCols){
                 if(colPos==baseCol){
                     coveringIndex=true;
@@ -541,7 +541,7 @@ public class FromBaseTable extends FromTable {
                 }
             }
 
-			/* No need to continue if the column was not in the index */
+            /* No need to continue if the column was not in the index */
             if(!coveringIndex){
                 break;
             }
@@ -571,14 +571,14 @@ public class FromBaseTable extends FromTable {
             return;
         }
         /* Check here for:
-         *		invalid properties key
-         *		index and constraint properties
-         *		non-existent index
-         *		non-existent constraint
-         *		invalid joinStrategy
-         *		invalid value for hashInitialCapacity
-         *		invalid value for hashLoadFactor
-         *		invalid value for hashMaxCapacity
+         *        invalid properties key
+         *        index and constraint properties
+         *        non-existent index
+         *        non-existent constraint
+         *        invalid joinStrategy
+         *        invalid value for hashInitialCapacity
+         *        invalid value for hashLoadFactor
+         *        invalid value for hashMaxCapacity
          */
         boolean indexSpecified=false;
         boolean constraintSpecified=false;
@@ -600,7 +600,7 @@ public class FromBaseTable extends FromTable {
                 }
                 indexSpecified=true;
 
-		        /* Validate index name - NULL means table scan */
+                /* Validate index name - NULL means table scan */
                 if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
                     ConglomerateDescriptor[] cds=tableDescriptor.getConglomerateDescriptors();
 
@@ -621,7 +621,7 @@ public class FromBaseTable extends FromTable {
                     if(cd==null){
                         throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX1, value,getBaseTableName());
                     }
-					              /* Query is dependent on the ConglomerateDescriptor */
+                                  /* Query is dependent on the ConglomerateDescriptor */
                     getCompilerContext().createDependency(cd);
                 }
             } else if(key.equals("constraint")){
@@ -635,14 +635,14 @@ public class FromBaseTable extends FromTable {
              if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
                  consDesc=dDictionary.getConstraintDescriptorByName(tableDescriptor,null,value,false);
 
-		            /* Throw exception if user specified constraint not found
-		             * or if it does not have a backing index.
-		             */
+                    /* Throw exception if user specified constraint not found
+                     * or if it does not have a backing index.
+                     */
                     if((consDesc==null) || !consDesc.hasBackingIndex()){
                         throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX2,value,getBaseTableName());
                     }
 
-		            /* Query is dependent on the ConstraintDescriptor */
+                    /* Query is dependent on the ConstraintDescriptor */
                     getCompilerContext().createDependency(consDesc);
                 }
             }else if(key.equals("joinStrategy")){
@@ -707,16 +707,16 @@ public class FromBaseTable extends FromTable {
             }
 
 
-		    /* If user specified a non-null constraint name(DERBY-1707), then
-		     * replace it in the properties list with the underlying index name to
-		     * simplify the code in the optimizer.
-		     * NOTE: The code to get from the constraint name, for a constraint
-		     * with a backing index, to the index name is convoluted.  Given
-		     * the constraint name, we can get the conglomerate id from the
-		     * ConstraintDescriptor.  We then use the conglomerate id to get
-		     * the ConglomerateDescriptor from the DataDictionary and, finally,
-		     * we get the index name (conglomerate name) from the ConglomerateDescriptor.
-		     */
+            /* If user specified a non-null constraint name(DERBY-1707), then
+             * replace it in the properties list with the underlying index name to
+             * simplify the code in the optimizer.
+             * NOTE: The code to get from the constraint name, for a constraint
+             * with a backing index, to the index name is convoluted.  Given
+             * the constraint name, we can get the conglomerate id from the
+             * ConstraintDescriptor.  We then use the conglomerate id to get
+             * the ConglomerateDescriptor from the DataDictionary and, finally,
+             * we get the index name (conglomerate name) from the ConglomerateDescriptor.
+             */
             if(constraintSpecified && consDesc!=null){
                 ConglomerateDescriptor cd=dDictionary.getConglomerateDescriptor(consDesc.getConglomerateId());
                 String indexName=cd.getConglomerateName();
@@ -751,19 +751,19 @@ public class FromBaseTable extends FromTable {
         bestAp.setMissingHashKeyOK(false);
         bestSortAp.setMissingHashKeyOK(false);
 
-		/*
-		 ** Only need to do this for current access path, because the
-		 ** costEstimate will be copied to the best access paths as
-		 ** necessary.
-		 */
+        /*
+         ** Only need to do this for current access path, because the
+         ** costEstimate will be copied to the best access paths as
+         ** necessary.
+         */
         CostEstimate costEstimate=getCostEstimate(optimizer);
         ap.setCostEstimate(costEstimate);
 
-		/*
-		 ** This is the initial cost of this optimizable.  Initialize it
-		 ** to the maximum cost so that the optimizer will think that
-		 ** any access path is better than none.
-		 */
+        /*
+         ** This is the initial cost of this optimizable.  Initialize it
+         ** to the maximum cost so that the optimizer will think that
+         ** any access path is better than none.
+         */
         costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
         super.startOptimizing(optimizer,rowOrdering);
@@ -781,20 +781,20 @@ public class FromBaseTable extends FromTable {
                                      Optimizer optimizer,
                                      RowOrdering rowOrdering) throws StandardException{
         /* unknownPredicateList contains all predicates whose effect on
-		 * cost/selectivity can't be calculated by the store.
-		 */
+         * cost/selectivity can't be calculated by the store.
+         */
         PredicateList unknownPredicateList=null;
 
         AccessPath currentAccessPath=getCurrentAccessPath();
         JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
         OptimizerTrace tracer =optimizer.tracer();
         tracer.trace(OptimizerFlag.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber,0,0.0,cd,correlationName);
-		/* Get the uniqueness factory for later use (see below) */
-		/* Get the predicates that can be used for scanning the base table */
+        /* Get the uniqueness factory for later use (see below) */
+        /* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
 
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
-		/* RESOLVE: Need to figure out how to cache the StoreCostController */
+        /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
@@ -885,11 +885,11 @@ public class FromBaseTable extends FromTable {
          */
         boolean oldIsAntiJoin = outerCost.isAntiJoin();
         outerCost.setAntiJoin(isAntiJoin);
-        currentJoinStrategy.estimateCost(this,baseTableRestrictionList,cd,outerCost,optimizer,costEstimate);
+        currentJoinStrategy.estimateCost(this, baseTableRestrictionList, cd, outerCost, optimizer, costEstimate);
         outerCost.setAntiJoin(oldIsAntiJoin);
         tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate, correlationName);
 
-		/* Put the base predicates back in the predicate list */
+        /* Put the base predicates back in the predicate list */
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
 
         return costEstimate;
@@ -902,11 +902,11 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public boolean forUpdate(){
-		/* This table is updatable if it is the
-		 * target table of an update or delete,
-		 * or it is (or was) the target table of an
-		 * updatable cursor.
-		 */
+        /* This table is updatable if it is the
+         * target table of an update or delete,
+         * or it is (or was) the target table of an
+         * updatable cursor.
+         */
         return (updateOrDelete!=0) || cursorTargetTable || getUpdateLocks;
     }
 
@@ -943,8 +943,8 @@ public class FromBaseTable extends FromTable {
     @Override
     public boolean isOneRowScan() throws StandardException{
         /* EXISTS FBT will never be a 1 row scan.
-		 * Otherwise call method in super class.
-		 */
+         * Otherwise call method in super class.
+         */
         return !existsTable && super.isOneRowScan();
     }
 
@@ -1038,11 +1038,11 @@ public class FromBaseTable extends FromTable {
 
         CompilerContext compilerContext=getCompilerContext();
 
-		/* Generate the ResultColumnList */
+        /* Generate the ResultColumnList */
         resultColumns=genResultColList();
         templateColumns=resultColumns;
 
-		/* Resolve the view, if this is a view */
+        /* Resolve the view, if this is a view */
         if(tableDescriptor.getTableType()==TableDescriptor.VIEW_TYPE || tableDescriptor.getTableType()==TableDescriptor.WITH_TYPE){
             FromSubquery fsq;
             ResultSetNode rsn;
@@ -1050,23 +1050,23 @@ public class FromBaseTable extends FromTable {
             CreateViewNode cvn;
             SchemaDescriptor compSchema;
 
-			/* Get the associated ViewDescriptor so that we can get 
-			 * the view definition text.
-			 */
+            /* Get the associated ViewDescriptor so that we can get
+             * the view definition text.
+             */
             vd=dataDictionary.getViewDescriptor(tableDescriptor);
 
-			/*
-			** Set the default compilation schema to be whatever
-			** this schema this view was originally compiled against.
-			** That way we pick up the same tables no matter what
-			** schema we are running against.
-			*/
+            /*
+            ** Set the default compilation schema to be whatever
+            ** this schema this view was originally compiled against.
+            ** That way we pick up the same tables no matter what
+            ** schema we are running against.
+            */
             compSchema=dataDictionary.getSchemaDescriptor(vd.getCompSchemaId(),null);
 
             compilerContext.pushCompilationSchema(compSchema);
 
             try{
-				/* This represents a view - query is dependent on the ViewDescriptor */
+                /* This represents a view - query is dependent on the ViewDescriptor */
                 // Removes with clause dependency creation.
                 // No reason to create dependency.
                 if (vd.getUUID() != null)
@@ -1086,12 +1086,12 @@ public class FromBaseTable extends FromTable {
                 rsn=cvn.getParsedQueryExpression();
 
 
-				/* If the view contains a '*' then we mark the views derived column list
-				 * so that the view will still work, and return the expected results,
-				 * if any of the tables referenced in the view have columns added to
-				 * them via ALTER TABLE.  The expected results means that the view
-				 * will always return the same # of columns.
-				 */
+                /* If the view contains a '*' then we mark the views derived column list
+                 * so that the view will still work, and return the expected results,
+                 * if any of the tables referenced in the view have columns added to
+                 * them via ALTER TABLE.  The expected results means that the view
+                 * will always return the same # of columns.
+                 */
                 if(rsn.getResultColumns().containsAllResultColumn()){
                     resultColumns.setCountMismatchAllowed(true);
                 }
@@ -1149,9 +1149,9 @@ public class FromBaseTable extends FromTable {
                 fsq.setOrigCompilationSchema(compSchema);
                 ResultSetNode fsqBound= fsq.bindNonVTITables(dataDictionary,fromListParam);
 
-				/* Do error checking on derived column list and update "exposed"
-				 * column names if valid.
-				 */
+                /* Do error checking on derived column list and update "exposed"
+                 * column names if valid.
+                 */
                 if(derivedRCL!=null){
                     fsqBound.getResultColumns().propagateDCLInfo(derivedRCL, origTableName.getFullTableName());
                 }
@@ -1161,11 +1161,11 @@ public class FromBaseTable extends FromTable {
                 compilerContext.popCompilationSchema();
             }
         }else{
-			/* This represents a table - query is dependent on the TableDescriptor */
+            /* This represents a table - query is dependent on the TableDescriptor */
             compilerContext.createDependency(tableDescriptor);
 
             long heapConglomerateId = tableDescriptor.getHeapConglomerateId();
-			/* Get the base conglomerate descriptor */
+            /* Get the base conglomerate descriptor */
             baseConglomerateDescriptor= tableDescriptor.getConglomerateDescriptor(heapConglomerateId);
 
             // Bail out if the descriptor couldn't be found. The conglomerate
@@ -1175,17 +1175,17 @@ public class FromBaseTable extends FromTable {
                 throw StandardException.newException(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST,new Long(heapConglomerateId));
             }
 
-			/* Build the 0-based array of base column names. */
+            /* Build the 0-based array of base column names. */
             columnNames=resultColumns.getColumnNames();
 
-			/* Do error checking on derived column list and update "exposed"
-			 * column names if valid.
-			 */
+            /* Do error checking on derived column list and update "exposed"
+             * column names if valid.
+             */
             if(derivedRCL!=null){
                 resultColumns.propagateDCLInfo(derivedRCL,origTableName.getFullTableName());
             }
 
-			/* Assign the tableNumber */
+            /* Assign the tableNumber */
             if(tableNumber==-1)  // allow re-bind, in which case use old number
                 tableNumber=compilerContext.getNextTableNumber();
         }
@@ -1287,11 +1287,11 @@ public class FromBaseTable extends FromTable {
         String ourSchemaName=getOrigTableName().getSchemaName();
         String fullName=(schemaName!=null)?(schemaName+'.'+name):name;
 
-		/* If an exact string match is required then:
-		 *	o  If schema name specified on 1 but not both then no match.
-		 *  o  If schema name not specified on either, compare exposed names.
-		 *  o  If schema name specified on both, compare schema and exposed names.
-		 */
+        /* If an exact string match is required then:
+         *    o  If schema name specified on 1 but not both then no match.
+         *  o  If schema name not specified on either, compare exposed names.
+         *  o  If schema name specified on both, compare schema and exposed names.
+         */
         if(exactMatch){
 
             if((schemaName!=null && ourSchemaName==null) ||
@@ -1306,16 +1306,16 @@ public class FromBaseTable extends FromTable {
             return null;
         }
 
-		/* If an exact string match is not required then:
-		 *  o  If schema name specified on both, compare schema and exposed names.
-		 *  o  If schema name not specified on either, compare exposed names.
-		 *	o  If schema name specified on column but not table, then compare
-		 *	   the column's schema name against the schema name from the TableDescriptor.
-		 *	   If they agree, then the column's table name must match the exposed name
-		 *	   from the table, which must also be the base table name, since a correlation
-		 *	   name does not belong to a schema.
-		 *  o  If schema name not specified on column then just match the exposed names.
-		 */
+        /* If an exact string match is not required then:
+         *  o  If schema name specified on both, compare schema and exposed names.
+         *  o  If schema name not specified on either, compare exposed names.
+         *    o  If schema name specified on column but not table, then compare
+         *       the column's schema name against the schema name from the TableDescriptor.
+         *       If they agree, then the column's table name must match the exposed name
+         *       from the table, which must also be the base table name, since a correlation
+         *       name does not belong to a schema.
+         *  o  If schema name not specified on column then just match the exposed names.
+         */
         // Both or neither schema name specified
         if(getExposedName().equals(fullName)){
             return this;
@@ -1348,9 +1348,9 @@ public class FromBaseTable extends FromTable {
             return this;
         }
 
-		/* Schema name only specified on table. Compare full exposed name
-		 * against table's schema name || "." || column's table name.
-		 */
+        /* Schema name only specified on table. Compare full exposed name
+         * against table's schema name || "." || column's table name.
+         */
         if(!getExposedName().equals(getOrigTableName().getSchemaName()+"."+name)){
             return null;
         }
@@ -1407,10 +1407,10 @@ public class FromBaseTable extends FromTable {
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
-		/* No expressions to bind for a FromBaseTable.
-		 * NOTE - too involved to optimize so that this method
-		 * doesn't get called, so just do nothing.
-		 */
+        /* No expressions to bind for a FromBaseTable.
+         * NOTE - too involved to optimize so that this method
+         * doesn't get called, so just do nothing.
+         */
     }
 
     /**
@@ -1425,7 +1425,7 @@ public class FromBaseTable extends FromTable {
 
     public void bindResultColumns(FromList fromListParam)
             throws StandardException{
-		/* Nothing to do, since RCL bound in bindNonVTITables() */
+        /* Nothing to do, since RCL bound in bindNonVTITables() */
     }
 
     /**
@@ -1451,22 +1451,22 @@ public class FromBaseTable extends FromTable {
             if(columnsTableName.getSchemaName()==null && correlationName==null)
                 columnsTableName.bind(this.getDataDictionary());
         }
-		/*
-		** If there is a correlation name, use that instead of the
-		** table name.
-		*/
+        /*
+        ** If there is a correlation name, use that instead of the
+        ** table name.
+        */
         exposedTableName=getExposedTableName();
 
         if(exposedTableName.getSchemaName()==null && correlationName==null)
             exposedTableName.bind(this.getDataDictionary());
-		/*
-		** If the column did not specify a name, or the specified name
-		** matches the table we're looking at, see whether the column
-		** is in this table.
-		*/
+        /*
+        ** If the column did not specify a name, or the specified name
+        ** matches the table we're looking at, see whether the column
+        ** is in this table.
+        */
         if(columnsTableName==null || columnsTableName.equals(exposedTableName)){
             resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
-			/* Did we find a match? */
+            /* Did we find a match? */
             if(resultColumn!=null){
                 columnReference.setTableNumber(tableNumber);
                 columnReference.setColumnNumber(
@@ -1487,7 +1487,7 @@ public class FromBaseTable extends FromTable {
                             getContextManager());
 
                     rowLocationNode.setType(new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.REF_NAME),
-                                    false		/* Not nullable */
+                                    false        /* Not nullable */
                             )
                     );
 
@@ -1526,7 +1526,7 @@ public class FromBaseTable extends FromTable {
                                     GroupByList gbl,
                                     FromList fromList)
             throws StandardException{
-		/* Generate the referenced table map */
+        /* Generate the referenced table map */
         referencedTableMap=new JBitSet(numTables);
         referencedTableMap.set(tableNumber);
 
@@ -1556,23 +1556,23 @@ public class FromBaseTable extends FromTable {
 
     protected ResultSetNode genProjectRestrict(int numTables)
             throws StandardException{
-		/* We get a shallow copy of the ResultColumnList and its 
-		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
-		 */
+        /* We get a shallow copy of the ResultColumnList and its
+         * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+         */
         ResultColumnList prRCList=resultColumns;
         resultColumns=resultColumns.copyListAndObjects();
 
-		/* Replace ResultColumn.expression with new VirtualColumnNodes
-		 * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
-		 * pointers to source ResultSetNode, this, and source ResultColumn.)
-		 * NOTE: We don't want to mark the underlying RCs as referenced, otherwise
-		 * we won't be able to project out any of them.
-		 */
+        /* Replace ResultColumn.expression with new VirtualColumnNodes
+         * in the ProjectRestrictNode's ResultColumnList.  (VirtualColumnNodes include
+         * pointers to source ResultSetNode, this, and source ResultColumn.)
+         * NOTE: We don't want to mark the underlying RCs as referenced, otherwise
+         * we won't be able to project out any of them.
+         */
         prRCList.genVirtualColumnNodes(this,resultColumns,false);
 
-		/* Project out any unreferenced columns.  If there are no referenced 
-		 * columns, generate and bind a single ResultColumn whose expression is 1.
-		 */
+        /* Project out any unreferenced columns.  If there are no referenced
+         * columns, generate and bind a single ResultColumn whose expression is 1.
+         */
         prRCList.doProjection(true);
 
         // Add rowId column to prRCList
@@ -1585,10 +1585,10 @@ public class FromBaseTable extends FromTable {
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 this,
                 prRCList,
-                null,	/* Restriction */
+                null,    /* Restriction */
                 null,   /* Restriction as PredicateList */
-                null,	/* Project subquery list */
-                null,	/* Restrict subquery list */
+                null,    /* Project subquery list */
+                null,    /* Restrict subquery list */
                 null,
                 getContextManager());
     }
@@ -1611,10 +1611,10 @@ public class FromBaseTable extends FromTable {
                     "Should only modify access path after conglomerate has been chosen.");
         }
 
-		/*
-		** Make sure user-specified bulk fetch is OK with the chosen join
-		** strategy.
-		*/
+        /*
+        ** Make sure user-specified bulk fetch is OK with the chosen join
+        ** strategy.
+        */
         if(bulkFetch!=UNSET){
             if(!trulyTheBestJoinStrategy.bulkFetchOK()){
                 throw StandardException.newException(SQLState.LANG_INVALID_BULK_FETCH_WITH_JOIN_TYPE,
@@ -1635,16 +1635,16 @@ public class FromBaseTable extends FromTable {
             disableBulkFetch();
         }
 
-		/* Remove any redundant join clauses.  A redundant join clause is one
-		 * where there are other join clauses in the same equivalence class
-		 * after it in the PredicateList.
-		 */
+        /* Remove any redundant join clauses.  A redundant join clause is one
+         * where there are other join clauses in the same equivalence class
+         * after it in the PredicateList.
+         */
         restrictionList.removeRedundantPredicates();
 
-		/*
-		** Divide up the predicates for different processing phases of the
-		** best join strategy.
-		*/
+        /*
+        ** Divide up the predicates for different processing phases of the
+        ** best join strategy.
+        */
         ContextManager ctxMgr=getContextManager();
         storeRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         nonStoreRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
@@ -1657,16 +1657,16 @@ public class FromBaseTable extends FromTable {
                 requalificationRestrictionList,
                 getDataDictionary());
 
-		/* Check to see if we are going to do execution-time probing
-		 * of an index using IN-list values.  We can tell by looking
-		 * at the restriction list: if there is an IN-list probe
-		 * predicate that is also a start/stop key then we know that
-		 * we're going to do execution-time probing.  In that case
-		 * we disable bulk fetching to minimize the number of non-
-		 * matching rows that we read from disk.  RESOLVE: Do we
-		 * really need to completely disable bulk fetching here,
-		 * or can we do something else?
-		 */
+        /* Check to see if we are going to do execution-time probing
+         * of an index using IN-list values.  We can tell by looking
+         * at the restriction list: if there is an IN-list probe
+         * predicate that is also a start/stop key then we know that
+         * we're going to do execution-time probing.  In that case
+         * we disable bulk fetching to minimize the number of non-
+         * matching rows that we read from disk.  RESOLVE: Do we
+         * really need to completely disable bulk fetching here,
+         * or can we do something else?
+         */
 
         /* Derby originally only looked in the restrictionList for InList predicates when considering whether or
          * not to do multiProbing. Some implementations of JoinStrategy.divideUpPredicateLists() (but not all)
@@ -1682,21 +1682,21 @@ public class FromBaseTable extends FromTable {
             }
         }
 
-		/*
-		** Consider turning on bulkFetch if it is turned
-		** off.  Only turn it on if it is a not an updatable
-		** scan and if it isn't a oneRowResultSet, and
-		** not a subquery, and it is OK to use bulk fetch
-		** with the chosen join strategy.  NOTE: the subquery logic
-		** could be more sophisticated -- we are taking
-		** the safe route in avoiding reading extra
-		** data for something like:
-		**
-		**	select x from t where x in (select y from t)
-	 	**
-		** In this case we want to stop the subquery
-		** evaluation as soon as something matches.
-		*/
+        /*
+        ** Consider turning on bulkFetch if it is turned
+        ** off.  Only turn it on if it is a not an updatable
+        ** scan and if it isn't a oneRowResultSet, and
+        ** not a subquery, and it is OK to use bulk fetch
+        ** with the chosen join strategy.  NOTE: the subquery logic
+        ** could be more sophisticated -- we are taking
+        ** the safe route in avoiding reading extra
+        ** data for something like:
+        **
+        **    select x from t where x in (select y from t)
+         **
+        ** In this case we want to stop the subquery
+        ** evaluation as soon as something matches.
+        */
         if(trulyTheBestJoinStrategy.bulkFetchOK() &&
                 !(trulyTheBestJoinStrategy.ignoreBulkFetch()) &&
                 !bulkFetchTurnedOff &&
@@ -1707,45 +1707,45 @@ public class FromBaseTable extends FromTable {
             bulkFetch=getDefaultBulkFetch();
         }
 
-		/* Statement is dependent on the chosen conglomerate. */
+        /* Statement is dependent on the chosen conglomerate. */
         getCompilerContext().createDependency(trulyTheBestConglomerateDescriptor);
 
-		/* No need to modify access path if conglomerate is the heap */
+        /* No need to modify access path if conglomerate is the heap */
         //noinspection ConstantConditions
         if(!trulyTheBestConglomerateDescriptor.isIndex()){
-			/*
-			** We need a little special logic for SYSSTATEMENTS
-			** here.  SYSSTATEMENTS has a hidden column at the
-			** end.  When someone does a select * we don't want
-			** to get that column from the store.  So we'll always
-			** generate a partial read bitSet if we are scanning
-			** SYSSTATEMENTS to ensure we don't get the hidden
-			** column.
-			*/
+            /*
+            ** We need a little special logic for SYSSTATEMENTS
+            ** here.  SYSSTATEMENTS has a hidden column at the
+            ** end.  When someone does a select * we don't want
+            ** to get that column from the store.  So we'll always
+            ** generate a partial read bitSet if we are scanning
+            ** SYSSTATEMENTS to ensure we don't get the hidden
+            ** column.
+            */
             boolean isSysstatements=tableName.equals("SYS","SYSSTATEMENTS");
-			/* Template must reflect full row.
-			 * Compact RCL down to partial row.
-			 */
+            /* Template must reflect full row.
+             * Compact RCL down to partial row.
+             */
 
             templateColumns=resultColumns;
             referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,isSysstatements,false,false);
             resultColumns=resultColumns.compactColumns(cursorTargetTable,isSysstatements);
             return this;
         }
-		
-		/* No need to go to the data page if this is a covering index */
-		/* Derby-1087: use data page when returning an updatable resultset */
+
+        /* No need to go to the data page if this is a covering index */
+        /* Derby-1087: use data page when returning an updatable resultset */
         if(ap.getCoveringIndexScan() && (!cursorTargetTable())){
-			/* Massage resultColumns so that it matches the index. */
+            /* Massage resultColumns so that it matches the index. */
             resultColumns=newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
 
-			/* We are going against the index.  The template row must be the full index row.
-			 * The template row will have the RID but the result row will not
-			 * since there is no need to go to the data page.
-			 */
+            /* We are going against the index.  The template row must be the full index row.
+             * The template row will have the RID but the result row will not
+             * since there is no need to go to the data page.
+             */
             templateColumns=newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
@@ -1756,12 +1756,12 @@ public class FromBaseTable extends FromTable {
             if(forUpdate()){
                 resultColumns.addRCForRID();
             }
-			
-			/* Compact RCL down to the partial row.  We always want a new
-			 * RCL and FormatableBitSet because this is a covering index.  (This is 
-			 * because we don't want the RID in the partial row returned
-			 * by the store.)
-			 */
+
+            /* Compact RCL down to the partial row.  We always want a new
+             * RCL and FormatableBitSet because this is a covering index.  (This is
+             * because we don't want the RID in the partial row returned
+             * by the store.)
+             */
             referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,true);
                         resultColumns=resultColumns.compactColumns(cursorTargetTable,true);
 
@@ -1772,50 +1772,50 @@ public class FromBaseTable extends FromTable {
             return this;
         }
 
-		/* Statement is dependent on the base conglomerate if this is 
-		 * a non-covering index. 
-		 */
+        /* Statement is dependent on the base conglomerate if this is
+         * a non-covering index.
+         */
         getCompilerContext().createDependency(baseConglomerateDescriptor);
 
-		/*
-		** On bulkFetch, we need to add the restrictions from
-		** the TableScan and reapply them  here.
-		*/
+        /*
+        ** On bulkFetch, we need to add the restrictions from
+        ** the TableScan and reapply them  here.
+        */
         if(bulkFetch!=UNSET){
             restrictionList.copyPredicatesToOtherList(
                     requalificationRestrictionList);
         }
 
-		/*
-		** We know the chosen conglomerate is an index.  We need to allocate
-		** an IndexToBaseRowNode above us, and to change the result column
-		** list for this FromBaseTable to reflect the columns in the index.
-		** We also need to shift "cursor target table" status from this
-		** FromBaseTable to the new IndexToBaseRowNow (because that's where
-		** a cursor can fetch the current row).
-		*/
+        /*
+        ** We know the chosen conglomerate is an index.  We need to allocate
+        ** an IndexToBaseRowNode above us, and to change the result column
+        ** list for this FromBaseTable to reflect the columns in the index.
+        ** We also need to shift "cursor target table" status from this
+        ** FromBaseTable to the new IndexToBaseRowNow (because that's where
+        ** a cursor can fetch the current row).
+        */
         ResultColumnList newResultColumns= newResultColumns(resultColumns,
                 trulyTheBestConglomerateDescriptor,
                 baseConglomerateDescriptor,
                 true);
 
-		/* Compact the RCL for the IndexToBaseRowNode down to
-		 * the partial row for the heap.  The referenced BitSet
-		 * will reflect only those columns coming from the heap.
-		 * (ie, it won't reflect columns coming from the index.)
-		 * NOTE: We need to re-get all of the columns from the heap
-		 * when doing a bulk fetch because we will be requalifying
-		 * the row in the IndexRowToBaseRow.
-		 */
+        /* Compact the RCL for the IndexToBaseRowNode down to
+         * the partial row for the heap.  The referenced BitSet
+         * will reflect only those columns coming from the heap.
+         * (ie, it won't reflect columns coming from the index.)
+         * NOTE: We need to re-get all of the columns from the heap
+         * when doing a bulk fetch because we will be requalifying
+         * the row in the IndexRowToBaseRow.
+         */
         // Get the BitSet for all of the referenced columns
         FormatableBitSet indexReferencedCols=null;
         FormatableBitSet indexReferencedStorageCols=null;
 
         //FormatableBitSet heapReferencedCols;
         if((bulkFetch==UNSET) && (requalificationRestrictionList==null || requalificationRestrictionList.isEmpty())){
-			/* No BULK FETCH or requalification, XOR off the columns coming from the heap 
-			 * to get the columns coming from the index.
-			 */
+            /* No BULK FETCH or requalification, XOR off the columns coming from the heap
+             * to get the columns coming from the index.
+             */
             indexReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,false);
             heapReferencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,true,false);
             if(heapReferencedCols!=null){
@@ -1839,22 +1839,22 @@ public class FromBaseTable extends FromTable {
                 tableProperties,
                 ctxMgr);
 
-		/*
-		** The template row is all the columns.  The
-		** result set is the compacted column list.
-		*/
+        /*
+        ** The template row is all the columns.  The
+        ** result set is the compacted column list.
+        */
         resultColumns=newResultColumns;
 
         templateColumns=newResultColumns(resultColumns,trulyTheBestConglomerateDescriptor,baseConglomerateDescriptor,false);
-		/* Since we are doing a non-covered index scan, if bulkFetch is on, then
-		 * the only columns that we need to get are those columns referenced in the start and stop positions
-		 * and the qualifiers (and the RID) because we will need to re-get all of the other
-		 * columns from the heap anyway.
-		 * At this point in time, columns referenced anywhere in the column tree are 
-		 * marked as being referenced.  So, we clear all of the references, walk the 
-		 * predicate list and remark the columns referenced from there and then add
-		 * the RID before compacting the columns.
-		 */
+        /* Since we are doing a non-covered index scan, if bulkFetch is on, then
+         * the only columns that we need to get are those columns referenced in the start and stop positions
+         * and the qualifiers (and the RID) because we will need to re-get all of the other
+         * columns from the heap anyway.
+         * At this point in time, columns referenced anywhere in the column tree are
+         * marked as being referenced.  So, we clear all of the references, walk the
+         * predicate list and remark the columns referenced from there and then add
+         * the RID before compacting the columns.
+         */
         if(bulkFetch!=UNSET){
             resultColumns.markAllUnreferenced();
             storeRestrictionList.markReferencedColumns();
@@ -1872,9 +1872,9 @@ public class FromBaseTable extends FromTable {
                 baseConglomerateDescriptor.getConglomerateNumber(),
                 forUpdate());
 
-		/* We must remember if this was the cursorTargetTable
- 		 * in order to get the right locking on the scan.
-		 */
+        /* We must remember if this was the cursorTargetTable
+          * in order to get the right locking on the scan.
+         */
         getUpdateLocks=cursorTargetTable;
         cursorTargetTable=false;
 
@@ -1920,12 +1920,12 @@ public class FromBaseTable extends FromTable {
                                 "\n.  RCL is\n"+oldColumns);
             }
 
-			/* If we're cloning the RCs its because we are
+            /* If we're cloning the RCs its because we are
              * building an RCL for the index when doing
-			 * a non-covering index scan.  Set the expression
-			 * for the old RC to be a VCN pointing to the
-			 * new RC.
-			 */
+             * a non-covering index scan.  Set the expression
+             * for the old RC to be a VCN pointing to the
+             * new RC.
+             */
             if(cloneRCs){
                 //noinspection ConstantConditions
                 newCol=oldCol.cloneMe();
@@ -1943,13 +1943,13 @@ public class FromBaseTable extends FromTable {
             newCols.addResultColumn(newCol);
         }
 
-		/*
-		** The conglomerate is an index, so we need to generate a RowLocation
-		** as the last column of the result set.  Notify the ResultColumnList
-		** that it needs to do this.  Also tell the RCL whether this is
-		** the target of an update, so it can tell the conglomerate controller
-		** when it is getting the RowLocation template.  
-		*/
+        /*
+        ** The conglomerate is an index, so we need to generate a RowLocation
+        ** as the last column of the result set.  Notify the ResultColumnList
+        ** that it needs to do this.  Also tell the RCL whether this is
+        ** the target of an update, so it can tell the conglomerate controller
+        ** when it is getting the RowLocation template.
+        */
         newCols.setIndexRow(heapCD.getConglomerateNumber(),forUpdate());
 
         return newCols;
@@ -1991,10 +1991,10 @@ public class FromBaseTable extends FromTable {
 
         generateResultSet(acb,mb);
 
-		/*
-		** Remember if this base table is the cursor target table, so we can
-		** know which table to use when doing positioned update and delete
-		*/
+        /*
+        ** Remember if this base table is the cursor target table, so we can
+        ** know which table to use when doing positioned update and delete
+        */
         if(cursorTargetTable){
             acb.rememberCursorTarget(mb);
         }
@@ -2011,32 +2011,32 @@ public class FromBaseTable extends FromTable {
     public void generateResultSet(ExpressionClassBuilder acb,
                                   MethodBuilder mb)
             throws StandardException{
-		/* We must have been a best conglomerate descriptor here */
+        /* We must have been a best conglomerate descriptor here */
         if(SanityManager.DEBUG)
             SanityManager.ASSERT(
                     getTrulyTheBestAccessPath().getConglomerateDescriptor()!=null);
 
-		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
+        /* Get the next ResultSet #, so that we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
         assignResultSetNumber();
 
         // TODO ASSIGN SPARK IN CASE OF EXTERNAL TABLES
         determineSpark();
 
-		/*
-		** If we are doing a special scan to get the last row
-		** of an index, generate it separately.
-		*/
+        /*
+        ** If we are doing a special scan to get the last row
+        ** of an index, generate it separately.
+        */
         if(specialMaxScan){
             generateMaxSpecialResultSet(acb,mb);
             return;
         }
 
-		/*
-		** If we are doing a special distinct scan, generate
-		** it separately.
-		*/
+        /*
+        ** If we are doing a special distinct scan, generate
+        ** it separately.
+        */
         if(distinctScan){
             generateDistinctScan(acb,mb);
             return;
@@ -2061,18 +2061,18 @@ public class FromBaseTable extends FromTable {
                 acb.newFieldDeclaration(Modifier.PRIVATE, type, name);
             }
         }
-		/* If this table is the target of an update or a delete, then we must 
-		 * wrap the Expression up in an assignment expression before 
-		 * returning.
-		 * NOTE - scanExpress is a ResultSet.  We will need to cast it to the
-		 * appropriate subclass.
-		 * For example, for a DELETE, instead of returning a call to the 
-		 * ResultSetFactory, we will generate and return:
-		 *		this.SCANRESULTSET = (cast to appropriate ResultSet type) 
-		 * The outer cast back to ResultSet is needed so that
-		 * we invoke the appropriate method.
-		 *										(call to the ResultSetFactory)
-		 */
+        /* If this table is the target of an update or a delete, then we must
+         * wrap the Expression up in an assignment expression before
+         * returning.
+         * NOTE - scanExpress is a ResultSet.  We will need to cast it to the
+         * appropriate subclass.
+         * For example, for a DELETE, instead of returning a call to the
+         * ResultSetFactory, we will generate and return:
+         *        this.SCANRESULTSET = (cast to appropriate ResultSet type)
+         * The outer cast back to ResultSet is needed so that
+         * we invoke the appropriate method.
+         *                                        (call to the ResultSetFactory)
+         */
         if((updateOrDelete==UPDATE) || (updateOrDelete==DELETE) || rowIdColumn!=null){
             mb.cast(ClassName.CursorResultSet);
             mb.putField(acb.getRowLocationScanResultSetName(),ClassName.CursorResultSet);
@@ -2112,24 +2112,24 @@ public class FromBaseTable extends FromTable {
             mb.pushNull("java.lang.String");
         }
     }
-		/**
-		** getLastIndexKeyResultSet
-		** (
-		**		activation,
-		**		resultSetNumber,
-		**		resultRowAllocator,
-		**		conglomereNumber,
-		**		tableName,
-		**		optimizeroverride
-		**		indexName,
-		**		colRefItem,
-		**		lockMode,
-		**		tableLocked,
-		**		isolationLevel,
-		**		optimizerEstimatedRowCount,
-		**		optimizerEstimatedRowCost,
-		**	);
-		*/
+        /**
+        ** getLastIndexKeyResultSet
+        ** (
+        **        activation,
+        **        resultSetNumber,
+        **        resultRowAllocator,
+        **        conglomereNumber,
+        **        tableName,
+        **        optimizeroverride
+        **        indexName,
+        **        colRefItem,
+        **        lockMode,
+        **        tableLocked,
+        **        isolationLevel,
+        **        optimizerEstimatedRowCount,
+        **        optimizerEstimatedRowCost,
+        **    );
+        */
     private void generateMaxSpecialResultSet ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
         ConglomerateDescriptor cd=getTrulyTheBestAccessPath().getConglomerateDescriptor();
         CostEstimate costEstimate=getFinalCostEstimate(false);
@@ -2137,7 +2137,7 @@ public class FromBaseTable extends FromTable {
                 -1:
                 acb.addItem(referencedCols);
         boolean tableLockGranularity=tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY;
-	
+
 
         acb.pushGetResultSetFactoryExpression(mb);
 
@@ -2172,7 +2172,7 @@ public class FromBaseTable extends FromTable {
         int colRefItem=(referencedCols==null)? -1: acb.addItem(referencedCols);
         boolean tableLockGranularity=tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY;
 
-		/* Get the hash key columns and wrap them in a formattable */
+        /* Get the hash key columns and wrap them in a formattable */
         int[] hashKeyColumns;
 
         acb.setDataSetProcessorType(dataSetProcessorType);
@@ -2192,7 +2192,7 @@ public class FromBaseTable extends FromTable {
             }
         }
 
-        		/* Generate Partitions if Applicable */
+                /* Generate Partitions if Applicable */
         int partitionReferenceItem = -1;
         int[] partitionBy = tableDescriptor.getPartitionBy();
         if (partitionBy.length != 0)
@@ -2274,23 +2274,23 @@ public class FromBaseTable extends FromTable {
             FormatableArrayHolder hashKeyHolder=new FormatableArrayHolder(fihArrayIndex);
             indexColItem=acb.addItem(hashKeyHolder);
         }
-		/*
-		// beetle entry 3865: updateable cursor using index
-		int indexColItem = -1;
-		if (cursorTargetTable || getUpdateLocks)
-		{
-			cd = getTrulyTheBestAccessPath().getConglomerateDescriptor();
-			if (cd.isIndex())
-			{
-				int[] baseColPos = cd.getIndexDescriptor().baseColumnPositions();
-				boolean[] isAscending = cd.getIndexDescriptor().isAscending();
-				int[] indexCols = new int[baseColPos.length];
-				for (int i = 0; i < indexCols.length; i++)
-					indexCols[i] = isAscending[i] ? baseColPos[i] : -baseColPos[i];
-				indexColItem = acb.addItem(indexCols);
-			}
-		}
-		*/
+        /*
+        // beetle entry 3865: updateable cursor using index
+        int indexColItem = -1;
+        if (cursorTargetTable || getUpdateLocks)
+        {
+            cd = getTrulyTheBestAccessPath().getConglomerateDescriptor();
+            if (cd.isIndex())
+            {
+                int[] baseColPos = cd.getIndexDescriptor().baseColumnPositions();
+                boolean[] isAscending = cd.getIndexDescriptor().isAscending();
+                int[] indexCols = new int[baseColPos.length];
+                for (int i = 0; i < indexCols.length; i++)
+                    indexCols[i] = isAscending[i] ? baseColPos[i] : -baseColPos[i];
+                indexColItem = acb.addItem(indexCols);
+            }
+        }
+        */
 
         int partitionReferenceItem = -1;
         int[] partitionBy = tableDescriptor.getPartitionBy();
@@ -2301,9 +2301,9 @@ public class FromBaseTable extends FromTable {
         AccessPath ap=getTrulyTheBestAccessPath();
         JoinStrategy trulyTheBestJoinStrategy=ap.getJoinStrategy();
 
-		/*
-		** We can only do bulkFetch on NESTEDLOOP
-		*/
+        /*
+        ** We can only do bulkFetch on NESTEDLOOP
+        */
         if(SanityManager.DEBUG){
             if((!trulyTheBestJoinStrategy.bulkFetchOK()) &&
                     (bulkFetch!=UNSET)){
@@ -2358,11 +2358,11 @@ public class FromBaseTable extends FromTable {
             return absolutePosition;
         }
 
-		/* setBitCtr counts the # of columns in the row,
-		 * from the leftmost to the absolutePosition, that will be
-		 * in the partial row returned by the store.  This becomes
-		 * the new value for column position.
-		 */
+        /* setBitCtr counts the # of columns in the row,
+         * from the leftmost to the absolutePosition, that will be
+         * in the partial row returned by the store.  This becomes
+         * the new value for column position.
+         */
         int setBitCtr=0;
         int bitCtr=0;
         for(;
@@ -2442,13 +2442,13 @@ public class FromBaseTable extends FromTable {
         ColumnDescriptor colDesc;
         TableName exposedName;
 
-		/* Cache exposed name for this table.
-		 * The exposed name becomes the qualifier for each column
-		 * in the expanded list.
-		 */
+        /* Cache exposed name for this table.
+         * The exposed name becomes the qualifier for each column
+         * in the expanded list.
+         */
         exposedName=getExposedTableName();
 
-		/* Add all of the columns in the table */
+        /* Add all of the columns in the table */
         rcList=(ResultColumnList)getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
@@ -2456,7 +2456,7 @@ public class FromBaseTable extends FromTable {
         int cdlSize=cdl.size();
 
         for(int index=0;index<cdlSize;index++){
-			/* Build a ResultColumn/BaseColumnNode pair for the column */
+            /* Build a ResultColumn/BaseColumnNode pair for the column */
             colDesc=cdl.elementAt(index);
             //A ColumnDescriptor instantiated through SYSCOLUMNSRowFactory only has
             //the uuid set on it and no table descriptor set on it. Since we know here
@@ -2477,7 +2477,7 @@ public class FromBaseTable extends FromTable {
                     valueNode,
                     getContextManager());
 
-			/* Build the ResultColumnList to return */
+            /* Build the ResultColumnList to return */
             rcList.addResultColumn(resultColumn);
         }
 
@@ -2506,13 +2506,13 @@ public class FromBaseTable extends FromTable {
         ColumnDescriptor cd;
         TableName exposedName;
 
-		/* Cache exposed name for this table.
-		 * The exposed name becomes the qualifier for each column
-		 * in the expanded list.
-		 */
+        /* Cache exposed name for this table.
+         * The exposed name becomes the qualifier for each column
+         * in the expanded list.
+         */
         exposedName=getExposedTableName();
 
-		/* Add all of the columns in the table */
+        /* Add all of the columns in the table */
         ResultColumnList newRcl=(ResultColumnList)getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
@@ -2520,7 +2520,7 @@ public class FromBaseTable extends FromTable {
         int cdlSize=cdl.size();
 
         for(int index=0;index<cdlSize;index++){
-			/* Build a ResultColumn/BaseColumnNode pair for the column */
+            /* Build a ResultColumn/BaseColumnNode pair for the column */
             cd=cdl.elementAt(index);
             int position=cd.getPosition();
 
@@ -2542,7 +2542,7 @@ public class FromBaseTable extends FromTable {
                                 getContextManager());
             }
 
-			/* Build the ResultColumnList to return */
+            /* Build the ResultColumnList to return */
             newRcl.addResultColumn(resultColumn);
         }
 
@@ -2648,14 +2648,14 @@ public class FromBaseTable extends FromTable {
             return true;
         }
 
-		/* For hash join, we need to consider both the qualification
-		 * and hash join predicates and we consider them against all
-		 * conglomerates since we are looking for any uniqueness
-		 * condition that holds on the columns in the hash table, 
-		 * otherwise we just consider the predicates in the 
-		 * restriction list and the conglomerate being scanned.
+        /* For hash join, we need to consider both the qualification
+         * and hash join predicates and we consider them against all
+         * conglomerates since we are looking for any uniqueness
+         * condition that holds on the columns in the hash table,
+         * otherwise we just consider the predicates in the
+         * restriction list and the conglomerate being scanned.
 
-		 */
+         */
         AccessPath ap=getTrulyTheBestAccessPath();
         JoinStrategy trulyTheBestJoinStrategy=ap.getJoinStrategy();
         PredicateList pl;
@@ -2712,7 +2712,7 @@ public class FromBaseTable extends FromTable {
     protected boolean supersetOfUniqueIndex(boolean[] eqCols) throws StandardException{
         ConglomerateDescriptor[] cds=tableDescriptor.getConglomerateDescriptors();
 
-		/* Cycle through the ConglomerateDescriptors */
+        /* Cycle through the ConglomerateDescriptors */
         IndexDescriptor id;
         for(ConglomerateDescriptor cd : cds){
             if(!cd.isIndex()) {
@@ -2736,7 +2736,7 @@ public class FromBaseTable extends FromTable {
                 }
             }
 
-			/* Did we get a full match? */
+            /* Did we get a full match? */
             if(inner==keyColumns.length){
                 return true;
             }
@@ -2760,7 +2760,7 @@ public class FromBaseTable extends FromTable {
             throws StandardException{
         ConglomerateDescriptor[] cds=tableDescriptor.getConglomerateDescriptors();
 
-		/* Cycle through the ConglomerateDescriptors */
+        /* Cycle through the ConglomerateDescriptors */
         IndexDescriptor id;
         for(ConglomerateDescriptor cd : cds){
             if(!cd.isIndex()) {
@@ -2809,11 +2809,11 @@ public class FromBaseTable extends FromTable {
      * system's combined decision to open the actual source conglomerate.
      * We've got to make sure they are consistent.  This is the lock chart (for
      * detail reason, see comments below):
-     * BEST ACCESS PATH			LOCK MODE ON HEAP
-     * ----------------------		-----------------------------------------
-     * index					  row lock
+     * BEST ACCESS PATH            LOCK MODE ON HEAP
+     * ----------------------        -----------------------------------------
+     * index                      row lock
      * <p/>
-     * heap					  row lock if READ_COMMITTED,
+     * heap                      row lock if READ_COMMITTED,
      * REPEATBLE_READ, or READ_UNCOMMITTED &&
      * not specified table lock otherwise,
      * use optimizer decided best acess
@@ -2823,17 +2823,17 @@ public class FromBaseTable extends FromTable {
      */
     @Override
     public int updateTargetLockMode(){
-		/* if best access path is index scan, we always use row lock on heap,
-		 * consistent with IndexRowToBaseRowResultSet's openCore().  We don't
-		 * need to worry about the correctness of serializable isolation level
-		 * because index will have previous key locking if it uses row locking
-		 * as well.
-		 */
+        /* if best access path is index scan, we always use row lock on heap,
+         * consistent with IndexRowToBaseRowResultSet's openCore().  We don't
+         * need to worry about the correctness of serializable isolation level
+         * because index will have previous key locking if it uses row locking
+         * as well.
+         */
         if(getTrulyTheBestAccessPath().getConglomerateDescriptor().isIndex())
             return TransactionController.MODE_RECORD;
 
-		/* we override optimizer's decision of the lock mode on heap, and
-		 * always use row lock if we are read committed/uncommitted or 
+        /* we override optimizer's decision of the lock mode on heap, and
+         * always use row lock if we are read committed/uncommitted or
          * repeatable read isolation level, and no forced table lock.  
          *
          * This is also reflected in TableScanResultSet's constructor, 
@@ -2844,7 +2844,7 @@ public class FromBaseTable extends FromTable {
          * compilation and execution if the statement is cached or stored, we 
          * encode both the SERIALIZABLE lock mode and the non-SERIALIZABLE
          * lock mode in the returned lock mode if they are different.
-		 */
+         */
         int isolationLevel= getLanguageConnectionContext().getCurrentIsolationLevel();
 
 
@@ -2861,8 +2861,8 @@ public class FromBaseTable extends FromTable {
             return lockMode;
         }
 
-		/* if above don't apply, use optimizer's decision on heap's lock
-		 */
+        /* if above don't apply, use optimizer's decision on heap's lock
+         */
         return getTrulyTheBestAccessPath().getLockMode();
     }
 
@@ -2883,11 +2883,11 @@ public class FromBaseTable extends FromTable {
      */
     @Override
     boolean isOrderedOn(ColumnReference[] crs,boolean permuteOrdering,Vector fbtVector) throws StandardException{
-		/* The following conditions must be met, regardless of the value of permuteOrdering,
-		 * in order for the table to be ordered on the specified columns:
-		 *	o  Each column is from this table. (RESOLVE - handle joins later)
-		 *	o  The access path for this table is an index.
-		 */
+        /* The following conditions must be met, regardless of the value of permuteOrdering,
+         * in order for the table to be ordered on the specified columns:
+         *    o  Each column is from this table. (RESOLVE - handle joins later)
+         *    o  The access path for this table is an index.
+         */
         // Verify that all CRs are from this table
         for(ColumnReference cr : crs){
             if(cr.getTableNumber()!=tableNumber){
@@ -2975,12 +2975,12 @@ public class FromBaseTable extends FromTable {
      */
     @Override
     void adjustForSortElimination(){
-		/* NOTE: IRTBR will use a different method to tell us that
-		 * it cannot do a bulk fetch as the ordering issues are
-		 * specific to a FBT being under an IRTBR as opposed to a
-		 * FBT being under a PRN, etc.
-		 * So, we just ignore this call for now.
-		 */
+        /* NOTE: IRTBR will use a different method to tell us that
+         * it cannot do a bulk fetch as the ordering issues are
+         * specific to a FBT being under an IRTBR as opposed to a
+         * FBT being under a PRN, etc.
+         * So, we just ignore this call for now.
+         */
     }
 
     /**
@@ -2988,16 +2988,16 @@ public class FromBaseTable extends FromTable {
      */
     @Override
     void adjustForSortElimination(RequiredRowOrdering rowOrdering) throws StandardException{
-		/* We may have eliminated a sort with the assumption that
-		 * the rows from this base table will naturally come back
-		 * in the correct ORDER BY order. But in the case of IN
-		 * list probing predicates (see DERBY-47) the predicate
-		 * itself may affect the order of the rows.  In that case
-		 * we need to notify the predicate so that it does the
-		 * right thing--i.e. so that it preserves the natural
-		 * ordering of the rows as expected from this base table.
-		 * DERBY-3279.
-		 */
+        /* We may have eliminated a sort with the assumption that
+         * the rows from this base table will naturally come back
+         * in the correct ORDER BY order. But in the case of IN
+         * list probing predicates (see DERBY-47) the predicate
+         * itself may affect the order of the rows.  In that case
+         * we need to notify the predicate so that it does the
+         * right thing--i.e. so that it preserves the natural
+         * ordering of the rows as expected from this base table.
+         * DERBY-3279.
+         */
         if(restrictionList!=null)
             restrictionList.adjustForSortElimination(rowOrdering);
     }
@@ -3012,17 +3012,17 @@ public class FromBaseTable extends FromTable {
      */
     private boolean isOrdered(ColumnReference[] crs,ConglomerateDescriptor cd) throws StandardException{
         /* This table is ordered on a permutation of the specified columns if:
-		 *  o  For each key column, until a match has been found for all of the
-		 *	   ColumnReferences, it is either in the array of ColumnReferences
-		 *	   or there is an equality predicate on it.
-		 *	   (NOTE: It is okay to exhaust the key columns before the ColumnReferences
-		 *	   if the index is unique.  In other words if we have CRs left over after
-		 *	   matching all of the columns in the key then the table is considered ordered
-		 *	   iff the index is unique. For example:
-		 *		i1 on (c1, c2), unique
-		 *		select distinct c3 from t1 where c1 = 1 and c2 = ?; 
-		 *	   is ordered on c3 since there will be at most 1 qualifying row.)
-		 */
+         *  o  For each key column, until a match has been found for all of the
+         *       ColumnReferences, it is either in the array of ColumnReferences
+         *       or there is an equality predicate on it.
+         *       (NOTE: It is okay to exhaust the key columns before the ColumnReferences
+         *       if the index is unique.  In other words if we have CRs left over after
+         *       matching all of the columns in the key then the table is considered ordered
+         *       iff the index is unique. For example:
+         *        i1 on (c1, c2), unique
+         *        select distinct c3 from t1 where c1 = 1 and c2 = ?;
+         *       is ordered on c3 since there will be at most 1 qualifying row.)
+         */
         boolean[] matchedCRs=new boolean[crs.length];
 
         int nextKeyColumn=0;
@@ -3051,7 +3051,7 @@ public class FromBaseTable extends FromTable {
             }
         }
 
-		/* Count the number of matched CRs. The table is ordered if we matched all of them. */
+        /* Count the number of matched CRs. The table is ordered if we matched all of them. */
         int numCRsMatched=0;
         for(boolean matchedCR : matchedCRs){
             if(matchedCR){
@@ -3063,10 +3063,10 @@ public class FromBaseTable extends FromTable {
             return true;
         }
 
-		/* We didn't match all of the CRs, but if
-		 * we matched all of the key columns then
-		 * we need to check if the index is unique.
-		 */
+        /* We didn't match all of the CRs, but if
+         * we matched all of the key columns then
+         * we need to check if the index is unique.
+         */
         return nextKeyColumn==keyColumns.length && cd.getIndexDescriptor().isUnique();
     }
 
@@ -3080,25 +3080,25 @@ public class FromBaseTable extends FromTable {
      */
     private boolean isStrictlyOrdered(ColumnReference[] crs,ConglomerateDescriptor cd)
             throws StandardException{
-		/* This table is ordered on the specified columns in the specified order if:
-		 *  o  For each ColumnReference, it is either the next key column or there
-		 *	   is an equality predicate on all key columns prior to the ColumnReference.
-		 *	   (NOTE: If the index is unique, then it is okay to have a suffix of
-		 *	   unmatched ColumnReferences because the set is known to be ordered. For example:
-		 *		i1 on (c1, c2), unique
-		 *		select distinct c3 from t1 where c1 = 1 and c2 = ?; 
-		 *	   is ordered on c3 since there will be at most 1 qualifying row.)
-		 */
+        /* This table is ordered on the specified columns in the specified order if:
+         *  o  For each ColumnReference, it is either the next key column or there
+         *       is an equality predicate on all key columns prior to the ColumnReference.
+         *       (NOTE: If the index is unique, then it is okay to have a suffix of
+         *       unmatched ColumnReferences because the set is known to be ordered. For example:
+         *        i1 on (c1, c2), unique
+         *        select distinct c3 from t1 where c1 = 1 and c2 = ?;
+         *       is ordered on c3 since there will be at most 1 qualifying row.)
+         */
         int nextCR=0;
         int nextKeyColumn=0;
         int[] keyColumns=cd.getIndexDescriptor().baseColumnPositions();
 
         // Walk through the CRs
         for(;nextCR<crs.length;nextCR++){
-			/* If we've walked through all of the key columns then
-			 * we need to check if the index is unique.
-			 * Beetle 4402
-			 */
+            /* If we've walked through all of the key columns then
+             * we need to check if the index is unique.
+             * Beetle 4402
+             */
             if(nextKeyColumn==keyColumns.length){
                 if(cd.getIndexDescriptor().isUnique()){
                     break;
@@ -3115,9 +3115,9 @@ public class FromBaseTable extends FromTable {
                 // Advance to the next key column
                 nextKeyColumn++;
 
-				/* If we've walked through all of the key columns then
-				 * we need to check if the index is unique.
-				 */
+                /* If we've walked through all of the key columns then
+                 * we need to check if the index is unique.
+                 */
                 if(nextKeyColumn==keyColumns.length){
                     if(cd.getIndexDescriptor().isUnique()){
                         break;
@@ -3160,7 +3160,7 @@ public class FromBaseTable extends FromTable {
             // get the column number at this position
             /* Is there a pushable equality predicate on this key column?
              * (IS NULL is also acceptable)
-			 */
+             */
             List<Predicate> optimizableEqualityPredicateList =
                     restrictionList.getOptimizableEqualityPredicateList(this,curCol,true);
 
@@ -3233,14 +3233,14 @@ public class FromBaseTable extends FromTable {
 
     private DataValueDescriptor[] getRowTemplate(ConglomerateDescriptor cd,
                                                  StoreCostController scc) throws StandardException{
-		/*
-		** If it's for a heap scan, just get all the columns in the
-		** table.
-		*/
+        /*
+        ** If it's for a heap scan, just get all the columns in the
+        ** table.
+        */
         if(!cd.isIndex())
             return templateColumns.buildEmptyRow().getRowArray();
 
-		/* It's an index scan, so get all the columns in the index */
+        /* It's an index scan, so get all the columns in the index */
         ExecRow emptyIndexRow=templateColumns.buildEmptyIndexRow(
                 tableDescriptor,
                 cd,
@@ -3468,9 +3468,11 @@ public class FromBaseTable extends FromTable {
         return dataSetProcessorType;
     }
 
-    public void determineSpark() {
-        // Set Spark Baby...
-        dataSetProcessorType = getdataSetProcessorTypeForAccessPath(getTrulyTheBestAccessPath());
+    @Override
+    public boolean determineSpark() {
+        if (getTrulyTheBestAccessPath() != null)
+            setDataSetProcessorType(getDataSetProcessorTypeForAccessPath(getTrulyTheBestAccessPath()));
+        return isSpark(getDataSetProcessorType());
     }
 
     /**
@@ -3478,7 +3480,8 @@ public class FromBaseTable extends FromTable {
      *
      * @param accessPath the access path
      */
-    public CompilerContext.DataSetProcessorType getdataSetProcessorTypeForAccessPath(AccessPath accessPath) {
+    public CompilerContext.DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
+        assert accessPath != null;
         CompilerContext.DataSetProcessorType dspt = dataSetProcessorType;
         long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().getDetermineSparkRowThreshold();
         if (dspt.equals(CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) &&
@@ -3489,15 +3492,6 @@ public class FromBaseTable extends FromTable {
             dspt = CompilerContext.DataSetProcessorType.SPARK;
         }
         return dspt;
-    }
-    /**
-     * Is this a spark data set processor type?
-     *
-     * @param dspt the data set processor to test.
-     */
-    public boolean isSpark (CompilerContext.DataSetProcessorType dspt) {
-        return dspt == CompilerContext.DataSetProcessorType.SPARK ||
-               dspt == CompilerContext.DataSetProcessorType.FORCED_SPARK;
     }
 
     private boolean hasConstantPredicate(int tableNum, int colNum, OptimizablePredicateList predList) {
