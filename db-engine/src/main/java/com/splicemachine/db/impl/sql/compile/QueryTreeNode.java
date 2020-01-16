@@ -119,6 +119,8 @@ public abstract class QueryTreeNode implements Node, Visitable{
     private LanguageConnectionContext lcc;
     private GenericConstantActionFactory constantActionFactory;
 
+    protected CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+
     /**
      * Format a node that has been converted to a String for printing
      * as part of a tree.  This method indents the String to the given
@@ -2017,4 +2019,26 @@ public abstract class QueryTreeNode implements Node, Visitable{
         return visitor.getNodes();
     }
 
+    protected boolean determineSpark() throws StandardException {
+        assert false: "determineSpark not expected to be called for " + getClass().getName();
+        return false;
+    }
+
+    protected CompilerContext.DataSetProcessorType getDataSetProcessorType() {
+        return dataSetProcessorType;
+    }
+
+    protected void setDataSetProcessorType(CompilerContext.DataSetProcessorType dataSetProcessorType) {
+        this.dataSetProcessorType = dataSetProcessorType;
+    }
+
+    /**
+     * Is this a spark data set processor type?
+     *
+     * @param dspt the data set processor to test.
+     */
+    public static boolean isSpark (CompilerContext.DataSetProcessorType dspt) {
+        return dspt == CompilerContext.DataSetProcessorType.SPARK ||
+                dspt == CompilerContext.DataSetProcessorType.FORCED_SPARK;
+    }
 }

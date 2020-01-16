@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import java.util.ArrayList;
@@ -153,6 +154,17 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
             //noinspection unchecked
             setElementAt((T)elementAt(index).accept(v, this),index);
         }
+    }
+
+    @Override
+    protected boolean determineSpark() throws StandardException {
+        for(T t: v) {
+            if (t.determineSpark()) {
+                setDataSetProcessorType(CompilerContext.DataSetProcessorType.SPARK);
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<T> getNodes(){

@@ -257,7 +257,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
                              Optimizer optimizer,
-                             CostEstimate innerCost) throws StandardException{
+                             CostEstimate innerCost) throws StandardException {
 
         SpliceLogUtils.trace(LOG,"rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost,innerCost);
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
@@ -271,8 +271,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                 outerCost.setRowOrdering(ro); //force a cloning
             return;
         }
-        boolean usesSpark =
-         (innerTable.isAboveSparkThreshold(outerCost) || innerTable.isAboveSparkThreshold(innerCost));
 
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
@@ -285,7 +283,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalRowCount);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
-        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, usesSpark);
+        double joinCost = nestedLoopJoinStrategyLocalCost(innerCost, outerCost, totalRowCount, optimizer.getForSpark());
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());

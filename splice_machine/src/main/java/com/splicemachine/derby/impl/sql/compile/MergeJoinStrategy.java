@@ -152,8 +152,6 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
-
-
     }
 
     /**

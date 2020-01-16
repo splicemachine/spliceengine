@@ -694,7 +694,7 @@ public class SubqueryNode extends ValueNode{
 			 * the outer from list if the subquery itself contains
 			 * another subquery.  Otherwise, it just becomes a constant.
 			 */
-            if(!rrsn.subquerys.isEmpty()){
+            if(!rrsn.subqueries.isEmpty()){
                 fl.addElement(rrsn);
                 outerFromList.destructiveAppend(fl);
             }
@@ -702,7 +702,7 @@ public class SubqueryNode extends ValueNode{
 			/* Append the subquery's subquery list to the
 			 * outer subquery list.
 			 */
-            outerSubqueryList.destructiveAppend(rrsn.subquerys);
+            outerSubqueryList.destructiveAppend(rrsn.subqueries);
 
 			/* return the new join condition
 			 * If we are flattening an EXISTS then there is no new join
