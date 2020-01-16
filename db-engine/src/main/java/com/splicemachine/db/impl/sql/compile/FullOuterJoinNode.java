@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFlag;
+import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import org.spark_project.guava.base.Joiner;
@@ -215,7 +216,7 @@ public class FullOuterJoinNode extends JoinNode {
     @Override
     public FromTable transformOuterJoins(ValueNode predicateTree,int numTables) throws StandardException{
 
-        super.transformOuterJoins(null,numTables);
+        super.transformOuterJoins(predicateTree, numTables);
         if(PredicateSimplificationVisitor.isBooleanTrue(joinClause)){
             JoinNode ij=(JoinNode)
                     getNodeFactory().getNode(
@@ -235,12 +236,147 @@ public class FullOuterJoinNode extends JoinNode {
             return ij;
         }
 
-		/* We can't transform this node, so tell both sides of the
-		 * outer join that they can't get flattened into outer query block.
-		 */
+        // We are looking for a null intolerant predicate on an inner table.
+        // Collect base table numbers, also if they are located inside a join
+        // (inner or outer), that is, the inner operand is itself a join,
+        // recursively.
+        // For full joins, both sources are inner tables
+        JBitSet leftMap=leftResultSet.LOJgetReferencedTables(numTables);
+        JBitSet rightMap = rightResultSet.LOJgetReferencedTables(numTables);
+
+        /* Walk predicates looking for
+         * a null intolerant predicate on the inner table.
+         */
+        ValueNode vn=predicateTree;
+        JoinNode ij = this;
+        while(vn instanceof AndNode){
+            CONVERSION action = CONVERSION.NONE;
+
+            AndNode and=(AndNode)vn;
+            ValueNode left=and.getLeftOperand();
+
+            /* Skip IS NULL predicates as they are not null intolerant */
+            if(left.isInstanceOf(C_NodeTypes.IS_NULL_NODE)){
+                vn=and.getRightOperand();
+                continue;
+            }
+
+            /* To be conservative, only consider predicates that are relops, certain inlist, between and like ops */
+            if (left instanceof RelationalOperator ||
+                    left instanceof InListOperatorNode ||
+                    left instanceof BetweenOperatorNode ||
+                    left instanceof LikeEscapeOperatorNode){
+                JBitSet refMap=new JBitSet(numTables);
+                /* Do not consider method calls,
+                 * conditionals, field references, etc. */
+
+                /* only consider the left side of inlist operator, as right are ORed elements */
+                if (left instanceof InListOperatorNode) {
+                    if (!((InListOperatorNode) left).getLeftOperandList().categorize(refMap,true)) {
+                        vn=and.getRightOperand();
+                        continue;
+                    }
+                } else if(!(left.categorize(refMap,true))){
+                    vn=and.getRightOperand();
+                    continue;
+                }
+
+                /* If the predicate is a null intolerant predicate
+                 * on the inner table side then we can flatten to a
+                 * left/right join depending on the side the inner table is located.
+                 */
+                if (refMap.intersects(leftMap)) {
+                    if (refMap.intersects(rightMap)) {
+                        action = CONVERSION.CONVERTINNER;
+                    } else {
+                        if (ij instanceof FullOuterJoinNode) {
+                            // FJ -> LJ
+                            action = CONVERSION.CONVERTLEFT;
+                        } else {
+                            // ij has been converted HalfOuterJoin node
+                            if (!((HalfOuterJoinNode)ij).isRightOuterJoin()) {
+                                action = CONVERSION.NONE;
+                            } else {
+                                // RJ -> IJ
+                                action = CONVERSION.CONVERTINNER;
+                            }
+                        }
+                    }
+                } else if (refMap.intersects(rightMap)) {
+                    if (ij instanceof FullOuterJoinNode) {
+                        // FJ -> RJ
+                        action = CONVERSION.CONVERTRIGHT;
+                    } else {
+                        // ij has been converted to HalfOuterJoin node
+                        if (((HalfOuterJoinNode)ij).isRightOuterJoin()) {
+                            action = CONVERSION.NONE;
+                        } else {
+                            // LJ -> IJ
+                            action = CONVERSION.CONVERTINNER;
+                        }
+                    }
+                }
+            }
+
+            if (action == CONVERSION.CONVERTINNER) {
+                ij = (JoinNode)
+                        getNodeFactory().getNode(
+                                C_NodeTypes.JOIN_NODE,
+                                leftResultSet,
+                                rightResultSet,
+                                joinClause,
+                                null,
+                                resultColumns,
+                                tableProperties,
+                                null,
+                                getContextManager());
+                ij.setTableNumber(tableNumber);
+                ij.setSubqueryList(subqueryList);
+                ij.setAggregateVector(aggregateVector);
+                // no more conversion, we can return now
+                return ij;
+            } else if (action == CONVERSION.CONVERTLEFT) {
+                ij = (JoinNode)
+                        getNodeFactory().getNode(
+                                C_NodeTypes.HALF_OUTER_JOIN_NODE,
+                                leftResultSet,
+                                rightResultSet,
+                                joinClause,
+                                null,
+                                Boolean.FALSE,
+                                tableProperties,
+                                getContextManager());
+                ij.setResultColumns(resultColumns);
+                ij.setTableNumber(tableNumber);
+                ij.setSubqueryList(subqueryList);
+                ij.setAggregateVector(aggregateVector);
+
+            } else if (action == CONVERSION.CONVERTRIGHT) {
+                ij = (JoinNode)
+                        getNodeFactory().getNode(
+                                C_NodeTypes.HALF_OUTER_JOIN_NODE,
+                                leftResultSet,
+                                rightResultSet,
+                                joinClause,
+                                null,
+                                Boolean.TRUE,
+                                tableProperties,
+                                getContextManager());
+                ij.setResultColumns(resultColumns);
+                ij.setTableNumber(tableNumber);
+                ij.setSubqueryList(subqueryList);
+                ij.setAggregateVector(aggregateVector);
+            }
+
+            vn=and.getRightOperand();
+        }
+
+        /* We can't transform this node to inner join, so tell both sides of the
+         * outer join that they can't get flattened into outer query block.
+         */
         leftResultSet.notFlattenableJoin();
         rightResultSet.notFlattenableJoin();
 
-        return this;
+        return ij;
     }
 }
