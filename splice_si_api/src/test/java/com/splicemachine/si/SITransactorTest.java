@@ -73,8 +73,8 @@ public class SITransactorTest {
 
     @BeforeClass
     public static void classSetUp() throws IOException {
-        if(testEnv == null) {
-            testEnv = SITestEnvironment.loadTestEnvironment();
+        if(testEnv==null){
+            testEnv =SITestEnvironment.loadTestEnvironment();
             transactorSetup = new TestTransactionSetup(testEnv,true);
         }
         testEnv.initialize(); // reinitialize from scratch
@@ -104,6 +104,7 @@ public class SITransactorTest {
     public void writeRead() throws IOException {
         Txn t1 = control.beginTransaction();
         t1 = t1.elevateToWritable(Bytes.toBytes("t"));
+//				Txn t1 = control.beginTransaction();
         Assert.assertEquals("joe9 absent", testUtility.read(t1, "joe9"));
         testUtility.insertAge(t1, "joe9", 20);
         Assert.assertEquals("joe9 age=20 job=null", testUtility.read(t1, "joe9"));

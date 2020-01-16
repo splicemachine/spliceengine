@@ -39,19 +39,19 @@ public class SpliceHRegionInfoTest {
     public void testOrderingOfColumns() {
         List<KeyValue> keyValueList = new ArrayList();
             keyValueList.add(new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
-            SIConstants.TOMBSTONE_COLUMN_BYTES, DEFAULT_TIMESTAMP, rowKey));
+            SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, DEFAULT_TIMESTAMP, rowKey));
         keyValueList.add(new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
                 SIConstants.PACKED_COLUMN_BYTES, DEFAULT_TIMESTAMP, rowKey));
         keyValueList.add(new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES, DEFAULT_TIMESTAMP_2, rowKey));
+                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES, DEFAULT_TIMESTAMP_2, rowKey));
 
         Collections.sort(keyValueList,SpliceKVComparator.INSTANCE);
         Assert.assertTrue("Position 1 incorrect",Bytes.equals(keyValueList.get(0).getQualifierArray(),
                 keyValueList.get(0).getQualifierOffset(),keyValueList.get(0).getQualifierLength(),
-                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0,1));
+                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1));
         Assert.assertTrue("Position 2 incorrect",Bytes.equals(keyValueList.get(1).getQualifierArray(),
                 keyValueList.get(1).getQualifierOffset(),keyValueList.get(1).getQualifierLength(),
-                SIConstants.TOMBSTONE_COLUMN_BYTES,0,1));
+                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,0,1));
         Assert.assertTrue("Position 3 incorrect",Bytes.equals(keyValueList.get(2).getQualifierArray(),
                 keyValueList.get(2).getQualifierOffset(),keyValueList.get(2).getQualifierLength(),
                 SIConstants.PACKED_COLUMN_BYTES,0,1));

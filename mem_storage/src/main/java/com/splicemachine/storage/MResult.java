@@ -47,7 +47,7 @@ public class MResult implements DataResult{
     }
 
     @Override
-    public DataCell tombstoneOrAntiTombstone(){
+    public DataCell tombstone(){
         if(dataCells==null) return null;
         for(DataCell mc:dataCells){
             if(mc.dataType()==CellType.TOMBSTONE||mc.dataType()==CellType.ANTI_TOMBSTONE) return mc;
@@ -69,26 +69,6 @@ public class MResult implements DataResult{
         if(dataCells==null) return null;
         for(DataCell mc:dataCells){
             if(mc.dataType()==CellType.FOREIGN_KEY_COUNTER) return mc;
-        }
-        return null;
-    }
-
-    @Override
-    public DataCell firstOccurrenceToken() {
-        if(dataCells==null) return null;
-        for(DataCell mc:dataCells){
-            if(mc.dataType() == CellType.FIRST_WRITE_TOKEN || mc.dataType() == CellType.DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN)
-                return mc;
-        }
-        return null;
-    }
-
-    @Override
-    public DataCell firstWriteToken() {
-        if(dataCells==null) return null;
-        for(DataCell mc:dataCells){
-            if(mc.dataType() == CellType.FIRST_WRITE_TOKEN)
-                return mc;
         }
         return null;
     }

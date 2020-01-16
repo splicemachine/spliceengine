@@ -161,7 +161,6 @@ public final class SConfigurationImpl implements SConfiguration {
     private final Map<String, String> olapServerYarnQueues;
     private final boolean olapServerIsolatedCompaction;
     private final String olapServerIsolatedCompactionQueueName;
-    private final boolean olapCompactionAutomaticallyPurgeDeletedRows;
 
     // SIConfigurations
     private final  int activeTransactionCacheSize;
@@ -642,12 +641,6 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getOlapShufflePartitions() {
         return olapShufflePartitions;
     }
-
-    @Override
-    public boolean getOlapCompactionAutomaticallyPurgeDeletedRows() {
-         return olapCompactionAutomaticallyPurgeDeletedRows;
-    }
-
     @Override
     public int getTimestampClientWaitTime() {
         return timestampClientWaitTime;
@@ -1014,7 +1007,6 @@ public final class SConfigurationImpl implements SConfiguration {
         olapServerYarnQueues = builder.olapServerYarnQueues;
         olapServerIsolatedCompaction = builder.olapServerIsolatedCompaction;
         olapServerIsolatedCompactionQueueName = builder.olapServerIsolatedCompactionQueueName;
-        olapCompactionAutomaticallyPurgeDeletedRows = builder.olapCompactionAutomaticallyPurgeDeletedRows;
         resolutionOnFlushes = builder.resolutionOnFlushes;
         reservedSlotsTimeout = builder.reservedSlotsTimeout;
         storageFactoryHome = builder.storageFactoryHome;

@@ -53,16 +53,16 @@ public class HResult implements DataResult{
     @Override
     public DataCell commitTimestamp(){
         if(result==null) return null;
-        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES);
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES);
         if(columnLatestCell==null) return null;
         wrapper.set(columnLatestCell);
         return wrapper;
     }
 
     @Override
-    public DataCell tombstoneOrAntiTombstone(){
+    public DataCell tombstone(){
         if(result==null) return null;
-        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TOMBSTONE_COLUMN_BYTES);
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES);
         if(columnLatestCell==null) return null;
         wrapper.set(columnLatestCell);
         return wrapper;
@@ -80,29 +80,10 @@ public class HResult implements DataResult{
     @Override
     public DataCell fkCounter(){
         if(result==null) return null;
-        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES);
+        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
         if(columnLatestCell==null) return null;
         wrapper.set(columnLatestCell);
         return wrapper;
-    }
-
-    @Override
-    public DataCell firstOccurrenceToken() {
-        if(result==null) return null;
-        Cell columnLatestCell=result.getColumnLatestCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES);
-        if(columnLatestCell==null) return null;
-        wrapper.set(columnLatestCell);
-        return wrapper;
-    }
-
-    @Override
-    public DataCell firstWriteToken() {
-        DataCell cell = firstOccurrenceToken();
-        if (cell == null)
-            return null;
-        if (cell.dataType() == CellType.FIRST_WRITE_TOKEN)
-            return cell;
-        return null;
     }
 
     @Override
