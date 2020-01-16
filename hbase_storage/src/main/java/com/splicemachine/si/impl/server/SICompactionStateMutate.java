@@ -8,28 +8,23 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.CellType;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 
 class SICompactionStateMutate {
-    private static final Logger LOG = Logger.getLogger(SICompactionStateMutate.class);
     private SortedSet<Cell> dataToReturn;
-    private final PurgeConfig purgeConfig;
+    private final boolean purgeDeletedRows;
     private long maxTombstoneTimestamp;
-    private long lowWatermarkTransaction;
-    private boolean firstWriteToken;
-    private long deleteRightAfterFirstWriteTimestamp;
 
-    SICompactionStateMutate(PurgeConfig purgeConfig, long lowWatermarkTransaction) {
-        this.purgeConfig = purgeConfig;
+    SICompactionStateMutate(boolean purgeDeletedRows) {
+        this.purgeDeletedRows = purgeDeletedRows;
         this.dataToReturn = new TreeSet<>(KeyValue.COMPARATOR);
         this.maxTombstoneTimestamp = 0;
-        this.lowWatermarkTransaction = lowWatermarkTransaction;
-        this.firstWriteToken = false;
-        this.deleteRightAfterFirstWriteTimestamp = 0;
     }
 
     private boolean isSorted(List<Cell> list) {
@@ -55,23 +50,16 @@ class SICompactionStateMutate {
         assert isSorted(rawList): "CompactionStateMutate: rawList not sorted";
         assert rawList.size() == txns.size();
 
-        try {
-            Iterator<TxnView> it = txns.iterator();
-            for (Cell aRawList : rawList) {
-                TxnView txn = it.next();
-                mutate(aRawList, txn);
-            }
-            if (purgeConfig.shouldPurge() &&
-                    (!purgeConfig.shouldRespectActiveTransactions() || maxTombstoneTimestamp > 0)) {
-                removeDeletedRows();
-            }
-            results.addAll(dataToReturn);
-            assert isSorted(results) : "CompactionStateMutate: results not sorted";
-        } catch (AssertionError e) {
-            LOG.error(e);
-            LOG.error(rawList.toString());
-            throw e;
+        Iterator<TxnView> it = txns.iterator();
+        for (Cell aRawList : rawList) {
+            TxnView txn = it.next();
+            mutate(aRawList, txn);
         }
+        if (purgeDeletedRows && maxTombstoneTimestamp > 0) {
+            removeTombStone(maxTombstoneTimestamp);
+        }
+        results.addAll(dataToReturn);
+        assert isSorted(results): "CompactionStateMutate: results not sorted";
     }
 
     /**
@@ -100,50 +88,20 @@ class SICompactionStateMutate {
              */
             long globalCommitTimestamp = txn.getEffectiveCommitTimestamp();
             dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(globalCommitTimestamp)));
-            switch (cellType) {
-                case TOMBSTONE:
-                    long t = element.getTimestamp();
-                    if (t > maxTombstoneTimestamp &&
-                            (!purgeConfig.shouldRespectActiveTransactions() || t < lowWatermarkTransaction)) {
-                        maxTombstoneTimestamp = t;
-                    }
-                    break;
-                case FIRST_WRITE_TOKEN:
-                    assert !firstWriteToken;
-                    firstWriteToken = true;
-                    break;
-                case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
-                    assert deleteRightAfterFirstWriteTimestamp == 0;
-                    deleteRightAfterFirstWriteTimestamp = element.getTimestamp();
-                    break;
+            if (cellType == CellType.TOMBSTONE && element.getTimestamp() > maxTombstoneTimestamp) {
+                maxTombstoneTimestamp = element.getTimestamp();
             }
         }
         // Committed or active, return the original data too
         dataToReturn.add(element);
     }
 
-    private boolean shouldRemoveMostRecentTombstone() {
-        switch (purgeConfig.getPurgeLatestTombstone()) {
-            case ALWAYS:
-                return true;
-            case IF_DELETE_FOLLOWS_FIRST_WRITE:
-                return firstWriteToken && deleteRightAfterFirstWriteTimestamp == maxTombstoneTimestamp;
-            case IF_FIRST_WRITE_PRESENT:
-                return firstWriteToken;
-        }
-        assert false;
-        return false;
-    }
-
-    private void removeDeletedRows() {
-        Iterator<Cell> it = dataToReturn.iterator();
-        while (it.hasNext()) {
-            Cell element = it.next();
+    private void removeTombStone(long maxTombstone) {
+        SortedSet<Cell> cp = (SortedSet<Cell>)((TreeSet<Cell>)dataToReturn).clone();
+        for (Cell element : cp) {
             long timestamp = element.getTimestamp();
-            if (timestamp == maxTombstoneTimestamp && shouldRemoveMostRecentTombstone())
-                it.remove();
-            else if (timestamp < maxTombstoneTimestamp) {
-                it.remove();
+            if (timestamp <= maxTombstone) {
+                dataToReturn.remove(element);
             }
         }
     }
@@ -160,7 +118,7 @@ class SICompactionStateMutate {
                 element.getRowOffset(),
                 element.getRowLength(),
                 SIConstants.DEFAULT_FAMILY_BYTES,0,1,
-                SIConstants.COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,
+                SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,0,1,
                 element.getTimestamp(),KeyValue.Type.Put,
                 value,0,value==null?0:value.length);
     }

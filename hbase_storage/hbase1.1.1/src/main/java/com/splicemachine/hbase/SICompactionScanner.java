@@ -16,7 +16,6 @@ package com.splicemachine.hbase;
 
 import com.splicemachine.si.impl.server.AbstractSICompactionScanner;
 import com.splicemachine.si.impl.server.CompactionContext;
-import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SICompactionState;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -35,11 +34,8 @@ public class SICompactionScanner extends AbstractSICompactionScanner {
 
     public SICompactionScanner(SICompactionState compactionState,
                                InternalScanner scanner,
-                               PurgeConfig purgeConfig,
-                               double resolutionShare,
-                               int bufferSize,
-                               CompactionContext context) {
-        super(compactionState, scanner, purgeConfig, resolutionShare, bufferSize, context);
+                               boolean purgeDeletedRows, double resolutionShare, int bufferSize, CompactionContext context) {
+        super(compactionState, scanner, purgeDeletedRows, resolutionShare, bufferSize, context);
     }
 
 

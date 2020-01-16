@@ -64,7 +64,7 @@ public abstract class SkeletonHBaseClientPartition implements Partition{
     @Override
     public DataResult getFkCounter(byte[] key,DataResult previous) throws IOException{
         Get g = new Get(key);
-        g.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.FK_COUNTER_COLUMN_BYTES);
+        g.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES);
 
         Result r = doGet(g);
         if(previous==null)

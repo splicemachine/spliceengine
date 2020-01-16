@@ -124,15 +124,13 @@ public class SimpleTxnFilter implements TxnFilter{
     @Override
     public DataFilter.ReturnCode filterCell(DataCell keyValue) throws IOException{
         CellType type=keyValue.dataType();
-        switch (type) {
-            case COMMIT_TIMESTAMP:
-                ensureTransactionIsCached(keyValue);
-                return DataFilter.ReturnCode.SKIP;
-            case FOREIGN_KEY_COUNTER:
-            case FIRST_WRITE_TOKEN:
-            case DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN:
-                /* Transactional reads always ignore these columns, no exceptions. */
-                return DataFilter.ReturnCode.SKIP;
+        if(type==CellType.COMMIT_TIMESTAMP){
+            ensureTransactionIsCached(keyValue);
+            return DataFilter.ReturnCode.SKIP;
+        }
+        if(type==CellType.FOREIGN_KEY_COUNTER){
+            /* Transactional reads always ignore this column, no exceptions. */
+            return DataFilter.ReturnCode.SKIP;
         }
 
         readResolve(keyValue);

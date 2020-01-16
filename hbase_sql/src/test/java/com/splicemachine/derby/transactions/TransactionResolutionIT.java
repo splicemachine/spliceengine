@@ -171,7 +171,7 @@ public class TransactionResolutionIT {
                         while ((result = rs.next()) != null) {
                             count += result.size();
                         }
-                        assertEquals(1024, count);
+                        assertEquals(512, count);
                     }
 
 
@@ -187,7 +187,7 @@ public class TransactionResolutionIT {
                             count += result.size();
                         }
                         // Only half of the rows should be resolved
-                        assertEquals(1024 + 256, count);
+                        assertEquals(512 + 256, count);
                     }
                 }
             }
@@ -240,7 +240,7 @@ public class TransactionResolutionIT {
                         while ((result = rs.next()) != null) {
                             count += result.size();
                         }
-                        assertEquals(1024, count);
+                        assertEquals(512, count);
                     }
 
                     hbaseConn.getAdmin().majorCompact(TableName.valueOf("splice:" + conglomerateId));
@@ -257,7 +257,7 @@ public class TransactionResolutionIT {
                                 count += result.size();
                             }
                             // Only half of the rows should be resolved
-                            assertEquals(1024 + 256, count);
+                            assertEquals(512 + 256, count);
                         }
 
                         conn1.commit();
@@ -273,7 +273,7 @@ public class TransactionResolutionIT {
                             count += result.size();
                         }
                         // All rows should be resolved
-                        assertEquals(1024 + 512, count);
+                        assertEquals(512 * 2, count);
                     }
                     conn1.rollback();
                 }

@@ -102,7 +102,7 @@ public class SimpleTxnOperationFactory implements TxnOperationFactory{
             return operationFactory.newDelete(key);
         }
         DataPut put = operationFactory.newPut(key);
-        put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.TOMBSTONE_COLUMN_BYTES,txn.getTxnId(),SIConstants.EMPTY_BYTE_ARRAY);
+        put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES,txn.getTxnId(),SIConstants.EMPTY_BYTE_ARRAY);
         put.addAttribute(SIConstants.SI_DELETE_PUT,SIConstants.TRUE_BYTES);
         encodeForWrites(put,txn);
         return put;
