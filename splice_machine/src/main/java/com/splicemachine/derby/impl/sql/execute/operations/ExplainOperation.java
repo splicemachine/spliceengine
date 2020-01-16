@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -105,7 +106,8 @@ public class ExplainOperation extends SpliceBaseOperation {
     @Override
     public void openCore() throws StandardException {
         getPlanInformation();
-        super.openCore();
+        // We always run explain on control
+        openCore(EngineDriver.driver().processorFactory().localProcessor(activation, this));
     }
 
     @Override

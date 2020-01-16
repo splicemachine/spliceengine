@@ -84,32 +84,32 @@ public class IntersectOrExceptNode extends SetOperatorNode
     public static final int INTERSECT_OP = 1;
     public static final int EXCEPT_OP = 2;
 
-	/* Only optimize it once */
-	/* Only call addNewNodes() once */
-	private boolean addNewNodesCalled;
+    /* Only optimize it once */
+    /* Only call addNewNodes() once */
+    private boolean addNewNodesCalled;
 
     private int[] intermediateOrderByColumns; // The input result sets will be ordered on these columns. 0 indexed
     private int[] intermediateOrderByDirection; // ascending = 1, descending = -1
     private boolean[] intermediateOrderByNullsLow; // TRUE means NULL values should be ordered lower than non-NULL values
 
-	/**
-	 * Initializer for a SetOperatorNode.
-	 *
-	 * @param leftResult		The ResultSetNode on the left side of this union
-	 * @param rightResult		The ResultSetNode on the right side of this union
-	 * @param all				Whether or not this is an ALL.
-	 * @param tableProperties	Properties list associated with the table
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Initializer for a SetOperatorNode.
+     *
+     * @param leftResult        The ResultSetNode on the left side of this union
+     * @param rightResult        The ResultSetNode on the right side of this union
+     * @param all                Whether or not this is an ALL.
+     * @param tableProperties    Properties list associated with the table
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void init( Object opType,
+    public void init( Object opType,
                       Object leftResult,
                       Object rightResult,
                       Object all,
                       Object tableProperties)
         throws StandardException
-	{
+    {
         super.init( leftResult, rightResult, all, tableProperties);
         this.opType = (Integer) opType;
     }
@@ -122,21 +122,21 @@ public class IntersectOrExceptNode extends SetOperatorNode
     /**
      * Push order by lists down to the children so that we can implement the intersect/except
      * by scan of the two sorted inputs.
-	 *
-	 * @param numTables			Number of tables in the DML Statement
-	 * @param gbl				The group by list, if any
-	 * @param fromList			The from list, if any
-	 *
-	 * @return The preprocessed ResultSetNode that can be optimized
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+     *
+     * @param numTables            Number of tables in the DML Statement
+     * @param gbl                The group by list, if any
+     * @param fromList            The from list, if any
+     *
+     * @return The preprocessed ResultSetNode that can be optimized
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public ResultSetNode preprocess(int numTables,
-									GroupByList gbl,
-									FromList fromList)
-								throws StandardException
-	{
+    public ResultSetNode preprocess(int numTables,
+                                    GroupByList gbl,
+                                    FromList fromList)
+                                throws StandardException
+    {
         // RESOLVE: We are in a quandary as to when and how we should generate order by lists. SelectNode processing
         // requires order by lists at the start of preprocess. That is why we are doing it here. However we can
         // pick any column ordering. Depending on the child expressions the optimizer may be able to avoid a
@@ -211,9 +211,9 @@ public class IntersectOrExceptNode extends SetOperatorNode
         {
             OrderByColumn orderByColumn = (OrderByColumn)
               nf.getNode( C_NodeTypes.ORDER_BY_COLUMN,
-			  nf.getNode(C_NodeTypes.INT_CONSTANT_NODE,
-				     ReuseFactory.getInteger( intermediateOrderByColumns[i] + 1),
-				     cm),
+              nf.getNode(C_NodeTypes.INT_CONSTANT_NODE,
+                     ReuseFactory.getInteger( intermediateOrderByColumns[i] + 1),
+                     cm),
                           cm);
             if( intermediateOrderByDirection[i] < 0)
                 orderByColumn.setDescending();
@@ -235,19 +235,19 @@ public class IntersectOrExceptNode extends SetOperatorNode
                                       RowOrdering rowOrdering)
                           throws StandardException
     {
-		leftResultSet = optimizeSource(
-							optimizer,
-							leftResultSet,
-							(PredicateList) null,
-							outerCost);
+        leftResultSet = optimizeSource(
+                            optimizer,
+                            leftResultSet,
+                            (PredicateList) null,
+                            outerCost);
 
-		rightResultSet = optimizeSource(
-							optimizer,
-							rightResultSet,
-							(PredicateList) null,
-							outerCost);
+        rightResultSet = optimizeSource(
+                            optimizer,
+                            rightResultSet,
+                            (PredicateList) null,
+                            outerCost);
 
-		CostEstimate costEstimate = getCostEstimate(optimizer);
+        CostEstimate costEstimate = getCostEstimate(optimizer);
         CostEstimate leftCostEstimate = leftResultSet.getCostEstimate();
         CostEstimate rightCostEstimate = rightResultSet.getCostEstimate();
         // The cost is the sum of the two child costs plus the cost of sorting the union.
@@ -260,61 +260,61 @@ public class IntersectOrExceptNode extends SetOperatorNode
         return costEstimate;
     } // End of estimateCost
 
-	/**
-	 * @see Optimizable#modifyAccessPath
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException
-	{
-		Optimizable retOptimizable;
-		retOptimizable = super.modifyAccessPath(outerTables);
+    /**
+     * @see Optimizable#modifyAccessPath
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException
+    {
+        Optimizable retOptimizable;
+        retOptimizable = super.modifyAccessPath(outerTables);
 
-		/* We only want call addNewNodes() once */
-		if (addNewNodesCalled)
-		{
-			return retOptimizable;
-		}
-		return (Optimizable) addNewNodes();
-	}
+        /* We only want call addNewNodes() once */
+        if (addNewNodesCalled)
+        {
+            return retOptimizable;
+        }
+        return (Optimizable) addNewNodes();
+    }
 
-	/**
-	 * @see ResultSetNode#modifyAccessPaths
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public ResultSetNode modifyAccessPaths() throws StandardException
-	{
-		ResultSetNode retRSN;
-		retRSN = super.modifyAccessPaths();
+    /**
+     * @see ResultSetNode#modifyAccessPaths
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public ResultSetNode modifyAccessPaths() throws StandardException
+    {
+        ResultSetNode retRSN;
+        retRSN = super.modifyAccessPaths();
 
-		/* We only want call addNewNodes() once */
-		if (addNewNodesCalled)
-		{
-			return retRSN;
-		}
-		return addNewNodes();
-	}
+        /* We only want call addNewNodes() once */
+        if (addNewNodesCalled)
+        {
+            return retRSN;
+        }
+        return addNewNodes();
+    }
 
-	/**
-	 * Add any new ResultSetNodes that are necessary to the tree.
-	 * We wait until after optimization to do this in order to
-	 * make it easier on the optimizer.
-	 *
-	 * @return (Potentially new) head of the ResultSetNode tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	private ResultSetNode addNewNodes()
-		throws StandardException
-	{
-		/* Only call addNewNodes() once */
-		if (addNewNodesCalled)
-		{
-			return this;
-		}
+    /**
+     * Add any new ResultSetNodes that are necessary to the tree.
+     * We wait until after optimization to do this in order to
+     * make it easier on the optimizer.
+     *
+     * @return (Potentially new) head of the ResultSetNode tree.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    private ResultSetNode addNewNodes()
+        throws StandardException
+    {
+        /* Only call addNewNodes() once */
+        if (addNewNodesCalled)
+        {
+            return this;
+        }
 
-		addNewNodesCalled = true;
+        addNewNodesCalled = true;
 
         ResultSetNode treeTop = this;
 
@@ -348,24 +348,24 @@ public class IntersectOrExceptNode extends SetOperatorNode
     } // end of addNewNodes
 
     /**
-	 * Generate the code.
-	 *
-	 * @exception StandardException		Thrown on error
+     * Generate the code.
+     *
+     * @exception StandardException        Thrown on error
      */
-	public void generate( ActivationClassBuilder acb,
+    public void generate( ActivationClassBuilder acb,
                           MethodBuilder mb)
         throws StandardException
-	{
+    {
 
-		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
-		 * ResultColumnList and ResultSet.
-		 */
-		assignResultSetNumber();
+        /* Get the next ResultSet #, so that we can number this ResultSetNode, its
+         * ResultColumnList and ResultSet.
+         */
+        assignResultSetNumber();
 
-		// Get our final cost estimate based on the child estimates.
-		costEstimate = getFinalCostEstimate(false);
+        // Get our final cost estimate based on the child estimates.
+        costEstimate = getFinalCostEstimate(false);
 
-		// build up the tree.
+        // build up the tree.
 
         /* Generate the SetOpResultSet. Arguments:
          *  1) expression for left child ResultSet
@@ -381,13 +381,13 @@ public class IntersectOrExceptNode extends SetOperatorNode
          *  11) intermediateOrderByNullsLow saved object index
          */
 
-		acb.pushGetResultSetFactoryExpression(mb); // instance for getSetOpResultSet
+        acb.pushGetResultSetFactoryExpression(mb); // instance for getSetOpResultSet
 
-		getLeftResultSet().generate( acb, mb);
-		getRightResultSet().generate( acb, mb);
+        getLeftResultSet().generate( acb, mb);
+        getRightResultSet().generate( acb, mb);
 
-		acb.pushThisAsActivation(mb);
-		mb.push(resultSetNumber);
+        acb.pushThisAsActivation(mb);
+        mb.push(resultSetNumber);
         mb.push( costEstimate.getEstimatedRowCount());
         mb.push( costEstimate.getEstimatedCost());
         mb.push( getOpType());
@@ -396,40 +396,40 @@ public class IntersectOrExceptNode extends SetOperatorNode
         mb.push( getCompilerContext().addSavedObject( intermediateOrderByDirection));
         mb.push( getCompilerContext().addSavedObject( intermediateOrderByNullsLow));
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE,
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,
                       (String) null,
                       "getSetOpResultSet",
                       ClassName.NoPutResultSet, 11);
-	} // end of generate
+    } // end of generate
 
-	/**
-	 * @see ResultSetNode#getFinalCostEstimate
-	 *
-	 * Get the final CostEstimate for this IntersectOrExceptNode.
-	 *
-	 * @return	The final CostEstimate for this IntersectOrExceptNode,
-	 *  which is the sum of the two child costs.  The final number of
-	 *  rows depends on whether this is an INTERSECT or EXCEPT (see
-	 *  getRowCountEstimate() in this class for more).
-	 */
-	public CostEstimate getFinalCostEstimate(boolean useSelf)
-		throws StandardException
-	{
-		if (finalCostEstimate != null)
-			return finalCostEstimate;
+    /**
+     * @see ResultSetNode#getFinalCostEstimate
+     *
+     * Get the final CostEstimate for this IntersectOrExceptNode.
+     *
+     * @return    The final CostEstimate for this IntersectOrExceptNode,
+     *  which is the sum of the two child costs.  The final number of
+     *  rows depends on whether this is an INTERSECT or EXCEPT (see
+     *  getRowCountEstimate() in this class for more).
+     */
+    public CostEstimate getFinalCostEstimate(boolean useSelf)
+        throws StandardException
+    {
+        if (finalCostEstimate != null)
+            return finalCostEstimate;
 
-		CostEstimate leftCE = leftResultSet.getFinalCostEstimate(true);
-		CostEstimate rightCE = rightResultSet.getFinalCostEstimate(true);
+        CostEstimate leftCE = leftResultSet.getFinalCostEstimate(true);
+        CostEstimate rightCE = rightResultSet.getFinalCostEstimate(true);
 
-		finalCostEstimate = getNewCostEstimate();
-		finalCostEstimate.setCost(
-			leftCE.getEstimatedCost() + rightCE.getEstimatedCost(),
-			getRowCountEstimate(leftCE.rowCount(), rightCE.rowCount()),
-			getSingleScanRowCountEstimate(leftCE.singleScanRowCount(),
-				rightCE.singleScanRowCount()));
+        finalCostEstimate = getNewCostEstimate();
+        finalCostEstimate.setCost(
+            leftCE.getEstimatedCost() + rightCE.getEstimatedCost(),
+            getRowCountEstimate(leftCE.rowCount(), rightCE.rowCount()),
+            getSingleScanRowCountEstimate(leftCE.singleScanRowCount(),
+                rightCE.singleScanRowCount()));
 
-		return finalCostEstimate;
-	}
+        return finalCostEstimate;
+    }
 
     String getOperatorName()
     {
