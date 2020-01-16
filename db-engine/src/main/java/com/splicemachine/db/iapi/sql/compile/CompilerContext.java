@@ -65,23 +65,31 @@ import java.sql.SQLWarning;
  *
  *
  * History:
- *	5/22/97 Moved getExternalInterfaceFactory() to LanguageConnectionContext
- *			because it had to be used at execution. - Jeff
+ *    5/22/97 Moved getExternalInterfaceFactory() to LanguageConnectionContext
+ *            because it had to be used at execution. - Jeff
  */
 public interface CompilerContext extends Context
 {
-	/////////////////////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTANTS
-	//
-	/////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////
+    //
+    //    CONSTANTS
+    //
+    /////////////////////////////////////////////////////////////////////////////////////
 
 
     enum DataSetProcessorType {
         DEFAULT_CONTROL, // Default Value
         FORCED_CONTROL, // Hinted to use control
         SPARK, // Scans Large enough for Spark
-        FORCED_SPARK // Hinted to use Spark
+        FORCED_SPARK; // Hinted to use Spark
+
+        public boolean isSpark() {
+            return this == SPARK || this == FORCED_SPARK;
+        }
+
+        public boolean isForced() {
+            return this == FORCED_CONTROL || this == FORCED_SPARK;
+        }
     }
 
     enum NativeSparkModeType {
@@ -89,170 +97,170 @@ public interface CompilerContext extends Context
         ON,     // Process the operation using UnSafeRows if the source operation produces them.
         OFF,    // Process the operation using Derby rows.
         FORCED  // Convert the source operation's rows into UnSafeRows,
-	        // then process the current operation using UnSafeRows, if possible.
+            // then process the current operation using UnSafeRows, if possible.
     }
 
-	/**
-	 * this is the ID we expect compiler contexts
-	 * to be stored into a context manager under.
-	 */
+    /**
+     * this is the ID we expect compiler contexts
+     * to be stored into a context manager under.
+     */
 
 
-	String CONTEXT_ID = "CompilerContext";
+    String CONTEXT_ID = "CompilerContext";
 
-	// bit masks for query fragments which are potentially unreliable. these are used
-	// by setReliability() and checkReliability().
+    // bit masks for query fragments which are potentially unreliable. these are used
+    // by setReliability() and checkReliability().
 
-	int			DATETIME_ILLEGAL			=	0x00000001;
-	// NOTE: getCurrentConnection() is currently legal everywhere
-	int			CURRENT_CONNECTION_ILLEGAL	=	0x00000002;
-	int			FUNCTION_CALL_ILLEGAL		=	0x00000004;
-	int			UNNAMED_PARAMETER_ILLEGAL	=	0x00000008;
-	int			DIAGNOSTICS_ILLEGAL			=	0x00000010;
-	int			SUBQUERY_ILLEGAL			=	0x00000020;
-	int			USER_ILLEGAL				=	0x00000040;
-	int			COLUMN_REFERENCE_ILLEGAL	=	0x00000080;
-	int			IGNORE_MISSING_CLASSES		=	0x00000100;
-	int			SCHEMA_ILLEGAL				=	0x00000200;
-	int			INTERNAL_SQL_ILLEGAL		=	0x00000400;
-	
-	/**
-	 * Calling procedures that modify sql data from before triggers is illegal. 
-	 * 
-	 */
-	int			MODIFIES_SQL_DATA_PROCEDURE_ILLEGAL	=	0x00000800;
+    int            DATETIME_ILLEGAL            =    0x00000001;
+    // NOTE: getCurrentConnection() is currently legal everywhere
+    int            CURRENT_CONNECTION_ILLEGAL    =    0x00000002;
+    int            FUNCTION_CALL_ILLEGAL        =    0x00000004;
+    int            UNNAMED_PARAMETER_ILLEGAL    =    0x00000008;
+    int            DIAGNOSTICS_ILLEGAL            =    0x00000010;
+    int            SUBQUERY_ILLEGAL            =    0x00000020;
+    int            USER_ILLEGAL                =    0x00000040;
+    int            COLUMN_REFERENCE_ILLEGAL    =    0x00000080;
+    int            IGNORE_MISSING_CLASSES        =    0x00000100;
+    int            SCHEMA_ILLEGAL                =    0x00000200;
+    int            INTERNAL_SQL_ILLEGAL        =    0x00000400;
 
-	int			NON_DETERMINISTIC_ILLEGAL		=	0x00001000;
-	int			SQL_IN_ROUTINES_ILLEGAL		=	0x00002000;
+    /**
+     * Calling procedures that modify sql data from before triggers is illegal.
+     *
+     */
+    int            MODIFIES_SQL_DATA_PROCEDURE_ILLEGAL    =    0x00000800;
 
-	int			NEXT_VALUE_FOR_ILLEGAL		=	0x00004000;
+    int            NON_DETERMINISTIC_ILLEGAL        =    0x00001000;
+    int            SQL_IN_ROUTINES_ILLEGAL        =    0x00002000;
 
-	/** Standard SQL is legal */
-	int			SQL_LEGAL					=	(INTERNAL_SQL_ILLEGAL);
+    int            NEXT_VALUE_FOR_ILLEGAL        =    0x00004000;
 
-	/** Any SQL we support is legal */
-	int			INTERNAL_SQL_LEGAL			=	0;
+    /** Standard SQL is legal */
+    int            SQL_LEGAL                    =    (INTERNAL_SQL_ILLEGAL);
 
-	int			CHECK_CONSTRAINT		= (
-		                                                                    DATETIME_ILLEGAL |
-																		    UNNAMED_PARAMETER_ILLEGAL |
-																		    DIAGNOSTICS_ILLEGAL |
-																		    SUBQUERY_ILLEGAL |
-																			USER_ILLEGAL |
-																			SCHEMA_ILLEGAL |
-																			INTERNAL_SQL_ILLEGAL |
+    /** Any SQL we support is legal */
+    int            INTERNAL_SQL_LEGAL            =    0;
+
+    int            CHECK_CONSTRAINT        = (
+                                                                            DATETIME_ILLEGAL |
+                                                                            UNNAMED_PARAMETER_ILLEGAL |
+                                                                            DIAGNOSTICS_ILLEGAL |
+                                                                            SUBQUERY_ILLEGAL |
+                                                                            USER_ILLEGAL |
+                                                                            SCHEMA_ILLEGAL |
+                                                                            INTERNAL_SQL_ILLEGAL |
                                                                             NEXT_VALUE_FOR_ILLEGAL
-																		  );
+                                                                          );
 
-	int			DEFAULT_RESTRICTION		= (
-		                                                                    SUBQUERY_ILLEGAL |
-																			UNNAMED_PARAMETER_ILLEGAL |
-																			COLUMN_REFERENCE_ILLEGAL |
-																			INTERNAL_SQL_ILLEGAL
-																			);
+    int            DEFAULT_RESTRICTION        = (
+                                                                            SUBQUERY_ILLEGAL |
+                                                                            UNNAMED_PARAMETER_ILLEGAL |
+                                                                            COLUMN_REFERENCE_ILLEGAL |
+                                                                            INTERNAL_SQL_ILLEGAL
+                                                                            );
 
-	int			GENERATION_CLAUSE_RESTRICTION		= (
-		                                                                    CHECK_CONSTRAINT |
-																			NON_DETERMINISTIC_ILLEGAL |
+    int            GENERATION_CLAUSE_RESTRICTION        = (
+                                                                            CHECK_CONSTRAINT |
+                                                                            NON_DETERMINISTIC_ILLEGAL |
                                                                             SQL_IN_ROUTINES_ILLEGAL |
                                                                             NEXT_VALUE_FOR_ILLEGAL
-																			);
+                                                                            );
 
-	int WHERE_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
-	int HAVING_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
-	int ON_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
-	int AGGREGATE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
-	int CONDITIONAL_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
-	int GROUP_BY_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
-	int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 10000;
-	boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
-	boolean DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
-	boolean DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
-	SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
-	NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
-	boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
-	int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
-	boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
+    int WHERE_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+    int HAVING_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+    int ON_CLAUSE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+    int AGGREGATE_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+    int CONDITIONAL_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+    int GROUP_BY_RESTRICTION = NEXT_VALUE_FOR_ILLEGAL;
+    int DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES = 10000;
+    boolean DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED = false;
+    boolean DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST = true;
+    boolean DEFAULT_DISABLE_PREDICATE_SIMPLIFICATION = false;
+    SparkVersion DEFAULT_SPLICE_SPARK_VERSION = new SimpleSparkVersion("2.2.0");
+    NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
+    boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
+    int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
+    boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
 
-	/////////////////////////////////////////////////////////////////////////////////////
-	//
-	//	BEHAVIOR
-	//
-	/////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////
+    //
+    //    BEHAVIOR
+    //
+    /////////////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Get the Parser from this CompilerContext.
-	 *	 *
-	 * @return	The parser associated with this CompilerContext
-	 *
-	 */
+    /**
+     * Get the Parser from this CompilerContext.
+     *     *
+     * @return    The parser associated with this CompilerContext
+     *
+     */
 
-	Parser getParser();
+    Parser getParser();
 
-	/**
-	 * Get the NodeFactory from this CompilerContext.
-	 *
-	 * @return	The NodeFactory associated with this CompilerContext
-	 *
-	 */
+    /**
+     * Get the NodeFactory from this CompilerContext.
+     *
+     * @return    The NodeFactory associated with this CompilerContext
+     *
+     */
 
-	NodeFactory getNodeFactory();
+    NodeFactory getNodeFactory();
 
-	/**
-	 * Get the TypeCompilerFactory from this CompilerContext.
-	 *
-	 * @return	The TypeCompilerFactory associated with this CompilerContext
-	 *
-	 */
-	TypeCompilerFactory getTypeCompilerFactory();
+    /**
+     * Get the TypeCompilerFactory from this CompilerContext.
+     *
+     * @return    The TypeCompilerFactory associated with this CompilerContext
+     *
+     */
+    TypeCompilerFactory getTypeCompilerFactory();
 
-	/**
-		Return the class factory to use in this compilation.
-	*/
-	ClassFactory getClassFactory();
+    /**
+        Return the class factory to use in this compilation.
+    */
+    ClassFactory getClassFactory();
 
-	/**
-	 * Get the JavaFactory from this CompilerContext.
-	 *
-	 * @return	The JavaFactory associated with this CompilerContext
-	 *
-	 */
+    /**
+     * Get the JavaFactory from this CompilerContext.
+     *
+     * @return    The JavaFactory associated with this CompilerContext
+     *
+     */
 
-	JavaFactory getJavaFactory();
+    JavaFactory getJavaFactory();
 
-	/**
-	 * Get the current next column number (for generated column names)
-	 * from this CompilerContext.
-	 *
-	 * @return int	The next column number for the current statement.
-	 *
-	 */
+    /**
+     * Get the current next column number (for generated column names)
+     * from this CompilerContext.
+     *
+     * @return int    The next column number for the current statement.
+     *
+     */
 
-	int getNextColumnNumber();
+    int getNextColumnNumber();
 
-	/**
-	  *	Reset compiler context (as for instance, when we recycle a context for
-	  *	use by another compilation.
-	  */
-	void	resetContext();
+    /**
+      *    Reset compiler context (as for instance, when we recycle a context for
+      *    use by another compilation.
+      */
+    void    resetContext();
 
-	/**
-	 * Get the current next table number from this CompilerContext.
-	 *
-	 * @return int	The next table number for the current statement.
-	 *
-	 */
+    /**
+     * Get the current next table number from this CompilerContext.
+     *
+     * @return int    The next table number for the current statement.
+     *
+     */
 
-	int getNextTableNumber();
+    int getNextTableNumber();
 
-	/**
-	 * Get the number of tables in the current statement from this CompilerContext.
-	 *
-	 * @return int	The number of tables in the current statement.
-	 *
-	 */
+    /**
+     * Get the number of tables in the current statement from this CompilerContext.
+     *
+     * @return int    The number of tables in the current statement.
+     *
+     */
 
-	int getNumTables();
+    int getNumTables();
 
     /**
      * Utility method for Subquery Flattening.
@@ -260,456 +268,456 @@ public interface CompilerContext extends Context
      *
      * @param num
      */
-	void setNumTables(int num);
+    void setNumTables(int num);
 
-	/**
-	 * Some where subqueries can be converted to fromSubquery, so the number of tables could increase
-	 * during preprocess of optimization. maximalPossibleTableCount takes the where Subqueries into
-	 * considration as potentially the maximal possible table count.
-	 * @return
-	 */
-	int getMaximalPossibleTableCount();
+    /**
+     * Some where subqueries can be converted to fromSubquery, so the number of tables could increase
+     * during preprocess of optimization. maximalPossibleTableCount takes the where Subqueries into
+     * considration as potentially the maximal possible table count.
+     * @return
+     */
+    int getMaximalPossibleTableCount();
 
-	void setMaximalPossibleTableCount(int num);
+    void setMaximalPossibleTableCount(int num);
 
-	/**
-	 * Get the current next subquery number from this CompilerContext.
-	 *
-	 * @return int	The next subquery number for the current statement.
-	 *
-	 */
+    /**
+     * Get the current next subquery number from this CompilerContext.
+     *
+     * @return int    The next subquery number for the current statement.
+     *
+     */
 
-	int getNextSubqueryNumber();
+    int getNextSubqueryNumber();
 
-	/**
-	 * Get the number of subquerys in the current statement from this CompilerContext.
-	 *
-	 * @return int	The number of subquerys in the current statement.
-	 *
-	 */
+    /**
+     * Get the number of subquerys in the current statement from this CompilerContext.
+     *
+     * @return int    The number of subquerys in the current statement.
+     *
+     */
 
-	int getNumSubquerys();
+    int getNumSubquerys();
 
-	/**
-	 * Get the current next ResultSet number from this CompilerContext.
-	 *
-	 * @return int	The next ResultSet number for the current statement.
-	 *
-	 */
+    /**
+     * Get the current next ResultSet number from this CompilerContext.
+     *
+     * @return int    The next ResultSet number for the current statement.
+     *
+     */
 
-	int getNextResultSetNumber();
+    int getNextResultSetNumber();
 
-	/**
-	 * Reset the next ResultSet number from this CompilerContext.
-	 */
+    /**
+     * Reset the next ResultSet number from this CompilerContext.
+     */
 
-	void resetNextResultSetNumber();
+    void resetNextResultSetNumber();
 
-	/**
-	 * Get the number of Results in the current statement from this CompilerContext.
-	 *
-	 * @return The number of ResultSets in the current statement.
-	 *
-	 */
+    /**
+     * Get the number of Results in the current statement from this CompilerContext.
+     *
+     * @return The number of ResultSets in the current statement.
+     *
+     */
 
-	int getNumResultSets();
+    int getNumResultSets();
 
-	/**
-	 * Get a unique Class name from this CompilerContext.
-	 * Ensures it is globally unique for this JVM.
-	 *
-	 * @return String	A unique-enough class name.
-	 *
-	 */
+    /**
+     * Get a unique Class name from this CompilerContext.
+     * Ensures it is globally unique for this JVM.
+     *
+     * @return String    A unique-enough class name.
+     *
+     */
 
-	String getUniqueClassName();
+    String getUniqueClassName();
 
-	/**
-	 * Set the current dependent from this CompilerContext.
-	 * This should be called at the start of a compile to
-	 * register who has the dependencies needed for the compilation.
-	 *
-	 * @param d	The Dependent currently being compiled.
-	 *
-	 */
+    /**
+     * Set the current dependent from this CompilerContext.
+     * This should be called at the start of a compile to
+     * register who has the dependencies needed for the compilation.
+     *
+     * @param d    The Dependent currently being compiled.
+     *
+     */
 
-	void setCurrentDependent(Dependent d);
+    void setCurrentDependent(Dependent d);
 
-		Dependent getCurrentDependent();
+        Dependent getCurrentDependent();
 
-	/**
-	 * Get the current auxiliary provider list from this CompilerContext.
-	 *
-	 * @return	The current AuxiliaryProviderList.
-	 *
-	 */
+    /**
+     * Get the current auxiliary provider list from this CompilerContext.
+     *
+     * @return    The current AuxiliaryProviderList.
+     *
+     */
 
-	ProviderList getCurrentAuxiliaryProviderList();
+    ProviderList getCurrentAuxiliaryProviderList();
 
-	/**
-	 * Set the current auxiliary provider list for this CompilerContext.
-	 *
-	 * @param apl	The new current AuxiliaryProviderList.
-	 *
-	 */
+    /**
+     * Set the current auxiliary provider list for this CompilerContext.
+     *
+     * @param apl    The new current AuxiliaryProviderList.
+     *
+     */
 
-	void setCurrentAuxiliaryProviderList(ProviderList apl);
+    void setCurrentAuxiliaryProviderList(ProviderList apl);
 
-	/**
-	 * Add a dependency for the current dependent.
-	 *
-	 * @param p	The Provider of the dependency.
-	 * @exception StandardException thrown on failure.
-	 *
-	 */
-	void createDependency(Provider p) throws StandardException;
+    /**
+     * Add a dependency for the current dependent.
+     *
+     * @param p    The Provider of the dependency.
+     * @exception StandardException thrown on failure.
+     *
+     */
+    void createDependency(Provider p) throws StandardException;
 
-	/**
-	 * Add a dependency between two objects.
-	 *
-	 * @param d	The Dependent object.
-	 * @param p	The Provider of the dependency.
-	 * @exception StandardException thrown on failure.
-	 *
-	 */
-	void createDependency(Dependent d, Provider p) throws StandardException;
+    /**
+     * Add a dependency between two objects.
+     *
+     * @param d    The Dependent object.
+     * @param p    The Provider of the dependency.
+     * @exception StandardException thrown on failure.
+     *
+     */
+    void createDependency(Dependent d, Provider p) throws StandardException;
 
-	/**
-	 * Add an object to the pool that is created at compile time
-	 * and used at execution time.  Use the integer to reference it
-	 * in execution constructs.  Execution code will have to generate:
-	 *	<pre>
-	 *	(#objectType) (this.getPreparedStatement().getSavedObject(#int))
-	 *  <\pre>
-	 *
-	 * @param o object to add to the pool of saved objects
-	 * @return the entry # for the object
-	 */
-	int	addSavedObject(Object o);
+    /**
+     * Add an object to the pool that is created at compile time
+     * and used at execution time.  Use the integer to reference it
+     * in execution constructs.  Execution code will have to generate:
+     *    <pre>
+     *    (#objectType) (this.getPreparedStatement().getSavedObject(#int))
+     *  <\pre>
+     *
+     * @param o object to add to the pool of saved objects
+     * @return the entry # for the object
+     */
+    int    addSavedObject(Object o);
 
-	/**
-	 *	Get the saved object pool (for putting into the prepared statement).
-	 *  This turns it into its storable form, an array of objects.
-	 *
-	 * @return the saved object pool.
-	 */
-	Object[] getSavedObjects(); 
+    /**
+     *    Get the saved object pool (for putting into the prepared statement).
+     *  This turns it into its storable form, an array of objects.
+     *
+     * @return the saved object pool.
+     */
+    Object[] getSavedObjects();
 
-	/**
-	 *	Set the saved object pool (for putting into the prepared statement).
-	 *
-	 * @param objs	 The new saved objects
-	 */
-	void setSavedObjects(Object[] objs);
+    /**
+     *    Set the saved object pool (for putting into the prepared statement).
+     *
+     * @param objs     The new saved objects
+     */
+    void setSavedObjects(Object[] objs);
 
-	/**
-	 * Set the in use state for the compiler context.
-	 *
-	 * @param inUse	 The new inUse state for the compiler context.
-	 */
-	void setInUse(boolean inUse);
+    /**
+     * Set the in use state for the compiler context.
+     *
+     * @param inUse     The new inUse state for the compiler context.
+     */
+    void setInUse(boolean inUse);
 
-	/**
-	 * Return the in use state for the compiler context.
-	 *
-	 * @return boolean	The in use state for the compiler context.
-	 */
-	boolean getInUse();
+    /**
+     * Return the in use state for the compiler context.
+     *
+     * @return boolean    The in use state for the compiler context.
+     */
+    boolean getInUse();
 
-	/**
-	 * Mark this CompilerContext as the first on the stack, so we can avoid
-	 * continually popping and pushing a CompilerContext.
-	 */
-	void firstOnStack();
+    /**
+     * Mark this CompilerContext as the first on the stack, so we can avoid
+     * continually popping and pushing a CompilerContext.
+     */
+    void firstOnStack();
 
-	/**
-	 * Is this the first CompilerContext on the stack?
-	 */
-	boolean isFirstOnStack();
+    /**
+     * Is this the first CompilerContext on the stack?
+     */
+    boolean isFirstOnStack();
 
-	/**
-	 * Sets which kind of query fragments are NOT allowed. Basically,
-	 * these are fragments which return unstable results. CHECK CONSTRAINTS
-	 * and CREATE PUBLICATION want to forbid certain kinds of fragments.
-	 *
-	 * @param reliability	bitmask of types of query fragments to be forbidden
-	 *						see the reliability bitmasks above
-	 *
-	 */
-	void	setReliability(int reliability);
+    /**
+     * Sets which kind of query fragments are NOT allowed. Basically,
+     * these are fragments which return unstable results. CHECK CONSTRAINTS
+     * and CREATE PUBLICATION want to forbid certain kinds of fragments.
+     *
+     * @param reliability    bitmask of types of query fragments to be forbidden
+     *                        see the reliability bitmasks above
+     *
+     */
+    void    setReliability(int reliability);
 
-	/**
-	 * Return the reliability requirements of this clause. See setReliability()
-	 * for a definition of clause reliability.
-	 *
-	 * @return a bitmask of which types of query fragments are to be forbidden
-	 */
-	int getReliability();
+    /**
+     * Return the reliability requirements of this clause. See setReliability()
+     * for a definition of clause reliability.
+     *
+     * @return a bitmask of which types of query fragments are to be forbidden
+     */
+    int getReliability();
 
-	/**
-	 * Get the compilation schema descriptor for this compilation context.
-	   Will be null if no default schema lookups have occured. Ie.
-	   the statement is independent of the current schema.
-	 * 
-	 * @return the compilation schema descirptor
-	 */
-	SchemaDescriptor getCompilationSchema();
+    /**
+     * Get the compilation schema descriptor for this compilation context.
+       Will be null if no default schema lookups have occured. Ie.
+       the statement is independent of the current schema.
+     *
+     * @return the compilation schema descirptor
+     */
+    SchemaDescriptor getCompilationSchema();
 
-	/**
-	 * Set the compilation schema descriptor for this compilation context.
-	 *
-	 * @param newDefault compilation schema
-	 * 
-	 * @return the previous compilation schema descirptor
-	 */
-	SchemaDescriptor setCompilationSchema(SchemaDescriptor newDefault);
+    /**
+     * Set the compilation schema descriptor for this compilation context.
+     *
+     * @param newDefault compilation schema
+     *
+     * @return the previous compilation schema descirptor
+     */
+    SchemaDescriptor setCompilationSchema(SchemaDescriptor newDefault);
 
-	/**
-	 * Push a default schema to use when compiling.
-	 * <p>
-	 * Sometimes, we need to temporarily change the default schema, for example
-	 * when recompiling a view, since the execution time default schema may
-	 * differ from the required default schema when the view was defined.
-	 * Another case is when compiling generated columns which reference
-	 * unqualified user functions.
-	 * </p>
-	 * @param sd schema to use
-	 */
-	void pushCompilationSchema(SchemaDescriptor sd);
+    /**
+     * Push a default schema to use when compiling.
+     * <p>
+     * Sometimes, we need to temporarily change the default schema, for example
+     * when recompiling a view, since the execution time default schema may
+     * differ from the required default schema when the view was defined.
+     * Another case is when compiling generated columns which reference
+     * unqualified user functions.
+     * </p>
+     * @param sd schema to use
+     */
+    void pushCompilationSchema(SchemaDescriptor sd);
 
 
-	/**
-	 * Pop the default schema to use when compiling.
-	 */
-	void popCompilationSchema();
+    /**
+     * Pop the default schema to use when compiling.
+     */
+    void popCompilationSchema();
 
-	/**
-	 * Get a StoreCostController for the given conglomerate.
-	 *
-	 * @param conglomerateDescriptor	The conglomerate for which to get a StoreCostController.
-	 * @param skipStats do not fetch the stats from dictionary if true
-	 * @param defaultRowCount it only take effect when skipStats is true, and forces the fake stats' rowcount to be the specified value
-	 *
-	 * @return	The appropriate StoreCostController.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats, long defaultRowCount) throws StandardException;
+    /**
+     * Get a StoreCostController for the given conglomerate.
+     *
+     * @param conglomerateDescriptor    The conglomerate for which to get a StoreCostController.
+     * @param skipStats do not fetch the stats from dictionary if true
+     * @param defaultRowCount it only take effect when skipStats is true, and forces the fake stats' rowcount to be the specified value
+     *
+     * @return    The appropriate StoreCostController.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats, long defaultRowCount) throws StandardException;
 
-	/**
-	 * Get a SortCostController.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	SortCostController getSortCostController() throws StandardException;
+    /**
+     * Get a SortCostController.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    SortCostController getSortCostController() throws StandardException;
 
-	/**
-	 * Set the parameter list.
-	 *
-	 * @param parameterList	The parameter list.
-	 */
-	void setParameterList(Vector parameterList);
+    /**
+     * Set the parameter list.
+     *
+     * @param parameterList    The parameter list.
+     */
+    void setParameterList(Vector parameterList);
 
-	/**
-	 * Get the parameter list.
-	 *
-	 * @return	The parameter list.
-	 */
-	Vector getParameterList();
+    /**
+     * Get the parameter list.
+     *
+     * @return    The parameter list.
+     */
+    Vector getParameterList();
 
-	/**
-	 * If callable statement uses ? = form
-	 */
-	void setReturnParameterFlag();
+    /**
+     * If callable statement uses ? = form
+     */
+    void setReturnParameterFlag();
 
-	/**
-	 * Is the callable statement uses ? for return parameter.
-	 *
-	 * @return	true if ? = call else false
-	 */
-	boolean getReturnParameterFlag();
+    /**
+     * Is the callable statement uses ? for return parameter.
+     *
+     * @return    true if ? = call else false
+     */
+    boolean getReturnParameterFlag();
 
-	/**
-	 * Get the array of DataTypeDescriptor representing the types of
-	 * the ? parameters.
-	 *
-	 * @return	The parameter descriptors
-	 */
+    /**
+     * Get the array of DataTypeDescriptor representing the types of
+     * the ? parameters.
+     *
+     * @return    The parameter descriptors
+     */
 
-	DataTypeDescriptor[] getParameterTypes();
+    DataTypeDescriptor[] getParameterTypes();
 
-	/**
-	 * Get the cursor info stored in the context.
-	 *
-	 * @return the cursor info
-	 */
-	Object getCursorInfo();
-	
-	/**
-	 * Set params
-	 *
-	 * @param cursorInfo the cursor info
-	 */
-	void setCursorInfo(Object cursorInfo);
+    /**
+     * Get the cursor info stored in the context.
+     *
+     * @return the cursor info
+     */
+    Object getCursorInfo();
 
-	/**
-	 * Set the isolation level for the scans in this query.
-	 *
-	 * @param isolationLevel	The isolation level to use.
-	 */
-	void setScanIsolationLevel(int isolationLevel);
+    /**
+     * Set params
+     *
+     * @param cursorInfo the cursor info
+     */
+    void setCursorInfo(Object cursorInfo);
 
-	/**
-	 * Get the isolation level for the scans in this query.
-	 *
-	 * @return	The isolation level for the scans in this query.
-	 */
-	int getScanIsolationLevel();
+    /**
+     * Set the isolation level for the scans in this query.
+     *
+     * @param isolationLevel    The isolation level to use.
+     */
+    void setScanIsolationLevel(int isolationLevel);
 
-	/**
-	 * Get the next equivalence class for equijoin clauses.
-	 *
-	 * @return The next equivalence class for equijoin clauses.
-	 */
-	int getNextEquivalenceClass();
+    /**
+     * Get the isolation level for the scans in this query.
+     *
+     * @return    The isolation level for the scans in this query.
+     */
+    int getScanIsolationLevel();
 
-	/**
-		Add a compile time warning.
-	*/
-	void addWarning(SQLWarning warning);
+    /**
+     * Get the next equivalence class for equijoin clauses.
+     *
+     * @return The next equivalence class for equijoin clauses.
+     */
+    int getNextEquivalenceClass();
 
-	/**
-		Get the chain of compile time warnings.
-	*/
-	SQLWarning getWarnings();
+    /**
+        Add a compile time warning.
+    */
+    void addWarning(SQLWarning warning);
 
-	/**
-	 * Sets the current privilege type context and pushes the previous on onto a stack.
-	 * Column and table nodes do not know how they are
-	 * being used. Higher level nodes in the query tree do not know what is being
-	 * referenced. Keeping the context allows the two to come together.
-	 *
-	 * @param privType One of the privilege types in 
-	 *						com.splicemachine.db.iapi.sql.conn.Authorizer.
-	 */
-	void pushCurrentPrivType(int privType);
-	
-	void popCurrentPrivType();
+    /**
+        Get the chain of compile time warnings.
+    */
+    SQLWarning getWarnings();
+
+    /**
+     * Sets the current privilege type context and pushes the previous on onto a stack.
+     * Column and table nodes do not know how they are
+     * being used. Higher level nodes in the query tree do not know what is being
+     * referenced. Keeping the context allows the two to come together.
+     *
+     * @param privType One of the privilege types in
+     *                        com.splicemachine.db.iapi.sql.conn.Authorizer.
+     */
+    void pushCurrentPrivType(int privType);
+
+    void popCurrentPrivType();
     
-	/**
-	 * Add a column privilege to the list of used column privileges.
-	 *
-	 * @param column
-	 */
-	void addRequiredColumnPriv(ColumnDescriptor column);
+    /**
+     * Add a column privilege to the list of used column privileges.
+     *
+     * @param column
+     */
+    void addRequiredColumnPriv(ColumnDescriptor column);
 
-	/**
-	 * Add a table or view privilege to the list of used table privileges.
-	 *
-	 * @param table
-	 */
-	void addRequiredTablePriv(TableDescriptor table);
+    /**
+     * Add a table or view privilege to the list of used table privileges.
+     *
+     * @param table
+     */
+    void addRequiredTablePriv(TableDescriptor table);
 
-	/**
-	 * Add a schema privilege to the list of used privileges.
-	 *
-	 * @param schema	Schema name of the object that is being accessed
-	 * @param aid		Requested authorizationId for new schema
-	 * @param privType	CREATE_SCHEMA_PRIV, MODIFY_SCHEMA_PRIV or DROP_SCHEMA_PRIV
-	 */
-	void addRequiredSchemaPriv(String schema, String aid, int privType);
+    /**
+     * Add a schema privilege to the list of used privileges.
+     *
+     * @param schema    Schema name of the object that is being accessed
+     * @param aid        Requested authorizationId for new schema
+     * @param privType    CREATE_SCHEMA_PRIV, MODIFY_SCHEMA_PRIV or DROP_SCHEMA_PRIV
+     */
+    void addRequiredSchemaPriv(String schema, String aid, int privType);
 
-	void addRequiredAccessSchemaPriv(UUID uuid);
+    void addRequiredAccessSchemaPriv(UUID uuid);
 
-	/**
-	 * Add a routine execute privilege to the list of used routine privileges.
-	 *
-	 * @param routine
-	 */
-	void addRequiredRoutinePriv(AliasDescriptor routine);
+    /**
+     * Add a routine execute privilege to the list of used routine privileges.
+     *
+     * @param routine
+     */
+    void addRequiredRoutinePriv(AliasDescriptor routine);
 
-	/**
-	 * Add a usage privilege to the list of required privileges.
-	 *
-	 * @param usableObject
-	 */
-	void addRequiredUsagePriv(PrivilegedSQLObject usableObject);
+    /**
+     * Add a usage privilege to the list of required privileges.
+     *
+     * @param usableObject
+     */
+    void addRequiredUsagePriv(PrivilegedSQLObject usableObject);
 
-	/**
-	 * Add a required role privilege to the list of privileges.
-	 *
-	 * @see CompilerContext#addRequiredRolePriv
-	 */
-	void addRequiredRolePriv(String roleName, int privType);
+    /**
+     * Add a required role privilege to the list of privileges.
+     *
+     * @see CompilerContext#addRequiredRolePriv
+     */
+    void addRequiredRolePriv(String roleName, int privType);
 
-	/**
-	 * @return The list of required privileges.
-	 */
-	List getRequiredPermissionsList();
+    /**
+     * @return The list of required privileges.
+     */
+    List getRequiredPermissionsList();
     
-	/**
-	 * Add a sequence descriptor to the list of referenced sequences.
-	 */
-	void addReferencedSequence(SequenceDescriptor sd);
+    /**
+     * Add a sequence descriptor to the list of referenced sequences.
+     */
+    void addReferencedSequence(SequenceDescriptor sd);
 
-	/**
-	 * Report whether the given sequence has been referenced already.
-	 */
-	boolean isReferenced(SequenceDescriptor sd);
+    /**
+     * Report whether the given sequence has been referenced already.
+     */
+    boolean isReferenced(SequenceDescriptor sd);
 
     void setDataSetProcessorType(DataSetProcessorType type);
 
     DataSetProcessorType getDataSetProcessorType();
 
-	boolean skipStats(int tableNumber);
+    boolean skipStats(int tableNumber);
 
-	Vector<Integer> getSkipStatsTableList();
+    Vector<Integer> getSkipStatsTableList();
 
-	public boolean getSelectivityEstimationIncludingSkewedDefault();
+    public boolean getSelectivityEstimationIncludingSkewedDefault();
 
-	public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff);
+    public void setSelectivityEstimationIncludingSkewedDefault(boolean onOff);
 
-	public boolean isProjectionPruningEnabled();
+    public boolean isProjectionPruningEnabled();
 
-	public void setProjectionPruningEnabled(boolean onOff);
-	
-	public int getMaxMulticolumnProbeValues();
-	
-	public void setMaxMulticolumnProbeValues(int newValue);
-	
-	public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue);
-	
-	public boolean getMulticolumnInlistProbeOnSparkEnabled();
-	
-	public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue);
-	
-	public boolean getConvertMultiColumnDNFPredicatesToInList();
+    public void setProjectionPruningEnabled(boolean onOff);
 
-	public void setDisablePredicateSimplification(boolean newValue);
+    public int getMaxMulticolumnProbeValues();
 
-	public boolean getDisablePredicateSimplification();
+    public void setMaxMulticolumnProbeValues(int newValue);
 
-	public void setSparkVersion(SparkVersion newValue);
+    public void setMulticolumnInlistProbeOnSparkEnabled(boolean newValue);
 
-	public SparkVersion getSparkVersion();
+    public boolean getMulticolumnInlistProbeOnSparkEnabled();
 
-	public boolean isSparkVersionInitialized();
+    public void setConvertMultiColumnDNFPredicatesToInList(boolean newValue);
 
-	public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
+    public boolean getConvertMultiColumnDNFPredicatesToInList();
 
-	public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
+    public void setDisablePredicateSimplification(boolean newValue);
 
-	public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
+    public boolean getDisablePredicateSimplification();
 
-	public boolean getAllowOverflowSensitiveNativeSparkExpressions();
+    public void setSparkVersion(SparkVersion newValue);
 
-	public void setCurrentTimestampPrecision(int newValue);
+    public SparkVersion getSparkVersion();
 
-	public int getCurrentTimestampPrecision();
+    public boolean isSparkVersionInitialized();
 
-	public int getNextOJLevel();
+    public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
 
-	public boolean isOuterJoinFlatteningDisabled();
+    public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
 
-	public void setOuterJoinFlatteningDisabled(boolean onOff);
+    public void setAllowOverflowSensitiveNativeSparkExpressions(boolean newValue);
+
+    public boolean getAllowOverflowSensitiveNativeSparkExpressions();
+
+    public void setCurrentTimestampPrecision(int newValue);
+
+    public int getCurrentTimestampPrecision();
+
+    public int getNextOJLevel();
+
+    public boolean isOuterJoinFlatteningDisabled();
+
+    public void setOuterJoinFlatteningDisabled(boolean onOff);
 }
