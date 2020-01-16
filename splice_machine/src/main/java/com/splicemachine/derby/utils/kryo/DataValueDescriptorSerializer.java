@@ -44,14 +44,10 @@ public abstract class DataValueDescriptorSerializer<T extends DataValueDescripto
     @Override
     public T read(Kryo kryo, Input input, Class<T> type) {
         try {
-            T dvd = type.newInstance();
+            T dvd = kryo.newInstance(type);
             if(!input.readBoolean())
                 readValue(kryo,input,dvd);
             return dvd;
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
         } catch (StandardException e) {
             throw new RuntimeException(e);
         }

@@ -45,11 +45,11 @@ public class ExternalizableSerializer extends Serializer<Externalizable> {
     @Override
     public Externalizable read(Kryo kryo, Input input, Class<Externalizable> type) {
         try {
-            Externalizable e = type.newInstance();
+            Externalizable e = kryo.newInstance(type);
             KryoObjectInput koi = new KryoObjectInput(input,kryo);
             e.readExternal(koi);
             return e;
-        } catch (IOException | ClassNotFoundException | IllegalAccessException | InstantiationException e1) {
+        } catch (IOException | ClassNotFoundException e1) {
             throw new RuntimeException(e1);
         }
     }

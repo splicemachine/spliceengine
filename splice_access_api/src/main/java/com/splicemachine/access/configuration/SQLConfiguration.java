@@ -221,7 +221,7 @@ public class SQLConfiguration implements ConfigurationDefault {
     private static final String DEFAULT_PARTITIONSERVER_JMX_PASSWORD = "passwd";
 
     public static final String NESTEDLOOPJOIN_BATCH_SIZE = "splice.nestedLoopJoin.batchSize";
-    private static final int DEFAULT_NESTEDLOOPJOIN_BATCH_SIZE = 10;
+    private static final int DEFAULT_NESTEDLOOPJOIN_BATCH_SIZE = 25;
 
     public static final String CONTROL_EXECUTION_ROWS_LIMIT = "splice.controlExecution.rowsLimit";
     private static final int DEFAULT_CONTROL_EXECUTION_ROWS_LIMIT = 1000000;

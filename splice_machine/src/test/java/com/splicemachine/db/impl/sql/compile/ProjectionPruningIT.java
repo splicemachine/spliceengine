@@ -788,13 +788,9 @@ public class ProjectionPruningIT extends SpliceUnitTest {
                 " 6 |";
 
         ResultSet rs = null;
-        try {
-            rs = methodWatcher.executeQuery(sqlText);
-            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
-        } catch (Exception e) {
-            Assert.fail("DB-7160 Unit test failed with exception.\n");
-        }
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
     }
 
     @Test

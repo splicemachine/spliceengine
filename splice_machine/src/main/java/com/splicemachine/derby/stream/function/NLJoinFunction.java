@@ -35,14 +35,19 @@ import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 import org.apache.spark.util.TaskCompletionListener;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 
-/**
+ /**
  * Created by jyuan on 10/10/16.
  */
 public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> extends SpliceJoinFlatMapFunction<Op, From, To>
@@ -70,9 +75,10 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     protected boolean isOneRowInnerJoin;
     protected boolean hasMatch;
     protected List<Future<Pair<OperationContext, Iterator<ExecRow>>>> futures;
-    protected ArrayList<OperationContext> allContexts;
+    protected Set<OperationContext> allContexts;
     protected TaskContext taskContext;
     private Deque<ExecRow> firstBatch;
+    private volatile boolean isClosed = false;
 
     protected ExecutorService executorService;
 
@@ -106,12 +112,9 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     private void initOperationContexts() throws StandardException {
         try {
             operationContextList = new ArrayList<>(batchSize);
-            allContexts = new ArrayList(batchSize);
+            allContexts = Collections.synchronizedSet(new HashSet<>());
             for (int i = 0; i < batchSize && leftSideIterator.hasNext(); ++i) {
                 firstBatch.addLast(leftSideIterator.next().getClone());
-                OperationContext clone = operationContext.getClone();
-                operationContextList.add(clone);
-                allContexts.add(clone);
             }
         }
         catch (Exception e) {
@@ -122,12 +125,15 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
     @Override
     public void close() {
         StandardException se = null;
-        for (OperationContext ctx : allContexts) {
-            try {
-                ctx.getOperation().close();
-            } catch (StandardException e) {
-                se = e;
-                LOG.error("Exception while closing operation", e);
+        synchronized (allContexts) {
+            isClosed = true;
+            for (OperationContext ctx : allContexts) {
+                try {
+                    ctx.getOperation().close();
+                } catch (StandardException e) {
+                    se = e;
+                    LOG.error("Exception while closing operation", e);
+                }
             }
         }
         if (futures != null) {
@@ -148,9 +154,20 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     break;
                 nLeftRows++;
                 ExecRow execRow = firstBatch.removeFirst();
-                OperationContext context = operationContextList.remove(0);
+                OperationContext context = operationContextList.isEmpty() ? null : operationContextList.remove(0);
+                Supplier<OperationContext> supplier = context != null ? () -> context : () -> {
+                    try {
+                        OperationContext ctx = operationContext.getClone();
+                        allContexts.add(ctx);
+                        if(isClosed)
+                            ctx.getOperation().close();
+                        return ctx;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                };
                 GetNLJoinIterator getNLJoinIterator =  GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                        context, execRow);
+                        supplier, execRow);
                 futures.add(executorService.submit(getNLJoinIterator));
             }
             if (nLeftRows > 0) {
@@ -187,8 +204,9 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                     if (leftSideIterator.hasNext()) {
                         // If we haven't consumed left side iterator, submit a task to scan righ side
                         ExecRow execRow = leftSideIterator.next();
+                        OperationContext ctx = operationContextList.remove(0);
                         GetNLJoinIterator getNLJoinIterator = GetNLJoinIterator.makeGetNLJoinIterator(joinType,
-                                operationContextList.remove(0), execRow.getClone());
+                                () -> ctx, execRow.getClone());
                         futures.add(executorService.submit(getNLJoinIterator));
                         nLeftRows++;
                     }

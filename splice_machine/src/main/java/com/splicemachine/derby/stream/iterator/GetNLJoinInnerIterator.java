@@ -22,6 +22,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
 
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 /**
  * Created by jyuan on 10/10/16.
@@ -30,13 +31,14 @@ public class GetNLJoinInnerIterator extends GetNLJoinIterator {
 
     public GetNLJoinInnerIterator() {}
 
-    public GetNLJoinInnerIterator(OperationContext operationContext, ExecRow locatedRow) {
+    public GetNLJoinInnerIterator(Supplier<OperationContext> operationContext, ExecRow locatedRow) {
         super(operationContext, locatedRow);
     }
 
     @Override
     public Pair<OperationContext, Iterator<ExecRow>> call() throws Exception {
-        JoinOperation op = (JoinOperation) this.operationContext.getOperation();
+        OperationContext ctx = operationContext.get();
+        JoinOperation op = (JoinOperation) ctx.getOperation();
         op.getLeftOperation().setCurrentRow(this.locatedRow);
         SpliceOperation rightOperation=op.getRightOperation();
 
@@ -45,6 +47,6 @@ public class GetNLJoinInnerIterator extends GetNLJoinIterator {
         // Lets make sure we perform a call...
         boolean hasNext = rightSideNLJIterator.hasNext();
 
-        return new Pair<>(operationContext, rightSideNLJIterator);
+        return new Pair<>(ctx, rightSideNLJIterator);
     }
 }
