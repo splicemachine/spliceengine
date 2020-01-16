@@ -124,35 +124,29 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     public static boolean shouldUseSpark(Collection<QueryTreeNode> opPlanMap, boolean needDetermineSpark) {
-        boolean useSpark = false;
         for (QueryTreeNode node : opPlanMap) {
             if (node instanceof FromBaseTable) {
-                // in case we are calling this function before the code generation phase, detemineSpark() hasn't been called,
-                // and the dataSetProcessorType in the FromBaseTable node may not be properly set yet, so we need to call this
-                // function before using dataSetProcessorType
-                if (needDetermineSpark)
-                    ((FromBaseTable) node).determineSpark();
-                CompilerContext.DataSetProcessorType dataSetProcessorType
-                        = ((FromBaseTable) node).getDataSetProcessorType();
-                if (dataSetProcessorType == CompilerContext.DataSetProcessorType.FORCED_SPARK ||
-                        dataSetProcessorType == CompilerContext.DataSetProcessorType.SPARK) {
-                    useSpark = true;
-                    break;
+                if (needDetermineSpark) {
+                    FromBaseTable fbt = (FromBaseTable)node;
+                    fbt.determineSpark();
+                    if (fbt.getDataSetProcessorType().isSpark()) {
+                        return true;
+                    }
+                } else if (node.getCompilerContext().getDataSetProcessorType().isSpark()) {
+                    return true;
                 }
             }
         }
-
-        return useSpark;
+        return false;
     }
 
-    public static CompilerContext.DataSetProcessorType  queryHintedForcedType(Collection<QueryTreeNode> opPlanMap) {
+    public static CompilerContext.DataSetProcessorType queryHintedForcedType(Collection<QueryTreeNode> opPlanMap) {
         for (QueryTreeNode node : opPlanMap) {
             if (node instanceof FromBaseTable) {
-                CompilerContext.DataSetProcessorType hintType = ((FromBaseTable) node).getDataSetProcessorType();
-                if (hintType  == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                    return CompilerContext.DataSetProcessorType.FORCED_SPARK;
-                else if (hintType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                    return CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+                CompilerContext.DataSetProcessorType type = node.getCompilerContext().getDataSetProcessorType();
+                if (type.isForced()) {
+                    return type;
+                }
             }
         }
         return null;

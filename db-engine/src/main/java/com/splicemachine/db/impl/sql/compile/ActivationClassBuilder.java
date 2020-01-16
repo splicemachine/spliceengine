@@ -66,110 +66,112 @@ import java.lang.reflect.Modifier;
  * added, to have 0 parameters, ...
  *
  */
-public class ActivationClassBuilder	extends	ExpressionClassBuilder {
-	///////////////////////////////////////////////////////////////////////
-	//
-	// CONSTANTS
-	//
-	///////////////////////////////////////////////////////////////////////
+public class ActivationClassBuilder    extends    ExpressionClassBuilder {
+    ///////////////////////////////////////////////////////////////////////
+    //
+    // CONSTANTS
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	// STATE
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    // STATE
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	private LocalField	targetResultSetField;
-	private LocalField  cursorResultSetField;
+    private LocalField    targetResultSetField;
+    private LocalField  cursorResultSetField;
 
-	private MethodBuilder closeActivationMethod;
+    private MethodBuilder closeActivationMethod;
+    private CompilerContext.DataSetProcessorType pushedType;
 
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	// CONSTRUCTOR
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    // CONSTRUCTOR
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/**
-	 * By the time this is done, it has constructed the following class:
-	 * <pre>
-	 *    public class #className extends #superClass {
-	 *		// public void reset() { return; }
-	 *		public ResultSet execute() throws StandardException {
-	 *			throwIfClosed("execute");
-	 *			// statements must be added here
-	 *		}
-	 *		public #className() { super(); }
-	 *    }
-	 * </pre>
-	 *
-	 * @exception StandardException thrown on failure
-	 */
-	ActivationClassBuilder (String superClass, CompilerContext cc) throws StandardException
-	{
-		super( superClass, (String) null, cc );
-		executeMethod = beginExecuteMethod();
+    /**
+     * By the time this is done, it has constructed the following class:
+     * <pre>
+     *    public class #className extends #superClass {
+     *        // public void reset() { return; }
+     *        public ResultSet execute() throws StandardException {
+     *            throwIfClosed("execute");
+     *            // statements must be added here
+     *        }
+     *        public #className() { super(); }
+     *    }
+     * </pre>
+     *
+     * @exception StandardException thrown on failure
+     */
+    ActivationClassBuilder (String superClass, CompilerContext cc) throws StandardException
+    {
+        super( superClass, (String) null, cc );
+        executeMethod = beginExecuteMethod();
         materializationMethod = beginMaterializationMethod();
-	}
+        pushedType = null;
+    }
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	// ACCESSORS
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    // ACCESSORS
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/**
-	  *	Get the package name that this generated class lives in
-	  *
-	  *	@return	package name
-	  */
-    public	String	getPackageName()
-	{	return	CodeGeneration.GENERATED_PACKAGE_PREFIX; }
+    /**
+      *    Get the package name that this generated class lives in
+      *
+      *    @return    package name
+      */
+    public    String    getPackageName()
+    {    return    CodeGeneration.GENERATED_PACKAGE_PREFIX; }
 
-	/**
-		The base class for activations is BaseActivation
-	 */
-	String getBaseClassName() {
-	    return ClassName.BaseActivation;
-	}
+    /**
+        The base class for activations is BaseActivation
+     */
+    String getBaseClassName() {
+        return ClassName.BaseActivation;
+    }
 
 
-	/**
-	  *	Get the number of ExecRows to allocate
-	  *
-	  * @exception StandardException thrown on failure
-	  *	@return	package name
-	  */
-	public	int		getRowCount()
-		 throws StandardException
-	{
-		return	myCompCtx.getNumResultSets();
-	}
+    /**
+      *    Get the number of ExecRows to allocate
+      *
+      * @exception StandardException thrown on failure
+      *    @return    package name
+      */
+    public    int        getRowCount()
+         throws StandardException
+    {
+        return    myCompCtx.getNumResultSets();
+    }
 
-	/**
-	 * Generate the assignment for numSubqueries = x
-	 *
-	 * @exception StandardException thrown on failure
-	 */
-	public	 void	setNumSubqueries()
-	{
-		int				numSubqueries = myCompCtx.getNumSubquerys();
+    /**
+     * Generate the assignment for numSubqueries = x
+     *
+     * @exception StandardException thrown on failure
+     */
+    public     void    setNumSubqueries()
+    {
+        int                numSubqueries = myCompCtx.getNumSubquerys();
 
-		// If there are no subqueries then
-		// the field is set to the correctly
-		// value (0) by java.
-		if (numSubqueries == 0)
-			return;
+        // If there are no subqueries then
+        // the field is set to the correctly
+        // value (0) by java.
+        if (numSubqueries == 0)
+            return;
 
-		/* Generated code is:
-		 *		numSubqueries = x;
-		 */
-		constructor.pushThis();
-		constructor.push(numSubqueries);
-		constructor.putField(ClassName.BaseActivation, "numSubqueries", "int");
-		constructor.endStatement();
-	}
+        /* Generated code is:
+         *        numSubqueries = x;
+         */
+        constructor.pushThis();
+        constructor.push(numSubqueries);
+        constructor.putField(ClassName.BaseActivation, "numSubqueries", "int");
+        constructor.endStatement();
+    }
 
 
     /**
@@ -179,82 +181,79 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
      */
     @Override
     public void setDataSetProcessorType(CompilerContext.DataSetProcessorType type) {
-        CompilerContext.DataSetProcessorType currentType = myCompCtx.getDataSetProcessorType();
-        if (currentType.equals(CompilerContext.DataSetProcessorType.FORCED_CONTROL) ||
-                currentType.equals(CompilerContext.DataSetProcessorType.FORCED_SPARK))
-            return; // Already Forced
-		// if current type has already been set to Spark, we should honor it
-		if (currentType.equals(CompilerContext.DataSetProcessorType.SPARK))
-			return;
-        myCompCtx.setDataSetProcessorType(type);
-		constructor.pushThis();
-		constructor.push(type.ordinal());
-		constructor.putField(ClassName.BaseActivation, "datasetProcessorType", "int");
-		constructor.endStatement();
+        if (pushedType != null) {
+            assert pushedType == type;
+        } else {
+            pushedType = type;
+            constructor.pushThis();
+            constructor.push(type.ordinal());
+            constructor.putField(ClassName.BaseActivation, "datasetProcessorType", "int");
+            constructor.endStatement();
+        }
     }
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	// EXECUTE METHODS
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    // EXECUTE METHODS
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/**
-	 * By the time this is done, it has generated the following code
-	 * <pre>
-	 *		public ResultSet execute() throws StandardException {
-	 *			throwIfClosed("execute");
-	 *			// statements must be added here
-	 *		}
-	 *    }
-	 * </pre>
-	 *
-	 * @exception StandardException thrown on failure
-	 */
-	private	MethodBuilder	beginExecuteMethod()
-		throws StandardException
-	{
-		// create a reset method that does nothing.
-		// REVISIT: this might better belong in the Activation
-		// superclasses ?? not clear yet what it needs to do.
+    /**
+     * By the time this is done, it has generated the following code
+     * <pre>
+     *        public ResultSet execute() throws StandardException {
+     *            throwIfClosed("execute");
+     *            // statements must be added here
+     *        }
+     *    }
+     * </pre>
+     *
+     * @exception StandardException thrown on failure
+     */
+    private    MethodBuilder    beginExecuteMethod()
+        throws StandardException
+    {
+        // create a reset method that does nothing.
+        // REVISIT: this might better belong in the Activation
+        // superclasses ?? not clear yet what it needs to do.
 
-		// don't yet need a reset method here. when we do,
-		// it will need to call super.reset() as well as
-		// whatever it does.
-		// mb = cb.newMethodBuilder(
-		// 	Modifier.PUBLIC, "void", "reset");
-		// mb.addStatement(javaFac.newStatement(
-		//		javaFac.newSpecialMethodCall(
-		//			thisExpression(),
-		//			BaseActivation.CLASS_NAME,
-		//			"reset", "void")));
-		// mb.addStatement(javaFac.newReturnStatement());
-		// mb.complete(); // there is nothing else.
+        // don't yet need a reset method here. when we do,
+        // it will need to call super.reset() as well as
+        // whatever it does.
+        // mb = cb.newMethodBuilder(
+        //     Modifier.PUBLIC, "void", "reset");
+        // mb.addStatement(javaFac.newStatement(
+        //        javaFac.newSpecialMethodCall(
+        //            thisExpression(),
+        //            BaseActivation.CLASS_NAME,
+        //            "reset", "void")));
+        // mb.addStatement(javaFac.newReturnStatement());
+        // mb.complete(); // there is nothing else.
 
 
-		// This method is an implementation of the interface method
-		// Activation - ResultSet execute()
+        // This method is an implementation of the interface method
+        // Activation - ResultSet execute()
 
-		// create an empty execute method
-		MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
-			ClassName.ResultSet, "execute");
-		mb.addThrownException(ClassName.StandardException);
+        // create an empty execute method
+        MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
+            ClassName.ResultSet, "execute");
+        mb.addThrownException(ClassName.StandardException);
 
-		// put a 'throwIfClosed("execute");' statement into the execute method.
-		mb.pushThis(); // instance
-		mb.push("execute");
-		mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
+        // put a 'throwIfClosed("execute");' statement into the execute method.
+        mb.pushThis(); // instance
+        mb.push("execute");
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
 
-		// call this.startExecution(), so the parent class can know an execution
-		// has begun.
+        // call this.startExecution(), so the parent class can know an execution
+        // has begun.
 
-		mb.pushThis(); // instance
-		mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "startExecution", "void", 0);
+        mb.pushThis(); // instance
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "startExecution", "void", 0);
 
-		return	mb;
-	}
+        return    mb;
+    }
 
-    private	MethodBuilder	beginMaterializationMethod()
+    private    MethodBuilder    beginMaterializationMethod()
             throws StandardException
     {
         MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
@@ -268,212 +267,212 @@ public class ActivationClassBuilder	extends	ExpressionClassBuilder {
         return mb;
     }
 
-	MethodBuilder startResetMethod() {
-		MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
-			"void", "reset");
+    MethodBuilder startResetMethod() {
+        MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
+            "void", "reset");
 
-		mb.addThrownException(ClassName.StandardException);
-		mb.pushThis();
-		mb.callMethod(VMOpcode.INVOKESPECIAL, ClassName.BaseActivation, "reset", "void", 0);
+        mb.addThrownException(ClassName.StandardException);
+        mb.pushThis();
+        mb.callMethod(VMOpcode.INVOKESPECIAL, ClassName.BaseActivation, "reset", "void", 0);
 
 
-		return mb;
-	}
+        return mb;
+    }
 
-	/**
-	 * An execute method always ends in a return statement, returning
-	 * the result set that has been constructed.  We want to
-	 * do some bookkeeping on that statement, so we generate
-	 * the return given the result set.
+    /**
+     * An execute method always ends in a return statement, returning
+     * the result set that has been constructed.  We want to
+     * do some bookkeeping on that statement, so we generate
+     * the return given the result set.
 
-	   Upon entry the only word on the stack is the result set expression
-	 */
-	void finishExecuteMethod(boolean genMarkAsTopNode) {
+       Upon entry the only word on the stack is the result set expression
+     */
+    void finishExecuteMethod(boolean genMarkAsTopNode) {
 
-		/* We only call markAsTopResultSet() for selects.
-		 * Non-select DML marks the top NoPutResultSet in the constructor.
-		 * Needed for closing down resultSet on an error.
-		 */
-		if (genMarkAsTopNode)
-		{
-			// dup the result set to leave one for the return and one for this call
-			executeMethod.dup();
-			executeMethod.cast(ClassName.NoPutResultSet);
-			executeMethod.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "markAsTopResultSet", "void", 0);
-		}
+        /* We only call markAsTopResultSet() for selects.
+         * Non-select DML marks the top NoPutResultSet in the constructor.
+         * Needed for closing down resultSet on an error.
+         */
+        if (genMarkAsTopNode)
+        {
+            // dup the result set to leave one for the return and one for this call
+            executeMethod.dup();
+            executeMethod.cast(ClassName.NoPutResultSet);
+            executeMethod.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "markAsTopResultSet", "void", 0);
+        }
 
-		/* return resultSet */
-		executeMethod.methodReturn();
-		executeMethod.complete();
+        /* return resultSet */
+        executeMethod.methodReturn();
+        executeMethod.complete();
 
-		getClassBuilder().newFieldWithAccessors("getExecutionCount", "setExecutionCount",
+        getClassBuilder().newFieldWithAccessors("getExecutionCount", "setExecutionCount",
                 Modifier.PROTECTED, true, "int");
 
-		getClassBuilder().newFieldWithAccessors("getRowCountCheckVector", "setRowCountCheckVector",
+        getClassBuilder().newFieldWithAccessors("getRowCountCheckVector", "setRowCountCheckVector",
                 Modifier.PROTECTED, true, "java.util.Vector");
 
-		getClassBuilder().newFieldWithAccessors("getStalePlanCheckInterval", "setStalePlanCheckInterval",
+        getClassBuilder().newFieldWithAccessors("getStalePlanCheckInterval", "setStalePlanCheckInterval",
                 Modifier.PROTECTED, true, "int");
 
-		if (closeActivationMethod != null) {
-			closeActivationMethod.methodReturn();
-			closeActivationMethod.complete();
-		}
-	}
+        if (closeActivationMethod != null) {
+            closeActivationMethod.methodReturn();
+            closeActivationMethod.complete();
+        }
+    }
 
     void finishMaterializationMethod() {
         materializationMethod.methodReturn();
         materializationMethod.complete();
     }
-	///////////////////////////////////////////////////////////////////////
-	//
-	// CURSOR SUPPORT
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    // CURSOR SUPPORT
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Updatable cursors
-	 * need to add a getter method for use in BaseActivation to access
-	 * the result set that identifies target rows for a positioned
-	 * update or delete.
-	 * <p>
-	 * The code that is generated is:
-	 * <pre><verbatim>
-	 *  public CursorResultSet getTargetResultSet() {
-	 *	    return targetResultSet;
-	 *  }
-	 *
-	 *  public CursorResultSet getCursorResultSet() {
-	 *		return cursorResultSet;
-	 *  }
-	 * </verbatim></pre>
-	 *
-	 */
-	void addCursorPositionCode() {
+    /**
+     * Updatable cursors
+     * need to add a getter method for use in BaseActivation to access
+     * the result set that identifies target rows for a positioned
+     * update or delete.
+     * <p>
+     * The code that is generated is:
+     * <pre><verbatim>
+     *  public CursorResultSet getTargetResultSet() {
+     *        return targetResultSet;
+     *  }
+     *
+     *  public CursorResultSet getCursorResultSet() {
+     *        return cursorResultSet;
+     *  }
+     * </verbatim></pre>
+     *
+     */
+    void addCursorPositionCode() {
 
-		// the getter
-		// This method is an implementation of the interface method
-		// CursorActivation - CursorResultSet getTargetResultSet()
-		MethodBuilder getter = cb.newMethodBuilder(Modifier.PUBLIC, 
-			ClassName.CursorResultSet, "getTargetResultSet");
+        // the getter
+        // This method is an implementation of the interface method
+        // CursorActivation - CursorResultSet getTargetResultSet()
+        MethodBuilder getter = cb.newMethodBuilder(Modifier.PUBLIC,
+            ClassName.CursorResultSet, "getTargetResultSet");
 
-		getter.getField(targetResultSetField);
-		getter.methodReturn();
-		getter.complete();
+        getter.getField(targetResultSetField);
+        getter.methodReturn();
+        getter.complete();
 
-		// This method is an implementation of the interface method
-		// CursorActivation - CursorResultSet getCursorResultSet()
+        // This method is an implementation of the interface method
+        // CursorActivation - CursorResultSet getCursorResultSet()
 
-		getter = cb.newMethodBuilder(Modifier.PUBLIC, 
-			ClassName.CursorResultSet, "getCursorResultSet");
+        getter = cb.newMethodBuilder(Modifier.PUBLIC,
+            ClassName.CursorResultSet, "getCursorResultSet");
 
-		getter.getField(cursorResultSetField);
-		getter.methodReturn();
-		getter.complete();
-	}
+        getter.getField(cursorResultSetField);
+        getter.methodReturn();
+        getter.complete();
+    }
 
-	/**
-	 * Updatable cursors
-	 * need to add a field and its initialization
-	 * for use in BaseActivation to access the result set that
-	 * identifies target rows for a positioned update or delete.
-	 * <p>
-	 * The code that is generated is:
-	 * <pre><verbatim>
-	 *  private CursorResultSet targetResultSet;
-	 *
-	 * </verbatim></pre>
-	 *
-	 * The expression that is generated is:
-	 * <pre><verbatim>
-	 *  (ResultSet) (targetResultSet = (CursorResultSet) #expression#)
-	 * </verbatim></pre>
-	 *
-	 */
-	void rememberCursorTarget(MethodBuilder mb) {
+    /**
+     * Updatable cursors
+     * need to add a field and its initialization
+     * for use in BaseActivation to access the result set that
+     * identifies target rows for a positioned update or delete.
+     * <p>
+     * The code that is generated is:
+     * <pre><verbatim>
+     *  private CursorResultSet targetResultSet;
+     *
+     * </verbatim></pre>
+     *
+     * The expression that is generated is:
+     * <pre><verbatim>
+     *  (ResultSet) (targetResultSet = (CursorResultSet) #expression#)
+     * </verbatim></pre>
+     *
+     */
+    void rememberCursorTarget(MethodBuilder mb) {
 
-		// the field
-		targetResultSetField = cb.addField(ClassName.CursorResultSet,
-					"targetResultSet",
-					Modifier.PRIVATE);
+        // the field
+        targetResultSetField = cb.addField(ClassName.CursorResultSet,
+                    "targetResultSet",
+                    Modifier.PRIVATE);
 
-		mb.cast(ClassName.CursorResultSet);
-		mb.putField(targetResultSetField);
-		mb.cast(ClassName.NoPutResultSet);
-	}
+        mb.cast(ClassName.CursorResultSet);
+        mb.putField(targetResultSetField);
+        mb.cast(ClassName.NoPutResultSet);
+    }
 
-	/**
-	 * Updatable cursors
-	 * need to add a field and its initialization
-	 * for use in BaseActivation to access the result set that
-	 * identifies cursor result rows for a positioned update or delete.
-	 * <p>
-	 * The code that is generated is:
-	 * <pre><verbatim>
-	 *  private CursorResultSet cursorResultSet;
-	 *
-	 * </verbatim></pre>
-	 *
-	 * The expression that is generated is:
-	 * <pre><verbatim>
-	 *  (ResultSet) (cursorResultSet = (CursorResultSet) #expression#)
-	 * </verbatim></pre>
+    /**
+     * Updatable cursors
+     * need to add a field and its initialization
+     * for use in BaseActivation to access the result set that
+     * identifies cursor result rows for a positioned update or delete.
+     * <p>
+     * The code that is generated is:
+     * <pre><verbatim>
+     *  private CursorResultSet cursorResultSet;
+     *
+     * </verbatim></pre>
+     *
+     * The expression that is generated is:
+     * <pre><verbatim>
+     *  (ResultSet) (cursorResultSet = (CursorResultSet) #expression#)
+     * </verbatim></pre>
 
        The expression must be the top stack word when this method is called.
-	 *
-	 */
-	void rememberCursor(MethodBuilder mb) {
+     *
+     */
+    void rememberCursor(MethodBuilder mb) {
 
-		// the field
-		cursorResultSetField = cb.addField(ClassName.CursorResultSet,
-					"cursorResultSet",
-					Modifier.PRIVATE);
+        // the field
+        cursorResultSetField = cb.addField(ClassName.CursorResultSet,
+                    "cursorResultSet",
+                    Modifier.PRIVATE);
 
-		mb.cast(ClassName.CursorResultSet);
-		mb.putField(cursorResultSetField);
-		mb.cast(ClassName.ResultSet);
-	}
+        mb.cast(ClassName.CursorResultSet);
+        mb.putField(cursorResultSetField);
+        mb.cast(ClassName.ResultSet);
+    }
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	// CURRENT DATE/TIME SUPPORT
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    // CURRENT DATE/TIME SUPPORT
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/*
-		The first time a current datetime is needed, create the class
-		level support for it. The first half of the logic is in our parent
-		class.
-	 */
-	protected LocalField getCurrentSetup()
-	{
-		if (cdtField != null) return cdtField;
+    /*
+        The first time a current datetime is needed, create the class
+        level support for it. The first half of the logic is in our parent
+        class.
+     */
+    protected LocalField getCurrentSetup()
+    {
+        if (cdtField != null) return cdtField;
 
-		LocalField lf = super.getCurrentSetup();
+        LocalField lf = super.getCurrentSetup();
 
-		// 3) Set precision
-		//    cdt.setTimestampPrecision(precision)
-		executeMethod.getField(lf);
-		executeMethod.push(myCompCtx.getCurrentTimestampPrecision());
-		executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, "setTimestampPrecision", "void", 1);
+        // 3) Set precision
+        //    cdt.setTimestampPrecision(precision)
+        executeMethod.getField(lf);
+        executeMethod.push(myCompCtx.getCurrentTimestampPrecision());
+        executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, "setTimestampPrecision", "void", 1);
 
-		// 4) the execute method gets a statement (prior to the return)
-		//    to tell cdt to restart:
-		//	  cdt.forget();
+        // 4) the execute method gets a statement (prior to the return)
+        //    to tell cdt to restart:
+        //      cdt.forget();
 
-		executeMethod.getField(lf);
-		executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, "forget", "void", 0);
+        executeMethod.getField(lf);
+        executeMethod.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, "forget", "void", 0);
 
-		return lf;
-	}
+        return lf;
+    }
 
-	MethodBuilder getCloseActivationMethod() {
+    MethodBuilder getCloseActivationMethod() {
 
-		if (closeActivationMethod == null) {
-			closeActivationMethod = cb.newMethodBuilder(Modifier.PUBLIC, "void", "closeActivationAction");
-			closeActivationMethod.addThrownException("java.lang.Exception");
-		}
-		return closeActivationMethod;
-	}
+        if (closeActivationMethod == null) {
+            closeActivationMethod = cb.newMethodBuilder(Modifier.PUBLIC, "void", "closeActivationAction");
+            closeActivationMethod.addThrownException("java.lang.Exception");
+        }
+        return closeActivationMethod;
+    }
 }
 
