@@ -352,6 +352,29 @@ Cursor(n=10,rows=1,updateMode=READ_ONLY (1),engine=control (default))
     }
 
     @Test
+    public void testHashableJoinWithJoinColumnOfInnerTableOnIndexColumn2() throws Exception {
+        /* the plan should look like the following :
+        Plan
+        ----
+        Cursor(n=5,rows=4,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=4,totalCost=28.134,outputRows=4,outputHeapSize=60 B,partitions=1)
+            ->  BroadcastJoin(n=3,totalCost=8.054,outputRows=4,outputHeapSize=60 B,partitions=1,preds=[(B1[4:2] = A2[4:3])])
+              ->  TableScan[T2(1936)](n=2,totalCost=4.001,scannedRows=1,outputRows=1,outputHeapSize=60 B,partitions=1,preds=[(A2[2:1] = 10)])
+              ->  TableScan[T1(1920)](n=1,totalCost=4.045,scannedRows=40,outputRows=4,outputHeapSize=48 B,partitions=1,preds=[(B1[0:2] = 10)])
+
+        5 rows selected
+         */
+        String sqlText = "explain select a1, b1, a2, b2, c2 from --splice-properties joinOrder=fixed\n" +
+                "t1 inner join t2 --splice-properties joinStrategy=broadcast\n" +
+                "on b1=a2\n" +
+                "where a2=10";
+
+        rowContainsQuery(new int[]{4,5}, sqlText, methodWatcher,
+                new String[] {"TableScan[T2", "scannedRows=1,outputRows=1"},
+                new String[] {"TableScan[T1", "scannedRows=40,outputRows=4"});
+    }
+
+    @Test
     public void testDB8715ExplainBug() throws Exception {
         /* the plan should look like the following:
         Plan
