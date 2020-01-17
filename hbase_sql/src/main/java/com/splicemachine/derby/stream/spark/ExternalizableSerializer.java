@@ -32,19 +32,7 @@ public class ExternalizableSerializer implements Serializer<Externalizable> {
     public byte[] serialize(String topic, Externalizable data) {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              ObjectOutputStream oos = new ObjectOutputStream(bos)){
-            data.writeExternal(oos);
-            oos.flush();
-            return bos.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Deprecated
-    public byte[] serialize1(String topic, Externalizable data) {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-             ObjectOutputStream oos = new ObjectOutputStream(bos)){
-            data.writeExternal(oos);
+            oos.writeObject(data);
             oos.flush();
             return bos.toByteArray();
         } catch (IOException e) {
