@@ -26,6 +26,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Properties;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -64,6 +65,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
     public static void tearDown() throws Exception {
         methodWatcher.execute(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
         methodWatcher.execute("DROP DERBY AGGREGATE Median RESTRICT");
+        methodWatcher.execute("DROP DERBY AGGREGATE string_concat RESTRICT");
         methodWatcher.execute("DROP table orders");
         methodWatcher.execute("DROP FUNCTION makePrice");
         methodWatcher.execute("DROP FUNCTION getAmount");
@@ -72,6 +74,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
         methodWatcher.execute("drop table test");
         methodWatcher.execute("drop table t");
         methodWatcher.execute("drop table t1");
+        methodWatcher.execute("drop table strings");
     }
 
     private static void createData(Connection conn) throws Exception {
@@ -201,5 +204,24 @@ public class SpliceUDTIT extends SpliceUnitTest {
         String result = rs.next() ? rs.getString(1) : null;
         Assert.assertNotNull(result);
         Assert.assertTrue(result, result.compareTo("Got an internal connection")==0);
+    }
+
+
+    @Test
+    public void testSparkUDA() throws Exception {
+        methodWatcher.execute("create derby aggregate string_concat for varchar(2000) external name 'com.splicemachine.tools.StringConcat'");
+
+        methodWatcher.execute("create table strings (v varchar(20))");
+        methodWatcher.execute("insert into strings values 'a','b','c','d'");
+
+        for (boolean useSpark : Arrays.asList(true, false)) {
+            ResultSet rs = methodWatcher.executeQuery("select string_concat(v) from strings --splice-properties useSpark="+useSpark);
+            Assert.assertTrue(rs.next());
+            String res = rs.getString(1);
+            Assert.assertTrue(res.contains("a"));
+            Assert.assertTrue(res.contains("b"));
+            Assert.assertTrue(res.contains("c"));
+            Assert.assertTrue(res.contains("d"));
+        }
     }
 }

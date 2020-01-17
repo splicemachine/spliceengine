@@ -31,9 +31,13 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 
 import com.splicemachine.db.agg.Aggregator;
 
@@ -63,6 +67,7 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
     ///////////////////////////////////////////////////////////////////////////////////
 
     private static final int FIRST_VERSION = 0;
+	private static final int SECOND_VERSION = 1; // use java serialization for _aggregator since it will not be registered in our Kryo registry
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -180,9 +185,15 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
 	 */
 	public void writeExternal(ObjectOutput out) throws IOException
 	{
-		out.writeInt( FIRST_VERSION );
-        
-        out.writeObject( _aggregator );
+		out.writeInt( SECOND_VERSION );
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(baos);
+		oos.writeObject( _aggregator);
+		oos.flush();
+		byte [] bytes = baos.toByteArray();
+		oos.close();
+		out.writeInt(bytes.length);
+		out.write(baos.toByteArray());
         out.writeObject( _resultType );
         out.writeBoolean( _eliminatedNulls );
 	}
@@ -195,9 +206,18 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
 	public void readExternal(ObjectInput in) 
 		throws IOException, ClassNotFoundException
 	{
-		in.readInt();   // unused until we have a second rev of this class
-
-        _aggregator = (Aggregator) in.readObject();
+		int v = in.readInt();
+		if (v == FIRST_VERSION) {
+			_aggregator = (Aggregator) in.readObject();
+		} else {
+			byte[] bytes = new byte[in.readInt()];
+			if (bytes.length > 0) {
+				in.readFully(bytes);
+				ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
+				_aggregator = (Aggregator) ois.readObject();
+				ois.close();
+			}
+		}
         _resultType = (DataTypeDescriptor) in.readObject();
         _eliminatedNulls = in.readBoolean();
 	}
