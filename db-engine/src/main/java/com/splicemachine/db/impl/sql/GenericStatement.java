@@ -564,6 +564,19 @@ public class GenericStatement implements Statement{
             }
             cc.setCurrentTimestampPrecision(currentTimestampPrecision);
 
+            String outerJoinFlatteningDisabledString =
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.OUTERJOIN_FLATTENING_DISABLED);
+            boolean outerJoinFatteningDisabled = CompilerContext.DEFAULT_OUTERJOIN_FLATTENING_DISABLED;
+            try {
+                if (outerJoinFlatteningDisabledString != null)
+                    outerJoinFatteningDisabled =
+                            Boolean.valueOf(outerJoinFlatteningDisabledString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setOuterJoinFlatteningDisabled(outerJoinFatteningDisabled);
+
             if (! cc.isSparkVersionInitialized()) {
                 // If splice.spark.version is manually set, use it...
                 String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);

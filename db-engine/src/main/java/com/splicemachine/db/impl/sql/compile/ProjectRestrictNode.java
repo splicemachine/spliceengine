@@ -957,8 +957,26 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 		 * if we can push any of the predicates which just got pushed
 		 * down to our level into the SelectNode.
 		 */
+        PredicateList leftOutList = null;
         if(pushPList!=null && (childResult instanceof SelectNode)){
             SelectNode childSelect=(SelectNode)childResult;
+
+            /* if there are flattened outer joins in the child SELECT, and if the predicate references the right of OJ,
+		       we have difficulty to push down, identify such predicate and do not push into the child SELECT
+		    */
+            JBitSet flattenedInnerTableSet = childSelect.collectInnerTablesFromFlattenedOJ();
+            for (int index=pushPList.size()-1; index>=0; index--){
+                Predicate predicate=pushPList.elementAt(index);
+                JBitSet refMap = new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
+                predicate.getAndNode().categorize(refMap, false);
+                if(refMap.intersects(flattenedInnerTableSet)) {
+                    if (leftOutList == null) {
+                        leftOutList = (PredicateList) getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+                    }
+                    leftOutList.addPredicate(predicate);
+                    pushPList.removeElementAt(index);
+                }
+            }
 
             // We can't push down if there is a window
             // function because that would make ROW_NUMBER give wrong
@@ -976,6 +994,13 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             }
         }
 
+        // we may have taken out some predicates at the last moment, add them back
+        if (leftOutList != null) {
+            if (pushPList != null)
+                pushPList.destructiveAppend(leftOutList);
+            else
+                pushPList = leftOutList;
+        }
 
 		/* DERBY-649: Push simple predicates into Unions. It would be up to UnionNode
 		 * to decide if these predicates can be pushed further into underlying SelectNodes

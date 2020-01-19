@@ -987,17 +987,6 @@ public class FromBaseTable extends FromTable {
         }
     }
 
-    /**
-     * Clear the bits from the dependency map when join nodes are flattened
-     *
-     * @param locations vector of bit numbers to be cleared
-     */
-    void clearDependency(List<Integer> locations){
-        if(this.dependencyMap!=null){
-            for(Integer location : locations)
-                this.dependencyMap.clear(location);
-        }
-    }
 
     /**
      * Set the table properties for this table.

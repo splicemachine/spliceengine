@@ -610,13 +610,15 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      * @param sql           The SubqueryList from the outer query
      * @param gbl           The group by list, if any
      * @param havingClause  The HAVING clause, if any
+     * @param numTables     maximum number of tables in the query
      * @throws StandardException Thrown on error
      */
     public void flattenFromTables(ResultColumnList rcl,
                                   PredicateList predicateList,
                                   SubqueryList sql,
                                   GroupByList gbl,
-                                  ValueNode havingClause) throws StandardException{
+                                  ValueNode havingClause,
+                                  int numTables) throws StandardException{
         boolean flattened=true;
         List<Integer> flattenedTableNumbers=new ArrayList<>();
 
@@ -643,7 +645,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
 					/* Remove the node from the list and insert its
 					 * FromList here.
 					 */
-                    FromList flatteningFL=ft.flatten( rcl, predicateList, sql, gbl, havingClause);
+                    FromList flatteningFL=ft.flatten( rcl, predicateList, sql, gbl, havingClause, numTables);
                     assert flatteningFL==null || flatteningFL.size()>0: "flatteningFL expected to be null or size>0";
 
                     if(flatteningFL!=null){
@@ -665,12 +667,13 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             }
         }
 		
-		/* fix up dependency maps for exists base tables since they might have a
-		 * dependency on this join node
+		/* fix up dependency maps for tables in the from list since they might have a
+		 * dependency on these join nodes
 		 */
         if(!flattenedTableNumbers.isEmpty()){
             for(int i=0;i<size();i++){
                 FromTable ft=(FromTable)elementAt(i);
+                ft.clearDependency(flattenedTableNumbers);
                 if(ft instanceof ProjectRestrictNode){
                     ResultSetNode rst=((ProjectRestrictNode)ft).getChildResult();
                     if(rst instanceof FromBaseTable){
@@ -700,6 +703,9 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         int size=size();
         for(int index=0;index<size;index++){
             FromTable fromTable=(FromTable)elementAt(index);
+            // to stay safe, we will not push where clause condition to right of outer join
+            if (fromTable.getOJLevel() > 0)
+                continue;
             fromTable.pushExpressions(predicateList);
         }
     }

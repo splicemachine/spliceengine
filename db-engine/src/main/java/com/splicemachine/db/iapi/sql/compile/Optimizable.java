@@ -277,6 +277,8 @@ public interface Optimizable {
 	 */
 	void rememberAsBest(int planType,Optimizer optimizer) throws StandardException;
 
+	boolean bestPathPicksSortMergeJoin(int planType);
+
 	/**
 	 * Begin the optimization process for this Optimizable.  This can be
 	 * called many times for an Optimizable while optimizing a query -
