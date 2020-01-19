@@ -123,6 +123,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * SSQ join related variables
      */
     public boolean fromSSQ;
+
+    /* variable tracking the info of a FromTable node flattened from a HalfJoinNode.
+     * if OJLevel = 0, the table is free to join with other tables in the FromList, if OJLevel > 0, it can only
+     * join with its left table indicated in the dependencyMap */
+    protected int OJLevel;
+    PredicateList postJoinPredicates;
     /**
      * Initializer for a table in a FROM list.
      *
@@ -135,6 +141,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         this.tableProperties=(Properties)tableProperties;
         tableNumber=-1;
         bestPlanMap=null;
+        OJLevel = 0;
     }
 
     /**
@@ -340,6 +347,17 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     }
 
     @Override
+    public void pullOptPostJoinPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
+		if (postJoinPredicates != null) {
+            for(int i=postJoinPredicates.size()-1;i>=0;i--){
+                OptimizablePredicate optPred= postJoinPredicates.getOptPredicate(i);
+                optimizablePredicates.addOptPredicate(optPred);
+                postJoinPredicates.removeOptPredicate(i);
+            }
+        }
+    }
+
+    @Override
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
 		/* For most types of Optimizable, do nothing */
         return this;
@@ -469,6 +487,29 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         // We found a best plan in our map, so load it into this Optimizable's
         // trulyTheBestAccessPath field.
         bestPath.copy(ap);
+    }
+
+    @Override
+    public boolean bestPathPicksSortMergeJoin(int planType) {
+        AccessPath bestPath = null;
+        switch(planType){
+            case Optimizer.NORMAL_PLAN:
+                bestPath=getBestAccessPath();
+                break;
+            case Optimizer.SORT_AVOIDANCE_PLAN:
+                bestPath=getBestSortAvoidancePath();
+                break;
+            default:
+                if(SanityManager.DEBUG){
+                    SanityManager.THROWASSERT( "Invalid plan type "+planType);
+                }
+        }
+        if (bestPath != null &&
+                bestPath.getJoinStrategy() != null &&
+                bestPath.getJoinStrategy().getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.MERGE_SORT))
+            return true;
+
+        return false;
     }
 
     @Override
@@ -1115,13 +1156,15 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @param gbl          The group by list, if any
      * @param havingClause The HAVING clause, if any
      * @return FromList        The fromList from the underlying SelectNode.
+     * @param numTables     maximum number of tables in the query
      * @throws StandardException Thrown on error
      */
     public FromList flatten(ResultColumnList rcl,
                             PredicateList outerPList,
                             SubqueryList sql,
                             GroupByList gbl,
-                            ValueNode havingClause)  throws StandardException{
+                            ValueNode havingClause,
+                            int numTables)  throws StandardException{
         if(SanityManager.DEBUG){
             SanityManager.THROWASSERT( "flatten() not expected to be called for "+this);
         }
@@ -1216,10 +1259,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     }
 
     public void setDependencyMap(JBitSet set) {
-        if (existsTable || fromSSQ)
-            dependencyMap = set;
-        else
-            dependencyMap = null;
+        dependencyMap = set;
     }
 
     /* tableNumber is 0-based */
@@ -1350,4 +1390,31 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return accumulatedCostForSortAvoidancePlan;
     }
 
+    public int getOJLevel() {
+        return OJLevel;
+    }
+
+    public void setOJLevel(int level) {
+        OJLevel = level;
+    }
+
+    /**
+     * Clear the bits from the dependency map when join nodes are flattened
+     *
+     * @param locations vector of bit numbers to be cleared
+     */
+    public void clearDependency(List<Integer> locations){
+        if(this.dependencyMap!=null){
+            for(Integer location : locations)
+                this.dependencyMap.clear(location);
+        }
+    }
+
+    public PredicateList getPostJoinPredicates() {
+        return postJoinPredicates;
+    }
+
+    public void setPostJoinPredicates(PredicateList pList) {
+        postJoinPredicates = pList;
+    }
 }

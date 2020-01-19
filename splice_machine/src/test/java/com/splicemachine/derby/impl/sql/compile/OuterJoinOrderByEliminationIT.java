@@ -259,7 +259,8 @@ public class OuterJoinOrderByEliminationIT extends SpliceUnitTest {
         rs.close();
 
         /* Q4 inner join inside the outer table of the left join */
-        sqlText = format("select a1,b1,a2,a3 from t1 --splice-properties index=null \n" +
+        sqlText = format("select a1,b1,a2,a3 from --splice-properties joinOrder=fixed\n" +
+                        "t1 --splice-properties index=null \n" +
                          "inner join t3 --splice-properties index=null, joinStrategy=%s\n on a1=a3 " +
                         "left join t2 --splice-properties index=null, joinStrategy=%s, useSpark=%s\n " +
                         "on a1=a2 order by a1 {limit 20}",
