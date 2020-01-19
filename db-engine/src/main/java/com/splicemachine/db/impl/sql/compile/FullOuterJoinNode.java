@@ -371,11 +371,18 @@ public class FullOuterJoinNode extends JoinNode {
             vn=and.getRightOperand();
         }
 
-        /* We can't transform this node to inner join, so tell both sides of the
-         * outer join that they can't get flattened into outer query block.
+        /* We can't transform this node to inner join, so tell either or both sides of the
+         * outer join that they can't get flattened into outer query block depending on the JoinType
          */
-        leftResultSet.notFlattenableJoin();
-        rightResultSet.notFlattenableJoin();
+        if (ij instanceof FullOuterJoinNode) {
+            leftResultSet.notFlattenableJoin();
+            rightResultSet.notFlattenableJoin();
+        } else { // it is a HalfOuterJoinNode
+            if (((HalfOuterJoinNode)ij).isRightOuterJoin())
+                leftResultSet.notFlattenableJoin();
+            else
+                rightResultSet.notFlattenableJoin();
+        }
 
         return ij;
     }

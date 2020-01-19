@@ -1457,4 +1457,5 @@ public interface Property {
 	String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 
 	String USE_RPV_MULTIPLES_FOR_RANGE_SELECTIVITY_IN_PREPARE = "derby.database.useRpvMultiplesForRangeSelectivityInPrepare";
+	String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
 }
