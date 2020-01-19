@@ -87,7 +87,7 @@ public class TriggerHandler {
     private TxnView txn;
     private byte[] token;
 
-    private Function<Function<Activation,Void>, Callable> withContext;
+    private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
@@ -211,23 +211,30 @@ public class TriggerHandler {
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
         try {
-            withContext = new Function<Function<Activation,Void>, Callable>() {
+            withContext = new Function<Function<LanguageConnectionContext,Void>, Callable>() {
                 @Override
-                public Callable apply(Function<Activation,Void> f) {
+                public Callable apply(Function<LanguageConnectionContext,Void> f) {
                     return new Callable() {
                         @Override
                         public Void call() throws Exception {
-                            boolean prepared = false;
                             ActivationHolder ah = new ActivationHolder(activation, null);
                             try {
-                                ah.reinitialize(null, false);
-
-                                f.apply(ah.getActivation());
+                                LanguageConnectionContext oldLCC, newLCC;
+                                oldLCC = getLcc();
+                                // Use a new LCC for this thread, but
+                                // allow the transaction to remain elevatable.
+                                // The alternative would be to call 'ah.reinitialize(null, false)',
+                                // but that creates a SpliceTransactionView, which we
+                                // cannot elevate.
+                                ah.newTxnResource();
+                                newLCC = ah.getLCC();
+                                newLCC.pushStatementContext(true, oldLCC.isReadOnly(),
+                                       oldLCC.getOrigStmtTxt(), null, false, 0L);
+                                f.apply(ah.getLCC());
                             } catch (Exception e) {
                                 throw new RuntimeException(e);
                             } finally {
-                                if (prepared)
-                                    ah.close();
+                                ah.close(false);
                             }
                             return null;
                         }
@@ -297,6 +304,8 @@ public class TriggerHandler {
     }
 
     public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
+        if (!hasAfterRow)
+            return;
         pendingAfterRows.add(row.getClone());
         if (pendingAfterRows.size() == AFTER_ROW_BUFFER_SIZE) {
             firePendingAfterTriggers(flushCallback);
@@ -314,21 +323,28 @@ public class TriggerHandler {
             pendingAfterRows.clear();
             throw e;
         }
+
+        if (!hasAfterRow)
+            return;
+
         List<Future<Void>> futures = new ArrayList<>();
 
-        if (pendingAfterRows.size() <= 1) {
+        // The LCC can't be shared amongst threads, so
+        // only use one level of concurrency for now.
+        if (true || pendingAfterRows.size() <= 1) {
             for (ExecRow flushedRow : pendingAfterRows) {
-                futures.addAll(fireAfterRowConcurrentTriggers(flushedRow));
                 fireAfterRowTriggers(flushedRow);
+                futures.addAll(fireAfterRowConcurrentTriggers(flushedRow));
             }
         } else {
             Object lock = new Object();
             // work concurrently
             List<Future<Void>> rowFutures = new ArrayList<>();
             for (ExecRow flushedRow : pendingAfterRows) {
-                rowFutures.add(SIDriver.driver().getExecutorService().submit(withContext.apply(new Function<Activation,Void>() {
+                fireAfterRowTriggers(flushedRow);
+                rowFutures.add(SIDriver.driver().getExecutorService().submit(withContext.apply(new Function<LanguageConnectionContext,Void>() {
                     @Override
-                    public Void apply(Activation activation) {
+                    public Void apply(LanguageConnectionContext lcc) {
                         try {
                             List<Future<Void>> f = fireAfterRowConcurrentTriggers(flushedRow);
                             synchronized (lock) {
@@ -342,9 +358,6 @@ public class TriggerHandler {
                 })));
             }
 
-            for (ExecRow flushedRow : pendingAfterRows) {
-                fireAfterRowTriggers(flushedRow);
-            }
             for (Future<Void> f : rowFutures) {
                 f.get(); // bubble up any exceptions
             }

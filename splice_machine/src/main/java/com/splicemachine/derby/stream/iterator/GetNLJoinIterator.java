@@ -28,7 +28,7 @@ import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextFromActivation;
+import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushTriggerExecutionContextFromActivation;
 
 /**
  * Created by jyuan on 10/10/16.
@@ -88,7 +88,7 @@ public abstract class GetNLJoinIterator implements Callable<Pair<OperationContex
         if (cm != null) {
             OperationContext ctx = getCtx();
             if (ctx != null) {
-                lccPushed = pushLanguageConnectionContextFromActivation(ctx.getActivation(), cm);
+                lccPushed = pushTriggerExecutionContextFromActivation(ctx.getActivation(), cm);
             }
         }
     }
