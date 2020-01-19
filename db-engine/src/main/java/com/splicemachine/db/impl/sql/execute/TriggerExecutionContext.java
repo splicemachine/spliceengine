@@ -165,6 +165,31 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             }
         }
     }
+    // Push a LanguageConnectionContext into
+    // the task's ContextManager, if needed.  Return true if the push was done.
+    public static boolean
+    pushLanguageConnectionContextToCM(LanguageConnectionContext newLCC, ContextManager cm)
+                                                               throws StandardException  {
+        boolean lccPushed = false;
+        try {
+            LanguageConnectionContext currentLCC = ConnectionUtil.getCurrentLCC();
+            if (newLCC != null) {
+                if (newLCC != currentLCC) {
+                    cm.pushContext(newLCC);
+                    lccPushed = true;
+                }
+            }
+        } catch (SQLException e) {
+            // If the current LCC is not available in the context,
+            // push it now.
+            if (newLCC != null) {
+                lccPushed = true;
+                cm.pushContext(newLCC);
+            }
+        }
+        return lccPushed;
+    }
+
     // Push the LanguageConnectionContext from the Activation into
     // the task's ContextManager, if needed.  Return true if the push was done.
     public static boolean

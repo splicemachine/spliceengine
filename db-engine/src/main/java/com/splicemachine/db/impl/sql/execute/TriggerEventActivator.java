@@ -50,7 +50,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextFromActivation;
+import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextToCM;
 
 /**
  * Responsible for firing a trigger or set of triggers based on an event.
@@ -59,7 +59,7 @@ public class TriggerEventActivator {
 
     private TriggerInfo triggerInfo;
     private TriggerExecutionContext tec;
-    private Map<TriggerEvent, List<TriggerDescriptor>> statementExecutorsMap = new HashMap<>();
+    private Map<TriggerEvent, List<GenericTriggerExecutor>> statementExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<TriggerDescriptor>> rowExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<TriggerDescriptor>> rowConcurrentExecutorsMap = new HashMap<>();
     private Activation activation;
@@ -69,9 +69,13 @@ public class TriggerEventActivator {
     private String tableName;
     private boolean tecPushed;
     private boolean esvPushed;
+    private LanguageConnectionContext esvLCC1;
+    private LanguageConnectionContext esvLCC2;
+    private LanguageConnectionContext tecLCC1;
+    private LanguageConnectionContext tecLCC2;
     private FormatableBitSet heapList;
     private ExecutorService executorService;
-    private Function<Function<Activation,Void>, Callable> withContext;
+    private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
     /**
      * Basic constructor
@@ -87,7 +91,7 @@ public class TriggerEventActivator {
                                  Activation activation,
                                  Vector<AutoincrementCounter> aiCounters, 
                                  ExecutorService executorService, 
-                                 Function<Function<Activation,Void>, Callable> withContext,
+                                 Function<Function<LanguageConnectionContext,Void>, Callable> withContext,
                                  FormatableBitSet heapList) throws StandardException {
         if (triggerInfo == null) {
             return;
@@ -114,43 +118,53 @@ public class TriggerEventActivator {
     private void pushExecutionStmtValidator() throws StandardException {
         if(!esvPushed)
         {
-            LanguageConnectionContext lcc = getLcc();
-            lcc.pushExecutionStmtValidator(tec);
-            if (activation.getLanguageConnectionContext() != lcc)
-                activation.getLanguageConnectionContext().pushExecutionStmtValidator(tec);
+            esvLCC1 = getLcc();
+            esvLCC1.pushExecutionStmtValidator(tec);
             esvPushed = true;
+            if (activation.getLanguageConnectionContext() != esvLCC1) {
+                esvLCC2 = activation.getLanguageConnectionContext();
+                esvLCC2.pushExecutionStmtValidator(tec);
+            }
+            else
+                esvLCC2 = null;
         }
     }
 
     private void popExecutionStmtValidator() throws StandardException {
         if(esvPushed)
         {
-            LanguageConnectionContext lcc = getLcc();
-            lcc.popExecutionStmtValidator(tec);
-            if (activation.getLanguageConnectionContext() != lcc)
-                activation.getLanguageConnectionContext().popExecutionStmtValidator(tec);
+            esvLCC1.popExecutionStmtValidator(tec);
+            if (esvLCC2 != null)
+                esvLCC2.popExecutionStmtValidator(tec);
             esvPushed = false;
+            esvLCC1 = null;
+            esvLCC2 = null;
         }
     }
 
     private void pushTriggerExecutionContext() throws StandardException {
         if(!tecPushed)
         {
-            LanguageConnectionContext lcc = getLcc();
-            lcc.pushTriggerExecutionContext(tec);
-            if (activation.getLanguageConnectionContext() != lcc)
-                activation.getLanguageConnectionContext().pushTriggerExecutionContext(tec);
+            tecLCC1 = getLcc();
+            tecLCC1.pushTriggerExecutionContext(tec);
             tecPushed = true;
+            if (activation.getLanguageConnectionContext() != tecLCC1) {
+                tecLCC2 = activation.getLanguageConnectionContext();
+                tecLCC2.pushTriggerExecutionContext(tec);
+            }
+            else
+                tecLCC2 = null;
         }
     }
 
     private void popTriggerExecutionContext() throws StandardException {
         if(tecPushed)
         {
-            LanguageConnectionContext lcc = getLcc();
-            lcc.popTriggerExecutionContext(tec);
-            if (activation.getLanguageConnectionContext() != lcc)
-                activation.getLanguageConnectionContext().popTriggerExecutionContext(tec);
+            tecLCC1.popTriggerExecutionContext(tec);
+            if (tecLCC2 != null)
+                tecLCC2.popTriggerExecutionContext(tec);
+            tecLCC1 = null;
+            tecLCC2 = null;
             tecPushed = false;
         }
     }
@@ -184,7 +198,7 @@ public class TriggerEventActivator {
                     addToMap(rowConcurrentExecutorsMap, event, td);
                 }
             } else {
-                addToMap(statementExecutorsMap, event, td);
+                addToStatementTriggersMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, getLcc()));
             }
         }
     }
@@ -201,7 +215,7 @@ public class TriggerEventActivator {
         if (statementExecutorsMap.isEmpty()) {
             return;
         }
-        List<TriggerDescriptor> triggerExecutors = statementExecutorsMap.get(event);
+        List<GenericTriggerExecutor> triggerExecutors = statementExecutorsMap.get(event);
         if (triggerExecutors == null || triggerExecutors.isEmpty()) {
             return;
         }
@@ -210,9 +224,7 @@ public class TriggerEventActivator {
             pushExecutionStmtValidator();
             pushTriggerExecutionContext();
 
-            for (TriggerDescriptor td : triggerExecutors) {
-
-                StatementTriggerExecutor triggerExecutor = new StatementTriggerExecutor(tec, td, activation, getLcc());
+            for (GenericTriggerExecutor triggerExecutor : triggerExecutors) {
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
                 // Fire the statement or row trigger.
@@ -287,14 +299,14 @@ public class TriggerEventActivator {
         List<Future<Void>> futures = new ArrayList<>();
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) getLcc().getLanguageConnectionFactory().getExecutionFactory();
         for (TriggerDescriptor td : concurrentTriggerExecutors) {
-            futures.add(executorService.submit(withContext.apply(new Function<Activation,Void>() {
+            futures.add(executorService.submit(withContext.apply(new Function<LanguageConnectionContext,Void>() {
                 @Override
-                public Void apply(Activation activation) {
+                public Void apply(LanguageConnectionContext lcc) {
                     com.splicemachine.db.iapi.services.context.ContextManager cm = null;
                     boolean newContextManager = false;
                     boolean lccPushed = false;
                     boolean tecPushed = false;
-                    LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+
                     try {
                         cm = ContextService.getFactory().getCurrentContextManager();
                         if (cm == null) {
@@ -302,7 +314,7 @@ public class TriggerEventActivator {
                             cm = ContextService.getFactory().newContextManager();
                             ContextService.getFactory().setCurrentContextManager(cm);
                         }
-                        lccPushed = pushLanguageConnectionContextFromActivation(activation, cm);
+                        lccPushed = pushLanguageConnectionContextToCM(lcc, cm);
                         TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(cc,
                                 statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                                 tableId, tableName, null, heapList);
@@ -331,7 +343,6 @@ public class TriggerEventActivator {
                                     cm.popContext();
                                 if (newContextManager)
                                     ContextService.getFactory().resetCurrentContextManager(cm);
-                                cm = null;
                             }
                         }
                     } catch (Exception e) {
@@ -352,13 +363,8 @@ public class TriggerEventActivator {
     public void cleanup(boolean deferCleanup) throws StandardException {
         if (tec != null) {
             tec.clearTrigger(deferCleanup);
-            if (tecPushed) {
-                LanguageConnectionContext lcc = getLcc();
-                lcc.popTriggerExecutionContext(tec);
-                if (activation.getLanguageConnectionContext() != lcc)
-                    activation.getLanguageConnectionContext().popTriggerExecutionContext(tec);
-            }
-            tecPushed = false;
+            popExecutionStmtValidator();
+            popTriggerExecutionContext();
         }
     }
 
@@ -383,6 +389,15 @@ public class TriggerEventActivator {
             map.put(event, genericTriggerExecutors);
         }
         genericTriggerExecutors.add(td);
+    }
+
+    private static void addToStatementTriggersMap(Map<TriggerEvent, List<GenericTriggerExecutor>> map, TriggerEvent event, GenericTriggerExecutor executor) {
+        List<GenericTriggerExecutor> genericTriggerExecutors = map.get(event);
+        if (genericTriggerExecutors == null) {
+            genericTriggerExecutors = new ArrayList<>();
+            map.put(event, genericTriggerExecutors);
+        }
+        genericTriggerExecutors.add(executor);
     }
 
     public TriggerExecutionContext getTriggerExecutionContext() { return tec; }
