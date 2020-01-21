@@ -67,7 +67,7 @@ public final class UserDefinedAggregator  extends UDTBase implements ExecAggrega
     ///////////////////////////////////////////////////////////////////////////////////
 
     private static final int FIRST_VERSION = 0;
-	private static final int SECOND_VERSION = 1; // use java serialization for _aggregator since it will not be registered in our Kryo registry
+    private static final int SECOND_VERSION = 1; // use java serialization for _aggregator since it will not be registered in our Kryo registry
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
