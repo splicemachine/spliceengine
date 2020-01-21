@@ -263,7 +263,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
         TriggerInfo triggerInfo=constantAction.getTriggerInfo();
 
-        if(triggerInfo!=null){
+        if(triggerInfo!=null && !(this instanceof UpdateOperation)){
             this.triggerHandler=new TriggerHandler(
                     triggerInfo,
                     writeInfo,

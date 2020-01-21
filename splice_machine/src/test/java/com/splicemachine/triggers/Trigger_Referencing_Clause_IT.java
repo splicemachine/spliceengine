@@ -987,4 +987,308 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
     }
 
+    @Test
+    public void testConcurrentTriggers1() throws Exception {
+        try (Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b int)");
+
+            s.execute("CREATE TRIGGER tr1 NO CASCADE\n" +
+            "   BEFORE UPDATE OF A,B\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW MODE DB2SQL\n" +
+            "SET NEW.A = NEW.A * 3");
+
+            s.execute("CREATE TRIGGER tr2 NO CASCADE\n" +
+            "   BEFORE UPDATE OF A,B\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW MODE DB2SQL\n" +
+            "SET NEW.A = NEW.A - 7");
+
+            s.execute("CREATE TRIGGER tr3 NO CASCADE\n" +
+            "   BEFORE UPDATE OF A,B\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW MODE DB2SQL\n" +
+            "SET NEW.A = NEW.A * 2");
+
+            s.execute("CREATE TRIGGER tr4 NO CASCADE\n" +
+            "   BEFORE UPDATE OF A,B\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW MODE DB2SQL\n" +
+            "SET NEW.A = NEW.A + 13");
+
+            Savepoint sp = conn.setSavepoint();
+
+            s.execute("INSERT INTO t1 VALUES (3,1)");
+            s.execute("UPDATE T1 SET A=3");
+
+            String query = "select * from t1";
+            String expected = "A | B |\n" +
+            "--------\n" +
+            "17 | 1 |";
+            testQuery(query, expected, s);
+
+        }
+    }
+
+    @Test
+    public void testConcurrentTriggers2() throws Exception {
+        try (Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b int)");
+
+            s.execute("CREATE TRIGGER tr1 NO CASCADE\n" +
+            "   BEFORE UPDATE OF A,B\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW MODE DB2SQL\n" +
+            "SET NEW.A = NEW.A * 3");
+
+            s.execute("CREATE TRIGGER tr2 NO CASCADE\n" +
+            "   BEFORE UPDATE OF A,B\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW MODE DB2SQL\n" +
+            "SET NEW.A = NEW.A - 7");
+
+            s.execute("CREATE TRIGGER tr3 NO CASCADE\n" +
+            "   BEFORE UPDATE OF A,B\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW MODE DB2SQL\n" +
+            "SET NEW.A = NEW.A * 2");
+
+            s.execute("CREATE TRIGGER tr4 NO CASCADE\n" +
+            "   BEFORE UPDATE OF A,B\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW MODE DB2SQL\n" +
+            "SET NEW.A = NEW.A + 13");
+
+            s.execute("CREATE TRIGGER tr5\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr6\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr7\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr8\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr9\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr10\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr11\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr12\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr13\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER tr14\n" +
+            "   AFTER UPDATE\n" +
+            "   ON t1\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.a = 4)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            Savepoint sp = conn.setSavepoint();
+
+            s.execute("INSERT INTO t1 VALUES (3,1)");
+            s.execute("UPDATE T1 SET A=3");
+
+            String query = "select * from t1";
+            String expected = "A | B |\n" +
+            "--------\n" +
+            "17 | 1 |";
+            testQuery(query, expected, s);
+
+        }
+    }
+
+    @Test
+    public void testConcurrentTriggers3() throws Exception {
+        try (Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b int)");
+            s.execute("create table t2 (a int, b int)");
+            s.execute("create table t3 (a int, b int)");
+            s.execute("create table t4 (a int, b int)");
+            s.execute("create table t5 (a int, b int)");
+            s.execute("create table t6 (a int, b int)");
+
+            s.execute("insert into t1 values (1,1)");
+            s.execute("insert into t1 values (1,2)");
+            s.execute("insert into t1 values (1,3)");
+            s.execute("insert into t1 values (1,4)");
+            s.execute("insert into t1 values (1,5)");
+            s.execute("insert into t1 values (1,6)");
+            s.execute("insert into t1 values (1,7)");
+            s.execute("insert into t1 values (1,8)");
+            s.execute("insert into t1 values (1,9)");
+            s.execute("insert into t1 values (1,10)");
+
+            s.execute("insert into t1 select a, b+10 from t1");
+            s.execute("insert into t1 select a, b+20 from t1");
+            s.execute("insert into t1 select a, b+40 from t1");
+            s.execute("insert into t1 select a, b+80 from t1");
+            s.execute("insert into t1 select a, b+160 from t1");
+            s.execute("insert into t1 select a, b+320 from t1");
+            s.execute("insert into t1 select a, b+640 from t1");
+
+
+
+            s.execute("CREATE TRIGGER mytrig\n" +
+            "   AFTER INSERT\n" +
+            "   ON t2\n" +
+            "   REFERENCING NEW_TABLE AS NEW\n" +
+            "   FOR EACH STATEMENT\n" +
+            "insert into t3 select new.a, new.b from new");
+
+            s.execute("CREATE TRIGGER mytrig2\n" +
+            "   AFTER INSERT\n" +
+            "   ON t3\n" +
+            "   REFERENCING NEW_TABLE AS NEW\n" +
+            "   FOR EACH STATEMENT\n" +
+            "insert into t4 select new.a, new.b from new");
+
+            s.execute("CREATE TRIGGER mytrig3\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW_TABLE AS NEW\n" +
+            "   FOR EACH STATEMENT\n" +
+            "insert into t5 select new.b - new.a, new.a from new");
+
+            s.execute("CREATE TRIGGER mytrig4\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'");
+
+            s.execute("CREATE TRIGGER mytrig5\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER mytrig6\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'");
+
+            s.execute("CREATE TRIGGER mytrig7\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'");
+
+            s.execute("CREATE TRIGGER mytrig8\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER mytrig9\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'");
+
+            s.execute("CREATE TRIGGER mytrig10\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'");
+
+            s.execute("CREATE TRIGGER mytrig11\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'\n");
+
+            s.execute("CREATE TRIGGER mytrig12\n" +
+            "   AFTER INSERT\n" +
+            "   ON t4\n" +
+            "   REFERENCING NEW AS NEW\n" +
+            "   FOR EACH ROW\n" +
+            "WHEN (NEW.b > 1000)\n" +
+            "SIGNAL SQLSTATE '12345'");
+
+            Savepoint sp = conn.setSavepoint();
+
+            testFail("12345", "insert into t2 select * from t1", s);
+
+        }
+    }
 }
