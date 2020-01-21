@@ -49,6 +49,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.splicemachine.db.impl.sql.execute.TriggerExecutionContext.pushLanguageConnectionContextToCM;
 
@@ -186,15 +188,23 @@ public class TriggerEventActivator {
     }
 
     private void setupExecutors(TriggerInfo triggerInfo) throws StandardException {
+
+        // The SET statement cannot be executed in parallel.
+        String regex    =   "(^set[\\s]+)|([\\s]+set[\\s]+)";
+        Pattern pattern =   Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+
         for (TriggerDescriptor td : triggerInfo.getTriggerDescriptors()) {
             TriggerEvent event = td.getTriggerEvent();
             if (td.isRowTrigger()) {
                 String sql = td.getTriggerDefinition().toUpperCase();
+                Matcher matcher =   pattern.matcher(sql);
                 if ((sql.contains("INSERT") && sql.contains("INTO")) ||
                         (sql.contains("UPDATE") && sql.contains("SET")) ||
-                        (sql.contains("DELETE") && sql.contains("FROM"))) {
+                        (sql.contains("DELETE") && sql.contains("FROM")) ||
+                       matcher.find()) {
                     addToMap(rowExecutorsMap, event, td);
-                } else {
+                }
+                else {
                     addToMap(rowConcurrentExecutorsMap, event, td);
                 }
             } else {

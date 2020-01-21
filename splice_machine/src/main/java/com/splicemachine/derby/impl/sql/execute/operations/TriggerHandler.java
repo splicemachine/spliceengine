@@ -300,6 +300,7 @@ public class TriggerHandler {
                     }
                 }
             }
+            triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null, hasStatementTriggerWithReferencingClause);
         }
     }
 
@@ -332,16 +333,15 @@ public class TriggerHandler {
         // The LCC can't be shared amongst threads, so
         // only use one level of concurrency for now.
         if (true || pendingAfterRows.size() <= 1) {
-            for (ExecRow flushedRow : pendingAfterRows) {
-                fireAfterRowTriggers(flushedRow);
+            for (ExecRow flushedRow : pendingAfterRows)
                 futures.addAll(fireAfterRowConcurrentTriggers(flushedRow));
-            }
+            for (ExecRow flushedRow : pendingAfterRows)
+                fireAfterRowTriggers(flushedRow);
         } else {
             Object lock = new Object();
             // work concurrently
             List<Future<Void>> rowFutures = new ArrayList<>();
             for (ExecRow flushedRow : pendingAfterRows) {
-                fireAfterRowTriggers(flushedRow);
                 rowFutures.add(SIDriver.driver().getExecutorService().submit(withContext.apply(new Function<LanguageConnectionContext,Void>() {
                     @Override
                     public Void apply(LanguageConnectionContext lcc) {
@@ -357,6 +357,8 @@ public class TriggerHandler {
                     }
                 })));
             }
+            for (ExecRow flushedRow : pendingAfterRows)
+                fireAfterRowTriggers(flushedRow);
 
             for (Future<Void> f : rowFutures) {
                 f.get(); // bubble up any exceptions
