@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *
@@ -123,7 +124,7 @@ public class ContextManager
 	 * with a String key.
 	 * @see ContextManager#pushContext(Context)
 	 */
-	private final Map<String, CtxStack> ctxTable = new HashMap<>();
+	private final Map<String, CtxStack> ctxTable = new ConcurrentHashMap<>();
 
 	/**
 	 * List of all Contexts of all types.
@@ -156,7 +157,9 @@ public class ContextManager
 		idStack.push(newContext);
 
 		// add to top of global stack too
-		holder.add(newContext);
+                synchronized (holder) {
+                    holder.add(newContext);
+                }
 	}
 	
 	/**
@@ -183,14 +186,17 @@ public class ContextManager
 	public void popContext()
 	{
 		checkInterrupt();
-		// no contexts to remove, so we're done.
-		if (holder.isEmpty()) {
-			return;
-		}
 
-		// remove the top context from the global stack
-		Context theContext = holder.remove(holder.size()-1);
+                Context theContext;
+                synchronized (holder) {
+		    // no contexts to remove, so we're done.
+                    if (holder.isEmpty()) {
+                        return;
+                    }
 
+                    // remove the top context from the global stack
+                    theContext = holder.remove(holder.size() - 1);
+                }
 		// now find its id and remove it from there, too
 		final String contextId = theContext.getIdName();
 		final CtxStack idStack = ctxTable.get(contextId);
@@ -211,16 +217,17 @@ public class ContextManager
 	void popContext(Context theContext)
 	{
 		checkInterrupt();
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!holder.isEmpty());
+		synchronized (holder) {
+                    if (SanityManager.DEBUG)
+                        SanityManager.ASSERT(!holder.isEmpty());
 
-		// first, remove it from the global stack.
-        int index = holder.lastIndexOf(theContext);
-        if (index >=0) {
-            holder.remove(index);
-        }
-
-        final String contextId = theContext.getIdName();
+                    // first, remove it from the global stack.
+                    int index = holder.lastIndexOf(theContext);
+                    if (index >= 0) {
+                        holder.remove(index);
+                    }
+                }
+                final String contextId = theContext.getIdName();
 		final CtxStack idStack = ctxTable.get(contextId);
 
 		// now remove it from its id's stack.
@@ -232,7 +239,9 @@ public class ContextManager
      */
     public final boolean isEmpty()
     {
-        return holder.isEmpty();
+        synchronized (holder) {
+            return holder.isEmpty();
+        }
     }
 	
 	/**
@@ -334,7 +343,7 @@ forever: for (;;) {
 				flushErrorString();
 			}
 
-			
+
 			boolean	lastHandler = false;
 
 
@@ -343,7 +352,8 @@ forever: for (;;) {
 				cleanup on each context. We use
 				the vector interface to do this.
 			 */
-cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
+cleanup:    synchronized (holder) {
+	        for (int index = holder.size() - 1; index >= 0; index--) {
 
 				try {
 					if (lastHandler)
@@ -369,9 +379,9 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
                     }
 				}
 				catch (StandardException se) {
-	
+
 					if (error instanceof StandardException) {
-	
+
 						if (se.getSeverity() > ((StandardException) error).getSeverity()) {
 							// Ok, error handling raised a more severe error,
 							// restart with the more severe error
@@ -432,6 +442,7 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 					 */
                 }
 			}
+		}
 
             if (threadDump != null) {
                 errorStream.println(threadDump);
@@ -453,7 +464,10 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 
 	synchronized boolean  setInterrupted(Context c) {
 
-		boolean interruptMe = (c == null) || holder.contains(c);
+		boolean interruptMe;
+                synchronized(holder) {
+                    interruptMe = (c == null) || holder.contains(c);
+                }
 
 		if (interruptMe) {
 			this.shutdown = true;
