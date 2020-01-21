@@ -426,7 +426,7 @@ public class ParameterNode extends ValueNode
 								   Vector	parameterList)
 		throws StandardException
 	{
-		if (numberOfParameters > 0)
+		if (numberOfParameters >= 0)
 		{
 			MethodBuilder	constructor = acb.getConstructor();
 
@@ -434,7 +434,7 @@ public class ParameterNode extends ValueNode
 			** Check the first parameter to see if it is a return
 			** parameter.
 			*/
-			boolean hasReturnParam = ((ParameterNode)parameterList.get(0)).isReturnOutputParam();
+			boolean hasReturnParam = numberOfParameters > 0 ? ((ParameterNode)parameterList.get(0)).isReturnOutputParam() : false;
 
 			/*
 			** Generate the following:
