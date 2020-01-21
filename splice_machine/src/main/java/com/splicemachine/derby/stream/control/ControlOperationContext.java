@@ -16,21 +16,17 @@ package com.splicemachine.derby.stream.control;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.KryoObjectOutput;
 import com.esotericsoftware.kryo.io.Output;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.stream.ActivationHolder;import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.ActivationHolder;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -116,7 +112,8 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
-                activationHolder.close(!getOperation().isOlapServer());
+                if (!getOperation().isOlapServer())
+                    activationHolder.close();
             }
         }
 
