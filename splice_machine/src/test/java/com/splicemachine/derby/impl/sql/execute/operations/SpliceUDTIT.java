@@ -31,6 +31,9 @@ import java.util.Properties;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
 
 /**
  *
@@ -218,10 +221,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
             ResultSet rs = methodWatcher.executeQuery("select string_concat(v) from strings --splice-properties useSpark="+useSpark);
             Assert.assertTrue(rs.next());
             String res = rs.getString(1);
-            Assert.assertTrue(res.contains("a"));
-            Assert.assertTrue(res.contains("b"));
-            Assert.assertTrue(res.contains("c"));
-            Assert.assertTrue(res.contains("d"));
+            assertThat(res, allOf(containsString("a"), containsString("b"), containsString("c"), containsString("d")));
         }
     }
 }
