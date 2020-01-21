@@ -16,7 +16,6 @@ package com.splicemachine.derby.stream;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -128,8 +127,9 @@ public class ActivationHolder implements Externalizable {
             else
                 txnResource.close();
             LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
-            txnResource.marshallTransaction(txn, lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
-            lcc.getTransactionExecute());
+            txnResource.marshallTransaction(txn,
+                                            lcc.getDataDictionary().getDataDictionaryCache().getPropertyCache(),
+                                            lcc.getTransactionExecute(), lcc.getUserName(), lcc.getInstanceNumber());
             if (needToSet)
                 impl.set(txnResource);
         }
@@ -161,8 +161,11 @@ public class ActivationHolder implements Externalizable {
     }
 
     public synchronized Activation getActivation() {
-        if (!initialized)
+        // Only directly instantiated ActivationHolders have initialized == true
+        // Those deserialized will check if impl.get() and activation are both set
+        if (!initialized) {
             init(txn, true);
+        }
         return activation;
     }
 
@@ -198,31 +201,20 @@ public class ActivationHolder implements Externalizable {
 
     private void init(TxnView txn, boolean reinit){
         try {
-            initialized = true;
             SpliceTransactionResourceImpl txnResource = impl.get();
-            ContextManager cm = ContextService.getFactory().getCurrentContextManager();
             if (txnResource != null) {
-                if (activation != null &&
-                    activation.getLanguageConnectionContext() != null &&
-                    activation.getLanguageConnectionContext().getContextManager() == cm)
-                    return;
+                if (activation != null) return;
                 txnResource.close();
             }
-            // Reset the current context manager, because marshallTransaction
-            // is going to allocate a new one.
-            if (cm != null)
-                ContextService.getFactory().resetCurrentContextManager(cm);
 
             txnResource = new SpliceTransactionResourceImpl();
             txnResource.marshallTransaction(txn, propertyCache);
             impl.set(txnResource);
             if (soi == null)
                 soi = SpliceObserverInstructions.create(this);
-            if (soi != null) {
-                activation = soi.getActivation(this, txnResource.getLcc());
-                activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
-                activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
-            }
+            activation = soi.getActivation(this, txnResource.getLcc());
+            activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
+            activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
 
             // Push internal connection to the current context manager
             EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
@@ -259,10 +251,6 @@ public class ActivationHolder implements Externalizable {
         propertyCache = (ManagedCache<String, Optional<String>>) in.readObject();
     }
 
-    public void setupSpliceObserverInstructions() {
-        soi = SpliceObserverInstructions.create(this);
-    }
-
     public void setActivation(Activation activation) {
         this.activation = activation;
     }
@@ -276,25 +264,15 @@ public class ActivationHolder implements Externalizable {
     }
 
     public synchronized void reinitialize(TxnView otherTxn, boolean reinit) {
-        if (reinit)
-            close();
+        close();
         init(otherTxn != null ? otherTxn : txn, reinit);
     }
 
-    public void close(boolean closeTxnResource) {
-        if (closeTxnResource) {
-            SpliceTransactionResourceImpl txnResource = impl.get();
-            if (txnResource != null) {
-                txnResource.close();
-                impl.set(null);
-            }
-        }
-        activation = null;
-        initialized = false;
-        propertyCache = null;
-    }
-
     public void close() {
-        close(true);
+        SpliceTransactionResourceImpl txnResource = impl.get();
+        if (txnResource != null) {
+            txnResource.close();
+            impl.set(null);
+        }
     }
 }
