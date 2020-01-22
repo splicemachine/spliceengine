@@ -84,10 +84,11 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     }
 
     public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache) throws StandardException, SQLException {
-        return this.marshallTransaction(txn, propertyCache, null);
+        return this.marshallTransaction(txn, propertyCache, null, null, null);
     }
 
-    public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache, TransactionController reuseTC) throws StandardException, SQLException{
+    public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
+                                       TransactionController reuseTC, String localUserName, Integer sessionNumber) throws StandardException, SQLException{
         boolean updated = false;
         try {
             if (LOG.isDebugEnabled()) {
@@ -98,12 +99,17 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             csf.setCurrentContextManager(cm);
             updated = true;
 
+            String userName = localUserName != null ? localUserName : username;
             ArrayList<String> grouplist = new ArrayList<>();
-            grouplist.add(username);
+            grouplist.add(userName);
             if (propertyCache != null) {
                 database.getDataDictionary().getDataDictionaryCache().setPropertyCache(propertyCache);
             }
-            lcc=database.generateLanguageConnectionContext(txn, cm, username,grouplist,drdaID, dbname, rdbIntTkn, CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,false, -1, ipAddress, reuseTC);
+
+            lcc=database.generateLanguageConnectionContext(txn, cm, userName,grouplist,drdaID, dbname, rdbIntTkn,
+                                                           CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,
+                                                           false, -1, ipAddress,
+                                                            reuseTC, sessionNumber);
 
             return true;
         } catch (Throwable t) {

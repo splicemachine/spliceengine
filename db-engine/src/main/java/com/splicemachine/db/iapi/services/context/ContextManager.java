@@ -31,17 +31,21 @@
 
 package com.splicemachine.db.iapi.services.context;
 
-import com.splicemachine.db.iapi.error.*;
+import java.sql.SQLException;
+import java.util.*;
+
 import com.splicemachine.db.iapi.reference.ContextId;
+import com.splicemachine.db.iapi.error.ErrorStringBuilder;
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.error.ExceptionUtil;
+import com.splicemachine.db.iapi.error.PassThroughException;
+import com.splicemachine.db.iapi.error.ShutdownException;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
-
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *
@@ -78,44 +82,29 @@ public class ContextManager
 		// expensive, but those operations are infrequent.
 		private Context top_ = null;
 
-		void push(Context context) {
-		    synchronized(stack_) {
-                        stack_.add(context);
-                        top_ = context;
-                    }
+		void push(Context context) { 
+			stack_.add(context); 
+			top_ = context; 
 		}
 		void pop() {
-		    synchronized(stack_) {
-		        stack_.remove(stack_.size() - 1);
-
-                        top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
-                    }
-                }
+            stack_.remove(stack_.size() - 1);
+            top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
+        }
 		void remove(Context context) {
-		    synchronized(stack_) {
-                        if (context == top_) {
-                            pop();
-                            return;
-                        }
-                        int index = stack_.lastIndexOf(context);
-                        if (index >= 0)
-                            stack_.remove(index);
-                    }
+			if (context == top_) {
+				pop();
+				return;
+			}
+			int index=stack_.lastIndexOf(context);
+			if(index>=0)
+				stack_.remove(index);
 		}
-		Context top() {
-		    synchronized(stack_) {
-                        return top_;
-                    }
+		Context top() { 
+			return top_; 
 		}
-		boolean isEmpty() {
-                    synchronized(stack_) {
-                        return stack_.isEmpty();
-                    }
-		}
+		boolean isEmpty() { return stack_.isEmpty(); }
 		List<Context> getUnmodifiableList() {
-		   synchronized(stack_) {
-                       return new ArrayList<>(stack_);
-                   }
+			return view_;
 		}
 	}
 
@@ -124,7 +113,7 @@ public class ContextManager
 	 * with a String key.
 	 * @see ContextManager#pushContext(Context)
 	 */
-	private final Map<String, CtxStack> ctxTable = new ConcurrentHashMap<>();
+	private final Map<String, CtxStack> ctxTable = new HashMap<>();
 
 	/**
 	 * List of all Contexts of all types.
@@ -157,9 +146,7 @@ public class ContextManager
 		idStack.push(newContext);
 
 		// add to top of global stack too
-                synchronized (holder) {
-                    holder.add(newContext);
-                }
+		holder.add(newContext);
 	}
 	
 	/**
@@ -186,17 +173,14 @@ public class ContextManager
 	public void popContext()
 	{
 		checkInterrupt();
+		// no contexts to remove, so we're done.
+		if (holder.isEmpty()) {
+			return;
+		}
 
-                Context theContext;
-                synchronized (holder) {
-		    // no contexts to remove, so we're done.
-                    if (holder.isEmpty()) {
-                        return;
-                    }
+		// remove the top context from the global stack
+		Context theContext = holder.remove(holder.size()-1);
 
-                    // remove the top context from the global stack
-                    theContext = holder.remove(holder.size() - 1);
-                }
 		// now find its id and remove it from there, too
 		final String contextId = theContext.getIdName();
 		final CtxStack idStack = ctxTable.get(contextId);
@@ -217,17 +201,16 @@ public class ContextManager
 	void popContext(Context theContext)
 	{
 		checkInterrupt();
-		synchronized (holder) {
-                    if (SanityManager.DEBUG)
-                        SanityManager.ASSERT(!holder.isEmpty());
+		if (SanityManager.DEBUG)
+			SanityManager.ASSERT(!holder.isEmpty());
 
-                    // first, remove it from the global stack.
-                    int index = holder.lastIndexOf(theContext);
-                    if (index >= 0) {
-                        holder.remove(index);
-                    }
-                }
-                final String contextId = theContext.getIdName();
+		// first, remove it from the global stack.
+        int index = holder.lastIndexOf(theContext);
+        if (index >=0) {
+            holder.remove(index);
+        }
+
+        final String contextId = theContext.getIdName();
 		final CtxStack idStack = ctxTable.get(contextId);
 
 		// now remove it from its id's stack.
@@ -239,9 +222,7 @@ public class ContextManager
      */
     public final boolean isEmpty()
     {
-        synchronized (holder) {
-            return holder.isEmpty();
-        }
+        return holder.isEmpty();
     }
 	
 	/**
@@ -343,7 +324,7 @@ forever: for (;;) {
 				flushErrorString();
 			}
 
-
+			
 			boolean	lastHandler = false;
 
 
@@ -352,8 +333,7 @@ forever: for (;;) {
 				cleanup on each context. We use
 				the vector interface to do this.
 			 */
-cleanup:    synchronized (holder) {
-	        for (int index = holder.size() - 1; index >= 0; index--) {
+cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
 
 				try {
 					if (lastHandler)
@@ -379,9 +359,9 @@ cleanup:    synchronized (holder) {
                     }
 				}
 				catch (StandardException se) {
-
+	
 					if (error instanceof StandardException) {
-
+	
 						if (se.getSeverity() > ((StandardException) error).getSeverity()) {
 							// Ok, error handling raised a more severe error,
 							// restart with the more severe error
@@ -442,7 +422,6 @@ cleanup:    synchronized (holder) {
 					 */
                 }
 			}
-		}
 
             if (threadDump != null) {
                 errorStream.println(threadDump);
@@ -464,10 +443,7 @@ cleanup:    synchronized (holder) {
 
 	synchronized boolean  setInterrupted(Context c) {
 
-		boolean interruptMe;
-                synchronized(holder) {
-                    interruptMe = (c == null) || holder.contains(c);
-                }
+		boolean interruptMe = (c == null) || holder.contains(c);
 
 		if (interruptMe) {
 			this.shutdown = true;
