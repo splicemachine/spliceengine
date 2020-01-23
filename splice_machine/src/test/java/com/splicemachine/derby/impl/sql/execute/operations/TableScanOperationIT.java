@@ -1140,6 +1140,24 @@ public class TableScanOperationIT{
 
     }
 
+    @Test
+    public void testIsolationAndFetch() throws Exception {
+        String[] queries = {
+                "SELECT * FROM %s WITH UR FETCH FIRST 1 ROW ONLY"
+        };
+        try (Statement s = conn.createStatement()) {
+            for (String query : queries){
+                try (ResultSet rs = s.executeQuery(format(query, spliceTableWatcher12))) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                    }
+                    assertEquals("Incorrect count returned!", 1, count);
+                }
+            }
+        }
+    }
+
     private void assertCountEquals(Connection connection,long expectedCount,String query) throws SQLException{
         long count=0l;
         try(Statement s=connection.createStatement()){
