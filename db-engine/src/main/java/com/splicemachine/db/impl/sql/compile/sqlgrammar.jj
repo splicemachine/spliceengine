@@ -4242,10 +4242,17 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
     [ <WITH> withClauseList(parameterList) ]
     queryExpression = queryExpression(null, NO_SET_OP, topNOut)
 		[ orderCols = orderByClause(queryExpression) ]
-        hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
-		[ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
-		[ optimizeForRows = optimizeForRowsClause() ]
-		[ isolationLevel = atIsolationLevel() ]
+        (
+            isolationLevel = atIsolationLevel()
+            hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
+            [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
+            [ optimizeForRows = optimizeForRowsClause() ]
+        |
+            hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
+            [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
+            [ optimizeForRows = optimizeForRowsClause() ]
+            [ isolationLevel = atIsolationLevel() ]
+        )
 	{
 	    if (topNOut[0] != null) {
 	        hasJDBClimitClause = true;
