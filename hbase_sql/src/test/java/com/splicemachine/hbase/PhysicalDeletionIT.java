@@ -80,6 +80,7 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
             long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA, "A");
             TableName hTableName = TableName.valueOf("splice:" + Long.toString(conglomId[0]));
             methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('PHYSICALDELETIONIT','A')");
+            methodWatcher.execute("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('PHYSICALDELETIONIT','A',true)");
             methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
 
             Table table = connection.getTable(hTableName);
@@ -87,24 +88,12 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
             Scan s = new Scan();
             ResultScanner scanner = table.getScanner(s);
             int count = 0;
-            for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
-                count++;
-            }
-            Assert.assertTrue(count == 4); // rows were not physically deleted from HFile
-
-
-            // Make sure rows are physically deleted from storage
-            methodWatcher.execute("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('PHYSICALDELETIONIT','A',true)");
 
             rs = methodWatcher.executeQuery(sql);
             assert rs.next();
             purgeDeletedRows = rs.getBoolean(1);
             Assert.assertTrue(purgeDeletedRows);
 
-            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('PHYSICALDELETIONIT','A')");
-
-            scanner = table.getScanner(s);
-            count = 0;
             for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
                 count++;
             }

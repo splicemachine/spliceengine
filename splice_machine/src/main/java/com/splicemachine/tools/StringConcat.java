@@ -12,37 +12,34 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.storage;
+package com.splicemachine.tools;
 
-import java.util.Map;
+import com.splicemachine.db.agg.Aggregator;
+import com.splicemachine.db.iapi.error.StandardException;
 
-/**
- * @author Scott Fines
- *         Date: 12/15/15
- */
-public interface DataResult extends Iterable<DataCell>{
+public class StringConcat implements Aggregator<String, String, StringConcat> {
+    private StringBuilder agg;
 
-    DataCell commitTimestamp();
+    public StringConcat() {
+    }
 
-    DataCell tombstoneOrAntiTombstone();
+    @Override
+    public void init() {
+        agg = new StringBuilder();
+    }
 
-    DataCell userData();
+    @Override
+    public void accumulate(String value) throws StandardException {
+        agg.append(value);
+    }
 
-    DataCell fkCounter();
+    @Override
+    public void merge(StringConcat otherAggregator) {
+        agg.append(otherAggregator.agg);
+    }
 
-    DataCell firstOccurrenceToken();
-
-    DataCell firstWriteToken();
-
-    int size();
-
-    DataCell latestCell(byte[] family,byte[] qualifier);
-
-    Iterable<DataCell> columnCells(byte[] family,byte[] qualifier);
-
-    byte[] key();
-
-    Map<byte[],byte[]> familyCellMap(byte[] userColumnFamily);
-
-    DataResult getClone();
+    @Override
+    public String terminate() {
+        return agg.toString();
+    }
 }
