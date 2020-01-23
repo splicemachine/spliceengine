@@ -4241,14 +4241,21 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 {
     [ <WITH> withClauseList(parameterList) ]
     queryExpression = queryExpression(null, NO_SET_OP, topNOut)
-        [ orderCols = orderByClause(queryExpression) ]
-        hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
-        [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
-        [ optimizeForRows = optimizeForRowsClause() ]
-        [ isolationLevel = atIsolationLevel() ]
-    {
-        if (topNOut[0] != null) {
-            hasJDBClimitClause = true;
+		[ orderCols = orderByClause(queryExpression) ]
+        (
+            isolationLevel = atIsolationLevel()
+            hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
+            [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
+            [ optimizeForRows = optimizeForRowsClause() ]
+        |
+            hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
+            [ <FOR> forUpdateState = forUpdateClause(updateColumns) ]
+            [ optimizeForRows = optimizeForRowsClause() ]
+            [ isolationLevel = atIsolationLevel() ]
+        )
+	{
+	    if (topNOut[0] != null) {
+	        hasJDBClimitClause = true;
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
         }
         // Note: if order by is specified, the for update clause
