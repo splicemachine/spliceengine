@@ -19,12 +19,16 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.ReplicationProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
+import org.apache.hbase.thirdparty.com.google.protobuf.CodedOutputStream;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -234,5 +238,39 @@ public class ReplicationUtils {
         conf.set(HConstants.ZOOKEEPER_ZNODE_PARENT, hbaseRoot);
         org.apache.hadoop.hbase.client.Connection conn = ConnectionFactory.createConnection(conf);
         return conn;
+    }
+
+    public static void disableMaster(String masterClusterKey) throws InterruptedException, KeeperException, IOException {
+
+        // Delete all peers from master cluster
+        Configuration conf = ReplicationUtils.createConfiguration(masterClusterKey);
+        ZKWatcher masterZkw = new ZKWatcher(conf, "replication monitor", null, false);
+        RecoverableZooKeeper masterRzk = masterZkw.getRecoverableZooKeeper();
+        String[] s = masterClusterKey.split(":");
+        String hbaseRootDir = s[2];
+        String peerPath = hbaseRootDir+"/replication/peers";
+        List<String> peers = masterRzk.getChildren(peerPath, false);
+        for (String peer : peers) {
+            String p = peerPath + "/" + peer;
+            List<String> children = masterRzk.getChildren(p, false);
+            String peerStatePath = p + "/" + children.get(0);
+            masterRzk.setData(peerStatePath, toByteArray(ReplicationProtos.ReplicationState.State.DISABLED), -1);
+        }
+    }
+
+    private static byte[] toByteArray(final ReplicationProtos.ReplicationState.State state) {
+        ReplicationProtos.ReplicationState msg =
+                ReplicationProtos.ReplicationState.newBuilder().setState(state).build();
+        // There is no toByteArray on this pb Message?
+        // 32 bytes is default which seems fair enough here.
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            CodedOutputStream cos = CodedOutputStream.newInstance(baos, 16);
+            msg.writeTo(cos);
+            cos.flush();
+            baos.flush();
+            return ProtobufUtil.prependPBMagic(baos.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
