@@ -75,6 +75,17 @@ public class ReplicationSystemProcedure {
         }
     }
 
+    public static void DUMP_UNREPLICATED_WALS(ResultSet[] resultSets) throws StandardException, SQLException {
+        try {
+            ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+            String result = replicationManager.dumpUnreplicatedWals();
+            resultSets[0] = ProcedureUtils.generateResult("Success", result);
+        }
+        catch (Exception e) {
+            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
+        }
+    }
+
     public static void GET_REPLICATED_WAL_POSITION(String wal, ResultSet[] resultSets) throws StandardException, SQLException {
         ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
         String walPosition = replicationManager.getReplicatedWalPosition(wal);
