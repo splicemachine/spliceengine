@@ -366,6 +366,7 @@ public class ReplicationMonitorChore extends ScheduledChore {
             masterTimestamp = getMasterTimestamp();
         }
 
+        configureReplicationMonitor();
         // setup replication for new master. Replication peers are not enabled until they syn up with old masters
         configureNewMaster(newMaster, masterTimestamp);
     }
@@ -411,20 +412,10 @@ public class ReplicationMonitorChore extends ScheduledChore {
 
         // Delete all peers from master cluster
         String masterClusterKey = getClusterKey(masterCluster);
-        Configuration conf = ReplicationUtils.createConfiguration(masterClusterKey);
-        ZKWatcher masterZkw = new ZKWatcher(conf, "replication monitor", null, false);
-        RecoverableZooKeeper masterRzk = masterZkw.getRecoverableZooKeeper();
-        String[] s = masterClusterKey.split(":");
-        String hbaseRootDir = s[2];
-        String peerPath = hbaseRootDir+"/replication/peers";
-        List<String> peers = masterRzk.getChildren(peerPath, false);
-        for (String peer : peers) {
-            String p = peerPath + "/" + peer;
-            List<String> children = masterRzk.getChildren(p, false);
-            String peerStatePath = p + "/" + children.get(0);
-            masterRzk.setData(peerStatePath, toByteArray(ReplicationProtos.ReplicationState.State.DISABLED), -1);
-        }
+        ReplicationUtils.disableMaster(masterClusterKey);
+    }
 
+    private void configureReplicationMonitor() throws InterruptedException, KeeperException {
         // Delete configuration from monitor quorum
         List<String> children = this.rzk.getChildren(replicationMonitorPath + "/master", false);
         for (String node : children) {
@@ -435,23 +426,6 @@ public class ReplicationMonitorChore extends ScheduledChore {
             this.rzk.delete(replicationMonitorPath + "/peers/" + node, -1);
         }
     }
-
-    protected static byte[] toByteArray(final ReplicationProtos.ReplicationState.State state) {
-        ReplicationProtos.ReplicationState msg =
-                ReplicationProtos.ReplicationState.newBuilder().setState(state).build();
-        // There is no toByteArray on this pb Message?
-        // 32 bytes is default which seems fair enough here.
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            CodedOutputStream cos = CodedOutputStream.newInstance(baos, 16);
-            msg.writeTo(cos);
-            cos.flush();
-            baos.flush();
-            return ProtobufUtil.prependPBMagic(baos.toByteArray());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private void configureNewMaster(String newMaster, long ts) throws IOException, InterruptedException, KeeperException, SQLException{
 
         Configuration conf = null;
