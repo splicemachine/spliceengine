@@ -1498,6 +1498,13 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(getReplicationProgress);
+
+                    Procedure dumpUnreplicatedWals = Procedure.newBuilder().name("DUMP_UNREPLICATED_WALS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(dumpUnreplicatedWals);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)
