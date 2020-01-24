@@ -81,4 +81,9 @@ public class NoOpReplicationManager implements ReplicationManager {
     public void monitorReplication(String masterClusterKey, String slaveClusterKey) throws StandardException {
 
     }
+
+    @Override
+    public String dumpUnreplicatedWals() throws StandardException {
+        return null;
+    }
 }
