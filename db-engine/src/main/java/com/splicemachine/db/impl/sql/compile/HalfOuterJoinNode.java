@@ -90,6 +90,32 @@ public class HalfOuterJoinNode extends JoinNode{
         flattenableJoin=true;
     }
 
+    @Override
+    public void init(
+            Object leftResult,
+            Object rightResult,
+            Object onClause,
+            Object usingClause,
+            Object rightOuterJoin,
+            Object selectList,
+            Object tableProperties)
+            throws StandardException{
+        super.init(
+                leftResult,
+                rightResult,
+                onClause,
+                usingClause,
+                selectList,
+                tableProperties,
+                null);
+        this.rightOuterJoin=(Boolean)rightOuterJoin;
+
+		/* We can flatten left/right join into the parent block, and use a OJLevel
+		   to keep track of the inner tables of the left/right joins
+		 */
+        flattenableJoin=true;
+    }
+
 	/*
 	 *  Optimizable interface
 	 */
