@@ -13801,6 +13801,12 @@ defaultOption(Token beginToken, long[] autoIncrementInfo,
                             );
         return value;
     }
+|
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.EMPTY_DEFAULT_CONSTANT_NODE,
+                                    getContextManager());
+    }
 }
 
 /*
@@ -13826,6 +13832,11 @@ DB2DefaultOption(String columnName) throws StandardException :
         return (ValueNode) nodeFactory.getNode(
                         C_NodeTypes.CURRENT_SCHEMA_NODE,
                         getContextManager());
+    }
+|
+    value = castSpecification()
+    {
+        return value;
     }
 |
     /* Revert DB2 restriction: DERBY-3013. Accept standard SQL CURRENT_USER,
@@ -13883,7 +13894,6 @@ DB2DefaultOption(String columnName) throws StandardException :
     {
         return value;
     }
-
 }
 
 /*

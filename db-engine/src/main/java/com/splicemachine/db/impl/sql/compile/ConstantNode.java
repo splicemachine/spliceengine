@@ -61,254 +61,254 @@ import java.util.List;
  */
 public abstract class ConstantNode extends ValueNode
 {
-	DataValueDescriptor	value;
+    DataValueDescriptor    value;
 
-	/*
-	** In case generateExpression() is called twice (something
-	** that probably wont happen but might), we will cache
-	** our generated expression and just return a reference
-	** to the field that holds our value (instead of having
-	** two fields holding the same constant).
-	*/
+    /*
+    ** In case generateExpression() is called twice (something
+    ** that probably wont happen but might), we will cache
+    ** our generated expression and just return a reference
+    ** to the field that holds our value (instead of having
+    ** two fields holding the same constant).
+    */
 
-	/**
-	 * Initializer for non-numeric types
-	 *
-	 * @param typeId	The Type ID of the datatype
-	 * @param nullable	True means the constant is nullable
-	 * @param maximumWidth	The maximum number of bytes in the data value
-	 *
-	 * @exception StandardException
-	 */
-	public void init(
-			Object typeId,
-			Object nullable,
-			Object maximumWidth)
-		throws StandardException
-	{
+    /**
+     * Initializer for non-numeric types
+     *
+     * @param typeId    The Type ID of the datatype
+     * @param nullable    True means the constant is nullable
+     * @param maximumWidth    The maximum number of bytes in the data value
+     *
+     * @exception StandardException
+     */
+    public void init(
+            Object typeId,
+            Object nullable,
+            Object maximumWidth)
+        throws StandardException
+    {
         setType((TypeId) typeId,
                 (Boolean) nullable,
                 (Integer) maximumWidth);
 
-	}
+    }
 
-	/**
-	 * Constructor for untyped nodes, which contain little information
-	 *
-	 */
-	ConstantNode()
-	{
-		super();
-	}
+    /**
+     * Constructor for untyped nodes, which contain little information
+     *
+     */
+    ConstantNode()
+    {
+        super();
+    }
 
-	/**
-	 * Set the value in this ConstantNode.
-	 */
-	void setValue(DataValueDescriptor value)
-	{
-		this.value = value;
-	}
+    /**
+     * Set the value in this ConstantNode.
+     */
+    void setValue(DataValueDescriptor value)
+    {
+        this.value = value;
+    }
 
-	/**
-	  * Get the value in this ConstantNode
-	  */
-	public DataValueDescriptor	getValue()
-	{
-		return	value;
-	}
+    /**
+      * Get the value in this ConstantNode
+      */
+    public DataValueDescriptor    getValue()
+    {
+        return    value;
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
     @Override
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "value: " + value + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "value: " + value + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	/**
-	 * Return whether or not this expression tree is cloneable.
-	 *
-	 * @return boolean	Whether or not this expression tree is cloneable.
-	 */
-	public boolean isCloneable()
-	{
-		return true;
-	}
+    /**
+     * Return whether or not this expression tree is cloneable.
+     *
+     * @return boolean    Whether or not this expression tree is cloneable.
+     */
+    public boolean isCloneable()
+    {
+        return true;
+    }
 
-	/**
-	 * Return a clone of this node.
-	 *
-	 * @return ValueNode	A clone of this node.
-	 *
-	 */
-	public ValueNode getClone()
-	{
-		/* All constants can simply be reused */
-		return this;
-	}
+    /**
+     * Return a clone of this node.
+     *
+     * @return ValueNode    A clone of this node.
+     *
+     */
+    public ValueNode getClone()
+    {
+        /* All constants can simply be reused */
+        return this;
+    }
 
-	/**
-	 * Bind this expression.  This means binding the sub-expressions,
-	 * as well as figuring out what the return type is for this expression.
-	 * In this case, there are no sub-expressions, and the return type
-	 * is already known, so this is just a stub.
-	 *
-	 * @param fromList        The FROM list for the query this
-	 *				expression is in, for binding columns.
-	 * @param subqueryList        The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error. Although this class
-	 * doesn't throw this exception, it's subclasses do and hence this method
-	 * signature here needs to have throws StandardException 
-	 */
+    /**
+     * Bind this expression.  This means binding the sub-expressions,
+     * as well as figuring out what the return type is for this expression.
+     * In this case, there are no sub-expressions, and the return type
+     * is already known, so this is just a stub.
+     *
+     * @param fromList        The FROM list for the query this
+     *                expression is in, for binding columns.
+     * @param subqueryList        The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
+     *
+     * @return    The new top of the expression tree.
+     *
+     * @exception StandardException        Thrown on error. Although this class
+     * doesn't throw this exception, it's subclasses do and hence this method
+     * signature here needs to have throws StandardException
+     */
     @Override
-	public ValueNode bindExpression(
-			FromList fromList, SubqueryList subqueryList,
-			List<AggregateNode> aggregateVector)
-	throws StandardException
-	{
-		/*
-		** This has to be here for binding to work, but it doesn't
-		** have to do anything, because the datatypes of constant nodes
-		** are pre-generated by the parser.
-		*/
-		return this;
-	}
+    public ValueNode bindExpression(
+            FromList fromList, SubqueryList subqueryList,
+            List<AggregateNode> aggregateVector)
+    throws StandardException
+    {
+        /*
+        ** This has to be here for binding to work, but it doesn't
+        ** have to do anything, because the datatypes of constant nodes
+        ** are pre-generated by the parser.
+        */
+        return this;
+    }
 
-	/**
-	 * Return whether or not this expression tree represents a constant expression.
-	 *
-	 * @return	Whether or not this expression tree represents a constant expression.
-	 */
-	public boolean isConstantExpression()
-	{
-		return true;
-	}
+    /**
+     * Return whether or not this expression tree represents a constant expression.
+     *
+     * @return    Whether or not this expression tree represents a constant expression.
+     */
+    public boolean isConstantExpression()
+    {
+        return true;
+    }
 
-	/** @see ValueNode#constantExpression */
-	public boolean constantExpression(PredicateList whereClause)
-	{
-		return true;
-	}
+    /** @see ValueNode#constantExpression */
+    public boolean constantExpression(PredicateList whereClause)
+    {
+        return true;
+    }
 
-	/**
-	 * For a ConstantNode, we generate the equivalent literal value.
-	 * A null is generated as a Null value cast to the type of
-	 * the constant node.
-	 * The subtypes of ConstantNode generate literal expressions
-	 * for non-null values.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class being built
-	 * @param mb	The method the code to place the code
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void generateExpression
-	(
-		ExpressionClassBuilder	acb, 
-		MethodBuilder 		mb
-	) throws StandardException
-	{
-		/* Are we generating a SQL null value? */
-	    if (isNull())
-	    {
-			acb.generateNull(mb, getTypeCompiler(), 
-					getTypeServices());
-		}
-		else
-		{
-			generateConstant(acb, mb);	// ask sub type to give a constant,
-										// usually a literal like 'hello'
+    /**
+     * For a ConstantNode, we generate the equivalent literal value.
+     * A null is generated as a Null value cast to the type of
+     * the constant node.
+     * The subtypes of ConstantNode generate literal expressions
+     * for non-null values.
+     *
+     * @param acb    The ExpressionClassBuilder for the class being built
+     * @param mb    The method the code to place the code
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void generateExpression
+    (
+        ExpressionClassBuilder    acb,
+        MethodBuilder         mb
+    ) throws StandardException
+    {
+        /* Are we generating a SQL null value? */
+        if (isNull())
+        {
+            acb.generateNull(mb, getTypeCompiler(),
+                    getTypeServices());
+        }
+        else
+        {
+            generateConstant(acb, mb);    // ask sub type to give a constant,
+                                        // usually a literal like 'hello'
 
-			acb.generateDataValue(mb, getTypeCompiler(), 
-					getTypeServices().getCollationType(), (LocalField) null);
-		}
-	}
+            acb.generateDataValue(mb, getTypeCompiler(),
+                    getTypeServices().getCollationType(), (LocalField) null);
+        }
+    }
 
-	/**
-	 * This generates the proper constant.  It is implemented
-	 * by every specific constant node (e.g. IntConstantNode).
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class being built
-	 * @param mb	The method the code to place the code
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	abstract void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
-		throws StandardException;
+    /**
+     * This generates the proper constant.  It is implemented
+     * by every specific constant node (e.g. IntConstantNode).
+     *
+     * @param acb    The ExpressionClassBuilder for the class being built
+     * @param mb    The method the code to place the code
+     *
+     * @exception StandardException        Thrown on error
+     */
+    abstract void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
+        throws StandardException;
 
-	/**
-	 * Return whether or not this node represents a typed null constant.
-	 *
-	 */
-	boolean isNull()
-	{
-		return (value == null || value.isNull());
-	}
+    /**
+     * Return whether or not this node represents a typed null constant.
+     *
+     */
+    boolean isNull()
+    {
+        return (value == null || value.isNull());
+    }
 
-	/**
-	 * Return the variant type for the underlying expression.
-	 * The variant type can be:
-	 *		VARIANT				- variant within a scan
-	 *							  (method calls and non-static field access)
-	 *		SCAN_INVARIANT		- invariant within a scan
-	 *							  (column references from outer tables)
-	 *		QUERY_INVARIANT		- invariant within the life of a query
-	 *		VARIANT				- immutable
-	 *
-	 * @return	The variant type for the underlying expression.
-	 */
-	protected int getOrderableVariantType()
-	{
-		// Constants are constant for the life of the query
-		return Qualifier.CONSTANT;
-	}
+    /**
+     * Return the variant type for the underlying expression.
+     * The variant type can be:
+     *        VARIANT                - variant within a scan
+     *                              (method calls and non-static field access)
+     *        SCAN_INVARIANT        - invariant within a scan
+     *                              (column references from outer tables)
+     *        QUERY_INVARIANT        - invariant within the life of a query
+     *        VARIANT                - immutable
+     *
+     * @return    The variant type for the underlying expression.
+     */
+    protected int getOrderableVariantType()
+    {
+        // Constants are constant for the life of the query
+        return Qualifier.CONSTANT;
+    }
         
-	protected boolean isEquivalent(ValueNode o) throws StandardException
-	{
-		if (isSameNodeType(o)) {
-			ConstantNode other = (ConstantNode)o;
-			
-			// value can be null which represents a SQL NULL value.
-			return ( (other.getValue() == null && getValue() == null) || 
-					 (other.getValue() != null && 
-							 other.getValue().compare(getValue()) == 0) );
-		}
-		return false;
-	}
-	
-	public List getChildren() {
-		return Collections.EMPTY_LIST;
-	}
+    protected boolean isEquivalent(ValueNode o) throws StandardException
+    {
+        if (isSameNodeType(o)) {
+            ConstantNode other = (ConstantNode)o;
+
+            // value can be null which represents a SQL NULL value.
+            return ( (other.getValue() == null && getValue() == null) ||
+                     (other.getValue() != null &&
+                             other.getValue().compare(getValue()) == 0) );
+        }
+        return false;
+    }
+
+    public List getChildren() {
+        return Collections.EMPTY_LIST;
+    }
 
 
-	@Override
-	public long nonZeroCardinality(long numberOfRows) throws StandardException {
-		return 1;
-	}
-	
-	@Override
-	public int hashCode() {
-		return value.hashCode();
-	}
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        return 1;
+    }
 
-	@Override
-	public boolean isConstantOrParameterTreeNode() {
-		return true;
-	}
+    @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+
+    @Override
+    public boolean isConstantOrParameterTreeNode() {
+        return true;
+    }
 }

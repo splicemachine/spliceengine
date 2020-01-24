@@ -280,9 +280,10 @@ int CREATE_INDEX_NODE = 146;
 	int SIGNAL_NODE = 269;
 	int SET_NODE = 270;
 	int FULL_OUTER_JOIN_NODE = 271;
+	int EMPTY_DEFAULT_CONSTANT_NODE = 272;
 
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = FULL_OUTER_JOIN_NODE;
+	int FINAL_VALUE = EMPTY_DEFAULT_CONSTANT_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

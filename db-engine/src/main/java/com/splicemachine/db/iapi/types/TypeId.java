@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
 import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -1464,6 +1465,71 @@ public class TypeId{
                 }
                 return null;
         }
+    }
+
+    /**
+     * Get SQL default value.
+     *
+     * @return SQL null value for this type.
+     */
+    public DataValueDescriptor getDefault() throws StandardException {
+        switch(formatId){
+            case StoredFormatIds.BIT_TYPE_ID:
+                return new SQLBit(new byte[0]);
+
+            case StoredFormatIds.CHAR_TYPE_ID:
+                return new SQLChar("");
+
+            // Implementation of DECIMAL can change.
+            case StoredFormatIds.DECIMAL_TYPE_ID:
+                if (decimalImplementation == null) {
+                    return new SQLDecimal("0");
+                }
+                throw new UnsupportedOperationException(StandardException.newException(
+                        SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + decimalImplementation));
+
+            case StoredFormatIds.DOUBLE_TYPE_ID:
+                return new SQLDouble(0);
+
+            case StoredFormatIds.INT_TYPE_ID:
+                return new SQLInteger(0);
+
+            case StoredFormatIds.LONGINT_TYPE_ID:
+                return new SQLLongint(0);
+
+            case StoredFormatIds.LONGVARBIT_TYPE_ID:
+                return new SQLLongVarbit(new byte[0]);
+
+            case StoredFormatIds.BLOB_TYPE_ID:
+                return new SQLBlob(new byte[0]);
+
+            case StoredFormatIds.CLOB_TYPE_ID:
+                return new SQLClob("");
+
+            case StoredFormatIds.LONGVARCHAR_TYPE_ID:
+                return new SQLLongvarchar("");
+
+            case StoredFormatIds.REAL_TYPE_ID:
+                return new SQLReal(0);
+
+            case StoredFormatIds.SMALLINT_TYPE_ID:
+                return new SQLSmallint(0);
+
+            case StoredFormatIds.TINYINT_TYPE_ID:
+                return new SQLTinyint((byte) 0);
+
+            case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
+                return new UserType();
+
+            case StoredFormatIds.VARBIT_TYPE_ID:
+                return new SQLVarbit(new byte[0]);
+
+            case StoredFormatIds.VARCHAR_TYPE_ID:
+                return new SQLVarchar("");
+        }
+        throw new UnsupportedOperationException(
+                StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + formatId)
+        );
     }
 
     /**

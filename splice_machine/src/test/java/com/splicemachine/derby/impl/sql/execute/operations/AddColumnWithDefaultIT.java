@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -878,5 +879,27 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sql);
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testColumnsOfBlob() throws Exception {
+        // add not null column to t4 with default value
+        methodWatcher.executeUpdate("alter table t4 add column b4 blob(10) not null default cast(X'AB' as blob(10))");
+        String sql = format("select b4 from t4 --splice-properties useSpark=%s", useSparkString);
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        while (rs.next()) {
+            Blob blob = rs.getBlob(1);
+            byte[] expected = new byte[] {(byte)0xAB};
+            Assert.assertArrayEquals(expected, blob.getBytes(1, 10));
+        }
+        assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        try {
+            methodWatcher.executeUpdate("alter table t4 add column c4 blob(1) not null default cast(X'ABCD' as blob(2))");
+            Assert.fail("the update statement should fail");
+        } catch (SQLException e) {
+            Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(), SQLState.LANG_STRING_TRUNCATION);
+        }
     }
 }
