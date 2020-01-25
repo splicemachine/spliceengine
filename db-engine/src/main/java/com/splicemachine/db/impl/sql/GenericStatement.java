@@ -577,6 +577,22 @@ public class GenericStatement implements Statement{
             }
             cc.setOuterJoinFlatteningDisabled(outerJoinFatteningDisabled);
 
+            String rPVsForRangeSelectivityString =
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.USE_RPV_MULTIPLES_FOR_RANGE_SELECTIVITY_IN_PREPARE);
+            double rpvsForRangeSelectivity = CompilerContext.DEFAULT_MULTIPLES_OF_RPVS_FOR_RANGE_SELECTIVITY_IN_PREPARE;
+            try {
+                if (rPVsForRangeSelectivityString != null)
+                    rpvsForRangeSelectivity =
+                            Double.valueOf(rPVsForRangeSelectivityString);
+                // negative numbers are invalid, so just discard and use default
+                if (rpvsForRangeSelectivity < 0)
+                    rpvsForRangeSelectivity = CompilerContext.DEFAULT_MULTIPLES_OF_RPVS_FOR_RANGE_SELECTIVITY_IN_PREPARE;
+            } catch (Exception e) {
+                // If the property value failed to convert to a double, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setMultiplesOfRPVsForRangeSelectivityInPrepare(rpvsForRangeSelectivity);
+
             if (! cc.isSparkVersionInitialized()) {
                 // If splice.spark.version is manually set, use it...
                 String spliceSparkVersionString = System.getProperty(SPLICE_SPARK_VERSION);

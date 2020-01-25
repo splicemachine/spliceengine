@@ -1457,6 +1457,8 @@ public class BinaryRelationalOperatorNode
         double retval=booleanSelectivity(optTable);
         if(retval>=0.0d)
             return retval;
+
+        double useRpvsForRangeSelectivity = getCompilerContext().getMultiplesOfRPVsForRangeSelectivityInPrepare();
         switch(operatorType){
             case RelationalOperator.EQUALS_RELOP:
                 double selectivity = getReferenceSelectivity(optTable);
@@ -1472,11 +1474,30 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.LESS_THAN_RELOP:
             case RelationalOperator.LESS_EQUALS_RELOP:
             case RelationalOperator.GREATER_EQUALS_RELOP:
-                if(getBetweenSelectivity())
-                    return DEFAULT_BETWEEN_SELECTIVITY;
+                if(getBetweenSelectivity()) {
+                    if (useRpvsForRangeSelectivity == 0)
+                        return DEFAULT_BETWEEN_SELECTIVITY;
+                }
 				/* fallthrough -- only */
             case RelationalOperator.GREATER_THAN_RELOP:
-                return DEFAULT_RANGE_SELECTIVITY;
+                if (useRpvsForRangeSelectivity == 0)
+                    return DEFAULT_RANGE_SELECTIVITY;
+
+                // use a more aggressive selectivity estimation for range predicate bounded by
+                // the DEFAULT selectivity
+                selectivity = getReferenceSelectivity(optTable);
+                if (selectivity < 0.0d) // No Stats
+                    return DEFAULT_RANGE_SELECTIVITY;
+
+                selectivity = selectivity*useRpvsForRangeSelectivity;
+                if (getBetweenSelectivity()) {
+                    if (selectivity > DEFAULT_BETWEEN_SELECTIVITY)
+                        selectivity = DEFAULT_BETWEEN_SELECTIVITY;
+                } else {
+                    if (selectivity > DEFAULT_RANGE_SELECTIVITY)
+                        selectivity = DEFAULT_RANGE_SELECTIVITY;
+                }
+                return selectivity;
         }
         return 0.0;
     }

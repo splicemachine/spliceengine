@@ -143,6 +143,7 @@ public class CompilerContextImpl extends ContextImpl
         maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
         nextOJLevel = 1;
 		outerJoinFlatteningDisabled = false;
+		multiplesOfRPVsForRangeSelectivity = 0;
 	}
 
 	//
@@ -292,6 +293,14 @@ public class CompilerContextImpl extends ContextImpl
 
 	public void setOuterJoinFlatteningDisabled(boolean onOff) {
 		outerJoinFlatteningDisabled = onOff;
+	}
+
+	public double getMultiplesOfRPVsForRangeSelectivityInPrepare() {
+		return multiplesOfRPVsForRangeSelectivity;
+	}
+
+	public void setMultiplesOfRPVsForRangeSelectivityInPrepare(double value) {
+		this.multiplesOfRPVsForRangeSelectivity = value;
 	}
 
 	/**
@@ -1154,6 +1163,7 @@ public class CompilerContextImpl extends ContextImpl
 	// Used to track the flattened half outer joins.
 	private int                 nextOJLevel = 1;
 	private boolean             outerJoinFlatteningDisabled;
+	private double              multiplesOfRPVsForRangeSelectivity = 0;
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.
