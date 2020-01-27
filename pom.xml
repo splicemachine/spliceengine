@@ -1070,6 +1070,8 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark.core>1.6.0-cdh5.8.3</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.8.3</avro.version>
+                <twitter.version>1.5.0-cdh5.8.3</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
@@ -1104,6 +1106,8 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark.core>1.6.0-cdh5.8.5</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.5.0-cdh5.8.5</avro.version>
+                <twitter.version>1.5.0-cdh5.8.5</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
@@ -1138,6 +1142,8 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark.core>1.6.0-cdh5.12.0</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.12.0</avro.version>
+                <twitter.version>1.5.0-cdh5.12.0</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
@@ -1172,6 +1178,8 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark.core>1.6.0-cdh5.12.2</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.12.2</avro.version>
+                <twitter.version>1.5.0-cdh5.12.2</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
@@ -1206,6 +1214,8 @@
                 <spark.version>2.3.0.cloudera4</spark.version>
                 <spark.core>1.6.0-cdh5.12.2</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.12.2</avro.version>
+                <twitter.version>1.5.0-cdh5.12.2</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>orc-cds-2.3</parquet.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
@@ -1241,6 +1251,8 @@
                 <spark.version>2.3.0.cloudera3</spark.version>
                 <spark.core>1.6.0-cdh5.13.0</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.13.0</avro.version>
+                <twitter.version>1.5.0-cdh5.13.0</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>orc-cds-2.3</parquet.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
@@ -1276,6 +1288,8 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark.core>1.6.0-cdh5.13.2</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.13.2</avro.version>
+                <twitter.version>1.5.0-cdh5.13.2</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
@@ -1310,6 +1324,8 @@
                 <spark.version>2.2.0.cloudera2</spark.version>
                 <spark.core>1.6.0-cdh5.13.3</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.13.3</avro.version>
+                <twitter.version>1.5.0-cdh5.13.3</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
@@ -1345,6 +1361,8 @@
                 <spark.core>1.6.0-cdh5.14.0</spark.core>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.14.0</avro.version>
+                <twitter.version>1.5.0-cdh5.14.0</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
@@ -1380,6 +1398,8 @@
                 <spark.core>1.6.0-cdh5.14.2</spark.core>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.2</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.14.2</avro.version>
+                <twitter.version>1.5.0-cdh5.14.2</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
@@ -1415,6 +1435,8 @@
                 <spark.core>1.6.0-cdh5.16.1</spark.core>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.16.1</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <avro.version>1.7.6-cdh5.16.1</avro.version>
+                <twitter.version>1.5.0-cdh5.16.1</twitter.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
             </properties>
