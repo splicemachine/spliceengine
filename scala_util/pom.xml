@@ -35,6 +35,18 @@
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.avro</groupId>
+                    <artifactId>avro-mapred</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-client</artifactId>
+                </exclusion>
+                <exclusion>
                     <!-- make sure wrong scala version is not pulled in -->
                     <groupId>org.scala-lang</groupId>
                     <artifactId>scala-library</artifactId>
@@ -51,6 +63,20 @@
             <artifactId>spark-sql_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-column</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-hadoop</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-avro</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

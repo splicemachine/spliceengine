@@ -870,6 +870,7 @@
                 <hive.version>1.1.0</hive.version>
                 <zookeeper.version>3.4.6</zookeeper.version>
                 <spark.version>2.2.0</spark.version>
+                <spark.core>2.2.0</spark.core>
                 <kafka.version>0.8.2.0-kafka-1.2.0</kafka.version>
                 <hadoop.tools.version>1.2.1</hadoop.tools.version>
                 <parquet.version>parquet-spark2</parquet.version>
@@ -898,6 +899,7 @@
                 <hive.version>1.2.1000.2.5.5.7-1</hive.version>
                 <zookeeper.version>3.4.6.2.5.5.7-1</zookeeper.version>
                 <spark.version>2.2.0</spark.version>
+                <spark.core>2.2.0</spark.core>
                 <spark.major.version>spark2.2</spark.major.version>
                 <kafka.version>0.9.0.2.4.2.0-258</kafka.version>
                 <!-- <kafka.version>0.10.0.2.5.5.7-1</kafka.version> -->
@@ -931,6 +933,7 @@
                 <hive.version>1.2.1000.2.6.1.0-129</hive.version>
                 <zookeeper.version>3.4.6.2.6.1.0-129</zookeeper.version>
                 <spark.version>2.1.1.2.6.1.0-129</spark.version>
+                <spark.core>2.1.1.2.6.1.0-129</spark.core>
                 <spark.major.version>spark2.1</spark.major.version>
                 <kafka.version>0.10.1.2.6.1.0-129</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
@@ -963,6 +966,7 @@
                 <hive.version>2.1.0.2.6.3.0-235</hive.version>
                 <zookeeper.version>3.4.6.2.6.3.0-235</zookeeper.version>
                 <spark.version>2.2.0.2.6.3.0-235</spark.version>
+                <spark.core>2.2.0.2.6.3.0-235</spark.core>
                 <spark.major.version>spark2.2</spark.major.version>
                 <kafka.version>0.10.1.2.6.3.0-235</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
@@ -995,6 +999,7 @@
                 <hive.version>2.1.0.2.6.4.0-91</hive.version>
                 <zookeeper.version>3.4.6.2.6.4.0-91</zookeeper.version>
                 <spark.version>2.2.0.2.6.4.0-91</spark.version>
+                <spark.core>2.2.0.2.6.4.0-91</spark.core>
                 <spark.major.version>spark2.2</spark.major.version>
                 <kafka.version>0.10.1.2.6.4.0-91</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
@@ -1027,6 +1032,7 @@
                 <hive.version>2.1.0.2.6.5.0-292</hive.version>
                 <zookeeper.version>3.4.6.2.6.5.0-292</zookeeper.version>
                 <spark.version>2.3.0.2.6.5.0-292</spark.version>
+                <spark.core>2.3.0.2.6.5.0-292</spark.core>
                 <spark.major.version>spark2.3</spark.major.version>
                 <kafka.version>1.0.0.2.6.5.0-292</kafka.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
@@ -1062,6 +1068,7 @@
                 <zookeeper.version>3.4.5-cdh5.8.3</zookeeper.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.8.3</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
@@ -1095,6 +1102,7 @@
                 <zookeeper.version>3.4.5-cdh5.8.5</zookeeper.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.8.5</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
@@ -1128,6 +1136,7 @@
                 <zookeeper.version>3.4.5-cdh5.12.0</zookeeper.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.12.0</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
@@ -1161,6 +1170,7 @@
                 <zookeeper.version>3.4.5-cdh5.12.2</zookeeper.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.12.2</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
@@ -1194,6 +1204,7 @@
                 <zookeeper.version>3.4.5-cdh5.12.2</zookeeper.version>
                 <spark.major.version>spark2.3</spark.major.version>
                 <spark.version>2.3.0.cloudera4</spark.version>
+                <spark.core>1.6.0-cdh5.12.2</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>orc-cds-2.3</parquet.version>
@@ -1228,6 +1239,7 @@
                 <zookeeper.version>3.4.5-cdh5.13.0</zookeeper.version>
                 <spark.major.version>spark2.3</spark.major.version>
                 <spark.version>2.3.0.cloudera3</spark.version>
+                <spark.core>1.6.0-cdh5.13.0</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>orc-cds-2.3</parquet.version>
@@ -1262,6 +1274,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.13.2</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.13.2</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
@@ -1295,6 +1308,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.13.3</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.13.3</spark.core>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
                 <parquet.version>parquet-cloudera</parquet.version>
@@ -1328,6 +1342,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.14.0</spark.core>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.0</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
@@ -1362,6 +1377,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.14.2</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.14.2</spark.core>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.14.2</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
@@ -1396,6 +1412,7 @@
                 <spark.major.version>spark2.2</spark.major.version>
                 <zookeeper.version>3.4.5-cdh5.16.1</zookeeper.version>
                 <spark.version>2.2.0.cloudera2</spark.version>
+                <spark.core>1.6.0-cdh5.16.1</spark.core>
                 <spark-assembly-id>spark-assembly-hadoop2.6.0-cdh5.16.1</spark-assembly-id>
                 <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
                 <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
@@ -1432,6 +1449,7 @@
                 <maprfs.version>5.2.0-mapr</maprfs.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <spark.version>2.2.0</spark.version>
+                <spark.core>2.2.0</spark.core>
                 <assembly.spark>1.1.8-mapr-1808</assembly.spark>
                 <kafka.version>0.9.0.0-mapr-1607</kafka.version>
                 <netty.version>3.6.2.Final</netty.version>
@@ -1468,6 +1486,7 @@
                 <zookeeper.version>3.4.5-mapr-1710</zookeeper.version>
                 <maprfs.version>6.0.0-mapr</maprfs.version>
                 <spark.version>2.1.0-mapr-1710</spark.version>
+                <spark.core>2.1.0-mapr-1710</spark.core>
                 <spark.major.version>spark2.1</spark.major.version>
                 <assembly.spark>1.1.8-mapr-1710</assembly.spark>
                 <kafka.version>0.9.0.0-mapr-1710</kafka.version>
@@ -1504,6 +1523,7 @@
                 <zookeeper.version>3.4.11-mapr-1808=</zookeeper.version>
                 <maprfs.version>6.1.0-mapr</maprfs.version>
                 <spark.version>2.3.2.0-mapr-1901</spark.version>
+                <spark.core>2.3.2.0-mapr-1901</spark.core>
                 <spark.major.version>spark2.3</spark.major.version>
                 <assembly.spark>1.1.8-mapr-1901</assembly.spark>
                 <kafka.version>1.1.1-mapr-1901</kafka.version>
@@ -1539,6 +1559,7 @@
                 <hive.version>1.1.0-cdh5.14.0</hive.version>
                 <guava.version>15.0</guava.version>
                 <spark.version>2.2.2</spark.version>
+                <spark.core>2.2.2</spark.core>
                 <spark.major.version>spark2.2</spark.major.version>
                 <scala.version>2.11.8</scala.version>
                 <zookeeper.version>3.4.5-cdh5.14.0</zookeeper.version>
