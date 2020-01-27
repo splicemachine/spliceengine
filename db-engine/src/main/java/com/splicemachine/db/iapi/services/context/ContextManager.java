@@ -31,21 +31,16 @@
 
 package com.splicemachine.db.iapi.services.context;
 
-import java.sql.SQLException;
-import java.util.*;
-
+import com.splicemachine.db.iapi.error.*;
 import com.splicemachine.db.iapi.reference.ContextId;
-import com.splicemachine.db.iapi.error.ErrorStringBuilder;
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
-import com.splicemachine.db.iapi.error.ExceptionUtil;
-import com.splicemachine.db.iapi.error.PassThroughException;
-import com.splicemachine.db.iapi.error.ShutdownException;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+
+import java.sql.SQLException;
+import java.util.*;
 
 /**
  *
@@ -82,22 +77,29 @@ public class ContextManager
 		// expensive, but those operations are infrequent.
 		private Context top_ = null;
 
-		void push(Context context) { 
-			stack_.add(context); 
-			top_ = context; 
+		void push(Context context) {
+		    synchronized(stack_) {
+                        stack_.add(context);
+                        top_ = context;
+                    }
 		}
 		void pop() {
-            stack_.remove(stack_.size() - 1);
-            top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
-        }
+		    synchronized(stack_) {
+		        stack_.remove(stack_.size() - 1);
+
+                        top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
+                    }
+                }
 		void remove(Context context) {
-			if (context == top_) {
-				pop();
-				return;
-			}
-			int index=stack_.lastIndexOf(context);
-			if(index>=0)
-				stack_.remove(index);
+		    synchronized(stack_) {
+                        if (context == top_) {
+                            pop();
+                            return;
+                        }
+                        int index = stack_.lastIndexOf(context);
+                        if (index >= 0)
+                            stack_.remove(index);
+                    }
 		}
 		Context top() { 
 			return top_; 
