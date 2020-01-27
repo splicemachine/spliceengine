@@ -150,11 +150,8 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
     @After
     public void rollback() throws Exception{
         conn.rollback();
-        //conn.reset();
         c1.rollback();
-        //c1.reset();
         c2.rollback();
-        //c2.reset();
     }
 
     @Test

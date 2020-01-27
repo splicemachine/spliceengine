@@ -71,6 +71,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
+import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.SCAN_CACHE_SIZE;
 import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.deSiify;
 
 /**
@@ -89,6 +90,8 @@ public class TriggerNewTransitionRows
                    implements DatasetProvider, VTICosting, AutoCloseable, Externalizable
 {
 
+        private static final double DUMMY_ROWCOUNT_ESTIMATE = 1000;
+        private static final double DUMMY_COST_ESTIMATE = 1000;
 	private ResultSet resultSet;
 	private DataSet<ExecRow> sourceSet;
 	private TriggerExecutionContext tec;
@@ -234,7 +237,7 @@ public class TriggerNewTransitionRows
                     false   // rowIdKey
                     );
 
-                    s.cacheRows(1000).batchCells(-1);
+                    s.cacheRows(SCAN_CACHE_SIZE).batchCells(-1);
                     deSiify(s);
 
                     int numColumns = templateRow.nColumns();
@@ -356,12 +359,14 @@ public class TriggerNewTransitionRows
 
     @Override
     public double getEstimatedRowCount(VTIEnvironment vtiEnvironment) throws SQLException {
-        return 1000;
+	// TODO: Replace dummy estimates with actual estimates.
+        return DUMMY_ROWCOUNT_ESTIMATE;
     }
 
     @Override
     public double getEstimatedCostPerInstantiation(VTIEnvironment vtiEnvironment) throws SQLException {
-        return 1000;
+	// TODO: Replace dummy estimates with actual estimates.
+        return DUMMY_COST_ESTIMATE;
     }
 
     @Override

@@ -65,12 +65,21 @@ public class TriggerEventActivator {
     private Map<TriggerEvent, List<TriggerDescriptor>> rowExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<TriggerDescriptor>> rowConcurrentExecutorsMap = new HashMap<>();
     private Activation activation;
-    private ConnectionContext cc;
+    private ConnectionContext connectionContext;
     private String statementText;
     private UUID tableId;
     private String tableName;
-    private boolean tecPushed;
-    private boolean esvPushed;
+    private boolean triggerExecutionContextPushed;
+    private boolean executionStmtValidatorPushed;
+
+    // getLcc() may return a different LanguageConnectionContext at the time
+    // we pop the triggerExecutionContext and executionStmtValidator, versus
+    // at the time they were pushed.  Saving the original "LCC" at the time of
+    // the push ensures that we pop from the correct LCC.  We sometimes need to
+    // save two versions LCCs because we may push to the LCC in the activation,
+    // and also to the LCC stored in the current ContextManager, if they happen
+    // to be different.  Trigger execution requires that both the activation and
+    // the current ContextManager both have a triggerExecutionContext.
     private LanguageConnectionContext esvLCC1;
     private LanguageConnectionContext esvLCC2;
     private LanguageConnectionContext tecLCC1;
@@ -109,7 +118,7 @@ public class TriggerEventActivator {
             this.statementText = context.getStatementText();
         }
         this.heapList = heapList;
-        cc = (ConnectionContext) getLcc().getContextManager().getContext(ConnectionContext.CONTEXT_ID);
+        connectionContext = (ConnectionContext) getLcc().getContextManager().getContext(ConnectionContext.CONTEXT_ID);
 
         initTriggerExecContext(aiCounters);
         setupExecutors(triggerInfo);
@@ -118,11 +127,11 @@ public class TriggerEventActivator {
     }
 
     private void pushExecutionStmtValidator() throws StandardException {
-        if(!esvPushed)
+        if(!executionStmtValidatorPushed)
         {
             esvLCC1 = getLcc();
             esvLCC1.pushExecutionStmtValidator(tec);
-            esvPushed = true;
+            executionStmtValidatorPushed = true;
             if (activation.getLanguageConnectionContext() != esvLCC1) {
                 esvLCC2 = activation.getLanguageConnectionContext();
                 esvLCC2.pushExecutionStmtValidator(tec);
@@ -133,23 +142,23 @@ public class TriggerEventActivator {
     }
 
     private void popExecutionStmtValidator() throws StandardException {
-        if(esvPushed)
+        if(executionStmtValidatorPushed)
         {
             esvLCC1.popExecutionStmtValidator(tec);
             if (esvLCC2 != null)
                 esvLCC2.popExecutionStmtValidator(tec);
-            esvPushed = false;
+            executionStmtValidatorPushed = false;
             esvLCC1 = null;
             esvLCC2 = null;
         }
     }
 
     private void pushTriggerExecutionContext() throws StandardException {
-        if(!tecPushed)
+        if(!triggerExecutionContextPushed)
         {
             tecLCC1 = getLcc();
             tecLCC1.pushTriggerExecutionContext(tec);
-            tecPushed = true;
+            triggerExecutionContextPushed = true;
             if (activation.getLanguageConnectionContext() != tecLCC1) {
                 tecLCC2 = activation.getLanguageConnectionContext();
                 tecLCC2.pushTriggerExecutionContext(tec);
@@ -160,21 +169,21 @@ public class TriggerEventActivator {
     }
 
     private void popTriggerExecutionContext() throws StandardException {
-        if(tecPushed)
+        if(triggerExecutionContextPushed)
         {
             tecLCC1.popTriggerExecutionContext(tec);
             if (tecLCC2 != null)
                 tecLCC2.popTriggerExecutionContext(tec);
             tecLCC1 = null;
             tecLCC2 = null;
-            tecPushed = false;
+            triggerExecutionContextPushed = false;
         }
     }
 
     private void initTriggerExecContext(Vector<AutoincrementCounter> aiCounters) throws StandardException {
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) getLcc().getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
-               cc, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
+        connectionContext, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                 tableId, tableName, aiCounters, heapList);
     }
 
@@ -325,7 +334,7 @@ public class TriggerEventActivator {
                             ContextService.getFactory().setCurrentContextManager(cm);
                         }
                         lccPushed = pushLanguageConnectionContextToCM(lcc, cm);
-                        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(cc,
+                        TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(connectionContext,
                                 statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                                 tableId, tableName, null, heapList);
                         RowTriggerExecutor triggerExecutor = new RowTriggerExecutor(tec, td, activation, lcc);
