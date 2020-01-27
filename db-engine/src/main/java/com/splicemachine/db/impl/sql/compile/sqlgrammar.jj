@@ -13808,6 +13808,12 @@ defaultOption(Token beginToken, long[] autoIncrementInfo,
                             );
         return value;
     }
+|
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.EMPTY_DEFAULT_CONSTANT_NODE,
+                                    getContextManager());
+    }
 }
 
 /*
