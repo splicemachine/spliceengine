@@ -201,7 +201,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
             if (activation != null && activation.getLanguageConnectionContext() != null) {
                 LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
                 if (lcc != currentLCC) {
-                    cm.pushContext(activation.getLanguageConnectionContext());
+                    cm.pushContext(lcc);
                     lccPushed = true;
                 }
             }

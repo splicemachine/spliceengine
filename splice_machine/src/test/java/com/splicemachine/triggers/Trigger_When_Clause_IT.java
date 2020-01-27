@@ -33,8 +33,6 @@ package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
-import com.splicemachine.test_dao.TriggerBuilder;
-import com.splicemachine.util.StatementUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -42,10 +40,13 @@ import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
 
 import java.sql.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
 
 import static com.splicemachine.db.shared.common.reference.MessageId.SPLICE_GENERIC_EXCEPTION;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test WHEN clause in triggers.
@@ -210,7 +211,6 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
             + "when (new.x <> 2) insert into t2 values 'Executed tr10'");
 
             // WHEN clause contains reference to a transition table.
-            // Needs DB-8883
             s.executeUpdate("create trigger tr11 after insert on t1 "
             + "referencing new table as new "
             + "when (exists (select * from new where x > 5)) "
@@ -547,7 +547,6 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
             // Dropping any column in a statement trigger with a NEW transition
             // table fails, even if the column is not referenced in the WHEN clause
             // or in the triggered SQL text.
-            // Need DB-8883 for the following commented tests:
             sp = conn.setSavepoint();
             s.executeUpdate("create trigger tr after update of x on t1 "
             + "referencing new table as new "
