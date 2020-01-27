@@ -296,9 +296,9 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
     public void flushBufferAndWait() throws Exception {
         flushBuffer();
         if (serverNameToRegionServerCBMap != null)
-        for (ServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
-            buffer.flushBufferAndWait();
-        }
+            for (ServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
+                buffer.flushBufferAndWait();
+            }
     }
 
     @Override

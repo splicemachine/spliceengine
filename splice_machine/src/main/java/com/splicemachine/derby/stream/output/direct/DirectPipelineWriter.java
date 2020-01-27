@@ -56,6 +56,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
         this.token=token;
         this.opCtx=opCtx;
         this.skipIndex=skipIndex;
+        this.tableVersion = tableVersion;
     }
 
     @Override
