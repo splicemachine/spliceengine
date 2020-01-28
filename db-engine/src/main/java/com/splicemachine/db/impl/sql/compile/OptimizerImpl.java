@@ -1001,8 +1001,7 @@ public class OptimizerImpl implements Optimizer{
 				** avoidance path on the last Optimizable in the join order.
 				*/
                 if(requiredRowOrdering!=null && curOpt.considerSortAvoidancePath()){
-                    boolean hasSortMergeJoin = joinPathContainsSortMergeJoin(Optimizer.SORT_AVOIDANCE_PLAN);
-                    if(!hasSortMergeJoin && requiredRowOrdering.sortRequired(bestRowOrdering,optimizableList)==RequiredRowOrdering.NOTHING_REQUIRED){
+                    if(requiredRowOrdering.sortRequired(bestRowOrdering,optimizableList)==RequiredRowOrdering.NOTHING_REQUIRED){
                         tracer.trace(OptimizerFlag.CURRENT_PLAN_IS_SA_PLAN,0,0,0.0);
 
                         if((currentSortAvoidanceCost.compare(bestCost)<=0) || bestCost.isUninitialized()){
@@ -1015,17 +1014,6 @@ public class OptimizerImpl implements Optimizer{
 
         tracer.trace(OptimizerFlag.HAS_REMAINING_PERMUTATIONS,(hasNextPermutation?1:0),0,0.0);
         return hasNextPermutation;
-    }
-
-
-    private boolean joinPathContainsSortMergeJoin(int planType) {
-        for (int i=0; i < numOptimizables; i++) {
-            Optimizable optimizable = optimizableList.getOptimizable(proposedJoinOrder[i]);
-
-            if(optimizable.bestPathPicksSortMergeJoin(planType))
-                return true;
-        }
-        return false;
     }
 
     @Override
@@ -1076,7 +1064,7 @@ public class OptimizerImpl implements Optimizer{
         int savedJoinType = JoinNode.INNERJOIN;
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
-            if (fromTable.getFromSSQ() || fromTable.getOJLevel() > 0) {
+            if (fromTable.getFromSSQ()) {
                 savedJoinType = outerCost.getJoinType();
                 outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
             }
@@ -1088,7 +1076,7 @@ public class OptimizerImpl implements Optimizer{
          */
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
-            if (fromTable.getFromSSQ() || fromTable.getOJLevel() > 0)
+            if (fromTable.getFromSSQ())
                 outerCost.setJoinType(savedJoinType);
         }
     }
@@ -1612,7 +1600,6 @@ public class OptimizerImpl implements Optimizer{
 		 * NOTE - We walk the OPL backwards since we will hopefully be deleted
 		 * entries as we walk it.
 		 */
-		FromTable fromTable = (FromTable)curTable;
         for(int predCtr=numPreds-1;predCtr>=0;predCtr--){
             pred=(Predicate)predicateList.getOptPredicate(predCtr);
 
@@ -1621,38 +1608,27 @@ public class OptimizerImpl implements Optimizer{
                 continue;
             }
 
-
-            if (fromTable.getOJLevel() > 0) {
-                // if inner table flattened from an outer join, only consider the ON clause join conditions
-                pushPredNow = pred.getOJLevel() == fromTable.getOJLevel();
-            } else {
-                // On clause condition for outer join cannot be pushed to the left table
-                // eg. select * from t1 left join t2 on a1=a2 and a1=1
-                // a1=1 cannot be applied to t1 as a single table condition
-                if (pred.getOJLevel() > 0)
-                    continue;
-
 			/* Make copy of referenced map so that we can do destructive
 			 * manipulation on the copy.
 			 */
-                predMap.setTo(pred.getReferencedMap());
+            predMap.setTo(pred.getReferencedMap());
 
 			/* Clear bits representing those tables that have already been
 			 * assigned, except for the current table.  The outer table map
 			 * includes the current table, so if the predicate is ready to
 			 * be pushed, predMap will end up with no bits set.
 			 */
-                for (int index = 0; index < predMap.size(); index++) {
-                    if (outerTables.get(index)) {
-                        predMap.clear(index);
-                    }
+            for(int index=0;index<predMap.size();index++){
+                if(outerTables.get(index)){
+                    predMap.clear(index);
                 }
+            }
 
 			/*
 			** Only consider non-correlated variables when deciding where
 			** to push predicates down to.
 			*/
-                predMap.and(nonCorrelatedTableMap);
+            predMap.and(nonCorrelatedTableMap);
 
 			/* At this point what we've done is figure out what FromTables
 			 * the predicate references (using the predicate's "referenced
@@ -1676,8 +1652,7 @@ public class OptimizerImpl implements Optimizer{
 			 * We can check for this condition by seeing if predMap is empty,
 			 * which is what the following line does.
 			 */
-                pushPredNow = (predMap.getFirstSetBit() == -1);
-            }
+            pushPredNow=(predMap.getFirstSetBit()==-1);
 
 			/* If the predicate is scoped, there's more work to do. A
 			 * scoped predicate's "referenced map" may not be in sync

@@ -564,19 +564,6 @@ public class GenericStatement implements Statement{
             }
             cc.setCurrentTimestampPrecision(currentTimestampPrecision);
 
-            String outerJoinFlatteningDisabledString =
-                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.OUTERJOIN_FLATTENING_DISABLED);
-            boolean outerJoinFatteningDisabled = CompilerContext.DEFAULT_OUTERJOIN_FLATTENING_DISABLED;
-            try {
-                if (outerJoinFlatteningDisabledString != null)
-                    outerJoinFatteningDisabled =
-                            Boolean.valueOf(outerJoinFlatteningDisabledString);
-            } catch (Exception e) {
-                // If the property value failed to convert to a boolean, don't throw an error,
-                // just use the default setting.
-            }
-            cc.setOuterJoinFlatteningDisabled(outerJoinFatteningDisabled);
-
             String rPVsForRangeSelectivityString =
                     PropertyUtil.getCachedDatabaseProperty(lcc, Property.USE_RPV_MULTIPLES_FOR_RANGE_SELECTIVITY_IN_PREPARE);
             double rpvsForRangeSelectivity = CompilerContext.DEFAULT_MULTIPLES_OF_RPVS_FOR_RANGE_SELECTIVITY_IN_PREPARE;

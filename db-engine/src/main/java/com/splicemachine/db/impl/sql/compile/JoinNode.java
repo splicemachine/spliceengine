@@ -873,7 +873,6 @@ public class JoinNode extends TableOperatorNode{
      * @param sql          The SubqueryList from the outer query
      * @param gbl          The group by list, if any
      * @param havingClause The HAVING clause, if any
-     * @param numTables     maximum number of tables in the query
      * @return FromList        The fromList from the underlying SelectNode.
      * @throws StandardException Thrown on error
      */
@@ -882,14 +881,13 @@ public class JoinNode extends TableOperatorNode{
                             PredicateList outerPList,
                             SubqueryList sql,
                             GroupByList gbl,
-                            ValueNode havingClause,
-                            int numTables) throws StandardException{
-		/* FullOuterJoinNodes should never get here.
+                            ValueNode havingClause) throws StandardException{
+		/* OuterJoinNodes should never get here.
 		 * (They can be transformed, but never
 		 * flattened directly.)
 		 */
         if(SanityManager.DEBUG){
-            if(this instanceof FullOuterJoinNode){
+            if(this instanceof HalfOuterJoinNode || this instanceof FullOuterJoinNode){
                 SanityManager.THROWASSERT(
                         "JN.flatten() not expected to be called for "+
                                 getClass().getName());
@@ -1051,7 +1049,7 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public boolean isFlattenableJoinNode(){
-        return flattenableJoin && (OJLevel == 0);
+        return flattenableJoin;
     }
 
     /**

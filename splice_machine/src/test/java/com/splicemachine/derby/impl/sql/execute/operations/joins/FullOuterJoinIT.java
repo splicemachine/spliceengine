@@ -1149,18 +1149,17 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         /*
         Plan
         ----
-        Cursor(n=8,rows=18,updateMode=READ_ONLY (1),engine=control)
-          ->  ScrollInsensitive(n=7,totalCost=44.708,outputRows=18,outputHeapSize=174 B,partitions=1)
-            ->  ProjectRestrict(n=6,totalCost=32.968,outputRows=18,outputHeapSize=174 B,partitions=1)
-              ->  BroadcastLeftOuterJoin(n=5,totalCost=32.968,outputRows=18,outputHeapSize=174 B,partitions=1,preds=[(A1[8:5] = A2[8:1])])
-                ->  TableScan[T1(1792)](n=4,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=174 B,partitions=1)
-                ->  MergeSortLeftOuterJoin(n=3,totalCost=24.71,outputRows=18,outputHeapSize=114 B,partitions=1,preds=[(A2[4:1] = A3[4:3])])
-                  ->  TableScan[T3(1856)](n=2,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=114 B,partitions=1)
-                  ->  TableScan[T2(1840)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=54 B,partitions=1,preds=[(A2[0:1] = 3)])
+        Cursor(n=7,rows=18,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=6,totalCost=32.296,outputRows=18,outputHeapSize=154 B,partitions=1)
+            ->  BroadcastLeftOuterJoin(n=5,totalCost=20.556,outputRows=18,outputHeapSize=154 B,partitions=1,preds=[(A1[8:1] = A2[8:3])])
+              ->  TableScan[T1(4528)](n=4,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=154 B,partitions=1)
+              ->  BroadcastLeftOuterJoin(n=3,totalCost=12.298,outputRows=18,outputHeapSize=114 B,partitions=1,preds=[(A2[4:1] = A3[4:3])])
+                ->  TableScan[T3(4592)](n=2,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=114 B,partitions=1)
+                ->  TableScan[T2(4576)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=54 B,partitions=1,preds=[(A2[0:1] = 1)])
 
-        8 rows selected
+        7 rows selected
          */
-        rowContainsQuery(new int[]{4,5,6,7,8}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{3,4,5,6,7}, "explain " + sqlText, methodWatcher,
                 new String[]{"LeftOuterJoin"},
                 new String[]{"TableScan[T1"},
                 new String[]{"LeftOuterJoin"},
@@ -1186,21 +1185,21 @@ public class FullOuterJoinIT extends SpliceUnitTest {
         /*
         Plan
         ----
-        Cursor(n=8,rows=16,updateMode=READ_ONLY (1),engine=Spark)
-          ->  ScrollInsensitive(n=7,totalCost=55.443,outputRows=16,outputHeapSize=162 B,partitions=1)
-            ->  MergeSortLeftOuterJoin(n=6,totalCost=44.517,outputRows=16,outputHeapSize=162 B,partitions=1,preds=[(A2[8:3] = A3[8:5])])
-              ->  TableScan[T3(2496)](n=5,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=162 B,partitions=1)
-              ->  BroadcastJoin(n=4,totalCost=12.276,outputRows=16,outputHeapSize=102 B,partitions=1,preds=[(A1[4:1] = A2[4:3])])
-                ->  TableScan[T2(2480)](n=3,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=102 B,partitions=1,preds=[(A2[2:1] = 3)])
-                ->  ProjectRestrict(n=2,totalCost=4.04,outputRows=18,outputHeapSize=54 B,partitions=1)
-                  ->  TableScan[T1(2432)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=54 B,partitions=1,preds=[(A1[0:1] = 3)])
+        Cursor(n=8,rows=16,updateMode=READ_ONLY (1),engine=control)
+          ->  ScrollInsensitive(n=7,totalCost=35.24,outputRows=16,outputHeapSize=162 B,partitions=1)
+            ->  BroadcastJoin(n=6,totalCost=24.314,outputRows=16,outputHeapSize=162 B,partitions=1,preds=[(A1[8:1] = A2[8:3])])
+              ->  BroadcastLeftOuterJoin(n=5,totalCost=12.298,outputRows=18,outputHeapSize=114 B,partitions=1,preds=[(A2[6:1] = A3[6:3])])
+                ->  TableScan[T3(4592)](n=4,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=114 B,partitions=1)
+                ->  TableScan[T2(4576)](n=3,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=54 B,partitions=1,preds=[(A2[2:1] = 3)])
+              ->  ProjectRestrict(n=2,totalCost=4.04,outputRows=18,outputHeapSize=54 B,partitions=1)
+                ->  TableScan[T1(4528)](n=1,totalCost=4.04,scannedRows=20,outputRows=18,outputHeapSize=54 B,partitions=1,preds=[(A1[0:1] = 3)])
 
         8 rows selected
          */
         rowContainsQuery(new int[]{3,4,5,6,8}, "explain " + sqlText, methodWatcher,
+                new String[]{"Join"},
                 new String[]{"LeftOuterJoin"},
                 new String[]{"TableScan[T3"},
-                new String[]{"Join"},
                 new String[]{"TableScan[T2"},
                 new String[]{"TableScan[T1"});
 

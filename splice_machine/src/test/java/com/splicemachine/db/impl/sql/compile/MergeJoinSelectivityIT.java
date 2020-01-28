@@ -69,7 +69,7 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
         try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
             rowContainsQuery(
                     s,
-                    new int[]{1,4},
+                    new int[]{1,3},
                     "explain select * from ts_10_spk --splice-properties joinStrategy=MERGE\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",
                     "rows=5","MergeLeftOuterJoin");
         }

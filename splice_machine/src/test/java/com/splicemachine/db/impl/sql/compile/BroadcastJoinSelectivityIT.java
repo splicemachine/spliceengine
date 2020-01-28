@@ -66,7 +66,7 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
     public void rightOuterJoin() throws Exception {
         try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
             rowContainsQuery(s,
-                    new int[]{4},
+                    new int[]{3},
                     "explain select * from ts_10_npk --splice-properties joinStrategy=BROADCAST\n right outer join ts_5_npk on ts_10_npk.c1 = ts_5_npk.c1",
                     "BroadcastLeftOuterJoin");
         }

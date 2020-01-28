@@ -70,9 +70,9 @@ public class SortMergeJoinSelectivityIT extends BaseJoinSelectivityIT {
         try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
             rowContainsQuery(
                     s,
-                    new int[]{1,4,4},
+                    new int[]{1,3,3},
                     "explain select * from ts_10_spk --splice-properties joinStrategy=SORTMERGE\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",
-                    "rows=10","MergeSortLeftOuterJoin","preds=[(TS_10_SPK.C1[4:5] = TS_5_SPK.C1[4:1])]");
+                    "rows=10","MergeSortLeftOuterJoin","preds=[(TS_10_SPK.C1[4:1] = TS_5_SPK.C1[4:5])]");
         }
     }
 

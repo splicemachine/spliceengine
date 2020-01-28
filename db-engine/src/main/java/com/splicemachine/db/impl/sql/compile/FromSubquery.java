@@ -538,8 +538,6 @@ public class FromSubquery extends FromTable
 			((FromTable) newPRN).setExistsTable(existsTable, isNotExists, matchRowId);
 			((FromTable) newPRN).setDependencyMap(dependencyMap);
 		}
-
-		//TODO DB-9012
 		return newPRN;
 	}
 
@@ -565,7 +563,6 @@ public class FromSubquery extends FromTable
 	 * @param sql				The SubqueryList from the outer query
 	 * @param gbl				The group by list, if any
      * @param havingClause      The HAVING clause, if any
-	 * @param numTables     maximum number of tables in the query
 	 *
 	 * @return FromList		The fromList from the underlying SelectNode.
 	 *
@@ -575,8 +572,7 @@ public class FromSubquery extends FromTable
 							PredicateList outerPList,
 							SubqueryList sql,
                             GroupByList gbl,
-                            ValueNode havingClause,
-							int numTables)
+                            ValueNode havingClause)
 
 			throws StandardException
 	{
@@ -616,8 +612,6 @@ public class FromSubquery extends FromTable
 				ft.setExistsTable(existsTable, isNotExists, matchRowId);
 				ft.setDependencyMap(this.dependencyMap);
 			}
-
-			// TODO DB-9012
 		}
 		else if ( ! (subquery instanceof RowResultSetNode))
 		{
