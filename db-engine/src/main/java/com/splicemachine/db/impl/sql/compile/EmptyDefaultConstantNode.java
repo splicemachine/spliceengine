@@ -40,16 +40,14 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import java.util.List;
 import java.util.Vector;
 /**
- * An UntypedNullConstantNode represents a SQL NULL before it has
- * been bound.  The bind() operation will replace the UntypedNullConstantNodes
- * with typed ConstantNodes.
+ * An EmptyDefaultConstantNode that is used to represent default non specified values
+ * i.e. CREATE TABLE t (c int not null with default);
  */
 
 public final class EmptyDefaultConstantNode extends ConstantNode
 {
     /**
-     * Constructor for an UntypedNullConstantNode.  Untyped constants
-     * contain no state (not too surprising).
+     * Constructor for an EmptyDefaultConstantNode.
      */
 
     public EmptyDefaultConstantNode()
@@ -58,7 +56,7 @@ public final class EmptyDefaultConstantNode extends ConstantNode
     }
 
     /**
-     * Should never be called for UntypedNullConstantNode because
+     * Should never be called for EmptyDefaultConstantNode because
      * we shouldn't make it to generate
      *
      * @param acb	The ExpressionClassBuilder for the class being built
@@ -68,7 +66,7 @@ public final class EmptyDefaultConstantNode extends ConstantNode
     {
         if (SanityManager.DEBUG)
         {
-            SanityManager.THROWASSERT("generateConstant() not expected to be called for UntypedNullConstantNode because we have implemented our own generateExpression().");
+            SanityManager.THROWASSERT("generateConstant() not expected to be called for EmptyDefaultConstantNode.");
         }
     }
 
@@ -81,9 +79,6 @@ public final class EmptyDefaultConstantNode extends ConstantNode
     public DataValueDescriptor convertDefaultNode(DataTypeDescriptor typeDescriptor)
             throws StandardException
     {
-        /*
-         ** The default value is null, so set nullability to TRUE
-         */
         value = typeDescriptor.getDefault();
         return value;
     }
