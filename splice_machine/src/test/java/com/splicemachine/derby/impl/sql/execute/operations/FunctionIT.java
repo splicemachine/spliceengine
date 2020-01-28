@@ -218,45 +218,46 @@ public class FunctionIT extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
-        private void vetThreeArgCoalesce(String sql) throws Exception {
-        // First three values in each row are arguments to COALESCE. The
-                // last value is the expected return value.
-                        String[][] data = {
-                    {"a",  "b",  "c",  "a"},
-                    {null, "b",  "c",  "b"},
-                    {"a",  null, "c",  "a"},
-                    {"a",  "b",  null, "a"},
-                    {null, null, "c",  "c"},
-                    {"a",  null, null, "a"},
-                    {null, "b",  null, "b"},
-                    {null, null, null, null},
-                };
-            PreparedStatement ps = methodWatcher.prepareStatement(sql);
-            for (int i = 0; i < data.length; i++) {
-                ps.setString(1, data[i][0]);
-                ps.setString(2, data[i][1]);
-                ps.setString(3, data[i][2]);
-                ResultSet rs = ps.executeQuery();
-                Assert.assertTrue(rs.next());
-                Assert.assertEquals("Values do not match",rs.getString(1),data[i][3]);
-                Assert.assertFalse(rs.next());
-            }
+    private void vetThreeArgCoalesce(String sql) throws Exception {
+    // First three values in each row are arguments to COALESCE. The
+            // last value is the expected return value.
+                    String[][] data = {
+                {"a",  "b",  "c",  "a"},
+                {null, "b",  "c",  "b"},
+                {"a",  null, "c",  "a"},
+                {"a",  "b",  null, "a"},
+                {null, null, "c",  "c"},
+                {"a",  null, null, "a"},
+                {null, "b",  null, "b"},
+                {null, null, null, null},
+            };
+        PreparedStatement ps = methodWatcher.prepareStatement(sql);
+        for (int i = 0; i < data.length; i++) {
+            ps.setString(1, data[i][0]);
+            ps.setString(2, data[i][1]);
+            ps.setString(3, data[i][2]);
+            ResultSet rs = ps.executeQuery();
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("Values do not match",rs.getString(1),data[i][3]);
+            Assert.assertFalse(rs.next());
+        }
     }
 
-	@Test
-	public void testCurrentServer() throws Exception {
+    @Test
+    public void testCurrentServer() throws Exception {
         String sqlText = "values current server";
         String sqlTextAlt = "values current_server";
         String expected = "1    |\n" +
                 "----------\n" +
                 "splicedb |";
 
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
-        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
 
-        rs = methodWatcher.executeQuery(sqlTextAlt);
-        assertEquals("\n" + sqlTextAlt + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-	}
+        try (ResultSet rs = methodWatcher.executeQuery(sqlTextAlt)) {
+            assertEquals("\n" + sqlTextAlt + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
 }
 
