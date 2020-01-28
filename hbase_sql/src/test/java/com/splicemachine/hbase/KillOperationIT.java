@@ -202,7 +202,7 @@ public class KillOperationIT {
             assertNotNull(result.get());
             Exception e = result.get();
             assertTrue(e instanceof SQLException);
-            assertEquals("SE008", ((SQLException) e).getSQLState());
+            assertEquals("57014", ((SQLException) e).getSQLState());
         }
         checkReadCounts();
     }
@@ -266,7 +266,7 @@ public class KillOperationIT {
             assertNotNull(result.get());
             Exception e = result.get();
             assertTrue(e instanceof SQLException);
-            assertEquals("SE008", ((SQLException) e).getSQLState());
+            assertEquals("57014", ((SQLException) e).getSQLState());
         }
         checkReadCounts();
     }

@@ -248,6 +248,8 @@ public interface MessageId {
     String REPLICATION_ONELINE_MSG_HEADER                = "R013";
     String REPLICATION_FAILOVER_SUCCESSFUL               = "R020";
 
+    String SPLICE_CANCELLATION_EXCEPTION                 = "57014";
+
     /*
      * Splice Engine
      */
@@ -258,7 +260,6 @@ public interface MessageId {
     String SPLICE_REGION_TOO_BUSY                        = "SE005";
     String ZOOKEEPER_FAILURE                             = "SE006.C.3";
     String QUERY_TIMEOUT                                 = "SE007";
-    String SPLICE_CANCELLATION_EXCEPTION                 = "SE008";
     String LANG_IMPORT_TOO_MANY_BAD_RECORDS              = "SE009";
     String LANG_NO_WRITE_PERMISSION                      = "SE010";
     String LANG_NO_READ_PERMISSION                       = "SE011";

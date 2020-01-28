@@ -172,7 +172,7 @@ public class JdbcApiIT {
             }).start();
             ResultSet rs = s.executeQuery(sql);
         } catch (SQLException se) {
-            assertEquals("SE008", se.getSQLState());
+            assertEquals("57014", se.getSQLState());
         }
     }
 
