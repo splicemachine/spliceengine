@@ -1936,7 +1936,7 @@ public enum ErrorState{
             return StandardException.newException(getSqlState(),rootCause.getMessage());
         }
     },
-    SPLICE_CANCELLATION_EXCEPTION("SE008"){
+    SPLICE_CANCELLATION_EXCEPTION("57014"){
         @Override
         public boolean accepts(Throwable t){
             return super.accepts(t)
