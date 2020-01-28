@@ -1823,7 +1823,6 @@ public class SelectNode extends ResultSetNode{
 			 */
 			JoinNode joinNode;
 			if (rightResultSet.getFromSSQ() || rightResultSet instanceof FromTable && ((FromTable)rightResultSet).getOJLevel() > 0) {
-                rightRCList.setNullability(true);
                 joinNode = (JoinNode)getNodeFactory().getNode(
                         C_NodeTypes.HALF_OUTER_JOIN_NODE,
                         leftResultSet,
@@ -1831,9 +1830,10 @@ public class SelectNode extends ResultSetNode{
                         null,                          // join clause
                         null,                                // using clause
                         Boolean.FALSE,                       // is right join
-                        leftRCList,                          // RCL
                         null,                                // table props
                         getContextManager());
+                rightRCList.setNullability(true);
+                joinNode.setResultColumns(leftRCList);
             } else {
                 joinNode = (JoinNode) getNodeFactory().getNode(
                         C_NodeTypes.JOIN_NODE,
