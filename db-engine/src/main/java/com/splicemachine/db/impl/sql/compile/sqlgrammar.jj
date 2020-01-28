@@ -1196,7 +1196,9 @@ public class SQLParser
             tokKind == CURRENT_TIME ||
             tokKind == CURRENT_TIMESTAMP ||
             tokKind == NOW ||
-            tokKind == CURRENT && (isDATETIME(getToken(2).kind)) )
+            tokKind == CURRENT && (isDATETIME(getToken(2).kind)) ||
+            tokKind == CURRENT && getToken(2).kind == SERVER ||
+            tokKind == CURRENT_SERVER)
         {
             return false;
         }
@@ -1400,13 +1402,14 @@ public class SQLParser
           case CURRENT_DATE:
           case CURRENT_TIME:
           case CURRENT_TIMESTAMP:
+          case CURRENT_SERVER:
           case NOW:
               retval = true;
             break;
 
           case CURRENT:
-            if (isDATETIME(getToken(2).kind))
-                  retval = true;
+            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER)
+                retval = true;
             break;
 
           case CAST:
@@ -2745,6 +2748,7 @@ TOKEN [IGNORE_CASE] :
 |    <CROSS: "cross">
 |    <CURRENT: "current">
 |    <CURRENT_DATE: "current_date">
+|    <CURRENT_SERVER: "current_server">
 |    <CURRENT_TIME: "current_time">
 |    <CURRENT_TIMESTAMP: "current_timestamp">
 |    <CURRENT_USER: "current_user">
@@ -2870,8 +2874,9 @@ TOKEN [IGNORE_CASE] :
 |    <SCROLL: "scroll">
 |    <SECOND: "second">
 |    <SELECT: "select">
+|    <SERVER: "server">
 |    <SESSION_USER: "session_user">
-|   <SESSION_PROPERTY: "session_property">
+|    <SESSION_PROPERTY: "session_property">
 |    <SET: "set">
 |    <SMALLINT: "smallint">
 |    <SOME: "some">
@@ -8060,6 +8065,11 @@ miscBuiltins() throws StandardException :
         return value;
     }
 |
+    value = currentServerFunction()
+    {
+        return value;
+    }
+|
     value = datetimeValueFunction()
     {
         return value;
@@ -11197,6 +11207,29 @@ datetimeValueFunction() throws StandardException :
     }
 }
 
+
+/*
+ * <A NAME="currentServerFunction">currentServerFunction</A>
+ */
+ValueNode
+currentServerFunction() throws StandardException :
+{
+}
+{
+    LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == SERVER)}) <CURRENT> <SERVER>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.CURRENT_SERVER_NODE,
+                                getContextManager());
+    }
+    | <CURRENT_SERVER>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.CURRENT_SERVER_NODE,
+                                getContextManager());
+    }
+}
+
    /*
    ** Note that set function and aggregate are used
    ** interchangeably in the parser.  The tree has
@@ -13882,6 +13915,11 @@ DB2DefaultOption(String columnName) throws StandardException :
         throw StandardException.newException(
             SQLState.LANG_DB2_INVALID_DEFAULT_VALUE,
             columnName);
+    }
+|
+    value = currentServerFunction()
+    {
+        return value;
     }
 |
     value = datetimeValueFunction()
@@ -17189,6 +17227,7 @@ reservedKeyword() :
 |    tok = <CROSS>
 |    tok = <CURRENT>
 |    tok = <CURRENT_DATE>
+|    tok = <CURRENT_SERVER>
 |    tok = <CURRENT_TIME>
 |    tok = <CURRENT_TIMESTAMP>
 |    tok = <CURRENT_USER>
@@ -17222,7 +17261,7 @@ reservedKeyword() :
 |    tok = <FETCH>
 |    tok = <FIRST>
 |    tok = <FLOAT>
-|   tok = <FOLLOWING>
+|    tok = <FOLLOWING>
 |    tok = <FOR>
 |    tok = <FOREIGN>
 |    tok = <FOUND>
@@ -17245,7 +17284,7 @@ reservedKeyword() :
 |    tok = <INDICATOR>
 |    tok = <INITIALLY>
 |    tok = <INNER>
-|   tok = <INOUT>
+|    tok = <INOUT>
 |    tok = <INPUT>
 |    tok = <INSENSITIVE>
 |    tok = <INSERT>
@@ -17345,7 +17384,7 @@ reservedKeyword() :
 |    tok = <TRANSLATE>
 |    tok = <TRANSLATION>
 |    tok = <TRUE>
-|   tok = <UNBOUNDED>
+|    tok = <UNBOUNDED>
 |    tok = <UNION>
 |    tok = <UNIQUE>
 |    tok = <UNKNOWN>
@@ -17446,9 +17485,9 @@ nonReservedKeyword()  :
     |    tok = <DAY>
     |    tok = <DAYOFYEAR>
     |    tok = <DEFRAGMENT>
-        |    tok = <DIRTY>
+    |    tok = <DIRTY>
     |    tok = <DYNAMIC>
-    |   tok = <DATABASE>
+    |    tok = <DATABASE>
     |    tok = <DB2SQL>
     |    tok = <DENSERANK>
     |    tok = <DERBY>
@@ -17458,16 +17497,16 @@ nonReservedKeyword()  :
     |    tok = <EACH>
     |    tok = <EMPTY>
     |    tok = <EXCLUDE>
-    |   tok = <ESTIMATE>
+    |    tok = <ESTIMATE>
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
     |    tok = <FIRSTVALUE>
     |    tok = <FN>
     |    tok = <FORTRAN>
-    |   tok = <FRACTION>
+    |    tok = <FRACTION>
     |    tok = <GENERATED>
-    |   tok = <GROUPING>
-    |   tok = <HFILE>
+    |    tok = <GROUPING>
+    |    tok = <HFILE>
     |    tok = <IDENTITY_VAL_LOCAL>
     |    tok = <IGNORE>
     |    tok = <INCREMENT>
@@ -17476,14 +17515,14 @@ nonReservedKeyword()  :
     |    tok = <INPLACE>
 // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <INTERVAL>
-    |   tok = <JAVA>
-    |   tok = <KEYS>
-    |   tok = <L>
+    |    tok = <JAVA>
+    |    tok = <KEYS>
+    |    tok = <L>
     |    tok = <LAG>
     |    tok = <LANGUAGE>
     |    tok = <LARGE>
     |    tok = <LASTVALUE>
-    |   tok = <LCASE>
+    |    tok = <LCASE>
     |    tok = <LEAD>
     |    tok = <LENGTH>
     |    tok = <LEVEL>
@@ -17586,6 +17625,7 @@ nonReservedKeyword()  :
     |    tok = <SEQUENCE>
     |    tok = <SEQUENTIAL>
     |    tok = <SERIALIZABLE>
+    |    tok = <SERVER>
     |    tok = <SETS>
     |    tok = <SHARE>
     |    tok = <SIGNAL>
