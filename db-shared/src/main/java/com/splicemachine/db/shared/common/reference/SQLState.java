@@ -1950,8 +1950,10 @@ public interface SQLState {
     String REPLICATION_SLAVE_SHUTDOWN_OK                           = "XRE42.C";
     String REPLICATION_STOPSLAVE_NOT_INITIATED                     = "XRE43";
 
+	//Inherited DB2 error codes
+    String LANG_CANCELLATION_EXCEPTION                             = "57014";
+
     //general SPlice errors
-    String LANG_CANCELLATION_EXCEPTION                             = "SE008";
     String LANG_INVALID_DAY                                        = "SE022";
     String ERROR_PARSING_EXCEPTION                                 = "SE023";
     String PARAMETER_CANNOT_BE_NULL                                = "SE024";
