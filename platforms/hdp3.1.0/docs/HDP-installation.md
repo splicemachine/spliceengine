@@ -195,6 +195,7 @@ Note:
 | hbase.regionserver.metahandler.count                  | 200                                                                                                       |
 | hbase.regionserver.thread.compaction.large            | 4                                                                                                         |
 | hbase.regionserver.wal.enablecompression              | true                                                                                                      |
+| hbase.rowlock.wait.duration                           | 10                                                                                                        |
 | hbase.splitlog.manager.timeout                        | 3000                                                                                                      |
 | hbase.status.multicast.port                           | 16100                                                                                                     |
 | hbase.wal.disruptor.batch                             | true                                                                                                      |
