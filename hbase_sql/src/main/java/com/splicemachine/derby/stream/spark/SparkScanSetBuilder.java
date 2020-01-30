@@ -101,14 +101,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
                 // The predicates have variant qualifiers (or we are reading ORC with our own reader), we couldn't push them down to the scan, process them here
                 return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
             }
-            if (dsp.isSparkExplain()) {
-                // The following doesn't appear to be required.
-                // Enable if collection of any spark explain plans is found
-                // to read rows and execute part of the query plan:
-                // Filter out rows if we only care about the explain.  We don't actually want to
-                // spend any time running the query if possible.
-                //locatedRows = locatedRows.sampleWithoutReplacement(0.0d);
-            }
             return locatedRows;
         }
         
@@ -120,19 +112,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         if (oneSplitPerRegion) {
             conf.set(MRConstants.ONE_SPLIT_PER_REGION, "true");
         }
-        if (dsp.isSparkExplain()) {
-            // The following doesn't appear to be required.
-            // Enable if collection of any spark explain plans is found
-            // to read rows and execute part of the query plan:
-            // We need to call getDataSet() to get the spark explain, which may run part
-            // of the query (for example, the broadcast in a broadcast join).
-            // Let's keep the execution time to a minimum.
-            // When the sampling rate is very small it can currently cause query hangs.
-            // Do not decrease the following sampling rate until this is fixed.
-            //conf.set(MRConstants.SPLICE_SAMPLING, Double.toString(0.0000001d));
-        }
-        else
-            if (useSample) {
+        if (useSample) {
             conf.set(MRConstants.SPLICE_SAMPLING, Double.toString(sampleFraction));
         }
         if (op != null) {
@@ -153,14 +133,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(
             conf, SMInputFormat.class, RowLocation.class, ExecRow.class);
         // rawRDD.setName(String.format(SparkConstants.RDD_NAME_SCAN_TABLE, tableDisplayName));
-        if (dsp.isSparkExplain()) {
-            // The following doesn't appear to be required.
-            // Enable if collection of any spark explain plans is found
-            // to read rows and execute part of the query plan:
-            // Filter out any remaining rows.  We don't actually want to
-            // spend any time running the query if possible.
-            //rawRDD = rawRDD.sample(false, 0.0d);
-        }
         rawRDD.setName("Perform Scan");
         SpliceSpark.popScope();
         SparkSpliceFunctionWrapper f = new SparkSpliceFunctionWrapper(new TableScanTupleMapFunction<SpliceOperation>(operationContext));

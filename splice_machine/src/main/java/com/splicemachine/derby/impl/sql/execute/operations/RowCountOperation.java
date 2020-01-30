@@ -14,24 +14,21 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.stream.function.CloneFunction;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Strings;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.stream.function.OffsetFunction;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.spark_project.guava.collect.Iterators;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.stream.function.CloneFunction;
+import com.splicemachine.derby.stream.function.OffsetFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.spark_project.guava.base.Strings;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -207,21 +204,7 @@ public class RowCountOperation extends SpliceBaseOperation {
         dsp.decrementOpDepth();
         DataSet<ExecRow> sourceSet = sourceDS.map(new CloneFunction<>(operationContext));
         if (dsp.isSparkExplain()) {
-                        DataSet<ExecRow> ds = dsp.createDataSet(Iterators.transform(Collections.emptyIterator(),
-                                                                new Function<String, ExecRow>() {
-                                                             @Nullable
-                                                             @Override
-                                                             public ExecRow apply(@Nullable String n) {
-                                                                 try {
-                                                                     return getExecRowDefinition().getClone();
-                                                                 } catch (Exception e) {
-                                                                     throw new RuntimeException(e);
-                                                                 }
-                                                             }
-                                                         }
-                    ),
-                    this.explainPlan
-            );
+            DataSet<ExecRow> ds = dsp.getEmpty();
             handleSparkExplain(ds, sourceDS, dsp);
             return ds;
         }
