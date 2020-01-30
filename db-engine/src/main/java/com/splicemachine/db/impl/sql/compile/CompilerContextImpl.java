@@ -142,7 +142,7 @@ public class CompilerContextImpl extends ContextImpl
         projectionPruningEnabled = false;
         maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
         nextOJLevel = 1;
-		outerJoinFlatteningDisabled = false;
+        outerJoinFlatteningDisabled = false;
 	}
 
 	//

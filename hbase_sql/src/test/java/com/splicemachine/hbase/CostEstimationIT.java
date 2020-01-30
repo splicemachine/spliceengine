@@ -236,8 +236,6 @@ public class CostEstimationIT extends SpliceUnitTest {
                           ->  TableScan[T11(48192)](n=1,totalCost=4.6,scannedRows=300,outputRows=270,outputHeapSize=270 B,partitions=1,preds=[(A1[0:1] = 90)])
 
             10 rows selected
-
-            10 rows selected
          */
         rowContainsQuery(new int[]{2,3,4,5,6,7,8,9,10},"explain select count(*) from --splice-properties joinOrder=fixed\n" +
                         "t11  --splice-properties useDefaultRowCount=300\n" +

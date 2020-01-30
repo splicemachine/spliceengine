@@ -1051,7 +1051,7 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public boolean isFlattenableJoinNode(){
-        return flattenableJoin && (OJLevel == 0);
+        return flattenableJoin && (outerJoinLevel == 0);
     }
 
     /**

@@ -1822,7 +1822,7 @@ public class SelectNode extends ResultSetNode{
 			 * replace the 1st 2 entries in the FromList.
 			 */
 			JoinNode joinNode;
-			if (rightResultSet.getFromSSQ() || rightResultSet instanceof FromTable && ((FromTable)rightResultSet).getOJLevel() > 0) {
+			if (rightResultSet.getFromSSQ() || rightResultSet instanceof FromTable && ((FromTable)rightResultSet).getOuterJoinLevel() > 0) {
                 rightRCList.setNullability(true);
                 joinNode = (JoinNode)getNodeFactory().getNode(
                         C_NodeTypes.HALF_OUTER_JOIN_NODE,
@@ -1852,7 +1852,7 @@ public class SelectNode extends ResultSetNode{
             ResultSetNode newPRNode = joinNode.genProjectRestrict();
 
 			// apply post outer join conditions
-            if (((FromTable)rightResultSet).getOJLevel() > 0) {
+            if (((FromTable)rightResultSet).getOuterJoinLevel() > 0) {
 			    PredicateList postJoinPredicates = ((FromTable)rightResultSet).getPostJoinPredicates();
 			    if (postJoinPredicates != null) {
 			        for (int i=0; i<postJoinPredicates.size(); i++) {
@@ -2516,7 +2516,7 @@ public class SelectNode extends ResultSetNode{
         for (int i=0; i<fromList.size(); i++) {
             FromTable ft = (FromTable)fromList.elementAt(i);
             // do not consider flattened inner table nodes from outer joins
-            if ((ft.getOJLevel() == 0) && ft.isUnsatisfiable()) {
+            if ((ft.getOuterJoinLevel() == 0) && ft.isUnsatisfiable()) {
                 nonAggregatePartSat = Satisfiability.UNSAT;
                 return true;
             }
@@ -2748,7 +2748,7 @@ public class SelectNode extends ResultSetNode{
         JBitSet collected = new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
         for (int i=0; i<fromList.size(); i++) {
             FromTable fromTable = (FromTable)fromList.getOptimizable(i);
-            if (fromTable.getOJLevel() > 0) {
+            if (fromTable.getOuterJoinLevel() > 0) {
                 collected.or(fromTable.getReferencedTableMap());
             }
         }
