@@ -2164,7 +2164,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             ValueNode vn=predicate.getAndNode().getLeftOperand();
 
             // do not consider ON clause condition flattened from Outer join node for TC
-            if (predicate.getOJLevel() > 0)
+            if (predicate.getOuterJoinLevel() > 0)
                 continue;
 
             if(!(vn.isBinaryEqualsOperatorNode())){
@@ -2442,7 +2442,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             AndNode andNode=predicate.getAndNode();
 
             // do not consider ON clause condition flattened from Outer join node for TC
-            if (predicate.getOJLevel() > 0)
+            if (predicate.getOuterJoinLevel() > 0)
                 continue;
 
             // Skip anything that's not a RelationalOperator

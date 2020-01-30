@@ -867,7 +867,7 @@ public class OptimizerImpl implements Optimizer{
 
             pushPredicates(optimizableList.getOptimizable(nextOptimizable), assignedTableMap);
 
-            if (((FromTable)nextOpt).getOJLevel() > 0) {
+            if (((FromTable)nextOpt).getOuterJoinLevel() > 0) {
                 PredicateList pList = ((FromTable) nextOpt).getPostJoinPredicates();
                 PredicateList pList2 = pickPostJoinPredicates(nextOpt, assignedTableMap);
 
@@ -1085,7 +1085,7 @@ public class OptimizerImpl implements Optimizer{
         int savedJoinType = JoinNode.INNERJOIN;
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
-            if (fromTable.getFromSSQ() || fromTable.getOJLevel() > 0) {
+            if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0) {
                 savedJoinType = outerCost.getJoinType();
                 outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
             }
@@ -1097,7 +1097,7 @@ public class OptimizerImpl implements Optimizer{
          */
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
-            if (fromTable.getFromSSQ() || fromTable.getOJLevel() > 0)
+            if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0)
                 outerCost.setJoinType(savedJoinType);
         }
     }
@@ -1253,7 +1253,7 @@ public class OptimizerImpl implements Optimizer{
 			/* Current table is treated as an outer table */
             outerTables.or(optimizable.getReferencedTableMap());
 
-            int oJLevel = ((FromTable)optimizable).getOJLevel();
+            int oJLevel = ((FromTable)optimizable).getOuterJoinLevel();
 
 			/*
 			** Push any appropriate predicates from this optimizer's list
@@ -1647,14 +1647,14 @@ public class OptimizerImpl implements Optimizer{
             }
 
 
-            if (fromTable.getOJLevel() > 0) {
+            if (fromTable.getOuterJoinLevel() > 0) {
                 // if inner table flattened from an outer join, only consider the ON clause join conditions
-                pushPredNow = pred.getOJLevel() == fromTable.getOJLevel();
+                pushPredNow = pred.getOuterJoinLevel() == fromTable.getOuterJoinLevel();
             } else {
                 // On clause condition for outer join cannot be pushed to the left table
                 // eg. select * from t1 left join t2 on a1=a2 and a1=1
                 // a1=1 cannot be applied to t1 as a single table condition
-                if (pred.getOJLevel() > 0)
+                if (pred.getOuterJoinLevel() > 0)
                     continue;
 
 			/* Make copy of referenced map so that we can do destructive
@@ -1806,7 +1806,7 @@ public class OptimizerImpl implements Optimizer{
                 continue;
             }
 
-            if (pred.getOJLevel() > 0)
+            if (pred.getOuterJoinLevel() > 0)
                 continue;
 
 			/* Make copy of referenced map so that we can do destructive

@@ -125,9 +125,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     public boolean fromSSQ;
 
     /* variable tracking the info of a FromTable node flattened from a HalfJoinNode.
-     * if OJLevel = 0, the table is free to join with other tables in the FromList, if OJLevel > 0, it can only
+     * if outerJoinLevel = 0, the table is free to join with other tables in the FromList, if outerJoinLevel > 0, it can only
      * join with its left table indicated in the dependencyMap */
-    protected int OJLevel;
+    protected int outerJoinLevel;
     PredicateList postJoinPredicates;
     /**
      * Initializer for a table in a FROM list.
@@ -141,7 +141,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         this.tableProperties=(Properties)tableProperties;
         tableNumber=-1;
         bestPlanMap=null;
-        OJLevel = 0;
+        outerJoinLevel = 0;
     }
 
     /**
@@ -1390,12 +1390,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return accumulatedCostForSortAvoidancePlan;
     }
 
-    public int getOJLevel() {
-        return OJLevel;
+    public int getOuterJoinLevel() {
+        return outerJoinLevel;
     }
 
-    public void setOJLevel(int level) {
-        OJLevel = level;
+    public void setOuterJoinLevel(int level) {
+        outerJoinLevel = level;
     }
 
     /**
