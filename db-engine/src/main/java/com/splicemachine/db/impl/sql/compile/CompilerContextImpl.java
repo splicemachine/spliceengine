@@ -141,6 +141,8 @@ public class CompilerContextImpl extends ContextImpl
         selectivityEstimationIncludingSkewedDefault = false;
         projectionPruningEnabled = false;
         maxMulticolumnProbeValues = DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
+        nextOJLevel = 1;
+        outerJoinFlatteningDisabled = false;
 	}
 
 	//
@@ -282,6 +284,14 @@ public class CompilerContextImpl extends ContextImpl
 
 	public int getCurrentTimestampPrecision() {
 		return currentTimestampPrecision;
+	}
+
+	public boolean isOuterJoinFlatteningDisabled() {
+		return outerJoinFlatteningDisabled;
+	}
+
+	public void setOuterJoinFlatteningDisabled(boolean onOff) {
+		outerJoinFlatteningDisabled = onOff;
 	}
 
 	/**
@@ -1101,6 +1111,10 @@ public class CompilerContextImpl extends ContextImpl
 
     }
 
+    public int getNextOJLevel() {
+    	return nextOJLevel ++;
+	}
+
 	/*
 	** Context state must be reset in restContext()
 	*/
@@ -1137,6 +1151,9 @@ public class CompilerContextImpl extends ContextImpl
 	private CompilerContext.NativeSparkModeType nativeSparkAggregationMode = DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
 	private boolean allowOverflowSensitiveNativeSparkExpressions = DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS;
 	private int currentTimestampPrecision = DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
+	// Used to track the flattened half outer joins.
+	private int                 nextOJLevel = 1;
+	private boolean             outerJoinFlatteningDisabled;
 	/**
 	 * Saved execution time default schema, if we need to change it
 	 * temporarily.

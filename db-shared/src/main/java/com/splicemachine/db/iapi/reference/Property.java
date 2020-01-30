@@ -1453,4 +1453,6 @@ public interface Property {
 	 * Fractional seconds precision of current_timestamp
 	 */
 	String SPLICE_CURRENT_TIMESTAMP_PRECISION = "splice.function.currentTimestampPrecision";
+
+	String OUTERJOIN_FLATTENING_DISABLED = "derby.database.outerJoinFlatteningDisabled";
 }

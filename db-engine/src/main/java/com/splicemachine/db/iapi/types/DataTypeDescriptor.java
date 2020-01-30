@@ -68,15 +68,15 @@ import static com.splicemachine.db.iapi.types.TypeId.CHAR_ID;
 public class DataTypeDescriptor implements Formatable{
     /********************************************************
      **
-     **	This class implements Formatable. That means that it
-     **	can write itself to and from a formatted stream. If
-     **	you add more fields to this class, make sure that you
-     **	also write/read them with the writeExternal()/readExternal()
-     **	methods.
+     **    This class implements Formatable. That means that it
+     **    can write itself to and from a formatted stream. If
+     **    you add more fields to this class, make sure that you
+     **    also write/read them with the writeExternal()/readExternal()
+     **    methods.
      **
-     **	If, inbetween releases, you add more fields to this class,
-     **	then you should bump the version number emitted by the getTypeFormatId()
-     **	method.
+     **    If, inbetween releases, you add more fields to this class,
+     **    then you should bump the version number emitted by the getTypeFormatId()
+     **    method.
      **
      ********************************************************/
 
@@ -107,8 +107,8 @@ public class DataTypeDescriptor implements Formatable{
     public static final DataTypeDescriptor LONGINT_NOT_NULL=LONGINT.getNullabilityType(false);
 
     /*
-	** Static creators
-	*/
+    ** Static creators
+    */
 
     /**
      * Get a descriptor that corresponds to a nullable builtin JDBC type.
@@ -355,9 +355,9 @@ public class DataTypeDescriptor implements Formatable{
         return new TypeDescriptorImpl(rms,true,-1);
     }
 
-	/*
-	** Instance fields & methods
-	*/
+    /*
+    ** Instance fields & methods
+    */
 
     private TypeDescriptorImpl typeDescriptor;
     private TypeId typeId;
@@ -643,19 +643,19 @@ public class DataTypeDescriptor implements Formatable{
         thisType=getTypeId();
         otherType=otherDTS.getTypeId();
 
-		/* The result is nullable if either side is nullable */
+        /* The result is nullable if either side is nullable */
         nullable=isNullable() || otherDTS.isNullable();
 
-		/*
-		** The result will have the maximum width of both sides
-		*/
+        /*
+        ** The result will have the maximum width of both sides
+        */
         maximumWidth=(getMaximumWidth()>otherDTS.getMaximumWidth())
                 ?getMaximumWidth():otherDTS.getMaximumWidth();
 
-		/* We need 2 separate methods of determining type dominance - 1 if both
-		 * types are system built-in types and the other if at least 1 is
-		 * a user type. (typePrecedence is meaningless for user types.)
-		 */
+        /* We need 2 separate methods of determining type dominance - 1 if both
+         * types are system built-in types and the other if at least 1 is
+         * a user type. (typePrecedence is meaningless for user types.)
+         */
         if(!thisType.userType() && !otherType.userType()){
             TypeId higherTypeId;
             TypeId lowerTypeId;
@@ -677,17 +677,17 @@ public class DataTypeDescriptor implements Formatable{
                 higherType=DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE);
                 higherTypeId=TypeId.getBuiltInTypeId(Types.DOUBLE);
             }
-			/*
-			** If we have a DECIMAL/NUMERIC we have to do some
-			** extra work to make sure the resultant type can
-			** handle the maximum values for the two input
-			** types.  We cannot just take the maximum for
-			** precision.  E.g. we want something like:
-			**
-			**		DEC(10,10) and DEC(3,0) => DEC(13,10)
-			**
-			** (var)char type needs some conversion handled later.
-			*/
+            /*
+            ** If we have a DECIMAL/NUMERIC we have to do some
+            ** extra work to make sure the resultant type can
+            ** handle the maximum values for the two input
+            ** types.  We cannot just take the maximum for
+            ** precision.  E.g. we want something like:
+            **
+            **        DEC(10,10) and DEC(3,0) => DEC(13,10)
+            **
+            ** (var)char type needs some conversion handled later.
+            */
             assert higherTypeId!=null;
             if(higherTypeId.isDecimalTypeId() && (!lowerTypeId.isStringTypeId())){
                 precision=higherTypeId.getPrecision(this,otherDTS);
@@ -695,29 +695,29 @@ public class DataTypeDescriptor implements Formatable{
                     precision=Limits.DB2_MAX_DECIMAL_PRECISION_SCALE; //db2 silently does this and so do we
                 scale=higherTypeId.getScale(this,otherDTS);
 
-				/* maximumWidth needs to count possible leading '-' and
-				 * decimal point and leading '0' if scale > 0.  See also
-				 * sqlgrammar.jj(exactNumericType).  Beetle 3875
-				 */
+                /* maximumWidth needs to count possible leading '-' and
+                 * decimal point and leading '0' if scale > 0.  See also
+                 * sqlgrammar.jj(exactNumericType).  Beetle 3875
+                 */
                 maximumWidth=(scale>0)?precision+3:precision+1;
             }else if(thisType.typePrecedence()!=otherType.typePrecedence()){
                 precision=higherType.getPrecision();
                 scale=higherType.getScale();
 
-				/* GROSS HACKS:
-				 * If we are doing an implicit (var)char->(var)bit conversion
-				 * then the maximum width for the (var)char as a (var)bit
-				 * is really 16 * its width as a (var)char.  Adjust
-				 * maximumWidth accordingly.
-				 * If we are doing an implicit (var)char->decimal conversion
-				 * then we need to increment the decimal's precision by
-				 * 2 * the maximum width for the (var)char and the scale
-				 * by the maximum width for the (var)char. The maximumWidth
-				 * becomes the new precision + 3.  This is because
-				 * the (var)char could contain any decimal value from XXXXXX
-				 * to 0.XXXXX.  (In other words, we don't know which side of the
-				 * decimal point the characters will be on.)
-				 */
+                /* GROSS HACKS:
+                 * If we are doing an implicit (var)char->(var)bit conversion
+                 * then the maximum width for the (var)char as a (var)bit
+                 * is really 16 * its width as a (var)char.  Adjust
+                 * maximumWidth accordingly.
+                 * If we are doing an implicit (var)char->decimal conversion
+                 * then we need to increment the decimal's precision by
+                 * 2 * the maximum width for the (var)char and the scale
+                 * by the maximum width for the (var)char. The maximumWidth
+                 * becomes the new precision + 3.  This is because
+                 * the (var)char could contain any decimal value from XXXXXX
+                 * to 0.XXXXX.  (In other words, we don't know which side of the
+                 * decimal point the characters will be on.)
+                 */
                 if(lowerTypeId.isStringTypeId()){
                     if(higherTypeId.isBitTypeId() &&
                             !(higherTypeId.isLongConcatableTypeId())){
@@ -741,34 +741,34 @@ public class DataTypeDescriptor implements Formatable{
                     }
                 }
 
-				/*
-				 * If we are doing an implicit (var)char->decimal conversion
-				 * then the resulting decimal's precision could be as high as
-				 * 2 * the maximum width (precisely 2mw-1) for the (var)char
-				 * and the scale could be as high as the maximum width
-				 * (precisely mw-1) for the (var)char.
-				 * The maximumWidth becomes the new precision + 3.  This is
-				 * because the (var)char could contain any decimal value from
-				 * XXXXXX to 0.XXXXX.  (In other words, we don't know which
-				 * side of the decimal point the characters will be on.)
-				 *
-				 * We don't follow this algorithm for long varchar because the
-				 * maximum length of a long varchar is maxint, and we don't
-				 * want to allocate a huge decimal value.  So in this case,
-				 * the precision, scale, and maximum width all come from
-				 * the decimal type.
-				 */
+                /*
+                 * If we are doing an implicit (var)char->decimal conversion
+                 * then the resulting decimal's precision could be as high as
+                 * 2 * the maximum width (precisely 2mw-1) for the (var)char
+                 * and the scale could be as high as the maximum width
+                 * (precisely mw-1) for the (var)char.
+                 * The maximumWidth becomes the new precision + 3.  This is
+                 * because the (var)char could contain any decimal value from
+                 * XXXXXX to 0.XXXXX.  (In other words, we don't know which
+                 * side of the decimal point the characters will be on.)
+                 *
+                 * We don't follow this algorithm for long varchar because the
+                 * maximum length of a long varchar is maxint, and we don't
+                 * want to allocate a huge decimal value.  So in this case,
+                 * the precision, scale, and maximum width all come from
+                 * the decimal type.
+                 */
                 if(lowerTypeId.isStringTypeId()
                         && !(lowerTypeId.isLongConcatableTypeId())
                         && higherTypeId.isDecimalTypeId()){
                     int charMaxWidth=lowerType.getMaximumWidth();
                     int charPrecision;
 
-					/*
-					** Be careful not to overflow when calculating the
-					** precision.  Remember that we will be adding
-					** three to the precision to get the maximum width.
-					*/
+                    /*
+                    ** Be careful not to overflow when calculating the
+                    ** precision.  Remember that we will be adding
+                    ** three to the precision to get the maximum width.
+                    */
                     if(charMaxWidth>(Integer.MAX_VALUE-3)/2)
                         charPrecision=Integer.MAX_VALUE-3;
                     else
@@ -790,7 +790,7 @@ public class DataTypeDescriptor implements Formatable{
                 }
             }
         }else{
-			/* At least 1 type is not a system built-in type */
+            /* At least 1 type is not a system built-in type */
             ClassInspector cu=cf.getClassInspector();
 
             if(cu.assignableTo(thisType.getCorrespondingJavaTypeName(),otherType.getCorrespondingJavaTypeName())){
@@ -862,7 +862,7 @@ public class DataTypeDescriptor implements Formatable{
      * @return boolean  Whether or not the 2 DTSs have the same type and length.
      */
     public boolean isExactTypeAndLengthMatch(DataTypeDescriptor otherDTS){
-		/* Do both sides have the same length? */
+        /* Do both sides have the same length? */
         if(getMaximumWidth()!=otherDTS.getMaximumWidth()){
             return false;
         }
@@ -877,7 +877,7 @@ public class DataTypeDescriptor implements Formatable{
         TypeId thisType=getTypeId();
         TypeId otherType=otherDTS.getTypeId();
 
-		/* Do both sides have the same type? */
+        /* Do both sides have the same type? */
         return thisType.equals(otherType);
     }
 
@@ -1231,8 +1231,8 @@ public class DataTypeDescriptor implements Formatable{
 
         // Ref types cannot be compared
         /*if (typeId.isRefTypeId() || compareWithTypeID.isRefTypeId())
-			return false;
-		*/
+            return false;
+        */
         //If this DTD is not user defined type but the DTD to be compared with
         //is user defined type, then let the other DTD decide what should be the
         //outcome of the comparable method.
@@ -1368,7 +1368,7 @@ public class DataTypeDescriptor implements Formatable{
     public double estimatedMemoryUsage(){
         switch(typeId.getTypeFormatId()){
             case StoredFormatIds.LONGVARBIT_TYPE_ID:
-				/* Who knows?  Let's just use some big number */
+                /* Who knows?  Let's just use some big number */
                 return 10000.0;
 
             case StoredFormatIds.BIT_TYPE_ID:
@@ -1382,14 +1382,14 @@ public class DataTypeDescriptor implements Formatable{
                 return 2.0*getMaximumWidth();
 
             case StoredFormatIds.LONGVARCHAR_TYPE_ID:
-				/* Who knows? Let's just use some big number */
+                /* Who knows? Let's just use some big number */
                 return 10000.0;
 
             case StoredFormatIds.DECIMAL_TYPE_ID:
-				/*
-				** 0.415 converts from number decimal digits to number of 8-bit digits.
-				** Add 1.0 for the sign byte, and 0.5 to force it to round up.
-				*/
+                /*
+                ** 0.415 converts from number decimal digits to number of 8-bit digits.
+                ** Add 1.0 for the sign byte, and 0.5 to force it to round up.
+                */
                 return (getPrecision()*0.415)+1.5;
 
             case StoredFormatIds.DOUBLE_TYPE_ID:
@@ -1411,12 +1411,12 @@ public class DataTypeDescriptor implements Formatable{
                 return 1.0;
 
             case StoredFormatIds.REF_TYPE_ID:
-				/* I think 12 is the right number */
+                /* I think 12 is the right number */
                 return 12.0;
 
             case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
                 if(typeId.userType()){
-					/* Who knows?  Let's just use some medium-sized number */
+                    /* Who knows?  Let's just use some medium-sized number */
                     return 256.0;
                 }
             case StoredFormatIds.DATE_TYPE_ID:
@@ -1749,5 +1749,8 @@ public class DataTypeDescriptor implements Formatable{
          }
      }
 
+    public DataValueDescriptor getDefault() throws StandardException {
+        return typeId.getDefault();
+    }
 }
 

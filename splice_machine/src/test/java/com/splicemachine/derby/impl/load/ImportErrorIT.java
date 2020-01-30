@@ -293,12 +293,11 @@ public class ImportErrorIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore("SPLICE-230: Import of improper decimal gives overflow when selected")
     public void testDecimalTable() throws Exception {
         final String importFileName = "bad_decimal.csv";
-        final String expectedErrorCode = "XIE0A";
+        final String expectedErrorCode = "22003";
         final String expectedErrorMsg = "The resulting value is outside the range for the data type DECIMAL/NUMERIC(2,0).";
-        runImportTest("DECIMALTABLE",importFileName, new ErrorCheck() {
+        runImportTest("DECIMALTABLE",importFileName, BADDIR.getCanonicalPath(), new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) throws Exception {
                 // "too many records" error

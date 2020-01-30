@@ -172,6 +172,7 @@ public interface CompilerContext extends Context
 	NativeSparkModeType DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE = NativeSparkModeType.SYSTEM;
 	boolean DEFAULT_SPLICE_ALLOW_OVERFLOW_SENSITIVE_NATIVE_SPARK_EXPRESSIONS = true;
 	int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
+	boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -705,4 +706,10 @@ public interface CompilerContext extends Context
 	public void setCurrentTimestampPrecision(int newValue);
 
 	public int getCurrentTimestampPrecision();
+
+	public int getNextOJLevel();
+
+	public boolean isOuterJoinFlatteningDisabled();
+
+	public void setOuterJoinFlatteningDisabled(boolean onOff);
 }
