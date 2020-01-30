@@ -68,7 +68,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     // Whether this is full outer join predicate
     protected boolean  forFullJoin;
     // indicate whether the predicate is from the ON cluase of a particular half outer join
-    protected int OJLevel;
+    protected int outerJoinLevel;
     private boolean pulled;
 
     /* Hashtable used for tracking the search clause types that have been
@@ -1407,11 +1407,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return true;
     }
 
-    public int getOJLevel() {
-        return OJLevel;
+    public int getOuterJoinLevel() {
+        return outerJoinLevel;
     }
 
-    public void setOJLevel(int level) {
-        OJLevel = level;
+    public void setOuterJoinLevel(int level) {
+        outerJoinLevel = level;
     }
 }

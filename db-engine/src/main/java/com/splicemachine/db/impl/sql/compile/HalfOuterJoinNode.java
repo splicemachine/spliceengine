@@ -84,7 +84,7 @@ public class HalfOuterJoinNode extends JoinNode{
                 null);
         this.rightOuterJoin=(Boolean)rightOuterJoin;
 
-		/* We can flatten left/right join into the parent block, and use a OJLevel
+		/* We can flatten left/right join into the parent block, and use a outerJoinLevel
 		   to keep track of the inner tables of the left/right joins
 		 */
         flattenableJoin=true;
@@ -110,7 +110,7 @@ public class HalfOuterJoinNode extends JoinNode{
                 null);
         this.rightOuterJoin=(Boolean)rightOuterJoin;
 
-		/* We can flatten left/right join into the parent block, and use a OJLevel
+		/* We can flatten left/right join into the parent block, and use a outerJoinLevel
 		   to keep track of the inner tables of the left/right joins
 		 */
         flattenableJoin=true;
@@ -891,7 +891,7 @@ public class HalfOuterJoinNode extends JoinNode{
         // planning that it is different from regular tables, and can only be joined with its outer table
         // at this point, right joins have been converted to left, so inner is the right
         FromTable rightTable = (FromTable)rightResultSet;
-        rightTable.setOJLevel(getCompilerContext().getNextOJLevel());
+        rightTable.setOuterJoinLevel(getCompilerContext().getNextOJLevel());
         rightTable.addToDependencyMap(leftResultSet.getReferencedTableMap());
 
 		/* Build a new FromList composed of left and right children
@@ -928,9 +928,9 @@ public class HalfOuterJoinNode extends JoinNode{
             optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
                     "HalfOuterJoinNode flattening join predicates to outer query.",joinPredicates);
 
-            // mark predicates with the OJLevel
+            // mark predicates with the outerJoinLevel
             for(int index=0;index<joinPredicates.size();index++) {
-                joinPredicates.elementAt(index).setOJLevel(rightTable.getOJLevel());
+                joinPredicates.elementAt(index).setOuterJoinLevel(rightTable.getOuterJoinLevel());
             }
             outerPList.destructiveAppend(joinPredicates);
         }
@@ -951,6 +951,6 @@ public class HalfOuterJoinNode extends JoinNode{
         if (subqueryList !=null && !subqueryList.isEmpty())
             return false;
 
-        return flattenableJoin && (OJLevel == 0);
+        return flattenableJoin && (outerJoinLevel == 0);
     }
 }
