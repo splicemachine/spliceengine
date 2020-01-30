@@ -21,10 +21,7 @@ import org.apache.hadoop.hbase.regionserver.InternalScanner;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -46,16 +43,19 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private final Timer timer;
     private final int timeDelta;
     private final CompactionContext context;
-    private boolean purgeDeletedRows;
+    private final PurgeConfig purgeConfig;
     private AtomicReference<IOException> failure = new AtomicReference<>();
     private AtomicLong remainingTime;
 
     public AbstractSICompactionScanner(SICompactionState compactionState,
-                               InternalScanner scanner,
-                               boolean purgeDeletedRows, double resolutionShare, int bufferSize, CompactionContext context) {
+                                       InternalScanner scanner,
+                                       PurgeConfig purgeConfig,
+                                       double resolutionShare,
+                                       int bufferSize,
+                                       CompactionContext context) {
         this.compactionState = compactionState;
         this.delegate = scanner;
-        this.purgeDeletedRows = purgeDeletedRows;
+        this.purgeConfig = purgeConfig;
         this.queue = new ArrayBlockingQueue(bufferSize);
         this.timer = new Timer("Compaction-resolution-throttle", true);
         this.timeDelta = (int) (60000 * resolutionShare);
@@ -77,7 +77,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             entry = queue.take();
             final boolean more = entry.more;
             List<TxnView> txns = waitFor(entry.txns);
-            compactionState.mutate(entry.cells, txns, list, purgeDeletedRows);
+            compactionState.mutate(entry.cells, txns, list, purgeConfig);
             if (!more) {
                 timer.cancel();
                     context.close();

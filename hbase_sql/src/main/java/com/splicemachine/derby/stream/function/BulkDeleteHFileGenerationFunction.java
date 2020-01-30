@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -40,7 +39,7 @@ public class BulkDeleteHFileGenerationFunction extends HFileGenerationFunction {
     @Override
     protected void writeToHFile (byte[] rowKey, byte[] value) throws Exception {
         KeyValue kv = new KeyValue(rowKey, SIConstants.DEFAULT_FAMILY_BYTES,
-                SIConstants.SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES, txnId, value);
+                SIConstants.TOMBSTONE_COLUMN_BYTES, txnId, value);
         writer.append(kv);
     }
 }
