@@ -76,6 +76,9 @@ public class OptimizerImpl implements Optimizer{
     private static final int JUMPING=2;
     private static final int WALK_HIGH=3;
     private static final int WALK_LOW=4;
+    private static final int TABLE_LIMIT_FOR_EXHAUSTIVE_SERACH = 8;
+    private static final int MULTIPLE_OF_BEST_TIME = 1;
+
     protected DataDictionary dDictionary;
     /* The number of tables in the query as a whole.  (Size of bit maps.) */
     protected int numTablesInQuery;
@@ -200,7 +203,7 @@ public class OptimizerImpl implements Optimizer{
         this.numTablesInQuery=numTablesInQuery;
         numOptimizables=optimizableList.size();
         proposedJoinOrder=new int[numOptimizables];
-        if(numOptimizables>6 && optimizableList.optimizeJoinOrder()){
+        if(numOptimizables>TABLE_LIMIT_FOR_EXHAUSTIVE_SERACH && optimizableList.optimizeJoinOrder()){
             permuteState=READY_TO_JUMP;
             firstLookOrder=new int[numOptimizables];
         }else
@@ -2446,7 +2449,7 @@ public class OptimizerImpl implements Optimizer{
          ** no timeout.
          */
         if(noTimeout) return false;
-        if(timeExceeded || numOptimizables<=6) return timeExceeded;
+        if(timeExceeded || numOptimizables<=TABLE_LIMIT_FOR_EXHAUSTIVE_SERACH) return timeExceeded;
 
         // All of the following are assumed to be in milliseconds,
         // even if originally derived from a different unit:
@@ -2454,7 +2457,7 @@ public class OptimizerImpl implements Optimizer{
 
         long searchDuration = System.currentTimeMillis() - timeOptimizationStarted;
 
-        if (searchDuration > timeLimit && searchDuration > getMinTimeout()) {
+        if (searchDuration > MULTIPLE_OF_BEST_TIME * timeLimit && searchDuration > getMinTimeout()) {
             // We've exceeded the best time seen so far to process a permutation
             timeExceeded = true;
             tracer().trace(OptimizerFlag.BEST_TIME_EXCEEDED, 0, 0, searchDuration);
