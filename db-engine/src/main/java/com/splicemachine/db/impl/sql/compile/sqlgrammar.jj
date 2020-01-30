@@ -4246,7 +4246,7 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
 {
     [ <WITH> withClauseList(parameterList) ]
     queryExpression = queryExpression(null, NO_SET_OP, topNOut)
-		[ orderCols = orderByClause(queryExpression) ]
+        [ orderCols = orderByClause(queryExpression) ]
         (
             isolationLevel = atIsolationLevel()
             hasJDBClimitClause = offsetFetchFirstClause( offsetClauses )
@@ -4258,9 +4258,9 @@ preparableSelectStatement(boolean checkParams) throws StandardException :
             [ optimizeForRows = optimizeForRowsClause() ]
             [ isolationLevel = atIsolationLevel() ]
         )
-	{
-	    if (topNOut[0] != null) {
-	        hasJDBClimitClause = true;
+    {
+        if (topNOut[0] != null) {
+            hasJDBClimitClause = true;
             offsetClauses[ FETCH_FIRST_CLAUSE ] = topNOut[0];
         }
         // Note: if order by is specified, the for update clause
@@ -13841,6 +13841,12 @@ defaultOption(Token beginToken, long[] autoIncrementInfo,
                             );
         return value;
     }
+|
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.EMPTY_DEFAULT_CONSTANT_NODE,
+                                    getContextManager());
+    }
 }
 
 /*
@@ -13866,6 +13872,11 @@ DB2DefaultOption(String columnName) throws StandardException :
         return (ValueNode) nodeFactory.getNode(
                         C_NodeTypes.CURRENT_SCHEMA_NODE,
                         getContextManager());
+    }
+|
+    value = castSpecification()
+    {
+        return value;
     }
 |
     /* Revert DB2 restriction: DERBY-3013. Accept standard SQL CURRENT_USER,
@@ -13928,7 +13939,6 @@ DB2DefaultOption(String columnName) throws StandardException :
     {
         return value;
     }
-
 }
 
 /*
