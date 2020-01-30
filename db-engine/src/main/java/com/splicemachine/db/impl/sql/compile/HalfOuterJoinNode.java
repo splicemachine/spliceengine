@@ -84,11 +84,36 @@ public class HalfOuterJoinNode extends JoinNode{
                 null);
         this.rightOuterJoin=(Boolean)rightOuterJoin;
 
-		/* We can only flatten an outer join
-         * using the null intolerant predicate xform.
-		 * In that case, we will return an InnerJoin.
+		/* We can flatten left/right join into the parent block, and use a outerJoinLevel
+		   to keep track of the inner tables of the left/right joins
 		 */
-        flattenableJoin=false;
+        flattenableJoin=true;
+    }
+
+    @Override
+    public void init(
+            Object leftResult,
+            Object rightResult,
+            Object onClause,
+            Object usingClause,
+            Object rightOuterJoin,
+            Object selectList,
+            Object tableProperties)
+            throws StandardException{
+        super.init(
+                leftResult,
+                rightResult,
+                onClause,
+                usingClause,
+                selectList,
+                tableProperties,
+                null);
+        this.rightOuterJoin=(Boolean)rightOuterJoin;
+
+		/* We can flatten left/right join into the parent block, and use a outerJoinLevel
+		   to keep track of the inner tables of the left/right joins
+		 */
+        flattenableJoin=true;
     }
 
 	/*
@@ -573,11 +598,13 @@ public class HalfOuterJoinNode extends JoinNode{
         ResultSetNode innerRS;
 
         if(predicateTree==null){
-			/* We can't transform this node, so tell both sides of the 
-			 * outer join that they can't get flattened into outer query block.
+			/* We can't transform this node, so tell right side of the
+			 * outer join that it can't get flattened into outer query block.
 			 */
-            leftResultSet.notFlattenableJoin();
-            rightResultSet.notFlattenableJoin();
+			if (isRightOuterJoin())
+			    leftResultSet.notFlattenableJoin();
+			else
+                rightResultSet.notFlattenableJoin();
             return this;
         }
 
@@ -660,11 +687,13 @@ public class HalfOuterJoinNode extends JoinNode{
             vn=and.getRightOperand();
         }
 
-		/* We can't transform this node, so tell both sides of the 
-		 * outer join that they can't get flattened into outer query block.
+		/* We can't transform this node, so tell right sides of the
+		 * outer join that it can't get flattened into outer query block.
 		 */
-        leftResultSet.notFlattenableJoin();
-        rightResultSet.notFlattenableJoin();
+        if (isRightOuterJoin())
+            leftResultSet.notFlattenableJoin();
+        else
+            rightResultSet.notFlattenableJoin();
 
         return this;
     }
@@ -850,4 +879,78 @@ public class HalfOuterJoinNode extends JoinNode{
                 super.toHTMLString();
     }
 
+    @Override
+    public FromList flatten(ResultColumnList rcl,
+                            PredicateList outerPList,
+                            SubqueryList sql,
+                            GroupByList gbl,
+                            ValueNode havingClause,
+                            int numTables) throws StandardException{
+
+        // before flattening, we should mark the inner talbe so that it can be recognized in the
+        // planning that it is different from regular tables, and can only be joined with its outer table
+        // at this point, right joins have been converted to left, so inner is the right
+        FromTable rightTable = (FromTable)rightResultSet;
+        rightTable.setOuterJoinLevel(getCompilerContext().getNextOJLevel());
+        rightTable.addToDependencyMap(leftResultSet.getReferencedTableMap());
+
+		/* Build a new FromList composed of left and right children
+		 * NOTE: We must call FL.addElement() instead of FL.addFromTable()
+		 * since there is no exposed name. (And even if there was,
+		 * we could care less about unique exposed name checking here.)
+		 */
+        FromList fromList=(FromList)getNodeFactory().getNode(
+                C_NodeTypes.FROM_LIST,
+                getNodeFactory().doJoinOrderOptimization(),
+                getContextManager());
+        fromList.addElement(leftResultSet);
+        fromList.addElement(rightResultSet);
+
+		/* Mark our RCL as redundant */
+        resultColumns.setRedundant();
+
+		/* Remap all ColumnReferences from the outer query to this node.
+		 * (We replace those ColumnReferences with clones of the matching
+		 * expression in the left and right's RCL.
+		 */
+        rcl.remapColumnReferencesToExpressions();
+        outerPList.remapColumnReferencesToExpressions();
+        if(gbl!=null){
+            gbl.remapColumnReferencesToExpressions();
+        }
+
+        if(havingClause!=null){
+            havingClause.remapColumnReferencesToExpressions();
+        }
+
+
+        if(!joinPredicates.isEmpty()){
+            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
+                    "HalfOuterJoinNode flattening join predicates to outer query.",joinPredicates);
+
+            // mark predicates with the outerJoinLevel
+            for(int index=0;index<joinPredicates.size();index++) {
+                joinPredicates.elementAt(index).setOuterJoinLevel(rightTable.getOuterJoinLevel());
+            }
+            outerPList.destructiveAppend(joinPredicates);
+        }
+
+        if(subqueryList!=null && !subqueryList.isEmpty()){
+            sql.destructiveAppend(subqueryList);
+        }
+
+        return fromList;
+    }
+
+    @Override
+    public boolean isFlattenableJoinNode(){
+        if (getCompilerContext().isOuterJoinFlatteningDisabled())
+            return false;
+
+        // cannot flatten if the half join node contains subqueries
+        if (subqueryList !=null && !subqueryList.isEmpty())
+            return false;
+
+        return flattenableJoin && (outerJoinLevel == 0);
+    }
 }

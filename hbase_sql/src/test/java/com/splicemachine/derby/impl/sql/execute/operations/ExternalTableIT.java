@@ -2648,6 +2648,7 @@ public class ExternalTableIT extends SpliceUnitTest{
     }
 
 
+    @Ignore("DB-9109")
     @Test
     public void testReadWriteAvroFromHive() throws Exception {
 
@@ -2667,6 +2668,7 @@ public class ExternalTableIT extends SpliceUnitTest{
         Assert.assertEquals(actual, expected, actual);
     }
 
+    @Ignore("DB-9109")
     @Test
     public void testNumericType() throws Exception {
         methodWatcher.execute(String.format("create external table t_num (col1 NUMERIC(23,2), col2 bigint)" +
