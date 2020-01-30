@@ -112,7 +112,7 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
             methodWatcher.executeQuery(sqlText);
             Assert.fail("Query is expected to fail with too many broadcast joins that exceed the memory limit.");
         } catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), SQLState.LANG_NO_BEST_PLAN_FOUND);
+            Assert.assertEquals(SQLState.LANG_NO_BEST_PLAN_FOUND, e.getSQLState());
         }
     }
 
@@ -132,7 +132,7 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
             methodWatcher.executeQuery(sqlText);
             Assert.fail("Query is expected to fail with too many broadcast joins that exceed the memory limit.");
         } catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), SQLState.LANG_NO_BEST_PLAN_FOUND);
+            Assert.assertEquals(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER, e.getSQLState());
         }
     }
 
@@ -152,7 +152,7 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
             methodWatcher.executeQuery(sqlText);
             Assert.fail("Query is expected to fail with too many broadcast joins that exceed the memory limit.");
         } catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), SQLState.LANG_NO_BEST_PLAN_FOUND);
+            Assert.assertEquals(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER, e.getSQLState());
         }
     }
 }
