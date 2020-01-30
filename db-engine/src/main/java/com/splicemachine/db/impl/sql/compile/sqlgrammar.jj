@@ -6107,9 +6107,9 @@ ResultSetNode
 querySpecification(ValueNode[] topNOut) throws StandardException :
 {
     ResultColumnList    selectList;
-    SelectNode            selectNode;
+    ResultSetNode       selectNode;
     ValueNode           tmpTopN = null;
-    boolean    isDistinct = false;
+    boolean             isDistinct = false;
 }
 {
     <SELECT> [ isDistinct = setQuantifier() ] [ tmpTopN = topNClause() ]
@@ -6123,7 +6123,13 @@ querySpecification(ValueNode[] topNOut) throws StandardException :
         }
         if (tmpTopN != null)
             topNOut[0] = tmpTopN;
-        if (isDistinct) selectNode.makeDistinct();
+        if (isDistinct) {
+            if (!(selectNode instanceof SelectNode)) {
+                throw StandardException.newException(
+                        SQLState.LANG_SYNTAX_ERROR, "Illegal SELECT DISTINCT without FROM");
+            }
+            ((SelectNode)selectNode).makeDistinct();
+        }
         return selectNode;
     }
 }
@@ -10465,7 +10471,7 @@ existsExpression() throws StandardException :
 /*
  * <A NAME="tableExpression">tableExpression</A>
  */
-SelectNode
+ResultSetNode
 tableExpression(ResultColumnList selectList) throws StandardException :
 {
     SelectNode    selectNode;
@@ -10483,7 +10489,21 @@ tableExpression(ResultColumnList selectList) throws StandardException :
     [ havingClause = havingClause() ]
     [ windows = windowClause() ]
     {
-
+        if (fromList == null) {
+            if (havingClause != null ||
+                groupByList != null ||
+                havingClause != null ||
+                windows != null ||
+                selectList.containsAllResultColumn()
+            ) {
+                throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "Illegal SELECT without FROM");
+            }
+            return (RowResultSetNode)nodeFactory.getNode(
+                                C_NodeTypes.ROW_RESULT_SET_NODE,
+                                selectList,
+                                null,
+                                getContextManager());
+        }
         // fix for HAVING without GROUP BY, makes sure we get one
         // aggregate operator by adding a count(*), this fixes beetle 5853, 5890
         if (havingClause != null && groupByList == null) {
@@ -10541,6 +10561,10 @@ fromClause() throws StandardException :
                 fromList.setBeginOffset( beginToken.beginOffset);
                 fromList.setEndOffset( endToken.endOffset);
         return fromList;
+    }
+|
+    {
+        return null;
     }
 }
 

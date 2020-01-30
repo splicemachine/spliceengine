@@ -245,18 +245,18 @@ public class FunctionIT extends SpliceUnitTest {
 
     @Test
     public void testCurrentServer() throws Exception {
-        String sqlText = "values current server";
-        String sqlTextAlt = "values current_server";
+        String[] sqlTexts = {
+                "values current server", "values current_server",
+                "select current server", "select current_server",
+                "select (select current_server)"};
         String expected = "1    |\n" +
                 "----------\n" +
                 "splicedb |";
 
-        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
-            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        }
-
-        try (ResultSet rs = methodWatcher.executeQuery(sqlTextAlt)) {
-            assertEquals("\n" + sqlTextAlt + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        for (String sql: sqlTexts) {
+            try (ResultSet rs = methodWatcher.executeQuery(sql)) {
+                assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
         }
     }
 }
