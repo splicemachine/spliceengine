@@ -954,7 +954,7 @@ public class SelectNode extends ResultSetNode{
 		 */
 
         // Flatten any flattenable FromSubquerys or JoinNodes
-        fromList.flattenFromTables(resultColumns, wherePredicates, whereSubquerys, groupByList, havingClause);
+        fromList.flattenFromTables(resultColumns, wherePredicates, whereSubquerys, groupByList, havingClause, numTables);
 
         if(wherePredicates!=null && !wherePredicates.isEmpty() && !fromList.isEmpty()){
             // Perform various forms of transitive closure on wherePredicates
@@ -1822,7 +1822,19 @@ public class SelectNode extends ResultSetNode{
 			 * replace the 1st 2 entries in the FromList.
 			 */
 			JoinNode joinNode;
-			if (!rightResultSet.getFromSSQ()) {
+			if (rightResultSet.getFromSSQ() || rightResultSet instanceof FromTable && ((FromTable)rightResultSet).getOuterJoinLevel() > 0) {
+                rightRCList.setNullability(true);
+                joinNode = (JoinNode)getNodeFactory().getNode(
+                        C_NodeTypes.HALF_OUTER_JOIN_NODE,
+                        leftResultSet,
+                        rightResultSet,
+                        null,                          // join clause
+                        null,                                // using clause
+                        Boolean.FALSE,                       // is right join
+                        leftRCList,                          // RCL
+                        null,                                // table props
+                        getContextManager());
+            } else {
                 joinNode = (JoinNode) getNodeFactory().getNode(
                         C_NodeTypes.JOIN_NODE,
                         leftResultSet,
@@ -1835,21 +1847,25 @@ public class SelectNode extends ResultSetNode{
                         fromList.properties,
                         getContextManager()
                 );
-            } else {
-			    joinNode = (JoinNode)getNodeFactory().getNode(
-                        C_NodeTypes.HALF_OUTER_JOIN_NODE,
-                        leftResultSet,
-                        rightResultSet,
-                        null,                          // join clause
-                        null,                                // using clause
-                        Boolean.FALSE,                       // is right join
-                        null,                                // table props
-                        getContextManager());
-			    rightRCList.setNullability(true);
-                joinNode.setResultColumns(leftRCList);
             }
 
-            fromList.setElementAt(joinNode.genProjectRestrict(),
+            ResultSetNode newPRNode = joinNode.genProjectRestrict();
+
+			// apply post outer join conditions
+            if (((FromTable)rightResultSet).getOuterJoinLevel() > 0) {
+			    PredicateList postJoinPredicates = ((FromTable)rightResultSet).getPostJoinPredicates();
+			    if (postJoinPredicates != null) {
+			        for (int i=0; i<postJoinPredicates.size(); i++) {
+			            Predicate pred = postJoinPredicates.elementAt(i);
+                        RemapCRsVisitor rcrv=new RemapCRsVisitor(true);
+                        pred.getAndNode().accept(rcrv);
+                        newPRNode.addNewPredicate(pred);
+                    }
+                    ((FromTable)rightResultSet).setPostJoinPredicates(null);
+                }
+            }
+
+            fromList.setElementAt(newPRNode,
                     0
             );
 
@@ -2499,7 +2515,8 @@ public class SelectNode extends ResultSetNode{
 
         for (int i=0; i<fromList.size(); i++) {
             FromTable ft = (FromTable)fromList.elementAt(i);
-            if (ft.isUnsatisfiable()) {
+            // do not consider flattened inner table nodes from outer joins
+            if ((ft.getOuterJoinLevel() == 0) && ft.isUnsatisfiable()) {
                 nonAggregatePartSat = Satisfiability.UNSAT;
                 return true;
             }
@@ -2724,5 +2741,17 @@ public class SelectNode extends ResultSetNode{
 
     public boolean hasHavingClause() {
         return havingClause != null;
+    }
+
+
+    public JBitSet collectInnerTablesFromFlattenedOJ() {
+        JBitSet collected = new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
+        for (int i=0; i<fromList.size(); i++) {
+            FromTable fromTable = (FromTable)fromList.getOptimizable(i);
+            if (fromTable.getOuterJoinLevel() > 0) {
+                collected.or(fromTable.getReferencedTableMap());
+            }
+        }
+        return collected;
     }
 }
