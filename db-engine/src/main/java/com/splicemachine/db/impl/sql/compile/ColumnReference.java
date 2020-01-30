@@ -1424,7 +1424,7 @@ public class ColumnReference extends ValueNode {
 
 		long cardinality = cardinality();
 		if (cardinality == 0)
-			return -1.0d;
+			return 0.0d;
 		else
 			return (1.0d / (double) cardinality);
 	}
