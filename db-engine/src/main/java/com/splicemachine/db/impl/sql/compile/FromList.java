@@ -703,9 +703,10 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
         int size=size();
         for(int index=0;index<size;index++){
             FromTable fromTable=(FromTable)elementAt(index);
-            // to stay safe, we will not push where clause condition(including flattened outer join
-            // ON clause condition) to right of outer join
-            if (fromTable.getOJLevel() > 0)
+            // To simplify the logic and preserve the existing behavior,
+            // we will not push where clause condition(including flattened outer join
+            // ON clause condition) to right of outer join for now, it can be enhanced in the future
+            if (fromTable.getOuterJoinLevel() > 0)
                 continue;
             fromTable.pushExpressions(predicateList);
         }
