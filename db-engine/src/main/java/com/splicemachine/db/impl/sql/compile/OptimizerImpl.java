@@ -42,10 +42,7 @@ import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This will be the Level 1 Optimizer.
@@ -870,6 +867,18 @@ public class OptimizerImpl implements Optimizer{
 
             pushPredicates(optimizableList.getOptimizable(nextOptimizable), assignedTableMap);
 
+            if (((FromTable)nextOpt).getOuterJoinLevel() > 0) {
+                PredicateList pList = ((FromTable) nextOpt).getPostJoinPredicates();
+                PredicateList pList2 = pickPostJoinPredicates(nextOpt, assignedTableMap);
+
+                if (pList != null && pList2 != null)
+                    pList.destructiveAppend(pList2);
+                else if (pList == null)
+                    pList = pList2;
+
+                ((FromTable) nextOpt).setPostJoinPredicates(pList);
+            }
+
             return true;
         }
 
@@ -1001,7 +1010,8 @@ public class OptimizerImpl implements Optimizer{
 				** avoidance path on the last Optimizable in the join order.
 				*/
                 if(requiredRowOrdering!=null && curOpt.considerSortAvoidancePath()){
-                    if(requiredRowOrdering.sortRequired(bestRowOrdering,optimizableList)==RequiredRowOrdering.NOTHING_REQUIRED){
+                    boolean hasSortMergeJoin = joinPathContainsSortMergeJoin(Optimizer.SORT_AVOIDANCE_PLAN);
+                    if(!hasSortMergeJoin && requiredRowOrdering.sortRequired(bestRowOrdering,optimizableList)==RequiredRowOrdering.NOTHING_REQUIRED){
                         tracer.trace(OptimizerFlag.CURRENT_PLAN_IS_SA_PLAN,0,0,0.0);
 
                         if((currentSortAvoidanceCost.compare(bestCost)<=0) || bestCost.isUninitialized()){
@@ -1014,6 +1024,17 @@ public class OptimizerImpl implements Optimizer{
 
         tracer.trace(OptimizerFlag.HAS_REMAINING_PERMUTATIONS,(hasNextPermutation?1:0),0,0.0);
         return hasNextPermutation;
+    }
+
+
+    private boolean joinPathContainsSortMergeJoin(int planType) {
+        for (int i=0; i < numOptimizables; i++) {
+            Optimizable optimizable = optimizableList.getOptimizable(proposedJoinOrder[i]);
+
+            if(optimizable.bestPathPicksSortMergeJoin(planType))
+                return true;
+        }
+        return false;
     }
 
     @Override
@@ -1064,7 +1085,7 @@ public class OptimizerImpl implements Optimizer{
         int savedJoinType = JoinNode.INNERJOIN;
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
-            if (fromTable.getFromSSQ()) {
+            if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0) {
                 savedJoinType = outerCost.getJoinType();
                 outerCost.setJoinType(JoinNode.LEFTOUTERJOIN);
             }
@@ -1076,7 +1097,7 @@ public class OptimizerImpl implements Optimizer{
          */
         if (optimizable instanceof FromTable) {
             FromTable fromTable = (FromTable)optimizable;
-            if (fromTable.getFromSSQ())
+            if (fromTable.getFromSSQ() || fromTable.getOuterJoinLevel() > 0)
                 outerCost.setJoinType(savedJoinType);
         }
     }
@@ -1232,11 +1253,26 @@ public class OptimizerImpl implements Optimizer{
 			/* Current table is treated as an outer table */
             outerTables.or(optimizable.getReferencedTableMap());
 
+            int oJLevel = ((FromTable)optimizable).getOuterJoinLevel();
+
 			/*
 			** Push any appropriate predicates from this optimizer's list
 			** to the optimizable, as appropriate.
 			*/
             pushPredicates(optimizable,outerTables);
+
+            // get also the list of predicates that can be applied after the current join if it is an outer join
+            if (oJLevel > 0) {
+                PredicateList pList = ((FromTable) optimizable).getPostJoinPredicates();
+                PredicateList pList2 = pickPostJoinPredicates(optimizable, outerTables);
+
+                if (pList != null && pList2 != null)
+                    pList.destructiveAppend(pList2);
+                else if (pList == null)
+                    pList = pList2;
+
+                ((FromTable) optimizable).setPostJoinPredicates(pList);
+            }
 
             optimizableList.setOptimizable(ictr,optimizable.modifyAccessPath(outerTables));
         }
@@ -1541,6 +1577,7 @@ public class OptimizerImpl implements Optimizer{
         for(;;joinPosition--){
             Optimizable pullMe= optimizableList.getOptimizable(proposedJoinOrder[joinPosition]);
             pullMe.pullOptPredicates(predicateList);
+            pullMe.pullOptPostJoinPredicates(predicateList);
             if(reloadBestPlan)
                 pullMe.updateBestPlanMap(FromTable.LOAD_PLAN,this);
             proposedJoinOrder[joinPosition]=-1;
@@ -1600,6 +1637,7 @@ public class OptimizerImpl implements Optimizer{
 		 * NOTE - We walk the OPL backwards since we will hopefully be deleted
 		 * entries as we walk it.
 		 */
+		FromTable fromTable = (FromTable)curTable;
         for(int predCtr=numPreds-1;predCtr>=0;predCtr--){
             pred=(Predicate)predicateList.getOptPredicate(predCtr);
 
@@ -1608,27 +1646,38 @@ public class OptimizerImpl implements Optimizer{
                 continue;
             }
 
+
+            if (fromTable.getOuterJoinLevel() > 0) {
+                // if inner table flattened from an outer join, only consider the ON clause join conditions
+                pushPredNow = pred.getOuterJoinLevel() == fromTable.getOuterJoinLevel();
+            } else {
+                // On clause condition for outer join cannot be pushed to the left table
+                // eg. select * from t1 left join t2 on a1=a2 and a1=1
+                // a1=1 cannot be applied to t1 as a single table condition
+                if (pred.getOuterJoinLevel() > 0)
+                    continue;
+
 			/* Make copy of referenced map so that we can do destructive
 			 * manipulation on the copy.
 			 */
-            predMap.setTo(pred.getReferencedMap());
+                predMap.setTo(pred.getReferencedMap());
 
 			/* Clear bits representing those tables that have already been
 			 * assigned, except for the current table.  The outer table map
 			 * includes the current table, so if the predicate is ready to
 			 * be pushed, predMap will end up with no bits set.
 			 */
-            for(int index=0;index<predMap.size();index++){
-                if(outerTables.get(index)){
-                    predMap.clear(index);
+                for (int index = 0; index < predMap.size(); index++) {
+                    if (outerTables.get(index)) {
+                        predMap.clear(index);
+                    }
                 }
-            }
 
 			/*
 			** Only consider non-correlated variables when deciding where
 			** to push predicates down to.
 			*/
-            predMap.and(nonCorrelatedTableMap);
+                predMap.and(nonCorrelatedTableMap);
 
 			/* At this point what we've done is figure out what FromTables
 			 * the predicate references (using the predicate's "referenced
@@ -1652,7 +1701,8 @@ public class OptimizerImpl implements Optimizer{
 			 * We can check for this condition by seeing if predMap is empty,
 			 * which is what the following line does.
 			 */
-            pushPredNow=(predMap.getFirstSetBit()==-1);
+                pushPredNow = (predMap.getFirstSetBit() == -1);
+            }
 
 			/* If the predicate is scoped, there's more work to do. A
 			 * scoped predicate's "referenced map" may not be in sync
@@ -1736,6 +1786,67 @@ public class OptimizerImpl implements Optimizer{
                 }
             }
         }
+    }
+
+
+    PredicateList pickPostJoinPredicates(Optimizable curTable, JBitSet outerTables) throws StandardException{
+        int numPreds=predicateList.size();
+        JBitSet predMap=new JBitSet(numTablesInQuery);
+        PredicateList pList = null;
+        BaseTableNumbersVisitor btnVis=null;
+        JBitSet curTableNums=null;
+        int tNum;
+        Predicate pred;
+
+        for(int predCtr=numPreds-1;predCtr>=0;predCtr--){
+            pred=(Predicate)predicateList.getOptPredicate(predCtr);
+
+			/* Skip over non-pushable predicates */
+            if(!isPushable(pred)){
+                continue;
+            }
+
+            if (pred.getOuterJoinLevel() > 0)
+                continue;
+
+			/* Make copy of referenced map so that we can do destructive
+			 * manipulation on the copy.
+			 */
+
+            predMap.setTo(pred.getReferencedMap());
+            predMap.andNot(outerTables);
+
+            predMap.and(nonCorrelatedTableMap);
+
+            if (predMap.getFirstSetBit() == -1) {
+                if (pred.isScopedForPush() && (numOptimizables>1)){
+                    if (btnVis == null) {
+                        curTableNums=new JBitSet(numTablesInQuery);
+                        btnVis=new BaseTableNumbersVisitor(curTableNums);
+                    }
+
+                    tNum = curTable.getTableNumber();
+                    curTableNums.clearAll();
+                    btnVis.setTableMap(curTableNums);
+                    ((FromTable)curTable).accept(btnVis);
+                    if (tNum >= 0)
+                        curTableNums.set(tNum);
+
+                    btnVis.setTableMap(predMap);
+                    pred.accept(btnVis);
+
+                    predMap.and(curTableNums);
+                    if (predMap.getFirstSetBit() == -1)
+                        continue;
+                }
+
+                if (pList == null)
+                    pList = new PredicateList();
+                pList.addOptPredicate(pred);
+                predicateList.removeOptPredicate(predCtr);
+            }
+        }
+        return pList;
     }
 
     private boolean updatePlanMaps(Optimizable curOpt,AccessPath bestAccessPath,AccessPath currentAccessPath) throws StandardException{
@@ -1942,6 +2053,7 @@ public class OptimizerImpl implements Optimizer{
 		** leave the single-table predicates where they are.
 		*/
         pullMe.pullOptPredicates(predicateList);
+        pullMe.pullOptPostJoinPredicates(predicateList);
 
 		/*
 		** When we pull an Optimizable we need to go through and

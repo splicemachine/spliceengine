@@ -159,6 +159,8 @@ public interface Optimizable {
 	 */
 	void pullOptPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException;
 
+	void pullOptPostJoinPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException;
+
 	/**
 	 * Modify the access path for this Optimizable, as necessary.  This includes
 	 * things like adding a result set to translate from index rows to base rows
@@ -276,6 +278,8 @@ public interface Optimizable {
 	 * @exception StandardException thrown on error.
 	 */
 	void rememberAsBest(int planType,Optimizer optimizer) throws StandardException;
+
+	boolean bestPathPicksSortMergeJoin(int planType);
 
 	/**
 	 * Begin the optimization process for this Optimizable.  This can be
