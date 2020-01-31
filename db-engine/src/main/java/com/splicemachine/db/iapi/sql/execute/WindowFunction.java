@@ -57,7 +57,7 @@ public interface WindowFunction extends ExecAggregator, Formatable {
     WindowFunction setup(ClassFactory classFactory,
                         String windowFunctionName,
                         DataTypeDescriptor returnDataType,
-                        FormatableHashtable functionSpecificArgs);
+                        FormatableHashtable functionSpecificArgs) throws StandardException;
 
 
     /**

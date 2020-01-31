@@ -1078,6 +1078,12 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 223);
 
     /**
+     class com.splicemachine.db.Database.Language.Execution.AggregateInfo
+     */
+    int AGG_INFO_V02_ID =
+            (MIN_ID_2 + 483);
+
+    /**
     class com.splicemachine.db.Database.Language.Execution.AggregateInfoList
     */
     int AGG_INFO_LIST_V01_ID    =
@@ -1372,7 +1378,14 @@ public interface StoredFormatIds {
     
     int LIST_TYPE_ID =
         (MIN_ID_2 + 481);
-    
+
+    /**
+     class com.splicemachine.db.Database.Language.Execution.StringAggregator
+     */
+    int AGG_STR_V01_ID =
+            (MIN_ID_2 + 482);
+
+
     //public static final int SQL_USERTYPE_ID = 
     //      (MIN_ID_2 + 86);
 
@@ -1760,7 +1773,7 @@ public interface StoredFormatIds {
      * Make sure this is updated when a new module is added
      */
    int MAX_ID_2 =
-    		(MIN_ID_2 + 481);
+    		(MIN_ID_2 + 483);
 
     // DO NOT USE 4 BYTE IDS ANYMORE
     int MAX_ID_4 =

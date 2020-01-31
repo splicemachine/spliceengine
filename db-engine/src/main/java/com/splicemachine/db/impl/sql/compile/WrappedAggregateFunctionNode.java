@@ -34,8 +34,10 @@ package com.splicemachine.db.impl.sql.compile;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -48,10 +50,11 @@ import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromStri
 
 /**
  * @author Jeff Cunningham
- *         Date: 10/2/14
+ * Date: 10/2/14
  */
 public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     private AggregateNode aggregateFunction;
+
     /**
      * Initializer. QueryTreeNode override.
      *
@@ -73,9 +76,9 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     }
 
     @Override
-     public ValueNode getNewNullResultExpression() throws StandardException {
-         return aggregateFunction.getNewNullResultExpression();
-     }
+    public ValueNode getNewNullResultExpression() throws StandardException {
+        return aggregateFunction.getNewNullResultExpression();
+    }
 
     @Override
     public DataTypeDescriptor getTypeServices() {
@@ -95,8 +98,9 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     }
 
     /**
-     *  Use in visitor pattern to process children
-     *  Visit the underlying aggregate function.
+     * Use in visitor pattern to process children
+     * Visit the underlying aggregate function.
+     *
      * @param v
      * @throws StandardException
      */
@@ -104,14 +108,15 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     @Override
     public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
-        if(aggregateFunction!=null){
+        if (aggregateFunction != null) {
             aggregateFunction.accept(v, this);
         }
     }
 
     /**
      * Overridden to redirect the call to the wrapped aggregate node.
-     * @param tableNumber The tableNumber for the new ColumnReference
+     *
+     * @param tableNumber  The tableNumber for the new ColumnReference
      * @param nestingLevel this node's nesting level
      * @return the new CR
      * @throws StandardException
@@ -119,10 +124,10 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     @Override
     public ValueNode replaceCallWithColumnReference(int tableNumber, int nestingLevel) throws StandardException {
         ColumnReference node = (ColumnReference) aggregateFunction.replaceAggregatesWithColumnReferences(
-            (ResultColumnList) getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager()),
-            tableNumber);
+                (ResultColumnList) getNodeFactory().getNode(
+                        C_NodeTypes.RESULT_COLUMN_LIST,
+                        getContextManager()),
+                tableNumber);
 
         // Mark the ColumnReference as being generated to replace a call to
         // a window function
@@ -131,19 +136,19 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
     }
 
     /**
-      * QueryTreeNode override. Prints the sub-nodes of this object.
-      *
-      * @param depth The depth of this node in the tree
-      * @see QueryTreeNode#printSubNodes
-      */
-     public void printSubNodes(int depth) {
-         if (SanityManager.DEBUG) {
-             super.printSubNodes(depth);
+     * QueryTreeNode override. Prints the sub-nodes of this object.
+     *
+     * @param depth The depth of this node in the tree
+     * @see QueryTreeNode#printSubNodes
+     */
+    public void printSubNodes(int depth) {
+        if (SanityManager.DEBUG) {
+            super.printSubNodes(depth);
 
-             printLabel(depth, "aggregate: ");
-             aggregateFunction.treePrint(depth + 1);
-         }
-     }
+            printLabel(depth, "aggregate: ");
+            aggregateFunction.treePrint(depth + 1);
+        }
+    }
 
     @Override
     public ValueNode bindExpression(FromList fromList,
@@ -154,7 +159,7 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
         // this one. We need to create a tmp Vector and add all Agg nodes found but this delegate by
         // checking for object identity (==)
         List<AggregateNode> tmp = new ArrayList<>();
-        aggregateFunction.bindExpression(fromList,subqueryList,tmp);
+        aggregateFunction.bindExpression(fromList, subqueryList, tmp);
 
         // We don't want to be in this aggregateVector - we add all aggs found during bind except
         // this delegate.
@@ -197,53 +202,60 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
      *
      * @return the result column
      */
-     @Override
-     AggregateDefinition getAggregateDefinition() {
-         return aggregateFunction.getAggregateDefinition();
-     }
-     @Override
-     public boolean isDistinct() {
-         return aggregateFunction.isDistinct();
-     }
+    @Override
+    AggregateDefinition getAggregateDefinition() {
+        return aggregateFunction.getAggregateDefinition();
+    }
 
-     @Override
-     public String getAggregatorClassName() {
-         return aggregateFunction.getAggregatorClassName();
-     }
+    @Override
+    public boolean isDistinct() {
+        return aggregateFunction.isDistinct();
+    }
 
-     @Override
-     public String getAggregateName() {
-         return aggregateFunction.getAggregateName();
-     }
+    @Override
+    public String getAggregatorClassName() {
+        return aggregateFunction.getAggregatorClassName();
+    }
 
-     @Override
-     public ResultColumn getNewAggregatorResultColumn(DataDictionary dd) throws StandardException {
-         return aggregateFunction.getNewAggregatorResultColumn(dd);
-     }
+    @Override
+    public String getAggregateName() {
+        return aggregateFunction.getAggregateName();
+    }
 
-     @Override
-     public ResultColumn getNewExpressionResultColumn(DataDictionary dd) throws StandardException {
-         return aggregateFunction.getNewExpressionResultColumn(dd);
-     }
+    @Override
+    public ResultColumn getNewAggregatorResultColumn(DataDictionary dd) throws StandardException {
+        return aggregateFunction.getNewAggregatorResultColumn(dd);
+    }
 
-     @Override
-     public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-         aggregateFunction.generateExpression(acb, mb);
-     }
+    @Override
+    public ResultColumn getNewExpressionResultColumn(DataDictionary dd) throws StandardException {
+        return aggregateFunction.getNewExpressionResultColumn(dd);
+    }
 
-     @Override
-     public String getSQLName() {
-         return aggregateFunction.getSQLName();
-     }
+    @Override
+    public void generateExpression(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
+        aggregateFunction.generateExpression(acb, mb);
+    }
 
-     @Override
-     public ColumnReference getGeneratedRef() {
-         return aggregateFunction.getGeneratedRef();
-     }
+    @Override
+    public String getSQLName() {
+        return aggregateFunction.getSQLName();
+    }
 
-     @Override
-     public ResultColumn getGeneratedRC() {
-         return aggregateFunction.getGeneratedRC();
-     }
+    @Override
+    public ColumnReference getGeneratedRef() {
+        return aggregateFunction.getGeneratedRef();
+    }
 
+    @Override
+    public ResultColumn getGeneratedRC() {
+        return aggregateFunction.getGeneratedRC();
+    }
+
+    public FormatableHashtable getFunctionSpecificArgs() {
+        FormatableHashtable ht = new FormatableHashtable();
+        if (aggregateFunction instanceof StringAggregateNode)
+            ht.put("param", ((StringAggregateNode)aggregateFunction).getParameter());
+        return ht;
+    }
 }
