@@ -272,7 +272,8 @@ public class SpliceGenericAggregator implements Serializable{
                                 aggInstance= aggInstance.setup(
                                         cf,
                                         aggInfo.getAggregateName(),
-                                        dtd
+                                        dtd,
+                                        aggInfo.getParam()
                                 );
                                 cachedAggregator = aggInstance;
 			}catch(Exception e){

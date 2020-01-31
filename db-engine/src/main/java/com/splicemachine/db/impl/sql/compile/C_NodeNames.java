@@ -276,6 +276,8 @@ public interface C_NodeNames
 
     String STATIC_METHOD_CALL_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StaticMethodCallNode";
 
+    String STRING_AGGREGATE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.StringAggregateNode";
+
     String SUBQUERY_LIST_NAME = "com.splicemachine.db.impl.sql.compile.SubqueryList";
 
     String SUBQUERY_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SubqueryNode";
