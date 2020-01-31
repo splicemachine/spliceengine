@@ -282,8 +282,10 @@ int CREATE_INDEX_NODE = 146;
 	int FULL_OUTER_JOIN_NODE = 271;
 	int EMPTY_DEFAULT_CONSTANT_NODE = 272;
 
+    int STRING_AGGREGATE_NODE = 273;
+
 	// Final value in set, keep up to date!
-	int FINAL_VALUE = EMPTY_DEFAULT_CONSTANT_NODE;
+	int FINAL_VALUE = STRING_AGGREGATE_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision
