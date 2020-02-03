@@ -30,6 +30,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicReference;
@@ -223,7 +224,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
                 rows++;
             }
             fail("Should have raised exception");
-        } catch (SQLException se) {
+        } catch (SQLTimeoutException se) {
             LOG.debug("Raised exception after " + rows + " rows.");
             assertEquals("57014", se.getSQLState());
         }
@@ -278,7 +279,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
             thread.join();
             assertNotNull(result.get());
             Exception e = result.get();
-            assertTrue(e instanceof SQLException);
+            assertTrue(e instanceof SQLTimeoutException);
             assertEquals("57014", ((SQLException) e).getSQLState());
         }
     }
@@ -343,7 +344,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
                 rows++;
             }
             fail("Should have raised exception");
-        } catch (SQLException se) {
+        } catch (SQLTimeoutException se) {
             LOG.debug("Raised exception after " + rows + " rows.");
             assertEquals("57014", se.getSQLState());
         }
@@ -400,7 +401,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
                 rows++;
             }
             fail("Should have raised exception");
-        } catch (SQLException se) {
+        } catch (SQLTimeoutException se) {
             LOG.debug("Raised exception after " + rows + " rows.");
             assertEquals("57014", se.getSQLState());
         }
@@ -488,7 +489,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
                 rows++;
             }
             fail("Should have raised exception");
-        } catch (SQLException se) {
+        } catch (SQLTimeoutException se) {
             LOG.debug("Raised exception after " + rows + " rows.");
             assertEquals("57014", se.getSQLState());
         }
