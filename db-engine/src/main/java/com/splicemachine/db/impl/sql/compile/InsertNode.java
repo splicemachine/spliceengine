@@ -993,77 +993,48 @@ public final class InsertNode extends DMLModStatementNode {
             partitionReferenceItem=acb.addItem(new ReferencedColumnsDescriptorImpl(partitionBy));
 
 
-        // Base table
-        if (targetTableDescriptor != null)
-        {
-            /*
-            ** Generate the insert result set, giving it either the original
-            ** source or the normalize result set, the constant action,
-            ** and "this".
-            */
+        /*
+        ** Generate the insert result set, giving it either the original
+        ** source or the normalize result set, the constant action,
+        ** and "this".
+        */
 
-            acb.pushGetResultSetFactoryExpression(mb);
+        acb.pushGetResultSetFactoryExpression(mb);
 
-            // arg 1
-            resultSet.generate(acb, mb);
+        // arg 1
+        resultSet.generate(acb, mb);
 
-            // arg 2 generate code to evaluate generation clauses
-            generateGenerationClauses( resultColumnList, resultSet.getResultSetNumber(), false, acb, mb );
+        // arg 2 generate code to evaluate generation clauses
+        generateGenerationClauses( resultColumnList, resultSet.getResultSetNumber(), false, acb, mb );
 
-            // arg 3 generate code to evaluate CHECK CONSTRAINTS
-            generateCheckConstraints( checkConstraints, acb, mb );
-            mb.push(insertMode.toString());
-            if (statusDirectory==null)
-                mb.pushNull("java.lang.String");
-            else
-                mb.push(statusDirectory);
-            mb.push(badRecordsAllowed);
-            mb.push(skipConflictDetection);
-            mb.push(skipWAL);
-            mb.push((double) this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
-            mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
-            mb.push(targetTableDescriptor.getVersion());
-            mb.push(this.printExplainInformationForActivation());
-            BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getDelimited());
-            BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getEscaped());
-            BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLines());
-            BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getStoredAs());
-            BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLocation());
-            BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getCompression());
-            mb.push(partitionReferenceItem);
-            BaseJoinStrategy.pushNullableString(mb,bulkImportDirectory);
-            mb.push(samplingOnly);
-            mb.push(outputKeysOnly);
-            mb.push(skipSampling);
-            mb.push(sampleFraction);
-            BaseJoinStrategy.pushNullableString(mb, indexName);
-            mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 25);
-        }
+        // arg 3 generate code to evaluate CHECK CONSTRAINTS
+        generateCheckConstraints( checkConstraints, acb, mb );
+        mb.push(insertMode.toString());
+        if (statusDirectory==null)
+            mb.pushNull("java.lang.String");
         else
-        {
-            /* Generate code for the VTI
-             * NOTE: we need to create a dummy cost estimate for the
-             * targetVTI since we never optimized it.
-             * RESOLVEVTI - we will have to optimize it in order to
-             * push predicates into the VTI.
-             */
-            targetVTI.assignCostEstimate(resultSet.getNewCostEstimate());
-
-            /*
-            ** Generate the insert VTI result set, giving it either the original
-            ** source or the normalize result set, the constant action,
-            */
-            acb.pushGetResultSetFactoryExpression(mb);
-
-            // arg 1
-            resultSet.generate(acb, mb);
-
-            // arg 2
-            targetVTI.generate(acb, mb);
-            mb.push((double)this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
-            mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
-            mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertVTIResultSet", ClassName.ResultSet, 4);
-        }
+            mb.push(statusDirectory);
+        mb.push(badRecordsAllowed);
+        mb.push(skipConflictDetection);
+        mb.push(skipWAL);
+        mb.push((double) this.resultSet.getFinalCostEstimate(false).getEstimatedRowCount());
+        mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
+        mb.push(targetTableDescriptor.getVersion());
+        mb.push(this.printExplainInformationForActivation());
+        BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getDelimited());
+        BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getEscaped());
+        BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLines());
+        BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getStoredAs());
+        BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getLocation());
+        BaseJoinStrategy.pushNullableString(mb,targetTableDescriptor.getCompression());
+        mb.push(partitionReferenceItem);
+        BaseJoinStrategy.pushNullableString(mb,bulkImportDirectory);
+        mb.push(samplingOnly);
+        mb.push(outputKeysOnly);
+        mb.push(skipSampling);
+        mb.push(sampleFraction);
+        BaseJoinStrategy.pushNullableString(mb, indexName);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 25);
     }
 
     /**
