@@ -109,7 +109,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
             lcc=database.generateLanguageConnectionContext(txn, cm, userName,grouplist,drdaID, dbname, rdbIntTkn,
                                                            CompilerContext.DataSetProcessorType.DEFAULT_CONTROL,
                                                            false, -1, ipAddress,
-                                                            reuseTC, sessionNumber);
+                                                            reuseTC);
 
             return true;
         } catch (Throwable t) {
