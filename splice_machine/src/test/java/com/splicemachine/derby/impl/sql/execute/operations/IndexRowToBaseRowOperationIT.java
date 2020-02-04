@@ -14,19 +14,19 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test_tools.TableCreator;
+import org.junit.*;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Maps;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -34,11 +34,14 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-public class IndexRowToBaseRowOperationIT extends SpliceUnitTest { 
-	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+
+public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 	private static final Logger LOG = Logger.getLogger(IndexRowToBaseRowOperationIT.class);
 
     private static final String CLASSNAME = IndexRowToBaseRowOperationIT.class.getSimpleName();
+	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASSNAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASSNAME);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDER_FACT", CLASSNAME,"(i int)");
 	
@@ -47,7 +50,33 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 		.around(spliceSchemaWatcher)
 		.around(spliceTableWatcher);
 	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASSNAME);
+
+	public static void createData(Connection conn, String schemaName) throws Exception {
+
+		new TableCreator(conn)
+				.withCreate("create table t1 (a1 int, b1 int, c1 varchar(10) not null default ' ')")
+				.withInsert("insert into t1 values(?,?,?)")
+				.withRows(rows(
+						row(1, 1, "aaa")))
+				.create();
+
+
+		new TableCreator(conn)
+				.withCreate("create table t2 (a2 int, b2 int, c2 varchar(10) not null default ' ')")
+				.withIndex("create index idx_t2 on t2(c2)")
+				.withInsert("insert into t2(a2, b2) values(?,?)")
+				.withRows(rows(
+						row(2, 2)))
+				.create();
+
+		conn.commit();
+	}
+
+	@BeforeClass
+	public static void createDataSet() throws Exception {
+		createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
+	}
 
 	@Test
 	public void testScanSysTables() throws Exception{
@@ -550,5 +579,72 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 		}
 	}
 
+	@Test
+	public void testOuterJoinWithIndexLookupPlan() throws Exception {
+		String sqlText = "select a1,c1,a2,c2 from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
+				"on a1=a2 \n" +
+				"where c1='aaa'";
 
+		String expected = "A1 |C1  | A2  | C2  |\n" +
+				"---------------------\n" +
+				" 1 |aaa |NULL |NULL |";
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+	}
+
+	@Test
+	public void testOuterJoinWithIndexLookupPlan2() throws Exception {
+		String sqlText = "select a1,c1, a2, '-' || c2 || '-' from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
+				"on a1+1=a2 \n" +
+				"where c1='aaa'";
+
+		String expected = "A1 |C1  |A2 | 4  |\n" +
+				"------------------\n" +
+				" 1 |aaa | 2 |- - |";
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+		Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+	}
+
+	@Test
+	public void testOuterJoinWithIndexLookupPlan3() throws Exception {
+		String sqlText = "select a1,c1, a2, '-' || c2 || '-' from t1 left join t2 --splice-properties joinStrategy=sortmerge, index=idx_t2\n" +
+				"on c1=c2 \n" +
+				"where c1='aaa'";
+
+		String expected = "A1 |C1  | A2  |  4  |\n" +
+				"---------------------\n" +
+				" 1 |aaa |NULL |NULL |";
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+
+	}
+
+	@Test
+	public void testOuterJoinWithCoveringIndexPlan() throws Exception {
+		String sqlText = "select c1,c2 from t1 left join t2 --splice-properties joinStrategy=nestedloop, index=idx_t2\n" +
+				"on c1=c2 \n" +
+				"where c1='aaa'";
+
+		String expected = "C1  | C2  |\n" +
+				"-----------\n" +
+				"aaa |NULL |";
+
+		ResultSet rs = methodWatcher.executeQuery(sqlText);
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+
+		sqlText = "select c1,c2 from t1 left join t2 --splice-properties joinStrategy=sortmerge, index=idx_t2\n" +
+				"on c1=c2 \n" +
+				"where c1='aaa'";
+
+		rs = methodWatcher.executeQuery(sqlText);
+		Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+		rs.close();
+	}
 }
