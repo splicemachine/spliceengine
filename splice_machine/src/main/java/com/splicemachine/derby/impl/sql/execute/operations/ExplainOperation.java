@@ -17,7 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
@@ -154,25 +154,10 @@ public class ExplainOperation extends SpliceBaseOperation {
         Iterator<String> explainStringIter;
         Collection<QueryTreeNode> opPlanMap = m.get(sql);
         if (opPlanMap != null) {
-            CompilerContext.DataSetProcessorType type = activation.getLanguageConnectionContext().getDataSetProcessorType();
+            DataSetProcessorType type = activation.getLanguageConnectionContext().getDataSetProcessorType();
+            type = type.combine(PlanPrinter.queryHintedForcedType(opPlanMap));
 
-            boolean useSpark = (type == CompilerContext.DataSetProcessorType.SPARK);
-            if (type == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                useSpark = true;
-            else if (type == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                useSpark = false;
-            else {
-                // query may have provided hint on useSpark=true/false
-                CompilerContext.DataSetProcessorType  queryForcedType =PlanPrinter.queryHintedForcedType(opPlanMap);
-                if (queryForcedType != null) {
-                    if (queryForcedType == CompilerContext.DataSetProcessorType.FORCED_SPARK)
-                        useSpark = true;
-                    else if (queryForcedType == CompilerContext.DataSetProcessorType.FORCED_CONTROL)
-                        useSpark = false;
-                }
-                else if (!useSpark)
-                    useSpark = PlanPrinter.shouldUseSpark(opPlanMap, false);
-            }
+            boolean useSpark = type.isSpark() || type.isDefaultControl() && PlanPrinter.shouldUseSpark(opPlanMap, false);
 
             explainStringIter = PlanPrinter.planToIterator(opPlanMap, useSpark);
         } else

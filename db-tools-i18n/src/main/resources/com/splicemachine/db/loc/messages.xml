@@ -3204,7 +3204,8 @@ Guide.
 
             <msg>
                 <name>42ZD1</name>
-                <text>Using both useSpark=true and useSpark=false is illegal</text>
+                <text>Using both useSpark=true and useSpark=false at the same level ('{0}') is illegal</text>
+                <arg>level</arg>
             </msg>
 
             <msg>

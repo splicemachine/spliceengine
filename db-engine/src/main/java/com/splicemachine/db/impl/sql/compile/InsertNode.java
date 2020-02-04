@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -123,7 +124,7 @@ public final class InsertNode extends DMLModStatementNode {
     private     double              sampleFraction;
     private     String              indexName;
 
-    private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
 
     protected   RowLocation[]         autoincRowLocation;
@@ -780,7 +781,10 @@ public final class InsertNode extends DMLModStatementNode {
 
         if (useSparkString != null) {
             try {
-                dataSetProcessorType = Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString)) ? CompilerContext.DataSetProcessorType.FORCED_SPARK : CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+                dataSetProcessorType = dataSetProcessorType.combine(
+                        Boolean.parseBoolean(StringUtil.SQLToUpperCase(useSparkString)) ?
+                                DataSetProcessorType.QUERY_HINTED_SPARK:
+                                DataSetProcessorType.QUERY_HINTED_CONTROL);
             } catch (Exception sparkE) {
                 throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, useSparkString);
             }
@@ -922,11 +926,9 @@ public final class InsertNode extends DMLModStatementNode {
         resultSet.pushOffsetFetchFirst( offset, fetchFirst, hasJDBClimitClause );
 
         if (targetTableDescriptor != null && targetTableDescriptor.getStoredAs() != null) {
-            dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
         }
-        if (dataSetProcessorType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) {
-            getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
-        }
+        getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
 
         super.optimizeStatement();
         
