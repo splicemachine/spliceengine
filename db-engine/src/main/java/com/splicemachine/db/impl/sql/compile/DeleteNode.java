@@ -44,7 +44,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -80,7 +80,7 @@ public class DeleteNode extends DMLModStatementNode
     public static final String COLUMNNAME = "###RowLocationToDelete";
 
     public static final String BULK_DELETE_DIRECTORY = "bulkDeleteDirectory";
-    private CompilerContext.DataSetProcessorType dataSetProcessorType = CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
     /* Filled in by bind. */
     protected boolean                deferred;
@@ -403,7 +403,7 @@ public class DeleteNode extends DMLModStatementNode
     {
         bulkDeleteDirectory = targetProperties.getProperty(BULK_DELETE_DIRECTORY);
         if (bulkDeleteDirectory != null) {
-            dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
 
         }
     }
@@ -931,9 +931,7 @@ public class DeleteNode extends DMLModStatementNode
             }
         }
 
-        if (dataSetProcessorType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) {
-            getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
-        }
+        getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
         super.optimizeStatement();
     }
 

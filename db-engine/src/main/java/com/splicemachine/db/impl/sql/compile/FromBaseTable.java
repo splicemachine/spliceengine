@@ -552,7 +552,7 @@ public class FromBaseTable extends FromTable {
     @Override
     public void verifyProperties(DataDictionary dDictionary) throws StandardException{
         if (tableDescriptor.getStoredAs()!=null) {
-            dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
         }
 
         /* check if we need to inherent some property from the connection */
@@ -562,7 +562,9 @@ public class FromBaseTable extends FromTable {
         defaultSelectivityFactor = defaultSelectivityFactorObj==null?-1d:defaultSelectivityFactorObj.doubleValue();
         Boolean useSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
         if (useSparkObj != null)
-            dataSetProcessorType = useSparkObj.booleanValue() ? CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+            dataSetProcessorType = dataSetProcessorType.combine(useSparkObj ?
+                    DataSetProcessorType.SESSION_HINTED_SPARK:
+                    DataSetProcessorType.SESSION_HINTED_CONTROL);
 
         if (defaultSelectivityFactor > 0)
             skipStats = true;
@@ -650,7 +652,10 @@ public class FromBaseTable extends FromTable {
             }
             else if (key.equals("useSpark")) {
                 try {
-                    dataSetProcessorType = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))? CompilerContext.DataSetProcessorType.FORCED_SPARK:CompilerContext.DataSetProcessorType.FORCED_CONTROL;
+                    dataSetProcessorType = dataSetProcessorType.combine(
+                            Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))?
+                                    DataSetProcessorType.QUERY_HINTED_SPARK:
+                                    DataSetProcessorType.QUERY_HINTED_CONTROL);
                 } catch (Exception sparkE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value);
                 }
@@ -658,7 +663,7 @@ public class FromBaseTable extends FromTable {
             else if (key.equals("pin")) {
                 try {
                     pin = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
-                    dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+                    dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
                     tableProperties.setProperty("index","null");
                 } catch (Exception pinE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,value); // TODO Fix Error message - JL
@@ -3458,19 +3463,19 @@ public class FromBaseTable extends FromTable {
      *
      * @param accessPath the access path
      */
-    public CompilerContext.DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
-        if (dataSetProcessorType.isForced() || dataSetProcessorType.isSpark()) {
-            // Type should not change anymore
+    public DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
+        if (! dataSetProcessorType.isDefaultControl()) {
+            // No need to assess cost
             return dataSetProcessorType;
         }
         long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().getDetermineSparkRowThreshold();
         // we need to check not only the number of row scanned, but also the number of output rows for the
         // join result
-        assert dataSetProcessorType == CompilerContext.DataSetProcessorType.DEFAULT_CONTROL;
+        assert dataSetProcessorType.isDefaultControl();
         if (accessPath != null &&
                 (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
                  accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-            return CompilerContext.DataSetProcessorType.SPARK;
+            return DataSetProcessorType.COST_SUGGESTED_SPARK;
         }
         return dataSetProcessorType;
     }

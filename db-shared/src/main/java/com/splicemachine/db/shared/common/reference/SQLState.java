@@ -1174,7 +1174,7 @@ public interface SQLState {
 
 	String LANG_RESUBMIT_DISTRIBUTED                                    = "42ZD0";
 
-	String LANG_INVALID_FORCED_SPARK_AND_FORCED_CONTROL                = "42ZD1";
+	String LANG_INVALID_SPARK_AND_CONTROL = "42ZD1";
 
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";

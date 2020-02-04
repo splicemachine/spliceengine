@@ -77,21 +77,6 @@ public interface CompilerContext extends Context
     /////////////////////////////////////////////////////////////////////////////////////
 
 
-    enum DataSetProcessorType {
-        DEFAULT_CONTROL, // Default Value
-        FORCED_CONTROL, // Hinted to use control
-        SPARK, // Scans Large enough for Spark
-        FORCED_SPARK; // Hinted to use Spark
-
-        public boolean isSpark() {
-            return this == SPARK || this == FORCED_SPARK;
-        }
-
-        public boolean isForced() {
-            return this == FORCED_CONTROL || this == FORCED_SPARK;
-        }
-    }
-
     enum NativeSparkModeType {
         SYSTEM, // Use the system-level setting.
         ON,     // Process the operation using UnSafeRows if the source operation produces them.
@@ -665,7 +650,7 @@ public interface CompilerContext extends Context
      */
     boolean isReferenced(SequenceDescriptor sd);
 
-    void setDataSetProcessorType(DataSetProcessorType type);
+    void setDataSetProcessorType(DataSetProcessorType type) throws StandardException;
 
     DataSetProcessorType getDataSetProcessorType();
 
