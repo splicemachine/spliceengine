@@ -921,6 +921,13 @@ public final class InsertNode extends DMLModStatementNode {
 
         resultSet.pushOffsetFetchFirst( offset, fetchFirst, hasJDBClimitClause );
 
+        if (targetTableDescriptor != null && targetTableDescriptor.getStoredAs() != null) {
+            dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
+        }
+        if (dataSetProcessorType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) {
+            getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
+        }
+
         super.optimizeStatement();
         
         //
@@ -969,11 +976,7 @@ public final class InsertNode extends DMLModStatementNode {
                                 MethodBuilder mb)
                             throws StandardException
     {
-        if (targetTableDescriptor != null && targetTableDescriptor.getStoredAs() != null) {
-            dataSetProcessorType = CompilerContext.DataSetProcessorType.FORCED_SPARK;
-        }
-        if (dataSetProcessorType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL)
-            acb.setDataSetProcessorType(dataSetProcessorType);
+        acb.setDataSetProcessorType(getCompilerContext().getDataSetProcessorType());
 
         // If the DML is on the temporary table, generate the code to
         // mark temporary table as modified in the current UOW. After
