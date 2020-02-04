@@ -32,15 +32,13 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
 
@@ -172,12 +170,10 @@ public abstract class DMLStatementNode extends StatementNode {
 
 
         // We should try to cost control first, and fallback to spark if necessary
-        CompilerContext.DataSetProcessorType connectionType = getLanguageConnectionContext().getDataSetProcessorType();
-        if (connectionType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) {
-            getCompilerContext().setDataSetProcessorType(connectionType);
-        }
+        DataSetProcessorType connectionType = getLanguageConnectionContext().getDataSetProcessorType();
+        getCompilerContext().setDataSetProcessorType(connectionType);
 
-        if (!shouldSkipControl(resultSet)) {
+        if (shouldRunControl(resultSet)) {
             resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d, false);
         }
 
@@ -195,24 +191,24 @@ public abstract class DMLStatementNode extends StatementNode {
 
     }
 
-    private boolean shouldSkipControl(ResultSetNode resultSet) throws StandardException {
-        if (getCompilerContext().getDataSetProcessorType().isSpark()) {
-            return true;
+    private boolean shouldRunControl(ResultSetNode resultSet) throws StandardException {
+        DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
+        if (type.isForced()) {
+            return (!type.isSpark());
         }
         resultSet.getFromList().verifyProperties(getDataDictionary());
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
-            if (((FromTable) obj).getDataSetProcessorType().isSpark()) {
-                return true;
-            }
+            type = type.combine(((FromTable) obj).getDataSetProcessorType());
         }
-        return false;
+        getCompilerContext().setDataSetProcessorType(type);
+        return !type.isSpark();
     }
 
     private boolean shouldRunSpark(ResultSetNode resultSet) throws StandardException {
-        CompilerContext.DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
-        if (type == CompilerContext.DataSetProcessorType.FORCED_CONTROL) {
+        DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
+        if (!type.isSpark() && (type.isHinted() || type.isForced())) {
             return false;
         }
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
@@ -221,15 +217,7 @@ public abstract class DMLStatementNode extends StatementNode {
             if (obj instanceof FromBaseTable) {
                 ((FromBaseTable) obj).determineSpark();
             }
-            CompilerContext.DataSetProcessorType newType = ((FromTable) obj).getDataSetProcessorType();
-            if (newType.isForced()) {
-                if (type.isForced() && newType != type) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK_AND_FORCED_CONTROL);
-                }
-                type = newType;
-            } else if (!type.isForced() && newType.isSpark()) {
-                type = newType;
-            }
+            type = type.combine(((FromTable) obj).getDataSetProcessorType());
         }
         getCompilerContext().setDataSetProcessorType(type);
         return type.isSpark();

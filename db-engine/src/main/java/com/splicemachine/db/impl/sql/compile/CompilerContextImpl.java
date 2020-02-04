@@ -40,10 +40,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.compile.Parser;
-import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
@@ -118,7 +115,7 @@ public class CompilerContextImpl extends ContextImpl
       *    Reset compiler context (as for instance, when we recycle a context for
       *    use by another compilation.
       */
-    public    void    resetContext()
+    public void resetContext()
     {
         nextColumnNumber = 1;
         nextTableNumber = 0;
@@ -1189,10 +1186,8 @@ public class CompilerContextImpl extends ContextImpl
     private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
 
     @Override
-    public void setDataSetProcessorType(DataSetProcessorType type) {
-        assert dataSetProcessorType == DataSetProcessorType.DEFAULT_CONTROL || type == dataSetProcessorType:
-                "overriding set type " + dataSetProcessorType + " with type " + type + " is illegal";
-        dataSetProcessorType = type;
+    public void setDataSetProcessorType(DataSetProcessorType type) throws StandardException {
+        dataSetProcessorType = dataSetProcessorType.combine(type);
     }
 
     @Override

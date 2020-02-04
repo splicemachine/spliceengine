@@ -19,6 +19,8 @@ import javax.annotation.Nullable;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.util.NetworkUtils;
 import com.splicemachine.client.SpliceClient;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiter;
 import com.splicemachine.db.iapi.sql.conn.ControlExecutionLimiterImpl;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -75,23 +77,10 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
         if (op.isOlapServer())
             return new SparkDataSetProcessor();
 
-        switch(activation.getLanguageConnectionContext().getDataSetProcessorType()){
-            case FORCED_CONTROL:
-                return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
-            case FORCED_SPARK:
-                return new SparkDataSetProcessor();
-            default:
-                break;
-        }
-        switch (((BaseActivation)activation).datasetProcessorType()) {
-            case FORCED_SPARK:
-            case SPARK:
-                return new SparkDataSetProcessor();
-            case FORCED_CONTROL:
-                return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
-            case DEFAULT_CONTROL:
-            default:
-                return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
+        if (((BaseActivation)activation).datasetProcessorType().isSpark()) {
+            return new SparkDataSetProcessor();
+        } else {
+            return new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
         }
     }
 
@@ -147,23 +136,14 @@ public class CostChoosingDataSetProcessorFactory implements DataSetProcessorFact
     }
 
     @Override
-    public ControlExecutionLimiter getControlExecutionLimiter(Activation activation) {
+    public ControlExecutionLimiter getControlExecutionLimiter(Activation activation) throws StandardException {
         if (!isHBase())
             return ControlExecutionLimiter.NO_OP;
-        switch(activation.getLanguageConnectionContext().getDataSetProcessorType()){
-            case FORCED_CONTROL:
-            case FORCED_SPARK:
-                // If we are forcing execution one way or the other, do nothing
-                return ControlExecutionLimiter.NO_OP;
-            default:
-                break;
-        }
-        switch (((BaseActivation)activation).datasetProcessorType()) {
-            case FORCED_SPARK:
-            case FORCED_CONTROL:
-                // If we are forcing execution one way or the other, do nothing
-                return ControlExecutionLimiter.NO_OP;
-            default:
+        DataSetProcessorType type = activation.getLanguageConnectionContext().getDataSetProcessorType();
+        type = type.combine(((BaseActivation)activation).datasetProcessorType());
+        if (type.isHinted() || type.isForced()) {
+            // If we are forcing execution one way or the other, do nothing
+            return ControlExecutionLimiter.NO_OP;
         }
 
         long rowsLimit = EngineDriver.driver().getConfiguration().getControlExecutionRowLimit();

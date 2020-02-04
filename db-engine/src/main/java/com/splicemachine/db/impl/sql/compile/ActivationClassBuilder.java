@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.compile.CodeGeneration;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 
 import java.lang.reflect.Modifier;
 
@@ -83,7 +84,7 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
     private LocalField  cursorResultSetField;
 
     private MethodBuilder closeActivationMethod;
-    private CompilerContext.DataSetProcessorType pushedType;
+    private DataSetProcessorType pushedType;
 
 
     ///////////////////////////////////////////////////////////////////////
@@ -180,7 +181,7 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
      *
      */
     @Override
-    public void setDataSetProcessorType(CompilerContext.DataSetProcessorType type) {
+    public void setDataSetProcessorType(DataSetProcessorType type) {
         if (pushedType != null) {
             assert pushedType == type;
         } else {
