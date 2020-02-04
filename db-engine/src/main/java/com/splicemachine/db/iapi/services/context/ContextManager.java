@@ -78,31 +78,24 @@ public class ContextManager
 		private Context top_ = null;
 
 		void push(Context context) {
-		    synchronized(stack_) {
-                        stack_.add(context);
-                        top_ = context;
-                    }
+			stack_.add(context);
+			top_ = context;
 		}
 		void pop() {
-		    synchronized(stack_) {
-		        stack_.remove(stack_.size() - 1);
-
-                        top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
-                    }
-                }
+            stack_.remove(stack_.size() - 1);
+            top_ = stack_.isEmpty() ? null : stack_.get(stack_.size() - 1);
+        }
 		void remove(Context context) {
-		    synchronized(stack_) {
-                        if (context == top_) {
-                            pop();
-                            return;
-                        }
-                        int index = stack_.lastIndexOf(context);
-                        if (index >= 0)
-                            stack_.remove(index);
-                    }
+			if (context == top_) {
+				pop();
+				return;
+			}
+			int index=stack_.lastIndexOf(context);
+			if(index>=0)
+				stack_.remove(index);
 		}
-		Context top() { 
-			return top_; 
+		Context top() {
+			return top_;
 		}
 		boolean isEmpty() { return stack_.isEmpty(); }
 		List<Context> getUnmodifiableList() {
@@ -326,7 +319,7 @@ forever: for (;;) {
 				flushErrorString();
 			}
 
-			
+
 			boolean	lastHandler = false;
 
 
@@ -361,9 +354,9 @@ cleanup:	for (int index = holder.size() - 1; index >= 0; index--) {
                     }
 				}
 				catch (StandardException se) {
-	
+
 					if (error instanceof StandardException) {
-	
+
 						if (se.getSeverity() > ((StandardException) error).getSeverity()) {
 							// Ok, error handling raised a more severe error,
 							// restart with the more severe error
