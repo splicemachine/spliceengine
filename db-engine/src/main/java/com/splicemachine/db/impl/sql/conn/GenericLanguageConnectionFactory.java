@@ -156,10 +156,7 @@ public class GenericLanguageConnectionFactory
 		double defaultSelectvityFactor,
 		String ipAddresss,
 		String defaultSchema,
-		Properties sessionProperties,
-                Integer sessionNumber) throws StandardException {
-
-                int instanceNumber = sessionNumber != null ? sessionNumber : getNextLCCInstanceNumber();
+		Properties sessionProperties) throws StandardException {
 		
 		return new GenericLanguageConnectionContext(cm,
 													tc,
@@ -168,7 +165,7 @@ public class GenericLanguageConnectionFactory
 													db,
 													userName,
 													groupuserlist,
-													instanceNumber,
+													getNextLCCInstanceNumber(),
 													drdaID,
 													dbname,
 													rdbIntTkn,
@@ -180,28 +177,6 @@ public class GenericLanguageConnectionFactory
                                                     sessionProperties
 				);
 	}
-
-	@Override
-	public LanguageConnectionContext newLanguageConnectionContext(
-		ContextManager cm,
-		TransactionController tc,
-		LanguageFactory lf,
-		Database db,
-		String userName,
-		List<String> groupuserlist,
-		String drdaID,
-		String dbname,
-        String rdbIntTkn,
-        CompilerContext.DataSetProcessorType type,
-		boolean skipStats,
-		double defaultSelectvityFactor,
-		String ipAddresss,
-		String defaultSchema,
-		Properties sessionProperties) throws StandardException {
-            return newLanguageConnectionContext(cm, tc, lf, db, userName, groupuserlist, drdaID, dbname, rdbIntTkn,
-                                                type, skipStats, defaultSelectvityFactor, ipAddresss, defaultSchema,
-		                                sessionProperties, null);
-        }
 
 	public Cacheable newCacheable(CacheManager cm) {
 		return new CachedStatement();

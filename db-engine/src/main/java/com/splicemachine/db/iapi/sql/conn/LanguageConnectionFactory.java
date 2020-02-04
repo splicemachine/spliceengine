@@ -127,26 +127,6 @@ public interface LanguageConnectionFactory {
 								double defaultSelectivityFactor,
 								String ipAddress,
                                 String defaultSchema,
-                                Properties sessionProperties,
-                                Integer sessionNumber)
-
-		throws StandardException;
-
-	LanguageConnectionContext
-	newLanguageConnectionContext(ContextManager cm,
-								TransactionController tc,
-								LanguageFactory lf,
-								Database db,
-								String userName,
-								List<String> groupuserlist,
-								String drdaID,
-								String dbname,
-								String rdbIntTkn,
-                                CompilerContext.DataSetProcessorType type,
-								boolean skipStats,
-								double defaultSelectivityFactor,
-								String ipAddress,
-                                String defaultSchema,
                                 Properties sessionProperties)
 
 		throws StandardException;

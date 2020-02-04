@@ -165,7 +165,7 @@ public class SpliceDatabase extends BasicDatabase{
         return
             generateLanguageConnectionContext(txn, cm, user, groupuserlist, drdaID, dbname,
                                               rdbIntTkn, type, skipStats, defaultSelectivityFactor,
-                                              ipAddress, null, null);
+                                              ipAddress, null);
 
     }
 
@@ -180,14 +180,13 @@ public class SpliceDatabase extends BasicDatabase{
                                                                        boolean skipStats,
                                                                        double defaultSelectivityFactor,
                                                                        String ipAddress,
-                                                                       TransactionController reuseTC,
-                                                                       Integer sessionNumber) throws StandardException{
+                                                                       TransactionController reuseTC) throws StandardException{
         TransactionController tc = reuseTC == null ? ((SpliceAccessManager)af).marshallTransaction(cm,txn) : reuseTC;
         cm.setLocaleFinder(this);
         pushDbContext(cm);
         LanguageConnectionContext lctx=lcf.newLanguageConnectionContext(cm,tc,lf,this,user,
                 groupuserlist,drdaID,dbname,rdbIntTkn,type,skipStats, defaultSelectivityFactor, ipAddress,
-                null, null, sessionNumber);
+                null, null);
 
         pushClassFactoryContext(cm,lcf.getClassFactory());
         ExecutionFactory ef=lcf.getExecutionFactory();
