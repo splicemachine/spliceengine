@@ -167,12 +167,16 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         CostEstimate costEstimate=getCostEstimate(optimizer);
         ap.setCostEstimate(costEstimate);
 
-		/*
-		 ** This is the initial cost of this optimizable.  Initialize it
-		 ** to the maximum cost so that the optimizer will think that
-		 ** any access path is better than none.
-		 */
-        costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
+        /*
+         ** This is the initial cost of this optimizable.  Initialize it
+         ** to the maximum cost so that the optimizer will think that
+         ** any access path is better than none.
+         */
+        /* Modify the cost to something other than Double.MAX_VALUE, so that
+         * it doesn't appear to be uninitialized to the optimizer during
+         * join planning (which may cause join planning to loop forever).
+         */
+        costEstimate.setCost(Double.MAX_VALUE*0.9d,Double.MAX_VALUE*0.9d,Double.MAX_VALUE*0.9d);
 
         super.startOptimizing(optimizer,rowOrdering);
     }
@@ -1526,8 +1530,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     private UUID getSpecialTriggerVTITableName(LanguageConnectionContext lcc, String className)
             throws StandardException
     {
-        if (className.equals(ClassName.TriggerNewTransitionRows))
-//				|| className.equals(ClassName.TriggerOldTransitionRows))
+        if (className.equals(ClassName.TriggerNewTransitionRows) ||
+            className.equals(ClassName.TriggerOldTransitionRows))
         {
             // if there isn't an active trigger being compiled, error
             if (lcc.getTriggerTable() != null)
@@ -1569,6 +1573,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         {
 			/* Build a ResultColumn/BaseColumnNode pair for the column */
             colDesc = (ColumnDescriptor) cdl.elementAt(index);
+            colDesc.setTableDescriptor(td);
 
             valueNode = (ValueNode) getNodeFactory().getNode(
                     C_NodeTypes.BASE_COLUMN_NODE,

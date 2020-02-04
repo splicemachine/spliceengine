@@ -70,7 +70,8 @@ public class StatementTriggerExecutor extends GenericTriggerExecutor {
     @Override
     void fireTrigger(TriggerEvent event,
                      CursorResultSet rs,
-                     int[] colsReadFromTable) throws StandardException {
+                     int[] colsReadFromTable,
+                     boolean deferCleanup) throws StandardException {
         tec.setTrigger(triggerd);
         tec.setCurrentTriggerEvent(event);
         tec.setTriggeringResultSet(rs);
@@ -79,7 +80,7 @@ public class StatementTriggerExecutor extends GenericTriggerExecutor {
             executeWhenClauseAndAction();
         } finally {
             clearSPS();
-            tec.clearTrigger();
+            tec.clearTrigger(deferCleanup);
         }
     }
 }

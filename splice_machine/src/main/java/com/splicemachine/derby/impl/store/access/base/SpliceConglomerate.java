@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericConglomerate;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.data.TxnOperationFactory;
@@ -107,7 +108,7 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
         this.tmpFlag=tmpFlag;
 
         try{
-            ((SpliceTransaction)rawtran).setActiveState(false,false,null);
+            ((BaseSpliceTransaction)rawtran).setActiveState(false,false,null);
         }catch(Exception e){
             throw new RuntimeException(e);
         }
