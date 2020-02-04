@@ -28,11 +28,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-/**
- *
- * Created by jyuan on 7/31/14.
- */
 public class StringAggregator extends SpliceGenericWindowFunction {
+    private static final int VERSION = 1;
     private StringBuilder acc;
     private String separator;
 
@@ -92,12 +89,15 @@ public class StringAggregator extends SpliceGenericWindowFunction {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(VERSION);
         out.writeObject(acc);
         out.writeUTF(separator);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        int v = in.readInt();
+        assert v == VERSION;
         acc = (StringBuilder) in.readObject();
         separator = in.readUTF();
     }

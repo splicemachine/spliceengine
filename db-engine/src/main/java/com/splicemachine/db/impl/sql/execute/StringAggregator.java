@@ -48,6 +48,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public final class StringAggregator extends OrderableAggregator {
+    private final int VERSION = 1;
     private StringBuilder aggregator;
     private String separator;
 
@@ -126,6 +127,7 @@ public final class StringAggregator extends OrderableAggregator {
      * @throws IOException on error
      */
     public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(VERSION);
         out.writeObject(aggregator);
         out.writeBoolean(eliminatedNulls);
         out.writeUTF(separator);
@@ -137,6 +139,8 @@ public final class StringAggregator extends OrderableAggregator {
      */
     public void readExternal(ObjectInput in)
             throws IOException, ClassNotFoundException {
+        int v = in.readInt();
+        assert v == VERSION;
         aggregator = (StringBuilder) in.readObject();
         eliminatedNulls = in.readBoolean();
         separator = in.readUTF();
