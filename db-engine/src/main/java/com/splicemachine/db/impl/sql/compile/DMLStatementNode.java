@@ -173,7 +173,9 @@ public abstract class DMLStatementNode extends StatementNode {
 
         // We should try to cost control first, and fallback to spark if necessary
         CompilerContext.DataSetProcessorType connectionType = getLanguageConnectionContext().getDataSetProcessorType();
-        getCompilerContext().setDataSetProcessorType(connectionType);
+        if (connectionType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) {
+            getCompilerContext().setDataSetProcessorType(connectionType);
+        }
 
         if (!shouldSkipControl(resultSet)) {
             resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d, false);

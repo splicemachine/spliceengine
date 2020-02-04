@@ -533,8 +533,7 @@ public class DeleteNode extends DMLModStatementNode
     {
 
         // Set Spark
-        if (dataSetProcessorType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL)
-            acb.setDataSetProcessorType(dataSetProcessorType);
+        acb.setDataSetProcessorType(getCompilerContext().getDataSetProcessorType());
 
         // If the DML is on the temporary table, generate the code to
         // mark temporary table as modified in the current UOW. After
@@ -932,6 +931,9 @@ public class DeleteNode extends DMLModStatementNode
             }
         }
 
+        if (dataSetProcessorType != CompilerContext.DataSetProcessorType.DEFAULT_CONTROL) {
+            getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
+        }
         super.optimizeStatement();
     }
 
