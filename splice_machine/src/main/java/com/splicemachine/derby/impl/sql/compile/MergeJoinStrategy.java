@@ -143,10 +143,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
          * totalOutputRows: the number of final output rows, this is the result after applying any restrictive conditions, e.g., the inequality join conditions, conditions not on index columns.
          * totalJoinedRows is always equal or larger than totalOutputRows */
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        double innerTableJoinSelectivity = joinSelectivity * scanSelectivity * outerCost.rowCount();
-        if (innerTableJoinSelectivity > 1)
-            innerTableJoinSelectivity = 1d;
-        double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows, innerTableJoinSelectivity);
+        double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
@@ -170,20 +167,18 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
      * @return
      */
 
-    public static double
-    mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty,
-                               double numOfJoinedRows, double innerTableJoinSelectivity) {
+    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty, double numOfJoinedRows) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
 
         assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerCost.partitionCount() * innerTableJoinSelectivity;
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerCost.partitionCount();
         if (outerTableEmpty) {
             return (outerCost.getLocalCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
         else
-            return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition()*innerTableJoinSelectivity+
+            return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition()+
                 innerRemoteCost/outerCost.partitionCount() +
                 innerCost.getOpenCost()+innerCost.getCloseCost()
                         + joiningRowCost/outerCost.partitionCount();
