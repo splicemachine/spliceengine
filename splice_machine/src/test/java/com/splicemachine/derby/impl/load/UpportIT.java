@@ -17,8 +17,10 @@ package com.splicemachine.derby.impl.load;
 import com.splicemachine.derby.test.TPCHIT;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.spark_project.guava.collect.Lists;
@@ -39,6 +41,7 @@ import static org.junit.Assert.assertNotNull;
  * @author Scott Fines
  *         Date: 10/20/14
  */
+@Category(LocalOnlyTest.class)
 public class UpportIT extends SpliceUnitTest {
     public static final String CLASS_NAME = UpportIT.class.getSimpleName().toUpperCase();
     private static final SpliceSchemaWatcher schema =

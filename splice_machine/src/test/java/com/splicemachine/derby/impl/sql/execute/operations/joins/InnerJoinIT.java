@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
+import com.splicemachine.test.LocalOnlyTest;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
@@ -39,6 +40,7 @@ import java.util.*;
 import static com.splicemachine.homeless.TestUtils.o;
 
 
+@Category(LocalOnlyTest.class)
 public class InnerJoinIT extends SpliceUnitTest{
 
     private static Logger LOG=Logger.getLogger(InnerJoinIT.class);

@@ -15,6 +15,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.test.LocalOnlyTest;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
@@ -39,6 +41,7 @@ import static org.junit.Assert.fail;
  * @author P Trolard
  *         Date: 26/11/2013
  */
+@Category(LocalOnlyTest.class)
 public class MergeJoinIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(MergeJoinIT.class);
 

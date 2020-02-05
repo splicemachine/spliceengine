@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
+import com.splicemachine.test.LocalOnlyTest;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -40,6 +42,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Created on: 2/23/13
  */
+@Category(LocalOnlyTest.class)
 public class MsOrderDetailIT extends SpliceUnitTest { 
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();

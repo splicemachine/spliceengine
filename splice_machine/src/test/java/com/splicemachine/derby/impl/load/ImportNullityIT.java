@@ -15,7 +15,9 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -29,6 +31,7 @@ import static org.junit.Assert.assertNotNull;
  * @author Scott Fines
  *         Date: 9/30/16
  */
+@Category(LocalOnlyTest.class)
 public class ImportNullityIT{
     public static final String SCHEMA_NAME=ImportNullityIT.class.getSimpleName();
     private final RuledConnection conn = new RuledConnection(SCHEMA_NAME);

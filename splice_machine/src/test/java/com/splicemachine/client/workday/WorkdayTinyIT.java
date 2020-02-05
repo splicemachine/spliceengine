@@ -18,7 +18,9 @@ import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -35,6 +37,7 @@ import java.util.List;
  * @author Jeff Cunningham
  *         Date: 9/9/13
  */
+@Category(LocalOnlyTest.class)
 public class WorkdayTinyIT extends SpliceUnitTest { 
     private static final String SCHEMA_NAME = WorkdayTinyIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();

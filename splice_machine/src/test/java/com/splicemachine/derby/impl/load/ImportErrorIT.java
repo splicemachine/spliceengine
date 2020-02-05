@@ -19,7 +19,9 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -39,6 +41,7 @@ import static org.junit.Assert.fail;
  * @author Scott Fines
  * Created on: 9/20/13
  */
+@Category(LocalOnlyTest.class)
 public class ImportErrorIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = ImportErrorIT.class.getSimpleName().toUpperCase();

@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -46,7 +47,7 @@ import static org.junit.Assert.assertEquals;
  * @author Jeff Cunningham
  *         Date: 7/31/13
  */
-@Category(value = {SerialTest.class})
+@Category(value = {SerialTest.class, LocalOnlyTest.class})
 public class IndexIT extends SpliceUnitTest{
     private static final Logger LOG=Logger.getLogger(IndexIT.class);
 

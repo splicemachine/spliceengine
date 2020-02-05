@@ -18,6 +18,8 @@ import static org.junit.Assert.assertTrue;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
+
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -44,7 +46,7 @@ import com.splicemachine.test.Transactions;
  * @author David Winters
  *		 Created on: 2/27/15
  */
-@Category({Transactions.class,SerialTest.class}) //made serial because it loads a jar
+@Category({Transactions.class,SerialTest.class, LocalOnlyTest.class}) //made serial because it loads a jar
 public class CallableTransactionIT extends SpliceUnitTest {
 
 	public static final String CLASS_NAME = CallableTransactionIT.class.getSimpleName().toUpperCase();

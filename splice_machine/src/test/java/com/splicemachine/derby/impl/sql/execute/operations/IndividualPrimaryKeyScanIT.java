@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SlowTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -35,7 +36,7 @@ import java.sql.ResultSet;
  * Created on: 7/29/13
  */
 // Skip this if you want because it takes forever and doesn't usually help much, but is nifty in some cases
-@Category(SlowTest.class)
+@Category({SlowTest.class, LocalOnlyTest.class})
 public class IndividualPrimaryKeyScanIT {
     private static Logger LOG = Logger.getLogger(PrimaryKeyScanIT.class);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();

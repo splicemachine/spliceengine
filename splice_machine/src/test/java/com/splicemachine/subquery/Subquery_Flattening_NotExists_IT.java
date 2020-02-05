@@ -19,13 +19,16 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.ResultSet;
 
 import static com.splicemachine.subquery.SubqueryITUtil.*;
 import static org.junit.Assert.assertEquals;
 
+@Category(LocalOnlyTest.class)
 public class Subquery_Flattening_NotExists_IT {
 
     private static final String SCHEMA = Subquery_Flattening_NotExists_IT.class.getSimpleName();

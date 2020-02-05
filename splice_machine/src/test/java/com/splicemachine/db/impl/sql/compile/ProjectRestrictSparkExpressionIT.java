@@ -18,10 +18,12 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
@@ -34,6 +36,7 @@ import java.util.Collection;
  * and verify the results using Spark match non-Spark evaluation.
  */
 @RunWith(Parameterized.class)
+@Category(LocalOnlyTest.class)
 public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
     
     private Boolean useSpark;

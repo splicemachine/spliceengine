@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
+import com.splicemachine.test.LocalOnlyTest;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -33,6 +35,7 @@ import java.util.List;
  * @author Scott Fines
  *         Created on: 2/24/13
  */
+@Category(LocalOnlyTest.class)
 public class MicrostrategiesItemIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = MicrostrategiesItemIT.class.getSimpleName().toUpperCase();

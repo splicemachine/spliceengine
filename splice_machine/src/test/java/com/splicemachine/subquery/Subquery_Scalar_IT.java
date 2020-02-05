@@ -18,10 +18,12 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -35,6 +37,7 @@ import static org.junit.Assert.assertTrue;
  * expression can appear.  Subqueries that appear in an ANY/EXISTS/IN operator but return one row/column are still
  * scalar subqueries.
  */
+@Category(LocalOnlyTest.class)
 public class Subquery_Scalar_IT {
 
     private static final String SCHEMA = Subquery_Scalar_IT.class.getSimpleName();

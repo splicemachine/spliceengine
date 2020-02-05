@@ -14,7 +14,9 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.utils.Pair;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.ImmutableMap;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
@@ -33,6 +35,7 @@ import java.util.*;
 import static com.splicemachine.homeless.TestUtils.o;
 import static org.junit.Assert.assertEquals;
 
+@Category(LocalOnlyTest.class)
 public class OuterJoinIT extends SpliceUnitTest { 
 
     private static Logger LOG = Logger.getLogger(OuterJoinIT.class);

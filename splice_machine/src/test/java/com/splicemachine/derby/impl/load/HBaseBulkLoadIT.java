@@ -18,9 +18,11 @@ package com.splicemachine.derby.impl.load;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.spark_project.guava.base.Throwables;
@@ -37,6 +39,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by jyuan on 3/27/17.
  */
+@Category(LocalOnlyTest.class)
 public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = HBaseBulkLoadIT.class.getSimpleName().toUpperCase();

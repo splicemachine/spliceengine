@@ -19,9 +19,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -37,6 +39,7 @@ import static org.junit.Assert.fail;
  * in BinaryComparisonOperatorNode. There is some indirect
  * coverage in NumericConstantsIT and DataTypeCorrectnessIT too.
  */
+@Category(LocalOnlyTest.class)
 public class NumericPromoteCompareIT {
 
 	// This test class was added as part of fix for DB-1001.

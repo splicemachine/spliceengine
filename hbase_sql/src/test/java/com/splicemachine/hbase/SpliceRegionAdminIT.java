@@ -22,6 +22,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
@@ -30,6 +31,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
 
 import java.sql.Connection;
@@ -46,6 +48,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 8/15/17.
  */
+@Category(LocalOnlyTest.class)
 public class SpliceRegionAdminIT {
     private static final String SCHEMA_NAME = SpliceRegionAdminIT.class.getSimpleName().toUpperCase();
     private static final String LINEITEM = "LINEITEM";

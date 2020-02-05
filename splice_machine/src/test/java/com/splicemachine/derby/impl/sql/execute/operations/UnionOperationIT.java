@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.HBaseTest;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -36,6 +37,7 @@ import java.util.*;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
 import static org.junit.Assert.*;
 
+@Category(LocalOnlyTest.class)
 public class UnionOperationIT {
 
     private static final String CLASS_NAME = UnionOperationIT.class.getSimpleName().toUpperCase();

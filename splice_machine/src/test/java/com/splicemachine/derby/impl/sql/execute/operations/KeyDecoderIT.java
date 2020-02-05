@@ -19,6 +19,8 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.Iterator;
 
+import com.splicemachine.test.LocalOnlyTest;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.TreeMultiset;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -39,6 +41,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * Created by jyuan on 4/3/14.
  */
 
+@Category(LocalOnlyTest.class)
 public class KeyDecoderIT extends SpliceUnitTest {
     private static final Logger LOG = Logger.getLogger(KeyDecoderIT.class);
     private static final String SCHEMA_NAME = KeyDecoderIT.class.getSimpleName().toUpperCase();

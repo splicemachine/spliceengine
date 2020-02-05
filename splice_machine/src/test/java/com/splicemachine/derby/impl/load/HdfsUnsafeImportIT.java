@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
@@ -27,6 +28,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -50,6 +52,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+@Category(LocalOnlyTest.class)
 public class HdfsUnsafeImportIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = HdfsUnsafeImportIT.class.getSimpleName().toUpperCase();

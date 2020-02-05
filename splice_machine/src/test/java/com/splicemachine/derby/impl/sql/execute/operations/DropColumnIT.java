@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.impl.sql.actions.index.CustomerTable;
 import com.splicemachine.derby.test.framework.*;
 
+import com.splicemachine.test.LocalOnlyTest;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -24,6 +25,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.Before;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -40,6 +42,7 @@ import java.sql.ResultSet;
  * Time: 2:03 PM
  * To change this template use File | Settings | File Templates.
  */
+@Category(LocalOnlyTest.class)
 public class DropColumnIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(DropColumnIT.class);
 

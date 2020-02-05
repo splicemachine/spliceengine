@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -42,7 +43,7 @@ import static org.junit.Assert.*;
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(Parameterized.class)
-@Category(SerialTest.class)
+@Category({SerialTest.class, LocalOnlyTest.class})
 public class TimestampIT extends SpliceUnitTest {
     private static final String SCHEMA = TimestampIT.class.getSimpleName().toUpperCase();
     private Boolean useSpark;

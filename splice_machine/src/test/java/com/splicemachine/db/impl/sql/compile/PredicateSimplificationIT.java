@@ -19,7 +19,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.spark_project.guava.collect.Lists;
@@ -43,6 +45,7 @@ import static org.junit.Assert.assertTrue;
  *  (p AND FALSE) ==> (FALSE)
  */
 @RunWith(Parameterized.class)
+@Category(LocalOnlyTest.class)
 public class PredicateSimplificationIT  extends SpliceUnitTest {
     
     private Boolean useSpark;

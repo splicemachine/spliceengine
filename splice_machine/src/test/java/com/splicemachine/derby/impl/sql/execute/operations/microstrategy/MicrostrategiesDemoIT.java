@@ -16,10 +16,13 @@ package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
+
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -35,7 +38,7 @@ import com.splicemachine.derby.test.framework.tables.SpliceOrderLineTable;
  * 
  * Since the demo machine has the current code, we need to ensure demo queries continuously running fine.
  */
-
+@Category(LocalOnlyTest.class)
 public class MicrostrategiesDemoIT extends SpliceUnitTest { 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = MicrostrategiesDemoIT.class.getSimpleName().toUpperCase();

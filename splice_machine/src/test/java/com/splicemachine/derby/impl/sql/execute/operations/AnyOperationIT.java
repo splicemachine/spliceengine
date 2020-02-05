@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.test.LocalOnlyTest;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
@@ -31,6 +33,7 @@ import java.util.List;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.resultSetSize;
 import static org.junit.Assert.assertEquals;
 
+@Category(LocalOnlyTest.class)
 public class AnyOperationIT {
 
     private static final String CLASS_NAME = AnyOperationIT.class.getSimpleName();

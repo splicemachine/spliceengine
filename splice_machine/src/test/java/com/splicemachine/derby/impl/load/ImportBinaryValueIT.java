@@ -18,7 +18,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -33,6 +35,7 @@ import java.sql.PreparedStatement;
  *
  * Created by akorotenko on 1/22/16.
  */
+@Category(LocalOnlyTest.class)
 public class ImportBinaryValueIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();

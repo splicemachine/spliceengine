@@ -19,10 +19,12 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.base.Throwables;
 
 import java.io.File;
@@ -40,6 +42,7 @@ import static org.junit.Assert.fail;
 /**
  * Created by jyuan on 10/9/17.
  */
+@Category(LocalOnlyTest.class)
 public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
     private static final String SCHEMA_NAME = HBaseBulkLoadIndexIT.class.getSimpleName().toUpperCase();
     private static final String LINEITEM = "LINEITEM";

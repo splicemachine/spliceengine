@@ -18,7 +18,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
 
 import java.io.File;
@@ -31,6 +33,7 @@ import static org.junit.Assert.assertNotNull;
  * This test exists to test case-sensitive identifiers because the test framework, SpliceSchemaWatcher,
  * SpliceTableWatcher, etc., uppercase identifiers.
  */
+@Category(LocalOnlyTest.class)
 public class CaseSensitiveImportIT {
     public static final String CLASS_NAME= CaseSensitiveImportIT.class.getSimpleName().toUpperCase();
     @ClassRule

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
+import com.splicemachine.test.LocalOnlyTest;
 import org.spark_project.guava.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -34,7 +35,7 @@ import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceD
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-@Category(MicrostrategiesTests.class)
+@Category({MicrostrategiesTests.class, LocalOnlyTest.class})
 public class MicrostrategiesCustomerIT {
 
     private static final String SCHEMA = MicrostrategiesCustomerIT.class.getSimpleName().toUpperCase();

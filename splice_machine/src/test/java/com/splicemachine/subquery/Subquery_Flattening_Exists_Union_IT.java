@@ -17,10 +17,12 @@ package com.splicemachine.subquery;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 
@@ -29,6 +31,7 @@ import static com.splicemachine.subquery.SubqueryITUtil.*;
 /**
  * Test EXIST subquery flattening for subqueries with unions.
  */
+@Category(LocalOnlyTest.class)
 public class Subquery_Flattening_Exists_Union_IT {
 
     private static final String SCHEMA = Subquery_Flattening_Exists_Union_IT.class.getSimpleName();

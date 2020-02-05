@@ -16,11 +16,13 @@ package com.splicemachine.derby.utils.test;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -55,6 +57,7 @@ import static org.junit.Assert.assertEquals;
  * @author Jeff Cunningham
  *         Date: 1/6/14
  */
+@Category(LocalOnlyTest.class)
 public class DecoderIT {
     private static final Logger LOG = Logger.getLogger(DecoderIT.class);
 

@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by yxia on 10/30/17.
  */
-@Category(value = {SerialTest.class})
+@Category(value = {SerialTest.class, LocalOnlyTest.class})
 @RunWith(Parameterized.class)
 public class AddColumnWithDefaultIT extends SpliceUnitTest {
     private static final String CLASS_NAME = AddColumnWithDefaultIT.class.getSimpleName().toUpperCase();

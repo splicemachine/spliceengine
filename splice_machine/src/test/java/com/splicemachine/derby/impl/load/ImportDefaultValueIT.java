@@ -18,7 +18,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.LocalOnlyTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -70,6 +72,7 @@ import static org.junit.Assert.*;
  * </uL>
  *
  */
+@Category(LocalOnlyTest.class)
 public class ImportDefaultValueIT {
     public static final String UTF_8_CHAR_SET_STR = "UTF-8";
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();

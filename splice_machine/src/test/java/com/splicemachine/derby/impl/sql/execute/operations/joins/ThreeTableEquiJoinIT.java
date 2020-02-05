@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
+import com.splicemachine.test.LocalOnlyTest;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -38,6 +40,7 @@ import java.util.*;
  *         Date: 7/28/14
  */
 @RunWith(Parameterized.class)
+@Category(LocalOnlyTest.class)
 public class ThreeTableEquiJoinIT {
 
     @Parameterized.Parameters

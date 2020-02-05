@@ -20,11 +20,13 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_dao.TriggerBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparkSession;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -41,6 +43,8 @@ import static org.junit.Assert.fail;
  * IT's for external table functionality
  *
  */
+
+@Category(LocalOnlyTest.class)
 public class ExternalTableIT extends SpliceUnitTest{
 
     private static final String SCHEMA_NAME = ExternalTableIT.class.getSimpleName().toUpperCase();

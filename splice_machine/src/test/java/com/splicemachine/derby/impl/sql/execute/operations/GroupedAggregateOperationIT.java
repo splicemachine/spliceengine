@@ -19,6 +19,8 @@ import static junit.framework.Assert.assertEquals;
 import java.sql.ResultSet;
 import java.util.*;
 
+import com.splicemachine.test.LocalOnlyTest;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
@@ -33,6 +35,7 @@ import org.junit.runner.Description;
 
 import com.splicemachine.homeless.TestUtils;
 
+@Category(LocalOnlyTest.class)
 public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = GroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
     public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);

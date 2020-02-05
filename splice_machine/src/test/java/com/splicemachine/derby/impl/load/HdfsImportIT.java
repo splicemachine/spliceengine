@@ -19,11 +19,13 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.hamcrest.Matcher;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -44,6 +46,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.*;
 
+@Category(LocalOnlyTest.class)
 public class HdfsImportIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = HdfsImportIT.class.getSimpleName().toUpperCase();

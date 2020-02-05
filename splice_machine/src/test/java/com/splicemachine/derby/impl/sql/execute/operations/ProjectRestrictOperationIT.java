@@ -16,6 +16,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.client.am.Types;
 import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.test.LocalOnlyTest;
+import org.junit.experimental.categories.Category;
 import org.spark_project.guava.base.Joiner;
 import org.spark_project.guava.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
@@ -40,6 +42,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * This tests basic table scans with and without projection/restriction
  */
+@Category(LocalOnlyTest.class)
 public class ProjectRestrictOperationIT extends SpliceUnitTest{
     private static final int MIN_DECIMAL_DIVIDE_SCALE=4;
     private static Logger LOG=Logger.getLogger(ProjectRestrictOperationIT.class);

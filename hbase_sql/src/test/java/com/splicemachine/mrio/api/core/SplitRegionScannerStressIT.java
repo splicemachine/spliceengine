@@ -27,6 +27,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.region.SamplingFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.test.HBaseTestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
@@ -48,7 +49,7 @@ import java.util.Random;
 /**
  * Created by jyuan on 4/24/16.
  */
-@Category({SlowTest.class, SerialTest.class})
+@Category({SlowTest.class, SerialTest.class, LocalOnlyTest.class})
 public class SplitRegionScannerStressIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SplitRegionScannerStressIT.class);
 

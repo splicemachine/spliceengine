@@ -20,10 +20,12 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.db.client.am.SqlException;
+import com.splicemachine.test.LocalOnlyTest;
 import org.apache.log4j.Logger;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -38,6 +40,7 @@ import java.util.*;
  */
 @RunWith(Parameterized.class)
 @Ignore
+@Category(LocalOnlyTest.class)
 public class EquiJoinOperationIT {
 
     private static Logger LOG = Logger.getLogger(EquiJoinOperationIT.class);

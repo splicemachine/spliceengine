@@ -18,8 +18,10 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_dao.SchemaDAO;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -39,6 +41,7 @@ import static org.junit.Assert.assertEquals;
  * Test table subqueries -- subqueries that can return multiple rows and columns.  These can appear only in FROM,
  * IN, ALL, ANY, or EXISTS parts of the enclosing query.
  */
+@Category(LocalOnlyTest.class)
 public class Subquery_Table_IT extends SpliceUnitTest {
 
     private static final String SCHEMA = Subquery_Table_IT.class.getSimpleName();

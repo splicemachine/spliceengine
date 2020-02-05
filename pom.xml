@@ -1139,6 +1139,37 @@
             </modules>
         </profile>
         <profile>
+            <id>remote</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>cdh5.12.2</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>5.12.2</cdh.parcel.version>
+                <envClassifier>cdh5.12.2</envClassifier>
+                <envHbase>hbase1.2.0</envHbase>
+                <hadoop.version>2.6.0-cdh5.12.2</hadoop.version>
+                <hbase.version>1.2.0-cdh5.12.2</hbase.version>
+                <hive.version>1.1.0-cdh5.12.2</hive.version>
+                <zookeeper.version>3.4.5-cdh5.12.2</zookeeper.version>
+                <spark.major.version>spark2.2</spark.major.version>
+                <spark.version>2.2.0.cloudera2</spark.version>
+                <kafka.version>0.10.0-kafka-2.1.0</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+                <parquet.version>parquet-cloudera</parquet.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>remote_it</module>
+                <module>spark_sql</module>
+                <module>scala_util</module>
+            </modules>
+        </profile>
+        <profile>
             <id>cdh5.12.2</id>
             <activation>
                 <property>
