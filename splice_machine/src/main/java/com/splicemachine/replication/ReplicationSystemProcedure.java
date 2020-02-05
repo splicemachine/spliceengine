@@ -47,6 +47,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 
 import java.io.IOException;
 import java.sql.*;
@@ -60,6 +61,19 @@ import java.util.concurrent.Future;
 public class ReplicationSystemProcedure {
 
     private static Logger LOG = Logger.getLogger(ReplicationSystemProcedure.class);
+
+    public static void GET_REPLICATION_PROGRESS(ResultSet[] resultSets) throws StandardException, SQLException {
+        ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
+        long ts = replicationManager.getReplicationProgress();
+        if (ts > 0) {
+            DateTime dateTime = new DateTime(ts);
+            resultSets[0] = ProcedureUtils.generateResult(
+                    "Replication progress", dateTime.toString());
+        }
+        else {
+            resultSets[0] = ProcedureUtils.generateResult("Error", "Information for available");
+        }
+    }
 
     public static void GET_REPLICATED_WAL_POSITION(String wal, ResultSet[] resultSets) throws StandardException, SQLException {
         ReplicationManager replicationManager = EngineDriver.driver().manager().getReplicationManager();
