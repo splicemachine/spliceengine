@@ -60,13 +60,17 @@ public class SIConstants {
      * 0 = contains commit timestamp (optionally written after writing transaction is final)
      * 1 = tombstone (if value empty) or anti-tombstone (if value "0")
      * 7 = encoded user data
+     * 8 = token placed the first time we write to this row
      * 9 = column for causing write conflicts between concurrent transactions writing to parent and child FK tables
      */
-    public static final byte[] SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes("0");
-    public static final byte[] SNAPSHOT_ISOLATION_TOMBSTONE_COLUMN_BYTES = Bytes.toBytes("1");
-    public static final byte[] SNAPSHOT_ISOLATION_FK_COUNTER_COLUMN_BYTES = Bytes.toBytes("9");
-    public static final byte[] SNAPSHOT_ISOLATION_ANTI_TOMBSTONE_VALUE_BYTES = Bytes.toBytes("0");
-
+    public static final byte[] COMMIT_TIMESTAMP_COLUMN_BYTES = Bytes.toBytes("0");
+    public static final byte[] TOMBSTONE_COLUMN_BYTES = Bytes.toBytes("1");
+    public static final byte[] FK_COUNTER_COLUMN_BYTES = Bytes.toBytes("9");
+    public static final byte[] FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES = Bytes.toBytes("8");
+    public static final byte[] ANTI_TOMBSTONE_VALUE_BYTES = Bytes.toBytes("0");
+    public static final byte[] DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES = Bytes.toBytes("0");
+    public static final byte[] TOMBSTONE_VALUE_BYTES = EMPTY_BYTE_ARRAY;
+    public static final byte[] FIRST_WRITE_VALUE_BYTES = EMPTY_BYTE_ARRAY;
 
     public static final String SI_TRANSACTION_KEY = "T";
     public static final String SI_TRANSACTION_ID_KEY = "A";

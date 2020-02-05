@@ -276,7 +276,7 @@ public class PipelineTest{
     protected void assertCorrectPresence(Txn txn1,KVPair data,DataResult result){
         Assert.assertNotNull("Row was not written!");
         Assert.assertTrue("Incorrect number of cells returned!",result.size()>0);
-        Assert.assertNull("Returned a tombstone!",result.tombstone());
+        Assert.assertNull("Returned a tombstone!",result.tombstoneOrAntiTombstone());
         DataCell dataCell=result.userData();
         Assert.assertNotNull("No User data written!");
         Assert.assertArrayEquals("Incorrect user data value!",data.getValue(),dataCell.value());

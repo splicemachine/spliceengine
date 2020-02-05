@@ -212,6 +212,7 @@ public class ConfigurationBuilder {
     public Map<String,String> olapServerYarnQueues;
     public boolean olapServerIsolatedCompaction;
     public String olapServerIsolatedCompactionQueueName;
+    public boolean olapCompactionAutomaticallyPurgeDeletedRows;
 
 
     /**
