@@ -5,6 +5,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.HBaseTest;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -89,6 +90,7 @@ public class CreateAliasIT extends SpliceUnitTest {
     }
 
     @Test
+    @Category(LocalOnlyTest.class)
     public void testDropAliasInvalidateDistributedCache() throws Exception {
         // step 1: create alias on RS0
         methodWatcher.executeUpdate("create alias a4 for t1");

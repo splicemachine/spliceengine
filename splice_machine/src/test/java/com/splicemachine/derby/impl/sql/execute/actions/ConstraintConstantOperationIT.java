@@ -16,9 +16,11 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -396,6 +398,7 @@ public class ConstraintConstantOperationIT {
     }
 
     @Test
+    @Category(LocalOnlyTest.class)
     public void testCreateTableWithCheckConstraint() throws Exception {
         // this test makes sure that we only add the dependency of Check constraint on relevant role descriptor
 

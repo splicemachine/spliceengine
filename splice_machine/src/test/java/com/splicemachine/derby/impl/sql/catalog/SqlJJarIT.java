@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.catalog;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -40,7 +41,7 @@ import static org.junit.Assert.fail;
  * @author David Winters
  *		 Created on: 9/25/14
  */
-@Category(SerialTest.class) //serial because it loads a jar
+@Category({SerialTest.class, LocalOnlyTest.class}) //serial because it loads a jar
 public class SqlJJarIT extends SpliceUnitTest {
 
 	public static final String CLASS_NAME = SqlJJarIT.class.getSimpleName().toUpperCase();

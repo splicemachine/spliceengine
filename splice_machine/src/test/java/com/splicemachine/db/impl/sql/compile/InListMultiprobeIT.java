@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertEquals;
  * Test the IN list predicates with the multiprobe index scan
  */
 @RunWith(Parameterized.class)
-@Category(SerialTest.class)
+@Category({SerialTest.class})
 public class InListMultiprobeIT  extends SpliceUnitTest {
     
     private Boolean useSpark;
@@ -2435,6 +2436,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
 
     }
     @Test
+    @Category(LocalOnlyTest.class)
     public void testInListWithUdfExpressionsOnPK() throws Exception {
         // step 1: create user defined function and load library
         // install jar file and set classpath

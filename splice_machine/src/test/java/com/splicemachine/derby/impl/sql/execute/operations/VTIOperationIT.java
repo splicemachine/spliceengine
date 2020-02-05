@@ -19,8 +19,10 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -36,6 +38,7 @@ import static org.junit.Assert.fail;
 /**
  * Created by jyuan on 10/12/15.
  */
+@Category(LocalOnlyTest.class)
 public class VTIOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = VTIOperationIT.class.getSimpleName().toUpperCase();
     private static final String TABLE_NAME="EMPLOYEE";

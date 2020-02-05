@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -175,6 +176,7 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
     }
 
     @Test
+    @Category(LocalOnlyTest.class)
     public void testUpdateFromVTITable() throws Exception {
         try {
             spliceClassWatcher.executeUpdate(format("update t1 set (b1) = (select b2 from " +

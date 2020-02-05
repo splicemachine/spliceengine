@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -186,7 +187,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
     }
 
     @Test
-    @Category(HBaseTest.class)
+    @Category({HBaseTest.class, LocalOnlyTest.class})
     public void testExternalTable() throws Exception {
         String tablePath = getExternalResourceDirectory()+"orc_partition_second";
         methodWatcher.execute(String.format("create external table %s.orc_part_2nd (col1 int, col2 int, col3 varchar(10)) " +
