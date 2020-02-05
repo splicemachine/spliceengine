@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -33,6 +34,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 1/19/16
  */
+@Category(LocalOnlyTest.class)
 public class TempTableHBaseIT{
 
     public static final String CLASS_NAME = TempTableHBaseIT.class.getSimpleName().toUpperCase();

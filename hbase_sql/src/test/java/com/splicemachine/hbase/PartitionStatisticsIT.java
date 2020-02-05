@@ -18,6 +18,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
@@ -45,7 +46,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 3/28/16.
  */
-@Category({SerialTest.class,SlowTest.class})
+@Category({SerialTest.class,SlowTest.class, LocalOnlyTest.class})
 public class PartitionStatisticsIT {
     private static final String SCHEMA = PartitionStatisticsIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);

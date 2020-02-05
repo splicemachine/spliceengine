@@ -18,6 +18,7 @@ package com.splicemachine.hbase;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.ClassRule;
@@ -35,7 +36,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-@Category({SerialTest.class})
+@Category({SerialTest.class, LocalOnlyTest.class})
 public class OlapServerIT extends SpliceUnitTest {
     private static final Logger LOG = Logger.getLogger(OlapServerIT.class);
 

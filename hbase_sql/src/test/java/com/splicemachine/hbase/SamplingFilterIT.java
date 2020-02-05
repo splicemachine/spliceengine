@@ -19,6 +19,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.region.SamplingFilter;
+import com.splicemachine.test.LocalOnlyTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -33,10 +34,12 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.HashSet;
 import java.util.Set;
 
+@Category(LocalOnlyTest.class)
 public class SamplingFilterIT extends SpliceUnitTest{
 
     private static final Logger LOG = Logger.getLogger(SamplingFilterIT.class);

@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.ClusterStatus;
@@ -59,7 +60,7 @@ import static org.junit.Assert.fail;
 /**
  * Created by jyuan on 3/28/16.
  */
-@Category(value = {SerialTest.class})
+@Category(value = {SerialTest.class, LocalOnlyTest.class})
 @RunWith(Parameterized.class)
 public class KillOperationIT {
     private static final Logger LOG = Logger.getLogger(KillOperationIT.class);

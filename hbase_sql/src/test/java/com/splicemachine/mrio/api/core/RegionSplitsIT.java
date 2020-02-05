@@ -18,6 +18,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.stream.spark.fake.FakeOutputFormat;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.test.LocalOnlyTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -26,6 +27,7 @@ import org.apache.hadoop.mapreduce.task.JobContextImpl;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -38,6 +40,7 @@ import static org.junit.Assert.assertTrue;
  * @author Mark Sirek
  *         Date: 4/30/19
  */
+@Category(LocalOnlyTest.class)
 public class RegionSplitsIT extends SpliceUnitTest {
     private static final String SCHEMA_NAME = RegionSplitsIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);

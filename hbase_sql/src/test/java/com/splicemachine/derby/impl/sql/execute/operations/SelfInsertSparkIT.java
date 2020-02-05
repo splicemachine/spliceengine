@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.test.HBaseTestUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
@@ -49,7 +50,7 @@ import static org.junit.Assert.assertTrue;
  *
  * Similar to SelfInsertIT but with dependencies on HBase/Spark
  */
-@Category({SlowTest.class, SerialTest.class})
+@Category({SlowTest.class, SerialTest.class, LocalOnlyTest.class})
 public class SelfInsertSparkIT {
     private static Logger LOG=Logger.getLogger(SelfInsertSparkIT.class);
 

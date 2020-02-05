@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
@@ -47,7 +48,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 4/19/16.
  */
-@Category(value = {SlowTest.class})
+@Category(value = {SlowTest.class, LocalOnlyTest.class})
 public class StatisticsColumnMergeIT extends SpliceUnitTest{
 
     private static Logger LOG = Logger.getLogger(StatisticsColumnMergeIT.class);

@@ -20,6 +20,7 @@ import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTestDataSource;
 import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.test.LocalOnlyTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
@@ -35,6 +36,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -51,6 +53,7 @@ import static org.junit.Assert.fail;
 /**
  * Tests transaction resolution during compactions and flushes
  */
+@Category(LocalOnlyTest.class)
 public class TransactionResolutionIT {
     private static final String SCHEMA = TransactionResolutionIT.class.getSimpleName().toUpperCase();
 
